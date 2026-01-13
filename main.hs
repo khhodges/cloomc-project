@@ -389,6 +389,61 @@ instrSAVE cpu d s =
         then Left "TRAP: No SAVE Perm"  -- Permission check failed
         else Right "SUCCESS: Bound."
 
+-- | CALL Instruction: Enter a Procedure / Lambda Abstraction
+-- Implements capability-protected procedure entry:
+--   1. Checks for 'Enter' permission on target capability
+--   2. Pushes current context (CR6, CR7, IP) onto the link stack
+--   3. Enters target: Target becomes CR6, new code loaded into CR7
+-- This is how the PP250 implements safe procedure calls - the caller
+-- cannot enter code without explicit Enter permission granted by the callee.
+instrCALL :: CPUState -> Int -> Either String CPUState
+instrCALL cpu targetIdx = 
+    let targetCR = Map.findWithDefault emptyCR targetIdx (c_regs cpu)
+        currentCR6 = Map.findWithDefault emptyCR 6 (c_regs cpu)
+        currentCR7 = Map.findWithDefault emptyCR 7 (c_regs cpu)
+    in 
+    if cachedName targetCR == "NULL" then Left "TRAP: Target is NULL"
+    else if not (PermEnter `elem` activePerms targetCR) then Left "TRAP: No ENTER Permission"
+    else 
+        let 
+            -- 1. Create Stack Frame (Snapshot of current context)
+            frame = Frame { savedCR6 = currentCR6, savedCR7 = currentCR7, savedOffset = ip_Offset cpu }
+            
+            -- 2. Simulate Entry (Target -> CR6)
+            -- In a real system, we would fetch CR7 from inside the new CR6. 
+            -- Here, we mock a code object to show the context switch.
+            newCodeName = "Code[" ++ cachedName targetCR ++ "]"
+            newCR7 = mkCR newCodeName (Local 0) [PermRead, PermExecute]
+            
+            newRegs = Map.insert 6 targetCR (Map.insert 7 newCR7 (c_regs cpu))
+        in
+        Right cpu { 
+            c_regs = newRegs, 
+            linkStack = frame : linkStack cpu,  -- Push frame onto stack
+            ip_Offset = 0                       -- Reset IP for new procedure
+        }
+
+-- | RETURN Instruction: Exit from a Procedure
+-- Implements capability-protected procedure return:
+--   1. Checks if the link stack has a saved frame
+--   2. Pops the top frame from the stack
+--   3. Restores CR6, CR7, and IP from the saved frame
+-- This completes the CALL/RETURN pair for structured procedure invocation.
+instrRETURN :: CPUState -> Either String CPUState
+instrRETURN cpu = 
+    case linkStack cpu of
+        [] -> Left "TRAP: Stack Underflow (Nothing to Return to)"
+        (frame:rest) -> 
+            let 
+                -- Restore Registers from the saved Frame
+                restoredRegs = Map.insert 6 (savedCR6 frame) (Map.insert 7 (savedCR7 frame) (c_regs cpu))
+            in
+            Right cpu {
+                c_regs = restoredRegs,
+                linkStack = rest,              -- Pop frame from stack
+                ip_Offset = savedOffset frame  -- Restore saved IP
+            }
+
 -- =========================================================================
 -- 5. CONSOLE (CRASH-PROOF)
 -- =========================================================================
@@ -416,6 +471,8 @@ showHelp = do
     putStrLn "| POW  <dest> <src>      | DR[dest] = DR[dest] ^ DR[src]               |"
     putStrLn "| LOAD <dest> <src> <i>  | Load object at index i via CR[src] -> CR[d] |"
     putStrLn "| SAVE <dest> <src>      | Save DR[src] to location via CR[dest]       |"
+    putStrLn "| CALL <reg>             | Call procedure in CR[reg] (requires Enter)  |"
+    putStrLn "| RETURN                 | Return from procedure (pop stack frame)     |"
     putStrLn "| CHANGE <offset>        | Switch to thread at scope offset            |"
     putStrLn "| EXIT                   | Shutdown the system                         |"
     putStrLn "========================================================================="
@@ -510,6 +567,24 @@ runConsole cpu = do
                     Right m -> putStrLn ("   [OK] " ++ m) >> runConsole cpu
                     Left e  -> putStrLn ("[TRAP] " ++ e) >> runConsole cpu
                 _ -> putStrLn "[ERROR] Invalid Arguments" >> runConsole cpu
+
+        -- CALL: Enter a procedure via capability in specified register
+        ("CALL":rStr:_) -> case readInt rStr of
+            Just r -> case instrCALL cpu r of
+                Right newCpu -> do
+                    putStrLn $ "   [OK] CALL to CR" ++ show r ++ " - Entered '" ++ cachedName (Map.findWithDefault emptyCR 6 (c_regs newCpu)) ++ "'"
+                    putStrLn $ "        Stack depth: " ++ show (length (linkStack newCpu))
+                    runConsole newCpu
+                Left e -> putStrLn ("[TRAP] " ++ e) >> runConsole cpu
+            Nothing -> putStrLn "[ERROR] Invalid Register Index" >> runConsole cpu
+
+        -- RETURN: Exit from current procedure, restore caller's context
+        ["RETURN"] -> case instrRETURN cpu of
+            Right newCpu -> do
+                putStrLn $ "   [OK] RETURN - Restored to '" ++ cachedName (Map.findWithDefault emptyCR 6 (c_regs newCpu)) ++ "'"
+                putStrLn $ "        IP restored to: " ++ show (ip_Offset newCpu)
+                runConsole newCpu
+            Left e -> putStrLn ("[TRAP] " ++ e) >> runConsole cpu
                 
         -- Empty input: Just re-prompt (no error)
         [] -> runConsole cpu
