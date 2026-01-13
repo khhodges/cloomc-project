@@ -1198,17 +1198,32 @@ function loadCR7() {
 const mintedCapabilities = [];
 
 function mintCapability() {
-    const name = document.getElementById('mintName').value.trim() || 'NEW_CAP';
+    const name = document.getElementById('mintName').value.trim();
     const locationType = document.getElementById('mintLocationType').value;
     const locationValue = document.getElementById('mintLocation').value.trim();
     const targetReg = parseInt(document.getElementById('mintTarget').value);
+    const size = parseInt(document.getElementById('mintSize').value);
+    
+    if (!name) {
+        dnsLog('ERROR: Capability name is required', 'error');
+        return;
+    }
+    
+    if (!locationValue) {
+        dnsLog('ERROR: Location is required', 'error');
+        return;
+    }
     
     let location;
     if (locationType === 'local') {
-        const offset = parseInt(locationValue) || 0;
+        const offset = parseInt(locationValue);
+        if (isNaN(offset)) {
+            dnsLog('ERROR: Local location requires a numeric offset', 'error');
+            return;
+        }
         location = { type: 'Local', offset: offset };
     } else {
-        location = { type: 'Literal', name: locationValue || 'resource' };
+        location = { type: 'Literal', name: locationValue };
     }
     
     const perms = [];
@@ -1220,12 +1235,17 @@ function mintCapability() {
     if (document.getElementById('mintPermE').checked) perms.push('E');
     if (document.getElementById('mintPermB').checked) perms.push('B');
     
+    if (perms.length === 0) {
+        dnsLog('WARNING: No permissions selected - capability will have no access rights', 'warning');
+    }
+    
     const goldenKey = generateGoldenKey();
     
     const newCapability = {
         name: name,
         location: location,
         perms: perms,
+        size: size,
         locked: true,
         goldenKey: goldenKey
     };
@@ -1253,7 +1273,12 @@ function updateMintPreview(cap, targetReg) {
         ? `local:${cap.location.offset}` 
         : cap.location.name;
     
+    const sizeStr = cap.size >= 1048576 ? `${cap.size / 1048576} MB` :
+                    cap.size >= 1024 ? `${cap.size / 1024} KB` : 
+                    `${cap.size} bytes`;
+    
     let permsHtml = cap.perms.map(p => `<span class="preview-perm">${p}</span>`).join('');
+    if (permsHtml === '') permsHtml = '<span class="preview-perm" style="opacity: 0.5;">---</span>';
     
     preview.innerHTML = `
         <div class="preview-token">
@@ -1263,7 +1288,7 @@ function updateMintPreview(cap, targetReg) {
             </div>
             <div class="preview-token-key">${cap.goldenKey}</div>
             <div class="preview-token-perms">${permsHtml}</div>
-            <div class="preview-token-target">Stored in CR${targetReg} | Location: ${locationStr}</div>
+            <div class="preview-token-target">CR${targetReg} | ${locationStr} | ${sizeStr}</div>
         </div>
     `;
 }
