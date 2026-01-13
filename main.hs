@@ -60,6 +60,9 @@ data CPUState = CPUState {
 pad :: Int -> String -> String
 pad n s = if length s >= n then take n s else s ++ replicate (n - length s) ' '
 
+padNoTrunc :: Int -> String -> String
+padNoTrunc n s = s ++ replicate (max 0 (n - length s)) ' '
+
 permString :: [Permission] -> String
 permString ps = 
     (if PermRead `elem` ps then "R" else "-") ++ (if PermWrite `elem` ps then "W" else "-") ++ 
@@ -67,30 +70,41 @@ permString ps =
     (if PermLoad `elem` ps then "L" else "-") ++ (if PermSave `elem` ps then "S" else "-") ++ 
     (if PermEnter `elem` ps then "E" else "-") ++ (if PermBind `elem` ps then "B" else "-")
 
+formatLoc :: Location -> String
+formatLoc (Local n) = "Local " ++ show n
+formatLoc (Literal s) = "Lit " ++ s
+
 displayHUD :: CPUState -> IO ()
 displayHUD cpu = do
     putStrLn "\n========================== PP250 SYSTEM TELEMETRY =========================="
     putStrLn "|  CONTEXT REGISTERS (WORKING SET)                                         |"
-    putStrLn "+----+----------------------+------------------------+----------+------------+"
-    putStrLn "| ID | REGISTER ROLE        | OBJECT NAME            | RWX LSEB | LOCATION   |"
-    putStrLn "+----+----------------------+------------------------+----------+------------+"
+    putStrLn "+-----+---------------------+-----------------------+---------+-------------+"
+    putStrLn "| ID  | REGISTER ROLE       | OBJECT NAME           | RWX LSE | LOCATION    |"
+    putStrLn "+-----+---------------------+-----------------------+---------+-------------+"
     mapM_ printCR [0..7]
-    putStrLn "+----+----------------------+------------------------+----------+------------+"
-    putStrLn "|  SYSTEM STATE                                                            |"
-    putStrLn "+---------------------------+----------------------------------------------+"
-    putStrLn $ "| CR15 (NAMESPACE)          | " ++ pad 25 (cachedName (cr15_NS cpu)) ++ "                    |"
-    putStrLn $ "| CR8  (THREAD/USER)        | " ++ pad 25 (cachedName (cr8_Thread cpu)) ++ "                    |"
-    putStrLn $ "| IP   (INSTRUCTION PTR)    | " ++ pad 25 (show (ip_Offset cpu)) ++ "                    |"
-    putStrLn $ "| DR0  (ACCUMULATOR 0)      | " ++ pad 25 (printf "0x%X" (Map.findWithDefault 0 0 (d_regs cpu))) ++ "                    |"
-    putStrLn $ "| DR1  (ACCUMULATOR 1)      | " ++ pad 25 (printf "0x%X" (Map.findWithDefault 0 1 (d_regs cpu))) ++ "                    |"
-    putStrLn "============================================================================"
+    putStrLn "+-----+---------------------+-----------------------+---------+-------------+"
+    putStrLn "|  SYSTEM STATE                                                             |"
+    putStrLn "+-----------------------------+---------------------------------------------+"
+    putStrLn $ "| CR15 (NAMESPACE)            | " ++ pad 43 (cachedName (cr15_NS cpu)) ++ " |"
+    putStrLn $ "| CR8  (THREAD/USER)          | " ++ pad 43 (cachedName (cr8_Thread cpu)) ++ " |"
+    putStrLn $ "| IP   (INSTRUCTION PTR)      | " ++ pad 43 (show (ip_Offset cpu)) ++ " |"
+    putStrLn "+-----------------------------+---------------------------------------------+"
+    putStrLn "|  DATA REGISTERS                                                           |"
+    putStrLn "+-------------------+-------------------+-------------------+---------------+"
+    let dr n = printf "0x%016X" (Map.findWithDefault 0 n (d_regs cpu)) :: String
+    putStrLn $ "| DR0: " ++ padNoTrunc 18 (dr 0) ++ " | DR1: " ++ padNoTrunc 18 (dr 1) ++ " |"
+    putStrLn $ "| DR2: " ++ padNoTrunc 18 (dr 2) ++ " | DR3: " ++ padNoTrunc 18 (dr 3) ++ " |"
+    putStrLn $ "| DR4: " ++ padNoTrunc 18 (dr 4) ++ " | DR5: " ++ padNoTrunc 18 (dr 5) ++ " |"
+    putStrLn $ "| DR6: " ++ padNoTrunc 18 (dr 6) ++ " | DR7: " ++ padNoTrunc 18 (dr 7) ++ " |"
+    putStrLn "============================================================================="
   where
     printCR i = do
         let reg = Map.findWithDefault emptyCR i (c_regs cpu)
-        let role = case i of 7 -> "NUCLEUS (CODE)      "; 6 -> "TOOL INSTANCE       "; _ -> "GENERAL CAPABILITY  "
-        let name = if cachedName reg == "NULL" then "NULL                    " else pad 22 (cachedName reg)
-        let pStr = if cachedName reg == "NULL" then "------- " else permString (activePerms reg)
-        putStrLn $ "| CR" ++ show i ++ " | " ++ role ++ " | " ++ name ++ " | " ++ pStr ++ " | " ++ show (cachedLoc reg) ++ "    |"
+        let role = case i of 7 -> "NUCLEUS (CODE)     "; 6 -> "TOOL INSTANCE      "; _ -> "GENERAL CAPABILITY "
+        let name = if cachedName reg == "NULL" then pad 21 "NULL" else pad 21 (cachedName reg)
+        let pStr = if cachedName reg == "NULL" then "--- ---" else take 7 (permString (activePerms reg))
+        let locStr = pad 11 (formatLoc (cachedLoc reg))
+        putStrLn $ "| CR" ++ pad 2 (show i) ++ " | " ++ role ++ " | " ++ name ++ " | " ++ pStr ++ " | " ++ locStr ++ " |"
 
 emptyCR :: ContextRegister
 emptyCR = ContextReg (Local 0) "NULL" [] False
@@ -167,7 +181,7 @@ storeKey reg = if cachedName reg == "NULL" then reg else reg { isLocked = True }
 fetchKey :: ContextRegister -> ContextRegister
 fetchKey storedKey = if cachedName storedKey == "NULL" then storedKey else storedKey { isLocked = False }
 
-instrCHANGE :: CPUState -> Int -> IO CPUState
+instrCHANGE :: CPUState -> Int -> IO (Either String CPUState)
 instrCHANGE cpu offset = do
     putStrLn $ "\n[OP] CHANGE PROCESS (Offset " ++ show offset ++ ")..."
     let currentName = cachedName (cr8_Thread cpu)
@@ -182,17 +196,19 @@ instrCHANGE cpu offset = do
     -- RESTORE
     let newCap = Map.findWithDefault emptyCR offset (scope_CList cpu)
     let newName = cachedName newCap
-    if newName == "NULL" then error "TRAP: CHANGE Failed (Target NULL)" else do
-        let newState = Map.findWithDefault emptyState newName newRAM
-        let restoredCRs = Map.map fetchKey (storedKeys newState)
-        
-        let newCPU = cpu {
-            cr8_Thread = newCap, ip_Offset = storedIP newState, sr_Status = storedSR newState,
-            d_regs = storedDRs newState, c_regs = restoredCRs, linkStack = storedStack newState,
-            ram_Threads = newRAM
-        }
-        putStrLn $ "   > RESTORED: " ++ newName
-        return newCPU
+    if newName == "NULL" 
+        then return $ Left "CHANGE Failed (Target NULL)"
+        else do
+            let newState = Map.findWithDefault emptyState newName newRAM
+            let restoredCRs = Map.map fetchKey (storedKeys newState)
+            
+            let newCPU = cpu {
+                cr8_Thread = newCap, ip_Offset = storedIP newState, sr_Status = storedSR newState,
+                d_regs = storedDRs newState, c_regs = restoredCRs, linkStack = storedStack newState,
+                ram_Threads = newRAM
+            }
+            putStrLn $ "   > RESTORED: " ++ newName
+            return $ Right newCPU
 
 instrEXECUTE_Math :: CPUState -> String -> Int -> Int -> CPUState
 instrEXECUTE_Math cpu op destIdx srcIdx = 
@@ -226,44 +242,74 @@ instrSAVE cpu d s =
 readInt :: String -> Maybe Int
 readInt s = readMaybe s
 
+showHelp :: IO ()
+showHelp = do
+    putStrLn "\n======================= PP250 COMMAND REFERENCE ========================"
+    putStrLn "| Command                | Description                                 |"
+    putStrLn "+------------------------+---------------------------------------------+"
+    putStrLn "| HELP                   | Show this help message                      |"
+    putStrLn "| ADD  <dest> <src>      | DR[dest] = DR[dest] + DR[src]               |"
+    putStrLn "| SUB  <dest> <src>      | DR[dest] = DR[dest] - DR[src]               |"
+    putStrLn "| POW  <dest> <src>      | DR[dest] = DR[dest] ^ DR[src]               |"
+    putStrLn "| LOAD <dest> <src> <i>  | Load object at index i via CR[src] -> CR[d] |"
+    putStrLn "| SAVE <dest> <src>      | Save DR[src] to location via CR[dest]       |"
+    putStrLn "| CHANGE <offset>        | Switch to thread at scope offset            |"
+    putStrLn "| EXIT                   | Shutdown the system                         |"
+    putStrLn "========================================================================="
+
 runConsole :: CPUState -> IO ()
 runConsole cpu = do
     displayHUD cpu 
-    putStr ">> CMD (CHANGE/ADD/SUB/LOAD/SAVE/EXIT): "
+    putStr ">> CMD (HELP for commands): "
     hFlush stdout
     input <- getLine
     
     case words input of
         ["EXIT"] -> putStrLn "--- SHUTDOWN ---"
         
+        ["HELP"] -> showHelp >> runConsole cpu
+        
         -- CHANGE Process
         ("CHANGE":xStr:_) -> case readInt xStr of
-            Just x  -> instrCHANGE cpu x >>= runConsole
-            Nothing -> putStrLn "[CONSOLE ERROR] Invalid Argument (Expected Integer)" >> runConsole cpu
+            Just x  -> do
+                result <- instrCHANGE cpu x
+                case result of
+                    Right newCpu -> runConsole newCpu
+                    Left err     -> putStrLn ("[TRAP] " ++ err) >> runConsole cpu
+            Nothing -> putStrLn "[ERROR] Invalid Argument (Expected Integer)" >> runConsole cpu
             
         -- MATH: ADD/SUB/POW Dest Src (2 Args)
         (op:dStr:sStr:_) | op `elem` ["ADD", "SUB", "POW"] -> 
             case (readInt dStr, readInt sStr) of
-                (Just d, Just s) -> runConsole (instrEXECUTE_Math cpu op d s)
-                _                -> putStrLn "[CONSOLE ERROR] Invalid Register Index" >> runConsole cpu
+                (Just d, Just s) -> do
+                    let newCpu = instrEXECUTE_Math cpu op d s
+                    let oldVal = Map.findWithDefault 0 d (d_regs cpu)
+                    let newVal = Map.findWithDefault 0 d (d_regs newCpu)
+                    putStrLn $ "   [OK] DR" ++ show d ++ ": 0x" ++ printf "%X" oldVal ++ " -> 0x" ++ printf "%X" newVal
+                    runConsole newCpu
+                _                -> putStrLn "[ERROR] Invalid Register Index" >> runConsole cpu
 
         -- LOAD Dest Src Index (3 Args)
         ("LOAD":dStr:sStr:iStr:_) -> 
             case (readInt dStr, readInt sStr, readInt iStr) of
                 (Just d, Just s, Just i) -> case instrLOAD cpu d s i of
-                    Right c -> runConsole c
+                    Right c -> do
+                        putStrLn $ "   [OK] Loaded object into CR" ++ show d
+                        runConsole c
                     Left e  -> putStrLn ("[TRAP] " ++ e) >> runConsole cpu
-                _ -> putStrLn "[CONSOLE ERROR] Invalid Arguments" >> runConsole cpu
+                _ -> putStrLn "[ERROR] Invalid Arguments" >> runConsole cpu
 
         -- SAVE Dest Src (2 Args)
         ("SAVE":dStr:sStr:_) ->
             case (readInt dStr, readInt sStr) of
                 (Just d, Just s) -> case instrSAVE cpu d s of
-                    Right m -> putStrLn ("   " ++ m) >> runConsole cpu
+                    Right m -> putStrLn ("   [OK] " ++ m) >> runConsole cpu
                     Left e  -> putStrLn ("[TRAP] " ++ e) >> runConsole cpu
-                _ -> putStrLn "[CONSOLE ERROR] Invalid Arguments" >> runConsole cpu
+                _ -> putStrLn "[ERROR] Invalid Arguments" >> runConsole cpu
                 
-        _ -> putStrLn "[CONSOLE ERROR] Unknown Command or Wrong Syntax" >> runConsole cpu
+        [] -> runConsole cpu
+        
+        _ -> putStrLn "[ERROR] Unknown Command. Type HELP for available commands." >> runConsole cpu
 
 -- =========================================================================
 -- 6. MAIN
