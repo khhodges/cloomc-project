@@ -3,6 +3,14 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
 }
 
+function generateGoldenKey() {
+    let key = '';
+    for (let i = 0; i < 48; i++) {
+        key += Math.floor(Math.random() * 16).toString(16).toUpperCase();
+    }
+    return key.match(/.{1,8}/g).join('-');
+}
+
 // ==================== BOOT SEQUENCE ====================
 
 let bootState = {
@@ -306,14 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==================== CAPABILITY EXPLORER ====================
-
-function generateGoldenKey() {
-    let key = '';
-    for (let i = 0; i < 48; i++) {
-        key += Math.floor(Math.random() * 16).toString(16).toUpperCase();
-    }
-    return key.match(/.{1,8}/g).join('-');
-}
 
 function createTokenCard(cap, regLabel) {
     const isNull = cap.name === 'NULL';
