@@ -248,6 +248,7 @@ showHelp = do
     putStrLn "| Command                | Description                                 |"
     putStrLn "+------------------------+---------------------------------------------+"
     putStrLn "| HELP                   | Show this help message                      |"
+    putStrLn "| HUD                    | Display the system telemetry panel          |"
     putStrLn "| ADD  <dest> <src>      | DR[dest] = DR[dest] + DR[src]               |"
     putStrLn "| SUB  <dest> <src>      | DR[dest] = DR[dest] - DR[src]               |"
     putStrLn "| POW  <dest> <src>      | DR[dest] = DR[dest] ^ DR[src]               |"
@@ -268,6 +269,8 @@ runConsole cpu = do
         ["EXIT"] -> putStrLn "--- SHUTDOWN ---"
         
         ["HELP"] -> showHelp >> runConsole cpu
+        
+        ["HUD"] -> displayHUD cpu >> runConsole cpu
         
         -- CHANGE Process
         ("CHANGE":xStr:_) -> case readInt xStr of
