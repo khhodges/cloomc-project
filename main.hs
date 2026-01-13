@@ -250,6 +250,7 @@ showHelp = do
     putStrLn "| HELP                   | Show this help message                      |"
     putStrLn "| HUD                    | Display the system telemetry panel          |"
     putStrLn "| NS                     | Display namespace capability (CR15)         |"
+    putStrLn "| CLIST                  | Display C-List of capability keys           |"
     putStrLn "| ADD  <dest> <src>      | DR[dest] = DR[dest] + DR[src]               |"
     putStrLn "| SUB  <dest> <src>      | DR[dest] = DR[dest] - DR[src]               |"
     putStrLn "| POW  <dest> <src>      | DR[dest] = DR[dest] ^ DR[src]               |"
@@ -281,6 +282,25 @@ runConsole cpu = do
             putStrLn $ "| Locked:      " ++ padNoTrunc 49 (show (isLocked ns)) ++ " |"
             putStrLn "+----------------------------------------------------------------+"
             runConsole cpu
+        
+        ["CLIST"] -> do
+            putStrLn "\n+--------------------------- C-LIST (CAPABILITY KEYS) ---------------------------+"
+            putStrLn "| IDX  | NAME                      | LOCATION         | PERMS   | LOCKED |"
+            putStrLn "+------+---------------------------+------------------+---------+--------+"
+            let entries = Map.toList (scope_CList cpu)
+            if null entries
+                then putStrLn "|                           (empty)                                            |"
+                else mapM_ printCListEntry entries
+            putStrLn "+---------------------------------------------------------------------------------+"
+            runConsole cpu
+          where
+            printCListEntry (idx, reg) = do
+                let idxStr = padNoTrunc 4 (show idx)
+                let nameStr = padNoTrunc 25 (cachedName reg)
+                let locStr = padNoTrunc 16 (formatLoc (cachedLoc reg))
+                let permStr = take 7 (permString (activePerms reg))
+                let lockStr = padNoTrunc 6 (if isLocked reg then "Yes" else "No")
+                putStrLn $ "| " ++ idxStr ++ " | " ++ nameStr ++ " | " ++ locStr ++ " | " ++ permStr ++ " | " ++ lockStr ++ " |"
         
         -- CHANGE Process
         ("CHANGE":xStr:_) -> case readInt xStr of
