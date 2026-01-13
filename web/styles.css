@@ -587,6 +587,337 @@ main {
     color: var(--warning);
 }
 
+/* ==================== INSTRUCTION VISUALIZER ==================== */
+
+.visualizer-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.5rem;
+    min-height: calc(100vh - 200px);
+}
+
+.viz-controls {
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+}
+
+.viz-controls h2 {
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+
+.viz-intro {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+}
+
+.viz-instruction-select {
+    margin-bottom: 1rem;
+}
+
+.viz-instruction-select label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.viz-instruction-select select {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.viz-operands {
+    margin-bottom: 1rem;
+}
+
+.viz-operand-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.viz-operand-row label {
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.viz-operand-row input {
+    width: 80px;
+    padding: 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.viz-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.viz-buttons .btn {
+    flex: 1;
+    min-width: 80px;
+}
+
+.btn-setup { background: var(--accent); color: #1a1a2e; }
+.btn-run { background: var(--success); color: #1a1a2e; }
+.btn-run:disabled { background: #555; color: #999; cursor: not-allowed; }
+.btn-reset { background: var(--warning); color: #1a1a2e; }
+
+.viz-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.viz-registers {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 2rem;
+    border: 1px solid var(--border);
+    min-height: 250px;
+}
+
+.viz-reg-column h3 {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.viz-reg-box {
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    margin-bottom: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.viz-reg-box.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.viz-reg-box.highlight {
+    border-color: var(--success);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+.viz-reg-box.viz-dest {
+    border-color: var(--warning);
+}
+
+.viz-reg-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.3rem;
+}
+
+.viz-reg-value {
+    font-family: 'Consolas', monospace;
+    font-size: 1.1rem;
+    color: var(--success);
+}
+
+.viz-alu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.viz-alu-box {
+    background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    min-width: 120px;
+}
+
+.viz-alu-op {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.viz-alu-result {
+    font-family: 'Consolas', monospace;
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.9);
+}
+
+.viz-data-flow {
+    margin-top: 1rem;
+    font-size: 2rem;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.viz-data-flow.show {
+    opacity: 1;
+    animation: pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.viz-flags-panel {
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+}
+
+.viz-flags-panel h3 {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.viz-flags {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.viz-flag {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-input);
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    min-width: 80px;
+    transition: all 0.3s;
+}
+
+.viz-flag span {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.viz-flag.active span {
+    color: var(--success);
+}
+
+.viz-flag.active {
+    border-color: var(--success);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.viz-flag.changed {
+    animation: flagPulse 0.5s ease-in-out;
+}
+
+@keyframes flagPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); background: var(--success); }
+}
+
+.viz-flag-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.3rem;
+}
+
+.viz-explanation {
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+}
+
+.viz-explanation h3 {
+    color: var(--accent);
+    margin-bottom: 1rem;
+}
+
+.viz-steps {
+    font-size: 0.95rem;
+    line-height: 1.8;
+}
+
+.viz-step {
+    padding: 0.8rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-input);
+    border-radius: 6px;
+    border-left: 3px solid var(--border);
+    opacity: 0.5;
+    transition: all 0.3s;
+}
+
+.viz-step.active {
+    opacity: 1;
+    border-left-color: var(--accent);
+}
+
+.viz-step.done {
+    opacity: 1;
+    border-left-color: var(--success);
+}
+
+.viz-step-num {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: var(--border);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 24px;
+    font-size: 0.8rem;
+    margin-right: 0.5rem;
+}
+
+.viz-step.active .viz-step-num {
+    background: var(--accent);
+    color: #1a1a2e;
+}
+
+.viz-step.done .viz-step-num {
+    background: var(--success);
+    color: #1a1a2e;
+}
+
+.viz-hint {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+@media (max-width: 900px) {
+    .visualizer-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .viz-registers {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+}
+
 @media (max-width: 900px) {
     .capabilities-layout {
         grid-template-columns: 1fr;

@@ -396,3 +396,298 @@ function createSampleCapabilities() {
     updateDisplay();
     log('Sample capabilities loaded - click on tokens to explore!', 'success');
 }
+
+// ==================== INSTRUCTION VISUALIZER ====================
+
+const vizInstrInfo = {
+    ADD: { operands: ['dest', 'src'], twoReg: true, op: '+', desc: 'Add two registers' },
+    SUB: { operands: ['dest', 'src'], twoReg: true, op: '-', desc: 'Subtract source from destination' },
+    MUL: { operands: ['dest', 'src'], twoReg: true, op: '*', desc: 'Multiply two registers' },
+    NEG: { operands: ['dest', 'src'], twoReg: true, op: 'NEG', desc: 'Negate source into destination' },
+    AND: { operands: ['dest', 'src'], twoReg: true, op: 'AND', desc: 'Bitwise AND' },
+    ORR: { operands: ['dest', 'src'], twoReg: true, op: 'OR', desc: 'Bitwise OR' },
+    EOR: { operands: ['dest', 'src'], twoReg: true, op: 'XOR', desc: 'Bitwise exclusive OR' },
+    NOT: { operands: ['dest', 'src'], twoReg: true, op: 'NOT', desc: 'Bitwise NOT' },
+    MOV: { operands: ['dest', 'src'], twoReg: true, op: 'MOV', desc: 'Copy value between registers' },
+    MVN: { operands: ['dest', 'src'], twoReg: true, op: 'MVN', desc: 'Move NOT (copy inverted value)' },
+    LSL: { operands: ['dest', 'src', 'amt'], shift: true, op: '<<', desc: 'Logical shift left' },
+    LSR: { operands: ['dest', 'src', 'amt'], shift: true, op: '>>', desc: 'Logical shift right' }
+};
+
+let vizState = {
+    instr: null,
+    dest: 0,
+    src: 0,
+    amt: 1,
+    srcVal1: BigInt(0),
+    srcVal2: BigInt(0),
+    result: BigInt(0),
+    step: 0,
+    ready: false
+};
+
+function updateVizInstruction() {
+    const instr = document.getElementById('vizInstrSelect').value;
+    const info = vizInstrInfo[instr];
+    const container = document.getElementById('vizOperands');
+    
+    let html = `
+        <div class="viz-operand-row">
+            <label>Destination (DR):</label>
+            <input type="number" id="vizDest" min="0" max="7" value="0">
+        </div>
+        <div class="viz-operand-row">
+            <label>Source (DR):</label>
+            <input type="number" id="vizSrc" min="0" max="7" value="1">
+        </div>
+    `;
+    
+    if (info.shift) {
+        html += `
+            <div class="viz-operand-row">
+                <label>Shift Amount:</label>
+                <input type="number" id="vizAmt" min="1" max="63" value="4">
+            </div>
+        `;
+    }
+    
+    html += `
+        <div class="viz-operand-row">
+            <label>Source Value (hex):</label>
+            <input type="text" id="vizSrcValue" value="0x42" placeholder="0x...">
+        </div>
+    `;
+    
+    if (info.twoReg && !['NEG', 'NOT', 'MOV', 'MVN'].includes(instr)) {
+        html += `
+            <div class="viz-operand-row">
+                <label>Dest Initial (hex):</label>
+                <input type="text" id="vizDestValue" value="0x10" placeholder="0x...">
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+    document.getElementById('vizRunBtn').disabled = true;
+    vizState.ready = false;
+}
+
+function setupVisualization() {
+    const instr = document.getElementById('vizInstrSelect').value;
+    const info = vizInstrInfo[instr];
+    
+    vizState.instr = instr;
+    vizState.dest = parseInt(document.getElementById('vizDest').value) || 0;
+    vizState.src = parseInt(document.getElementById('vizSrc').value) || 1;
+    
+    const srcValInput = document.getElementById('vizSrcValue').value;
+    vizState.srcVal2 = BigInt(srcValInput.startsWith('0x') ? srcValInput : '0x' + srcValInput);
+    
+    const destValInput = document.getElementById('vizDestValue');
+    if (destValInput) {
+        const val = destValInput.value;
+        vizState.srcVal1 = BigInt(val.startsWith('0x') ? val : '0x' + val);
+    } else {
+        vizState.srcVal1 = BigInt(0);
+    }
+    
+    if (info.shift) {
+        vizState.amt = parseInt(document.getElementById('vizAmt').value) || 1;
+    }
+    
+    document.getElementById('vizSrcReg1').querySelector('.viz-reg-label').textContent = `DR${vizState.dest}`;
+    document.getElementById('vizSrcReg1').querySelector('.viz-reg-value').textContent = formatHex(vizState.srcVal1);
+    
+    document.getElementById('vizSrcReg2').querySelector('.viz-reg-label').textContent = `DR${vizState.src}`;
+    document.getElementById('vizSrcReg2').querySelector('.viz-reg-value').textContent = formatHex(vizState.srcVal2);
+    
+    document.getElementById('vizALU').querySelector('.viz-alu-op').textContent = info.op;
+    document.getElementById('vizALUResult').textContent = '-';
+    
+    document.getElementById('vizDestReg').querySelector('.viz-reg-label').textContent = `DR${vizState.dest}`;
+    document.getElementById('vizDestReg').querySelector('.viz-reg-value').textContent = '-';
+    
+    ['vizFlagN', 'vizFlagZ', 'vizFlagC', 'vizFlagV'].forEach(id => {
+        document.getElementById(id).classList.remove('active', 'changed');
+    });
+    
+    const steps = generateSteps(instr, info);
+    const stepsContainer = document.getElementById('vizSteps');
+    stepsContainer.innerHTML = steps.map((s, i) => 
+        `<div class="viz-step" id="vizStep${i}"><span class="viz-step-num">${i + 1}</span>${s}</div>`
+    ).join('');
+    
+    vizState.step = 0;
+    vizState.ready = true;
+    document.getElementById('vizRunBtn').disabled = false;
+}
+
+function generateSteps(instr, info) {
+    const d = vizState.dest, s = vizState.src;
+    const steps = [];
+    
+    steps.push(`Read value from <strong>DR${s}</strong>: ${formatHex(vizState.srcVal2)}`);
+    
+    if (info.twoReg && !['NEG', 'NOT', 'MOV', 'MVN'].includes(instr)) {
+        steps.push(`Read current value from <strong>DR${d}</strong>: ${formatHex(vizState.srcVal1)}`);
+    }
+    
+    let opDesc;
+    switch (instr) {
+        case 'ADD': opDesc = `Add: ${formatHex(vizState.srcVal1)} + ${formatHex(vizState.srcVal2)}`; break;
+        case 'SUB': opDesc = `Subtract: ${formatHex(vizState.srcVal1)} - ${formatHex(vizState.srcVal2)}`; break;
+        case 'MUL': opDesc = `Multiply: ${formatHex(vizState.srcVal1)} * ${formatHex(vizState.srcVal2)}`; break;
+        case 'NEG': opDesc = `Negate: -${formatHex(vizState.srcVal2)}`; break;
+        case 'AND': opDesc = `Bitwise AND: ${formatHex(vizState.srcVal1)} AND ${formatHex(vizState.srcVal2)}`; break;
+        case 'ORR': opDesc = `Bitwise OR: ${formatHex(vizState.srcVal1)} OR ${formatHex(vizState.srcVal2)}`; break;
+        case 'EOR': opDesc = `Bitwise XOR: ${formatHex(vizState.srcVal1)} XOR ${formatHex(vizState.srcVal2)}`; break;
+        case 'NOT': opDesc = `Bitwise NOT: ~${formatHex(vizState.srcVal2)}`; break;
+        case 'MOV': opDesc = `Copy value: ${formatHex(vizState.srcVal2)}`; break;
+        case 'MVN': opDesc = `Move NOT: ~${formatHex(vizState.srcVal2)}`; break;
+        case 'LSL': opDesc = `Shift left by ${vizState.amt}: ${formatHex(vizState.srcVal2)} << ${vizState.amt}`; break;
+        case 'LSR': opDesc = `Shift right by ${vizState.amt}: ${formatHex(vizState.srcVal2)} >> ${vizState.amt}`; break;
+        default: opDesc = `Execute ${instr}`;
+    }
+    steps.push(`ALU computes: ${opDesc}`);
+    
+    const result = computeResult(instr);
+    vizState.result = result;
+    steps.push(`Write result to <strong>DR${d}</strong>: ${formatHex(result)}`);
+    
+    steps.push(`Update condition flags (N, Z, C, V)`);
+    
+    return steps;
+}
+
+function computeResult(instr) {
+    const mask = BigInt("0xFFFFFFFFFFFFFFFF");
+    const a = vizState.srcVal1;
+    const b = vizState.srcVal2;
+    const amt = vizState.amt;
+    
+    let result;
+    switch (instr) {
+        case 'ADD': result = (a + b) & mask; break;
+        case 'SUB': result = (a - b) & mask; break;
+        case 'MUL': result = (a * b) & mask; break;
+        case 'NEG': result = (-b) & mask; break;
+        case 'AND': result = a & b; break;
+        case 'ORR': result = a | b; break;
+        case 'EOR': result = a ^ b; break;
+        case 'NOT': result = (~b) & mask; break;
+        case 'MOV': result = b; break;
+        case 'MVN': result = (~b) & mask; break;
+        case 'LSL': result = (b << BigInt(amt)) & mask; break;
+        case 'LSR': result = b >> BigInt(amt); break;
+        default: result = BigInt(0);
+    }
+    return result;
+}
+
+function formatHex(val) {
+    if (typeof val === 'bigint') {
+        return '0x' + val.toString(16).toUpperCase();
+    }
+    return '0x' + val.toString(16).toUpperCase();
+}
+
+async function runVisualization() {
+    if (!vizState.ready) return;
+    
+    document.getElementById('vizRunBtn').disabled = true;
+    const info = vizInstrInfo[vizState.instr];
+    const totalSteps = info.twoReg && !['NEG', 'NOT', 'MOV', 'MVN'].includes(vizState.instr) ? 5 : 4;
+    
+    for (let i = 0; i < totalSteps; i++) {
+        await animateStep(i, totalSteps);
+        await sleep(800);
+    }
+    
+    document.getElementById('vizRunBtn').disabled = false;
+}
+
+async function animateStep(stepNum, totalSteps) {
+    document.querySelectorAll('.viz-step').forEach((el, i) => {
+        el.classList.remove('active');
+        if (i < stepNum) el.classList.add('done');
+    });
+    
+    const currentStep = document.getElementById(`vizStep${stepNum}`);
+    if (currentStep) {
+        currentStep.classList.add('active');
+    }
+    
+    document.querySelectorAll('.viz-reg-box').forEach(el => el.classList.remove('active', 'highlight'));
+    document.getElementById('vizDataFlow').classList.remove('show');
+    
+    const instr = vizState.instr;
+    const hasDestRead = !['NEG', 'NOT', 'MOV', 'MVN'].includes(instr);
+    
+    if (stepNum === 0) {
+        document.getElementById('vizSrcReg2').classList.add('active');
+    } else if (stepNum === 1 && hasDestRead) {
+        document.getElementById('vizSrcReg1').classList.add('active');
+    } else if ((hasDestRead && stepNum === 2) || (!hasDestRead && stepNum === 1)) {
+        document.getElementById('vizDataFlow').classList.add('show');
+        document.getElementById('vizALUResult').textContent = formatHex(vizState.result);
+    } else if ((hasDestRead && stepNum === 3) || (!hasDestRead && stepNum === 2)) {
+        document.getElementById('vizDestReg').classList.add('highlight');
+        document.getElementById('vizDestReg').querySelector('.viz-reg-value').textContent = formatHex(vizState.result);
+    } else {
+        updateVizFlags();
+    }
+}
+
+function updateVizFlags() {
+    const result = vizState.result;
+    const signBit = BigInt("0x8000000000000000");
+    
+    const n = (result & signBit) !== BigInt(0);
+    const z = result === BigInt(0);
+    
+    const flags = { N: n, Z: z, C: false, V: false };
+    
+    ['N', 'Z', 'C', 'V'].forEach(f => {
+        const el = document.getElementById(`vizFlag${f}`);
+        if (flags[f]) {
+            el.classList.add('active', 'changed');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function resetVisualization() {
+    vizState = {
+        instr: null, dest: 0, src: 0, amt: 1,
+        srcVal1: BigInt(0), srcVal2: BigInt(0),
+        result: BigInt(0), step: 0, ready: false
+    };
+    
+    document.getElementById('vizSrcReg1').querySelector('.viz-reg-label').textContent = 'DR?';
+    document.getElementById('vizSrcReg1').querySelector('.viz-reg-value').textContent = '-';
+    document.getElementById('vizSrcReg2').querySelector('.viz-reg-label').textContent = 'DR?';
+    document.getElementById('vizSrcReg2').querySelector('.viz-reg-value').textContent = '-';
+    document.getElementById('vizDestReg').querySelector('.viz-reg-label').textContent = 'DR?';
+    document.getElementById('vizDestReg').querySelector('.viz-reg-value').textContent = '-';
+    document.getElementById('vizALU').querySelector('.viz-alu-op').textContent = '?';
+    document.getElementById('vizALUResult').textContent = '-';
+    
+    document.querySelectorAll('.viz-reg-box').forEach(el => el.classList.remove('active', 'highlight'));
+    document.getElementById('vizDataFlow').classList.remove('show');
+    
+    ['vizFlagN', 'vizFlagZ', 'vizFlagC', 'vizFlagV'].forEach(id => {
+        document.getElementById(id).classList.remove('active', 'changed');
+    });
+    
+    document.getElementById('vizSteps').innerHTML = '<p class="viz-hint">Select an instruction and click Setup to begin</p>';
+    document.getElementById('vizRunBtn').disabled = true;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateVizInstruction();
+});

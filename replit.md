@@ -147,6 +147,9 @@ Used with conditional branches (e.g., `B EQ 10` branches if equal).
 | SWITCH reg | Set CR15 (Namespace) to capability in CR[reg] |
 
 ## Recent Changes
+- 2026-01-13: Added Instruction Visualizer with animated data flow and step-by-step execution
+- 2026-01-13: Added B (Bind) permission for persistent namespace storage
+- 2026-01-13: Added Capability Explorer with Golden Token visualization
 - 2026-01-13: Added full ARM-style instruction set (arithmetic, logic, shifts, compare, branch)
 - 2026-01-13: Added ARM-style NZCV condition flags to arithmetic operations
 - 2026-01-13: Refactored into modular structure with separate instruction files

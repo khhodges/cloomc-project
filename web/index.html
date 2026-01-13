@@ -144,9 +144,94 @@
         </section>
 
         <section id="visualizer" class="view">
-            <div class="visualizer-content">
-                <h2>Instruction Visualizer</h2>
-                <p class="coming-soon">Coming soon - Watch data flow through registers</p>
+            <div class="visualizer-layout">
+                <div class="viz-controls">
+                    <h2>Instruction Visualizer</h2>
+                    <p class="viz-intro">Watch data flow through registers as instructions execute</p>
+                    
+                    <div class="viz-instruction-select">
+                        <label>Select Instruction:</label>
+                        <select id="vizInstrSelect" onchange="updateVizInstruction()">
+                            <optgroup label="Arithmetic">
+                                <option value="ADD">ADD - Add registers</option>
+                                <option value="SUB">SUB - Subtract registers</option>
+                                <option value="MUL">MUL - Multiply registers</option>
+                                <option value="NEG">NEG - Negate register</option>
+                            </optgroup>
+                            <optgroup label="Logic">
+                                <option value="AND">AND - Bitwise AND</option>
+                                <option value="ORR">ORR - Bitwise OR</option>
+                                <option value="EOR">EOR - Bitwise XOR</option>
+                                <option value="NOT">NOT - Bitwise NOT</option>
+                            </optgroup>
+                            <optgroup label="Data Movement">
+                                <option value="MOV">MOV - Move register</option>
+                                <option value="MVN">MVN - Move NOT</option>
+                            </optgroup>
+                            <optgroup label="Shifts">
+                                <option value="LSL">LSL - Logical Shift Left</option>
+                                <option value="LSR">LSR - Logical Shift Right</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <div class="viz-operands" id="vizOperands"></div>
+                    
+                    <div class="viz-buttons">
+                        <button onclick="setupVisualization()" class="btn btn-setup">Setup</button>
+                        <button onclick="runVisualization()" class="btn btn-run" id="vizRunBtn" disabled>Animate</button>
+                        <button onclick="resetVisualization()" class="btn btn-reset">Reset</button>
+                    </div>
+                </div>
+                
+                <div class="viz-stage">
+                    <div class="viz-registers">
+                        <div class="viz-reg-column">
+                            <h3>Source Registers</h3>
+                            <div class="viz-reg-box" id="vizSrcReg1">
+                                <div class="viz-reg-label">DR?</div>
+                                <div class="viz-reg-value">-</div>
+                            </div>
+                            <div class="viz-reg-box" id="vizSrcReg2">
+                                <div class="viz-reg-label">DR?</div>
+                                <div class="viz-reg-value">-</div>
+                            </div>
+                        </div>
+                        
+                        <div class="viz-alu">
+                            <div class="viz-alu-box" id="vizALU">
+                                <div class="viz-alu-op">?</div>
+                                <div class="viz-alu-result" id="vizALUResult">-</div>
+                            </div>
+                            <div class="viz-data-flow" id="vizDataFlow"></div>
+                        </div>
+                        
+                        <div class="viz-reg-column">
+                            <h3>Destination</h3>
+                            <div class="viz-reg-box viz-dest" id="vizDestReg">
+                                <div class="viz-reg-label">DR?</div>
+                                <div class="viz-reg-value">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="viz-flags-panel">
+                        <h3>Condition Flags</h3>
+                        <div class="viz-flags">
+                            <div class="viz-flag" id="vizFlagN"><span>N</span><div class="viz-flag-desc">Negative</div></div>
+                            <div class="viz-flag" id="vizFlagZ"><span>Z</span><div class="viz-flag-desc">Zero</div></div>
+                            <div class="viz-flag" id="vizFlagC"><span>C</span><div class="viz-flag-desc">Carry</div></div>
+                            <div class="viz-flag" id="vizFlagV"><span>V</span><div class="viz-flag-desc">Overflow</div></div>
+                        </div>
+                    </div>
+                    
+                    <div class="viz-explanation" id="vizExplanation">
+                        <h3>Step-by-Step</h3>
+                        <div class="viz-steps" id="vizSteps">
+                            <p class="viz-hint">Select an instruction and click Setup to begin</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
