@@ -18,9 +18,9 @@ args = "Run Haskell"
 name = "Run Haskell"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "runghc main.hs"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "runghc -i. metaMachine.hs"
