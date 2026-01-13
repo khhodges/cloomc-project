@@ -436,6 +436,7 @@ main {
 .perm-l { background: #8b5cf6; }
 .perm-s { background: #10b981; }
 .perm-e { background: #ec4899; }
+.perm-b { background: #14b8a6; }
 
 .cap-main {
     display: flex;

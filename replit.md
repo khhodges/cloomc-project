@@ -47,6 +47,7 @@ Then open http://localhost:5000 in your browser.
 - **CR15 (Namespace)**: Root capability defining system scope
 - **CR8 (Thread)**: Current user/process identity
 - **C-List**: List of capability keys available to current context
+- **Bind Permission (B)**: When set, allows the Golden Token to be saved into the namespace DNA (persistent). When not set, prevents saving - used for temporary lending or newly minted tokens
 - **Condition Flags (NZCV)**: ARM-style flags set by arithmetic operations
   - N (Negative): Result has sign bit set
   - Z (Zero): Result is zero

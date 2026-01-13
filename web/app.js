@@ -199,7 +199,7 @@ function createTokenCard(cap, regLabel) {
     card.className = `token-card ${isNull ? 'null-cap' : ''}`;
     card.onclick = (evt) => showCapabilityDetail(evt, cap, regLabel);
     
-    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E'];
+    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B'];
     const permBadges = allPerms.map(p => {
         const hasIt = cap.perms.includes(p);
         return `<span class="perm-badge perm-${p.toLowerCase()} ${hasIt ? '' : 'inactive'}">${p}</span>`;
@@ -224,10 +224,10 @@ function showCapabilityDetail(evt, cap, regLabel) {
     }
     
     const panel = document.getElementById('capDetailPanel');
-    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E'];
+    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B'];
     const permNames = {
         R: 'Read', W: 'Write', X: 'Execute',
-        L: 'Load', S: 'Store', E: 'Enter'
+        L: 'Load', S: 'Store', E: 'Enter', B: 'Bind'
     };
     
     const permDisplay = allPerms.map(p => {
@@ -276,6 +276,7 @@ function showCapabilityDetail(evt, cap, regLabel) {
                 ${cap.perms.includes('L') ? '<li><strong>Load:</strong> Can load child capabilities from this namespace</li>' : ''}
                 ${cap.perms.includes('S') ? '<li><strong>Store:</strong> Can store capabilities to children</li>' : ''}
                 ${cap.perms.includes('E') ? '<li><strong>Enter:</strong> Can CALL/SWITCH into this namespace</li>' : ''}
+                ${cap.perms.includes('B') ? '<li><strong>Bind:</strong> Can save/bind this token into namespace DNA (persistent)</li>' : ''}
                 ${cap.perms.length === 0 ? '<li>No permissions - this is a NULL capability</li>' : ''}
             </ul>
         </div>
@@ -314,7 +315,7 @@ function createSampleCapabilities() {
     simulator.cr15 = {
         name: "SYSTEM_ROOT",
         location: { type: "Literal", name: "system.namespace" },
-        perms: ["R", "L", "S", "E"],
+        perms: ["R", "L", "S", "E", "B"],
         locked: true,
         goldenKey: generateGoldenKey()
     };
@@ -354,7 +355,7 @@ function createSampleCapabilities() {
     simulator.contextRegs[6] = {
         name: "UserCList",
         location: { type: "Local", offset: 0x300 },
-        perms: ["R", "L", "S"],
+        perms: ["R", "L", "S", "B"],
         locked: false,
         goldenKey: generateGoldenKey()
     };
