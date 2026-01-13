@@ -40,6 +40,15 @@ displayHUD cpu = do
     putStrLn $ "| DR2: " ++ padNoTrunc 18 (dr 2) ++ " | DR3: " ++ padNoTrunc 18 (dr 3) ++ " |"
     putStrLn $ "| DR4: " ++ padNoTrunc 18 (dr 4) ++ " | DR5: " ++ padNoTrunc 18 (dr 5) ++ " |"
     putStrLn $ "| DR6: " ++ padNoTrunc 18 (dr 6) ++ " | DR7: " ++ padNoTrunc 18 (dr 7) ++ " |"
+    putStrLn "+-----------------------------------------------------------------------------+"
+    putStrLn "|  CONDITION FLAGS (ARM-style NZCV)                                         |"
+    putStrLn "+----+----------+----+-------+----+-------+----+----------+-----------------+"
+    let flags = condFlags cpu
+    let n = if flagN flags then "1" else "0"
+    let z = if flagZ flags then "1" else "0"
+    let c = if flagC flags then "1" else "0"
+    let v = if flagV flags then "1" else "0"
+    putStrLn $ "| N: " ++ n ++ " Negative | Z: " ++ z ++ " Zero  | C: " ++ c ++ " Carry | V: " ++ v ++ " Overflow |                 |"
     putStrLn "============================================================================="
 
 printCR :: CPUState -> Int -> IO ()
@@ -71,6 +80,7 @@ showHelp = do
     putStrLn "| ADD  <dest> <src>      | DR[dest] = DR[dest] + DR[src]               |"
     putStrLn "| SUB  <dest> <src>      | DR[dest] = DR[dest] - DR[src]               |"
     putStrLn "| POW  <dest> <src>      | DR[dest] = DR[dest] ^ DR[src]               |"
+    putStrLn "| FLAGS                  | Display condition flags (NZCV)              |"
     putStrLn "| LOAD <dest> <src> <i>  | Load object at index i via CR[src] -> CR[d] |"
     putStrLn "| SAVE <dest> <src>      | Save DR[src] to location via CR[dest]       |"
     putStrLn "| CALL <reg>             | Call procedure in CR[reg] (requires Enter)  |"

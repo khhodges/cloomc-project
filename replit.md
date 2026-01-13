@@ -34,6 +34,11 @@ runghc -i. metaMachine.hs
 - **CR15 (Namespace)**: Root capability defining system scope
 - **CR8 (Thread)**: Current user/process identity
 - **C-List**: List of capability keys available to current context
+- **Condition Flags (NZCV)**: ARM-style flags set by arithmetic operations
+  - N (Negative): Result has sign bit set
+  - Z (Zero): Result is zero
+  - C (Carry): Unsigned overflow on ADD, no borrow on SUB
+  - V (Overflow): Signed overflow detected
 
 ## Available Commands
 | Command | Description |
@@ -42,7 +47,8 @@ runghc -i. metaMachine.hs
 | HUD | Display system telemetry |
 | NS | Display namespace (CR15) |
 | CLIST | Display C-List keys |
-| ADD/SUB/POW dest src | Math operations |
+| FLAGS | Display condition flags (NZCV) |
+| ADD/SUB/POW dest src | Math operations (sets NZCV flags) |
 | LOAD dest src i | Load capability |
 | SAVE dest src | Save data |
 | CALL reg | Enter procedure |
@@ -51,6 +57,7 @@ runghc -i. metaMachine.hs
 | EXIT | Shutdown |
 
 ## Recent Changes
+- 2026-01-13: Added ARM-style NZCV condition flags to arithmetic operations
 - 2026-01-13: Refactored into modular structure with separate instruction files
 - 2026-01-13: Added CALL and RETURN instructions
 - 2026-01-13: Added comprehensive code documentation

@@ -55,6 +55,20 @@ runConsole cpu = do
             putStrLn "+---------------------------------------------------------------------------------+"
             runConsole cpu
         
+        ["FLAGS"] -> do
+            let flags = condFlags cpu
+            let n = if flagN flags then "1 (Negative)" else "0"
+            let z = if flagZ flags then "1 (Zero)"     else "0"
+            let c = if flagC flags then "1 (Carry)"    else "0"
+            let v = if flagV flags then "1 (Overflow)" else "0"
+            putStrLn "\n+------------------- CONDITION FLAGS (ARM-style NZCV) -------------------+"
+            putStrLn $ "| N (Negative): " ++ padNoTrunc 56 n ++ " |"
+            putStrLn $ "| Z (Zero):     " ++ padNoTrunc 56 z ++ " |"
+            putStrLn $ "| C (Carry):    " ++ padNoTrunc 56 c ++ " |"
+            putStrLn $ "| V (Overflow): " ++ padNoTrunc 56 v ++ " |"
+            putStrLn "+------------------------------------------------------------------------+"
+            runConsole cpu
+        
         ("CHANGE":xStr:_) -> case readInt xStr of
             Just x  -> do
                 result <- instrCHANGE cpu x
@@ -69,7 +83,13 @@ runConsole cpu = do
                     let newCpu = instrEXECUTE_Math cpu op d s
                     let oldVal = Map.findWithDefault 0 d (d_regs cpu)
                     let newVal = Map.findWithDefault 0 d (d_regs newCpu)
+                    let flags = condFlags newCpu
+                    let flagStr = "[" ++ (if flagN flags then "N" else "-") 
+                                      ++ (if flagZ flags then "Z" else "-")
+                                      ++ (if flagC flags then "C" else "-")
+                                      ++ (if flagV flags then "V" else "-") ++ "]"
                     putStrLn $ "   [OK] DR" ++ show d ++ ": 0x" ++ printf "%X" oldVal ++ " -> 0x" ++ printf "%X" newVal
+                    putStrLn $ "        Flags: " ++ flagStr
                     runConsole newCpu
                 _                -> putStrLn "[ERROR] Invalid Register Index" >> runConsole cpu
 

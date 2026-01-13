@@ -9,11 +9,13 @@ module PP250.Core.Types (
     Location(..),
     Permission(..),
     ContextRegister(..),
+    ConditionFlags(..),
     SavedThreadState(..),
     StackFrame(..),
     CPUState(..),
     emptyCR,
     emptyState,
+    emptyFlags,
     mkCR
 ) where
 
@@ -49,6 +51,20 @@ data ContextRegister = ContextReg {
     cachedName :: String, 
     activePerms :: [Permission],
     isLocked :: Bool 
+} deriving (Show, Eq)
+
+-- | ConditionFlags represents ARM-style NZCV condition flags.
+-- These flags are set by arithmetic/logic operations and used for
+-- conditional execution. This matches the standard ARM architecture:
+--   flagN - Negative: Set when result is negative (sign bit = 1)
+--   flagZ - Zero: Set when result is zero
+--   flagC - Carry: Set on unsigned overflow, or shift carry-out
+--   flagV - Overflow: Set on signed overflow (two's complement)
+data ConditionFlags = CondFlags {
+    flagN :: Bool,  -- Negative flag (bit 31 of result)
+    flagZ :: Bool,  -- Zero flag (result == 0)
+    flagC :: Bool,  -- Carry flag (unsigned overflow)
+    flagV :: Bool   -- Overflow flag (signed overflow)
 } deriving (Show, Eq)
 
 -- | SavedThreadState stores a complete snapshot of a thread's execution
@@ -90,6 +106,7 @@ data CPUState = CPUState {
     d_regs     :: Map.Map Int Word64,          
     ip_Offset  :: Int,
     sr_Status  :: [String],
+    condFlags  :: ConditionFlags,              -- ARM-style NZCV condition flags
     linkStack  :: [StackFrame],
     cr8_Thread :: ContextRegister,             
     cr15_NS    :: ContextRegister,             
@@ -105,6 +122,11 @@ emptyCR = ContextReg (Local 0) "NULL" [] False
 -- | An empty saved thread state used as a default.
 emptyState :: SavedThreadState
 emptyState = SavedState 0 [] Map.empty Map.empty []
+
+-- | Empty/cleared condition flags (all False).
+-- Used during hardware reset and initialization.
+emptyFlags :: ConditionFlags
+emptyFlags = CondFlags False False False False
 
 -- | Helper to create a new context register with given properties.
 -- Convenience function that sets isLocked to False by default.

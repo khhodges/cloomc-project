@@ -22,7 +22,7 @@ bootStep1_HardwareReset = do
     putStrLn "   > Power Energized. Clearing All Registers to NULL..."
     let emptyRegs = Map.fromList [(i, emptyCR) | i <- [0..7]]
     let emptyData = Map.fromList [(i, 0) | i <- [0..7]]
-    let cpu = CPUState emptyRegs emptyData 0 ["RESET"] [] emptyCR emptyCR Map.empty Map.empty
+    let cpu = CPUState emptyRegs emptyData 0 ["RESET"] emptyFlags [] emptyCR emptyCR Map.empty Map.empty
     displayHUD cpu 
     return cpu
 
