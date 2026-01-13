@@ -151,9 +151,83 @@
         </section>
 
         <section id="capabilities" class="view">
-            <div class="capabilities-content">
-                <h2>Capability Explorer</h2>
-                <p class="coming-soon">Coming soon - Explore Golden Tokens and permissions</p>
+            <div class="capabilities-layout">
+                <div class="cap-sidebar">
+                    <h2>Golden Tokens</h2>
+                    <p class="cap-intro">192-bit capability keys that grant access rights</p>
+                    
+                    <div class="cap-section">
+                        <h3>System Registers</h3>
+                        <div class="token-list" id="systemTokens"></div>
+                    </div>
+                    
+                    <div class="cap-section">
+                        <h3>Context Registers (CR0-CR7)</h3>
+                        <div class="token-list" id="contextTokens"></div>
+                    </div>
+                    
+                    <div class="cap-section">
+                        <h3>C-List (Scope Capabilities)</h3>
+                        <div class="token-list" id="clistTokens"></div>
+                    </div>
+                    
+                    <button onclick="createSampleCapabilities()" class="btn btn-create">Load Sample Capabilities</button>
+                </div>
+                
+                <div class="cap-main">
+                    <div class="cap-detail-panel" id="capDetailPanel">
+                        <h2>Select a Golden Token</h2>
+                        <p class="cap-hint">Click on any capability token to view its details</p>
+                    </div>
+                    
+                    <div class="permission-legend">
+                        <h3>Permission Reference</h3>
+                        <div class="perm-grid">
+                            <div class="perm-item">
+                                <span class="perm-badge perm-r">R</span>
+                                <div class="perm-info">
+                                    <strong>Read</strong>
+                                    <span>Load data from this object</span>
+                                </div>
+                            </div>
+                            <div class="perm-item">
+                                <span class="perm-badge perm-w">W</span>
+                                <div class="perm-info">
+                                    <strong>Write</strong>
+                                    <span>Save data to this object</span>
+                                </div>
+                            </div>
+                            <div class="perm-item">
+                                <span class="perm-badge perm-x">X</span>
+                                <div class="perm-info">
+                                    <strong>Execute</strong>
+                                    <span>Run code from this object</span>
+                                </div>
+                            </div>
+                            <div class="perm-item">
+                                <span class="perm-badge perm-l">L</span>
+                                <div class="perm-info">
+                                    <strong>Load</strong>
+                                    <span>Load child capabilities</span>
+                                </div>
+                            </div>
+                            <div class="perm-item">
+                                <span class="perm-badge perm-s">S</span>
+                                <div class="perm-info">
+                                    <strong>Store</strong>
+                                    <span>Store capabilities to children</span>
+                                </div>
+                            </div>
+                            <div class="perm-item">
+                                <span class="perm-badge perm-e">E</span>
+                                <div class="perm-info">
+                                    <strong>Enter</strong>
+                                    <span>Switch namespace / call procedure</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
