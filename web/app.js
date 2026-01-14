@@ -439,6 +439,8 @@ function updateDataRegisters() {
 function updateSystemState() {
     document.getElementById('cr15Name').textContent = simulator.cr15.name;
     document.getElementById('cr8Name').textContent = simulator.cr8.name;
+    document.getElementById('cr6Name').textContent = simulator.contextRegs[6]?.name || 'NULL';
+    document.getElementById('cr7Name').textContent = simulator.contextRegs[7]?.name || 'NULL';
     document.getElementById('ipValue').textContent = simulator.ip;
     document.getElementById('stackDepth').textContent = simulator.stackDepth;
 }

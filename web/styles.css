@@ -20,6 +20,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
     background: var(--bg-dark);
     color: var(--text-primary);
     min-height: 100vh;

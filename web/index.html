@@ -46,7 +46,7 @@
                 </div>
 
                 <div class="panel system-state">
-                    <h2>System State</h2>
+                    <h2>Functional State</h2>
                     <div class="state-info">
                         <div class="state-row" data-tooltip="Root capability defining the current namespace scope. All access is relative to this.">
                             <span class="label">CR15 (Namespace):</span>
@@ -55,6 +55,14 @@
                         <div class="state-row" data-tooltip="Current thread identity. Determines which user/process is executing.">
                             <span class="label">CR8 (Thread):</span>
                             <span id="cr8Name" class="value">NULL</span>
+                        </div>
+                        <div class="state-row" data-tooltip="CR6 holds the current C-List capability for context access.">
+                            <span class="label">CR6 (C-List):</span>
+                            <span id="cr6Name" class="value">NULL</span>
+                        </div>
+                        <div class="state-row" data-tooltip="CR7 holds the Nucleus (kernel) code capability.">
+                            <span class="label">CR7 (Nucleus):</span>
+                            <span id="cr7Name" class="value">NULL</span>
                         </div>
                         <div class="state-row" data-tooltip="Instruction Pointer. Address of the next instruction to execute.">
                             <span class="label">IP (Instruction Ptr):</span>
