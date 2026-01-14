@@ -954,22 +954,25 @@ ADDI 3 0      ; DR3 = 0
 SUB 3 0       ; DR3 = 0 - 10: N=1, C=0 (borrow)`,
 
     callerCode: `; ========== CALLER CODE ==========
-; Prepares GT literal and arguments
+; Prepares GT selector and arguments
 ; then invokes CALL to capability
 
-; Step 1: Load GT literal (function ID)
-ADDI 0 2      ; DR0 = GT literal 2 (SELECT_WRITE)
+; Step 1: Load GT selector from C-List
+; CR1 = GT_WRITE capability (from namespace)
+LOAD 1 6 2    ; CR1 = C-List[2] (GT_WRITE cap)
 
-; Step 2: Prepare arguments
-ADDI 1 100    ; DR1 = arg1 (address)
-ADDI 2 42     ; DR2 = arg2 (value)
+; Step 2: Prepare data arguments only
+ADDI 1 100    ; DR1 = arg1 (address - data)
+ADDI 2 42     ; DR2 = arg2 (value - data)
 
-; Step 3: Execute CALL
+; Step 3: Execute CALL with GT in CR1
 ; Meta-machine validates E permission
+; GT capability passed in CR1
 CALL 0        ; Call via CR0 capability
 
 ; -------- CONTEXT SWITCH --------
 ; Control transfers to Guard Code
+; GT selector arrives in CR1 (not DR!)
 ; Line numbers restart at offset 0
 ; ================================
 
@@ -981,22 +984,25 @@ CALL 0        ; Call via CR0 capability
     guardCode: `; ========== GUARD CODE ==========
 ; Entry point at offset 0
 ; CALL already validated E permission
-; Dispatch based on GT literal in DR0
+; GT selector arrives in CR1 (capability)
 
-; Offset 0: Read GT selector
-; (DR0 contains GT literal from caller)
+; Offset 0: Validate GT selector
+; CR1 contains GT capability from caller
+; Use TPERM to check GT type
 
-; GT Dispatch Table
-ADDI 3 1      ; DR3 = GT_READ (1)
-ADDI 4 2      ; DR4 = GT_WRITE (2)
-ADDI 5 3      ; DR5 = GT_DELETE (3)
+TPERM 1 R     ; Verify CR1 is valid GT cap
 
-CMP 0 3       ; Is GT == READ?
-; B EQ func_read
-CMP 0 4       ; Is GT == WRITE?
-; B EQ func_write
-CMP 0 5       ; Is GT == DELETE?
-; B EQ func_delete
+; GT Dispatch - compare CR1 to known GTs
+; Load reference GTs from namespace
+LOAD 2 6 0    ; CR2 = GT_READ from C-List
+LOAD 3 6 1    ; CR3 = GT_WRITE from C-List
+LOAD 4 6 2    ; CR4 = GT_DELETE from C-List
+
+; Compare GT keys (caps, not integers!)
+; Branch based on capability match
+; B match_read   ; if CR1 == CR2
+; B match_write  ; if CR1 == CR3
+; B match_delete ; if CR1 == CR4
 
 ; ========== RETURN PROTOCOL ==========
 ; DR0 = return status (0=OK, 1=ERR)
