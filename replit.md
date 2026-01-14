@@ -47,6 +47,7 @@ Then open http://localhost:5000 in your browser.
 - **Data Registers (DR0-DR7)**: Hold 64-bit numeric values
 - **CR15 (Namespace)**: Root capability defining system scope
 - **CR8 (Thread)**: Current user/process identity
+- **Thread Objects**: Type-less containers with open access for microcode to save machine state (data registers DR0-DR7 + Golden Tokens CR0-CR3) during context switches. No program-level access rights - only microcode can read/write thread state, preventing programs from tampering with saved execution context.
 - **C-List**: List of capability keys available to current context
 - **Bind Permission (B)**: When set, allows the Golden Token to be saved into the namespace DNA (persistent). When not set, prevents saving - used for temporary lending or newly minted tokens
 - **Condition Flags (NZCV)**: ARM-style flags set by arithmetic operations
