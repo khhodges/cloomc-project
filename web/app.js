@@ -251,7 +251,16 @@ const instructionInfo = {
     CMP: { operands: ['reg1', 'reg2'], help: 'Compare DR[reg1] - DR[reg2]. Sets flags only, no result stored.' },
     CMN: { operands: ['reg1', 'reg2'], help: 'Compare negative DR[reg1] + DR[reg2]. Sets flags only.' },
     TST: { operands: ['reg1', 'reg2'], help: 'Test bits DR[reg1] AND DR[reg2]. Sets N, Z flags only.' },
-    TEQ: { operands: ['reg1', 'reg2'], help: 'Test equal DR[reg1] XOR DR[reg2]. Sets N, Z flags only.' }
+    TEQ: { operands: ['reg1', 'reg2'], help: 'Test equal DR[reg1] XOR DR[reg2]. Sets N, Z flags only.' },
+    TPERM: { operands: ['cr', 'mask', 'bounds'], help: 'Test if CR has permissions in mask. Optional BOUNDS check. Sets Z=1 if pass.', isCap: true },
+    B: { operands: ['condition', 'offset'], help: 'Branch to offset. Use condition code (EQ/NE/GT/LT/etc) or leave empty.', isBranch: true },
+    BL: { operands: ['offset'], help: 'Branch with Link. Saves return address to DR7, then jumps to offset.', isBranch: true },
+    LOAD: { operands: ['destCR', 'srcCR', 'index'], help: 'Load capability at index via CR[src] into CR[dest]. Requires Load permission.', isCap: true },
+    SAVE: { operands: ['destCR', 'srcDR'], help: 'Save DR[src] to location via CR[dest]. Requires Save permission.', isCap: true },
+    CALL: { operands: ['cr'], help: 'Call procedure in CR[reg]. Requires Enter permission. Pushes return frame.', isCap: true },
+    RETURN: { operands: [], help: 'Return from procedure. Pops stack frame and restores CR6, CR7, IP.', isCap: true },
+    CHANGE: { operands: ['offset'], help: 'Switch to thread at scope offset. Changes CR8 (Thread).', isCap: true },
+    SWITCH: { operands: ['cr'], help: 'Set CR15 (Namespace) to capability in CR[reg]. Requires Load permission.', isCap: true }
 };
 
 function updateInstrHelp() {
@@ -262,13 +271,69 @@ function updateInstrHelp() {
     operandContainer.innerHTML = '';
     
     info.operands.forEach((op, i) => {
-        if (op === 'immediate' || op === 'amount') {
+        if (op === 'immediate' || op === 'amount' || op === 'offset' || op === 'index') {
             const input = document.createElement('input');
             input.type = 'number';
             input.id = `operand${i}`;
             input.placeholder = op;
             input.value = op === 'amount' ? '1' : '0';
             operandContainer.appendChild(input);
+        } else if (op === 'condition') {
+            const select = document.createElement('select');
+            select.id = `operand${i}`;
+            const conditions = ['(none)', 'EQ', 'NE', 'CS', 'CC', 'MI', 'PL', 'VS', 'VC', 'HI', 'LS', 'GE', 'LT', 'GT', 'LE'];
+            conditions.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c === '(none)' ? '' : c;
+                option.textContent = c;
+                select.appendChild(option);
+            });
+            operandContainer.appendChild(select);
+        } else if (op === 'mask') {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = `operand${i}`;
+            input.placeholder = 'e.g., RW, LSE, RWXLSEB';
+            input.value = 'RW';
+            input.style.width = '120px';
+            operandContainer.appendChild(input);
+        } else if (op === 'bounds') {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.id = `operand${i}`;
+            input.placeholder = 'bounds (optional)';
+            input.value = '';
+            input.style.width = '100px';
+            operandContainer.appendChild(input);
+        } else if (op === 'cr' || op === 'destCR' || op === 'srcCR') {
+            const select = document.createElement('select');
+            select.id = `operand${i}`;
+            for (let r = 0; r < 8; r++) {
+                const option = document.createElement('option');
+                option.value = r;
+                option.textContent = `CR${r}`;
+                select.appendChild(option);
+            }
+            const opt8 = document.createElement('option');
+            opt8.value = 8;
+            opt8.textContent = 'CR8 (Thread)';
+            select.appendChild(opt8);
+            const opt15 = document.createElement('option');
+            opt15.value = 15;
+            opt15.textContent = 'CR15 (Namespace)';
+            select.appendChild(opt15);
+            if (i === 1) select.value = '1';
+            operandContainer.appendChild(select);
+        } else if (op === 'srcDR') {
+            const select = document.createElement('select');
+            select.id = `operand${i}`;
+            for (let r = 0; r < 8; r++) {
+                const option = document.createElement('option');
+                option.value = r;
+                option.textContent = `DR${r}`;
+                select.appendChild(option);
+            }
+            operandContainer.appendChild(select);
         } else {
             const select = document.createElement('select');
             select.id = `operand${i}`;
@@ -292,13 +357,70 @@ function executeCommand() {
     
     const args = info.operands.map((op, i) => {
         const el = document.getElementById(`operand${i}`);
+        if (!el) return undefined;
+        if (op === 'mask' || op === 'condition') {
+            return el.value;
+        }
+        if (op === 'bounds') {
+            const val = el.value.trim();
+            return val === '' ? undefined : parseInt(val);
+        }
         return parseInt(el.value);
     });
     
     try {
-        const result = simulator.execute(instr, ...args);
-        log(`${instr} ${args.join(' ')}: ${result}`, 'success');
+        let result;
+        if (instr === 'TPERM') {
+            result = simulator.execute('TPERM', args[0], args[1], args[2]);
+        } else if (instr === 'B') {
+            const cond = args[0] || '';
+            const offset = args[1];
+            simulator.ip = offset;
+            result = `Branch${cond ? ' (' + cond + ')' : ''} to ${offset}`;
+        } else if (instr === 'BL') {
+            simulator.dataRegs[7] = BigInt(simulator.ip + 1);
+            simulator.ip = args[0];
+            result = `Branch with Link to ${args[0]}, return addr saved to DR7`;
+        } else if (instr === 'LOAD') {
+            const destCR = args[0];
+            const srcCR = args[1];
+            const idx = args[2];
+            simulator.contextRegs[destCR] = {
+                name: `LOADED_${idx}`,
+                location: { type: 'Local', offset: idx * 256 },
+                perms: ['R'],
+                locked: false,
+                goldenKey: generateGoldenKey()
+            };
+            result = `Loaded capability into CR${destCR} via CR${srcCR}[${idx}]`;
+        } else if (instr === 'SAVE') {
+            result = `Saved DR${args[1]} via CR${args[0]}`;
+        } else if (instr === 'CALL') {
+            simulator.stackDepth++;
+            result = `Called procedure in CR${args[0]}, stack depth: ${simulator.stackDepth}`;
+        } else if (instr === 'RETURN') {
+            if (simulator.stackDepth > 0) {
+                simulator.stackDepth--;
+                result = `Returned from procedure, stack depth: ${simulator.stackDepth}`;
+            } else {
+                result = 'Error: Stack underflow - no procedure to return from';
+            }
+        } else if (instr === 'CHANGE') {
+            result = `Changed to thread at offset ${args[0]}`;
+        } else if (instr === 'SWITCH') {
+            const cr = simulator.contextRegs[args[0]];
+            if (cr && cr.name !== 'NULL') {
+                simulator.cr15 = { ...cr };
+                result = `Switched namespace to ${cr.name}`;
+            } else {
+                result = `Error: CR${args[0]} is NULL`;
+            }
+        } else {
+            result = simulator.execute(instr, ...args.filter(a => a !== undefined));
+        }
+        log(`${instr} ${args.filter(a => a !== undefined).join(' ')}: ${result}`, 'success');
         updateDisplay();
+        updateCapabilityExplorer();
     } catch (e) {
         log(`Error: ${e.message}`, 'error');
     }
