@@ -131,10 +131,11 @@ const bootSteps = [
         name: "Load Namespace",
         description: "Setting CR15 with Boot namespace capability...",
         action: () => {
+            const bootObj = namespaceObjects.find(o => o.name === "Boot");
             simulator.cr15 = {
                 name: "Boot",
                 location: { type: "Local", offset: 0x0000 },
-                perms: ["R", "L", "S", "E", "B"],
+                perms: bootObj ? bootObj.perms : ["R", "L", "S", "E", "B"],
                 locked: true,
                 goldenKey: generateGoldenKey(),
                 clist: bootNamespace.clist
@@ -146,10 +147,11 @@ const bootSteps = [
         name: "Initialize Thread",
         description: "Creating Kenneth thread capability in CR8...",
         action: () => {
+            const kennethObj = namespaceObjects.find(o => o.name === "Kenneth");
             simulator.cr8 = {
                 name: "Kenneth",
                 location: { type: "Local", offset: 0x1000 },
-                perms: ["R", "W", "E"],
+                perms: kennethObj ? kennethObj.perms : ["R", "W", "E"],
                 locked: false,
                 goldenKey: generateGoldenKey(),
                 clist: threadCLists.Kenneth.clist
