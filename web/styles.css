@@ -2902,6 +2902,7 @@ body.tooltip-hidden [data-tooltip]:hover::before,
 body.tooltip-hidden [data-tooltip]:hover::after {
     visibility: hidden;
     opacity: 0;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
 [data-tooltip].tooltip-right::before {
