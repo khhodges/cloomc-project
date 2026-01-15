@@ -3116,6 +3116,11 @@ body.tooltip-hidden [data-tooltip]:hover::after {
     display: block;
 }
 
+.context-menu-item .submenu.flip-left {
+    left: auto;
+    right: 100%;
+}
+
 .submenu .context-menu-item {
     font-family: 'Consolas', monospace;
     font-size: 0.85rem;

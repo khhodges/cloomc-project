@@ -3241,8 +3241,31 @@ function showCodeContextMenu(e) {
     
     codeEditorCursorPos = editor.selectionStart;
     
-    menu.style.left = e.pageX + 'px';
-    menu.style.top = e.pageY + 'px';
+    const menuWidth = 200;
+    const submenuWidth = 180;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let posX = e.pageX;
+    let posY = e.pageY;
+    
+    if (posX + menuWidth + submenuWidth > viewportWidth) {
+        menu.querySelectorAll('.submenu').forEach(sub => sub.classList.add('flip-left'));
+    } else {
+        menu.querySelectorAll('.submenu').forEach(sub => sub.classList.remove('flip-left'));
+    }
+    
+    if (posX + menuWidth > viewportWidth) {
+        posX = viewportWidth - menuWidth - 10;
+    }
+    
+    const menuHeight = 350;
+    if (posY + menuHeight > viewportHeight) {
+        posY = viewportHeight - menuHeight - 10;
+    }
+    
+    menu.style.left = posX + 'px';
+    menu.style.top = posY + 'px';
     menu.classList.add('visible');
     
     document.getElementById('contextMenu').classList.remove('visible');
