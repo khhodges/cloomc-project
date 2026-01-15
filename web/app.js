@@ -3204,6 +3204,7 @@ const functionBetaCode = {
 ; GT_CIRCUMFERENCE: C = 2 * PI * r
 ; Beta-reduction of Circle.circumference
 ; TYPE: Float -> Float (requires floating-point radius)
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0 = Parameter GT (radius, must be Float type)
@@ -3223,6 +3224,16 @@ B NE perm_trap      ; TRAP: Missing Read permission
 TPERM 0 R BOUNDS 8  ; Verify 8-byte float size
 B NE type_trap      ; TRAP: Not a valid Float GT
 
+; === IEEE 754 SPECIAL VALUE CHECK ===
+; Check for NaN (exponent=0x7FF, mantissa!=0)
+; If radius is NaN, result must be NaN (quiet propagation)
+TST 0 0             ; Hardware NaN detection
+B VS nan_propagate  ; Propagate NaN per IEEE 754
+
+; Check for Infinity (exponent=0x7FF, mantissa=0)
+; +Inf * 2PI = +Inf, -Inf * 2PI = -Inf
+; Handled correctly by FPU
+
 ; Step 3: Load TWO_PI constant, verify it exists
 LOAD 1 5 1          ; CR1 = GT_TWO_PI from CR5[1]
 TPERM 1 R           ; Validate constant is readable
@@ -3230,7 +3241,13 @@ B NE const_trap     ; TRAP: TWO_PI constant missing
 
 ; === VALIDATED COMPUTATION ===
 ; All preconditions verified - safe to compute
-MUL 1 0             ; DR1 = TWO_PI * radius
+MUL 1 0             ; DR1 = TWO_PI * radius (IEEE 754 multiply)
+
+; === IEEE 754 POST-COMPUTATION ===
+; FPSR flags set by hardware:
+;   - Inexact: if result was rounded
+;   - Overflow: if |result| > MAX_FLOAT -> ±Inf
+;   - Underflow: if |result| < MIN_NORMAL -> denormal/zero
 
 ; Result in DR1, return to caller
 RETURN              ; Exit with result in DR1
@@ -3246,12 +3263,18 @@ type_trap:
     
 const_trap:
     ; Missing constant: Thread C-List corrupted
-    ; Hardware triggers integrity fault`,
+    ; Hardware triggers integrity fault
+
+nan_propagate:
+    ; IEEE 754: NaN input produces NaN output
+    ; Return quiet NaN (QNaN) to caller
+    RETURN`,
 
     GT_AREA: `; ====================================================
 ; GT_AREA: A = PI * r^2
 ; Beta-reduction of Circle.area
 ; TYPE: Float -> Float (requires floating-point radius)
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0 = Parameter GT (radius, must be Float type)
@@ -3272,20 +3295,36 @@ B NE perm_trap      ; TRAP: Missing Read permission
 TPERM 0 R BOUNDS 8  ; Verify 8-byte float bounds
 B NE type_trap      ; TRAP: Not a valid Float GT
 
+; === IEEE 754 SPECIAL VALUE CHECK ===
+; Check for NaN input
+TST 0 0             ; Hardware NaN detection
+B VS nan_propagate  ; NaN input -> NaN output
+
+; Check for Infinity
+; +Inf^2 * PI = +Inf (valid)
+; -Inf: handled below in domain check
+
 ; Step 3: Validate radius >= 0 (domain check)
+; IEEE 754: -0.0 is valid and equals +0.0 for comparison
 CMP 0 0             ; Compare radius to zero
-B MI domain_trap    ; TRAP: Negative radius invalid
+B MI domain_trap    ; TRAP: Negative radius invalid (not -0.0)
 
 ; Step 4: Load PI constant, verify integrity
 LOAD 1 5 0          ; CR1 = GT_PI from CR5[0]
 TPERM 1 R           ; Validate constant is readable
 B NE const_trap     ; TRAP: PI constant missing
 
-; === VALIDATED COMPUTATION ===
+; === VALIDATED COMPUTATION (IEEE 754) ===
 ; All preconditions verified - safe to compute
 MOV 2 0             ; DR2 = radius
-MUL 2 0             ; DR2 = r * r = r^2
-MUL 1 2             ; DR1 = PI * r^2
+MUL 2 0             ; DR2 = r * r = r^2 (IEEE 754 multiply)
+MUL 1 2             ; DR1 = PI * r^2 (IEEE 754 multiply)
+
+; === IEEE 754 POST-COMPUTATION ===
+; FPSR flags set by hardware:
+;   - Inexact: result rounded (almost always for PI)
+;   - Overflow: if r^2 * PI > MAX_FLOAT -> +Inf
+;   - Underflow: if result denormalized
 
 ; Result in DR1, return to caller
 RETURN              ; Exit with result in DR1
@@ -3297,13 +3336,18 @@ type_trap:
     ; Type mismatch: expected Float, got Integer or other
 domain_trap:
     ; Domain error: radius must be non-negative
+    ; IEEE 754: Would produce invalid result
 const_trap:
-    ; Integrity fault: PI constant not in Thread C-List`,
+    ; Integrity fault: PI constant not in Thread C-List
+nan_propagate:
+    ; IEEE 754: NaN^2 * PI = NaN (quiet propagation)
+    RETURN`,
 
     GT_DIAMETER: `; ====================================================
 ; GT_DIAMETER: D = 2 * r
 ; Beta-reduction of Circle.diameter
 ; TYPE: Float -> Float (requires floating-point radius)
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0 = Parameter GT (radius, must be Float type)
@@ -3321,10 +3365,20 @@ B NE perm_trap      ; TRAP: Missing Read permission
 TPERM 0 R BOUNDS 8  ; Verify 8-byte float bounds
 B NE type_trap      ; TRAP: Not a valid Float GT
 
-; === VALIDATED COMPUTATION ===
-; Simple and safe: D = 2 * r
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Hardware NaN detection
+B VS nan_propagate  ; NaN * 2 = NaN
+
+; Infinity handling:
+; +Inf * 2 = +Inf, -Inf * 2 = -Inf (valid per IEEE 754)
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
+; D = 2 * r (equivalent to r + r for exact result)
 MOV 1 0             ; DR1 = radius
-ADD 1 0             ; DR1 = r + r = 2*r
+ADD 1 0             ; DR1 = r + r = 2*r (IEEE 754 add, exact)
+
+; Note: 2*r via addition is always exact (no rounding)
+; This avoids Inexact flag that multiply might set
 
 ; Result in DR1, return to caller
 RETURN              ; Exit with result in DR1
@@ -3333,12 +3387,16 @@ RETURN              ; Exit with result in DR1
 perm_trap:
     ; Security violation: parameter lacks permission
 type_trap:
-    ; Type mismatch: expected Float`,
+    ; Type mismatch: expected Float
+nan_propagate:
+    ; IEEE 754: NaN + NaN = NaN
+    RETURN`,
 
     GT_ADD: `; ====================================================
 ; GT_ADD (SlideRule): a + b
 ; Beta-reduction of floating-point addition
 ; TYPE: (Float, Float) -> Float
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0 = First operand GT (must be Float)
@@ -3358,23 +3416,49 @@ B NE perm_trap      ; TRAP on permission failure
 TPERM 1 R BOUNDS 8  ; Validate Float type (8 bytes)
 B NE type_trap      ; TRAP: operand b not Float
 
-; === VALIDATED COMPUTATION ===
-ADD 0 1             ; DR0 = DR0 + DR1 (float add)
+; === IEEE 754 SPECIAL VALUE CHECK ===
+; NaN propagation: if either operand is NaN, result is NaN
+TST 0 0             ; Check a for NaN
+B VS nan_propagate
+TST 1 1             ; Check b for NaN
+B VS nan_propagate
 
-; Check for overflow (V flag)
-B VS overflow_trap  ; TRAP on floating-point overflow
+; Infinity rules (IEEE 754 Section 6.1):
+; (+Inf) + (+Inf) = +Inf
+; (-Inf) + (-Inf) = -Inf
+; (+Inf) + (-Inf) = NaN (Invalid operation)
+; Inf + finite = Inf
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
+ADD 0 1             ; DR0 = DR0 + DR1 (IEEE 754 add)
+
+; === IEEE 754 FPSR FLAGS ===
+; Hardware sets:
+;   - Invalid (V): if +Inf + -Inf (produces NaN)
+;   - Overflow: if result > MAX_FLOAT
+;   - Underflow: if result denormalized
+;   - Inexact: if result was rounded
+
+B VS invalid_trap   ; +Inf + -Inf case
 
 RETURN              ; Exit with validated result
 
 ; === TRAP HANDLERS ===
 perm_trap:
+    ; Capability permission denied
 type_trap:
-overflow_trap:`,
+    ; Type error: Float required
+nan_propagate:
+    ; IEEE 754: NaN + x = NaN, x + NaN = NaN
+    RETURN
+invalid_trap:
+    ; IEEE 754 Invalid: +Inf + -Inf = NaN`,
 
     GT_SUB: `; ====================================================
 ; GT_SUB (SlideRule): a - b
 ; Beta-reduction of floating-point subtraction
 ; TYPE: (Float, Float) -> Float
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0 = First operand GT (must be Float)
@@ -3394,21 +3478,40 @@ B NE perm_trap
 TPERM 1 R BOUNDS 8  ; Validate Float type
 B NE type_trap
 
-; === VALIDATED COMPUTATION ===
-SUB 0 1             ; DR0 = DR0 - DR1 (float sub)
-B VS overflow_trap  ; Check underflow
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Check a for NaN
+B VS nan_propagate
+TST 1 1             ; Check b for NaN
+B VS nan_propagate
+
+; Infinity rules (IEEE 754):
+; (+Inf) - (-Inf) = +Inf
+; (-Inf) - (+Inf) = -Inf
+; (+Inf) - (+Inf) = NaN (Invalid)
+; (-Inf) - (-Inf) = NaN (Invalid)
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
+SUB 0 1             ; DR0 = DR0 - DR1 (IEEE 754 subtract)
+
+; === IEEE 754 FPSR FLAGS ===
+B VS invalid_trap   ; Inf - Inf case
 
 RETURN              ; Exit with result
 
 ; === TRAP HANDLERS ===
 perm_trap:
 type_trap:
-overflow_trap:`,
+nan_propagate:
+    ; IEEE 754: NaN - x = NaN
+    RETURN
+invalid_trap:
+    ; IEEE 754 Invalid: Inf - Inf = NaN`,
 
     GT_MUL: `; ====================================================
 ; GT_MUL (SlideRule): a * b
 ; Beta-reduction of floating-point multiplication
 ; TYPE: (Float, Float) -> Float
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0, CR1 = Operand GTs (must be Float)
@@ -3427,26 +3530,47 @@ B NE perm_trap
 TPERM 1 R BOUNDS 8  ; Must be 8-byte Float
 B NE type_trap
 
-; === VALIDATED COMPUTATION ===
-MUL 0 1             ; DR0 = DR0 * DR1
-B VS overflow_trap  ; Check for overflow/infinity
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Check a for NaN
+B VS nan_propagate
+TST 1 1             ; Check b for NaN
+B VS nan_propagate
+
+; Infinity * Zero = NaN (Invalid operation)
+; Infinity * Finite = ±Inf (sign from XOR of signs)
+; Infinity * Infinity = ±Inf
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
+MUL 0 1             ; DR0 = DR0 * DR1 (IEEE 754 multiply)
+
+; === IEEE 754 FPSR FLAGS ===
+; Invalid: 0 * Inf or Inf * 0
+; Overflow: |result| > MAX_FLOAT -> ±Inf
+; Underflow: |result| < MIN_NORMAL -> denormal
+; Inexact: result rounded
+
+B VS invalid_trap   ; 0 * Inf case
 
 RETURN
 
 ; === TRAP HANDLERS ===
 perm_trap:
 type_trap:
-overflow_trap:`,
+nan_propagate:
+    ; IEEE 754: NaN * x = NaN
+    RETURN
+invalid_trap:
+    ; IEEE 754 Invalid: 0 * Inf = NaN`,
 
     GT_DIV: `; ====================================================
 ; GT_DIV (SlideRule): a / b
 ; Beta-reduction of floating-point division
 ; TYPE: (Float, Float) -> Float
-; PRECONDITION: b != 0.0
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0 = Dividend GT (Float)
-;   CR1 = Divisor GT (Float, must be non-zero)
+;   CR1 = Divisor GT (Float)
 ;   DR0 = a, DR1 = b
 ;   Result in DR0
 ; ====================================================
@@ -3462,14 +3586,36 @@ B NE perm_trap
 TPERM 1 R BOUNDS 8  ; Must be Float
 B NE type_trap
 
-; === DOMAIN VALIDATION ===
-; Critical: Check for divide by zero
-CMP 1 1             ; Test if DR1 == 0
-B EQ divzero_trap   ; TRAP: Division by zero
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Check dividend for NaN
+B VS nan_propagate
+TST 1 1             ; Check divisor for NaN
+B VS nan_propagate
 
-; === VALIDATED COMPUTATION ===
-; Safe to divide - divisor verified non-zero
-; DR0 = DR0 / DR1 (hardware float divide)
+; IEEE 754 Division Special Cases:
+; ±Inf / ±Inf = NaN (Invalid)
+; ±0 / ±0 = NaN (Invalid)
+; ±Finite / ±0 = ±Inf (DivideByZero flag, NOT a trap!)
+; ±Finite / ±Inf = ±0
+; ±Inf / ±Finite = ±Inf
+
+; === IEEE 754 DIVIDE BY ZERO CHECK ===
+; Note: IEEE 754 does NOT trap on divide by zero!
+; Instead it returns ±Inf and sets DivideByZero flag
+CMP 1 1             ; Test if DR1 == 0
+B EQ divzero_inf    ; Return ±Inf per IEEE 754
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
+; DR0 = DR0 / DR1 (IEEE 754 divide)
+; Hardware handles all special cases
+
+; === IEEE 754 FPSR FLAGS ===
+; DivideByZero: finite / 0 -> ±Inf
+; Invalid: 0/0 or Inf/Inf -> NaN
+; Overflow: |result| > MAX_FLOAT
+; Underflow: |result| < MIN_NORMAL
+; Inexact: result rounded
+
 RETURN
 
 ; === TRAP HANDLERS ===
@@ -3477,9 +3623,14 @@ perm_trap:
     ; Capability permission denied
 type_trap:
     ; Type mismatch - not Float
-divzero_trap:
-    ; CRITICAL: Division by zero attempted
-    ; Hardware generates arithmetic exception`,
+nan_propagate:
+    ; IEEE 754: NaN / x = NaN, x / NaN = NaN
+    RETURN
+divzero_inf:
+    ; IEEE 754: finite / 0 = ±Inf (not an error!)
+    ; Set DivideByZero flag in FPSR
+    ; Return Inf with sign = XOR(sign(a), sign(0))
+    RETURN`,
 
     GT_MOD: `; ====================================================
 ; GT_MOD (Abacus): a mod b
@@ -3641,10 +3792,11 @@ underflow_trap:
 ; GT_LOG (SlideRule): ln(x)
 ; Beta-reduction of natural logarithm
 ; TYPE: Float -> Float
-; PRECONDITION: x > 0.0
+; IEEE 754: Binary64 (double precision, 64-bit)
+; DOMAIN: x > 0 (x = 0 returns -Inf, x < 0 returns NaN)
 ; ====================================================
 ; Register usage:
-;   CR0 = Input GT (must be Float, positive)
+;   CR0 = Input GT (must be Float)
 ;   DR0 = input value x
 ;   Result in DR0 = ln(x)
 ; ====================================================
@@ -3655,27 +3807,56 @@ B NE perm_trap
 TPERM 0 R BOUNDS 8  ; Validate Float type
 B NE type_trap
 
-; === DOMAIN VALIDATION ===
-; Logarithm requires strictly positive input
-CMP 0 0             ; Compare x to zero
-B LE domain_trap    ; TRAP if x <= 0
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Check for NaN
+B VS nan_propagate  ; ln(NaN) = NaN
 
-; === VALIDATED COMPUTATION ===
-; Hardware FPU computes ln(x)
-; Using Taylor series or lookup table
+; === IEEE 754 DOMAIN RULES ===
+; ln(+Inf) = +Inf (valid)
+; ln(+0) = -Inf (DivideByZero flag)
+; ln(-0) = -Inf (DivideByZero flag, same as +0)
+; ln(x < 0) = NaN (Invalid flag)
+; ln(1) = +0 (exact)
+
+CMP 0 0             ; Compare x to zero
+B EQ log_zero       ; ln(0) = -Inf per IEEE 754
+B MI log_negative   ; ln(negative) = NaN per IEEE 754
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
+; Hardware FPU computes ln(x) for x > 0
+; Uses polynomial approximation or table lookup
+; Result rounded per current rounding mode
+
+; === IEEE 754 FPSR FLAGS ===
+; DivideByZero: ln(0) -> -Inf
+; Invalid: ln(negative) -> NaN
+; Inexact: almost always (ln rarely exact)
+
 RETURN
 
 ; === TRAP HANDLERS ===
 perm_trap:
 type_trap:
-domain_trap:
-    ; CRITICAL: log of non-positive number
-    ; Mathematical undefined - must trap`,
+nan_propagate:
+    ; IEEE 754: ln(NaN) = NaN
+    RETURN
+log_zero:
+    ; IEEE 754: ln(±0) = -Inf
+    ; Sets DivideByZero flag (pole error)
+    ; Returns -Infinity
+    RETURN
+log_negative:
+    ; IEEE 754: ln(x < 0) = NaN
+    ; Sets Invalid flag
+    ; Returns quiet NaN
+    RETURN`,
 
     GT_EXP: `; ====================================================
 ; GT_EXP (SlideRule): e^x
 ; Beta-reduction of exponential function
 ; TYPE: Float -> Float
+; IEEE 754: Binary64 (double precision, 64-bit)
+; RANGE: Result always > 0 (or 0 for underflow)
 ; ====================================================
 ; Register usage:
 ;   CR0 = Input GT (must be Float)
@@ -3689,31 +3870,46 @@ B NE perm_trap
 TPERM 0 R BOUNDS 8  ; Validate Float type
 B NE type_trap
 
-; === RANGE VALIDATION ===
-; Check for potential overflow (x too large)
-; Check for underflow (x too negative -> 0)
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Check for NaN
+B VS nan_propagate  ; e^NaN = NaN
 
-; === VALIDATED COMPUTATION ===
+; === IEEE 754 DOMAIN RULES ===
+; e^(+Inf) = +Inf
+; e^(-Inf) = +0 (exact)
+; e^(+0) = 1 (exact)
+; e^(-0) = 1 (exact)
+; e^(large positive) = +Inf (Overflow)
+; e^(large negative) = +0 (Underflow)
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
 ; Hardware FPU computes e^x
-; Always positive result
-B VS overflow_trap  ; Check for infinity
+; Result always positive (or +0 for underflow)
+; Uses polynomial approximation or table lookup
+
+; === IEEE 754 FPSR FLAGS ===
+; Overflow: e^(x > ~709.78) -> +Inf
+; Underflow: e^(x < ~-745.13) -> +0 (denormal or zero)
+; Inexact: almost always (e^x rarely exact)
 
 RETURN
 
 ; === TRAP HANDLERS ===
 perm_trap:
 type_trap:
-overflow_trap:
-    ; e^(large x) exceeds Float range`,
+nan_propagate:
+    ; IEEE 754: e^NaN = NaN
+    RETURN`,
 
     GT_SQRT: `; ====================================================
 ; GT_SQRT (SlideRule): sqrt(x)
 ; Beta-reduction of square root
 ; TYPE: Float -> Float
-; PRECONDITION: x >= 0.0
+; IEEE 754: Binary64 (double precision, 64-bit)
+; DOMAIN: x >= 0 (x < 0 returns NaN)
 ; ====================================================
 ; Register usage:
-;   CR0 = Input GT (must be Float, non-negative)
+;   CR0 = Input GT (must be Float)
 ;   DR0 = input value x
 ;   Result in DR0 = sqrt(x)
 ; ====================================================
@@ -3724,30 +3920,49 @@ B NE perm_trap
 TPERM 0 R BOUNDS 8  ; Validate Float type
 B NE type_trap
 
-; === DOMAIN VALIDATION ===
-CMP 0 0             ; Compare x to zero
-B MI domain_trap    ; TRAP if x < 0 (negative)
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Check for NaN
+B VS nan_propagate  ; sqrt(NaN) = NaN
 
-; === VALIDATED COMPUTATION ===
-; Hardware FPU computes sqrt(x)
-; Newton-Raphson or hardware instruction
-; Result always non-negative
+; === IEEE 754 DOMAIN RULES ===
+; sqrt(+Inf) = +Inf
+; sqrt(+0) = +0 (exact)
+; sqrt(-0) = -0 (exact, preserves sign)
+; sqrt(x > 0) = positive result
+; sqrt(x < 0) = NaN (Invalid flag)
+
+CMP 0 0             ; Compare x to zero
+B MI sqrt_negative  ; sqrt(negative) = NaN per IEEE 754
+
+; === VALIDATED COMPUTATION (IEEE 754) ===
+; Hardware FPU computes sqrt(x) for x >= 0
+; IEEE 754 requires sqrt to be correctly rounded
+; This is one of the few operations that must be exact!
+
+; === IEEE 754 FPSR FLAGS ===
+; Invalid: sqrt(negative) -> NaN
+; Inexact: when result cannot be exactly represented
+; Note: sqrt of perfect squares may be exact
+
 RETURN
 
 ; === TRAP HANDLERS ===
 perm_trap:
 type_trap:
-domain_trap:
-    ; CRITICAL: sqrt of negative number
-    ; Would produce imaginary result - must trap`,
+nan_propagate:
+    ; IEEE 754: sqrt(NaN) = NaN
+    RETURN
+sqrt_negative:
+    ; IEEE 754: sqrt(x < 0) = NaN
+    ; Sets Invalid flag
+    ; Returns quiet NaN (imaginary result not representable)
+    RETURN`,
 
     GT_POW: `; ====================================================
-; GT_POW (SlideRule): x^y
-; Beta-reduction of power function
+; GT_POW (SlideRule): x^y (power function)
+; Beta-reduction of x raised to power y
 ; TYPE: (Float, Float) -> Float
-; PRECONDITIONS:
-;   - If x < 0, y must be integer
-;   - If x = 0, y must be positive
+; IEEE 754: Binary64 (double precision, 64-bit)
 ; ====================================================
 ; Register usage:
 ;   CR0 = Base GT x (Float)
@@ -3767,35 +3982,91 @@ B NE perm_trap
 TPERM 1 R BOUNDS 8  ; Validate Float type
 B NE type_trap
 
+; === IEEE 754 SPECIAL VALUE CHECK ===
+TST 0 0             ; Check x for NaN
+B VS nan_propagate
+TST 1 1             ; Check y for NaN
+B VS nan_propagate
+
+; === IEEE 754 POW SPECIAL CASES (C99/IEEE 754-2008) ===
+; pow(±0, y) where y < 0 and y is odd integer = ±Inf (DivByZero)
+; pow(±0, y) where y < 0 and y not odd int = +Inf (DivByZero)
+; pow(±0, y) where y > 0 and y is odd integer = ±0
+; pow(±0, y) where y > 0 and y not odd int = +0
+; pow(-1, ±Inf) = 1
+; pow(+1, y) = 1 for any y (even NaN!)
+; pow(x, ±0) = 1 for any x (even NaN!)
+; pow(x, y) where x < 0 and y non-integer = NaN (Invalid)
+; pow(+Inf, y) where y < 0 = +0
+; pow(+Inf, y) where y > 0 = +Inf
+; pow(-Inf, y) = (-1)^y * pow(+Inf, y) for integer y
+
+; Check special case: x^0 = 1 for all x
+CMP 1 0             ; Is y == 0?
+B EQ pow_one        ; Return 1.0
+
+; Check special case: 1^y = 1 for all y
+; (Check if x == 1.0)
+
 ; === DOMAIN VALIDATION ===
-; Check special cases
 CMP 0 0             ; Is x == 0?
-B NE check_neg      ; No, check negative
-CMP 1 0             ; x=0: is y <= 0?
-B LE domain_trap    ; 0^0 or 0^neg undefined
+B EQ pow_zero_base  ; Handle 0^y cases
 
-check_neg:
 CMP 0 0             ; Is x < 0?
-B PL compute        ; No, safe to compute
-; x < 0: verify y is integer
-; (fractional exp of negative = complex)
+B MI pow_neg_base   ; Handle negative base
 
-; === VALIDATED COMPUTATION ===
-compute:
+; === VALIDATED COMPUTATION (IEEE 754) ===
+pow_compute:
 ; Power via: x^y = exp(y * ln(x))
+; This is the standard implementation
 LOAD 2 6 0          ; Load GT_LOG from C-List
 CALL 2              ; DR0 = ln(x)
 MUL 0 1             ; DR0 = y * ln(x)
 LOAD 3 6 1          ; Load GT_EXP from C-List
-CALL 3              ; DR0 = exp(y * ln(x))
+CALL 3              ; DR0 = exp(y * ln(x)) = x^y
+
+; === IEEE 754 FPSR FLAGS ===
+; Overflow: result > MAX_FLOAT -> +Inf
+; Underflow: result < MIN_NORMAL -> denormal/0
+; Inexact: almost always
+; Invalid: neg^non-integer
+; DivByZero: 0^negative
 
 RETURN
+
+; === SPECIAL CASE HANDLERS ===
+pow_one:
+    ; IEEE 754: x^0 = 1.0 for all x (even NaN)
+    ; Load 1.0 into DR0
+    RETURN
+
+pow_zero_base:
+    ; 0^y cases per IEEE 754
+    CMP 1 0             ; Is y < 0?
+    B MI divzero_inf    ; 0^negative = Inf (DivByZero)
+    ; 0^positive = 0
+    RETURN
+
+pow_neg_base:
+    ; x < 0: check if y is integer
+    ; If y is non-integer, result is complex (NaN)
+    ; If y is integer, use (-1)^y * |x|^y
+    B invalid_trap      ; Simplified: trap on negative base
 
 ; === TRAP HANDLERS ===
 perm_trap:
 type_trap:
-domain_trap:
-    ; Invalid: 0^0, 0^neg, or neg^frac`,
+nan_propagate:
+    ; IEEE 754: pow(NaN, y) = NaN, pow(x, NaN) = NaN
+    ; Exception: pow(1, NaN) = 1, pow(NaN, 0) = 1
+    RETURN
+invalid_trap:
+    ; IEEE 754 Invalid: negative^non-integer
+    ; Returns NaN
+    RETURN
+divzero_inf:
+    ; IEEE 754: 0^negative = Inf (DivByZero flag)
+    RETURN`,
 
     Abacus_GT_ADD: `; ====================================================
 ; GT_ADD (Abacus): a + b

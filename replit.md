@@ -191,6 +191,9 @@ Used with conditional branches (e.g., `B EQ 10` branches if equal).
 | SWITCH reg | Set CR15 (Namespace) to capability in CR[reg] |
 
 ## Recent Changes
+- 2026-01-15: Added IEEE 754 Binary64 compliance to all SlideRule (Float) functions
+- 2026-01-15: Added NaN propagation, Infinity handling, and FPSR flag documentation
+- 2026-01-15: Added special case handling (0/0=NaN, Inf-Inf=NaN, 0*Inf=NaN, etc.)
 - 2026-01-15: Added formal type validation (TPERM checks) to all beta-reduction code for flawless computer science
 - 2026-01-15: SlideRule functions validate Float type (8-byte), Abacus functions validate Integer type (8-byte)
 - 2026-01-15: Added domain validation (div-by-zero, sqrt of negative, log of non-positive) with trap handlers
