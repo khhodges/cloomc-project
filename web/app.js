@@ -2993,12 +2993,12 @@ function saveToStorage() {
             perms: o.perms
         }))
     };
-    localStorage.setItem('pp250_namespace_state', JSON.stringify(state));
+    localStorage.setItem('ctmm_namespace_state', JSON.stringify(state));
 }
 
 function loadFromStorage() {
     try {
-        const saved = localStorage.getItem('pp250_namespace_state');
+        const saved = localStorage.getItem('ctmm_namespace_state');
         if (saved) {
             const state = JSON.parse(saved);
             dynamicObjects = state.dynamicObjects || [];
@@ -3024,11 +3024,74 @@ function loadFromStorage() {
 }
 
 function clearStoredState() {
-    localStorage.removeItem('pp250_namespace_state');
+    localStorage.removeItem('ctmm_namespace_state');
     dynamicObjects = [];
     dynamicCLists = {};
     nextAddress = 0x8000;
     log('Cleared stored namespace state', 'info');
+}
+
+function exportNamespaceState() {
+    const state = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        dynamicObjects,
+        dynamicCLists,
+        nextAddress,
+        namespaceObjects: namespaceObjects.map(o => ({
+            name: o.name,
+            type: o.type,
+            size: o.size,
+            perms: o.perms,
+            address: o.address
+        })),
+        cpuState: {
+            contextRegs: cpuState.contextRegs,
+            dataRegs: cpuState.dataRegs,
+            flags: cpuState.flags,
+            ip: cpuState.ip,
+            bootStep: cpuState.bootStep
+        }
+    };
+    
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ctmm_state_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log('Exported namespace state to file', 'success');
+}
+
+function importNamespaceState(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const state = JSON.parse(e.target.result);
+            if (state.dynamicObjects) dynamicObjects = state.dynamicObjects;
+            if (state.dynamicCLists) dynamicCLists = state.dynamicCLists;
+            if (state.nextAddress) nextAddress = state.nextAddress;
+            if (state.namespaceObjects) {
+                state.namespaceObjects.forEach(mod => {
+                    const obj = namespaceObjects.find(o => o.name === mod.name);
+                    if (obj) {
+                        obj.type = mod.type;
+                        obj.size = mod.size;
+                        obj.perms = mod.perms;
+                    }
+                });
+            }
+            saveToStorage();
+            renderNamespaceBrowser();
+            log('Imported namespace state from file', 'success');
+        } catch (err) {
+            log('Failed to import state: ' + err.message, 'error');
+        }
+    };
+    reader.readAsText(file);
 }
 
 function selectObject(name, type) {

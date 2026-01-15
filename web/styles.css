@@ -3232,6 +3232,14 @@ body.tooltip-hidden [data-tooltip]:hover::after {
 .toolbar-buttons {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    margin: 0 0.5rem;
 }
 
 .btn-toolbar {
