@@ -11,6 +11,114 @@ function generateGoldenKey() {
     return key.match(/.{1,8}/g).join('-');
 }
 
+// ==================== GOLDEN TOKEN (64-bit) STRUCTURE ====================
+// Bits 0-31:  Offset (index into Namespace Table)
+// Bits 32-47: Permissions (R/W/X/L/S/E/B on/off bits)
+// Bits 48-63: Spare (future flags or Thread ID)
+
+const PERM_BITS = {
+    R: 0x0001, W: 0x0002, X: 0x0004, L: 0x0008,
+    S: 0x0010, E: 0x0020, B: 0x0040
+};
+
+function encodeGoldenToken(offset, perms, spare = 0) {
+    let permBits = 0;
+    perms.forEach(p => { permBits |= (PERM_BITS[p] || 0); });
+    const gt = BigInt(offset & 0xFFFFFFFF) |
+               (BigInt(permBits & 0xFFFF) << BigInt(32)) |
+               (BigInt(spare & 0xFFFF) << BigInt(48));
+    return gt;
+}
+
+function decodeGoldenToken(gt) {
+    const bigGT = BigInt(gt);
+    const offset = Number(bigGT & BigInt(0xFFFFFFFF));
+    const permBits = Number((bigGT >> BigInt(32)) & BigInt(0xFFFF));
+    const spare = Number((bigGT >> BigInt(48)) & BigInt(0xFFFF));
+    
+    const perms = [];
+    Object.entries(PERM_BITS).forEach(([p, bit]) => {
+        if (permBits & bit) perms.push(p);
+    });
+    
+    return { offset, perms, permBits, spare };
+}
+
+function formatGTHex(gt) {
+    return '0x' + BigInt(gt).toString(16).toUpperCase().padStart(16, '0');
+}
+
+function formatGTBinary(gt) {
+    return BigInt(gt).toString(2).padStart(64, '0');
+}
+
+// ==================== NAMESPACE ENTRY (3-word triplet) ====================
+// Word 1: Location (Physical RAM address OR URL)
+// Word 2: Limit (Object size in bytes/words)
+// Word 3: Seals = MetaData[0:31] + Type[32:47] + MAC[48:63]
+// MAC = Hash(GT_Offset + W1 + W2 + W3_Meta)
+
+const OBJECT_TYPES = {
+    0x0000: 'Null',
+    0x0001: 'Data',
+    0x0002: 'Code',
+    0x0003: 'Thread',
+    0x0004: 'Abstraction',
+    0x0005: 'CList',
+    0x0006: 'Function'
+};
+
+function createNamespaceEntry(location, limit, type, metadata = 0) {
+    const typeCode = Object.entries(OBJECT_TYPES).find(([k, v]) => v === type)?.[0] || 0x0004;
+    return {
+        word1_location: BigInt(location),
+        word2_limit: BigInt(limit),
+        word3_seals: BigInt(metadata & 0xFFFFFFFF) | (BigInt(typeCode) << BigInt(32)),
+        type: type,
+        metadata: metadata
+    };
+}
+
+function simpleHash(values) {
+    let hash = BigInt(0x5A5A5A5A);
+    values.forEach(v => {
+        const bigV = BigInt(v);
+        hash = hash ^ bigV;
+        hash = ((hash << BigInt(13)) | (hash >> BigInt(51))) & BigInt(0xFFFFFFFFFFFFFFFF);
+        hash = (hash * BigInt(0x9E3779B9)) & BigInt(0xFFFFFFFFFFFFFFFF);
+    });
+    return Number((hash >> BigInt(48)) & BigInt(0xFFFF));
+}
+
+function calculateMAC(gtOffset, nsEntry) {
+    const w3Meta = Number(nsEntry.word3_seals & BigInt(0xFFFFFFFF));
+    return simpleHash([gtOffset, Number(nsEntry.word1_location), Number(nsEntry.word2_limit), w3Meta]);
+}
+
+function setMACInSeals(nsEntry, mac) {
+    nsEntry.word3_seals = (nsEntry.word3_seals & BigInt(0x0000FFFFFFFFFFFF)) | (BigInt(mac) << BigInt(48));
+    return nsEntry;
+}
+
+function getMACFromSeals(nsEntry) {
+    return Number((nsEntry.word3_seals >> BigInt(48)) & BigInt(0xFFFF));
+}
+
+function validateMAC(gtOffset, nsEntry) {
+    const storedMAC = getMACFromSeals(nsEntry);
+    const calculatedMAC = calculateMAC(gtOffset, nsEntry);
+    return { valid: storedMAC === calculatedMAC, stored: storedMAC, calculated: calculatedMAC };
+}
+
+function getTypeFromSeals(nsEntry) {
+    const typeCode = Number((nsEntry.word3_seals >> BigInt(32)) & BigInt(0xFFFF));
+    return OBJECT_TYPES[typeCode] || 'Unknown';
+}
+
+function formatWord(value) {
+    return '0x' + BigInt(value).toString(16).toUpperCase().padStart(16, '0');
+}
+
 // ==================== BOOT NAMESPACE ====================
 
 const bootNamespace = {
@@ -712,11 +820,17 @@ function createTokenCard(cap, regLabel) {
     return card;
 }
 
+let currentEditingCap = null;
+let currentEditingRegLabel = null;
+
 function showCapabilityDetail(evt, cap, regLabel) {
     document.querySelectorAll('.token-card').forEach(c => c.classList.remove('selected'));
     if (evt && evt.currentTarget) {
         evt.currentTarget.classList.add('selected');
     }
+    
+    currentEditingCap = cap;
+    currentEditingRegLabel = regLabel;
     
     const panel = document.getElementById('capDetailPanel');
     const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B'];
@@ -725,57 +839,223 @@ function showCapabilityDetail(evt, cap, regLabel) {
         L: 'Load', S: 'Store', E: 'Enter', B: 'Bind'
     };
     
-    const permDisplay = allPerms.map(p => {
-        const hasIt = cap.perms.includes(p);
-        return `<span class="perm-badge perm-${p.toLowerCase()} ${hasIt ? '' : 'inactive'}" title="${permNames[p]}">${p}</span>`;
+    const offset = cap.location.offset || 0;
+    const spare = cap.spare || 0;
+    
+    if (!cap.nsEntry) {
+        cap.nsEntry = createNamespaceEntry(
+            cap.location.offset || 0x1000,
+            cap.size || 1024,
+            cap.type || 'Abstraction',
+            0
+        );
+        const mac = calculateMAC(offset, cap.nsEntry);
+        setMACInSeals(cap.nsEntry, mac);
+    }
+    
+    const gt = encodeGoldenToken(offset, cap.perms, spare);
+    const gtDecoded = decodeGoldenToken(gt);
+    const macValidation = validateMAC(gtDecoded.offset, cap.nsEntry);
+    
+    const permCheckboxes = allPerms.map(p => {
+        const checked = cap.perms.includes(p) ? 'checked' : '';
+        return `<label class="gt-perm-check" title="${permNames[p]}">
+            <input type="checkbox" data-perm="${p}" ${checked} onchange="updateGTFromEditor()">
+            <span class="perm-badge perm-${p.toLowerCase()}">${p}</span>
+        </label>`;
     }).join('');
     
-    const goldenKey = cap.goldenKey || generateGoldenKey();
-    cap.goldenKey = goldenKey;
+    const typeOptions = Object.values(OBJECT_TYPES).map(t => 
+        `<option value="${t}" ${t === getTypeFromSeals(cap.nsEntry) ? 'selected' : ''}>${t}</option>`
+    ).join('');
     
     panel.innerHTML = `
-        <h2>${cap.name}</h2>
-        <div class="cap-detail-grid">
-            <div class="golden-key-display">
-                <label>192-bit Golden Token</label>
-                <div class="value">${goldenKey}</div>
+        <h2>${cap.name} <span class="reg-badge">${regLabel}</span></h2>
+        
+        <div class="gt-section">
+            <h3 class="section-title">Golden Token (64-bit Key)</h3>
+            <div class="gt-hex-display">
+                <span class="gt-label">Hex:</span>
+                <code id="gtHexValue">${formatGTHex(gt)}</code>
             </div>
             
-            <div class="cap-detail-item">
-                <label>Register</label>
-                <div class="value">${regLabel}</div>
+            <div class="gt-bit-layout">
+                <div class="bit-field" data-tooltip="Index into Namespace Table (0-4,294,967,295)">
+                    <div class="bit-header">
+                        <span class="bit-range">[0:31]</span>
+                        <span class="bit-name">Offset</span>
+                    </div>
+                    <input type="text" id="gtOffset" class="bit-input" value="0x${offset.toString(16).toUpperCase()}" onchange="updateGTFromEditor()">
+                </div>
+                
+                <div class="bit-field" data-tooltip="Permission bits: R/W/X/L/S/E/B (can downgrade without recalculating MAC)">
+                    <div class="bit-header">
+                        <span class="bit-range">[32:47]</span>
+                        <span class="bit-name">Permissions</span>
+                    </div>
+                    <div class="perm-checkboxes">${permCheckboxes}</div>
+                    <div class="perm-hex">= 0x${gtDecoded.permBits.toString(16).toUpperCase().padStart(4, '0')}</div>
+                </div>
+                
+                <div class="bit-field" data-tooltip="Reserved for future use (Thread ID, flags)">
+                    <div class="bit-header">
+                        <span class="bit-range">[48:63]</span>
+                        <span class="bit-name">Spare</span>
+                    </div>
+                    <input type="text" id="gtSpare" class="bit-input" value="0x${spare.toString(16).toUpperCase().padStart(4, '0')}" onchange="updateGTFromEditor()">
+                </div>
             </div>
             
-            <div class="cap-detail-item">
-                <label>Location</label>
-                <div class="value">${cap.location.type === 'Literal' ? `Literal: "${cap.location.name}"` : `Local @ ${cap.location.offset}`}</div>
-            </div>
-            
-            <div class="cap-detail-item">
-                <label>Status</label>
-                <div class="value">${cap.locked ? '🔒 Locked (Immutable)' : '🔓 Unlocked (Mutable)'}</div>
-            </div>
-            
-            <div class="cap-detail-item">
-                <label>Permissions</label>
-                <div class="perm-display">${permDisplay}</div>
+            <div class="gt-security-note">
+                <strong>Security Rule:</strong> MAC does not cover permissions. You can downgrade rights (turn off bits) without recalculating the crypto signature.
             </div>
         </div>
         
-        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-dark); border-radius: 6px;">
-            <h3 style="color: var(--warning); margin-bottom: 0.5rem;">What This Capability Grants</h3>
-            <ul style="color: var(--text-secondary); padding-left: 1.2rem; line-height: 1.8;">
-                ${cap.perms.includes('R') ? '<li><strong>Read:</strong> Can load data from this object</li>' : ''}
-                ${cap.perms.includes('W') ? '<li><strong>Write:</strong> Can save data to this object</li>' : ''}
-                ${cap.perms.includes('X') ? '<li><strong>Execute:</strong> Can run code stored in this object</li>' : ''}
-                ${cap.perms.includes('L') ? '<li><strong>Load:</strong> Can load child capabilities from this namespace</li>' : ''}
-                ${cap.perms.includes('S') ? '<li><strong>Store:</strong> Can store capabilities to children</li>' : ''}
-                ${cap.perms.includes('E') ? '<li><strong>Enter:</strong> Can CALL/SWITCH into this namespace</li>' : ''}
-                ${cap.perms.includes('B') ? '<li><strong>Bind:</strong> Can save/bind this token into namespace DNA (persistent)</li>' : ''}
-                ${cap.perms.length === 0 ? '<li>No permissions - this is a NULL capability</li>' : ''}
-            </ul>
+        <div class="ns-entry-section">
+            <h3 class="section-title">Namespace Entry (3-Word Descriptor)</h3>
+            <p class="ns-intro-text">Pointed to by GT Offset. Hardware validates MAC on every LOAD.</p>
+            
+            <div class="ns-word-layout">
+                <div class="ns-word" data-tooltip="Physical RAM address or URL (network/cloud)">
+                    <div class="word-header">
+                        <span class="word-num">Word 1</span>
+                        <span class="word-name">Location</span>
+                    </div>
+                    <input type="text" id="nsLocation" class="word-input" value="${formatWord(cap.nsEntry.word1_location)}" onchange="updateNSFromEditor()">
+                </div>
+                
+                <div class="ns-word" data-tooltip="Object size in bytes - defines the access boundary">
+                    <div class="word-header">
+                        <span class="word-num">Word 2</span>
+                        <span class="word-name">Limit</span>
+                    </div>
+                    <input type="text" id="nsLimit" class="word-input" value="${formatWord(cap.nsEntry.word2_limit)}" onchange="updateNSFromEditor()">
+                    <div class="word-decimal">(${Number(cap.nsEntry.word2_limit)} bytes)</div>
+                </div>
+                
+                <div class="ns-word ns-word-seals" data-tooltip="Metadata[0:31] + Type[32:47] + MAC[48:63]">
+                    <div class="word-header">
+                        <span class="word-num">Word 3</span>
+                        <span class="word-name">Seals</span>
+                    </div>
+                    <div class="seals-breakdown">
+                        <div class="seal-field">
+                            <span class="seal-label">Meta[0:31]:</span>
+                            <input type="text" id="nsMeta" class="seal-input" value="0x${(Number(cap.nsEntry.word3_seals) & 0xFFFFFFFF).toString(16).toUpperCase().padStart(8, '0')}" onchange="updateNSFromEditor()">
+                        </div>
+                        <div class="seal-field">
+                            <span class="seal-label">Type[32:47]:</span>
+                            <select id="nsType" class="seal-select" onchange="updateNSFromEditor()">${typeOptions}</select>
+                        </div>
+                        <div class="seal-field">
+                            <span class="seal-label">MAC[48:63]:</span>
+                            <span id="nsMACValue" class="seal-value">0x${getMACFromSeals(cap.nsEntry).toString(16).toUpperCase().padStart(4, '0')}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mac-validation ${macValidation.valid ? 'mac-valid' : 'mac-invalid'}">
+                <div class="mac-status">
+                    <span class="mac-icon">${macValidation.valid ? '✓' : '⚠'}</span>
+                    <span class="mac-text">${macValidation.valid ? 'MAC Valid - Object Authenticated' : 'SECURITY TRAP - MAC Mismatch!'}</span>
+                </div>
+                <div class="mac-details">
+                    <div class="mac-formula">MAC = Hash(GT_Offset + W1 + W2 + W3_Meta)</div>
+                    <div class="mac-values">
+                        <span>Stored: 0x${macValidation.stored.toString(16).toUpperCase().padStart(4, '0')}</span>
+                        <span>Calculated: 0x${macValidation.calculated.toString(16).toUpperCase().padStart(4, '0')}</span>
+                    </div>
+                </div>
+                <button class="btn btn-recalc" onclick="recalculateMAC()">Recalculate MAC</button>
+            </div>
         </div>
     `;
+}
+
+function updateGTFromEditor() {
+    if (!currentEditingCap) return;
+    
+    const offsetStr = document.getElementById('gtOffset').value;
+    const spareStr = document.getElementById('gtSpare').value;
+    const offset = parseInt(offsetStr, 16) || parseInt(offsetStr, 10) || 0;
+    const spare = parseInt(spareStr, 16) || parseInt(spareStr, 10) || 0;
+    
+    const perms = [];
+    document.querySelectorAll('.gt-perm-check input:checked').forEach(cb => {
+        perms.push(cb.dataset.perm);
+    });
+    
+    currentEditingCap.location.offset = offset;
+    currentEditingCap.perms = perms;
+    currentEditingCap.spare = spare;
+    
+    const gt = encodeGoldenToken(offset, perms, spare);
+    document.getElementById('gtHexValue').textContent = formatGTHex(gt);
+    
+    const gtDecoded = decodeGoldenToken(gt);
+    document.querySelector('.perm-hex').textContent = `= 0x${gtDecoded.permBits.toString(16).toUpperCase().padStart(4, '0')}`;
+    
+    updateMACValidationDisplay();
+    updateDisplay();
+    updateCapabilityExplorer();
+}
+
+function updateNSFromEditor() {
+    if (!currentEditingCap || !currentEditingCap.nsEntry) return;
+    
+    const locationStr = document.getElementById('nsLocation').value;
+    const limitStr = document.getElementById('nsLimit').value;
+    const metaStr = document.getElementById('nsMeta').value;
+    const typeVal = document.getElementById('nsType').value;
+    
+    const location = BigInt(parseInt(locationStr, 16) || parseInt(locationStr, 10) || 0);
+    const limit = BigInt(parseInt(limitStr, 16) || parseInt(limitStr, 10) || 0);
+    const meta = parseInt(metaStr, 16) || parseInt(metaStr, 10) || 0;
+    const typeCode = Object.entries(OBJECT_TYPES).find(([k, v]) => v === typeVal)?.[0] || 0x0004;
+    
+    currentEditingCap.nsEntry.word1_location = location;
+    currentEditingCap.nsEntry.word2_limit = limit;
+    
+    const storedMAC = getMACFromSeals(currentEditingCap.nsEntry);
+    currentEditingCap.nsEntry.word3_seals = BigInt(meta & 0xFFFFFFFF) | 
+                                             (BigInt(typeCode) << BigInt(32)) |
+                                             (BigInt(storedMAC) << BigInt(48));
+    
+    document.querySelector('.word-decimal').textContent = `(${Number(limit)} bytes)`;
+    
+    updateMACValidationDisplay();
+}
+
+function updateMACValidationDisplay() {
+    if (!currentEditingCap || !currentEditingCap.nsEntry) return;
+    
+    const offset = currentEditingCap.location.offset || 0;
+    const macValidation = validateMAC(offset, currentEditingCap.nsEntry);
+    
+    const macDiv = document.querySelector('.mac-validation');
+    if (macDiv) {
+        macDiv.className = `mac-validation ${macValidation.valid ? 'mac-valid' : 'mac-invalid'}`;
+        macDiv.querySelector('.mac-icon').textContent = macValidation.valid ? '✓' : '⚠';
+        macDiv.querySelector('.mac-text').textContent = macValidation.valid ? 'MAC Valid - Object Authenticated' : 'SECURITY TRAP - MAC Mismatch!';
+        macDiv.querySelector('.mac-values').innerHTML = `
+            <span>Stored: 0x${macValidation.stored.toString(16).toUpperCase().padStart(4, '0')}</span>
+            <span>Calculated: 0x${macValidation.calculated.toString(16).toUpperCase().padStart(4, '0')}</span>
+        `;
+    }
+    
+    document.getElementById('nsMACValue').textContent = `0x${macValidation.stored.toString(16).toUpperCase().padStart(4, '0')}`;
+}
+
+function recalculateMAC() {
+    if (!currentEditingCap || !currentEditingCap.nsEntry) return;
+    
+    const offset = currentEditingCap.location.offset || 0;
+    const newMAC = calculateMAC(offset, currentEditingCap.nsEntry);
+    setMACInSeals(currentEditingCap.nsEntry, newMAC);
+    
+    updateMACValidationDisplay();
+    log(`MAC recalculated: 0x${newMAC.toString(16).toUpperCase().padStart(4, '0')}`, 'info');
 }
 
 function updateCapabilityExplorer() {

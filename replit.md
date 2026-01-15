@@ -44,7 +44,7 @@ Then open http://localhost:5000 in your browser.
 
 ## Key Concepts
 - **Context Registers (CR0-CR7)**: Hold capability keys granting access rights
-- **Data Registers (DR0-DR7)**: Hold 64-bit numeric values
+- **Data Registers (DR0-DR15)**: Hold 64-bit numeric values
 - **CR15 (Namespace)**: Root capability defining system scope
 - **CR8 (Thread)**: Current user/process identity
 - **Thread Objects**: Type-less containers with open access for microcode to save machine state (data registers DR0-DR7 + Golden Tokens CR0-CR3) during context switches. No program-level access rights - only microcode can read/write thread state, preventing programs from tampering with saved execution context.
@@ -55,6 +55,31 @@ Then open http://localhost:5000 in your browser.
   - Z (Zero): Result is zero
   - C (Carry): Unsigned overflow on ADD, no borrow on SUB
   - V (Overflow): Signed overflow detected
+
+## Golden Token Structure (64-bit in Context Registers)
+| Bit Range | Field       | Description |
+|-----------|-------------|-------------|
+| 0-31      | Offset      | Index into Namespace Table (the "pointer") |
+| 32-47     | Permissions | On/Off bits (R/W/X/L/S/E/B) |
+| 48-63     | Spare       | Reserved (future flags or Thread ID) |
+
+**Security Rule:** The MAC does NOT cover permissions. This allows a thread to downgrade a key (turn off bits) and pass it to a sub-process without needing to recalculate the crypto signature. You can restrict rights, but you cannot forge the location or size.
+
+## Namespace Entry (3-Word Descriptor in Memory)
+Pointed to by the Golden Token's Offset field.
+
+| Word   | Field    | Content (64-bit) |
+|--------|----------|------------------|
+| Word 1 | Location | Physical Address (RAM) OR URL (Network/Cloud) |
+| Word 2 | Limit    | Object Size (in bytes/words). Defines the boundary |
+| Word 3 | Seals    | MetaData[0:31] + Type[32:47] + MAC[48:63] |
+
+**MAC Validation:**
+When hardware LOADs a key, it performs:
+```
+Calculated_MAC = Hash(GT_Offset + Word1 + Word2 + Word3_Meta)
+If Calculated_MAC != Word3_MAC → Security Trap (object corrupted or forged)
+```
 
 ## Available Commands
 
@@ -166,6 +191,11 @@ Used with conditional branches (e.g., `B EQ 10` branches if equal).
 | SWITCH reg | Set CR15 (Namespace) to capability in CR[reg] |
 
 ## Recent Changes
+- 2026-01-15: Added editable GT bit field editor in Capability Explorer (Offset[0:31], Permissions[32:47], Spare[48:63])
+- 2026-01-15: Added 3-word Namespace Entry editor (Location, Limit, Seals with MetaData+Type+MAC breakdown)
+- 2026-01-15: Added live MAC validation with Hash(GT_Offset + W1 + W2 + W3_Meta) formula
+- 2026-01-15: Added visual MAC valid/invalid indicator with Security Trap warning
+- 2026-01-15: Replaced all PP250 references with CTMM throughout codebase
 - 2026-01-14: Added right-click context menu for Namespace Browser (Add/Edit/Link/Delete objects with modal dialogs)
 - 2026-01-14: Added dynamic object creation with automatic address allocation (0x8000+ range, 0x1000 aligned)
 - 2026-01-14: Added popup help tooltips for all UI elements (hover to see explanations)
