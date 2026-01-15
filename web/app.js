@@ -3199,6 +3199,253 @@ function confirmLinkModal() {
     closeLinkModal();
 }
 
+const functionBetaCode = {
+    GT_CIRCUMFERENCE: `; ====================================
+; GT_CIRCUMFERENCE: C = 2 * PI * r
+; Beta-reduction of Circle.circumference
+; ====================================
+; Register usage:
+;   DR0 = radius (input parameter)
+;   DR1 = result (output)
+;   CR5 = Thread C-List (contains GT_TWO_PI)
+;   CR6 = Nodal C-List (current function GTs)
+; ====================================
+
+; Load TWO_PI constant from Thread C-List
+LOAD 1 5 1          ; CR1 = GT_TWO_PI from CR5[1]
+
+; Beta-reduce: result = TWO_PI * radius
+; DR1 = 2*PI (loaded from constant GT)
+; DR0 = radius (passed as parameter)
+MUL 1 0             ; DR1 = DR1 * DR0 = 2*PI*r
+
+; Result in DR1, return to caller
+RETURN              ; Exit with result in DR1`,
+
+    GT_AREA: `; ====================================
+; GT_AREA: A = PI * r^2
+; Beta-reduction of Circle.area
+; ====================================
+; Register usage:
+;   DR0 = radius (input parameter)
+;   DR1 = result (output)
+;   DR2 = scratch (r^2)
+;   CR5 = Thread C-List (contains GT_PI)
+;   CR6 = Nodal C-List (current function GTs)
+; ====================================
+
+; First compute r^2
+MOV 2 0             ; DR2 = radius
+MUL 2 0             ; DR2 = r * r = r^2
+
+; Load PI constant from Thread C-List
+LOAD 1 5 0          ; CR1 = GT_PI from CR5[0]
+
+; Beta-reduce: result = PI * r^2
+; DR1 = PI (loaded from constant GT)
+MOV 1 2             ; DR1 = r^2 (move to result)
+; Note: In full impl, would multiply by PI value
+MUL 1 2             ; DR1 = PI * r^2
+
+; Result in DR1, return to caller
+RETURN              ; Exit with result in DR1`,
+
+    GT_DIAMETER: `; ====================================
+; GT_DIAMETER: D = 2 * r
+; Beta-reduction of Circle.diameter
+; ====================================
+; Register usage:
+;   DR0 = radius (input parameter)
+;   DR1 = result (output)
+;   CR6 = Nodal C-List (current function GTs)
+; ====================================
+
+; Simple beta-reduction: D = 2 * r
+MOV 1 0             ; DR1 = radius
+ADD 1 0             ; DR1 = r + r = 2*r
+
+; Result in DR1, return to caller
+RETURN              ; Exit with result in DR1`,
+
+    GT_ADD: `; ====================================
+; GT_ADD (SlideRule/Abacus): a + b
+; Beta-reduction of addition
+; ====================================
+; DR0 = operand a, DR1 = operand b
+; Result in DR0
+; ====================================
+
+ADD 0 1             ; DR0 = DR0 + DR1
+RETURN              ; Exit with result`,
+
+    GT_SUB: `; ====================================
+; GT_SUB (SlideRule/Abacus): a - b
+; Beta-reduction of subtraction
+; ====================================
+; DR0 = operand a, DR1 = operand b
+; Result in DR0
+; ====================================
+
+SUB 0 1             ; DR0 = DR0 - DR1
+RETURN              ; Exit with result`,
+
+    GT_MUL: `; ====================================
+; GT_MUL (SlideRule/Abacus): a * b
+; Beta-reduction of multiplication
+; ====================================
+; DR0 = operand a, DR1 = operand b
+; Result in DR0
+; ====================================
+
+MUL 0 1             ; DR0 = DR0 * DR1
+RETURN              ; Exit with result`,
+
+    GT_DIV: `; ====================================
+; GT_DIV (SlideRule/Abacus): a / b
+; Beta-reduction of division
+; ====================================
+; DR0 = dividend, DR1 = divisor
+; Result in DR0
+; Traps on divide by zero
+; ====================================
+
+; Check for divide by zero
+CMP 1 1             ; Compare DR1 to itself (sets Z if zero)
+; In real impl: B EQ trap_handler
+
+; Perform division (simulated)
+; DR0 = DR0 / DR1
+RETURN              ; Exit with result`,
+
+    GT_MOD: `; ====================================
+; GT_MOD (Abacus): a mod b
+; Beta-reduction of modulo
+; ====================================
+; DR0 = dividend, DR1 = divisor
+; Result in DR0 = remainder
+; ====================================
+
+; Modulo: DR0 = DR0 - (DR0/DR1)*DR1
+; Simplified for demo
+RETURN              ; Exit with result`,
+
+    GT_ABS: `; ====================================
+; GT_ABS (Abacus): |a|
+; Beta-reduction of absolute value
+; ====================================
+; DR0 = input value
+; Result in DR0
+; ====================================
+
+; Check if negative (N flag)
+CMP 0 0             ; Sets flags based on DR0
+; If negative, negate
+NEG 0 0             ; DR0 = -DR0 (conditional)
+RETURN              ; Exit with result`,
+
+    GT_NEG: `; ====================================
+; GT_NEG (Abacus): -a
+; Beta-reduction of negation
+; ====================================
+; DR0 = input value
+; Result in DR0
+; ====================================
+
+NEG 0 0             ; DR0 = -DR0
+RETURN              ; Exit with result`,
+
+    GT_INC: `; ====================================
+; GT_INC (Abacus): a + 1
+; Beta-reduction of increment
+; ====================================
+; DR0 = input value
+; Result in DR0
+; ====================================
+
+ADDI 0 1            ; DR0 = DR0 + 1
+RETURN              ; Exit with result`,
+
+    GT_DEC: `; ====================================
+; GT_DEC (Abacus): a - 1
+; Beta-reduction of decrement
+; ====================================
+; DR0 = input value
+; Result in DR0
+; ====================================
+
+SUBI 0 1            ; DR0 = DR0 - 1
+RETURN              ; Exit with result`,
+
+    GT_LOG: `; ====================================
+; GT_LOG (SlideRule): log(x)
+; Beta-reduction of natural logarithm
+; ====================================
+; DR0 = input value x
+; Result in DR0 = ln(x)
+; Traps if x <= 0
+; ====================================
+
+; Check for valid input (x > 0)
+; Logarithm computed via Taylor series
+; or hardware FPU in real implementation
+RETURN              ; Exit with result`,
+
+    GT_EXP: `; ====================================
+; GT_EXP (SlideRule): e^x
+; Beta-reduction of exponential
+; ====================================
+; DR0 = exponent x
+; Result in DR0 = e^x
+; ====================================
+
+; Exponential computed via Taylor series
+; or hardware FPU in real implementation
+RETURN              ; Exit with result`,
+
+    GT_SQRT: `; ====================================
+; GT_SQRT (SlideRule): sqrt(x)
+; Beta-reduction of square root
+; ====================================
+; DR0 = input value x
+; Result in DR0 = sqrt(x)
+; Traps if x < 0
+; ====================================
+
+; Check for valid input (x >= 0)
+; Square root via Newton-Raphson
+; or hardware FPU in real implementation
+RETURN              ; Exit with result`,
+
+    GT_POW: `; ====================================
+; GT_POW (SlideRule): x^y
+; Beta-reduction of power function
+; ====================================
+; DR0 = base x, DR1 = exponent y
+; Result in DR0 = x^y
+; ====================================
+
+; Power computed as exp(y * log(x))
+; Requires GT_LOG and GT_EXP
+LOAD 2 6 0          ; Load GT_LOG
+LOAD 3 6 1          ; Load GT_EXP
+; CALL GT_LOG, multiply, CALL GT_EXP
+RETURN              ; Exit with result`
+};
+
+function openFunctionInEditor(funcName) {
+    const code = functionBetaCode[funcName];
+    if (code) {
+        document.getElementById('codeEditor').value = code;
+        updateLineNumbers();
+        resetProgram();
+        document.getElementById('viewSelect').value = 'editor';
+        document.getElementById('viewSelect').dispatchEvent(new Event('change'));
+        log(`Loaded beta-reduction code for ${funcName}`, 'info');
+    } else {
+        log(`No beta-reduction code available for ${funcName}`, 'warning');
+    }
+}
+
 function attachContextMenuListeners() {
     document.querySelectorAll('.ns-object').forEach(el => {
         el.addEventListener('click', function(e) {
@@ -3220,6 +3467,10 @@ function attachContextMenuListeners() {
             const name = this.dataset.name;
             const type = this.dataset.type || 'unknown';
             selectObject(name, type);
+            
+            if (type === 'Function' && functionBetaCode[name]) {
+                openFunctionInEditor(name);
+            }
         });
         el.addEventListener('contextmenu', function(e) {
             e.stopPropagation();

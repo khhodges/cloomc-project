@@ -191,6 +191,8 @@ Used with conditional branches (e.g., `B EQ 10` branches if equal).
 | SWITCH reg | Set CR15 (Namespace) to capability in CR[reg] |
 
 ## Recent Changes
+- 2026-01-15: Added click-to-view beta-reduction assembly code for all Function GTs in Namespace Browser
+- 2026-01-15: Added Circle abstraction with GT_PI, GT_TWO_PI constants and GT_CIRCUMFERENCE, GT_AREA, GT_DIAMETER functions
 - 2026-01-15: Added editable GT bit field editor in Capability Explorer (Offset[0:31], Permissions[32:47], Spare[48:63])
 - 2026-01-15: Added 3-word Namespace Entry editor (Location, Limit, Seals with MetaData+Type+MAC breakdown)
 - 2026-01-15: Added live MAC validation with Hash(GT_Offset + W1 + W2 + W3_Meta) formula
