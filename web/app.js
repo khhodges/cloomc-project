@@ -1548,115 +1548,313 @@ let editorState = {
 };
 
 const examplePrograms = {
-    counter: `; Counter Loop - Count from 0 to 5
-ADDI 0 0      ; DR0 = 0 (counter)
-ADDI 1 5      ; DR1 = 5 (limit)
-ADDI 2 1      ; DR2 = 1 (increment)
+    counter: `; =============================================
+; COUNTER LOOP EXAMPLE
+; =============================================
+; Purpose: Demonstrates basic loop control using
+; arithmetic operations and flag-based branching.
+;
+; Algorithm: Count from 0 to 5 by incrementing
+; a counter register and comparing to a limit.
+;
+; Registers used:
+;   DR0 = counter (starts at 0)
+;   DR1 = limit value (5)
+;   DR2 = increment value (1)
+;
+; Flags demonstrated:
+;   Z (Zero) - set when counter equals limit
+;   N (Negative) - set when counter < limit
+; =============================================
 
-; Loop start (address 3)
-ADD 0 2       ; DR0 = DR0 + 1
-CMP 0 1       ; Compare counter to limit
-; When DR0 < DR1, loop continues`,
+; Initialize registers
+ADDI 0 0      ; DR0 = 0 (counter starts at zero)
+ADDI 1 5      ; DR1 = 5 (we count up to this)
+ADDI 2 1      ; DR2 = 1 (add 1 each iteration)
 
-    fibonacci: `; Fibonacci Sequence
-; Calculates first few Fibonacci numbers
-ADDI 0 0      ; DR0 = 0 (F(0))
-ADDI 1 1      ; DR1 = 1 (F(1))
-ADDI 2 0      ; DR2 = temp
+; === LOOP START (address 3) ===
+ADD 0 2       ; DR0 = DR0 + DR2 (increment counter)
+              ; Sets NZCV flags based on result
 
-; Calculate F(2) = F(0) + F(1)
-MOV 2 0       ; temp = F(0)
-ADD 2 1       ; temp = F(0) + F(1)
-MOV 0 1       ; F(0) = F(1)
-MOV 1 2       ; F(1) = temp
+CMP 0 1       ; Compare: DR0 - DR1 (counter - limit)
+              ; Sets flags based on comparison result
+              ; Use conditional branch to control loop
 
-; Calculate F(3)
-MOV 2 0       ; temp = F(0)
-ADD 2 1       ; temp = F(0) + F(1)
-MOV 0 1       ; F(0) = F(1)
-MOV 1 2       ; F(1) = temp`,
+; Use B LT -2 to branch back if Less Than
+; Loop continues while counter < limit
+; Final: DR0 = 5 (counter reached limit)`,
 
-    multiply: `; Multiply 6 * 7 using repeated addition
-ADDI 0 0      ; DR0 = 0 (result)
+    fibonacci: `; =============================================
+; FIBONACCI SEQUENCE EXAMPLE
+; =============================================
+; Purpose: Calculate Fibonacci numbers using
+; the classic F(n) = F(n-1) + F(n-2) formula.
+;
+; The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8...
+; Each number is the sum of the two before it.
+;
+; Registers used:
+;   DR0 = F(n-1) - previous Fibonacci number
+;   DR1 = F(n) - current Fibonacci number
+;   DR2 = temp - holds intermediate calculation
+;
+; After execution:
+;   DR0, DR1 hold consecutive Fibonacci numbers
+; =============================================
+
+; Initialize with F(0)=0 and F(1)=1
+ADDI 0 0      ; DR0 = 0 (F(0) - first Fibonacci)
+ADDI 1 1      ; DR1 = 1 (F(1) - second Fibonacci)
+ADDI 2 0      ; DR2 = 0 (temp storage)
+
+; === Calculate F(2) = 0 + 1 = 1 ===
+MOV 2 0       ; temp = F(n-1) = 0
+ADD 2 1       ; temp = F(n-1) + F(n) = 0 + 1 = 1
+MOV 0 1       ; shift: F(n-1) = old F(n) = 1
+MOV 1 2       ; F(n) = temp = 1
+              ; Now: DR0=1, DR1=1 (sequence: 0,1,1)
+
+; === Calculate F(3) = 1 + 1 = 2 ===
+MOV 2 0       ; temp = F(n-1) = 1
+ADD 2 1       ; temp = 1 + 1 = 2
+MOV 0 1       ; shift: F(n-1) = 1
+MOV 1 2       ; F(n) = 2
+              ; Now: DR0=1, DR1=2 (sequence: 0,1,1,2)
+
+; === Calculate F(4) = 1 + 2 = 3 ===
+MOV 2 0       ; temp = 1
+ADD 2 1       ; temp = 1 + 2 = 3
+MOV 0 1       ; F(n-1) = 2
+MOV 1 2       ; F(n) = 3
+              ; Now: DR0=2, DR1=3 (sequence: 0,1,1,2,3)`,
+
+    multiply: `; =============================================
+; MULTIPLICATION BY REPEATED ADDITION
+; =============================================
+; Purpose: Multiply two numbers without a MUL
+; instruction, using only ADD and SUB.
+;
+; Algorithm: Add the multiplicand to result
+; as many times as the multiplier indicates.
+; Example: 6 * 7 = 6+6+6+6+6+6+6 = 42
+;
+; Registers used:
+;   DR0 = result (accumulator, starts at 0)
+;   DR1 = multiplicand (6 - added repeatedly)
+;   DR2 = multiplier/counter (7 - counts down)
+;   DR3 = decrement value (1)
+;
+; Flags demonstrated:
+;   Z (Zero) - set when counter reaches 0
+; =============================================
+
+; Initialize multiplication: 6 * 7
+ADDI 0 0      ; DR0 = 0 (result accumulator)
 ADDI 1 6      ; DR1 = 6 (multiplicand)
-ADDI 2 7      ; DR2 = 7 (multiplier/counter)
-ADDI 3 1      ; DR3 = 1 (decrement)
+ADDI 2 7      ; DR2 = 7 (multiplier = loop count)
+ADDI 3 1      ; DR3 = 1 (subtract 1 each iteration)
 
-; Loop: Add DR1 to result DR2 times
-ADD 0 1       ; result += multiplicand
-SUB 2 3       ; counter--
-; Repeat until DR2 = 0
-; Final result in DR0 = 42`,
+; === MULTIPLY LOOP (address 4) ===
+ADD 0 1       ; result = result + multiplicand
+              ; DR0 grows: 6, 12, 18, 24, 30, 36, 42
 
-    flags: `; Flag Demo - Shows how NZCV flags work
+SUB 2 3       ; counter = counter - 1
+              ; DR2 shrinks: 6, 5, 4, 3, 2, 1, 0
+              ; Sets Z=1 when counter reaches 0
+
+; Use B NE -2 to branch back if Not Equal (Z=0)
+; Loop runs 7 times (once per multiplier value)
+;
+; Final result: DR0 = 42 (6 * 7 = 42)
+; Counter: DR2 = 0 (loop complete)`,
+
+    flags: `; =============================================
+; NZCV FLAG DEMONSTRATION
+; =============================================
+; Purpose: Show how condition flags are set by
+; arithmetic and compare operations in CTMM.
+;
+; The four flags:
+;   N (Negative) - Result is negative (sign bit set)
+;   Z (Zero)     - Result is exactly zero
+;   C (Carry)    - Set on unsigned carry/no borrow
+;   V (Overflow) - Set on signed overflow
+;
+; Flags enable conditional branching:
+;   B EQ target  - branch if equal (Z set)
+;   B NE target  - branch if not equal
+;   B LT target  - branch if less than
+;   B GT target  - branch if greater than
+; =============================================
+
+; === TEST 1: Equal comparison (Z flag) ===
 ADDI 0 10     ; DR0 = 10
 ADDI 1 10     ; DR1 = 10
-CMP 0 1       ; Compare equal: Z=1
+CMP 0 1       ; Compare: 10 - 10 = 0
+              ; Z flag set when result is zero
+              ; Use: B EQ branches when values equal
 
+; === TEST 2: Less than comparison (N flag) ===
 ADDI 2 5      ; DR2 = 5
-CMP 2 0       ; Compare 5 < 10: N=1 (negative result)
+CMP 2 0       ; Compare: 5 - 10 (smaller - larger)
+              ; N flag indicates negative result
+              ; Use: B LT branches when less than
 
+; === TEST 3: Subtraction producing negative ===
 ADDI 3 0      ; DR3 = 0
-SUB 3 0       ; DR3 = 0 - 10: N=1, C=0 (borrow)`,
+SUB 3 0       ; DR3 = 0 - 10 (produces negative)
+              ; Flags set based on result
+              ; Check N, Z, C, V in Condition Flags panel`,
 
-    callerCode: `; ========== CALLER CODE ==========
-; Prepares GT selector and arguments
-; then invokes CALL to capability
+    callerCode: `; =============================================
+; CALLER CODE - Church Lambda Invocation
+; =============================================
+; Purpose: Demonstrate how a program invokes a
+; capability-protected function using Golden Tokens.
+;
+; The Church paradigm separates:
+;   - DATA (integers in DR registers)
+;   - CAPABILITIES (Golden Tokens in CR registers)
+;
+; Key Security Principle:
+;   You cannot call code directly by address!
+;   You must hold a valid Golden Token (capability)
+;   with Execute (X) permission to invoke code.
+;
+; Protocol:
+;   1. Load GT selector into CR register
+;   2. Prepare data arguments in DR registers
+;   3. Execute CALL with capability
+;   4. Receive results after RETURN
+; =============================================
 
-; Step 1: Load GT selector from C-List
-; CR1 = GT_WRITE capability (from namespace)
-LOAD 1 6 2    ; CR1 = C-List[2] (GT_WRITE cap)
+; === STEP 1: Load Golden Token Selector ===
+; The GT identifies WHICH function to call
+; Load from C-List (your authorized capabilities)
+LOAD 1 6 2    ; CR1 = C-List[2] (GT_WRITE capability)
+              ; CR6 holds reference to C-List
+              ; Index 2 = GT_WRITE function token
+              ; CR1 now holds the function selector
 
-; Step 2: Prepare data arguments only
-ADDI 1 100    ; DR1 = arg1 (address - data)
-ADDI 2 42     ; DR2 = arg2 (value - data)
+; === STEP 2: Prepare Data Arguments ===
+; Arguments go in DATA registers (DR), not CR!
+; The callee receives these values
+ADDI 1 100    ; DR1 = 100 (first argument: address)
+ADDI 2 42     ; DR2 = 42 (second argument: value)
+              ; DR0 reserved for return status
 
-; Step 3: Execute CALL with GT in CR1
-; Meta-machine validates E permission
-; GT capability passed in CR1
-CALL 0        ; Call via CR0 capability
+; === STEP 3: Execute Capability CALL ===
+; CALL requires Enter (E) permission on capability
+CALL 0        ; Call via capability in CR0
+              ; Validates E permission before transfer
+              ; If valid: context switch to callee
+              ; If invalid: security violation
 
-; -------- CONTEXT SWITCH --------
-; Control transfers to Guard Code
-; GT selector arrives in CR1 (not DR!)
-; Line numbers restart at offset 0
-; ================================
+; ============================================
+; CONTEXT SWITCH BOUNDARY
+; ============================================
+; After CALL, control transfers to Guard Code
+; The GT selector (CR1) travels with you
+; Your DR/CR state is saved to Thread Object
+; Callee's code runs at offset 0
+; ============================================
 
-; Step 4: After RETURN
-; DR0 = status (0=OK, 1=ERR)
-; DR1-DR3 = return data values
-; CR0-CR3 = GT vars (type-safe caps)`,
+; === STEP 4: After RETURN - Check Results ===
+; Guard Code has finished and returned control
+; Results follow a strict protocol:
+;
+;   DR0 = Status code (0=SUCCESS, 1=ERROR)
+;   DR1 = First return value (data)
+;   DR2 = Second return value (data)
+;   DR3 = Third return value (data)
+;
+;   CR0-CR3 = Returned capabilities (if any)
+;             These are type-safe GT references
+;             NOT integers - real capabilities!
+;
+; Check status before using return values:
+CMP 0 0       ; Is DR0 == 0? (success check)
+              ; B NE error_handler  ; branch if error`,
 
-    guardCode: `; ========== GUARD CODE ==========
-; Entry point at offset 0
-; CALL already validated E permission
-; GT selector arrives in CR1 (capability)
+    guardCode: `; =============================================
+; GUARD CODE - Capability-Protected Entry Point
+; =============================================
+; Purpose: Demonstrate secure function dispatch
+; using Golden Token validation and TPERM checks.
+;
+; This is the CALLEE side of a capability call.
+; Guard Code runs in a protected namespace with
+; its own C-List of authorized capabilities.
+;
+; Security Model:
+;   - CALL already validated Execute permission
+;   - GT selector arrives in CR1 (capability!)
+;   - Guard must validate GT before dispatching
+;   - Use TPERM to check permissions before use
+;
+; Why Golden Tokens matter:
+;   - Caller cannot forge the GT selector
+;   - GT is cryptographically sealed (MAC)
+;   - Permissions checked before access
+;   - TPERM validates permissions/bounds
+; =============================================
 
-; Offset 0: Validate GT selector
-; CR1 contains GT capability from caller
-; Use TPERM to check GT type
+; === ENTRY POINT (Offset 0) ===
+; Execution begins here after CALL
+; CR1 contains the GT selector from caller
 
-TPERM 1 R     ; Verify CR1 is valid GT cap
+; === STEP 1: Validate GT Selector ===
+; Before dispatching, verify the capability
+; TPERM checks permissions (add BOUNDS n for size)
+TPERM 1 R     ; Test: Does CR1 have Read permission?
+              ; Sets Z=1 if permission present
+              ; Sets Z=0 if permission missing
+              ; B EQ continue  ; proceed if valid
+              ; B NE reject    ; reject if missing perm!
 
-; GT Dispatch - compare CR1 to known GTs
-; Load reference GTs from namespace
-LOAD 2 6 0    ; CR2 = GT_READ from C-List
-LOAD 3 6 1    ; CR3 = GT_WRITE from C-List
-LOAD 4 6 2    ; CR4 = GT_DELETE from C-List
+; === STEP 2: Load Reference GTs for Dispatch ===
+; Compare caller's GT against known function GTs
+LOAD 2 6 0    ; CR2 = GT_READ from our C-List
+LOAD 3 6 1    ; CR3 = GT_WRITE from our C-List  
+LOAD 4 6 2    ; CR4 = GT_DELETE from our C-List
+              ; These are the functions we support
 
-; Compare GT keys (caps, not integers!)
-; Branch based on capability match
-; B match_read   ; if CR1 == CR2
-; B match_write  ; if CR1 == CR3
-; B match_delete ; if CR1 == CR4
+; === STEP 3: GT Dispatch Logic ===
+; Compare capabilities (not integers!)
+; Each GT has a unique cryptographic identity
+;
+; Pseudocode dispatch:
+;   if CR1 == CR2: goto handle_read
+;   if CR1 == CR3: goto handle_write
+;   if CR1 == CR4: goto handle_delete
+;   else: goto invalid_gt_trap
+;
+; Note: Capability comparison uses cryptographic MACs
+; You cannot forge a matching capability
 
-; ========== RETURN PROTOCOL ==========
-; DR0 = return status (0=OK, 1=ERR)
-; DR1-DR3 = return data values
-; CR0-CR3 = GT variables (type-safe)
-; Capabilities stay in CR domain!
-; RETURN unwinds to caller context
-RETURN`
+; === STEP 4: Execute Requested Operation ===
+; (Implementation of read/write/delete here)
+; Access data using capabilities, not addresses
+
+; ============================================
+; RETURN PROTOCOL
+; ============================================
+; Prepare results for caller:
+;
+;   DR0 = Status (0=OK, 1=PERMISSION_DENIED,
+;                 2=BOUNDS_ERROR, 3=INVALID_GT)
+;   DR1-DR3 = Return data values
+;   CR0-CR3 = Return capabilities (if granting)
+;
+; Key rule: Capabilities stay in CR registers!
+; Never try to store a GT in a DR register.
+; This separation is fundamental to CTMM security.
+; ============================================
+
+ADDI 0 0      ; DR0 = 0 (STATUS_OK)
+RETURN        ; Return to caller context
+              ; Restores caller's state from stack
+              ; Execution continues after CALL`
 };
 
 function setupCodeEditor() {
