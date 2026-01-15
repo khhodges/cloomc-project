@@ -3100,7 +3100,7 @@ main {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease, visibility 0.2s ease;
-    z-index: 1000;
+    z-index: 99999;
 }
 
 [data-tooltip]::before {

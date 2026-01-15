@@ -11,7 +11,7 @@
         <header>
             <h1>CTMM Simulator</h1>
             <nav class="controls">
-                <div class="view-selector">
+                <div class="view-selector" data-tooltip="Switch between different views of the CTMM simulator">
                     <select id="viewSelect" onchange="switchView(this.value)">
                         <option value="dashboard">Dashboard</option>
                         <option value="namespace">Namespace</option>
@@ -21,9 +21,9 @@
                     </select>
                 </div>
                 <div class="action-buttons">
-                    <button onclick="resetCPU()" class="btn btn-reset">Reset</button>
-                    <button onclick="stepInstruction()" class="btn btn-step">Step</button>
-                    <button onclick="runBootSequence()" class="btn btn-run">Run</button>
+                    <button onclick="resetCPU()" class="btn btn-reset" data-tooltip="Clear all registers and reset CPU state">Reset</button>
+                    <button onclick="stepInstruction()" class="btn btn-step" data-tooltip="Execute next instruction or boot step">Step</button>
+                    <button onclick="runBootSequence()" class="btn btn-run" data-tooltip="Run boot sequence to initialize system">Run</button>
                 </div>
             </nav>
         </header>
@@ -82,9 +82,9 @@
                     <div class="panel-header-with-nav">
                         <h2>Turing Registers</h2>
                         <div class="register-nav">
-                            <button id="drPrev" class="nav-btn" onclick="showDataRegPage(0)" disabled>&lt;</button>
+                            <button id="drPrev" class="nav-btn" onclick="showDataRegPage(0)" disabled data-tooltip="Show registers DR0-DR7">&lt;</button>
                             <span id="drPageLabel">0-7</span>
-                            <button id="drNext" class="nav-btn" onclick="showDataRegPage(1)">&gt;</button>
+                            <button id="drNext" class="nav-btn" onclick="showDataRegPage(1)" data-tooltip="Show registers DR8-DR15">&gt;</button>
                         </div>
                     </div>
                     <div class="register-list" id="dataRegs"></div>
@@ -184,7 +184,7 @@
                             </optgroup>
                         </select>
                         <div class="operands" id="operandInputs"></div>
-                        <button onclick="executeCommand()" class="btn btn-execute">Execute</button>
+                        <button onclick="executeCommand()" class="btn btn-execute" data-tooltip="Execute the selected instruction">Execute</button>
                     </div>
                     <div class="instruction-help" id="instrHelp"></div>
                 </div>
@@ -200,10 +200,10 @@
             <div class="namespace-toolbar">
                 <span class="toolbar-label">Selected: <span id="selectedObjectName">None</span></span>
                 <div class="toolbar-buttons">
-                    <button class="btn btn-toolbar" onclick="toolbarAction('add')" title="Add new object as child of selected">+ Add</button>
-                    <button class="btn btn-toolbar" onclick="toolbarAction('edit')" title="Edit selected object">Edit</button>
-                    <button class="btn btn-toolbar" onclick="toolbarAction('link')" title="Link selected object to another C-List">Link</button>
-                    <button class="btn btn-toolbar btn-danger" onclick="toolbarAction('delete')" title="Delete selected object">Delete</button>
+                    <button class="btn btn-toolbar" onclick="toolbarAction('add')" data-tooltip="Add new object as child of selected">+ Add</button>
+                    <button class="btn btn-toolbar" onclick="toolbarAction('edit')" data-tooltip="Edit selected object properties">Edit</button>
+                    <button class="btn btn-toolbar" onclick="toolbarAction('link')" data-tooltip="Link selected object to another C-List">Link</button>
+                    <button class="btn btn-toolbar btn-danger" onclick="toolbarAction('delete')" data-tooltip="Delete selected object from namespace">Delete</button>
                 </div>
             </div>
             <div class="namespace-layout">
@@ -228,7 +228,7 @@
         <section id="tutorial" class="view">
             <div class="tutorial-layout">
                 <div class="tutorial-nav-bar">
-                    <select id="lessonSelect" onchange="loadLesson(this.selectedIndex)">
+                    <select id="lessonSelect" onchange="loadLesson(this.selectedIndex)" data-tooltip="Choose a tutorial lesson to learn about CTMM">
                         <option value="0">1. Capabilities</option>
                         <option value="1">2. Boot Sequence</option>
                         <option value="2">3. Registers</option>
@@ -247,9 +247,9 @@
                     <div class="lesson-header">
                         <h2 id="lessonTitle">Introduction to Capabilities</h2>
                         <div class="lesson-nav">
-                            <button onclick="prevStep()" class="btn btn-nav" id="prevBtn" disabled>Previous</button>
+                            <button onclick="prevStep()" class="btn btn-nav" id="prevBtn" disabled data-tooltip="Go to previous step">Previous</button>
                             <span id="stepIndicator">Step 1 of 4</span>
-                            <button onclick="nextStep()" class="btn btn-nav" id="nextBtn">Next</button>
+                            <button onclick="nextStep()" class="btn btn-nav" id="nextBtn" data-tooltip="Go to next step">Next</button>
                         </div>
                     </div>
                     
@@ -262,8 +262,8 @@
                     </div>
                     
                     <div class="lesson-footer">
-                        <button onclick="tryInSimulator()" class="btn btn-try" id="tryBtn">Try in Simulator</button>
-                        <button onclick="completeLesson()" class="btn btn-complete" id="completeBtn">Mark Complete</button>
+                        <button onclick="tryInSimulator()" class="btn btn-try" id="tryBtn" data-tooltip="Open the simulator with this example">Try in Simulator</button>
+                        <button onclick="completeLesson()" class="btn btn-complete" id="completeBtn" data-tooltip="Mark this lesson as completed">Mark Complete</button>
                     </div>
                 </div>
             </div>
@@ -364,12 +364,12 @@
         <section id="capabilities" class="view">
             <div class="capabilities-layout">
                 <div class="cap-nav-bar">
-                    <select id="capViewSelect" onchange="switchCapView(this.value)">
+                    <select id="capViewSelect" onchange="switchCapView(this.value)" data-tooltip="Switch between capability views">
                         <option value="system">System Registers</option>
                         <option value="context">Context (CR0-CR7)</option>
                         <option value="clist">C-List</option>
                     </select>
-                    <button onclick="createSampleCapabilities()" class="btn btn-step">Load Samples</button>
+                    <button onclick="createSampleCapabilities()" class="btn btn-step" data-tooltip="Load example capabilities into context registers">Load Samples</button>
                 </div>
                 <div class="cap-content-area">
                     <div class="cap-sidebar">
@@ -572,9 +572,9 @@
                     <span class="perm-badge-green">XR</span>
                 </div>
                 <div class="toolbar-group">
-                    <button onclick="runProgram()" class="btn btn-sm btn-run">Run</button>
-                    <button onclick="stepProgram()" class="btn btn-sm btn-step" id="stepBtn">Step</button>
-                    <button onclick="resetProgram()" class="btn btn-sm btn-reset">Reset</button>
+                    <button onclick="runProgram()" class="btn btn-sm btn-run" data-tooltip="Execute the entire program at once">Run</button>
+                    <button onclick="stepProgram()" class="btn btn-sm btn-step" id="stepBtn" data-tooltip="Execute one instruction at a time">Step</button>
+                    <button onclick="resetProgram()" class="btn btn-sm btn-reset" data-tooltip="Clear program state and start over">Reset</button>
                 </div>
                 <div class="toolbar-group toolbar-status">
                     <span>PC: <strong id="editorPC">0</strong></span>
@@ -600,9 +600,9 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
                     
                     <div class="editor-output-panel">
                         <div class="output-tabs">
-                            <button class="output-tab active" onclick="switchOutputTab('console')">Console</button>
-                            <button class="output-tab" onclick="switchOutputTab('turing')">TURING</button>
-                            <button class="output-tab" onclick="switchOutputTab('church')">CHURCH</button>
+                            <button class="output-tab active" onclick="switchOutputTab('console')" data-tooltip="Program output and status messages">Console</button>
+                            <button class="output-tab" onclick="switchOutputTab('turing')" data-tooltip="Data registers DR0-DR15 (64-bit values)">TURING</button>
+                            <button class="output-tab" onclick="switchOutputTab('church')" data-tooltip="Context registers CR0-CR15 (Golden Tokens)">CHURCH</button>
                         </div>
                         <div class="output-content" id="editorConsole">
                             <div class="console-line info">CTMM Assembly Editor Ready</div>
