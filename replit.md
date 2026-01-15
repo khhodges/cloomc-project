@@ -1,7 +1,7 @@
-# PP250 Meta-Machine Simulator
+# Church-Turing Meta-Machine (CTMM) Simulator
 
 ## Overview
-A Haskell simulator for the PP250 capability-based meta-machine, implementing Kenneth James Hamer-Hodges' architecture. The system uses "Golden Tokens" (192-bit capability keys) for all access control.
+A simulator for the CTMM (Church-Turing Meta-Machine) capability-based architecture, implementing Kenneth James Hamer-Hodges' failsafe security design. The system uses "Golden Tokens" (192-bit capability keys) for all access control.
 
 ## Project Structure
 ```

@@ -21,5 +21,5 @@ class ReuseAddrTCPServer(socketserver.TCPServer):
     allow_reuse_address = True
 
 with ReuseAddrTCPServer(("0.0.0.0", PORT), NoCacheHandler) as httpd:
-    print(f"PP250 Web Simulator running at http://0.0.0.0:{PORT}")
+    print(f"CTMM Web Simulator running at http://0.0.0.0:{PORT}")
     httpd.serve_forever()

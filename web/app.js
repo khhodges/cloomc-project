@@ -16,7 +16,7 @@ function generateGoldenKey() {
 const bootNamespace = {
     name: "Boot",
     location: 0x0000,
-    description: "Root abstraction of the PP250 system",
+    description: "Root abstraction of the CTMM system",
     clist: [
         { name: "Kenneth", type: "Thread", ref: "threads.kenneth" },
         { name: "Matthew", type: "Thread", ref: "threads.matthew" },
@@ -682,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDisplay();
     updateInstrHelp();
     updateCapabilityExplorer();
-    log('PP250 Simulator Ready', 'info');
+    log('CTMM Simulator Ready', 'info');
     log('Select an instruction and click Execute, or use Reset/Step/Run controls', 'info');
 });
 
@@ -1829,7 +1829,7 @@ const lessons = [
             {
                 text: `<h3>What is a Capability?</h3>
                 <p>In traditional security systems, access control is managed through <strong>Access Control Lists (ACLs)</strong> - lists that define who can access what resources.</p>
-                <p>The PP250 uses a fundamentally different approach: <strong>Capability-Based Security</strong>.</p>
+                <p>The CTMM uses a fundamentally different approach: <strong>Capability-Based Security</strong>.</p>
                 <div class="key-concept">
                     <strong>Key Concept:</strong> A capability is an unforgeable token that grants specific rights to a resource. If you have the token, you have the access - no need to check lists or permissions separately.
                 </div>`,
@@ -1843,13 +1843,13 @@ const lessons = [
                     </div>
                     <div class="demo-explanation">
                         <p>This is a <strong>Golden Token</strong> - a cryptographic key that cannot be forged or guessed.</p>
-                        <p>Each capability in the PP250 has its own unique Golden Token that proves authenticity.</p>
+                        <p>Each capability in the CTMM has its own unique Golden Token that proves authenticity.</p>
                     </div>
                 </div>`
             },
             {
                 text: `<h3>The Seven Permissions</h3>
-                <p>Each capability grants specific permissions. The PP250 uses seven permission types:</p>
+                <p>Each capability grants specific permissions. The CTMM uses seven permission types:</p>
                 <ul>
                     <li><code>R</code> - <strong>Read</strong>: View data or code</li>
                     <li><code>W</code> - <strong>Write</strong>: Modify data</li>
@@ -1911,8 +1911,8 @@ const lessons = [
         title: "The Boot Sequence",
         steps: [
             {
-                text: `<h3>Starting the PP250</h3>
-                <p>When the PP250 powers on, it goes through a <strong>4-step boot sequence</strong> to establish a secure foundation.</p>
+                text: `<h3>Starting the CTMM</h3>
+                <p>When the CTMM powers on, it goes through a <strong>4-step boot sequence</strong> to establish a secure foundation.</p>
                 <p>This sequence ensures that the system starts in a known, secure state with proper capabilities in place.</p>
                 <div class="key-concept">
                     <strong>Why it matters:</strong> Each step builds upon the previous one, creating a chain of trust from hardware to user space.
@@ -1984,7 +1984,7 @@ const lessons = [
         steps: [
             {
                 text: `<h3>Two Types of Registers</h3>
-                <p>The PP250 has two distinct register types, each serving a different purpose:</p>
+                <p>The CTMM has two distinct register types, each serving a different purpose:</p>
                 <ul>
                     <li><strong>Context Registers (CR0-CR7)</strong>: Hold capabilities (access rights)</li>
                     <li><strong>Data Registers (DR0-DR7)</strong>: Hold 64-bit numeric values</li>
@@ -2065,7 +2065,7 @@ const lessons = [
         steps: [
             {
                 text: `<h3>Working with Capabilities</h3>
-                <p>The PP250 provides special instructions for capability manipulation:</p>
+                <p>The CTMM provides special instructions for capability manipulation:</p>
                 <ul>
                     <li><code>LOAD d s i</code> - Load capability from memory into register</li>
                     <li><code>SAVE d s</code> - Save capability from register to memory</li>
@@ -2144,7 +2144,7 @@ const lessons = [
         steps: [
             {
                 text: `<h3>How Capabilities Enforce Security</h3>
-                <p>The PP250's security comes from strict capability checking at every operation:</p>
+                <p>The CTMM's security comes from strict capability checking at every operation:</p>
                 <ul>
                     <li><strong>No capability = No access</strong>: Without the right token, operations fail</li>
                     <li><strong>Permission checking</strong>: Each operation requires specific permissions</li>

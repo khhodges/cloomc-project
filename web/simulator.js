@@ -1,4 +1,4 @@
-class PP250Simulator {
+class CTMMSimulator {
     constructor() {
         this.reset();
     }
@@ -479,4 +479,4 @@ class PP250Simulator {
     }
 }
 
-const simulator = new PP250Simulator();
+const simulator = new CTMMSimulator();

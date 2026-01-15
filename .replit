@@ -16,7 +16,7 @@ args = "Run Haskell"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "PP250 Web Simulator"
+args = "CTMM Web Simulator"
 
 [[workflows.workflow]]
 name = "Run Haskell"
@@ -30,7 +30,7 @@ task = "shell.exec"
 args = "runghc -i. metaMachine.hs"
 
 [[workflows.workflow]]
-name = "PP250 Web Simulator"
+name = "CTMM Web Simulator"
 author = "agent"
 
 [[workflows.workflow.tasks]]
