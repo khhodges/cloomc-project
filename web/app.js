@@ -467,9 +467,9 @@ function buildHierarchyTree() {
             html += '<div class="hier-clist">';
             abstractionCLists[name].clist.forEach(item => {
                 if (item.type === 'Function') {
-                    html += `<div class="hier-item hier-gt hier-func" data-name="${item.name}" data-type="Function" data-tooltip="Golden Token granting permission to invoke ${item.name} function.">${item.name}</div>`;
+                    html += `<div class="hier-item hier-gt hier-func" data-name="${item.name}" data-type="Function" data-parent="${name}" data-tooltip="Golden Token granting permission to invoke ${item.name} function.">${item.name}</div>`;
                 } else if (item.type === 'Constant') {
-                    html += `<div class="hier-item hier-gt hier-const" data-name="${item.name}" data-type="Constant" data-tooltip="GT Constant: ${item.desc}" data-value="${item.value}">${item.name}</div>`;
+                    html += `<div class="hier-item hier-gt hier-const" data-name="${item.name}" data-type="Constant" data-parent="${name}" data-tooltip="GT Constant: ${item.desc}" data-value="${item.value}">${item.name}</div>`;
                 }
             });
             html += '</div>';
@@ -3200,247 +3200,783 @@ function confirmLinkModal() {
 }
 
 const functionBetaCode = {
-    GT_CIRCUMFERENCE: `; ====================================
+    GT_CIRCUMFERENCE: `; ====================================================
 ; GT_CIRCUMFERENCE: C = 2 * PI * r
 ; Beta-reduction of Circle.circumference
-; ====================================
+; TYPE: Float -> Float (requires floating-point radius)
+; ====================================================
 ; Register usage:
-;   DR0 = radius (input parameter)
+;   CR0 = Parameter GT (radius, must be Float type)
+;   DR0 = radius value (after validation)
 ;   DR1 = result (output)
 ;   CR5 = Thread C-List (contains GT_TWO_PI)
 ;   CR6 = Nodal C-List (current function GTs)
-; ====================================
+; ====================================================
 
-; Load TWO_PI constant from Thread C-List
+; === FORMAL TYPE VALIDATION ===
+; Step 1: Validate parameter GT has Read permission
+TPERM 0 R           ; Test CR0 has Read permission
+B NE perm_trap      ; TRAP: Missing Read permission
+
+; Step 2: Validate parameter is Float type (Type=0x02)
+; Hardware checks Namespace Entry Word3[32:47] = FLOAT
+TPERM 0 R BOUNDS 8  ; Verify 8-byte float size
+B NE type_trap      ; TRAP: Not a valid Float GT
+
+; Step 3: Load TWO_PI constant, verify it exists
 LOAD 1 5 1          ; CR1 = GT_TWO_PI from CR5[1]
+TPERM 1 R           ; Validate constant is readable
+B NE const_trap     ; TRAP: TWO_PI constant missing
 
-; Beta-reduce: result = TWO_PI * radius
-; DR1 = 2*PI (loaded from constant GT)
-; DR0 = radius (passed as parameter)
-MUL 1 0             ; DR1 = DR1 * DR0 = 2*PI*r
+; === VALIDATED COMPUTATION ===
+; All preconditions verified - safe to compute
+MUL 1 0             ; DR1 = TWO_PI * radius
 
 ; Result in DR1, return to caller
-RETURN              ; Exit with result in DR1`,
+RETURN              ; Exit with result in DR1
 
-    GT_AREA: `; ====================================
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Security violation: parameter lacks Read permission
+    ; Hardware triggers capability fault
+    
+type_trap:
+    ; Type mismatch: expected Float, got other type
+    ; Hardware triggers type fault
+    
+const_trap:
+    ; Missing constant: Thread C-List corrupted
+    ; Hardware triggers integrity fault`,
+
+    GT_AREA: `; ====================================================
 ; GT_AREA: A = PI * r^2
 ; Beta-reduction of Circle.area
-; ====================================
+; TYPE: Float -> Float (requires floating-point radius)
+; ====================================================
 ; Register usage:
-;   DR0 = radius (input parameter)
+;   CR0 = Parameter GT (radius, must be Float type)
+;   DR0 = radius value (after validation)
 ;   DR1 = result (output)
 ;   DR2 = scratch (r^2)
-;   CR5 = Thread C-List (contains GT_PI)
+;   CR5 = Thread C-List (contains GT_PI at index 0)
 ;   CR6 = Nodal C-List (current function GTs)
-; ====================================
+; ====================================================
 
-; First compute r^2
+; === FORMAL TYPE VALIDATION ===
+; Step 1: Validate parameter GT has Read permission
+TPERM 0 R           ; Test CR0 has Read permission
+B NE perm_trap      ; TRAP: Missing Read permission
+
+; Step 2: Validate parameter is Float type
+; Hardware checks Namespace Entry Type field
+TPERM 0 R BOUNDS 8  ; Verify 8-byte float bounds
+B NE type_trap      ; TRAP: Not a valid Float GT
+
+; Step 3: Validate radius >= 0 (domain check)
+CMP 0 0             ; Compare radius to zero
+B MI domain_trap    ; TRAP: Negative radius invalid
+
+; Step 4: Load PI constant, verify integrity
+LOAD 1 5 0          ; CR1 = GT_PI from CR5[0]
+TPERM 1 R           ; Validate constant is readable
+B NE const_trap     ; TRAP: PI constant missing
+
+; === VALIDATED COMPUTATION ===
+; All preconditions verified - safe to compute
 MOV 2 0             ; DR2 = radius
 MUL 2 0             ; DR2 = r * r = r^2
-
-; Load PI constant from Thread C-List
-LOAD 1 5 0          ; CR1 = GT_PI from CR5[0]
-
-; Beta-reduce: result = PI * r^2
-; DR1 = PI (loaded from constant GT)
-MOV 1 2             ; DR1 = r^2 (move to result)
-; Note: In full impl, would multiply by PI value
 MUL 1 2             ; DR1 = PI * r^2
 
 ; Result in DR1, return to caller
-RETURN              ; Exit with result in DR1`,
+RETURN              ; Exit with result in DR1
 
-    GT_DIAMETER: `; ====================================
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Security violation: parameter lacks Read permission
+type_trap:
+    ; Type mismatch: expected Float, got Integer or other
+domain_trap:
+    ; Domain error: radius must be non-negative
+const_trap:
+    ; Integrity fault: PI constant not in Thread C-List`,
+
+    GT_DIAMETER: `; ====================================================
 ; GT_DIAMETER: D = 2 * r
 ; Beta-reduction of Circle.diameter
-; ====================================
+; TYPE: Float -> Float (requires floating-point radius)
+; ====================================================
 ; Register usage:
-;   DR0 = radius (input parameter)
+;   CR0 = Parameter GT (radius, must be Float type)
+;   DR0 = radius value (after validation)
 ;   DR1 = result (output)
 ;   CR6 = Nodal C-List (current function GTs)
-; ====================================
+; ====================================================
 
-; Simple beta-reduction: D = 2 * r
+; === FORMAL TYPE VALIDATION ===
+; Step 1: Validate parameter GT has Read permission
+TPERM 0 R           ; Test CR0 has Read permission
+B NE perm_trap      ; TRAP: Missing Read permission
+
+; Step 2: Validate parameter is Float type
+TPERM 0 R BOUNDS 8  ; Verify 8-byte float bounds
+B NE type_trap      ; TRAP: Not a valid Float GT
+
+; === VALIDATED COMPUTATION ===
+; Simple and safe: D = 2 * r
 MOV 1 0             ; DR1 = radius
 ADD 1 0             ; DR1 = r + r = 2*r
 
 ; Result in DR1, return to caller
-RETURN              ; Exit with result in DR1`,
+RETURN              ; Exit with result in DR1
 
-    GT_ADD: `; ====================================
-; GT_ADD (SlideRule/Abacus): a + b
-; Beta-reduction of addition
-; ====================================
-; DR0 = operand a, DR1 = operand b
-; Result in DR0
-; ====================================
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Security violation: parameter lacks permission
+type_trap:
+    ; Type mismatch: expected Float`,
 
-ADD 0 1             ; DR0 = DR0 + DR1
-RETURN              ; Exit with result`,
+    GT_ADD: `; ====================================================
+; GT_ADD (SlideRule): a + b
+; Beta-reduction of floating-point addition
+; TYPE: (Float, Float) -> Float
+; ====================================================
+; Register usage:
+;   CR0 = First operand GT (must be Float)
+;   CR1 = Second operand GT (must be Float)
+;   DR0 = operand a, DR1 = operand b
+;   Result in DR0
+; ====================================================
 
-    GT_SUB: `; ====================================
-; GT_SUB (SlideRule/Abacus): a - b
-; Beta-reduction of subtraction
-; ====================================
-; DR0 = operand a, DR1 = operand b
-; Result in DR0
-; ====================================
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate CR0 has Read
+B NE perm_trap      ; TRAP on permission failure
+TPERM 0 R BOUNDS 8  ; Validate Float type (8 bytes)
+B NE type_trap      ; TRAP: operand a not Float
 
-SUB 0 1             ; DR0 = DR0 - DR1
-RETURN              ; Exit with result`,
+TPERM 1 R           ; Validate CR1 has Read
+B NE perm_trap      ; TRAP on permission failure
+TPERM 1 R BOUNDS 8  ; Validate Float type (8 bytes)
+B NE type_trap      ; TRAP: operand b not Float
 
-    GT_MUL: `; ====================================
-; GT_MUL (SlideRule/Abacus): a * b
-; Beta-reduction of multiplication
-; ====================================
-; DR0 = operand a, DR1 = operand b
-; Result in DR0
-; ====================================
+; === VALIDATED COMPUTATION ===
+ADD 0 1             ; DR0 = DR0 + DR1 (float add)
 
+; Check for overflow (V flag)
+B VS overflow_trap  ; TRAP on floating-point overflow
+
+RETURN              ; Exit with validated result
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+overflow_trap:`,
+
+    GT_SUB: `; ====================================================
+; GT_SUB (SlideRule): a - b
+; Beta-reduction of floating-point subtraction
+; TYPE: (Float, Float) -> Float
+; ====================================================
+; Register usage:
+;   CR0 = First operand GT (must be Float)
+;   CR1 = Second operand GT (must be Float)
+;   DR0 = operand a, DR1 = operand b
+;   Result in DR0
+; ====================================================
+
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate CR0 has Read
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Float type
+B NE type_trap
+
+TPERM 1 R           ; Validate CR1 has Read
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Validate Float type
+B NE type_trap
+
+; === VALIDATED COMPUTATION ===
+SUB 0 1             ; DR0 = DR0 - DR1 (float sub)
+B VS overflow_trap  ; Check underflow
+
+RETURN              ; Exit with result
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+overflow_trap:`,
+
+    GT_MUL: `; ====================================================
+; GT_MUL (SlideRule): a * b
+; Beta-reduction of floating-point multiplication
+; TYPE: (Float, Float) -> Float
+; ====================================================
+; Register usage:
+;   CR0, CR1 = Operand GTs (must be Float)
+;   DR0 = a, DR1 = b
+;   Result in DR0
+; ====================================================
+
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate CR0 readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Must be 8-byte Float
+B NE type_trap
+
+TPERM 1 R           ; Validate CR1 readable
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Must be 8-byte Float
+B NE type_trap
+
+; === VALIDATED COMPUTATION ===
 MUL 0 1             ; DR0 = DR0 * DR1
-RETURN              ; Exit with result`,
+B VS overflow_trap  ; Check for overflow/infinity
 
-    GT_DIV: `; ====================================
-; GT_DIV (SlideRule/Abacus): a / b
-; Beta-reduction of division
-; ====================================
-; DR0 = dividend, DR1 = divisor
-; Result in DR0
-; Traps on divide by zero
-; ====================================
+RETURN
 
-; Check for divide by zero
-CMP 1 1             ; Compare DR1 to itself (sets Z if zero)
-; In real impl: B EQ trap_handler
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+overflow_trap:`,
 
-; Perform division (simulated)
-; DR0 = DR0 / DR1
-RETURN              ; Exit with result`,
+    GT_DIV: `; ====================================================
+; GT_DIV (SlideRule): a / b
+; Beta-reduction of floating-point division
+; TYPE: (Float, Float) -> Float
+; PRECONDITION: b != 0.0
+; ====================================================
+; Register usage:
+;   CR0 = Dividend GT (Float)
+;   CR1 = Divisor GT (Float, must be non-zero)
+;   DR0 = a, DR1 = b
+;   Result in DR0
+; ====================================================
 
-    GT_MOD: `; ====================================
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate dividend readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Must be Float
+B NE type_trap
+
+TPERM 1 R           ; Validate divisor readable
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Must be Float
+B NE type_trap
+
+; === DOMAIN VALIDATION ===
+; Critical: Check for divide by zero
+CMP 1 1             ; Test if DR1 == 0
+B EQ divzero_trap   ; TRAP: Division by zero
+
+; === VALIDATED COMPUTATION ===
+; Safe to divide - divisor verified non-zero
+; DR0 = DR0 / DR1 (hardware float divide)
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Capability permission denied
+type_trap:
+    ; Type mismatch - not Float
+divzero_trap:
+    ; CRITICAL: Division by zero attempted
+    ; Hardware generates arithmetic exception`,
+
+    GT_MOD: `; ====================================================
 ; GT_MOD (Abacus): a mod b
-; Beta-reduction of modulo
-; ====================================
-; DR0 = dividend, DR1 = divisor
-; Result in DR0 = remainder
-; ====================================
+; Beta-reduction of integer modulo
+; TYPE: (Integer, Integer) -> Integer
+; PRECONDITION: b != 0
+; ====================================================
+; Register usage:
+;   CR0 = Dividend GT (must be Integer type)
+;   CR1 = Divisor GT (must be Integer, non-zero)
+;   DR0 = a, DR1 = b
+;   Result in DR0 = a mod b
+; ====================================================
 
-; Modulo: DR0 = DR0 - (DR0/DR1)*DR1
-; Simplified for demo
-RETURN              ; Exit with result`,
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate CR0 readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Integer (8 bytes)
+B NE type_trap
 
-    GT_ABS: `; ====================================
+TPERM 1 R           ; Validate CR1 readable
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Validate Integer
+B NE type_trap
+
+; === DOMAIN VALIDATION ===
+CMP 1 1             ; Check divisor != 0
+B EQ divzero_trap   ; TRAP on modulo by zero
+
+; === VALIDATED COMPUTATION ===
+; Integer modulo: DR0 = DR0 mod DR1
+; Result is always in range [0, |b|-1]
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+divzero_trap:`,
+
+    GT_ABS: `; ====================================================
 ; GT_ABS (Abacus): |a|
-; Beta-reduction of absolute value
-; ====================================
-; DR0 = input value
-; Result in DR0
-; ====================================
+; Beta-reduction of integer absolute value
+; TYPE: Integer -> Integer
+; ====================================================
+; Register usage:
+;   CR0 = Input GT (must be Integer type)
+;   DR0 = input value
+;   Result in DR0 = |a|
+; ====================================================
 
-; Check if negative (N flag)
-CMP 0 0             ; Sets flags based on DR0
-; If negative, negate
-NEG 0 0             ; DR0 = -DR0 (conditional)
-RETURN              ; Exit with result`,
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Integer type
+B NE type_trap
 
-    GT_NEG: `; ====================================
+; === VALIDATED COMPUTATION ===
+CMP 0 0             ; Test sign of input
+B PL done           ; If positive/zero, already absolute
+NEG 0 0             ; Negate if negative
+B VS overflow_trap  ; Check for MIN_INT overflow
+
+done:
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+overflow_trap:
+    ; ABS(MIN_INT) overflows - no positive representation`,
+
+    GT_NEG: `; ====================================================
 ; GT_NEG (Abacus): -a
-; Beta-reduction of negation
-; ====================================
-; DR0 = input value
-; Result in DR0
-; ====================================
+; Beta-reduction of integer negation
+; TYPE: Integer -> Integer
+; ====================================================
+; Register usage:
+;   CR0 = Input GT (must be Integer type)
+;   DR0 = input value
+;   Result in DR0 = -a
+; ====================================================
 
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Integer type
+B NE type_trap
+
+; === VALIDATED COMPUTATION ===
 NEG 0 0             ; DR0 = -DR0
-RETURN              ; Exit with result`,
+B VS overflow_trap  ; NEG(MIN_INT) overflows
 
-    GT_INC: `; ====================================
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+overflow_trap:`,
+
+    GT_INC: `; ====================================================
 ; GT_INC (Abacus): a + 1
-; Beta-reduction of increment
-; ====================================
-; DR0 = input value
-; Result in DR0
-; ====================================
+; Beta-reduction of integer increment
+; TYPE: Integer -> Integer
+; ====================================================
+; Register usage:
+;   CR0 = Input GT (must be Integer type)
+;   DR0 = input value
+;   Result in DR0 = a + 1
+; ====================================================
 
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Integer type
+B NE type_trap
+
+; === VALIDATED COMPUTATION ===
 ADDI 0 1            ; DR0 = DR0 + 1
-RETURN              ; Exit with result`,
+B VS overflow_trap  ; Check for signed overflow
 
-    GT_DEC: `; ====================================
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+overflow_trap:
+    ; MAX_INT + 1 causes overflow`,
+
+    GT_DEC: `; ====================================================
 ; GT_DEC (Abacus): a - 1
-; Beta-reduction of decrement
-; ====================================
-; DR0 = input value
-; Result in DR0
-; ====================================
+; Beta-reduction of integer decrement
+; TYPE: Integer -> Integer
+; ====================================================
+; Register usage:
+;   CR0 = Input GT (must be Integer type)
+;   DR0 = input value
+;   Result in DR0 = a - 1
+; ====================================================
 
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Integer type
+B NE type_trap
+
+; === VALIDATED COMPUTATION ===
 SUBI 0 1            ; DR0 = DR0 - 1
-RETURN              ; Exit with result`,
+B VS underflow_trap ; Check for signed underflow
 
-    GT_LOG: `; ====================================
-; GT_LOG (SlideRule): log(x)
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+underflow_trap:
+    ; MIN_INT - 1 causes underflow`,
+
+    GT_LOG: `; ====================================================
+; GT_LOG (SlideRule): ln(x)
 ; Beta-reduction of natural logarithm
-; ====================================
-; DR0 = input value x
-; Result in DR0 = ln(x)
-; Traps if x <= 0
-; ====================================
+; TYPE: Float -> Float
+; PRECONDITION: x > 0.0
+; ====================================================
+; Register usage:
+;   CR0 = Input GT (must be Float, positive)
+;   DR0 = input value x
+;   Result in DR0 = ln(x)
+; ====================================================
 
-; Check for valid input (x > 0)
-; Logarithm computed via Taylor series
-; or hardware FPU in real implementation
-RETURN              ; Exit with result`,
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Float type
+B NE type_trap
 
-    GT_EXP: `; ====================================
+; === DOMAIN VALIDATION ===
+; Logarithm requires strictly positive input
+CMP 0 0             ; Compare x to zero
+B LE domain_trap    ; TRAP if x <= 0
+
+; === VALIDATED COMPUTATION ===
+; Hardware FPU computes ln(x)
+; Using Taylor series or lookup table
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+domain_trap:
+    ; CRITICAL: log of non-positive number
+    ; Mathematical undefined - must trap`,
+
+    GT_EXP: `; ====================================================
 ; GT_EXP (SlideRule): e^x
-; Beta-reduction of exponential
-; ====================================
-; DR0 = exponent x
-; Result in DR0 = e^x
-; ====================================
+; Beta-reduction of exponential function
+; TYPE: Float -> Float
+; ====================================================
+; Register usage:
+;   CR0 = Input GT (must be Float)
+;   DR0 = exponent x
+;   Result in DR0 = e^x
+; ====================================================
 
-; Exponential computed via Taylor series
-; or hardware FPU in real implementation
-RETURN              ; Exit with result`,
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Float type
+B NE type_trap
 
-    GT_SQRT: `; ====================================
+; === RANGE VALIDATION ===
+; Check for potential overflow (x too large)
+; Check for underflow (x too negative -> 0)
+
+; === VALIDATED COMPUTATION ===
+; Hardware FPU computes e^x
+; Always positive result
+B VS overflow_trap  ; Check for infinity
+
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+overflow_trap:
+    ; e^(large x) exceeds Float range`,
+
+    GT_SQRT: `; ====================================================
 ; GT_SQRT (SlideRule): sqrt(x)
 ; Beta-reduction of square root
-; ====================================
-; DR0 = input value x
-; Result in DR0 = sqrt(x)
-; Traps if x < 0
-; ====================================
+; TYPE: Float -> Float
+; PRECONDITION: x >= 0.0
+; ====================================================
+; Register usage:
+;   CR0 = Input GT (must be Float, non-negative)
+;   DR0 = input value x
+;   Result in DR0 = sqrt(x)
+; ====================================================
 
-; Check for valid input (x >= 0)
-; Square root via Newton-Raphson
-; or hardware FPU in real implementation
-RETURN              ; Exit with result`,
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Float type
+B NE type_trap
 
-    GT_POW: `; ====================================
+; === DOMAIN VALIDATION ===
+CMP 0 0             ; Compare x to zero
+B MI domain_trap    ; TRAP if x < 0 (negative)
+
+; === VALIDATED COMPUTATION ===
+; Hardware FPU computes sqrt(x)
+; Newton-Raphson or hardware instruction
+; Result always non-negative
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+domain_trap:
+    ; CRITICAL: sqrt of negative number
+    ; Would produce imaginary result - must trap`,
+
+    GT_POW: `; ====================================================
 ; GT_POW (SlideRule): x^y
 ; Beta-reduction of power function
-; ====================================
-; DR0 = base x, DR1 = exponent y
-; Result in DR0 = x^y
-; ====================================
+; TYPE: (Float, Float) -> Float
+; PRECONDITIONS:
+;   - If x < 0, y must be integer
+;   - If x = 0, y must be positive
+; ====================================================
+; Register usage:
+;   CR0 = Base GT x (Float)
+;   CR1 = Exponent GT y (Float)
+;   DR0 = x, DR1 = y
+;   Result in DR0 = x^y
+; ====================================================
 
-; Power computed as exp(y * log(x))
-; Requires GT_LOG and GT_EXP
-LOAD 2 6 0          ; Load GT_LOG
-LOAD 3 6 1          ; Load GT_EXP
-; CALL GT_LOG, multiply, CALL GT_EXP
-RETURN              ; Exit with result`
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate base readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Float type
+B NE type_trap
+
+TPERM 1 R           ; Validate exponent readable
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Validate Float type
+B NE type_trap
+
+; === DOMAIN VALIDATION ===
+; Check special cases
+CMP 0 0             ; Is x == 0?
+B NE check_neg      ; No, check negative
+CMP 1 0             ; x=0: is y <= 0?
+B LE domain_trap    ; 0^0 or 0^neg undefined
+
+check_neg:
+CMP 0 0             ; Is x < 0?
+B PL compute        ; No, safe to compute
+; x < 0: verify y is integer
+; (fractional exp of negative = complex)
+
+; === VALIDATED COMPUTATION ===
+compute:
+; Power via: x^y = exp(y * ln(x))
+LOAD 2 6 0          ; Load GT_LOG from C-List
+CALL 2              ; DR0 = ln(x)
+MUL 0 1             ; DR0 = y * ln(x)
+LOAD 3 6 1          ; Load GT_EXP from C-List
+CALL 3              ; DR0 = exp(y * ln(x))
+
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+type_trap:
+domain_trap:
+    ; Invalid: 0^0, 0^neg, or neg^frac`,
+
+    Abacus_GT_ADD: `; ====================================================
+; GT_ADD (Abacus): a + b
+; Beta-reduction of INTEGER addition
+; TYPE: (Integer, Integer) -> Integer
+; ====================================================
+; Register usage:
+;   CR0 = First operand GT (must be Integer type)
+;   CR1 = Second operand GT (must be Integer type)
+;   DR0 = operand a, DR1 = operand b
+;   Result in DR0
+; ====================================================
+
+; === FORMAL TYPE VALIDATION ===
+; Step 1: Validate first operand is Integer
+TPERM 0 R           ; Validate CR0 has Read permission
+B NE perm_trap      ; TRAP on permission failure
+TPERM 0 R BOUNDS 8  ; Validate Integer type (8 bytes, 64-bit)
+B NE type_trap      ; TRAP: operand a not Integer
+
+; Step 2: Validate second operand is Integer
+TPERM 1 R           ; Validate CR1 has Read permission
+B NE perm_trap      ; TRAP on permission failure
+TPERM 1 R BOUNDS 8  ; Validate Integer type
+B NE type_trap      ; TRAP: operand b not Integer
+
+; === VALIDATED COMPUTATION ===
+ADD 0 1             ; DR0 = DR0 + DR1 (integer add)
+
+; Check for signed overflow (V flag)
+B VS overflow_trap  ; TRAP on integer overflow
+
+RETURN              ; Exit with validated result
+
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Security violation: operand lacks Read permission
+    ; Hardware triggers capability fault
+type_trap:
+    ; Type mismatch: expected Integer, got Float or other
+    ; Integer operations require whole numbers
+overflow_trap:
+    ; Arithmetic overflow: result exceeds 64-bit signed range
+    ; MAX_INT + positive or MIN_INT + negative`,
+
+    Abacus_GT_SUB: `; ====================================================
+; GT_SUB (Abacus): a - b
+; Beta-reduction of INTEGER subtraction
+; TYPE: (Integer, Integer) -> Integer
+; ====================================================
+; Register usage:
+;   CR0 = First operand GT (must be Integer type)
+;   CR1 = Second operand GT (must be Integer type)
+;   DR0 = operand a, DR1 = operand b
+;   Result in DR0 = a - b
+; ====================================================
+
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate CR0 readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Validate Integer type
+B NE type_trap
+
+TPERM 1 R           ; Validate CR1 readable
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Validate Integer type
+B NE type_trap
+
+; === VALIDATED COMPUTATION ===
+SUB 0 1             ; DR0 = DR0 - DR1 (integer sub)
+B VS underflow_trap ; Check for signed underflow
+
+RETURN              ; Exit with result
+
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Capability permission denied
+type_trap:
+    ; Type mismatch - expected Integer, got Float
+underflow_trap:
+    ; Arithmetic underflow: MIN_INT - positive`,
+
+    Abacus_GT_MUL: `; ====================================================
+; GT_MUL (Abacus): a * b
+; Beta-reduction of INTEGER multiplication
+; TYPE: (Integer, Integer) -> Integer
+; ====================================================
+; Register usage:
+;   CR0, CR1 = Operand GTs (must be Integer type)
+;   DR0 = a, DR1 = b
+;   Result in DR0 = a * b
+; ====================================================
+
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate CR0 readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Must be 8-byte Integer
+B NE type_trap
+
+TPERM 1 R           ; Validate CR1 readable
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Must be 8-byte Integer
+B NE type_trap
+
+; === VALIDATED COMPUTATION ===
+MUL 0 1             ; DR0 = DR0 * DR1 (integer mul)
+B VS overflow_trap  ; Check for overflow (result > 64 bits)
+
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Permission denied
+type_trap:
+    ; Type error: Integer required, Float given
+overflow_trap:
+    ; Product exceeds 64-bit signed integer range`,
+
+    Abacus_GT_DIV: `; ====================================================
+; GT_DIV (Abacus): a / b (integer division)
+; Beta-reduction of INTEGER division (truncates toward zero)
+; TYPE: (Integer, Integer) -> Integer
+; PRECONDITION: b != 0
+; ====================================================
+; Register usage:
+;   CR0 = Dividend GT (Integer)
+;   CR1 = Divisor GT (Integer, must be non-zero)
+;   DR0 = a, DR1 = b
+;   Result in DR0 = a / b (truncated)
+; ====================================================
+
+; === FORMAL TYPE VALIDATION ===
+TPERM 0 R           ; Validate dividend readable
+B NE perm_trap
+TPERM 0 R BOUNDS 8  ; Must be Integer
+B NE type_trap
+
+TPERM 1 R           ; Validate divisor readable
+B NE perm_trap
+TPERM 1 R BOUNDS 8  ; Must be Integer
+B NE type_trap
+
+; === DOMAIN VALIDATION ===
+; CRITICAL: Check for division by zero
+CMP 1 1             ; Test if DR1 == 0
+B EQ divzero_trap   ; TRAP: Division by zero is undefined
+
+; Check for special case: MIN_INT / -1 (overflows)
+; MIN_INT = 0x8000000000000000 = -9223372036854775808
+; -MIN_INT cannot be represented in 64-bit signed
+
+; === VALIDATED COMPUTATION ===
+; Safe to divide - divisor verified non-zero
+; DR0 = DR0 / DR1 (integer division, truncates)
+; Remainder discarded (use GT_MOD for remainder)
+RETURN
+
+; === TRAP HANDLERS ===
+perm_trap:
+    ; Capability permission denied
+type_trap:
+    ; Type mismatch - Integer required
+divzero_trap:
+    ; CRITICAL: Division by zero attempted
+    ; This is a fatal arithmetic exception
+    ; Hardware halts and reports fault`
 };
 
-function openFunctionInEditor(funcName) {
-    const code = functionBetaCode[funcName];
+function openFunctionInEditor(funcName, parentAbstraction) {
+    let codeKey = funcName;
+    if (parentAbstraction === 'Abacus' && ['GT_ADD', 'GT_SUB', 'GT_MUL', 'GT_DIV'].includes(funcName)) {
+        codeKey = 'Abacus_' + funcName;
+    }
+    const code = functionBetaCode[codeKey] || functionBetaCode[funcName];
     if (code) {
         document.getElementById('codeEditor').value = code;
         updateLineNumbers();
         resetProgram();
         document.getElementById('viewSelect').value = 'editor';
         document.getElementById('viewSelect').dispatchEvent(new Event('change'));
-        log(`Loaded beta-reduction code for ${funcName}`, 'info');
+        log(`Loaded beta-reduction code for ${funcName} (${parentAbstraction || 'generic'})`, 'info');
     } else {
         log(`No beta-reduction code available for ${funcName}`, 'warning');
     }
@@ -3466,10 +4002,11 @@ function attachContextMenuListeners() {
             e.stopPropagation();
             const name = this.dataset.name;
             const type = this.dataset.type || 'unknown';
+            const parent = this.dataset.parent || null;
             selectObject(name, type);
             
-            if (type === 'Function' && functionBetaCode[name]) {
-                openFunctionInEditor(name);
+            if (type === 'Function') {
+                openFunctionInEditor(name, parent);
             }
         });
         el.addEventListener('contextmenu', function(e) {

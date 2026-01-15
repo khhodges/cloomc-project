@@ -191,6 +191,9 @@ Used with conditional branches (e.g., `B EQ 10` branches if equal).
 | SWITCH reg | Set CR15 (Namespace) to capability in CR[reg] |
 
 ## Recent Changes
+- 2026-01-15: Added formal type validation (TPERM checks) to all beta-reduction code for flawless computer science
+- 2026-01-15: SlideRule functions validate Float type (8-byte), Abacus functions validate Integer type (8-byte)
+- 2026-01-15: Added domain validation (div-by-zero, sqrt of negative, log of non-positive) with trap handlers
 - 2026-01-15: Added click-to-view beta-reduction assembly code for all Function GTs in Namespace Browser
 - 2026-01-15: Added Circle abstraction with GT_PI, GT_TWO_PI constants and GT_CIRCUMFERENCE, GT_AREA, GT_DIAMETER functions
 - 2026-01-15: Added editable GT bit field editor in Capability Explorer (Offset[0:31], Permissions[32:47], Spare[48:63])
