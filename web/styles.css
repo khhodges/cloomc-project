@@ -3037,13 +3037,13 @@ body.tooltip-hidden [data-tooltip]:hover::after {
 }
 
 .context-menu-item {
-    padding: 0.6rem 1rem;
+    padding: 0.35rem 0.8rem;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
     color: var(--text-primary);
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     transition: background 0.15s ease;
 }
 
@@ -3081,12 +3081,12 @@ body.tooltip-hidden [data-tooltip]:hover::after {
 }
 
 .context-menu-header {
-    padding: 0.5rem 1rem;
+    padding: 0.3rem 0.8rem;
     color: var(--accent);
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.7rem;
     border-bottom: 1px solid var(--border);
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.2rem;
 }
 
 .context-menu-item.has-submenu {
@@ -3124,8 +3124,8 @@ body.tooltip-hidden [data-tooltip]:hover::after {
 
 .submenu .context-menu-item {
     font-family: 'Consolas', monospace;
-    font-size: 0.85rem;
-    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    padding: 0.3rem 0.8rem;
 }
 
 .submenu .context-menu-item:hover {
