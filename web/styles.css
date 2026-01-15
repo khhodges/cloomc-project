@@ -2291,7 +2291,7 @@ main {
     color: var(--accent);
 }
 
-#editor.view {
+#editor.view.active {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 60px);
@@ -2302,7 +2302,7 @@ main {
     grid-template-columns: 1fr 280px;
     gap: 1rem;
     flex: 1;
-    overflow: hidden;
+    min-height: 0;
     padding: 1rem;
 }
 
@@ -2310,17 +2310,12 @@ main {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-    padding: 0.5rem;
+    padding: 0;
     overflow-y: auto;
     flex: 1;
+    min-height: 0;
 }
 
-#editorTuring,
-#editorChurch {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
 
 .reg-item {
     display: flex;
@@ -2349,8 +2344,7 @@ main {
     color: var(--text-muted);
 }
 
-.code-editor-panel,
-.editor-output-panel {
+.code-editor-panel {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -2365,11 +2359,6 @@ main {
 #codeEditor {
     flex: 1;
     resize: none;
-}
-
-.output-content {
-    flex: 1;
-    overflow-y: auto;
 }
 
 .editor-intro {
@@ -2742,6 +2731,8 @@ main {
     border: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -2774,11 +2765,13 @@ main {
 
 .output-content {
     flex: 1;
-    padding: 1rem;
+    padding: 0.5rem;
     overflow-y: auto;
     font-family: 'Consolas', monospace;
-    font-size: 0.85rem;
-    max-height: 200px;
+    font-size: 0.8rem;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .output-content.hidden {
