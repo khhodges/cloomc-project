@@ -263,6 +263,21 @@ main {
     font-family: 'Consolas', monospace;
 }
 
+.state-row.clickable {
+    cursor: pointer;
+    transition: background 0.2s ease, border-left 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.state-row.clickable:hover {
+    background: var(--bg-panel);
+    border-left: 3px solid var(--accent);
+}
+
+.state-row.clickable:hover .value {
+    color: var(--accent);
+}
+
 .boot-sequence {
     margin-top: 1.5rem;
     padding-top: 1rem;

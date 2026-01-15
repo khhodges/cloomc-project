@@ -572,7 +572,7 @@ function updateSystemState() {
     document.getElementById('cr15Name').textContent = simulator.cr15.name;
     document.getElementById('cr8Name').textContent = simulator.cr8.name;
     document.getElementById('cr6Name').textContent = simulator.contextRegs[6]?.name || 'NULL';
-    document.getElementById('cr7Name').textContent = simulator.contextRegs[7]?.name || 'NULL';
+    document.getElementById('cr7NameDisplay').textContent = simulator.contextRegs[7]?.name || 'NULL';
     document.getElementById('ipValue').textContent = simulator.ip;
     document.getElementById('stackDepth').textContent = simulator.stackDepth;
 }
@@ -792,6 +792,16 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCapabilityExplorer();
     log('CTMM Simulator Ready', 'info');
     log('Select an instruction and click Execute, or use Reset/Step/Run controls', 'info');
+    
+    // CR7 click handler - switch to Assembly Editor
+    const cr7Row = document.getElementById('cr7Row');
+    if (cr7Row) {
+        cr7Row.addEventListener('click', () => {
+            switchView('editor');
+            document.getElementById('viewSelector').value = 'editor';
+            log('Switched to Assembly Editor (CR7 Nucleus)', 'info');
+        });
+    }
 });
 
 // ==================== CAPABILITY EXPLORER ====================
