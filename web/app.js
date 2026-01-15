@@ -1873,6 +1873,12 @@ function setupCodeEditor() {
     const editor = document.getElementById('codeEditor');
     if (!editor) return;
     
+    // Load saved content from localStorage if available
+    const savedContent = localStorage.getItem('ctmm_editor_content');
+    if (savedContent) {
+        editor.value = savedContent;
+    }
+    
     editor.addEventListener('input', () => {
         updateLineNumbers();
         checkEditorModified();
@@ -1905,6 +1911,9 @@ function markEditorSaved() {
     savedEditorContent = editor.value;
     editor.classList.remove('editor-modified');
     editor.classList.add('editor-saved');
+    
+    // Persist to localStorage so changes carry between sessions
+    localStorage.setItem('ctmm_editor_content', editor.value);
     
     setTimeout(() => {
         editor.classList.remove('editor-saved');
