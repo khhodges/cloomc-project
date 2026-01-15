@@ -1929,14 +1929,53 @@ function switchOutputTab(tab) {
     
     event.target.classList.add('active');
     
-    const content = document.getElementById(
-        tab === 'console' ? 'editorConsole' : 
-        tab === 'registers' ? 'editorRegisters' : 'editorParsed'
-    );
+    const contentIds = {
+        console: 'editorConsole',
+        turing: 'editorTuring',
+        church: 'editorChurch'
+    };
+    const content = document.getElementById(contentIds[tab]);
     if (content) content.classList.remove('hidden');
     
-    if (tab === 'registers') updateEditorRegisters();
-    if (tab === 'parsed') updateParsedView();
+    if (tab === 'turing') updateTuringRegisters();
+    if (tab === 'church') updateChurchRegisters();
+}
+
+function updateTuringRegisters() {
+    const container = document.getElementById('turingRegList');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < 16; i++) {
+        const val = simulator.dataRegs[i] || 0;
+        const div = document.createElement('div');
+        div.className = 'reg-item';
+        div.innerHTML = `<span class="reg-name">DR${i}</span><span class="reg-value">0x${val.toString(16).padStart(16, '0')}</span>`;
+        container.appendChild(div);
+    }
+}
+
+function updateChurchRegisters() {
+    const container = document.getElementById('churchRegList');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const crNames = {
+        0: 'CR0', 1: 'CR1', 2: 'CR2', 3: 'CR3',
+        4: 'CR4', 5: 'CR5 (Nodal)', 6: 'CR6 (C-List)', 7: 'CR7 (Nucleus)',
+        8: 'CR8 (Thread)', 9: 'SPARE', 10: 'SPARE', 11: 'SPARE',
+        12: 'SPARE', 13: 'SPARE', 14: 'SPARE', 15: 'CR15 (Namespace)'
+    };
+    
+    for (let i = 0; i < 16; i++) {
+        const cr = simulator.contextRegs[i];
+        const isSpare = crNames[i] === 'SPARE';
+        const div = document.createElement('div');
+        div.className = 'reg-item' + (isSpare ? ' spare' : '');
+        const name = isSpare ? `CR${i} SPARE` : crNames[i];
+        const val = cr && cr.name ? cr.name : 'NULL';
+        div.innerHTML = `<span class="reg-name">${name}</span><span class="reg-value">${val}</span>`;
+        container.appendChild(div);
+    }
 }
 
 function loadExample(name) {
