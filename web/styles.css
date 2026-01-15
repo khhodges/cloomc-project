@@ -2311,6 +2311,15 @@ main {
     flex-direction: column;
     gap: 0.3rem;
     padding: 0.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#editorTuring,
+#editorChurch {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .reg-item {
@@ -2731,22 +2740,25 @@ main {
     background: var(--bg-panel);
     border-radius: 8px;
     border: 1px solid var(--border);
-    min-height: 200px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .output-tabs {
     display: flex;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
 .output-tab {
-    padding: 0.8rem 1.5rem;
+    padding: 0.5rem 0.8rem;
     background: transparent;
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
+    font-size: 0.8rem;
+    flex: 1;
     font-size: 0.9rem;
     transition: all 0.2s;
 }
