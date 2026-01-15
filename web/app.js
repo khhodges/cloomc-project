@@ -3476,6 +3476,68 @@ LOAD 1 6 2        ; CR1 = FALSE GT from C-List
 CALL 0            ; pair(FALSE) -> second element
 RETURN`,
 
+    'circle': `; ================================================
+; CIRCLE ABSTRACTION using Golden Tokens
+; Demonstrates using GT constants from Thread C-List
+; ================================================
+; CR6 = Nodal C-List (circle operation GTs)
+; CR5 = Thread C-List (constants like PI)
+;
+; Thread C-List (CR5) layout:
+;   [0] = PI constant GT (value: 3.14159...)
+;   [1] = TWO_PI constant GT
+;
+; Circle C-List (CR6) layout:
+;   [0] = circumference GT
+;   [1] = area GT
+;   [2] = diameter GT
+
+; ------------------------------------------------
+; CIRCUMFERENCE: C = 2 * PI * r
+; Input: DR0 = radius
+; Output: DR0 = circumference
+; ------------------------------------------------
+circumference:
+LOAD 0 5 0        ; CR0 = PI GT from Thread C-List
+TPERM 0 R         ; Verify read permission on constant
+; DR1 = PI value (loaded from GT data)
+MUL 0 1           ; DR0 = r * PI
+ADDI 1 2          ; DR1 = 2
+MUL 0 1           ; DR0 = 2 * PI * r
+RETURN
+
+; ------------------------------------------------
+; AREA: A = PI * r^2
+; Input: DR0 = radius
+; Output: DR0 = area
+; ------------------------------------------------
+area:
+MOV 1 0           ; DR1 = r (save radius)
+MUL 0 1           ; DR0 = r * r = r^2
+LOAD 0 5 0        ; CR0 = PI GT from Thread C-List
+TPERM 0 R         ; Verify read permission
+; DR2 = PI value
+MUL 0 2           ; DR0 = PI * r^2
+RETURN
+
+; ------------------------------------------------
+; DIAMETER: D = 2 * r
+; Input: DR0 = radius
+; Output: DR0 = diameter
+; ------------------------------------------------
+diameter:
+ADDI 1 2          ; DR1 = 2
+MUL 0 1           ; DR0 = 2 * r
+RETURN
+
+; ------------------------------------------------
+; Usage example:
+; LOAD 0 6 0      ; Load circumference GT from Circle C-List
+; ADDI 0 5        ; DR0 = radius = 5
+; CALL 0          ; Calculate circumference
+; Result in DR0
+; ------------------------------------------------`,
+
     'omega': `; ================================================
 ; OMEGA - Non-termination example
 ; ω = λx.x x
