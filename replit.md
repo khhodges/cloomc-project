@@ -57,14 +57,16 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 
 ## Recent Changes
 
+- 2026-01-16: Namespace restructured with proper offsets: 0=Namespace (self-ref), 1=Boot C-List, 2=Kenneth, 3=Access code, etc.
+- 2026-01-16: Boot C-List now contains GT entries with nsOffset pointers to namespace entries
+- 2026-01-16: Boot Step 3 loads CR6 from NS offset 1 (Boot C-List), CR8 from offset 2 (Kenneth), shows [n] count
+- 2026-01-16: Boot Step 4 loads CR7 from C-List[0] pointing to NS offset 3 (Boot/Access.asm)
+- 2026-01-16: Namespace Browser now displays table format with Offset, Name, Type, Word1, Word2, Perms columns
+- 2026-01-16: View button highlighting syncs with active view (Assembly button highlights when editor open)
+- 2026-01-16: Dashboard view buttons are now centered
+- 2026-01-16: Editor content cleared and localStorage updated on Fault Restart
 - 2026-01-16: Removed Reset button - "Fault Restart" (boot step 1) now handles state save and reset
 - 2026-01-16: Boot step 1 renamed to "Fault Restart" - simulates unrecoverable fault recovery with state save
 - 2026-01-16: CR7 display fixed - shows "NULL" for code objects, "NULL []" only for empty C-Lists
-- 2026-01-16: View selector changed from dropdown to horizontal row of buttons (Dashboard, Namespace, Assembly, Capabilities, Tutorial)
-- 2026-01-16: Boot sequence has 4 individual clickable step buttons (1-4) with "Run All" button
-- 2026-01-16: Fault Restart can be clicked anytime to save state and restart boot sequence
-- 2026-01-16: Editor shows empty code when boot loads CR7 Nucleus (no code defined yet)
+- 2026-01-16: View selector changed from dropdown to horizontal row of buttons
 - 2026-01-16: Simplified Dashboard - removed Command Input and Output Log, now pure Thread View
-- 2026-01-16: Bidirectional editor linkage - toolbar shows current loaded object path (e.g., Boot/SlideRule/GT_ADD.asm)
-- 2026-01-16: CR7 tooltip shows code preview (first 4 assembly lines)
-- 2026-01-16: Abstractions have E-only permissions, code GTs have RX-only with base/size
