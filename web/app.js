@@ -2196,11 +2196,17 @@ function clearEditor() {
 }
 
 function setEditorCode(code, linkage, perms) {
-    document.getElementById('codeEditor').value = code;
-    editorState.currentLinkage = linkage || 'Boot/Nucleus';
-    editorState.currentPerms = perms || '[RX]';
+    const editor = document.getElementById('codeEditor');
+    editor.value = code;
+    editorState.currentLinkage = linkage || '';
+    editorState.currentPerms = perms || '';
     updateLineNumbers();
     updateEditorToolbar();
+    
+    // Also update localStorage to persist the change
+    localStorage.setItem('ctmm_editor_content', code);
+    localStorage.setItem('ctmm_editor_linkage', editorState.currentLinkage);
+    localStorage.setItem('ctmm_editor_perms', editorState.currentPerms);
 }
 
 function updateEditorStatus() {
