@@ -159,13 +159,13 @@ const bootNamespace = {
 };
 
 const namespaceObjects = [
-    { location: 0x0000, name: "Boot", type: "Abstraction", perms: ["R", "L", "S", "E", "B"], size: 4096 },
+    { location: 0x0000, name: "Boot", type: "Abstraction", perms: ["E"], size: 4096 },
     { location: 0x2000, name: "Kenneth", type: "Thread", perms: ["R", "W", "E"], size: 1024 },
     { location: 0x3000, name: "Matthew", type: "Thread", perms: ["R", "W", "E"], size: 1024 },
     { location: 0x4000, name: "Daniel", type: "Thread", perms: ["R", "W", "E"], size: 1024 },
-    { location: 0x5000, name: "SlideRule", type: "Abstraction", perms: ["R", "L", "E"], size: 2048 },
-    { location: 0x6000, name: "Abacus", type: "Abstraction", perms: ["R", "L", "E"], size: 2048 },
-    { location: 0x7000, name: "Circle", type: "Abstraction", perms: ["R", "L", "E"], size: 2048 }
+    { location: 0x5000, name: "SlideRule", type: "Abstraction", perms: ["E"], size: 2048 },
+    { location: 0x6000, name: "Abacus", type: "Abstraction", perms: ["E"], size: 2048 },
+    { location: 0x7000, name: "Circle", type: "Abstraction", perms: ["E"], size: 2048 }
 ];
 
 const threadCLists = {
@@ -173,9 +173,9 @@ const threadCLists = {
         name: "Kenneth",
         description: "User thread with access to math abstractions",
         clist: [
-            { name: "SlideRule", type: "Abstraction", perms: ["R", "L", "E"] },
-            { name: "Abacus", type: "Abstraction", perms: ["R", "L", "E"] },
-            { name: "Circle", type: "Abstraction", perms: ["R", "L", "E"] },
+            { name: "SlideRule", type: "Abstraction", perms: ["E"] },
+            { name: "Abacus", type: "Abstraction", perms: ["E"] },
+            { name: "Circle", type: "Abstraction", perms: ["E"] },
             { name: "LocalData", type: "Data", perms: ["R", "W"] }
         ]
     },
@@ -183,7 +183,7 @@ const threadCLists = {
         name: "Matthew",
         description: "User thread with limited access",
         clist: [
-            { name: "Abacus", type: "Abstraction", perms: ["R", "E"] },
+            { name: "Abacus", type: "Abstraction", perms: ["E"] },
             { name: "LocalData", type: "Data", perms: ["R", "W"] }
         ]
     },
@@ -191,7 +191,7 @@ const threadCLists = {
         name: "Daniel",
         description: "User thread with SlideRule access",
         clist: [
-            { name: "SlideRule", type: "Abstraction", perms: ["R", "E"] },
+            { name: "SlideRule", type: "Abstraction", perms: ["E"] },
             { name: "LocalData", type: "Data", perms: ["R", "W"] }
         ]
     }
@@ -202,46 +202,46 @@ const abstractionCLists = {
         name: "SlideRule",
         description: "Logarithmic math operations abstraction",
         clist: [
-            { name: "GT_ADD", type: "Function", perms: ["R", "X", "E"], desc: "Addition" },
-            { name: "GT_SUB", type: "Function", perms: ["R", "X", "E"], desc: "Subtraction" },
-            { name: "GT_MUL", type: "Function", perms: ["R", "X", "E"], desc: "Multiplication" },
-            { name: "GT_DIV", type: "Function", perms: ["R", "X", "E"], desc: "Division" },
-            { name: "GT_LOG", type: "Function", perms: ["R", "X", "E"], desc: "Logarithm" },
-            { name: "GT_EXP", type: "Function", perms: ["R", "X", "E"], desc: "Exponent" },
-            { name: "GT_SQRT", type: "Function", perms: ["R", "X", "E"], desc: "Square Root" },
-            { name: "GT_POW", type: "Function", perms: ["R", "X", "E"], desc: "Power" },
-            { name: "LocalCode", type: "Code", perms: ["R", "X"] },
-            { name: "LocalData", type: "Data", perms: ["R", "W"] }
+            { name: "GT_ADD", type: "Function", perms: ["R", "X"], desc: "Addition", base: 0x5100, size: 256 },
+            { name: "GT_SUB", type: "Function", perms: ["R", "X"], desc: "Subtraction", base: 0x5200, size: 256 },
+            { name: "GT_MUL", type: "Function", perms: ["R", "X"], desc: "Multiplication", base: 0x5300, size: 256 },
+            { name: "GT_DIV", type: "Function", perms: ["R", "X"], desc: "Division", base: 0x5400, size: 384 },
+            { name: "GT_LOG", type: "Function", perms: ["R", "X"], desc: "Logarithm", base: 0x5580, size: 256 },
+            { name: "GT_EXP", type: "Function", perms: ["R", "X"], desc: "Exponent", base: 0x5680, size: 256 },
+            { name: "GT_SQRT", type: "Function", perms: ["R", "X"], desc: "Square Root", base: 0x5780, size: 256 },
+            { name: "GT_POW", type: "Function", perms: ["R", "X"], desc: "Power", base: 0x5880, size: 320 },
+            { name: "LocalCode", type: "Code", perms: ["R", "X"], base: 0x5000, size: 256 },
+            { name: "LocalData", type: "Data", perms: ["R", "W"], base: 0x5A00, size: 512 }
         ]
     },
     Abacus: {
         name: "Abacus",
         description: "Integer arithmetic operations abstraction",
         clist: [
-            { name: "GT_ADD", type: "Function", perms: ["R", "X", "E"], desc: "Integer Add" },
-            { name: "GT_SUB", type: "Function", perms: ["R", "X", "E"], desc: "Integer Subtract" },
-            { name: "GT_MUL", type: "Function", perms: ["R", "X", "E"], desc: "Integer Multiply" },
-            { name: "GT_DIV", type: "Function", perms: ["R", "X", "E"], desc: "Integer Divide" },
-            { name: "GT_MOD", type: "Function", perms: ["R", "X", "E"], desc: "Modulo" },
-            { name: "GT_ABS", type: "Function", perms: ["R", "X", "E"], desc: "Absolute Value" },
-            { name: "GT_NEG", type: "Function", perms: ["R", "X", "E"], desc: "Negate" },
-            { name: "GT_INC", type: "Function", perms: ["R", "X", "E"], desc: "Increment" },
-            { name: "GT_DEC", type: "Function", perms: ["R", "X", "E"], desc: "Decrement" },
-            { name: "LocalCode", type: "Code", perms: ["R", "X"] },
-            { name: "LocalData", type: "Data", perms: ["R", "W"] }
+            { name: "GT_ADD", type: "Function", perms: ["R", "X"], desc: "Integer Add", base: 0x6100, size: 192 },
+            { name: "GT_SUB", type: "Function", perms: ["R", "X"], desc: "Integer Subtract", base: 0x6200, size: 192 },
+            { name: "GT_MUL", type: "Function", perms: ["R", "X"], desc: "Integer Multiply", base: 0x6300, size: 192 },
+            { name: "GT_DIV", type: "Function", perms: ["R", "X"], desc: "Integer Divide", base: 0x6400, size: 320 },
+            { name: "GT_MOD", type: "Function", perms: ["R", "X"], desc: "Modulo", base: 0x6580, size: 256 },
+            { name: "GT_ABS", type: "Function", perms: ["R", "X"], desc: "Absolute Value", base: 0x6680, size: 128 },
+            { name: "GT_NEG", type: "Function", perms: ["R", "X"], desc: "Negate", base: 0x6700, size: 128 },
+            { name: "GT_INC", type: "Function", perms: ["R", "X"], desc: "Increment", base: 0x6780, size: 64 },
+            { name: "GT_DEC", type: "Function", perms: ["R", "X"], desc: "Decrement", base: 0x67C0, size: 64 },
+            { name: "LocalCode", type: "Code", perms: ["R", "X"], base: 0x6000, size: 256 },
+            { name: "LocalData", type: "Data", perms: ["R", "W"], base: 0x6800, size: 512 }
         ]
     },
     Circle: {
         name: "Circle",
         description: "Circle geometry abstraction with PI constant",
         clist: [
-            { name: "GT_PI", type: "Constant", perms: ["R"], desc: "PI = 3.14159265358979", value: 3.14159265358979 },
-            { name: "GT_TWO_PI", type: "Constant", perms: ["R"], desc: "2*PI = 6.28318530717958", value: 6.28318530717958 },
-            { name: "GT_CIRCUMFERENCE", type: "Function", perms: ["R", "X", "E"], desc: "C = 2*PI*r" },
-            { name: "GT_AREA", type: "Function", perms: ["R", "X", "E"], desc: "A = PI*r^2" },
-            { name: "GT_DIAMETER", type: "Function", perms: ["R", "X", "E"], desc: "D = 2*r" },
-            { name: "LocalCode", type: "Code", perms: ["R", "X"] },
-            { name: "LocalData", type: "Data", perms: ["R", "W"] }
+            { name: "GT_PI", type: "Constant", perms: ["R"], desc: "PI = 3.14159265358979", value: 3.14159265358979, base: 0x7000, size: 8 },
+            { name: "GT_TWO_PI", type: "Constant", perms: ["R"], desc: "2*PI = 6.28318530717958", value: 6.28318530717958, base: 0x7008, size: 8 },
+            { name: "GT_CIRCUMFERENCE", type: "Function", perms: ["R", "X"], desc: "C = 2*PI*r", base: 0x7100, size: 192 },
+            { name: "GT_AREA", type: "Function", perms: ["R", "X"], desc: "A = PI*r^2", base: 0x7200, size: 192 },
+            { name: "GT_DIAMETER", type: "Function", perms: ["R", "X"], desc: "D = 2*r", base: 0x7300, size: 128 },
+            { name: "LocalCode", type: "Code", perms: ["R", "X"], base: 0x7080, size: 128 },
+            { name: "LocalData", type: "Data", perms: ["R", "W"], base: 0x7400, size: 512 }
         ]
     }
 };
@@ -269,7 +269,7 @@ const bootSteps = [
             simulator.cr15 = {
                 name: "Boot",
                 location: { type: "Local", offset: 0x0000 },
-                perms: bootObj ? bootObj.perms : ["R", "L", "S", "E", "B"],
+                perms: bootObj ? bootObj.perms : ["E"],
                 locked: true,
                 goldenKey: generateGoldenKey(),
                 clist: bootNamespace.clist
@@ -306,11 +306,15 @@ const bootSteps = [
         action: () => {
             simulator.contextRegs[7] = {
                 name: "NUCLEUS",
-                location: { type: "Literal", name: "kernel.code" },
-                perms: ["R", "X", "E"],
+                location: { type: "Local", offset: 0x0100 },
+                perms: ["R", "X"],
                 locked: true,
-                goldenKey: generateGoldenKey()
+                goldenKey: generateGoldenKey(),
+                linkage: "Boot/Nucleus",
+                base: 0x0100,
+                size: 4096
             };
+            updateSystemState();
         }
     }
 ];
@@ -399,7 +403,9 @@ function updateNamespaceDisplay() {
     allObjects.forEach(obj => {
         const permStr = obj.perms.join('');
         const typeClass = obj.type.toLowerCase().replace('-', '');
-        const tooltip = typeTooltips[obj.type] || 'Namespace object with capability-controlled access.';
+        const baseTypeTooltip = typeTooltips[obj.type] || 'Namespace object with capability-controlled access.';
+        const baseAddr = obj.location !== undefined ? `0x${obj.location.toString(16).toUpperCase()}` : '0x0000';
+        const tooltip = `${obj.type} [${permStr}] | Base: ${baseAddr} | Size: ${obj.size || 0} bytes | ${baseTypeTooltip}`;
         const dynamicTag = obj.dynamic ? ' <span class="ns-dynamic-tag">(custom)</span>' : '';
         nsHtml += `
             <div class="ns-object ns-${typeClass}" data-name="${obj.name}" data-type="${obj.type}" data-tooltip="${tooltip}">
@@ -432,12 +438,20 @@ function renderDynamicChildren(parentName) {
     html += '<div class="hier-clist">';
     
     clistChildren.forEach(item => {
-        html += `<div class="hier-item hier-gt" data-name="${item.name}" data-type="${item.type}" data-tooltip="Linked: ${item.name}">${item.name}</div>`;
+        const permsStr = item.perms ? `[${item.perms.join('')}]` : '';
+        const baseStr = item.base !== undefined ? `Base: 0x${item.base.toString(16).toUpperCase()}` : '';
+        const sizeStr = item.size ? `Size: ${item.size}` : '';
+        const details = [permsStr, baseStr, sizeStr].filter(s => s).join(' | ');
+        html += `<div class="hier-item hier-gt" data-name="${item.name}" data-type="${item.type}" data-tooltip="Linked GT ${details}">${item.name}</div>`;
     });
     
     children.forEach(obj => {
+        const permsStr = obj.perms ? `[${obj.perms.join('')}]` : '';
+        const baseStr = obj.location !== undefined ? `Base: 0x${obj.location.toString(16).toUpperCase()}` : '';
+        const sizeStr = obj.size ? `Size: ${obj.size}` : '';
+        const details = [permsStr, baseStr, sizeStr].filter(s => s).join(' | ');
         html += `<div class="hier-item" data-name="${obj.name}" data-type="${obj.type}">`;
-        html += `<div class="hier-node hier-dynamic" data-tooltip="Custom object: ${obj.type}">`;
+        html += `<div class="hier-node hier-dynamic" data-tooltip="Custom ${obj.type} ${details}">`;
         html += `<div class="hier-label">${obj.name} <span class="hier-custom-tag">(custom)</span></div>`;
         html += '</div>';
         html += renderDynamicChildren(obj.name);
@@ -467,7 +481,9 @@ function buildHierarchyTree() {
         if (threadCLists[name]) {
             html += '<div class="hier-clist">';
             threadCLists[name].clist.forEach(item => {
-                html += `<div class="hier-item hier-gt" data-name="${item.name}" data-type="${item.type}" data-tooltip="Golden Token granting access to ${item.name}.">${item.name}</div>`;
+                const permsStr = item.perms ? `[${item.perms.join('')}]` : '';
+                const typeDesc = item.type === 'Abstraction' ? 'Enter-only abstraction' : item.type;
+                html += `<div class="hier-item hier-gt" data-name="${item.name}" data-type="${item.type}" data-tooltip="GT ${permsStr} | ${typeDesc}: ${item.name}">${item.name}</div>`;
             });
             html += '</div>';
         }
@@ -484,17 +500,23 @@ function buildHierarchyTree() {
         'Circle': 'Circle geometry with PI constant (CIRCUMFERENCE, AREA, DIAMETER)'
     };
     ['SlideRule', 'Abacus', 'Circle'].forEach(name => {
+        const absObj = namespaceObjects.find(o => o.name === name);
+        const absPerms = absObj ? `[${absObj.perms.join('')}]` : '[E]';
         html += `<div class="hier-item" data-name="${name}" data-type="Abstraction">`;
-        html += `<div class="hier-node hier-abstraction" data-tooltip="${abstractionDescs[name]}">`;
+        html += `<div class="hier-node hier-abstraction" data-tooltip="Abstraction ${absPerms} (Enter-only) | ${abstractionDescs[name]}">`;
         html += `<div class="hier-label">${name}</div>`;
         html += '</div>';
         if (abstractionCLists[name]) {
             html += '<div class="hier-clist">';
             abstractionCLists[name].clist.forEach(item => {
                 if (item.type === 'Function') {
-                    html += `<div class="hier-item hier-gt hier-func" data-name="${item.name}" data-type="Function" data-parent="${name}" data-tooltip="Golden Token granting permission to invoke ${item.name} function.">${item.name}</div>`;
+                    const permsStr = item.perms ? `[${item.perms.join('')}]` : '[RX]';
+                    const baseStr = item.base !== undefined ? `0x${item.base.toString(16).toUpperCase()}` : '0x0000';
+                    const sizeStr = item.size || 0;
+                    html += `<div class="hier-item hier-gt hier-func" data-name="${item.name}" data-type="Function" data-parent="${name}" data-base="${item.base || 0}" data-size="${item.size || 0}" data-tooltip="Code GT ${permsStr} | Base: ${baseStr} | Size: ${sizeStr} bytes | Click to view code">${item.name}</div>`;
                 } else if (item.type === 'Constant') {
-                    html += `<div class="hier-item hier-gt hier-const" data-name="${item.name}" data-type="Constant" data-parent="${name}" data-tooltip="GT Constant: ${item.desc}" data-value="${item.value}">${item.name}</div>`;
+                    const baseStr = item.base !== undefined ? `0x${item.base.toString(16).toUpperCase()}` : '0x0000';
+                    html += `<div class="hier-item hier-gt hier-const" data-name="${item.name}" data-type="Constant" data-parent="${name}" data-tooltip="GT Constant [R] | ${item.desc} | Base: ${baseStr}" data-value="${item.value}">${item.name}</div>`;
                 }
             });
             html += '</div>';
@@ -505,8 +527,12 @@ function buildHierarchyTree() {
     
     html += '<div class="hier-group-label" data-tooltip="User-created objects in the Boot namespace.">Custom Objects</div>';
     dynamicObjects.filter(obj => obj.parent === 'Boot').forEach(obj => {
+        const permsStr = obj.perms ? `[${obj.perms.join('')}]` : '';
+        const baseStr = obj.location !== undefined ? `Base: 0x${obj.location.toString(16).toUpperCase()}` : '';
+        const sizeStr = obj.size ? `Size: ${obj.size}` : '';
+        const details = [permsStr, baseStr, sizeStr].filter(s => s).join(' | ');
         html += `<div class="hier-item" data-name="${obj.name}" data-type="${obj.type}">`;
-        html += `<div class="hier-node hier-dynamic" data-tooltip="Custom object: ${obj.type}">`;
+        html += `<div class="hier-node hier-dynamic" data-tooltip="Custom ${obj.type} ${details}">`;
         html += `<div class="hier-label">${obj.name} <span class="hier-custom-tag">(custom)</span></div>`;
         html += '</div>';
         html += renderDynamicChildren(obj.name);
@@ -616,7 +642,22 @@ function updateSystemState() {
     document.getElementById('cr15Name').textContent = simulator.cr15.name;
     document.getElementById('cr8Name').textContent = simulator.cr8.name;
     document.getElementById('cr6Name').textContent = simulator.contextRegs[6]?.name || 'NULL';
-    document.getElementById('cr7NameDisplay').textContent = simulator.contextRegs[7]?.name || 'NULL';
+    
+    const cr7 = simulator.contextRegs[7];
+    if (cr7) {
+        const permsStr = cr7.perms ? `[${cr7.perms.join('')}]` : '';
+        const baseStr = cr7.base !== undefined ? ` @0x${cr7.base.toString(16).toUpperCase()}` : '';
+        const sizeStr = cr7.size ? `:${cr7.size}` : '';
+        document.getElementById('cr7NameDisplay').textContent = `${cr7.name} ${permsStr}${baseStr}${sizeStr}`;
+        
+        const cr7Row = document.getElementById('cr7Row');
+        if (cr7Row && cr7.linkage) {
+            cr7Row.setAttribute('data-tooltip', `Linkage: ${cr7.linkage} | Perms: ${permsStr} | Base: 0x${(cr7.base || 0).toString(16).toUpperCase()} | Size: ${cr7.size || 0} bytes`);
+        }
+    } else {
+        document.getElementById('cr7NameDisplay').textContent = 'NULL';
+    }
+    
     document.getElementById('ipValue').textContent = simulator.ip;
     document.getElementById('stackDepth').textContent = simulator.stackDepth;
 }
@@ -4621,7 +4662,24 @@ function openFunctionInEditor(funcName, parentAbstraction) {
         resetProgram();
         document.getElementById('viewSelect').value = 'editor';
         document.getElementById('viewSelect').dispatchEvent(new Event('change'));
-        log(`Loaded beta-reduction code for ${funcName} (${parentAbstraction || 'generic'})`, 'info');
+        
+        const abstraction = abstractionCLists[parentAbstraction];
+        const funcGT = abstraction ? abstraction.clist.find(c => c.name === funcName) : null;
+        const linkagePath = parentAbstraction ? `Boot/${parentAbstraction}/${funcName}` : `Boot/${funcName}`;
+        
+        simulator.contextRegs[7] = {
+            name: funcName,
+            location: { type: "Local", offset: funcGT?.base || 0x0000 },
+            perms: funcGT?.perms || ["R", "X"],
+            locked: true,
+            goldenKey: generateGoldenKey(),
+            linkage: linkagePath,
+            base: funcGT?.base || 0x0000,
+            size: funcGT?.size || 0
+        };
+        updateSystemState();
+        
+        log(`Loaded ${linkagePath} [${(funcGT?.perms || ["R","X"]).join('')}] Base:0x${(funcGT?.base || 0).toString(16).toUpperCase()} Size:${funcGT?.size || 0}`, 'info');
     } else {
         log(`No beta-reduction code available for ${funcName}`, 'warning');
     }

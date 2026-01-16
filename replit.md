@@ -297,6 +297,11 @@ Exported state includes:
 
 ## Recent Changes
 
+- 2026-01-16: Abstractions (SlideRule, Abacus, Circle) now have E-only (Enter) permissions
+- 2026-01-16: Code GTs (GT_ADD, GT_SUB, etc.) now have RX-only permissions with base address and size
+- 2026-01-16: Clicking code items updates CR7 display with GT name, linkage path (Boot/SlideRule/GT_ADD), and capability structure
+- 2026-01-16: Thread C-Lists show E-only permissions for abstraction references
+- 2026-01-16: Namespace tooltips show permission, base address, and size for all GTs
 - 2026-01-16: Added Export/Import buttons to Namespace toolbar with tooltip-bottom positioning
 - 2026-01-16: Fixed BigInt serialization in export function for JSON compatibility
 - 2026-01-16: Renamed localStorage key from pp250_namespace_state to ctmm_namespace_state
