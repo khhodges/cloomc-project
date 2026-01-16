@@ -89,6 +89,7 @@ nav.controls {
 .view-buttons {
     display: flex;
     gap: 0.25rem;
+    justify-content: center;
 }
 
 .btn-view {
@@ -2964,16 +2965,68 @@ main {
 .ns-header {
     color: var(--warning);
     font-weight: bold;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border);
 }
 
+.ns-table-header {
+    display: grid;
+    grid-template-columns: 50px 100px 80px 120px 80px 60px;
+    gap: 0.5rem;
+    padding: 0.5rem 0.8rem;
+    background: var(--bg-dark);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.ns-obj-row {
+    display: grid;
+    grid-template-columns: 50px 100px 80px 120px 80px 60px;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.8rem;
+    font-family: 'Consolas', monospace;
+}
+
+.ns-col-offset {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.ns-col-name {
+    color: var(--text-primary);
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ns-col-type {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.ns-col-word1 {
+    color: var(--warning);
+}
+
+.ns-col-word2 {
+    color: var(--text-secondary);
+}
+
+.ns-col-perms {
+    color: var(--success);
+}
+
 .ns-object {
     background: var(--bg-input);
-    border-radius: 6px;
-    padding: 0.8rem;
-    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    padding: 0.5rem 0.8rem;
+    margin-bottom: 0.3rem;
     border-left: 3px solid var(--border);
     transition: all 0.2s;
 }
@@ -2988,6 +3041,18 @@ main {
 
 .ns-thread {
     border-left-color: var(--success);
+}
+
+.ns-system {
+    border-left-color: var(--warning);
+}
+
+.ns-clist {
+    border-left-color: #9b59b6;
+}
+
+.ns-code {
+    border-left-color: #3498db;
 }
 
 .ns-obj-header {

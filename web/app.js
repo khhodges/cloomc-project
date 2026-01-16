@@ -156,28 +156,68 @@ function formatWord(value) {
 
 // ==================== BOOT NAMESPACE ====================
 
-const bootNamespace = {
+// Boot C-List at Namespace offset 1
+// Each entry is a GT pointing to a namespace offset
+const bootCList = {
     name: "Boot",
-    location: 0x0000,
-    description: "Root abstraction of the CTMM system",
-    clist: [
-        { name: "Kenneth", type: "Thread", ref: "threads.kenneth" },
-        { name: "Matthew", type: "Thread", ref: "threads.matthew" },
-        { name: "Daniel", type: "Thread", ref: "threads.daniel" },
-        { name: "SlideRule", type: "Abstraction", ref: "abstractions.sliderule" },
-        { name: "Abacus", type: "Abstraction", ref: "abstractions.abacus" },
-        { name: "Circle", type: "Abstraction", ref: "abstractions.circle" }
+    description: "Root abstraction C-List of the CTMM system",
+    nsOffset: 1,  // Boot is at Namespace offset 1
+    entries: [
+        // Index 0: Nucleus code (GT pointing to namespace offset 3)
+        { index: 0, name: "Access", nsOffset: 3, perms: ["R", "X"], type: "Code", desc: "Nucleus code" },
+        // Index 1: Kenneth thread (GT pointing to namespace offset 2)
+        { index: 1, name: "Kenneth", nsOffset: 2, perms: ["R", "W", "E"], type: "Thread", desc: "User thread" },
+        // Index 2: Matthew thread (GT pointing to namespace offset 4)
+        { index: 2, name: "Matthew", nsOffset: 4, perms: ["R", "W", "E"], type: "Thread", desc: "User thread" },
+        // Index 3: Daniel thread (GT pointing to namespace offset 5)
+        { index: 3, name: "Daniel", nsOffset: 5, perms: ["R", "W", "E"], type: "Thread", desc: "User thread" },
+        // Index 4: SlideRule abstraction (GT pointing to namespace offset 6)
+        { index: 4, name: "SlideRule", nsOffset: 6, perms: ["E"], type: "Abstraction", desc: "Float operations" },
+        // Index 5: Abacus abstraction (GT pointing to namespace offset 7)
+        { index: 5, name: "Abacus", nsOffset: 7, perms: ["E"], type: "Abstraction", desc: "Integer operations" },
+        // Index 6: Circle abstraction (GT pointing to namespace offset 8)
+        { index: 6, name: "Circle", nsOffset: 8, perms: ["E"], type: "Abstraction", desc: "Geometry operations" }
     ]
 };
 
+// Legacy format for compatibility
+const bootNamespace = {
+    name: "Boot",
+    location: 0x1000,
+    description: "Root abstraction of the CTMM system",
+    clist: bootCList.entries.map(e => ({ name: e.name, type: e.type, ref: `ns.offset.${e.nsOffset}` }))
+};
+
+// Namespace Table: 3-word entries (Location, Limit, Seals/MAC)
+// offset = index into this table
 const namespaceObjects = [
-    { location: 0x0000, name: "Boot", type: "Abstraction", perms: ["E"], size: 4096 },
-    { location: 0x2000, name: "Kenneth", type: "Thread", perms: ["R", "W", "E"], size: 1024 },
-    { location: 0x3000, name: "Matthew", type: "Thread", perms: ["R", "W", "E"], size: 1024 },
-    { location: 0x4000, name: "Daniel", type: "Thread", perms: ["R", "W", "E"], size: 1024 },
-    { location: 0x5000, name: "SlideRule", type: "Abstraction", perms: ["E"], size: 2048 },
-    { location: 0x6000, name: "Abacus", type: "Abstraction", perms: ["E"], size: 2048 },
-    { location: 0x7000, name: "Circle", type: "Abstraction", perms: ["E"], size: 2048 }
+    // Offset 0: Namespace self-reference
+    { offset: 0, location: 0x0000, name: "Namespace", type: "System", perms: ["R"], size: 4096,
+      word1_location: 0x0000, word2_limit: 4096, word3_seals: 0n },
+    // Offset 1: Boot C-List abstraction
+    { offset: 1, location: 0x1000, name: "Boot", type: "C-List", perms: ["E"], size: 1024,
+      word1_location: 0x1000, word2_limit: 1024, word3_seals: 0n },
+    // Offset 2: Kenneth thread
+    { offset: 2, location: 0x2000, name: "Kenneth", type: "Thread", perms: ["R", "W", "E"], size: 1024,
+      word1_location: 0x2000, word2_limit: 1024, word3_seals: 0n },
+    // Offset 3: Boot/Access.asm (Nucleus code)
+    { offset: 3, location: 0x3000, name: "Access", type: "Code", perms: ["R", "X"], size: 512,
+      word1_location: 0x3000, word2_limit: 512, word3_seals: 0n, linkage: "Boot/Access.asm" },
+    // Offset 4: Matthew thread
+    { offset: 4, location: 0x4000, name: "Matthew", type: "Thread", perms: ["R", "W", "E"], size: 1024,
+      word1_location: 0x4000, word2_limit: 1024, word3_seals: 0n },
+    // Offset 5: Daniel thread  
+    { offset: 5, location: 0x5000, name: "Daniel", type: "Thread", perms: ["R", "W", "E"], size: 1024,
+      word1_location: 0x5000, word2_limit: 1024, word3_seals: 0n },
+    // Offset 6: SlideRule abstraction
+    { offset: 6, location: 0x6000, name: "SlideRule", type: "Abstraction", perms: ["E"], size: 2048,
+      word1_location: 0x6000, word2_limit: 2048, word3_seals: 0n },
+    // Offset 7: Abacus abstraction
+    { offset: 7, location: 0x7000, name: "Abacus", type: "Abstraction", perms: ["E"], size: 2048,
+      word1_location: 0x7000, word2_limit: 2048, word3_seals: 0n },
+    // Offset 8: Circle abstraction
+    { offset: 8, location: 0x8000, name: "Circle", type: "Abstraction", perms: ["E"], size: 2048,
+      word1_location: 0x8000, word2_limit: 2048, word3_seals: 0n }
 ];
 
 const threadCLists = {
@@ -279,61 +319,82 @@ const bootSteps = [
     },
     {
         name: "Load Namespace",
-        description: "Setting CR15 with Boot namespace capability...",
+        description: "Setting CR15 with Namespace capability (offset 0)...",
         action: () => {
-            const bootObj = namespaceObjects.find(o => o.name === "Boot");
+            // CR15 = GT pointing to Namespace offset 0 (self-reference)
+            const nsObj = namespaceObjects.find(o => o.offset === 0);
             simulator.cr15 = {
-                name: "Boot",
-                location: { type: "Local", offset: 0x0000 },
-                perms: bootObj ? bootObj.perms : ["E"],
+                name: "Namespace",
+                nsOffset: 0,
+                location: { type: "Local", offset: nsObj.word1_location },
+                perms: nsObj.perms,
                 locked: true,
                 goldenKey: generateGoldenKey(),
-                clist: bootNamespace.clist
+                word1: nsObj.word1_location,
+                word2: nsObj.word2_limit,
+                word3: nsObj.word3_seals
             };
             updateNamespaceDisplay();
         }
     },
     {
         name: "Initialize Thread",
-        description: "Creating Kenneth thread capability in CR8...",
+        description: "Loading CR6 (Boot C-List) and CR8 (Kenneth thread)...",
         action: () => {
-            const kennethObj = namespaceObjects.find(o => o.name === "Kenneth");
+            // CR6 = GT pointing to Namespace offset 1 (Boot C-List)
+            const bootObj = namespaceObjects.find(o => o.offset === 1);
+            const clistCount = bootCList.entries.length;
+            simulator.contextRegs[6] = {
+                name: "Boot",
+                nsOffset: 1,
+                type: "C-List",
+                location: { type: "Local", offset: bootObj.word1_location },
+                perms: bootObj.perms,
+                locked: false,
+                goldenKey: generateGoldenKey(),
+                clistCount: clistCount,
+                clist: bootCList.entries
+            };
+            
+            // CR8 = GT pointing to Namespace offset 2 (Kenneth thread)
+            // Found via Boot C-List index 1
+            const kennethEntry = bootCList.entries.find(e => e.name === "Kenneth");
+            const kennethObj = namespaceObjects.find(o => o.offset === kennethEntry.nsOffset);
             simulator.cr8 = {
                 name: "Kenneth",
-                location: { type: "Local", offset: 0x1000 },
-                perms: kennethObj ? kennethObj.perms : ["R", "W", "E"],
+                nsOffset: kennethEntry.nsOffset,
+                location: { type: "Local", offset: kennethObj.word1_location },
+                perms: kennethEntry.perms,
                 locked: false,
                 goldenKey: generateGoldenKey(),
                 clist: threadCLists.Kenneth.clist
-            };
-            simulator.contextRegs[6] = {
-                name: "C-LIST",
-                location: { type: "Local", offset: 0x500 },
-                perms: ["R", "L", "S"],
-                locked: false,
-                goldenKey: generateGoldenKey()
             };
             updateNamespaceDisplay();
         }
     },
     {
         name: "Load Nucleus",
-        description: "Loading kernel code capability into CR7...",
+        description: "Loading CR7 from C-List[0] (Access code at offset 3)...",
         action: () => {
+            // CR7 = GT from Boot C-List index 0, pointing to Namespace offset 3
+            const nucleusEntry = bootCList.entries[0]; // Index 0 = Access/Nucleus
+            const nucleusObj = namespaceObjects.find(o => o.offset === nucleusEntry.nsOffset);
             simulator.contextRegs[7] = {
-                name: "NUCLEUS",
-                location: { type: "Local", offset: 0x0100 },
-                perms: ["R", "X"],
+                name: nucleusEntry.name,
+                nsOffset: nucleusEntry.nsOffset,
+                type: "Code",
+                location: { type: "Local", offset: nucleusObj.word1_location },
+                perms: nucleusEntry.perms,
                 locked: true,
                 goldenKey: generateGoldenKey(),
-                linkage: "Boot/Nucleus",
-                base: 0x0100,
-                size: 4096
+                linkage: nucleusObj.linkage || "Boot/Access.asm",
+                base: nucleusObj.word1_location,
+                size: nucleusObj.word2_limit
             };
             updateSystemState();
             
-            // Update editor to empty state for Nucleus (no code defined yet)
-            setEditorCode('', 'Boot/Nucleus', '[RX]');
+            // Update editor to show Nucleus linkage (no code defined yet)
+            setEditorCode('', 'Boot/Access.asm', '[RX]');
         }
     }
 ];
@@ -512,11 +573,15 @@ function updateNamespaceDisplay() {
         return;
     }
     
-    let nsHtml = '<div class="ns-header">Namespace Objects (CR15: ' + simulator.cr15.name + ')</div>';
+    let nsHtml = '<div class="ns-header">Namespace Table (CR15: ' + simulator.cr15.name + ')</div>';
+    nsHtml += '<div class="ns-table-header"><span class="ns-col-offset">Offset</span><span class="ns-col-name">Name</span><span class="ns-col-type">Type</span><span class="ns-col-word1">Word1 (Location)</span><span class="ns-col-word2">Word2 (Limit)</span><span class="ns-col-perms">Perms</span></div>';
+    
     const typeTooltips = {
-        'Root': 'Root namespace abstraction containing the entire Boot system.',
+        'System': 'System object - Namespace self-reference.',
+        'C-List': 'Capability List containing Golden Token entries.',
         'Thread': 'User identity with its own C-List of capabilities.',
-        'Abstraction': 'Protected object containing function Golden Tokens.'
+        'Code': 'Executable code object (assembly).',
+        'Abstraction': 'Protected abstraction containing function Golden Tokens.'
     };
     
     const allObjects = [...namespaceObjects, ...dynamicObjects];
@@ -524,19 +589,20 @@ function updateNamespaceDisplay() {
         const permStr = obj.perms.join('');
         const typeClass = obj.type.toLowerCase().replace('-', '');
         const baseTypeTooltip = typeTooltips[obj.type] || 'Namespace object with capability-controlled access.';
-        const baseAddr = obj.location !== undefined ? `0x${obj.location.toString(16).toUpperCase()}` : '0x0000';
-        const tooltip = `${obj.type} [${permStr}] | Base: ${baseAddr} | Size: ${obj.size || 0} bytes | ${baseTypeTooltip}`;
+        const offset = obj.offset !== undefined ? obj.offset : '?';
+        const word1 = obj.word1_location !== undefined ? `0x${obj.word1_location.toString(16).toUpperCase().padStart(4, '0')}` : `0x${obj.location.toString(16).toUpperCase().padStart(4, '0')}`;
+        const word2 = obj.word2_limit !== undefined ? obj.word2_limit : obj.size;
+        const tooltip = `Offset ${offset}: ${obj.type} [${permStr}] | ${baseTypeTooltip}`;
         const dynamicTag = obj.dynamic ? ' <span class="ns-dynamic-tag">(custom)</span>' : '';
         nsHtml += `
             <div class="ns-object ns-${typeClass}" data-name="${obj.name}" data-type="${obj.type}" data-tooltip="${tooltip}">
-                <div class="ns-obj-header">
-                    <span class="ns-obj-name">${obj.name}${dynamicTag}</span>
-                    <span class="ns-obj-type">${obj.type}</span>
-                </div>
-                <div class="ns-obj-details">
-                    <span class="ns-obj-loc" data-tooltip="Memory location address">0x${obj.location.toString(16).toUpperCase().padStart(4, '0')}</span>
-                    <span class="ns-obj-size" data-tooltip="Object size in bytes">${obj.size}B</span>
-                    <span class="ns-obj-perms" data-tooltip="Permission flags: R=Read, W=Write, X=Execute, L=Load, S=Store, E=Enter, B=Bind">${permStr}</span>
+                <div class="ns-obj-row">
+                    <span class="ns-col-offset">${offset}</span>
+                    <span class="ns-col-name">${obj.name}${dynamicTag}</span>
+                    <span class="ns-col-type">${obj.type}</span>
+                    <span class="ns-col-word1">${word1}</span>
+                    <span class="ns-col-word2">${word2}</span>
+                    <span class="ns-col-perms">[${permStr}]</span>
                 </div>
             </div>
         `;
@@ -759,9 +825,23 @@ function updateDataRegisters() {
 }
 
 function updateSystemState() {
-    document.getElementById('cr15Name').textContent = simulator.cr15.name;
-    document.getElementById('cr8Name').textContent = simulator.cr8.name;
-    document.getElementById('cr6Name').textContent = simulator.contextRegs[6]?.name || 'NULL';
+    // CR15: Namespace - show name and offset
+    const cr15 = simulator.cr15;
+    const cr15Text = cr15?.name || 'NULL';
+    const cr15Offset = cr15?.nsOffset !== undefined ? ` @${cr15.nsOffset}` : '';
+    document.getElementById('cr15Name').textContent = cr15Text + cr15Offset;
+    
+    // CR8: Thread - show name
+    document.getElementById('cr8Name').textContent = simulator.cr8?.name || 'NULL';
+    
+    // CR6: C-List - show name with [n] count
+    const cr6 = simulator.contextRegs[6];
+    let cr6Text = 'NULL';
+    if (cr6 && cr6.name && cr6.name !== 'NULL') {
+        const count = cr6.clistCount !== undefined ? cr6.clistCount : (cr6.clist?.length || 0);
+        cr6Text = `${cr6.name} [${count}]`;
+    }
+    document.getElementById('cr6Name').textContent = cr6Text;
     
     const cr7 = simulator.contextRegs[7];
     // CR7 holds code objects (Nucleus), not C-Lists - display based on object type
@@ -892,13 +972,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cr7Row = document.getElementById('cr7Row');
     if (cr7Row) {
         cr7Row.addEventListener('click', () => {
-            const editorView = document.getElementById('editor');
-            if (editorView) {
-                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-                editorView.classList.add('active');
-                document.getElementById('viewSelect').value = 'editor';
-                log('Switched to Assembly Editor (CR7 Nucleus)', 'info');
-            }
+            switchView('editor');
+            log('Switched to Assembly Editor (CR7 Nucleus)', 'info');
         });
     }
 });
@@ -3041,7 +3116,6 @@ function completeLesson() {
 
 function tryInSimulator() {
     switchView('dashboard');
-    document.getElementById('viewSelect').value = 'dashboard';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -4710,8 +4784,7 @@ function openFunctionInEditor(funcName, parentAbstraction) {
         setEditorCode(code, linkagePath, permsStr);
         resetProgram();
         
-        document.getElementById('viewSelect').value = 'editor';
-        document.getElementById('viewSelect').dispatchEvent(new Event('change'));
+        switchView('editor');
         
         simulator.contextRegs[7] = {
             name: funcName,
