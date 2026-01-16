@@ -48,15 +48,15 @@
                 <div class="panel system-state">
                     <h2>Lambda Registers</h2>
                     <div class="state-info">
-                        <div class="state-row tooltip-bottom" data-tooltip="Root capability defining the current namespace scope. All access is relative to this.">
+                        <div class="state-row tooltip-bottom clickable" id="cr15Row" data-tooltip="Root capability defining the current namespace scope. Click to view Namespace Browser.">
                             <span class="label">CR15 (Namespace):</span>
                             <span id="cr15Name" class="value">NULL</span>
                         </div>
-                        <div class="state-row tooltip-bottom" data-tooltip="Current thread identity. Determines which user/process is executing.">
+                        <div class="state-row tooltip-bottom clickable" id="cr8Row" data-tooltip="Current thread identity. Click to view Thread registers.">
                             <span class="label">CR8 (Thread):</span>
                             <span id="cr8Name" class="value">NULL</span>
                         </div>
-                        <div class="state-row tooltip-bottom" data-tooltip="CR6 holds the current C-List capability for context access.">
+                        <div class="state-row tooltip-bottom clickable" id="cr6Row" data-tooltip="CR6 holds the current C-List capability. Click to view Capabilities Explorer.">
                             <span class="label">CR6 (C-List):</span>
                             <span id="cr6Name" class="value">NULL</span>
                         </div>

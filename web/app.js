@@ -1006,6 +1006,33 @@ document.addEventListener('DOMContentLoaded', () => {
             log('Switched to Assembly Editor (CR7 Nucleus)', 'info');
         });
     }
+    
+    // CR15 click handler - switch to Namespace Browser
+    const cr15Row = document.getElementById('cr15Row');
+    if (cr15Row) {
+        cr15Row.addEventListener('click', () => {
+            switchView('namespace');
+            log('Switched to Namespace Browser (CR15)', 'info');
+        });
+    }
+    
+    // CR8 click handler - switch to Dashboard (Thread view)
+    const cr8Row = document.getElementById('cr8Row');
+    if (cr8Row) {
+        cr8Row.addEventListener('click', () => {
+            switchView('dashboard');
+            log('Switched to Dashboard (CR8 Thread)', 'info');
+        });
+    }
+    
+    // CR6 click handler - switch to Capabilities Explorer
+    const cr6Row = document.getElementById('cr6Row');
+    if (cr6Row) {
+        cr6Row.addEventListener('click', () => {
+            switchView('capabilities');
+            log('Switched to Capabilities Explorer (CR6 C-List)', 'info');
+        });
+    }
 });
 
 // ==================== CAPABILITY EXPLORER ====================

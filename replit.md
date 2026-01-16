@@ -57,6 +57,7 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 
 ## Recent Changes
 
+- 2026-01-16: Made CR15, CR8, CR6 clickable: CR15→Namespace, CR8→Dashboard, CR6→Capabilities
 - 2026-01-16: Added Save button to Assembly Editor toolbar to save code to localStorage
 - 2026-01-16: Added Back button to left of view buttons for navigating to previous views
 - 2026-01-16: View history tracking stores up to 20 previous views for back navigation
