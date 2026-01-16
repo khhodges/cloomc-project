@@ -318,6 +318,11 @@ const bootSteps = [
                 size: 4096
             };
             updateSystemState();
+            
+            // Update editor linkage to reflect CR7 Nucleus
+            editorState.currentLinkage = 'Boot/Nucleus';
+            editorState.currentPerms = '[RX]';
+            updateEditorToolbar();
         }
     }
 ];
