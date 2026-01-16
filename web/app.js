@@ -1485,8 +1485,16 @@ let editorState = {
 function updateEditorToolbar() {
     const pathEl = document.getElementById('editorFilePath');
     const permsEl = document.getElementById('editorPerms');
-    if (pathEl) pathEl.textContent = editorState.currentLinkage + '.asm';
+    const headerEl = document.getElementById('editorHeaderFilename');
+    
+    const linkageWithExt = editorState.currentLinkage + '.asm';
+    if (pathEl) pathEl.textContent = linkageWithExt;
     if (permsEl) permsEl.textContent = editorState.currentPerms;
+    
+    // Extract filename from linkage path for editor header
+    const parts = editorState.currentLinkage.split('/');
+    const filename = parts[parts.length - 1] + '.asm';
+    if (headerEl) headerEl.textContent = filename;
 }
 
 const examplePrograms = {
