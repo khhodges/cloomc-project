@@ -86,6 +86,31 @@ nav.controls {
     cursor: pointer;
 }
 
+.view-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.btn-view {
+    padding: 0.35rem 0.7rem;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+}
+
+.btn-view:hover {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+.btn-view.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
 .action-buttons {
     display: flex;
     gap: 0.4rem;
@@ -394,6 +419,74 @@ main {
     color: var(--warning);
     font-weight: 600;
     font-size: 0.8rem;
+}
+
+.boot-step-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.6rem;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    justify-content: center;
+}
+
+.boot-step-btn span {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--border);
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.boot-step-btn:hover:not(.done):not(:disabled) {
+    background: var(--bg-panel);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.boot-step-btn.active {
+    background: rgba(233, 69, 96, 0.2);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.boot-step-btn.active span {
+    background: var(--accent);
+    color: white;
+}
+
+.boot-step-btn.done {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.boot-step-btn.done span {
+    background: var(--success);
+    color: #1a1a2e;
+}
+
+.boot-step-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.boot-run-btn {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
 .boot-sequence-banner .boot-step {

@@ -4,6 +4,15 @@ function switchView(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
     
+    // Update view button active states
+    document.querySelectorAll('.view-buttons .btn-view').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(`viewBtn-${viewId}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
     if (viewId === 'editor') {
         const editor = document.getElementById('codeEditor');
         if (editor && savedEditorContent === '') {
@@ -325,8 +334,19 @@ const bootSteps = [
     }
 ];
 
-function stepInstruction() {
+function executeBootStepManual(stepNum) {
     switchView('dashboard');
+    
+    // Can only execute the next step in sequence
+    if (stepNum !== bootState.step) {
+        if (stepNum < bootState.step) {
+            log(`Step ${stepNum + 1} already completed`, 'info');
+        } else {
+            log(`Complete step ${bootState.step + 1} first`, 'info');
+        }
+        return;
+    }
+    
     if (bootState.step < 4) {
         executeBootStep(bootState.step);
         bootState.step++;
@@ -343,6 +363,11 @@ function stepInstruction() {
     }
 }
 
+function stepInstruction() {
+    // Legacy function - redirect to manual step execution
+    executeBootStepManual(bootState.step);
+}
+
 function executeBootStep(stepNum) {
     const step = bootSteps[stepNum];
     step.action();
@@ -355,36 +380,91 @@ function updateBootDisplay() {
         if (!el) continue;
         
         el.classList.remove('active', 'done');
-        if (i < bootState.step) {
+        if (i <= bootState.step) {
             el.classList.add('done');
-        } else if (i === bootState.step) {
+        } else if (i === bootState.step + 1) {
             el.classList.add('active');
         }
     }
     
-    const status = document.getElementById('bootStatus');
-    if (status) {
-        if (bootState.step === 0) {
-            status.textContent = 'Press Step to begin boot sequence';
-        } else if (bootState.step < 4) {
-            status.textContent = bootSteps[bootState.step - 1].description;
+    // Update Run button state
+    const runBtn = document.getElementById('bootRunBtn');
+    if (runBtn) {
+        if (bootState.complete) {
+            runBtn.textContent = 'Complete';
+            runBtn.disabled = true;
+            runBtn.style.opacity = '0.6';
         } else {
-            status.textContent = 'Boot complete - System ready';
-            status.style.color = 'var(--success)';
+            runBtn.textContent = 'Run All';
+            runBtn.disabled = false;
+            runBtn.style.opacity = '1';
         }
     }
 }
 
+function saveThreadState() {
+    // Save complete thread state to the active thread object before reset
+    if (!simulator.cr8 || simulator.cr8.name === 'NULL') {
+        return null; // No active thread to save
+    }
+    
+    const threadName = simulator.cr8.name;
+    const threadState = {
+        // Context Registers (CR0-CR7)
+        contextRegs: JSON.parse(JSON.stringify(simulator.contextRegs)),
+        // Data Registers (DR0-DR15) - convert BigInt to string for storage
+        dataRegs: {},
+        // Indicators (condition flags)
+        flags: { ...simulator.flags },
+        // Lambda states
+        ip: simulator.ip,
+        stackDepth: simulator.stackDepth,
+        cr6: simulator.contextRegs[6] ? JSON.parse(JSON.stringify(simulator.contextRegs[6])) : null,
+        cr7: simulator.contextRegs[7] ? JSON.parse(JSON.stringify(simulator.contextRegs[7])) : null,
+        cr8: JSON.parse(JSON.stringify(simulator.cr8)),
+        cr15: simulator.cr15 ? JSON.parse(JSON.stringify(simulator.cr15)) : null
+    };
+    
+    // Convert BigInt data registers to strings for JSON storage
+    for (let i = 0; i < 16; i++) {
+        threadState.dataRegs[i] = simulator.dataRegs[i].toString();
+    }
+    
+    // Store in thread's saved state
+    if (!window.savedThreadStates) {
+        window.savedThreadStates = {};
+    }
+    window.savedThreadStates[threadName] = threadState;
+    
+    log(`Thread state saved for ${threadName}`, 'info');
+    return threadState;
+}
+
 function resetCPU() {
     switchView('dashboard');
-    simulator.reset();
-    bootState.step = 0;
-    bootState.complete = false;
-    updateBootDisplay();
-    updateDisplay();
-    updateCapabilityExplorer();
-    updateNamespaceDisplay();
-    log('System reset - all registers cleared', 'info');
+    
+    // Save current thread state before reset
+    const savedState = saveThreadState();
+    if (savedState) {
+        // Show pause indication - update boot status briefly
+        const status = document.getElementById('bootStatus');
+        if (status) {
+            status.textContent = `Saved ${simulator.cr8.name} thread state...`;
+            status.style.color = 'var(--warning)';
+        }
+    }
+    
+    // Perform hardware reset after brief pause
+    setTimeout(() => {
+        simulator.reset();
+        bootState.step = 0;
+        bootState.complete = false;
+        updateBootDisplay();
+        updateDisplay();
+        updateCapabilityExplorer();
+        updateNamespaceDisplay();
+        log('System reset - all registers cleared', 'info');
+    }, 300);
 }
 
 function updateNamespaceDisplay() {
