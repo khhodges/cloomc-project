@@ -708,12 +708,8 @@ function updateFlags() {
 }
 
 function log(message, type = 'info') {
-    const logContainer = document.getElementById('outputLog');
-    const entry = document.createElement('div');
-    entry.className = `log-entry ${type}`;
-    entry.textContent = `> ${message}`;
-    logContainer.appendChild(entry);
-    logContainer.scrollTop = logContainer.scrollHeight;
+    // Dashboard output log removed - log to console for debugging
+    console.log(`[${type.toUpperCase()}] ${message}`);
 }
 
 function runBootSequence() {
@@ -766,141 +762,11 @@ const instructionInfo = {
     SWITCH: { operands: ['cr'], help: 'Set CR15 (Namespace) to capability in CR[reg]. Requires Load permission.', isCap: true }
 };
 
-function updateInstrHelp() {
-    const instr = document.getElementById('instrSelect').value;
-    
-    if (instr.startsWith('EX_')) {
-        const exampleName = instr.substring(3);
-        loadExample(exampleName);
-        document.getElementById('instrSelect').value = 'ADD';
-        updateInstrHelp();
-        return;
-    }
-    
-    const info = instructionInfo[instr];
-    
-    const operandContainer = document.getElementById('operandInputs');
-    operandContainer.innerHTML = '';
-    
-    info.operands.forEach((op, i) => {
-        if (op === 'immediate' || op === 'amount' || op === 'offset' || op === 'index') {
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.id = `operand${i}`;
-            input.placeholder = op;
-            input.value = op === 'amount' ? '1' : '0';
-            operandContainer.appendChild(input);
-        } else if (op === 'condition') {
-            const select = document.createElement('select');
-            select.id = `operand${i}`;
-            const conditions = ['(none)', 'EQ', 'NE', 'CS', 'CC', 'MI', 'PL', 'VS', 'VC', 'HI', 'LS', 'GE', 'LT', 'GT', 'LE'];
-            conditions.forEach(c => {
-                const option = document.createElement('option');
-                option.value = c === '(none)' ? '' : c;
-                option.textContent = c;
-                select.appendChild(option);
-            });
-            operandContainer.appendChild(select);
-        } else if (op === 'mask') {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.id = `operand${i}`;
-            input.placeholder = 'e.g., RW, LSE, RWXLSEB';
-            input.value = 'RW';
-            input.style.width = '120px';
-            operandContainer.appendChild(input);
-        } else if (op === 'bounds') {
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.id = `operand${i}`;
-            input.placeholder = 'bounds (optional)';
-            input.value = '';
-            input.style.width = '100px';
-            operandContainer.appendChild(input);
-        } else if (op === 'cr' || op === 'destCR' || op === 'srcCR') {
-            const select = document.createElement('select');
-            select.id = `operand${i}`;
-            for (let r = 0; r < 8; r++) {
-                const option = document.createElement('option');
-                option.value = r;
-                option.textContent = `CR${r}`;
-                select.appendChild(option);
-            }
-            const opt8 = document.createElement('option');
-            opt8.value = 8;
-            opt8.textContent = 'CR8 (Thread)';
-            select.appendChild(opt8);
-            const opt15 = document.createElement('option');
-            opt15.value = 15;
-            opt15.textContent = 'CR15 (Namespace)';
-            select.appendChild(opt15);
-            if (i === 1) select.value = '1';
-            operandContainer.appendChild(select);
-        } else if (op === 'srcDR') {
-            const select = document.createElement('select');
-            select.id = `operand${i}`;
-            for (let r = 0; r < 8; r++) {
-                const option = document.createElement('option');
-                option.value = r;
-                option.textContent = `DR${r}`;
-                select.appendChild(option);
-            }
-            operandContainer.appendChild(select);
-        } else {
-            const select = document.createElement('select');
-            select.id = `operand${i}`;
-            for (let r = 0; r < 8; r++) {
-                const option = document.createElement('option');
-                option.value = r;
-                option.textContent = `DR${r}`;
-                select.appendChild(option);
-            }
-            if (i === 1) select.value = '1';
-            operandContainer.appendChild(select);
-        }
-    });
-    
-    document.getElementById('instrHelp').textContent = info.help;
-}
-
-function executeCommand() {
-    const instr = document.getElementById('instrSelect').value;
-    const info = instructionInfo[instr];
-    
-    const args = info.operands.map((op, i) => {
-        const el = document.getElementById(`operand${i}`);
-        if (!el) return undefined;
-        if (op === 'mask' || op === 'condition') {
-            return el.value;
-        }
-        if (op === 'bounds') {
-            const val = el.value.trim();
-            return val === '' ? undefined : parseInt(val);
-        }
-        return parseInt(el.value);
-    });
-    
-    try {
-        const result = simulator.execute(instr, ...args.filter(a => a !== undefined));
-        
-        const argsStr = args.filter(a => a !== undefined).join(' ');
-        const isError = result.startsWith('Error:');
-        log(`${instr} ${argsStr}: ${result}`, isError ? 'error' : 'success');
-        
-        updateDisplay();
-        updateCapabilityExplorer();
-    } catch (e) {
-        log(`Error: ${e.message}`, 'error');
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     loadFromStorage();
     updateDisplay();
-    updateInstrHelp();
     updateCapabilityExplorer();
     log('CTMM Simulator Ready', 'info');
-    log('Select an instruction and click Execute, or use Reset/Step/Run controls', 'info');
     
     // CR7 click handler - switch to Assembly Editor
     const cr7Row = document.getElementById('cr7Row');
