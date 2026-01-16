@@ -9,6 +9,9 @@ function switchView(viewId) {
         if (editor && savedEditorContent === '') {
             savedEditorContent = editor.value;
         }
+        if (typeof updateEditorToolbar === 'function') {
+            updateEditorToolbar();
+        }
     }
 }
 
@@ -1608,8 +1611,17 @@ let editorState = {
     program: [],
     pc: 0,
     running: false,
-    parsed: []
+    parsed: [],
+    currentLinkage: 'Boot/Nucleus',
+    currentPerms: '[RX]'
 };
+
+function updateEditorToolbar() {
+    const pathEl = document.getElementById('editorFilePath');
+    const permsEl = document.getElementById('editorPerms');
+    if (pathEl) pathEl.textContent = editorState.currentLinkage + '.asm';
+    if (permsEl) permsEl.textContent = editorState.currentPerms;
+}
 
 const examplePrograms = {
     counter: `; =============================================
@@ -2157,7 +2169,7 @@ function executeEditorInstruction(instr) {
     }
 }
 
-function resetProgram() {
+function resetProgram(preserveLinkage = true) {
     editorState.program = [];
     editorState.pc = 0;
     simulator.reset();
@@ -2170,11 +2182,24 @@ function resetProgram() {
     updateEditorRegisters();
     updateDisplay();
     
-    document.getElementById('editorFilePath').textContent = 'Boot/Nucleus/program.asm';
-    document.getElementById('editorPerms').textContent = '[RX]';
-    
     const parsed = document.getElementById('editorParsed');
     if (parsed) parsed.innerHTML = '';
+}
+
+function clearEditor() {
+    document.getElementById('codeEditor').value = '';
+    editorState.currentLinkage = 'Boot/Nucleus';
+    editorState.currentPerms = '[RX]';
+    updateEditorToolbar();
+    resetProgram();
+}
+
+function setEditorCode(code, linkage, perms) {
+    document.getElementById('codeEditor').value = code;
+    editorState.currentLinkage = linkage || 'Boot/Nucleus';
+    editorState.currentPerms = perms || '[RX]';
+    updateLineNumbers();
+    updateEditorToolbar();
 }
 
 function updateEditorStatus() {
@@ -2286,9 +2311,8 @@ function updateChurchRegisters() {
 function loadExample(name) {
     const code = examplePrograms[name];
     if (code) {
-        document.getElementById('codeEditor').value = code;
+        setEditorCode(code, `Boot/Examples/${name}`, '[RX]');
         savedEditorContent = code;
-        updateLineNumbers();
         resetProgram();
         editorLog(`Loaded example: ${name}`, 'success');
     }
@@ -4671,15 +4695,16 @@ function openFunctionInEditor(funcName, parentAbstraction) {
     }
     const code = functionBetaCode[codeKey] || functionBetaCode[funcName];
     if (code) {
-        document.getElementById('codeEditor').value = code;
-        updateLineNumbers();
-        resetProgram();
-        document.getElementById('viewSelect').value = 'editor';
-        document.getElementById('viewSelect').dispatchEvent(new Event('change'));
-        
         const abstraction = abstractionCLists[parentAbstraction];
         const funcGT = abstraction ? abstraction.clist.find(c => c.name === funcName) : null;
         const linkagePath = parentAbstraction ? `Boot/${parentAbstraction}/${funcName}` : `Boot/${funcName}`;
+        const permsStr = funcGT?.perms ? `[${funcGT.perms.join('')}]` : '[RX]';
+        
+        setEditorCode(code, linkagePath, permsStr);
+        resetProgram();
+        
+        document.getElementById('viewSelect').value = 'editor';
+        document.getElementById('viewSelect').dispatchEvent(new Event('change'));
         
         simulator.contextRegs[7] = {
             name: funcName,
@@ -4693,10 +4718,6 @@ function openFunctionInEditor(funcName, parentAbstraction) {
         };
         updateSystemState();
         updateCapabilityExplorer();
-        
-        const permsStr = funcGT?.perms ? `[${funcGT.perms.join('')}]` : '[RX]';
-        document.getElementById('editorFilePath').textContent = `${linkagePath}.asm`;
-        document.getElementById('editorPerms').textContent = permsStr;
         
         log(`Loaded ${linkagePath} [${(funcGT?.perms || ["R","X"]).join('')}] Base:0x${(funcGT?.base || 0).toString(16).toUpperCase()} Size:${funcGT?.size || 0}`, 'info');
     } else {
