@@ -1025,14 +1025,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // CR6 click handler - switch to Capabilities Explorer and show CR6 detail
+    // CR6 click handler - switch to Capabilities Explorer and show CR6 detail with C-List entries
     const cr6Row = document.getElementById('cr6Row');
     if (cr6Row) {
         cr6Row.addEventListener('click', () => {
+            // Populate simulator.clist from CR6's clist entries before switching
+            const cr6Cap = simulator.contextRegs[6];
+            if (cr6Cap && cr6Cap.clist && cr6Cap.clist.length > 0) {
+                // Convert clist entries to capability objects for display
+                simulator.clist = cr6Cap.clist.map(entry => {
+                    const nsObj = namespaceObjects.find(o => o.offset === entry.nsOffset);
+                    return {
+                        name: entry.name,
+                        type: entry.type || 'Unknown',
+                        nsOffset: entry.nsOffset,
+                        location: { type: "Local", offset: nsObj ? nsObj.word1_location : 0 },
+                        perms: entry.perms || [],
+                        size: nsObj ? nsObj.word2_limit : 0,
+                        goldenKey: generateGoldenKey()
+                    };
+                });
+            }
             switchView('capabilities');
             // After switching, select CR6 in the explorer (use longer timeout for DOM update)
             setTimeout(() => {
-                const cr6Cap = simulator.contextRegs[6];
                 if (cr6Cap) {
                     // Show the capability detail panel first (this clears selections)
                     showCapabilityDetail(null, cr6Cap, 'CR6');

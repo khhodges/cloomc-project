@@ -57,6 +57,8 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 
 ## Recent Changes
 
+- 2026-01-16: Removed Permission Reference section from Capabilities Explorer
+- 2026-01-16: Clicking CR6 now populates C-List section with all 7 GTs from the Boot C-List
 - 2026-01-16: Fixed header/boot sequence overlap - increased main margin-top to 60px
 - 2026-01-16: Header tooltips now show below (tooltip-bottom class) to be visible
 - 2026-01-16: Back button simplified: removed arrow, just says "Back", has tooltip
