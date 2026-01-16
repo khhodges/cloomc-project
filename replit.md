@@ -28,7 +28,7 @@ The CTMM simulator provides both a Haskell console interface and a primary web-b
     -   Word 2: Limit (Object Size).
     -   Word 3: Seals (MetaData, Type, MAC).
 -   **MAC Validation**: Hardware-enforced security check during `LOAD` operations, comparing a calculated hash of the GT offset and namespace entry words against the stored MAC.
--   **Boot Sequence**: A 4-step process (Hardware Reset, Load Namespace, Initialize Thread, Load Nucleus) to securely initialize the CTMM.
+-   **Boot Sequence**: A 4-step process (Fault Restart, Load Namespace, Initialize Thread, Load Nucleus) to securely initialize the CTMM.
 
 ### Web Interface (UI/UX)
 
@@ -57,10 +57,12 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 
 ## Recent Changes
 
-- 2026-01-16: Reset button now saves thread state (CR, DR, flags, Lambda states) before hardware reset with 300ms pause
+- 2026-01-16: Removed Reset button - "Fault Restart" (boot step 1) now handles state save and reset
+- 2026-01-16: Boot step 1 renamed to "Fault Restart" - simulates unrecoverable fault recovery with state save
+- 2026-01-16: CR7 display fixed - shows "NULL" for code objects, "NULL []" only for empty C-Lists
 - 2026-01-16: View selector changed from dropdown to horizontal row of buttons (Dashboard, Namespace, Assembly, Capabilities, Tutorial)
-- 2026-01-16: Boot sequence has 4 individual clickable step buttons (1-4) with "Run All" button replacing old status text
-- 2026-01-16: Removed Step button - boot steps are now clickable individually and enforced sequentially
+- 2026-01-16: Boot sequence has 4 individual clickable step buttons (1-4) with "Run All" button
+- 2026-01-16: Fault Restart can be clicked anytime to save state and restart boot sequence
 - 2026-01-16: Editor shows empty code when boot loads CR7 Nucleus (no code defined yet)
 - 2026-01-16: Simplified Dashboard - removed Command Input and Output Log, now pure Thread View
 - 2026-01-16: Bidirectional editor linkage - toolbar shows current loaded object path (e.g., Boot/SlideRule/GT_ADD.asm)

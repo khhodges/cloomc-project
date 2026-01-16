@@ -18,9 +18,6 @@
                     <button onclick="switchView('capabilities')" class="btn btn-view" id="viewBtn-capabilities" data-tooltip="Explore Golden Tokens">Capabilities</button>
                     <button onclick="switchView('tutorial')" class="btn btn-view" id="viewBtn-tutorial" data-tooltip="Learn CTMM concepts">Tutorial</button>
                 </div>
-                <div class="action-buttons">
-                    <button onclick="resetCPU()" class="btn btn-reset tooltip-bottom" data-tooltip="Save thread state and reset CPU">Reset</button>
-                </div>
             </nav>
         </header>
     </div>
@@ -30,7 +27,7 @@
             <div class="boot-sequence-banner">
                 <span class="boot-label">Boot Sequence:</span>
                 <div class="boot-steps-horizontal">
-                    <button class="boot-step-btn tooltip-bottom" id="bootStep1" onclick="executeBootStepManual(0)" data-tooltip="Step 1: Clear all registers and initialize CTM state."><span>1</span> Hardware Reset</button>
+                    <button class="boot-step-btn tooltip-bottom" id="bootStep1" onclick="executeFaultRestart()" data-tooltip="Step 1: Save thread state, clear all registers. Simulates unrecoverable fault recovery."><span>1</span> Fault Restart</button>
                     <button class="boot-step-btn tooltip-bottom" id="bootStep2" onclick="executeBootStepManual(1)" data-tooltip="Step 2: Establish root namespace in CR15 for access control."><span>2</span> Load Namespace</button>
                     <button class="boot-step-btn tooltip-bottom" id="bootStep3" onclick="executeBootStepManual(2)" data-tooltip="Step 3: Set current thread identity in CR8 (default: Kenneth)."><span>3</span> Initialize Thread</button>
                     <button class="boot-step-btn tooltip-bottom" id="bootStep4" onclick="executeBootStepManual(3)" data-tooltip="Step 4: Load trusted kernel capability into CR7."><span>4</span> Load Nucleus</button>

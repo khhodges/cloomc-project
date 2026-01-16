@@ -267,9 +267,11 @@ let bootState = {
 
 const bootSteps = [
     {
-        name: "Hardware Reset",
-        description: "Power energized. Clearing all registers to NULL...",
+        name: "Fault Restart",
+        description: "Unrecoverable fault. Saving state, clearing registers...",
         action: () => {
+            // Save thread state before reset (simulates fault recovery)
+            saveThreadState();
             simulator.reset();
         }
     },
@@ -334,8 +336,36 @@ const bootSteps = [
     }
 ];
 
+function executeFaultRestart() {
+    switchView('dashboard');
+    
+    // Save current thread state before fault restart
+    const savedState = saveThreadState();
+    if (savedState) {
+        log(`Thread state saved for ${simulator.cr8.name} before fault restart`, 'info');
+    }
+    
+    // Brief pause to show state save, then perform restart
+    setTimeout(() => {
+        simulator.reset();
+        bootState.step = 1; // Step 1 (Fault Restart) is now complete
+        bootState.complete = false;
+        updateBootDisplay();
+        updateDisplay();
+        updateCapabilityExplorer();
+        updateNamespaceDisplay();
+        log('[BOOT 1] Fault Restart: Unrecoverable fault. State saved, registers cleared.', 'info');
+    }, 300);
+}
+
 function executeBootStepManual(stepNum) {
     switchView('dashboard');
+    
+    // Step 0 (Fault Restart) has its own function
+    if (stepNum === 0) {
+        executeFaultRestart();
+        return;
+    }
     
     // Can only execute the next step in sequence
     if (stepNum !== bootState.step) {
@@ -359,7 +389,7 @@ function executeBootStepManual(stepNum) {
             log('Boot sequence complete - system ready', 'success');
         }
     } else {
-        log('System already booted. Use Reset to restart.', 'info');
+        log('System already booted. Click Fault Restart to restart.', 'info');
     }
 }
 
@@ -730,8 +760,11 @@ function updateSystemState() {
     document.getElementById('cr6Name').textContent = simulator.contextRegs[6]?.name || 'NULL';
     
     const cr7 = simulator.contextRegs[7];
-    if (cr7) {
-        const permsStr = cr7.perms ? `[${cr7.perms.join('')}]` : '';
+    // CR7 holds code objects (Nucleus), not C-Lists - display based on object type
+    const isCr7Valid = cr7 && cr7.name && cr7.name !== 'NULL';
+    if (isCr7Valid) {
+        // For code/data objects, only show permissions if they exist (no empty brackets)
+        const permsStr = (cr7.perms && cr7.perms.length > 0) ? `[${cr7.perms.join('')}]` : '';
         const baseStr = cr7.base !== undefined ? ` @0x${cr7.base.toString(16).toUpperCase()}` : '';
         const sizeStr = cr7.size ? `:${cr7.size}` : '';
         document.getElementById('cr7NameDisplay').textContent = `${cr7.name} ${permsStr}${baseStr}${sizeStr}`;
