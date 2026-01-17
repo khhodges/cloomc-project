@@ -971,12 +971,12 @@ main {
 }
 
 .field-right {
-    align-items: flex-end;
+    align-items: flex-start;
 }
 
 .field-right-full {
     flex: 1;
-    align-items: flex-end;
+    align-items: flex-start;
 }
 
 .field-label {
