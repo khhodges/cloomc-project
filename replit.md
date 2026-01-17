@@ -114,3 +114,10 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 - 2026-01-17: Threads (Kenneth, Matthew, Daniel) shown directly under Namespace in hierarchy, not under Boot
 - 2026-01-17: Removed dropdown and "Load Samples" button from Capabilities Explorer
 - 2026-01-17: Empty CR buttons now clickable - shows NULL status with W1-W3 hidden and helpful message
+- 2026-01-17: Added Add (+) button in C-List header to create new capabilities with modal form
+- 2026-01-17: Added Delete (X) button on C-List items with impact analysis warning popup
+- 2026-01-17: Description field required for new capabilities, shown as tooltip on hover
+- 2026-01-17: Reduced modal padding/gaps for compact display ensuring Create button visibility
+- 2026-01-17: Updated Tutorial with new "Golden Token Structure" lesson covering GT bit layout and 3-word Namespace Entry
+- 2026-01-17: Tutorial now explains 9 permissions including M (Meta-Machine) and F (Far)
+- 2026-01-17: Tutorial covers MAC validation, W3 Seals structure (Meta/Type/MAC), and Little-Endian format

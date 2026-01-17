@@ -3118,19 +3118,19 @@ const lessons = [
                 <div class="demo-content">
                     <div class="demo-visual">
                         <div class="golden-token-demo">
-                            <div class="token-label">192-bit Golden Token</div>
-                            <div class="token-key" id="demoToken1">A3F2-91B4-CC87-D2E1-9087-54AB</div>
+                            <div class="token-label">64-bit Golden Token</div>
+                            <div class="token-key" id="demoToken1">0xA3F291B4CC87D2E1</div>
                         </div>
                     </div>
                     <div class="demo-explanation">
-                        <p>This is a <strong>Golden Token</strong> - a cryptographic key that cannot be forged or guessed.</p>
-                        <p>Each capability in the CTMM has its own unique Golden Token that proves authenticity.</p>
+                        <p>This is a <strong>Golden Token (GT)</strong> - a 64-bit capability key containing an offset, permissions, and spare bits.</p>
+                        <p>Each GT points to a <strong>3-word Namespace Entry</strong> that describes the resource's location, size, and security seals.</p>
                     </div>
                 </div>`
             },
             {
-                text: `<h3>The Seven Permissions</h3>
-                <p>Each capability grants specific permissions. The CTMM uses seven permission types:</p>
+                text: `<h3>The Nine Permissions</h3>
+                <p>Each capability grants specific permissions encoded in the GT. The CTMM uses nine permission types:</p>
                 <ul>
                     <li><code>R</code> - <strong>Read</strong>: View data or code</li>
                     <li><code>W</code> - <strong>Write</strong>: Modify data</li>
@@ -3139,6 +3139,8 @@ const lessons = [
                     <li><code>S</code> - <strong>Store</strong>: Store capabilities to children</li>
                     <li><code>E</code> - <strong>Enter</strong>: Switch namespace or call procedure</li>
                     <li><code>B</code> - <strong>Bind</strong>: Save token to namespace DNA (persistent storage)</li>
+                    <li><code>M</code> - <strong>Meta-Machine</strong>: Hardware-level access (Namespace, Threads only)</li>
+                    <li><code>F</code> - <strong>Far</strong>: Indicates remote URL location vs local memory</li>
                 </ul>`,
                 demo: `<div class="demo-title">Permission Badges</div>
                 <div class="demo-content">
@@ -3151,10 +3153,12 @@ const lessons = [
                             <span class="perm-demo-badge" style="background: #fb923c; color: #1a1a2e;">S</span>
                             <span class="perm-demo-badge" style="background: #fbbf24; color: #1a1a2e;">E</span>
                             <span class="perm-demo-badge" style="background: #2dd4bf; color: #1a1a2e;">B</span>
+                            <span class="perm-demo-badge" style="background: #a855f7; color: #1a1a2e;">M</span>
+                            <span class="perm-demo-badge" style="background: #06b6d4; color: #1a1a2e;">F</span>
                         </div>
                     </div>
                     <div class="demo-explanation">
-                        <p>Permissions can be combined. For example, a file might have <code>RW</code> (read and write) while executable code has <code>RXE</code> (read, execute, enter).</p>
+                        <p>Permissions are encoded in bits [48:63] of the GT. The <code>M</code> permission marks hardware-level resources (Namespace, Threads), while <code>F</code> indicates a remote URL.</p>
                     </div>
                 </div>`
             },
@@ -3183,6 +3187,117 @@ const lessons = [
                     feedback: {
                         correct: "Correct! Capabilities are unforgeable tokens. Having the token IS having the access.",
                         incorrect: "Not quite. Capabilities are unforgeable tokens - if you have the token, you have the access."
+                    }
+                }
+            }
+        ]
+    },
+    {
+        title: "Golden Token Structure",
+        steps: [
+            {
+                text: `<h3>The 64-bit Golden Token</h3>
+                <p>Each capability is represented by a <strong>64-bit Golden Token (GT)</strong> with three fields in Little-Endian (ARM) format:</p>
+                <ul>
+                    <li><strong>Offset [0:31]</strong> - 32-bit index into the Namespace Table</li>
+                    <li><strong>Spare [32:47]</strong> - 16 reserved bits for future use</li>
+                    <li><strong>Perms [48:63]</strong> - 16-bit permission flags (R, W, X, L, S, E, B, M, F)</li>
+                </ul>
+                <div class="key-concept">
+                    <strong>Key Insight:</strong> The GT contains just enough to locate and authorize access. The detailed resource description lives in the Namespace Entry.
+                </div>`,
+                demo: `<div class="demo-title">GT Bit Layout (Little-Endian)</div>
+                <div class="demo-content">
+                    <div class="demo-visual">
+                        <div style="display: flex; gap: 0.5rem; justify-content: center; font-family: monospace;">
+                            <div style="background: #4ade80; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.7rem;">Offset</div>
+                                <div>[0:31]</div>
+                            </div>
+                            <div style="background: #94a3b8; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.7rem;">Spare</div>
+                                <div>[32:47]</div>
+                            </div>
+                            <div style="background: #f59e0b; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.7rem;">Perms</div>
+                                <div>[48:63]</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="demo-explanation">
+                        <p>The Offset points to a 3-word entry in the Namespace Table. Permissions determine what operations are allowed.</p>
+                    </div>
+                </div>`
+            },
+            {
+                text: `<h3>The 3-Word Namespace Entry</h3>
+                <p>Each GT Offset points to a <strong>3-word (192-bit) Namespace Entry</strong> describing the resource:</p>
+                <ul>
+                    <li><strong>Word 1 (W1)</strong> - <em>Location</em>: Physical address (or URL if F permission set)</li>
+                    <li><strong>Word 2 (W2)</strong> - <em>Limit</em>: Object size in bytes</li>
+                    <li><strong>Word 3 (W3)</strong> - <em>Seals</em>: Metadata, Type, and MAC for integrity</li>
+                </ul>
+                <div class="highlight">
+                    The F (Far) permission changes how W1 is interpreted: local memory address vs. remote URL.
+                </div>`,
+                demo: `<div class="demo-title">Namespace Entry Structure</div>
+                <div class="demo-content">
+                    <div class="demo-visual">
+                        <div style="display: flex; flex-direction: column; gap: 0.3rem; font-family: monospace;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="color: var(--accent); width: 40px;">W1:</span>
+                                <div style="flex: 1; background: var(--bg-panel); padding: 0.4rem 0.8rem; border-radius: 4px; border-left: 3px solid #4ade80;">Location [0:63] - Address or URL</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="color: var(--accent); width: 40px;">W2:</span>
+                                <div style="flex: 1; background: var(--bg-panel); padding: 0.4rem 0.8rem; border-radius: 4px; border-left: 3px solid #60a5fa;">Limit [0:63] - Size in bytes</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="color: var(--accent); width: 40px;">W3:</span>
+                                <div style="flex: 1; background: var(--bg-panel); padding: 0.4rem 0.8rem; border-radius: 4px; border-left: 3px solid #f59e0b;">Meta [0:31] | Type [32:47] | MAC [48:63]</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`
+            },
+            {
+                text: `<h3>MAC Validation</h3>
+                <p>The <strong>MAC (Message Authentication Code)</strong> in W3 provides hardware-enforced integrity:</p>
+                <ul>
+                    <li>Calculated from: GT Offset + W1 (Location) + W2 (Limit)</li>
+                    <li>Verified during every <code>LOAD</code> operation</li>
+                    <li>Prevents tampering with capability metadata</li>
+                </ul>
+                <div class="key-concept">
+                    <strong>Security Guarantee:</strong> If the MAC doesn't match, the LOAD fails - even with correct permissions.
+                </div>`,
+                demo: `<div class="demo-title">MAC Validation Flow</div>
+                <div class="demo-content">
+                    <div class="demo-visual">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
+                            <div style="padding: 0.5rem 1rem; background: var(--bg-panel); border-radius: 4px; font-size: 0.85rem;">hash(Offset + W1 + W2)</div>
+                            <div style="color: var(--accent);">&darr; compare</div>
+                            <div style="padding: 0.5rem 1rem; background: var(--bg-panel); border-radius: 4px; font-size: 0.85rem;">Stored MAC in W3[48:63]</div>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <span style="color: var(--success);">Match = Allow</span>
+                                <span style="color: var(--error);">Mismatch = Deny</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`,
+                interactive: {
+                    type: "quiz",
+                    question: "What does W3 in the Namespace Entry contain?",
+                    options: [
+                        "Just the object's size",
+                        "The location address only",
+                        "Metadata, Type, and MAC (integrity seal)",
+                        "User permissions"
+                    ],
+                    correct: 2,
+                    feedback: {
+                        correct: "Correct! W3 contains the Metadata, Type identifier, and MAC for integrity verification.",
+                        incorrect: "Not quite. W3 holds the Seals: Metadata [0:31], Type [32:47], and MAC [48:63]."
                     }
                 }
             }
@@ -3429,7 +3544,7 @@ const lessons = [
                 <ul>
                     <li><strong>No capability = No access</strong>: Without the right token, operations fail</li>
                     <li><strong>Permission checking</strong>: Each operation requires specific permissions</li>
-                    <li><strong>Unforgeable tokens</strong>: 192-bit Golden Keys cannot be guessed</li>
+                    <li><strong>Unforgeable tokens</strong>: 64-bit Golden Tokens with MAC validation cannot be forged</li>
                     <li><strong>No privilege escalation</strong>: You cannot gain permissions you weren't given</li>
                 </ul>
                 <div class="key-concept">
