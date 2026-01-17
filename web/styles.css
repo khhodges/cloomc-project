@@ -691,6 +691,64 @@ main {
     gap: 0.5rem;
 }
 
+/* Context Register Button Grid */
+.cr-button-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 0.5rem 0;
+}
+
+.cr-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    background: var(--bg-dark);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: default;
+    transition: all 0.2s;
+    padding: 2px;
+}
+
+.cr-btn .cr-num {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.cr-btn .cr-label {
+    font-size: 0.55rem;
+    opacity: 0.7;
+    margin-top: 1px;
+}
+
+.cr-btn.cr-loaded {
+    background: linear-gradient(135deg, #2d4a3e 0%, #1a3a2e 100%);
+    border-color: var(--success);
+    color: var(--success);
+    cursor: pointer;
+}
+
+.cr-btn.cr-loaded:hover {
+    background: linear-gradient(135deg, #3d5a4e 0%, #2a4a3e 100%);
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+    transform: scale(1.05);
+}
+
+.cr-btn.cr-empty {
+    opacity: 0.5;
+}
+
+.cr-btn.cr-empty:hover {
+    opacity: 0.7;
+}
+
 .token-card {
     background: var(--bg-input);
     border: 2px solid var(--border);

@@ -1535,18 +1535,44 @@ function getCapabilityTypeLabel(cap) {
     return type || 'Object';
 }
 
+function getContextRegister(index) {
+    // Get register from contextRegs, with special handling for cr15 and cr8
+    if (index === 15 && simulator.cr15 && simulator.cr15.name && simulator.cr15.name !== 'NULL') {
+        return simulator.cr15;
+    }
+    if (index === 8 && simulator.cr8 && simulator.cr8.name && simulator.cr8.name !== 'NULL') {
+        return simulator.cr8;
+    }
+    return simulator.contextRegs[index];
+}
+
 function updateCapabilityExplorer() {
-    const systemContainer = document.getElementById('systemTokens');
+    const crGrid = document.getElementById('crButtonGrid');
     const clistContainer = document.getElementById('clistTokens');
     
-    if (!systemContainer) return;
+    if (!crGrid) return;
     
-    systemContainer.innerHTML = '';
+    // Render 16 CR buttons
+    crGrid.innerHTML = '';
+    for (let i = 0; i < 16; i++) {
+        const reg = getContextRegister(i);
+        const hasGT = reg && reg.name && reg.name !== 'NULL';
+        const specialLabel = i === 15 ? 'NS' : i === 8 ? 'TH' : i === 7 ? 'NU' : i === 6 ? 'CL' : null;
+        
+        const btn = document.createElement('button');
+        btn.className = `cr-btn ${hasGT ? 'cr-loaded' : 'cr-empty'}`;
+        btn.innerHTML = `<span class="cr-num">${i}</span>${specialLabel ? `<span class="cr-label">${specialLabel}</span>` : ''}`;
+        btn.setAttribute('data-tooltip', hasGT ? `CR${i}: ${reg.name} [${(reg.perms || []).join('')}]` : `CR${i}: Empty`);
+        
+        if (hasGT) {
+            btn.onclick = () => selectContextRegister(i);
+        }
+        
+        crGrid.appendChild(btn);
+    }
+    
+    // Render C-List
     clistContainer.innerHTML = '';
-    
-    systemContainer.appendChild(createTokenCard(simulator.cr15, 'CR15 (Namespace)'));
-    systemContainer.appendChild(createTokenCard(simulator.cr8, 'CR8 (Thread)'));
-    
     if (simulator.clist && simulator.clist.length > 0) {
         simulator.clist.forEach((cap, i) => {
             const typeLabel = getCapabilityTypeLabel(cap);
@@ -1555,6 +1581,47 @@ function updateCapabilityExplorer() {
     } else {
         clistContainer.innerHTML = '<p style="color: var(--text-secondary); font-style: italic; padding: 0.5rem;">No capabilities in C-List</p>';
     }
+}
+
+function selectContextRegister(regIndex) {
+    const reg = getContextRegister(regIndex);
+    if (!reg || !reg.name || reg.name === 'NULL') return;
+    
+    // Use existing capability data - don't regenerate goldenKey
+    const cap = {
+        name: reg.name,
+        type: reg.type || getCapabilityTypeLabel(reg),
+        perms: reg.perms || [],
+        locked: reg.locked,
+        nsOffset: reg.nsOffset || 0,
+        nsEntry: reg.nsEntry || {
+            word1_location: reg.location?.offset || reg.word1_location || 0,
+            word2_limit: reg.size || reg.word2_limit || 0,
+            word3_seals: reg.word3_seals || 0
+        },
+        goldenKey: reg.goldenKey  // Use existing key, don't generate new one
+    };
+    
+    // Find register assignments based on actual register index
+    const registers = [];
+    const regLabels = { 15: 'Namespace', 8: 'Thread', 7: 'Nucleus', 6: 'C-List' };
+    registers.push({ reg: `CR${regIndex}`, desc: regLabels[regIndex] || `Context Register ${regIndex}` });
+    
+    // Build hierarchy path
+    const hierarchy = [
+        { name: 'Namespace', type: 'Root', offset: 0 }
+    ];
+    
+    // Add intermediate path for certain register types
+    if (regIndex === 6 || regIndex === 7 || regIndex === 8) {
+        hierarchy.push({ name: 'Boot', type: 'C-List', offset: 1 });
+    }
+    
+    if (cap.name !== 'Namespace') {
+        hierarchy.push({ name: cap.name, type: cap.type, offset: cap.nsOffset });
+    }
+    
+    renderCapabilityDetail(cap, hierarchy, registers);
 }
 
 function createSampleCapabilities() {
