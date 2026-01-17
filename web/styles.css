@@ -962,6 +962,12 @@ main {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.field-group .field-input {
+    width: 100%;
 }
 
 .field-left {
@@ -1002,7 +1008,6 @@ main {
 
 .field-input.field-wide {
     width: 100%;
-    max-width: 280px;
     text-align: left;
 }
 
