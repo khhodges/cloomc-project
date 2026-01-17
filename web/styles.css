@@ -954,6 +954,8 @@ main {
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-start;
 }
 
 .field-group {
@@ -977,6 +979,7 @@ main {
 .field-right-full {
     flex: 1;
     align-items: flex-start;
+    width: 100%;
 }
 
 .field-label {
@@ -998,8 +1001,8 @@ main {
 }
 
 .field-input.field-wide {
-    width: 20ch;
-    min-width: 220px;
+    width: 100%;
+    max-width: 280px;
     text-align: left;
 }
 
