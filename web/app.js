@@ -1298,8 +1298,8 @@ function showCapabilityDetail(evt, cap, regLabel) {
         ? registers.map(r => `<span class="reg-badge-small" data-tooltip="${r.desc}">${r.reg}</span>`).join(' ')
         : '';
     const lockStatusHtml = isLocked 
-        ? '<span class="lock-status locked" data-tooltip="Capability is locked - cannot be modified">🔒 Locked</span>'
-        : `<span class="lock-status unlocked" data-tooltip="Capability is unlocked - can be modified">🔓 Unlocked</span>${registerBadges ? ' ' + registerBadges : ''}`;
+        ? '<span class="lock-status locked" data-tooltip="Locked: Immutable system resource - cannot be used or accessed under any circumstances">🔒 Locked</span>'
+        : `<span class="lock-status unlocked" data-tooltip="Unlocked: Can be used by instructions but remains immutable - read-only access permitted">🔓 Unlocked</span>${registerBadges ? ' ' + registerBadges : ''}`;
     
     panel.innerHTML = `
         <div class="cap-title-bar">
