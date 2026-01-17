@@ -307,7 +307,10 @@
                         </div>
                         
                         <div class="cap-section" id="capClistSection">
-                            <h3>C-List</h3>
+                            <div class="clist-header">
+                                <h3>C-List</h3>
+                                <button class="btn-add-cap" id="btnAddCap" onclick="showAddCapabilityModal()" data-tooltip="Add new capability to C-List">+</button>
+                            </div>
                             <div class="token-list" id="clistTokens"></div>
                         </div>
                     </div>
@@ -624,11 +627,15 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
             </div>
             <div class="modal-body">
                 <div class="modal-field">
-                    <label>Object Name</label>
-                    <input type="text" id="modalObjName" placeholder="e.g., MyData, FileAccess">
+                    <label>Object Name <span class="required">*</span></label>
+                    <input type="text" id="modalObjName" placeholder="e.g., MyData, FileAccess" required>
                 </div>
                 <div class="modal-field">
-                    <label>Object Type</label>
+                    <label>Description <span class="required">*</span></label>
+                    <input type="text" id="modalObjDesc" placeholder="Brief description of purpose/function" required>
+                </div>
+                <div class="modal-field">
+                    <label>Object Type <span class="required">*</span></label>
                     <select id="modalObjType" onchange="updatePermissionsForType(this.value)">
                         <option value="Data">Data (storage)</option>
                         <option value="C-List">C-List (capability container)</option>
@@ -670,6 +677,30 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
             <div class="modal-footer">
                 <button class="modal-btn modal-btn-cancel" onclick="closeObjectModal()">Cancel</button>
                 <button class="modal-btn modal-btn-confirm" onclick="confirmObjectModal()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content modal-delete">
+            <div class="modal-header modal-header-danger">
+                <h3>Delete Capability</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <span class="warning-icon">⚠️</span>
+                    <p>Are you sure you want to delete <strong id="deleteCapName"></strong>?</p>
+                </div>
+                <div class="delete-impact" id="deleteImpact">
+                    <h4>Impact Analysis:</h4>
+                    <ul id="deleteImpactList"></ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="modal-btn modal-btn-danger" onclick="confirmDeleteCapability()">Delete</button>
             </div>
         </div>
     </div>

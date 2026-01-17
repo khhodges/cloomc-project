@@ -1122,11 +1122,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ==================== CAPABILITY EXPLORER ====================
 
-function createTokenCard(cap, regLabel) {
+function createTokenCard(cap, regLabel, showDeleteBtn = true) {
     const isNull = cap.name === 'NULL';
     const card = document.createElement('div');
     card.className = `token-card ${isNull ? 'null-cap' : ''}`;
-    card.onclick = (evt) => showCapabilityDetail(evt, cap, regLabel);
+    card.onclick = (evt) => {
+        // Don't trigger detail view if clicking delete button
+        if (evt.target.classList.contains('token-delete-btn')) return;
+        showCapabilityDetail(evt, cap, regLabel);
+    };
     
     const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F'];
     const permBadges = allPerms.map(p => {
@@ -1134,10 +1138,19 @@ function createTokenCard(cap, regLabel) {
         return `<span class="perm-badge perm-${p.toLowerCase()} ${hasIt ? '' : 'inactive'}">${p}</span>`;
     }).join('');
     
-    const tooltip = cap.tooltip || getObjectTooltip(cap.name, cap.type);
+    const tooltip = cap.description || cap.tooltip || getObjectTooltip(cap.name, cap.type);
     card.setAttribute('data-tooltip', tooltip);
     
+    // Extract index from regLabel for delete functionality
+    const indexMatch = regLabel.match(/\[(\d+)\]/);
+    const clistIndex = indexMatch ? parseInt(indexMatch[1]) : -1;
+    
+    const deleteBtn = showDeleteBtn && clistIndex >= 0 
+        ? `<button class="token-delete-btn" onclick="showDeleteCapabilityModal(${clistIndex}, '${cap.name}')" data-tooltip="Delete ${cap.name}">×</button>` 
+        : '';
+    
     card.innerHTML = `
+        ${deleteBtn}
         <div class="token-header">
             <span class="token-name">${cap.name}</span>
             <span class="token-reg">${regLabel}</span>
@@ -3881,6 +3894,8 @@ function openEditObjectModal() {
     }
     
     document.getElementById('modalObjName').value = obj.name;
+    const descField = document.getElementById('modalObjDesc');
+    if (descField) descField.value = obj.description || obj.tooltip || '';
     document.getElementById('modalObjType').value = obj.type;
     document.getElementById('modalObjSize').value = obj.size.toString();
     
@@ -3903,10 +3918,218 @@ function closeObjectModal() {
     document.getElementById('objectModal').classList.remove('visible');
 }
 
+// ==================== ADD/DELETE CAPABILITY FUNCTIONS ====================
+
+let pendingDeleteIndex = -1;
+let pendingDeleteName = '';
+
+function showAddCapabilityModal() {
+    contextMenuState.editMode = false;
+    document.getElementById('modalTitle').textContent = 'Add New Capability';
+    document.getElementById('objectModal').querySelector('.modal-btn-confirm').textContent = 'Create';
+    
+    // Reset form
+    document.getElementById('modalObjName').value = '';
+    const descField = document.getElementById('modalObjDesc');
+    if (descField) descField.value = '';
+    document.getElementById('modalObjType').value = 'Data';
+    document.getElementById('modalObjSize').value = '1024';
+    
+    // Reset permissions based on type
+    updatePermissionsForType('Data');
+    
+    // Set default permissions
+    ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M'].forEach(p => {
+        const checkbox = document.getElementById(`modalPerm${p}`);
+        if (checkbox) {
+            checkbox.checked = (p === 'R'); // Only R checked by default
+        }
+    });
+    
+    populateParentSelect();
+    document.getElementById('modalParent').value = 'Boot';
+    
+    document.getElementById('objectModal').classList.add('visible');
+}
+
+function showDeleteCapabilityModal(clistIndex, capName) {
+    pendingDeleteIndex = clistIndex;
+    pendingDeleteName = capName;
+    
+    document.getElementById('deleteCapName').textContent = capName;
+    
+    // Analyze impact
+    const impactList = document.getElementById('deleteImpactList');
+    impactList.innerHTML = '';
+    
+    const impacts = analyzeDeleteImpact(clistIndex, capName);
+    
+    if (impacts.length === 0) {
+        impactList.innerHTML = '<li>No dependencies found. Safe to delete.</li>';
+    } else {
+        impacts.forEach(impact => {
+            const li = document.createElement('li');
+            li.textContent = impact.message;
+            li.className = impact.severity === 'danger' ? 'impact-danger' : 'impact-warning';
+            impactList.appendChild(li);
+        });
+    }
+    
+    document.getElementById('deleteModal').classList.add('visible');
+}
+
+function analyzeDeleteImpact(clistIndex, capName) {
+    const impacts = [];
+    const cap = simulator.clist[clistIndex];
+    
+    if (!cap) return impacts;
+    
+    // Check if loaded in any context register
+    for (let i = 0; i < 16; i++) {
+        const reg = getContextRegister(i);
+        if (reg && reg.name === capName) {
+            impacts.push({
+                message: `Loaded in CR${i} - will be unloaded`,
+                severity: 'warning'
+            });
+        }
+    }
+    
+    // Check if it's a special register
+    if (simulator.cr15 && simulator.cr15.name === capName) {
+        impacts.push({
+            message: 'This is the Namespace root (CR15) - cannot delete',
+            severity: 'danger'
+        });
+    }
+    
+    if (simulator.cr8 && simulator.cr8.name === capName) {
+        impacts.push({
+            message: 'This is the active Thread (CR8) - cannot delete',
+            severity: 'danger'
+        });
+    }
+    
+    if (simulator.contextRegs[6] && simulator.contextRegs[6].name === capName) {
+        impacts.push({
+            message: 'This is the current C-List (CR6) - cannot delete',
+            severity: 'danger'
+        });
+    }
+    
+    if (simulator.contextRegs[7] && simulator.contextRegs[7].name === capName) {
+        impacts.push({
+            message: 'This is the Nucleus (CR7) - system may become unstable',
+            severity: 'warning'
+        });
+    }
+    
+    // Check C-List references in other places
+    const refs = findAllCListReferences(capName);
+    if (refs && refs.length > 0) {
+        refs.forEach(ref => {
+            impacts.push({
+                message: `Referenced in ${ref} C-List`,
+                severity: 'warning'
+            });
+        });
+    }
+    
+    // Check if it's a Thread
+    if (cap.type === 'Thread' || cap.perms?.includes('M')) {
+        impacts.push({
+            message: 'Thread capability - associated thread context will be lost',
+            severity: 'warning'
+        });
+    }
+    
+    // Check if it's a C-List
+    if (cap.type === 'C-List') {
+        impacts.push({
+            message: 'C-List capability - all contained entries become inaccessible',
+            severity: 'danger'
+        });
+    }
+    
+    return impacts;
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('visible');
+    pendingDeleteIndex = -1;
+    pendingDeleteName = '';
+}
+
+function confirmDeleteCapability() {
+    if (pendingDeleteIndex < 0 || !simulator.clist) {
+        closeDeleteModal();
+        return;
+    }
+    
+    const cap = simulator.clist[pendingDeleteIndex];
+    
+    // Prevent deleting critical system capabilities
+    if (simulator.cr15 && simulator.cr15.name === cap.name) {
+        log('Cannot delete Namespace root', 'error');
+        closeDeleteModal();
+        return;
+    }
+    
+    if (simulator.cr8 && simulator.cr8.name === cap.name) {
+        log('Cannot delete active Thread', 'error');
+        closeDeleteModal();
+        return;
+    }
+    
+    if (simulator.contextRegs[6] && simulator.contextRegs[6].name === cap.name) {
+        log('Cannot delete current C-List', 'error');
+        closeDeleteModal();
+        return;
+    }
+    
+    // Unload from any context registers
+    for (let i = 0; i < 16; i++) {
+        const reg = getContextRegister(i);
+        if (reg && reg.name === cap.name) {
+            if (i === 15) {
+                simulator.cr15 = null;
+            } else if (i === 8) {
+                simulator.cr8 = null;
+            } else {
+                simulator.contextRegs[i] = null;
+            }
+        }
+    }
+    
+    // Remove from C-List
+    simulator.clist.splice(pendingDeleteIndex, 1);
+    
+    // Remove from dynamic objects if applicable
+    const dynIndex = dynamicObjects.findIndex(o => o.name === cap.name);
+    if (dynIndex >= 0) {
+        dynamicObjects.splice(dynIndex, 1);
+    }
+    
+    log(`Deleted capability "${pendingDeleteName}" from C-List`, 'info');
+    
+    closeDeleteModal();
+    updateCapabilityExplorer();
+    updateNamespaceDisplay();
+    updateDisplay();
+    saveToStorage();
+}
+
 function confirmObjectModal() {
     const name = document.getElementById('modalObjName').value.trim();
     if (!name) {
         log('Object name is required', 'error');
+        return;
+    }
+    
+    const descField = document.getElementById('modalObjDesc');
+    const description = descField ? descField.value.trim() : '';
+    if (!description && !contextMenuState.editMode) {
+        log('Description is required', 'error');
         return;
     }
     
@@ -3923,9 +4146,9 @@ function confirmObjectModal() {
     });
     
     if (contextMenuState.editMode) {
-        updateObject(contextMenuState.targetObject, { name, type, size, perms, parent });
+        updateObject(contextMenuState.targetObject, { name, type, size, perms, parent, description });
     } else {
-        createObject(name, type, size, perms, parent);
+        createObject(name, type, size, perms, parent, description);
     }
     
     closeObjectModal();
@@ -3953,7 +4176,7 @@ function allocateAddress(size) {
     return addr;
 }
 
-function createObject(name, type, size, perms, parentName) {
+function createObject(name, type, size, perms, parentName, description = '') {
     if (findObject(name)) {
         log(`Object "${name}" already exists`, 'error');
         return;
@@ -3967,12 +4190,14 @@ function createObject(name, type, size, perms, parentName) {
         perms,
         size,
         parent: parentName,
+        description: description,
+        tooltip: description || `${type}: ${name}`,
         dynamic: true
     };
     
     dynamicObjects.push(newObj);
     
-    addToCList(parentName, name, type, perms);
+    addToCList(parentName, name, type, perms, description);
     
     log(`Created object "${name}" at 0x${location.toString(16).toUpperCase().padStart(4, '0')}`, 'info');
     saveToStorage();
@@ -4036,6 +4261,10 @@ function updateObject(oldName, updates) {
     obj.type = updates.type;
     obj.size = updates.size;
     obj.perms = updates.perms;
+    if (updates.description !== undefined) {
+        obj.description = updates.description;
+        obj.tooltip = updates.description || `${updates.type}: ${updates.name}`;
+    }
     if (!isBuiltIn) {
         obj.parent = updates.parent;
     }
@@ -4124,11 +4353,13 @@ function deleteObject() {
     }
 }
 
-function addToCList(parentName, childName, childType, childPerms) {
+function addToCList(parentName, childName, childType, childPerms, description = '') {
     const entry = {
         name: childName,
         type: childType,
-        perms: childPerms
+        perms: childPerms,
+        tooltip: description || `${childType}: ${childName}`,
+        description: description
     };
     
     if (threadCLists[parentName]) {
@@ -4139,8 +4370,27 @@ function addToCList(parentName, childName, childType, childPerms) {
         bootNamespace.clist.push({
             name: childName,
             type: childType,
-            ref: `dynamic.${childName.toLowerCase()}`
+            ref: `dynamic.${childName.toLowerCase()}`,
+            tooltip: description || `${childType}: ${childName}`,
+            description: description
         });
+        // Also add to simulator.clist if Boot is the current C-List
+        if (simulator.clist) {
+            const obj = findObject(childName);
+            const nsOffset = obj ? (typeof obj.location === 'number' ? obj.location : 0) : 0;
+            simulator.clist.push({
+                name: childName,
+                type: childType,
+                perms: childPerms,
+                location: { offset: nsOffset },
+                nsOffset: nsOffset,
+                size: obj ? obj.size : 1024,
+                tooltip: description || `${childType}: ${childName}`,
+                description: description,
+                goldenKey: generateGoldenKey(),
+                locked: true
+            });
+        }
     } else {
         if (!dynamicCLists[parentName]) {
             dynamicCLists[parentName] = [];

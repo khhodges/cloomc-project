@@ -813,6 +813,38 @@ main {
     opacity: 0.7;
 }
 
+.clist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.clist-header h3 {
+    margin: 0;
+}
+
+.btn-add-cap {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid var(--accent);
+    background: var(--bg-dark);
+    color: var(--accent);
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-add-cap:hover {
+    background: var(--accent);
+    color: var(--bg-dark);
+}
+
 .token-card {
     background: var(--bg-input);
     border: 2px solid var(--border);
@@ -820,6 +852,36 @@ main {
     padding: 0.8rem;
     cursor: pointer;
     transition: all 0.2s;
+    position: relative;
+}
+
+.token-delete-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid #e74c3c;
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    font-size: 0.7rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.token-card:hover .token-delete-btn {
+    opacity: 1;
+}
+
+.token-delete-btn:hover {
+    background: #e74c3c;
+    color: white;
 }
 
 .token-card:hover {
@@ -4187,6 +4249,85 @@ body.tooltip-hidden [data-tooltip]:hover::after {
 
 .modal-btn-confirm:hover {
     background: #d13652;
+}
+
+.modal-btn-danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.modal-btn-danger:hover {
+    background: #c0392b;
+}
+
+.required {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.modal-header-danger {
+    background: linear-gradient(135deg, #5a1a1a 0%, #3a0a0a 100%);
+    border-bottom-color: #e74c3c;
+}
+
+.modal-header-danger h3 {
+    color: #e74c3c;
+}
+
+.modal-delete {
+    max-width: 450px;
+}
+
+.delete-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.delete-warning .warning-icon {
+    font-size: 1.5rem;
+}
+
+.delete-warning p {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.delete-impact {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.delete-impact h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.delete-impact ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.delete-impact li {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.delete-impact li.impact-warning {
+    color: #f39c12;
+}
+
+.delete-impact li.impact-danger {
+    color: #e74c3c;
 }
 
 /* Namespace objects with right-click support */
