@@ -1259,13 +1259,25 @@ function getRegisterAssignment(cap) {
         const clistIndex = simulator.clist.findIndex(c => c.name === cap.name);
         if (clistIndex >= 0) {
             const clistEntry = simulator.clist[clistIndex];
-            // For executable code, show code status from metadata instead of C-List[x]
+            // Show type-specific label based on entry type
             if (clistEntry.perms && clistEntry.perms.includes('X')) {
+                // Executable code - show code status from metadata
                 const metadata = clistEntry.nsEntry ? Number(clistEntry.nsEntry.word3_seals & BigInt(0xFFFFFFFF)) : 0;
                 const statusLabel = getCodeStatusLabel(metadata);
                 assignments.push({ reg: `Code: ${statusLabel}`, desc: `Executable code status from metadata` });
+            } else if (clistEntry.type === 'Thread' || clistEntry.perms?.includes('M')) {
+                // Thread entry
+                assignments.push({ reg: 'Thread', desc: 'Thread identity capability' });
+            } else if (clistEntry.type === 'Abstraction') {
+                // Abstraction entry
+                assignments.push({ reg: 'Abstraction', desc: 'Protected abstraction capability' });
+            } else if (clistEntry.type === 'C-List') {
+                // C-List entry
+                assignments.push({ reg: 'C-List', desc: 'Capability list' });
             } else {
-                assignments.push({ reg: `C-List[${clistIndex}]`, desc: 'Boot C-List Entry' });
+                // Generic entry with type
+                const entryType = clistEntry.type || 'Entry';
+                assignments.push({ reg: entryType, desc: `${entryType} capability` });
             }
         }
     }
