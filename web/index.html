@@ -714,17 +714,11 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
             </div>
             <div class="modal-body">
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                    MINT creates a new Golden Token in the next free Namespace slot and returns it in CR0. The new capability is linked to the running Thread.
+                    MINT creates a new Golden Token in the next free Namespace slot and returns it in CR0. The GT remains accessible until RETURN releases the register.
                 </p>
                 <div class="modal-field">
                     <label>Source Object</label>
                     <input type="text" id="linkSource" readonly>
-                </div>
-                <div class="modal-field">
-                    <label>Add to C-List (optional)</label>
-                    <select id="linkTarget">
-                        <option value="">(CR0 only - do not add to C-List)</option>
-                    </select>
                 </div>
                 <div class="mint-info" style="background: var(--bg-tertiary); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem;">
                     <div style="font-size: 0.85rem; color: var(--text-secondary);">
@@ -735,6 +729,9 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
                             <li>Generate GT with source permissions</li>
                             <li>Load new GT into CR0</li>
                         </ul>
+                        <p style="margin-top: 0.5rem; font-style: italic;">
+                            Note: To persist the GT beyond RETURN, use SAVE to add it to a C-List programmatically.
+                        </p>
                     </div>
                 </div>
             </div>

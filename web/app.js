@@ -4549,24 +4549,6 @@ function populateParentSelect() {
 
 function openLinkModal() {
     document.getElementById('linkSource').value = contextMenuState.targetObject;
-    
-    const targetSelect = document.getElementById('linkTarget');
-    targetSelect.innerHTML = '';
-    
-    // Option to only load in CR0 without adding to a C-List
-    targetSelect.innerHTML += '<option value="">(CR0 only - do not add to C-List)</option>';
-    targetSelect.innerHTML += '<option value="Boot">Boot (root C-List)</option>';
-    Object.keys(threadCLists).forEach(name => {
-        if (name !== contextMenuState.targetObject) {
-            targetSelect.innerHTML += `<option value="${name}">${name} (Thread)</option>`;
-        }
-    });
-    Object.keys(abstractionCLists).forEach(name => {
-        if (name !== contextMenuState.targetObject) {
-            targetSelect.innerHTML += `<option value="${name}">${name} (Abstraction)</option>`;
-        }
-    });
-    
     document.getElementById('linkModal').classList.add('visible');
 }
 
@@ -4588,7 +4570,6 @@ function getNextFreeNamespaceOffset() {
 // MINT: Create a new Golden Token capability
 function confirmLinkModal() {
     const source = document.getElementById('linkSource').value;
-    const target = document.getElementById('linkTarget').value;
     
     closeLinkModal();
     
@@ -4642,12 +4623,8 @@ function confirmLinkModal() {
     };
     
     // Load the new GT into CR0 (return value register)
+    // GT remains in CR0 until RETURN releases it
     contextRegisters[0] = newGT;
-    
-    // Add to target C-List if specified
-    if (target) {
-        addToCList(target, mintedName, newNamespaceEntry.type, newNamespaceEntry.perms);
-    }
     
     // Update displays
     updateNamespaceDisplay();
@@ -4659,7 +4636,7 @@ function confirmLinkModal() {
     // Select and display the new capability
     setTimeout(() => {
         updateCapabilityDetail(newGT);
-        log(`MINT: Created GT for "${mintedName}" at NS offset ${newOffset}, loaded in CR0`, 'info');
+        log(`MINT: Created GT for "${mintedName}" at NS offset ${newOffset}, loaded in CR0 (use SAVE to persist to C-List)`, 'info');
     }, 100);
 }
 

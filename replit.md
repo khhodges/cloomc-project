@@ -124,5 +124,6 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 - 2026-01-18: MINT operation now creates GT in next free Namespace slot and returns in CR0
 - 2026-01-18: MINT allocates namespace offset, creates 3-word entry (W1, W2, W3), generates GT with source permissions
 - 2026-01-18: New GT automatically linked to running Thread through CR0
-- 2026-01-18: MINT modal shows explanation of operation steps and optional C-List target
+- 2026-01-18: MINT modal shows explanation of operation steps (no C-List option - use SAVE programmatically)
 - 2026-01-18: Renamed "Link" to "MINT" in toolbar and context menu with 🔑 icon
+- 2026-01-18: GT in CR0 released on RETURN - must use SAVE instruction to persist to C-List
