@@ -7103,9 +7103,11 @@ function renderBitField(field, startBit, totalBits) {
     const width = (field.bits / totalBits) * 100;
     const bitRange = field.bits === 1 ? `${startBit}` : `${startBit}:${endBit}`;
     const hasValue = field.value !== undefined;
+    const valueInfo = hasValue ? ` Value: ${field.value}` : '';
+    const tooltip = `${field.name} (${field.bits} bits, ${bitRange}): ${field.desc}${valueInfo}`;
     
     return `
-        <div class="bit-field ${hasValue ? 'bit-fixed' : ''}" style="flex: 0 0 ${width.toFixed(2)}%;">
+        <div class="bit-field ${hasValue ? 'bit-fixed' : ''}" style="flex: 0 0 ${width.toFixed(2)}%;" data-tooltip="${tooltip}">
             <div class="bit-range">${bitRange}</div>
             <div class="bit-name">${field.name}</div>
             <div class="bit-width">${field.bits}</div>
