@@ -165,21 +165,23 @@
         <section id="tutorial" class="view">
             <div class="tutorial-layout">
                 <div class="tutorial-nav-bar">
-                    <div class="progress-mini">
-                        <div class="progress-bar-mini">
-                            <div class="progress-fill" id="tutorialProgress" style="width: 0%"></div>
-                        </div>
-                        <span id="progressText">Step 1</span>
-                    </div>
+                    <select id="lessonSelect" onchange="loadLesson(parseInt(this.value))">
+                        <option value="0">1. Introduction to Capabilities</option>
+                        <option value="1">2. Golden Token Structure</option>
+                        <option value="2">3. The Boot Sequence</option>
+                        <option value="3">4. Context & Data Registers</option>
+                        <option value="4">5. Capability Operations</option>
+                        <option value="5">6. Security Boundaries</option>
+                    </select>
                 </div>
                 
                 <div class="tutorial-main">
                     <div class="lesson-header">
                         <h2 id="lessonTitle">Introduction to Capabilities</h2>
                         <div class="lesson-nav">
-                            <button onclick="prevStep()" class="btn btn-nav" id="prevBtn" disabled data-tooltip="Go to previous step">Previous</button>
-                            <span id="stepIndicator">Step 1 of 4</span>
-                            <button onclick="nextStep()" class="btn btn-nav" id="nextBtn" data-tooltip="Go to next step">Next</button>
+                            <button onclick="prevStep()" class="btn btn-nav" id="prevBtn" disabled>Prev</button>
+                            <span id="stepIndicator">Step 1 of 3</span>
+                            <button onclick="nextStep()" class="btn btn-nav" id="nextBtn">Next</button>
                         </div>
                     </div>
                     

@@ -3909,9 +3909,9 @@ function loadLesson(lessonIndex) {
     tutorialState.currentLesson = lessonIndex;
     tutorialState.currentStep = 0;
     
-    document.querySelectorAll('.lesson-btn').forEach((btn, i) => {
-        btn.classList.toggle('active', i === lessonIndex);
-    });
+    // Sync dropdown
+    const select = document.getElementById('lessonSelect');
+    if (select) select.value = lessonIndex;
     
     renderCurrentStep();
 }
@@ -3940,32 +3940,12 @@ function renderCurrentStep() {
         interactiveContainer.innerHTML = '';
     }
     
-    // Calculate total steps and current global step
-    let totalSteps = 0;
-    let currentGlobalStep = 0;
-    for (let i = 0; i < lessons.length; i++) {
-        if (i < tutorialState.currentLesson) {
-            currentGlobalStep += lessons[i].steps.length;
-        }
-        totalSteps += lessons[i].steps.length;
-    }
-    currentGlobalStep += tutorialState.currentStep + 1;
-    
     document.getElementById('stepIndicator').textContent = 
-        `${lesson.title} - Step ${tutorialState.currentStep + 1}/${lesson.steps.length}`;
+        `Step ${tutorialState.currentStep + 1} of ${lesson.steps.length}`;
     
-    // Update progress bar
-    const progressPercent = (currentGlobalStep / totalSteps) * 100;
-    document.getElementById('tutorialProgress').style.width = `${progressPercent}%`;
-    document.getElementById('progressText').textContent = `${currentGlobalStep}/${totalSteps}`;
-    
-    // Disable prev at very start, next at very end
-    const isFirstStep = tutorialState.currentLesson === 0 && tutorialState.currentStep === 0;
-    const isLastStep = tutorialState.currentLesson === lessons.length - 1 && 
-                       tutorialState.currentStep >= lesson.steps.length - 1;
-    
-    document.getElementById('prevBtn').disabled = isFirstStep;
-    document.getElementById('nextBtn').disabled = isLastStep;
+    // Disable prev at first step of lesson, next at last step of lesson
+    document.getElementById('prevBtn').disabled = tutorialState.currentStep === 0;
+    document.getElementById('nextBtn').disabled = tutorialState.currentStep >= lesson.steps.length - 1;
 }
 
 function renderInteractive(interactive, container) {
@@ -4011,12 +3991,6 @@ function prevStep() {
     if (tutorialState.currentStep > 0) {
         tutorialState.currentStep--;
         renderCurrentStep();
-    } else if (tutorialState.currentLesson > 0) {
-        // Go to previous lesson's last step
-        tutorialState.currentLesson--;
-        const prevLesson = lessons[tutorialState.currentLesson];
-        tutorialState.currentStep = prevLesson.steps.length - 1;
-        renderCurrentStep();
     }
 }
 
@@ -4025,27 +3999,13 @@ function nextStep() {
     if (tutorialState.currentStep < lesson.steps.length - 1) {
         tutorialState.currentStep++;
         renderCurrentStep();
-    } else if (tutorialState.currentLesson < lessons.length - 1) {
-        tutorialState.currentLesson++;
-        tutorialState.currentStep = 0;
-        renderCurrentStep();
     }
 }
 
 function completeLesson() {
     tutorialState.completedLessons.add(tutorialState.currentLesson);
     
-    document.querySelectorAll('.lesson-btn').forEach((btn, i) => {
-        if (tutorialState.completedLessons.has(i)) {
-            btn.classList.add('completed');
-        }
-    });
-    
-    const progress = (tutorialState.completedLessons.size / lessons.length) * 100;
-    document.getElementById('tutorialProgress').style.width = `${progress}%`;
-    document.getElementById('progressText').textContent = 
-        `${tutorialState.completedLessons.size} / ${lessons.length} completed`;
-    
+    // Advance to next lesson if not at end
     if (tutorialState.currentLesson < lessons.length - 1) {
         loadLesson(tutorialState.currentLesson + 1);
     }
