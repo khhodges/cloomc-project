@@ -280,28 +280,127 @@ const bootCList = {
     nsOffset: 2,  // Boot C-List is at Namespace offset 2
     entries: [
         // Index 0: Access.asm (Nucleus code) - GT pointing to NS offset 1
-        { index: 0, name: "Access", nsOffset: 1, perms: ["R", "X", "E"], type: "Code", 
+        // X = data permission to load code into CR7 (Nucleus register)
+        { index: 0, name: "Access", nsOffset: 1, perms: ["X"], type: "Code", 
           desc: "Nucleus entry code", size: 0x1000 },
         // Index 1: Kenneth thread - GT pointing to NS offset 3
-        { index: 1, name: "Kenneth", nsOffset: 3, perms: ["R", "W", "M"], type: "Thread", 
+        // M = Meta-Machine hardware permission (clears all software permissions)
+        { index: 1, name: "Kenneth", nsOffset: 3, perms: ["M"], type: "Thread", 
           desc: "Primary user identity", size: 0x0800 },
         // Index 2: Matthew thread - GT pointing to NS offset 4
-        { index: 2, name: "Matthew", nsOffset: 4, perms: ["R", "W", "M"], type: "Thread", 
+        { index: 2, name: "Matthew", nsOffset: 4, perms: ["M"], type: "Thread", 
           desc: "Secondary user identity", size: 0x0800 },
         // Index 3: Daniel thread - GT pointing to NS offset 5
-        { index: 3, name: "Daniel", nsOffset: 5, perms: ["R", "W", "M"], type: "Thread", 
+        { index: 3, name: "Daniel", nsOffset: 5, perms: ["M"], type: "Thread", 
           desc: "Tertiary user identity", size: 0x0800 },
         // Index 4: SlideRule abstraction - GT pointing to NS offset 6
-        { index: 4, name: "SlideRule", nsOffset: 6, perms: ["R", "X", "E", "B"], type: "Abstraction", 
+        // E = Enter (external interface), B = Bind (capability permissions only)
+        { index: 4, name: "SlideRule", nsOffset: 6, perms: ["E", "B"], type: "Abstraction", 
           desc: "IEEE 754 float operations", size: 0x1000 },
         // Index 5: Abacus abstraction - GT pointing to NS offset 7
-        { index: 5, name: "Abacus", nsOffset: 7, perms: ["R", "X", "E", "B"], type: "Abstraction", 
+        { index: 5, name: "Abacus", nsOffset: 7, perms: ["E", "B"], type: "Abstraction", 
           desc: "64-bit integer operations", size: 0x1000 },
         // Index 6: Circle abstraction - GT pointing to NS offset 8
-        { index: 6, name: "Circle", nsOffset: 8, perms: ["R", "X", "E", "B"], type: "Abstraction", 
+        { index: 6, name: "Circle", nsOffset: 8, perms: ["E", "B"], type: "Abstraction", 
           desc: "Geometric calculations", size: 0x1000 }
     ]
 };
+
+// Permission validation constants
+const DATA_PERMS = ['R', 'W', 'X'];  // Data permissions - for data/code access
+const CAP_PERMS = ['E', 'B'];        // Capability permissions - for object entry/binding
+const PROTECTED_PERMS = ['L', 'S'];  // Protected - only via CALL with M elevation
+const META_PERM = 'M';               // Hardware-level access, clears all software perms
+const FAR_PERM = 'F';                // Far - indicates remote URL location
+
+// Validate permission combinations
+function validatePermissions(perms) {
+    const errors = [];
+    const permSet = new Set(perms);
+    
+    // Rule 1: M clears all software permissions
+    if (permSet.has('M')) {
+        const softwarePerms = perms.filter(p => p !== 'M' && p !== 'F');
+        if (softwarePerms.length > 0) {
+            errors.push({
+                type: 'critical',
+                msg: `M (Meta-Machine) is a hardware permission that clears all software permissions. Remove: ${softwarePerms.join(', ')}`
+            });
+        }
+    }
+    
+    // Rule 2: Data and Capability permissions are mutually exclusive
+    const hasData = perms.some(p => DATA_PERMS.includes(p));
+    const hasCap = perms.some(p => CAP_PERMS.includes(p));
+    if (hasData && hasCap) {
+        const dataFound = perms.filter(p => DATA_PERMS.includes(p));
+        const capFound = perms.filter(p => CAP_PERMS.includes(p));
+        errors.push({
+            type: 'critical',
+            msg: `Data permissions (${dataFound.join(',')}) and Capability permissions (${capFound.join(',')}) are mutually exclusive`
+        });
+    }
+    
+    // Rule 3: L and S should not appear in user-facing GTs
+    const hasProtected = perms.some(p => PROTECTED_PERMS.includes(p));
+    if (hasProtected) {
+        const protFound = perms.filter(p => PROTECTED_PERMS.includes(p));
+        errors.push({
+            type: 'warning',
+            msg: `L/S are protected permissions (hidden from users). ${protFound.join(',')} exposed - only accessible via CALL with M elevation`
+        });
+    }
+    
+    return errors;
+}
+
+// Apply M permission rule: clears all software permissions
+function applyMPermRule(perms) {
+    if (perms.includes('M')) {
+        // M clears everything except F (Far)
+        return perms.filter(p => p === 'M' || p === 'F');
+    }
+    return perms;
+}
+
+// Normalize permissions to enforce all rules
+function normalizePermissions(perms) {
+    if (!perms || !Array.isArray(perms)) return [];
+    
+    let result = [...perms];
+    
+    // Rule 1: M clears all software permissions
+    if (result.includes('M')) {
+        result = result.filter(p => p === 'M' || p === 'F');
+        return result;
+    }
+    
+    // Rule 2: Data and Capability are mutually exclusive - prefer Data if both present
+    const hasData = result.some(p => DATA_PERMS.includes(p));
+    const hasCap = result.some(p => CAP_PERMS.includes(p));
+    if (hasData && hasCap) {
+        // Remove capability permissions, keep data permissions
+        result = result.filter(p => !CAP_PERMS.includes(p));
+    }
+    
+    // Rule 3: Remove L and S (protected permissions) from user-facing GTs
+    result = result.filter(p => !PROTECTED_PERMS.includes(p));
+    
+    return result;
+}
+
+// Safe accessor for permissions - always returns normalized perms for display/encoding
+function getSafePerms(obj) {
+    if (!obj) return [];
+    const perms = obj.perms || [];
+    return normalizePermissions(perms);
+}
+
+// Format permissions for display as string [RWX]
+function formatPerms(perms) {
+    const normalized = normalizePermissions(perms || []);
+    return normalized.length > 0 ? `[${normalized.join('')}]` : '[-]';
+}
 
 // Helper to get GT from Boot C-List by name
 function getBootGT(name) {
@@ -3858,13 +3957,31 @@ function loadFromStorage() {
             dynamicCLists = state.dynamicCLists || {};
             nextAddress = state.nextAddress || 0x8000;
             
+            // Normalize permissions on dynamic objects (enforces all validation rules)
+            dynamicObjects.forEach(obj => {
+                if (obj.perms) {
+                    obj.perms = normalizePermissions(obj.perms);
+                }
+            });
+            
+            // Normalize C-List permissions
+            Object.keys(dynamicCLists).forEach(key => {
+                if (dynamicCLists[key] && dynamicCLists[key].forEach) {
+                    dynamicCLists[key].forEach(entry => {
+                        if (entry.perms) {
+                            entry.perms = normalizePermissions(entry.perms);
+                        }
+                    });
+                }
+            });
+            
             if (state.namespaceModifications) {
                 state.namespaceModifications.forEach(mod => {
                     const obj = namespaceObjects.find(o => o.name === mod.name);
                     if (obj) {
                         obj.type = mod.type;
                         obj.size = mod.size;
-                        obj.perms = mod.perms;
+                        obj.perms = normalizePermissions(mod.perms || []);
                     }
                 });
             }
@@ -3927,16 +4044,36 @@ function importNamespaceState(file) {
     reader.onload = function(e) {
         try {
             const state = JSON.parse(e.target.result);
-            if (state.dynamicObjects) dynamicObjects = state.dynamicObjects;
-            if (state.dynamicCLists) dynamicCLists = state.dynamicCLists;
+            
+            // Normalize permissions on imported dynamic objects
+            if (state.dynamicObjects) {
+                state.dynamicObjects.forEach(obj => {
+                    if (obj.perms) obj.perms = normalizePermissions(obj.perms);
+                });
+                dynamicObjects = state.dynamicObjects;
+            }
+            
+            // Normalize permissions on imported C-Lists
+            if (state.dynamicCLists) {
+                Object.keys(state.dynamicCLists).forEach(key => {
+                    if (state.dynamicCLists[key] && state.dynamicCLists[key].forEach) {
+                        state.dynamicCLists[key].forEach(entry => {
+                            if (entry.perms) entry.perms = normalizePermissions(entry.perms);
+                        });
+                    }
+                });
+                dynamicCLists = state.dynamicCLists;
+            }
+            
             if (state.nextAddress) nextAddress = state.nextAddress;
+            
             if (state.namespaceObjects) {
                 state.namespaceObjects.forEach(mod => {
                     const obj = namespaceObjects.find(o => o.name === mod.name);
                     if (obj) {
                         obj.type = mod.type;
                         obj.size = mod.size;
-                        obj.perms = mod.perms;
+                        obj.perms = normalizePermissions(mod.perms || []);
                     }
                 });
             }
@@ -4383,13 +4520,22 @@ function confirmObjectModal() {
     const size = parseInt(document.getElementById('modalObjSize').value);
     const parent = document.getElementById('modalParent').value;
     
-    const perms = [];
+    let perms = [];
     ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M'].forEach(p => {
         const el = document.getElementById(`modalPerm${p}`);
         if (el && el.checked) {
             perms.push(p);
         }
     });
+    
+    // Always normalize permissions (enforces all validation rules)
+    const originalPerms = [...perms];
+    perms = normalizePermissions(perms);
+    
+    // Log any changes made by normalization
+    if (JSON.stringify(originalPerms) !== JSON.stringify(perms)) {
+        log(`Permissions normalized: ${originalPerms.join(',')} → ${perms.join(',')}`, 'warn');
+    }
     
     if (contextMenuState.editMode) {
         updateObject(contextMenuState.targetObject, { name, type, size, perms, parent, description });
@@ -4428,12 +4574,15 @@ function createObject(name, type, size, perms, parentName, description = '') {
         return;
     }
     
+    // Always normalize permissions at creation time
+    const normalizedPerms = normalizePermissions(perms || []);
+    
     const location = allocateAddress(size);
     const newObj = {
         location,
         name,
         type,
-        perms,
+        perms: normalizedPerms,
         size,
         parent: parentName,
         description: description,
@@ -4489,6 +4638,11 @@ function updateObject(oldName, updates) {
     if (!obj) {
         log('Object not found', 'error');
         return;
+    }
+    
+    // Always normalize permissions on update
+    if (updates.perms) {
+        updates.perms = normalizePermissions(updates.perms);
     }
     
     const oldParent = obj.parent;
@@ -4730,10 +4884,13 @@ function analyzeObjectDeleteImpact(objName, objType) {
 }
 
 function addToCList(parentName, childName, childType, childPerms, description = '') {
+    // Always normalize permissions when adding to C-List
+    const normalizedPerms = normalizePermissions(childPerms || []);
+    
     const entry = {
         name: childName,
         type: childType,
-        perms: childPerms,
+        perms: normalizedPerms,
         tooltip: description || `${childType}: ${childName}`,
         description: description
     };
@@ -4848,13 +5005,22 @@ function confirmLinkModal() {
     // Generate unique name for minted capability
     const mintedName = `${source}_minted_${newOffset}`;
     
+    // Always normalize permissions (enforces all rules)
+    const originalPerms = sourceObj.perms ? [...sourceObj.perms] : ['R'];
+    let mintPerms = normalizePermissions(originalPerms);
+    
+    // Log any changes made by normalization
+    if (JSON.stringify(originalPerms) !== JSON.stringify(mintPerms)) {
+        log(`Permissions normalized: ${originalPerms.join(',')} → ${mintPerms.join(',')}`, 'warn');
+    }
+    
     // Create new namespace entry (3-word format)
     const newNamespaceEntry = {
         offset: newOffset,
         location: newLocation,
         name: mintedName,
         type: sourceObj.type || 'Data',
-        perms: sourceObj.perms ? [...sourceObj.perms] : ['R'],
+        perms: mintPerms,
         size: sourceObj.size || 1024,
         word1_location: newLocation,
         word2_limit: sourceObj.size || 1024,
@@ -6591,4 +6757,137 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize back button state
     updateBackButton();
+});
+
+// ============ Instructions View ============
+
+const churchInstructions = [
+    { cat: "Capability Access", name: "LOAD", brief: "Load GT from C-List to CR", syntax: "LOAD CRd, [CR6+idx]", 
+      tooltip: "Load Golden Token from C-List (indexed by CR6) into destination Context Register. Requires L permission (internally via CALL)." },
+    { cat: "Capability Access", name: "SAVE", brief: "Save CR to C-List slot", syntax: "SAVE CRs, [CR6+idx]", 
+      tooltip: "Save Context Register GT back to C-List slot. Requires S permission (internally via CALL). Used to persist MINT results." },
+    { cat: "Control Flow", name: "CALL", brief: "Enter code object", syntax: "CALL CRs", 
+      tooltip: "Enter code object with E permission. Temporarily elevates M bit to allow microcode L/S operations. Pushes return address, sets IP=0." },
+    { cat: "Control Flow", name: "RETURN", brief: "Return from call", syntax: "RETURN", 
+      tooltip: "Return from CALL. Pops return address, restores caller context. GT in CR0 is released unless SAVEd first." },
+    { cat: "Thread Control", name: "CHANGE", brief: "Switch thread identity", syntax: "CHANGE nsOffset", 
+      tooltip: "Switch current thread (CR8) to thread at namespace offset. Requires M permission on target thread entry." },
+    { cat: "Thread Control", name: "SWITCH", brief: "Switch C-List context", syntax: "SWITCH CRs", 
+      tooltip: "Switch C-List (CR6) to new capability. Changes accessible capabilities for current thread." },
+    { cat: "Capability Creation", name: "MINT", brief: "Create new GT in CR0", syntax: "MINT perms, size", 
+      tooltip: "Allocate next free namespace slot, create 3-word entry (W1:loc, W2:size, W3:seals), generate GT with specified permissions. Result in CR0 - use SAVE to persist." },
+    { cat: "Permission Test", name: "TPERM", brief: "Test GT permissions", syntax: "TPERM CRs, permMask", 
+      tooltip: "Test if CR has required permissions. Sets flags: Z=all pass, C=perms OK, V=bounds OK, N=no perms. P and B flags updated." }
+];
+
+const turingInstructions = [
+    { cat: "Arithmetic", name: "ADD", brief: "Add registers", syntax: "ADD DRd, DRn, DRm", 
+      tooltip: "DRd = DRn + DRm. Sets N,Z,C,V flags. C=carry out, V=signed overflow." },
+    { cat: "Arithmetic", name: "SUB", brief: "Subtract registers", syntax: "SUB DRd, DRn, DRm", 
+      tooltip: "DRd = DRn - DRm. Sets N,Z,C,V flags. C=no borrow, V=signed overflow." },
+    { cat: "Arithmetic", name: "MUL", brief: "Multiply registers", syntax: "MUL DRd, DRn, DRm", 
+      tooltip: "DRd = (DRn * DRm) lower 64 bits. Sets N,Z flags." },
+    { cat: "Arithmetic", name: "NEG", brief: "Negate register", syntax: "NEG DRd, DRn", 
+      tooltip: "DRd = -DRn (two's complement). Sets N,Z,C,V flags." },
+    { cat: "Logic", name: "AND", brief: "Bitwise AND", syntax: "AND DRd, DRn, DRm", 
+      tooltip: "DRd = DRn & DRm. Sets N,Z flags. C,V unchanged." },
+    { cat: "Logic", name: "ORR", brief: "Bitwise OR", syntax: "ORR DRd, DRn, DRm", 
+      tooltip: "DRd = DRn | DRm. Sets N,Z flags. C,V unchanged." },
+    { cat: "Logic", name: "EOR", brief: "Bitwise XOR", syntax: "EOR DRd, DRn, DRm", 
+      tooltip: "DRd = DRn ^ DRm. Sets N,Z flags. C,V unchanged." },
+    { cat: "Logic", name: "NOT", brief: "Bitwise NOT", syntax: "NOT DRd, DRn", 
+      tooltip: "DRd = ~DRn (one's complement). Sets N,Z flags." },
+    { cat: "Logic", name: "BIC", brief: "Bit clear", syntax: "BIC DRd, DRn, DRm", 
+      tooltip: "DRd = DRn & ~DRm. Clears bits in DRn where DRm has 1s. Sets N,Z flags." },
+    { cat: "Data Movement", name: "MOV", brief: "Move value", syntax: "MOV DRd, DRn | #imm", 
+      tooltip: "DRd = DRn or immediate value. Sets N,Z flags if S suffix." },
+    { cat: "Data Movement", name: "MVN", brief: "Move NOT", syntax: "MVN DRd, DRn", 
+      tooltip: "DRd = ~DRn. Move bitwise NOT of source. Sets N,Z flags." },
+    { cat: "Shifts", name: "LSL", brief: "Logical shift left", syntax: "LSL DRd, DRn, #amt", 
+      tooltip: "DRd = DRn << amt. Zeros shifted in from right. C=last bit shifted out." },
+    { cat: "Shifts", name: "LSR", brief: "Logical shift right", syntax: "LSR DRd, DRn, #amt", 
+      tooltip: "DRd = DRn >> amt (unsigned). Zeros shifted in from left. C=last bit shifted out." },
+    { cat: "Shifts", name: "ASR", brief: "Arithmetic shift right", syntax: "ASR DRd, DRn, #amt", 
+      tooltip: "DRd = DRn >> amt (signed). Sign bit replicated. Preserves sign for division by 2^n." },
+    { cat: "Shifts", name: "ROR", brief: "Rotate right", syntax: "ROR DRd, DRn, #amt", 
+      tooltip: "DRd = DRn rotated right by amt bits. Bits wrap around from LSB to MSB." },
+    { cat: "Compare", name: "CMP", brief: "Compare registers", syntax: "CMP DRn, DRm", 
+      tooltip: "Computes DRn - DRm, sets N,Z,C,V flags, discards result. Use before conditional branch." },
+    { cat: "Compare", name: "CMN", brief: "Compare negative", syntax: "CMN DRn, DRm", 
+      tooltip: "Computes DRn + DRm, sets flags, discards result. Tests if DRn equals -DRm." },
+    { cat: "Compare", name: "TST", brief: "Test bits", syntax: "TST DRn, DRm", 
+      tooltip: "Computes DRn & DRm, sets N,Z flags, discards result. Tests if any bits are set." },
+    { cat: "Compare", name: "TEQ", brief: "Test equivalence", syntax: "TEQ DRn, DRm", 
+      tooltip: "Computes DRn ^ DRm, sets N,Z flags, discards result. Tests if registers are equal." },
+    { cat: "Branch", name: "B", brief: "Branch unconditional", syntax: "B label", 
+      tooltip: "Jump to label. IP = label address. Use condition codes: BEQ, BNE, BGT, BLT, etc." },
+    { cat: "Branch", name: "BL", brief: "Branch with link", syntax: "BL label", 
+      tooltip: "Save return address in LR (DR14), then jump to label. Used for subroutine calls." },
+    { cat: "Branch", name: "BX", brief: "Branch exchange", syntax: "BX DRn", 
+      tooltip: "Branch to address in DRn. Can switch between instruction sets." },
+    { cat: "Condition", name: "EQ/NE", brief: "Equal / Not equal", syntax: "BEQ / BNE", 
+      tooltip: "EQ: Z=1 (equal). NE: Z=0 (not equal). Based on last CMP/TST result." },
+    { cat: "Condition", name: "GT/LT", brief: "Greater / Less than", syntax: "BGT / BLT", 
+      tooltip: "GT: Z=0 & N=V (signed >). LT: N!=V (signed <). For signed comparisons." },
+    { cat: "Condition", name: "GE/LE", brief: "Greater or equal / Less or equal", syntax: "BGE / BLE", 
+      tooltip: "GE: N=V (signed >=). LE: Z=1 | N!=V (signed <=). For signed comparisons." },
+    { cat: "Condition", name: "HI/LS", brief: "Higher / Lower or same", syntax: "BHI / BLS", 
+      tooltip: "HI: C=1 & Z=0 (unsigned >). LS: C=0 | Z=1 (unsigned <=). For unsigned comparisons." }
+];
+
+function switchInstrTab(tab) {
+    const churchPanel = document.getElementById('instrChurch');
+    const turingPanel = document.getElementById('instrTuring');
+    const tabChurch = document.getElementById('tabChurch');
+    const tabTuring = document.getElementById('tabTuring');
+    
+    if (tab === 'church') {
+        churchPanel.classList.remove('hidden');
+        turingPanel.classList.add('hidden');
+        tabChurch.classList.add('active');
+        tabTuring.classList.remove('active');
+    } else {
+        churchPanel.classList.add('hidden');
+        turingPanel.classList.remove('hidden');
+        tabChurch.classList.remove('active');
+        tabTuring.classList.add('active');
+    }
+}
+
+function renderInstructionGrid(instructions, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    let currentCat = '';
+    
+    instructions.forEach(instr => {
+        if (instr.cat !== currentCat) {
+            currentCat = instr.cat;
+            const catHeader = document.createElement('div');
+            catHeader.className = 'instr-category';
+            catHeader.textContent = currentCat;
+            container.appendChild(catHeader);
+        }
+        
+        const card = document.createElement('div');
+        card.className = 'instr-card';
+        card.setAttribute('data-tooltip', instr.tooltip);
+        card.innerHTML = `
+            <div class="instr-name">${instr.name}</div>
+            <div class="instr-brief">${instr.brief}</div>
+            <div class="instr-syntax">${instr.syntax}</div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function initInstructionsView() {
+    renderInstructionGrid(churchInstructions, 'churchInstrGrid');
+    renderInstructionGrid(turingInstructions, 'turingInstrGrid');
+}
+
+// Initialize instructions view on load
+document.addEventListener('DOMContentLoaded', () => {
+    initInstructionsView();
 });

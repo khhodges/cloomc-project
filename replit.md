@@ -137,3 +137,9 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 - 2026-01-18: Added coldRestart flag to bypass SAVE operations on cold restart (prevents double-fault)
 - 2026-01-18: Helper functions added: getBootGT(), getNSEntry(), buildGTFromCList() for GT lookups through C-List
 - 2026-01-18: UI now resolves permissions through Boot C-List lookups instead of namespace object properties
+- 2026-01-18: Added Instructions view with Church/Turing tabs showing all instruction sets with hover popup summaries
+- 2026-01-18: Church instructions: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, MINT, TPERM with detailed tooltips
+- 2026-01-18: Turing instructions: Arithmetic, Logic, Shifts, Compare, Branch, Condition codes with tooltips
+- 2026-01-18: Permission validation rules implemented: M clears software perms, Data/Capability mutually exclusive
+- 2026-01-18: Permission categories defined: Data (R,W,X), Capability (E,B), Protected (L,S internal only), Meta (M)
+- 2026-01-18: Boot C-List corrected: Access=X only, Threads=M only, Abstractions=E,B only
