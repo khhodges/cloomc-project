@@ -143,3 +143,5 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 - 2026-01-18: Permission validation rules implemented: M clears software perms, Data/Capability mutually exclusive
 - 2026-01-18: Permission categories defined: Data (R,W,X), Capability (E,B), Protected (L,S internal only), Meta (M)
 - 2026-01-18: Boot C-List corrected: Access=X only, Threads=M only, Abstractions=E,B only
+- 2026-01-18: Added getSafePerms() and formatPerms() helper functions for safe permission access/display
+- 2026-01-18: Permission normalization added to ALL mutation paths: confirmObjectModal, confirmLinkModal, loadFromStorage, importNamespaceState, createObject, updateObject, addToCList
