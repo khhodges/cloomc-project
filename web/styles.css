@@ -4378,12 +4378,26 @@ body.tooltip-hidden [data-tooltip]:hover::after {
     margin-bottom: 0.3rem;
 }
 
+.delete-impact li.impact-safe {
+    color: #27ae60;
+}
+
 .delete-impact li.impact-warning {
     color: #f39c12;
 }
 
 .delete-impact li.impact-danger {
     color: #e74c3c;
+    font-weight: 500;
+}
+
+.delete-impact li.impact-critical {
+    color: #c0392b;
+    font-weight: 600;
+    background: rgba(192, 57, 43, 0.1);
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    margin-left: -0.5rem;
 }
 
 /* Namespace objects with right-click support */

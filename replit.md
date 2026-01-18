@@ -127,3 +127,6 @@ The web interface is composed of five distinct views, accessible via a dropdown:
 - 2026-01-18: MINT modal shows explanation of operation steps (no C-List option - use SAVE programmatically)
 - 2026-01-18: Renamed "Link" to "MINT" in toolbar and context menu with 🔑 icon
 - 2026-01-18: GT in CR0 released on RETURN - must use SAVE instruction to persist to C-List
+- 2026-01-18: Delete confirmation popup now shows comprehensive impact analysis with severity levels
+- 2026-01-18: Delete warnings include: critical (cannot delete), danger (significant impact), warning (minor impact), safe
+- 2026-01-18: Delete checks for register assignments (CR0-CR15), child objects, C-List references, and type-specific impacts

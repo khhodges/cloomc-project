@@ -4037,6 +4037,7 @@ function closeObjectModal() {
 
 let pendingDeleteIndex = -1;
 let pendingDeleteName = '';
+let pendingDeleteType = 'capability'; // 'capability' or 'object'
 
 function showAddCapabilityModal() {
     contextMenuState.editMode = false;
@@ -4173,9 +4174,17 @@ function closeDeleteModal() {
     document.getElementById('deleteModal').classList.remove('visible');
     pendingDeleteIndex = -1;
     pendingDeleteName = '';
+    pendingDeleteType = 'capability';
 }
 
 function confirmDeleteCapability() {
+    // Handle object deletion
+    if (pendingDeleteType === 'object') {
+        confirmObjectDelete();
+        return;
+    }
+    
+    // Handle capability deletion from C-List
     if (pendingDeleteIndex < 0 || !simulator.clist) {
         closeDeleteModal();
         return;
@@ -4232,6 +4241,49 @@ function confirmDeleteCapability() {
     updateNamespaceDisplay();
     updateDisplay();
     saveToStorage();
+}
+
+function confirmObjectDelete() {
+    const name = pendingDeleteName;
+    const dynObj = dynamicObjects.find(o => o.name === name);
+    
+    // Check if it's a built-in object - prevent deletion
+    if (!dynObj) {
+        const builtIn = namespaceObjects.find(o => o.name === name);
+        if (builtIn) {
+            log('Cannot delete built-in system objects', 'error');
+            closeDeleteModal();
+            return;
+        }
+    }
+    
+    // Check if it's in critical registers
+    for (let i = 0; i < 16; i++) {
+        const reg = getContextRegister(i);
+        if (reg && reg.name === name) {
+            if (i === 15 || i === 8 || i === 6) {
+                log(`Cannot delete "${name}" - loaded in critical register CR${i}`, 'error');
+                closeDeleteModal();
+                return;
+            }
+            // Clear non-critical registers
+            if (i !== 15 && i !== 8) {
+                simulator.contextRegs[i] = null;
+            }
+        }
+    }
+    
+    // Perform the deletion
+    if (dynObj) {
+        deleteObjectRecursive(name);
+        log(`Deleted object "${name}" and its children`, 'info');
+        saveToStorage();
+        updateNamespaceDisplay();
+        updateCapabilityExplorer();
+        updateDisplay();
+    }
+    
+    closeDeleteModal();
 }
 
 function confirmObjectModal() {
@@ -4454,18 +4506,148 @@ function deleteObjectRecursive(name) {
 
 function deleteObject() {
     const name = contextMenuState.targetObject;
-    const obj = dynamicObjects.find(o => o.name === name);
+    const type = contextMenuState.targetType;
     
-    if (obj) {
-        deleteObjectRecursive(name);
-        log(`Deleted object "${name}" and its children`, 'info');
-        saveToStorage();
-        updateNamespaceDisplay();
-        updateCapabilityExplorer();
-        updateDisplay();
+    // Show confirmation modal with impact analysis
+    showDeleteObjectModal(name, type);
+}
+
+function showDeleteObjectModal(objName, objType) {
+    pendingDeleteName = objName;
+    
+    document.getElementById('deleteCapName').textContent = objName;
+    
+    // Analyze impact
+    const impactList = document.getElementById('deleteImpactList');
+    impactList.innerHTML = '';
+    
+    const impacts = analyzeObjectDeleteImpact(objName, objType);
+    
+    if (impacts.length === 0) {
+        impactList.innerHTML = '<li class="impact-safe">No dependencies found. Safe to delete.</li>';
     } else {
-        log('Cannot delete built-in objects', 'warning');
+        impacts.forEach(impact => {
+            const li = document.createElement('li');
+            li.innerHTML = impact.message;
+            li.className = impact.severity === 'danger' ? 'impact-danger' : 
+                          impact.severity === 'critical' ? 'impact-critical' : 'impact-warning';
+            impactList.appendChild(li);
+        });
     }
+    
+    // Store delete type for confirmation
+    pendingDeleteType = 'object';
+    
+    document.getElementById('deleteModal').classList.add('visible');
+}
+
+function analyzeObjectDeleteImpact(objName, objType) {
+    const impacts = [];
+    const obj = findObject(objName);
+    const dynObj = dynamicObjects.find(o => o.name === objName);
+    
+    // Check if it's a built-in object
+    if (!dynObj) {
+        const builtIn = namespaceObjects.find(o => o.name === objName);
+        if (builtIn) {
+            impacts.push({
+                message: '<strong>⛔ BUILT-IN OBJECT</strong> - This is a system object and cannot be deleted',
+                severity: 'critical'
+            });
+            return impacts;
+        }
+    }
+    
+    // Check if loaded in any context register
+    for (let i = 0; i < 16; i++) {
+        const reg = getContextRegister(i);
+        if (reg && reg.name === objName) {
+            if (i === 15) {
+                impacts.push({
+                    message: '<strong>⛔ CR15 (Namespace)</strong> - Cannot delete the Namespace root',
+                    severity: 'critical'
+                });
+            } else if (i === 8) {
+                impacts.push({
+                    message: '<strong>⛔ CR8 (Thread)</strong> - Cannot delete the active Thread identity',
+                    severity: 'critical'
+                });
+            } else if (i === 7) {
+                impacts.push({
+                    message: '<strong>⚠️ CR7 (Nucleus)</strong> - System kernel code will be unloaded',
+                    severity: 'danger'
+                });
+            } else if (i === 6) {
+                impacts.push({
+                    message: '<strong>⛔ CR6 (C-List)</strong> - Cannot delete the current capability list',
+                    severity: 'critical'
+                });
+            } else {
+                impacts.push({
+                    message: `<strong>CR${i}</strong> will be cleared - capability access lost`,
+                    severity: 'warning'
+                });
+            }
+        }
+    }
+    
+    // Check for child objects
+    const children = dynamicObjects.filter(o => o.parent === objName);
+    if (children.length > 0) {
+        impacts.push({
+            message: `<strong>${children.length} child object(s)</strong> will also be deleted: ${children.map(c => c.name).join(', ')}`,
+            severity: 'danger'
+        });
+    }
+    
+    // Check C-List references
+    const refs = findAllCListReferences(objName);
+    if (refs && refs.length > 0) {
+        impacts.push({
+            message: `Referenced in <strong>${refs.length} C-List(s)</strong>: ${refs.join(', ')} - references will be removed`,
+            severity: 'warning'
+        });
+    }
+    
+    // Type-specific warnings
+    if (objType === 'Thread' || (obj && obj.perms && obj.perms.includes('M'))) {
+        impacts.push({
+            message: '<strong>Thread capability</strong> - Thread context and identity will be permanently lost',
+            severity: 'danger'
+        });
+    }
+    
+    if (objType === 'C-List') {
+        impacts.push({
+            message: '<strong>C-List capability</strong> - All contained entries become permanently inaccessible',
+            severity: 'danger'
+        });
+    }
+    
+    if (objType === 'Code') {
+        impacts.push({
+            message: '<strong>Code capability</strong> - Executable code will be permanently removed',
+            severity: 'warning'
+        });
+    }
+    
+    if (objType === 'Abstraction') {
+        impacts.push({
+            message: '<strong>Abstraction</strong> - All function entries and methods will be lost',
+            severity: 'warning'
+        });
+    }
+    
+    // Check namespace entry
+    const nsEntry = namespaceObjects.find(o => o.name === objName);
+    if (nsEntry) {
+        impacts.push({
+            message: `Namespace offset <strong>${nsEntry.offset}</strong> (0x${nsEntry.offset.toString(16).padStart(2, '0')}) will be freed`,
+            severity: 'warning'
+        });
+    }
+    
+    return impacts;
 }
 
 function addToCList(parentName, childName, childType, childPerms, description = '') {
