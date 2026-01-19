@@ -2931,9 +2931,12 @@ main {
 
 .editor-examples-panel .paradigm-tab {
     flex: 1;
-    padding: 0.4rem 0.3rem;
+    padding: 0.5rem 0.3rem;
     font-size: 0.7rem;
     text-align: center;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
 }
 
 .editor-examples-panel .paradigm-tab:first-child {
