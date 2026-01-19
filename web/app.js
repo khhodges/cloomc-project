@@ -32,21 +32,41 @@ function capturePreChangeState() {
 }
 
 function undoCodeChange() {
-    if (codeHistory.length < 2) {
-        editorLog('No more undo history', 'info');
+    const editor = document.getElementById('codeEditor');
+    if (!editor) return;
+    
+    if (codeHistory.length < 1) {
+        editorLog('No undo history available', 'info');
         return;
     }
-    // Remove current state
-    codeHistory.pop();
-    // Get previous state
-    const previousCode = codeHistory[codeHistory.length - 1];
-    const editor = document.getElementById('codeEditor');
-    if (editor && previousCode !== undefined) {
+    
+    // If history has items, pop the current state and restore previous
+    if (codeHistory.length >= 2) {
+        codeHistory.pop(); // Remove current state
+        const previousCode = codeHistory[codeHistory.length - 1];
         editor.value = previousCode;
         savedEditorContent = previousCode;
+        lastSavedCode = previousCode;
         updateLineNumbers();
-        localStorage.setItem('ctmm_editor_content', previousCode);
+        if (previousCode) {
+            localStorage.setItem('ctmm_editor_content', previousCode);
+        } else {
+            localStorage.removeItem('ctmm_editor_content');
+        }
         editorLog('Undo: restored previous code', 'info');
+    } else if (codeHistory.length === 1) {
+        // Only one item - restore it
+        const previousCode = codeHistory[0];
+        editor.value = previousCode;
+        savedEditorContent = previousCode;
+        lastSavedCode = previousCode;
+        updateLineNumbers();
+        if (previousCode) {
+            localStorage.setItem('ctmm_editor_content', previousCode);
+        }
+        editorLog('Undo: restored to initial state', 'info');
+    } else {
+        editorLog('No undo history available', 'info');
     }
 }
 
@@ -2926,15 +2946,21 @@ function clearCode() {
     const editor = document.getElementById('codeEditor');
     if (!editor) return;
     
-    // Save current state to history before clearing
-    capturePreChangeState();
+    // Save current state to history before clearing (force push even if same as lastSavedCode)
+    if (editor.value.trim() !== '') {
+        codeHistory.push(editor.value);
+        if (codeHistory.length > MAX_HISTORY) {
+            codeHistory.shift();
+        }
+    }
     
     editor.value = '';
     savedEditorContent = '';
     autoLoadedAccessAsm = false;
+    lastSavedCode = '';
     updateLineNumbers();
     localStorage.removeItem('ctmm_editor_content');
-    pushCodeHistory('');
+    codeHistory.push('');
     editorLog('Code cleared', 'info');
 }
 
