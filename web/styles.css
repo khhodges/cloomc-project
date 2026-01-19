@@ -2905,7 +2905,7 @@ main {
 
 .editor-content {
     display: grid;
-    grid-template-columns: 160px 1fr 300px;
+    grid-template-columns: 120px 1fr 300px;
     gap: 1rem;
     flex: 1;
     min-height: 0;
@@ -2916,8 +2916,34 @@ main {
     background: var(--bg-secondary);
     border-radius: 6px;
     border: 1px solid var(--border);
-    padding: 0.75rem;
+    padding: 0.5rem;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-examples-panel .paradigm-tabs {
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 0.5rem;
+}
+
+.editor-examples-panel .paradigm-tab {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    padding: 0.6rem 0.4rem;
+    font-size: 0.75rem;
+}
+
+.editor-examples-panel .paradigm-tab:first-child {
+    border-radius: 4px 4px 0 0;
+}
+
+.editor-examples-panel .paradigm-tab:last-child {
+    border-radius: 0 0 4px 4px;
+    border-left: 1px solid var(--border);
+    border-top: none;
 }
 
 .example-btn {
