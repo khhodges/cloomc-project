@@ -52,6 +52,8 @@ The web interface is composed of five distinct views:
 
 ## Recent Changes
 
+- 2026-01-19: Added Example Programs tutorial: Counter, Fibonacci, Multiply, Y-Combinator, Factorial, Capability Validation
+- 2026-01-19: Added Assembly Editor tutorial: Editor interface, syntax, Turing/Lambda examples, running programs
 - 2026-01-19: Added Lambda Combinators tutorial: Church Booleans, Church Numerals, Y-Combinator, Pairs
 - 2026-01-19: LOAD/SAVE add I bit for immediate (0-8191) vs register addressing, Index field now 13 bits
 - 2026-01-19: All Church instruction descriptions now purely mechanistic - no policy language
