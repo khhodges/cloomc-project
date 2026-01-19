@@ -5194,6 +5194,453 @@ CR15 = Namespace</pre>
                 }
             }
         ]
+    },
+    {
+        title: "Church Instructions Deep Dive",
+        steps: [
+            {
+                text: `<h3>Church Instructions Overview</h3>
+                <p>The <strong>Church instructions</strong> are the capability-manipulation half of the CTMM instruction set. Named after Alonzo Church, they embody the <strong>lambda calculus</strong> philosophy: everything is a function reference (capability).</p>
+                <p>There are <strong>8 Church instructions</strong>:</p>
+                <ul>
+                    <li><strong>LOAD</strong> - Read a Golden Token from memory into a Context Register</li>
+                    <li><strong>SAVE</strong> - Write a Golden Token from a Context Register to memory</li>
+                    <li><strong>CALL</strong> - Invoke code referenced by a Golden Token</li>
+                    <li><strong>RETURN</strong> - Return from invoked code to the caller</li>
+                    <li><strong>CHANGE</strong> - Switch to a different C-List (capability context)</li>
+                    <li><strong>SWITCH</strong> - Switch to a different thread identity</li>
+                    <li><strong>TPERM</strong> - Test the permission bits of a Golden Token</li>
+                    <li><strong>MINT</strong> - Create a new Golden Token in the Namespace</li>
+                </ul>
+                <div class="key-concept">
+                    <strong>Key Insight:</strong> Church instructions operate on <em>capabilities</em> (GTs), not raw data. Every memory access, every function call, every context switch requires a valid GT.
+                </div>`,
+                demo: `<div class="demo-title">Church vs Turing Split</div>
+                <div class="demo-content">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: var(--bg-tertiary); padding: 0.8rem; border-radius: 6px;">
+                            <div style="color: var(--accent); font-weight: bold; margin-bottom: 0.5rem;">Church (Capabilities)</div>
+                            <pre style="font-size: 0.75rem; margin: 0;">LOAD  - Get capability
+SAVE  - Store capability
+CALL  - Invoke via capability
+RETURN - Return control
+CHANGE - Switch C-List
+SWITCH - Switch thread
+TPERM - Test permissions
+MINT  - Create capability</pre>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 0.8rem; border-radius: 6px;">
+                            <div style="color: var(--success); font-weight: bold; margin-bottom: 0.5rem;">Turing (Computation)</div>
+                            <pre style="font-size: 0.75rem; margin: 0;">ADD, SUB, MUL, DIV
+AND, OR, XOR, NOT
+LSL, LSR, ROR
+CMP, CMN, TST
+B, BL, BX
+MOV, ADDI, SUBI</pre>
+                        </div>
+                    </div>
+                </div>`
+            },
+            {
+                text: `<h3>LOAD: Retrieving Golden Tokens</h3>
+                <p>The <strong>LOAD</strong> instruction reads a Golden Token from memory (via a capability) into a Context Register.</p>
+                <p><strong>What happens during LOAD:</strong></p>
+                <ol>
+                    <li><strong>Permission Check</strong> - Source GT must have Read (R) permission</li>
+                    <li><strong>Bounds Check</strong> - Index must be within the object's Limit</li>
+                    <li><strong>MAC Validation</strong> - Hardware verifies the stored GT's integrity</li>
+                    <li><strong>Copy to CR</strong> - The GT is copied to the destination Context Register</li>
+                </ol>
+                <p>If <strong>any check fails</strong>, the instruction triggers a FAULT - no partial results, no error codes.</p>
+                <div class="key-concept" style="border-color: var(--warning);">
+                    <strong>Security Note:</strong> You cannot LOAD a capability without already having a capability that grants Read access. This is the foundation of capability-based security.
+                </div>`,
+                demo: `<div class="demo-title">LOAD Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: LOAD dest, source, index
+; dest   = destination CR (0-15)
+; source = source CR containing GT (0-15)
+; index  = offset within object (0-8191 immediate or DR)
+
+; Register addressing (I=0):
+LOAD 0 6 0      ; CR0 = memory[CR6 + DR0]
+                ; Load GT from C-List at DR0 offset
+
+; Immediate addressing (I=1):
+LOAD 0 6 3      ; CR0 = memory[CR6 + 3]
+                ; Load GT from C-List entry 3
+
+; Common patterns:
+LOAD 0 6 0      ; Get first C-List entry
+LOAD 1 15 0    ; Get from Namespace root
+LOAD 2 7 5      ; Get from Nucleus entry 5</pre>
+                </div>`
+            },
+            {
+                text: `<h3>SAVE: Storing Golden Tokens</h3>
+                <p>The <strong>SAVE</strong> instruction writes a Golden Token from a Context Register into memory.</p>
+                <p><strong>What happens during SAVE:</strong></p>
+                <ol>
+                    <li><strong>Permission Check</strong> - Destination GT must have Write (W) permission</li>
+                    <li><strong>Bounds Check</strong> - Index must be within the object's Limit</li>
+                    <li><strong>L-bit Check</strong> - If source has L (Lock) bit, cannot be copied</li>
+                    <li><strong>MAC Update</strong> - Hardware recalculates MAC for stored GT</li>
+                    <li><strong>Write to Memory</strong> - The GT is stored at the destination</li>
+                </ol>
+                <p><strong>Permission Inheritance:</strong> The saved GT retains its original permissions - SAVE doesn't amplify rights.</p>`,
+                demo: `<div class="demo-title">SAVE Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: SAVE dest, source, index
+; dest   = destination CR containing target GT (0-15)
+; source = source CR containing GT to store (0-15)
+; index  = offset within destination object
+
+; Store GT from CR0 into C-List entry 5:
+SAVE 6 0 5      ; memory[CR6 + 5] = CR0
+
+; Build a new C-List by storing capabilities:
+MINT            ; CR0 = new empty C-List GT
+SAVE 0 1 0      ; Store CR1 as entry 0
+SAVE 0 2 1      ; Store CR2 as entry 1
+SAVE 0 3 2      ; Store CR3 as entry 2
+; Now CR0 points to a C-List with 3 entries
+
+; SECURITY: Cannot save a locked GT
+; If CR0.L = 1, SAVE will FAULT</pre>
+                </div>`
+            },
+            {
+                text: `<h3>CALL: Invoking Capabilities</h3>
+                <p>The <strong>CALL</strong> instruction is the heart of CTMM execution. It transfers control to code referenced by a Golden Token.</p>
+                <p><strong>What happens during CALL:</strong></p>
+                <ol>
+                    <li><strong>Permission Check</strong> - GT must have Execute (X) permission</li>
+                    <li><strong>Push Return Frame</strong> - Current PC, CR6 (C-List), flags saved to hardware stack</li>
+                    <li><strong>Load New Context</strong> - Set PC to GT's location, optionally change CR6</li>
+                    <li><strong>Begin Execution</strong> - Resume at new location with new context</li>
+                </ol>
+                <p><strong>Why CALL is fast:</strong> The GT already contains the validated target address and permissions - no symbol table lookup, no runtime permission check.</p>`,
+                demo: `<div class="demo-title">CALL Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: CALL source
+; source = CR containing executable GT (0-15)
+
+; Basic CALL:
+LOAD 0 6 5      ; CR0 = function GT from C-List[5]
+CALL 0          ; Execute function, will RETURN here
+
+; CALL with arguments (in Data Registers):
+ADDI 0 42       ; DR0 = argument 1
+ADDI 1 7        ; DR1 = argument 2
+LOAD 2 6 3      ; CR2 = "multiply" function GT
+CALL 2          ; DR0 = result after RETURN
+
+; Y-Combinator self-call:
+LOAD 0 6 0      ; CR0 = GT pointing to THIS code
+CALL 0          ; Recursive self-invocation
+
+; CALL to abstraction (math operation):
+LOAD 0 6 4      ; CR0 = Abacus (integer math) GT
+CALL 0          ; Hardware integer operation</pre>
+                </div>`
+            },
+            {
+                text: `<h3>RETURN: Completing Invocations</h3>
+                <p>The <strong>RETURN</strong> instruction reverses a CALL, returning control to the caller.</p>
+                <p><strong>What happens during RETURN:</strong></p>
+                <ol>
+                    <li><strong>Pop Return Frame</strong> - Retrieve saved PC, CR6, and flags from hardware stack</li>
+                    <li><strong>Restore Context</strong> - Reset CR6 to caller's C-List</li>
+                    <li><strong>Resume Execution</strong> - Continue at instruction after the CALL</li>
+                </ol>
+                <p><strong>Return Values:</strong> By convention, results are left in DR0 (data) or CR0 (capability). The called function sets these before RETURN.</p>
+                <div class="key-concept">
+                    <strong>Hardware Stack:</strong> CTMM uses a hardware-managed return stack, not software. This prevents stack smashing attacks - you cannot overwrite return addresses.
+                </div>`,
+                demo: `<div class="demo-title">RETURN Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: RETURN
+; No arguments - pops from hardware stack
+
+; Basic function pattern:
+my_function:
+  ; ... do work ...
+  MOV 0 5         ; DR0 = result (e.g., 5)
+  RETURN          ; Return to caller
+
+; Caller sees:
+CALL 0            ; Invoke my_function
+; DR0 now contains 5
+
+; Returning a capability:
+get_capability:
+  LOAD 0 6 3      ; CR0 = some GT
+  RETURN          ; Caller receives GT in CR0
+
+; Conditional return:
+  CMP 0 0
+  B EQ done       ; If DR0 == 0, skip to done
+  ; ... more work ...
+done:
+  RETURN          ; Always reaches here</pre>
+                </div>`
+            },
+            {
+                text: `<h3>CHANGE: Switching C-Lists</h3>
+                <p>The <strong>CHANGE</strong> instruction switches the current C-List (CR6) to a different capability context.</p>
+                <p><strong>What happens during CHANGE:</strong></p>
+                <ol>
+                    <li><strong>Permission Check</strong> - New C-List GT must have appropriate access</li>
+                    <li><strong>Validate C-List</strong> - Target must be a valid C-List structure</li>
+                    <li><strong>Update CR6</strong> - CR6 now points to the new C-List</li>
+                </ol>
+                <p><strong>Use Cases:</strong></p>
+                <ul>
+                    <li>Entering a <strong>sandbox</strong> with restricted capabilities</li>
+                    <li>Switching to a <strong>library's</strong> private capability set</li>
+                    <li>Implementing <strong>least privilege</strong> by narrowing available GTs</li>
+                </ul>`,
+                demo: `<div class="demo-title">CHANGE Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: CHANGE source
+; source = CR containing new C-List GT (0-15)
+
+; Switch to a restricted C-List:
+LOAD 0 6 10     ; CR0 = restricted C-List GT
+CHANGE 0        ; CR6 = CR0 (now using restricted set)
+; ... operate with fewer capabilities ...
+
+; Common pattern - sandbox execution:
+LOAD 0 6 8      ; CR0 = sandbox C-List
+SAVE 6 1 0      ; Save code GT in sandbox
+CHANGE 0        ; Enter sandbox
+LOAD 0 6 0      ; Load code from sandbox C-List
+CALL 0          ; Execute with limited rights
+; On RETURN, CR6 is restored to original
+
+; Direct addressing (Mode=0):
+CHANGE 5        ; CR6 = CR5
+
+; C-List lookup (Mode=1):
+CHANGE 5        ; CR6 = memory[CR6 + 5]</pre>
+                </div>`
+            },
+            {
+                text: `<h3>SWITCH: Changing Thread Identity</h3>
+                <p>The <strong>SWITCH</strong> instruction changes the current thread identity (CR8).</p>
+                <p><strong>What happens during SWITCH:</strong></p>
+                <ol>
+                    <li><strong>Permission Check</strong> - Caller must have M (Meta) permission on target</li>
+                    <li><strong>Validate Thread GT</strong> - Target must be a valid Thread capability</li>
+                    <li><strong>Update CR8</strong> - Current thread identity changes</li>
+                </ol>
+                <p><strong>Why this matters:</strong> CR8 identifies WHO is executing code. Audit logs use CR8. Permission checks reference CR8. SWITCH enables:</p>
+                <ul>
+                    <li><strong>Impersonation</strong> - Acting on behalf of another user (with permission)</li>
+                    <li><strong>Service accounts</strong> - Background tasks with specific identity</li>
+                    <li><strong>Privilege escalation</strong> (controlled) - Temporarily gaining rights</li>
+                </ul>`,
+                demo: `<div class="demo-title">SWITCH Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: SWITCH source
+; source = CR containing new Thread GT (0-15)
+
+; Switch to service account:
+LOAD 0 7 3      ; CR0 = service thread GT from Nucleus
+TPERM 0 M       ; Verify we have Meta permission
+B NE fault      ; Fail if not authorized
+SWITCH 0        ; CR8 = service thread
+; ... now executing as service account ...
+
+; Return to original identity (if saved):
+SWITCH 5        ; CR8 = saved original thread in CR5
+
+; Common pattern - sudo-like:
+SAVE 6 8 0      ; Save current thread GT
+SWITCH 0        ; Become admin
+CALL 1          ; Do privileged operation
+LOAD 5 6 0      ; Restore original thread GT
+SWITCH 5        ; Become original user again</pre>
+                </div>`
+            },
+            {
+                text: `<h3>TPERM: Testing Permissions</h3>
+                <p>The <strong>TPERM</strong> instruction tests whether a Golden Token has specific permission bits set.</p>
+                <p><strong>What happens during TPERM:</strong></p>
+                <ol>
+                    <li><strong>Read Permissions</strong> - Extract permission bits from the GT</li>
+                    <li><strong>Compare with Mask</strong> - Check if required bits are set</li>
+                    <li><strong>Set Condition Flags</strong> - Z=1 if ALL required permissions present</li>
+                </ol>
+                <p><strong>Permission Bits:</strong></p>
+                <ul>
+                    <li><strong>R</strong> (Read) - Can read data through this GT</li>
+                    <li><strong>W</strong> (Write) - Can write data through this GT</li>
+                    <li><strong>X</strong> (Execute) - Can CALL this GT</li>
+                    <li><strong>L</strong> (Lock) - Cannot be copied (SAVE fails)</li>
+                    <li><strong>S</strong> (Seal) - Object is sealed (immutable)</li>
+                    <li><strong>E</strong> (Extend) - Can create child capabilities</li>
+                    <li><strong>B</strong> (Bounds) - Has restricted bounds</li>
+                    <li><strong>M</strong> (Meta) - Hardware-level permissions</li>
+                </ul>`,
+                demo: `<div class="demo-title">TPERM Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: TPERM source, permissions
+; source = CR containing GT to test (0-15)
+; permissions = bit mask (R, W, X, L, S, E, B, M)
+
+; Test for read permission:
+TPERM 0 R         ; Test if CR0 has Read
+B NE fault        ; Fail if not readable
+
+; Test for read AND write:
+TPERM 0 RW        ; Test if CR0 has both R and W
+B NE fault        ; Fail if either missing
+
+; Test for execute permission:
+TPERM 0 X         ; Is CR0 executable?
+B EQ can_call     ; Yes - proceed to CALL
+B NE fault        ; No - failsafe
+
+; Failsafe pattern (always use this):
+TPERM 0 RW
+B NE fault
+TPERM 0 B
+B NE fault
+; ... all checks passed, proceed ...</pre>
+                </div>`
+            },
+            {
+                text: `<h3>MINT: Creating New Golden Tokens</h3>
+                <p>The <strong>MINT</strong> instruction creates a new Golden Token, allocating space in the Namespace.</p>
+                <p><strong>What happens during MINT:</strong></p>
+                <ol>
+                    <li><strong>Permission Check</strong> - Caller must have E (Extend) permission on parent</li>
+                    <li><strong>Find Free Slot</strong> - Locate next available Namespace entry</li>
+                    <li><strong>Allocate Entry</strong> - Create 3-word descriptor (Location, Limit, Seals)</li>
+                    <li><strong>Generate GT</strong> - Create GT with specified permissions</li>
+                    <li><strong>Calculate MAC</strong> - Hardware generates integrity code</li>
+                    <li><strong>Return in CR0</strong> - New GT available for use</li>
+                </ol>
+                <p><strong>MINT is creation:</strong> This is the ONLY way to create new capabilities. You cannot forge a GT - only MINT can produce valid ones.</p>`,
+                demo: `<div class="demo-title">MINT Instruction Examples</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; Syntax: MINT
+; Returns: CR0 = new GT with default permissions
+
+; Create a new empty object:
+MINT              ; CR0 = new GT
+SAVE 6 0 10       ; Store new GT in C-List[10]
+
+; Create and immediately use:
+MINT              ; CR0 = new object GT
+SAVE 0 1 0        ; Store some capability in it
+SAVE 0 2 1        ; Store another
+; Now CR0 points to an object with 2 GT entries
+
+; Create with specific permissions:
+MINT              ; CR0 = new GT (default perms)
+; Use TPERM to verify, modify as needed
+
+; Building a new C-List:
+MINT              ; CR0 = empty C-List
+SAVE 0 7 0        ; Add Nucleus reference
+SAVE 0 8 1        ; Add Thread reference
+CHANGE 0          ; Use as new capability context</pre>
+                </div>`
+            },
+            {
+                text: `<h3>Church Instructions Summary</h3>
+                <p>The 8 Church instructions form a complete <strong>capability manipulation language</strong>:</p>
+                <div class="key-concept" style="border-color: var(--accent);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.3rem 0;"><strong>LOAD</strong></td>
+                            <td>Memory → Register (read capability)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.3rem 0;"><strong>SAVE</strong></td>
+                            <td>Register → Memory (write capability)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.3rem 0;"><strong>CALL</strong></td>
+                            <td>Execute code via capability</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.3rem 0;"><strong>RETURN</strong></td>
+                            <td>Return from CALL</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.3rem 0;"><strong>CHANGE</strong></td>
+                            <td>Switch capability context</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.3rem 0;"><strong>SWITCH</strong></td>
+                            <td>Change thread identity</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.3rem 0;"><strong>TPERM</strong></td>
+                            <td>Test permission bits</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.3rem 0;"><strong>MINT</strong></td>
+                            <td>Create new capability</td>
+                        </tr>
+                    </table>
+                </div>
+                <p>Together with the Turing instructions (arithmetic, logic, branching), these form the complete CTMM instruction set.</p>`,
+                demo: `<div class="demo-title">Complete Program Example</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.75rem;">
+; Secure function that validates, computes, and returns
+
+; 1. Validate input capability
+TPERM 0 RX        ; Need Read and Execute
+B NE fault
+
+; 2. Load data through capability
+LOAD 1 0 0        ; CR1 = first entry
+
+; 3. Compute (Turing instructions)
+ADDI 0 10         ; DR0 = 10
+MUL 0 1           ; DR0 = DR0 * DR1
+
+; 4. Store result through capability
+TPERM 2 W         ; Need Write on output
+B NE fault
+SAVE 2 0 0        ; Store result
+
+; 5. Return to caller
+RETURN
+
+fault:
+FAULT             ; Uniform failure</pre>
+                </div>`,
+                interactive: {
+                    type: "quiz",
+                    question: "Which Church instruction is the ONLY way to create a new Golden Token?",
+                    options: [
+                        "LOAD - loads capabilities from memory",
+                        "SAVE - stores capabilities to memory",
+                        "MINT - allocates and creates new GTs",
+                        "CHANGE - switches to a different C-List"
+                    ],
+                    correct: 2,
+                    feedback: {
+                        correct: "Correct! MINT is the only instruction that can create new Golden Tokens. This is fundamental to capability security - you cannot forge capabilities, only mint new ones with proper authorization.",
+                        incorrect: "Not quite. MINT is the only instruction that creates new GTs. LOAD/SAVE only move existing GTs, and CHANGE switches contexts."
+                    }
+                }
+            }
+        ]
     }
 ];
 

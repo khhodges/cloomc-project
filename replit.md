@@ -56,6 +56,7 @@ The web interface is composed of five distinct views:
 
 ## Recent Changes
 
+- 2026-01-19: Added Church Instructions Deep Dive tutorial: comprehensive explanations for all 8 Church instructions
 - 2026-01-19: Added Failsafe Security tutorial: information leakage, single failure mode, Access.asm, FirstFault.asm
 - 2026-01-19: Added Access.asm and FirstFault.asm examples demonstrating failsafe validation pattern
 - 2026-01-19: Fixed all code examples to use FAULT instead of error codes (capcheck, ycombinator, tutorials)
