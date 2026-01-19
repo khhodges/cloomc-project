@@ -4532,6 +4532,185 @@ CALL GT →
                 }
             }
         ]
+    },
+    {
+        title: "Remote Golden Tokens",
+        steps: [
+            {
+                text: `<h3>The F Bit: Remote Location Flag</h3>
+                <p>The <strong>F (Far) bit</strong> in a Golden Token indicates that the target object resides at a <strong>remote URL</strong> rather than in local memory:</p>
+                <ul>
+                    <li><strong>F=0</strong>: Local object - Offset indexes the local Namespace Table</li>
+                    <li><strong>F=1</strong>: Remote object - Offset indexes a URL Table containing remote endpoints</li>
+                </ul>
+                <p>This enables <strong>transparent distributed computing</strong> where code doesn't need to know if a capability points to local or remote resources.</p>
+                <div class="key-concept">
+                    <strong>Key Insight:</strong> The same CALL instruction works for both local and remote objects - the hardware handles the difference.
+                </div>`,
+                demo: `<div class="demo-title">Local vs. Remote GT</div>
+                <div class="demo-content">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: var(--bg-tertiary); padding: 0.8rem; border-radius: 6px;">
+                            <div style="color: var(--accent); font-weight: bold; margin-bottom: 0.5rem;">Local GT (F=0)</div>
+                            <pre style="font-size: 0.75rem; margin: 0;">Offset: 0x042
+→ Namespace[0x042]
+→ Location: 0x5000
+→ Direct memory access</pre>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 0.8rem; border-radius: 6px;">
+                            <div style="color: var(--warning); font-weight: bold; margin-bottom: 0.5rem;">Remote GT (F=1)</div>
+                            <pre style="font-size: 0.75rem; margin: 0;">Offset: 0x007
+→ URLTable[0x007]
+→ "https://api.srv/obj"
+→ Network request</pre>
+                        </div>
+                    </div>
+                </div>`
+            },
+            {
+                text: `<h3>URL Paging</h3>
+                <p><strong>URL Paging</strong> extends virtual memory to the network. Just as traditional paging loads memory pages from disk, CTMM can load capability pages from remote URLs:</p>
+                <ul>
+                    <li><strong>Page fault</strong> - When accessing a remote GT, the system fetches the page</li>
+                    <li><strong>Caching</strong> - Remote pages are cached locally for performance</li>
+                    <li><strong>Coherence</strong> - The MAC ensures fetched data hasn't been tampered with</li>
+                    <li><strong>Lazy loading</strong> - Remote capabilities are only fetched when first used</li>
+                </ul>`,
+                demo: `<div class="demo-title">URL Paging Flow</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+LOAD 0 6 5      ; Load GT from C-List[5] (F=1)
+
+Hardware detects F=1:
+  1. Check local cache for page
+  2. If miss: fetch from URLTable[offset]
+     GET https://remote.srv/namespace/page
+  3. Validate MAC of received data
+  4. Store in local cache
+  5. Complete LOAD with cached data
+
+; Subsequent accesses hit cache - no network delay</pre>
+                </div>`
+            },
+            {
+                text: `<h3>Remote Proxy Abstractions</h3>
+                <p>A <strong>Remote Proxy</strong> is a local GT that represents a remote service. When you CALL a proxy GT, the system:</p>
+                <ul>
+                    <li><strong>Marshals</strong> arguments from Data Registers</li>
+                    <li><strong>Transmits</strong> the request to the remote endpoint</li>
+                    <li><strong>Unmarshals</strong> the response back into registers</li>
+                </ul>
+                <p>The calling code is unaware this happened - it just sees a normal CALL/RETURN.</p>`,
+                demo: `<div class="demo-title">Remote Proxy Pattern</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+; CR2 = proxy GT to remote "Calculator" service
+; F=1, permissions=[E,X]
+
+ADDI 0 42         ; DR0 = argument (42)
+ADDI 1 7          ; DR1 = argument (7)
+CALL 2            ; Invoke remote service
+
+; Behind the scenes:
+;   → Package: {op: "multiply", args: [42, 7]}
+;   → POST https://calc.srv/api
+;   → Response: {result: 294}
+;   → DR0 = 294
+
+; To the code, it looks like a local call!</pre>
+                </div>`
+            },
+            {
+                text: `<h3>Security of Remote GTs</h3>
+                <p>Remote capabilities maintain <strong>full security guarantees</strong>:</p>
+                <ul>
+                    <li><strong>MAC validation</strong> - Every remote response is cryptographically verified</li>
+                    <li><strong>Permission enforcement</strong> - Remote server checks GT permissions before executing</li>
+                    <li><strong>Capability unforgeable</strong> - Cannot fabricate a remote GT without the server's cooperation</li>
+                    <li><strong>Audit trail</strong> - All remote accesses are logged with GT identity</li>
+                </ul>
+                <div class="key-concept" style="border-color: var(--success);">
+                    <strong>Security Guarantee:</strong> A remote GT is as secure as a local GT. The network transport doesn't weaken the capability model.
+                </div>`,
+                demo: `<div class="demo-title">Remote Security Flow</div>
+                <div class="demo-content">
+                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
+CALL remoteGT
+
+Client side:
+  1. Attach GT's MAC to request
+  2. Sign with thread's identity (CR8)
+  3. Encrypt payload (TLS)
+
+Server side:
+  4. Verify MAC matches GT
+  5. Check permissions allow operation
+  6. Execute if valid
+  7. Sign response with server MAC
+
+Client side:
+  8. Verify server MAC
+  9. Return result to caller
+
+; Tampering at any step = detected & rejected</pre>
+                </div>`
+            },
+            {
+                text: `<h3>Performance Considerations</h3>
+                <p>Remote GTs introduce <strong>network latency</strong>, but CTMM optimizes this:</p>
+                <ul>
+                    <li><strong>Aggressive caching</strong> - Immutable objects cached indefinitely</li>
+                    <li><strong>Prefetching</strong> - Predict and fetch remote GTs before they're needed</li>
+                    <li><strong>Batching</strong> - Multiple remote calls combined into single request</li>
+                    <li><strong>Connection pooling</strong> - Reuse connections to same remote host</li>
+                </ul>
+                <p>The key insight: <strong>capability validation happens once</strong> when the GT is minted, not on every remote call.</p>`,
+                demo: `<div class="demo-title">Performance Optimization</div>
+                <div class="demo-content">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: var(--bg-tertiary); padding: 0.8rem; border-radius: 6px;">
+                            <div style="color: var(--warning); font-weight: bold; margin-bottom: 0.5rem;">Naive Remote (Slow)</div>
+                            <pre style="font-size: 0.7rem; margin: 0;">Each call:
+  - Open connection
+  - Authenticate
+  - Send request
+  - Wait response
+  - Close connection
+
+10 calls = 10× overhead</pre>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 0.8rem; border-radius: 6px;">
+                            <div style="color: var(--success); font-weight: bold; margin-bottom: 0.5rem;">CTMM Remote (Fast)</div>
+                            <pre style="font-size: 0.7rem; margin: 0;">First call:
+  - Open connection
+  - GT = auth token
+  
+Subsequent:
+  - Reuse connection
+  - Send request
+  - Get response
+
+10 calls ≈ 1× overhead</pre>
+                        </div>
+                    </div>
+                </div>`,
+                interactive: {
+                    type: "quiz",
+                    question: "What does the F bit in a Golden Token indicate?",
+                    options: [
+                        "The capability has been frozen and cannot be modified",
+                        "The target object is at a remote URL, not local memory",
+                        "The capability grants full permissions",
+                        "The capability is a function, not data"
+                    ],
+                    correct: 1,
+                    feedback: {
+                        correct: "Correct! The F (Far) bit indicates the GT points to a remote resource accessed via URL rather than local memory.",
+                        incorrect: "Not quite. The F bit distinguishes between local objects (F=0) and remote objects at URLs (F=1)."
+                    }
+                }
+            }
+        ]
     }
 ];
 

@@ -52,6 +52,7 @@ The web interface is composed of five distinct views:
 
 ## Recent Changes
 
+- 2026-01-19: Added Remote Golden Tokens tutorial: F bit, URL paging, remote proxy abstractions, security/performance
 - 2026-01-19: Added Performance Benefits tutorial: GT validation overhead, Y-Combinator recursion, Church encodings, capability caching
 - 2026-01-19: Added Example Programs tutorial: Counter, Fibonacci, Multiply, Y-Combinator, Factorial, Capability Validation
 - 2026-01-19: Added Assembly Editor tutorial: Editor interface, syntax, Turing/Lambda examples, running programs
