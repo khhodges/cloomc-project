@@ -2308,15 +2308,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==================== PARADIGM TABS ====================
 
 function switchParadigm(paradigm) {
-    document.querySelectorAll('.paradigm-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.paradigm-content').forEach(c => c.classList.remove('active'));
+    const panel = document.querySelector('.editor-examples-panel');
+    if (!panel) return;
     
-    document.querySelector(`.paradigm-tab[onclick*="${paradigm}"]`).classList.add('active');
+    panel.querySelectorAll('.paradigm-tab').forEach(t => t.classList.remove('active'));
+    panel.querySelectorAll('.paradigm-content').forEach(c => c.classList.remove('active'));
+    
+    panel.querySelector(`.paradigm-tab[onclick*="${paradigm}"]`).classList.add('active');
     document.getElementById(`${paradigm}Examples`).classList.add('active');
-    
-    if (paradigm === 'church') {
-        loadExample('callerCode');
-    }
 }
 
 // ==================== ASSEMBLY EDITOR ====================
