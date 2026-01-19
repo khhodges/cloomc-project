@@ -3050,7 +3050,7 @@ function updateChurchRegisters() {
 }
 
 function loadExample(name) {
-    const code = examplePrograms[name];
+    const code = examplePrograms[name] || codeTemplates[name];
     if (code) {
         setEditorCode(code, `Boot/Examples/${name}`, '[RX]');
         savedEditorContent = code;
