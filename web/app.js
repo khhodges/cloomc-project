@@ -3892,7 +3892,8 @@ const lessons = [
                 text: `<h3>Two Types of Registers</h3>
                 <p>The CTMM has two distinct register types, each serving a different purpose:</p>
                 <ul>
-                    <li><strong>Context Registers (CR0-CR7)</strong>: Hold capabilities (access rights)</li>
+                    <li><strong>Context Registers (CR0-CR7)</strong>: Hold capabilities (programmer-accessible)</li>
+                    <li><strong>Meta-Machine Registers (CR8-CR15)</strong>: Reserved for hardware/OS</li>
                     <li><strong>Data Registers (DR0-DR7)</strong>: Hold 64-bit numeric values</li>
                 </ul>
                 <div class="key-concept">
@@ -3918,15 +3919,24 @@ const lessons = [
             },
             {
                 text: `<h3>Special Context Registers</h3>
-                <p>Some context registers have special roles:</p>
+                <p>The 16 Context Registers are divided into two groups:</p>
                 <ul>
-                    <li><code>CR6</code> - <strong>C-List LCA</strong>: Points to your list of available capabilities</li>
-                    <li><code>CR7</code> - <strong>Nucleus</strong>: The kernel/OS code capability</li>
-                    <li><code>CR8</code> - <strong>Thread</strong>: Your current process/user identity</li>
-                    <li><code>CR15</code> - <strong>Namespace</strong>: The root of accessible resources</li>
+                    <li><strong>CR0-CR7 (Programmer)</strong>: Accessible to application code
+                        <ul>
+                            <li><code>CR0-CR5</code> - General-purpose capability registers</li>
+                            <li><code>CR6</code> - <strong>C-List LCA</strong>: Current capability list</li>
+                            <li><code>CR7</code> - <strong>Nucleus</strong>: Kernel code capability</li>
+                        </ul>
+                    </li>
+                    <li><strong>CR8-CR15 (Meta-Machine)</strong>: Reserved for hardware/OS
+                        <ul>
+                            <li><code>CR8</code> - <strong>Thread</strong>: Current process identity</li>
+                            <li><code>CR15</code> - <strong>Namespace</strong>: Root of resources</li>
+                        </ul>
+                    </li>
                 </ul>
                 <div class="highlight">
-                    CR0-CR5 are general-purpose capability registers you can use for your own capabilities.
+                    Only CR0-CR7 can be addressed by programmer instructions. CR8-CR15 are managed by the meta-machine.
                 </div>`,
                 demo: `<div class="demo-title">Special Register Roles</div>
                 <div class="demo-content">
@@ -8789,8 +8799,9 @@ const churchInstrFormats = [
         format: [
             { name: "Cond", bits: 4, desc: "Condition code (AL=always)" },
             { name: "Op", bits: 6, value: "000001", desc: "LOAD opcode" },
-            { name: "CRd", bits: 4, desc: "Destination CR (0-15)" },
-            { name: "CRn", bits: 4, desc: "Source C-List register (0-15)" },
+            { name: "CRd", bits: 3, desc: "Destination CR (0-7)" },
+            { name: "CRn", bits: 3, desc: "Source C-List register (0-7)" },
+            { name: "Reserved", bits: 2, value: "0", desc: "Reserved (CR8-15 meta-machine only)" },
             { name: "I", bits: 1, desc: "0=immediate offset, 1=register" },
             { name: "Index", bits: 13, desc: "Offset or DR number" }
         ],
@@ -8807,8 +8818,9 @@ const churchInstrFormats = [
         format: [
             { name: "Cond", bits: 4, desc: "Condition code" },
             { name: "Op", bits: 6, value: "000010", desc: "SAVE opcode" },
-            { name: "CRs", bits: 4, desc: "Source CR (0-15)" },
-            { name: "CRn", bits: 4, desc: "Target C-List register (0-15)" },
+            { name: "CRs", bits: 3, desc: "Source CR (0-7)" },
+            { name: "CRn", bits: 3, desc: "Target C-List register (0-7)" },
+            { name: "Reserved", bits: 2, value: "0", desc: "Reserved (CR8-15 meta-machine only)" },
             { name: "I", bits: 1, desc: "0=immediate offset, 1=register" },
             { name: "Index", bits: 13, desc: "Offset or DR number" }
         ],
@@ -8825,7 +8837,8 @@ const churchInstrFormats = [
         format: [
             { name: "Cond", bits: 4, desc: "Condition code" },
             { name: "Op", bits: 6, value: "000011", desc: "CALL opcode" },
-            { name: "CRs", bits: 4, desc: "Abstraction capability" },
+            { name: "CRs", bits: 3, desc: "Abstraction capability (0-7)" },
+            { name: "Reserved", bits: 1, value: "0", desc: "Reserved" },
             { name: "L", bits: 1, desc: "Link bit (save return)" },
             { name: "Reserved", bits: 17, value: "0", desc: "Must be zero" }
         ],
@@ -8855,7 +8868,8 @@ const churchInstrFormats = [
             { name: "Cond", bits: 4, desc: "Condition code" },
             { name: "Op", bits: 6, value: "000101", desc: "CHANGE opcode" },
             { name: "Mode", bits: 1, desc: "0=NS offset, 1=C-List lookup" },
-            { name: "CRn", bits: 4, desc: "Source C-List (Mode=1)" },
+            { name: "CRn", bits: 3, desc: "Source C-List (0-7, Mode=1)" },
+            { name: "Reserved", bits: 1, value: "0", desc: "Reserved" },
             { name: "Idx/Offset", bits: 17, desc: "C-List index or NS offset" }
         ],
         variants: [
@@ -8872,8 +8886,9 @@ const churchInstrFormats = [
             { name: "Cond", bits: 4, desc: "Condition code" },
             { name: "Op", bits: 6, value: "000110", desc: "SWITCH opcode" },
             { name: "Mode", bits: 1, desc: "0=direct CR, 1=C-List lookup" },
-            { name: "CRs", bits: 4, desc: "Source CR (Mode=0)" },
-            { name: "CRn", bits: 4, desc: "Source C-List (Mode=1)" },
+            { name: "CRs", bits: 3, desc: "Source CR (0-7, Mode=0)" },
+            { name: "CRn", bits: 3, desc: "Source C-List (0-7, Mode=1)" },
+            { name: "Reserved", bits: 2, value: "0", desc: "Reserved (CR8-15 meta-machine only)" },
             { name: "Index", bits: 13, desc: "C-List slot index (Mode=1)" }
         ],
         variants: [
@@ -8889,9 +8904,10 @@ const churchInstrFormats = [
         format: [
             { name: "Cond", bits: 4, desc: "Condition code" },
             { name: "Op", bits: 6, value: "000111", desc: "TPERM opcode" },
-            { name: "CRs", bits: 4, desc: "CR to test" },
+            { name: "CRs", bits: 3, desc: "CR to test (0-7)" },
+            { name: "Reserved", bits: 1, value: "0", desc: "Reserved" },
             { name: "Perms", bits: 9, desc: "Permission mask (9 bits)" },
-            { name: "Reserved", bits: 9, value: "0", desc: "Must be zero" }
+            { name: "Reserved2", bits: 9, value: "0", desc: "Must be zero" }
         ],
         variants: [
             { name: "Full mask", fields: { Perms: "All 9 permission bits" } },
@@ -8906,7 +8922,8 @@ const churchInstrFormats = [
         format: [
             { name: "Cond", bits: 4, desc: "Condition code" },
             { name: "Op", bits: 6, value: "001000", desc: "MINT opcode" },
-            { name: "CRd", bits: 4, desc: "Destination CR for new GT" },
+            { name: "CRd", bits: 3, desc: "Destination CR (0-7)" },
+            { name: "Reserved", bits: 1, value: "0", desc: "Reserved" },
             { name: "Perms", bits: 9, desc: "Initial permissions" },
             { name: "Size", bits: 9, desc: "Object size (encoded)" }
         ],
