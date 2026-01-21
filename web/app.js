@@ -3233,8 +3233,18 @@ function runProgram() {
     
     while (editorState.pc < editorState.program.length) {
         const instr = editorState.program[editorState.pc];
-        executeEditorInstruction(instr);
+        const faultOccurred = executeEditorInstruction(instr);
         editorState.pc++;
+        
+        if (faultOccurred) {
+            editorLog('*** HALTED: FAULT detected - investigate before continuing ***', 'error');
+            updateEditorStatus();
+            updateEditorRegisters();
+            updateParsedView();
+            updateDisplay();
+            highlightCurrentLine();
+            return;
+        }
     }
     
     editorLog('Program completed', 'success');
@@ -3262,8 +3272,12 @@ function stepProgram() {
     }
     
     const instr = editorState.program[editorState.pc];
-    executeEditorInstruction(instr);
+    const faultOccurred = executeEditorInstruction(instr);
     editorState.pc++;
+    
+    if (faultOccurred) {
+        editorLog('*** FAULT detected - investigate before continuing ***', 'error');
+    }
     
     updateEditorStatus();
     updateEditorRegisters();
@@ -3273,6 +3287,7 @@ function stepProgram() {
 
 function executeEditorInstruction(instr) {
     const { instr: op, args, line } = instr;
+    let faultOccurred = false;
     
     try {
         let result;
@@ -3321,14 +3336,15 @@ function executeEditorInstruction(instr) {
                         result = `Branch to ${target} (line ${targetLine})`;
                     } else {
                         result = `FAULT: Label '${target}' not found`;
+                        faultOccurred = true;
                     }
                 } else {
                     result = `Branch not taken (${cond} failed)`;
                     editorState.pc++;
                 }
-                editorLog(`[${line}] ${op} ${args.join(' ')}: ${result}`, 'exec');
+                editorLog(`[${line}] ${op} ${args.join(' ')}: ${result}`, faultOccurred ? 'error' : 'exec');
                 updateEditorStatus();
-                return;
+                return faultOccurred;
             }
             
             case 'BL': {
@@ -3340,10 +3356,11 @@ function executeEditorInstruction(instr) {
                     result = `Branch with link to ${target}, LR=${editorState.pc}`;
                 } else {
                     result = `FAULT: Label '${target}' not found`;
+                    faultOccurred = true;
                 }
-                editorLog(`[${line}] ${op} ${args.join(' ')}: ${result}`, 'exec');
+                editorLog(`[${line}] ${op} ${args.join(' ')}: ${result}`, faultOccurred ? 'error' : 'exec');
                 updateEditorStatus();
-                return;
+                return faultOccurred;
             }
             
             // Church: Capability instructions
@@ -3377,10 +3394,19 @@ function executeEditorInstruction(instr) {
             
             default:
                 result = `Unknown instruction: ${op}`;
+                faultOccurred = true;
         }
-        editorLog(`[${line}] ${op} ${args.join(' ')}: ${result}`, 'exec');
+        
+        // Check if result contains FAULT
+        if (result && typeof result === 'string' && result.includes('FAULT')) {
+            faultOccurred = true;
+        }
+        
+        editorLog(`[${line}] ${op} ${args.join(' ')}: ${result}`, faultOccurred ? 'error' : 'exec');
+        return faultOccurred;
     } catch (e) {
         editorLog(`[${line}] Error: ${e.message}`, 'error');
+        return true;
     }
 }
 
