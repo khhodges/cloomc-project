@@ -2387,6 +2387,13 @@ function resetVisualization() {
 document.addEventListener('DOMContentLoaded', () => {
     updateVizInstruction();
     setupCodeEditor();
+    
+    const exBtn = document.getElementById('toggleExamples');
+    const regBtn = document.getElementById('toggleRegisters');
+    if (exBtn) exBtn.classList.add('active');
+    if (regBtn) regBtn.classList.add('active');
+    
+    restoreEditorPanelState();
 });
 
 // ==================== PARADIGM TABS ====================
@@ -3061,6 +3068,110 @@ function clearEditorConsole() {
     const console = document.getElementById('editorConsole');
     if (console) {
         console.innerHTML = '';
+    }
+}
+
+function toggleExamplesPanel() {
+    const content = document.querySelector('.editor-content');
+    const btn = document.getElementById('toggleExamples');
+    const fullBtn = document.getElementById('toggleFullCode');
+    
+    if (content.classList.contains('full-code')) {
+        content.classList.remove('full-code');
+        fullBtn.classList.remove('active');
+        fullBtn.textContent = 'Expand';
+    }
+    
+    content.classList.toggle('hide-examples');
+    btn.classList.toggle('active', !content.classList.contains('hide-examples'));
+    
+    saveEditorPanelState();
+}
+
+function toggleRegistersPanel() {
+    const content = document.querySelector('.editor-content');
+    const btn = document.getElementById('toggleRegisters');
+    const fullBtn = document.getElementById('toggleFullCode');
+    
+    if (content.classList.contains('full-code')) {
+        content.classList.remove('full-code');
+        fullBtn.classList.remove('active');
+        fullBtn.textContent = 'Expand';
+    }
+    
+    content.classList.toggle('hide-registers');
+    btn.classList.toggle('active', !content.classList.contains('hide-registers'));
+    
+    saveEditorPanelState();
+}
+
+function toggleFullCode() {
+    const content = document.querySelector('.editor-content');
+    const fullBtn = document.getElementById('toggleFullCode');
+    const exBtn = document.getElementById('toggleExamples');
+    const regBtn = document.getElementById('toggleRegisters');
+    
+    const isExpanded = content.classList.toggle('full-code');
+    
+    if (isExpanded) {
+        content.classList.remove('hide-examples', 'hide-registers');
+        fullBtn.classList.add('active');
+        fullBtn.textContent = 'Collapse';
+        exBtn.classList.remove('active');
+        regBtn.classList.remove('active');
+    } else {
+        fullBtn.classList.remove('active');
+        fullBtn.textContent = 'Expand';
+        exBtn.classList.add('active');
+        regBtn.classList.add('active');
+    }
+    
+    saveEditorPanelState();
+}
+
+function saveEditorPanelState() {
+    const content = document.querySelector('.editor-content');
+    const state = {
+        hideExamples: content.classList.contains('hide-examples'),
+        hideRegisters: content.classList.contains('hide-registers'),
+        fullCode: content.classList.contains('full-code')
+    };
+    localStorage.setItem('ctmm_editor_panels', JSON.stringify(state));
+}
+
+function restoreEditorPanelState() {
+    const saved = localStorage.getItem('ctmm_editor_panels');
+    if (!saved) return;
+    
+    try {
+        const state = JSON.parse(saved);
+        const content = document.querySelector('.editor-content');
+        const exBtn = document.getElementById('toggleExamples');
+        const regBtn = document.getElementById('toggleRegisters');
+        const fullBtn = document.getElementById('toggleFullCode');
+        
+        if (state.fullCode) {
+            content.classList.add('full-code');
+            fullBtn.classList.add('active');
+            fullBtn.textContent = 'Collapse';
+            exBtn.classList.remove('active');
+            regBtn.classList.remove('active');
+        } else {
+            if (state.hideExamples) {
+                content.classList.add('hide-examples');
+                exBtn.classList.remove('active');
+            } else {
+                exBtn.classList.add('active');
+            }
+            if (state.hideRegisters) {
+                content.classList.add('hide-registers');
+                regBtn.classList.remove('active');
+            } else {
+                regBtn.classList.add('active');
+            }
+        }
+    } catch (e) {
+        console.error('Error restoring editor panel state:', e);
     }
 }
 

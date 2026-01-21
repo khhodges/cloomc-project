@@ -2863,6 +2863,71 @@ main {
     padding: 1rem;
 }
 
+/* Panel toggle states */
+.editor-content.hide-examples {
+    grid-template-columns: 0 1fr 180px 280px;
+}
+
+.editor-content.hide-examples .editor-examples-panel {
+    display: none;
+}
+
+.editor-content.hide-registers {
+    grid-template-columns: 120px 1fr 0 280px;
+}
+
+.editor-content.hide-registers .editor-registers-panel {
+    display: none;
+}
+
+.editor-content.hide-examples.hide-registers {
+    grid-template-columns: 0 1fr 0 280px;
+}
+
+/* Full code expansion - hide both panels */
+.editor-content.full-code {
+    grid-template-columns: 0 1fr 0 280px;
+}
+
+.editor-content.full-code .editor-examples-panel,
+.editor-content.full-code .editor-registers-panel {
+    display: none;
+}
+
+/* Toggle button styles */
+.toolbar-toggles {
+    margin-left: auto;
+}
+
+.btn-toggle {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-secondary) !important;
+    font-size: 0.7rem !important;
+    padding: 0.3rem 0.5rem !important;
+}
+
+.btn-toggle:hover {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+}
+
+.btn-toggle.active {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: white !important;
+}
+
+.btn-expand {
+    background: var(--accent-dark) !important;
+    border-color: var(--accent-dark) !important;
+}
+
+.btn-expand.active {
+    background: var(--success) !important;
+    border-color: var(--success) !important;
+}
+
 .editor-examples-panel {
     background: var(--bg-secondary);
     border-radius: 6px;

@@ -371,6 +371,11 @@
                     <button onclick="stepProgram()" class="btn btn-sm btn-step" id="stepBtn" data-tooltip="Execute one instruction at a time">Step</button>
                     <button onclick="resetProgram()" class="btn btn-sm btn-reset" data-tooltip="Clear program state and start over">Reset</button>
                 </div>
+                <div class="toolbar-group toolbar-toggles">
+                    <button onclick="toggleExamplesPanel()" class="btn btn-sm btn-toggle" id="toggleExamples" data-tooltip="Show/hide examples panel">Examples</button>
+                    <button onclick="toggleRegistersPanel()" class="btn btn-sm btn-toggle" id="toggleRegisters" data-tooltip="Show/hide registers panel">Registers</button>
+                    <button onclick="toggleFullCode()" class="btn btn-sm btn-toggle btn-expand" id="toggleFullCode" data-tooltip="Expand code to full width">Expand</button>
+                </div>
                 <div class="toolbar-group toolbar-status">
                     <span>PC: <strong id="editorPC">0</strong></span>
                     <span id="editorStatus">Ready</span>
