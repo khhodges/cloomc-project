@@ -341,7 +341,7 @@ class CTMMSimulator {
                 const [crIdx, maskStr, boundsOffset] = args;
                 
                 if (crIdx < 0 || (crIdx > 7 && crIdx !== 8 && crIdx !== 15)) {
-                    return `Error: Invalid CR index ${crIdx} (valid: 0-7, 8, 15)`;
+                    return `FAULT: Invalid CR index ${crIdx} (valid: 0-7, 8, 15)`;
                 }
                 
                 const cr = crIdx < 8 ? this.contextRegs[crIdx] : 
@@ -393,7 +393,7 @@ class CTMMSimulator {
                            srcCR === 8 ? this.cr8 : this.cr15;
                 
                 if (!src.perms.includes('L')) {
-                    return `Error: CR${srcCR} lacks Load permission`;
+                    return `FAULT: CR${srcCR} lacks Load permission`;
                 }
                 
                 const newCap = {
@@ -520,10 +520,10 @@ class CTMMSimulator {
                           crIdx === 8 ? this.cr8 : this.cr15;
                 
                 if (cr.name === 'NULL') {
-                    return `Error: CR${crIdx} is NULL`;
+                    return `FAULT: CR${crIdx} is NULL`;
                 }
                 if (!cr.perms.includes('L') && !cr.perms.includes('E')) {
-                    return `Error: CR${crIdx} lacks Load/Enter permission for namespace switch`;
+                    return `FAULT: CR${crIdx} lacks Load/Enter permission for namespace switch`;
                 }
                 this.cr15 = { ...cr, goldenKey: cr.goldenKey || this.generateKey() };
                 return `Switched namespace to ${cr.name}`;
