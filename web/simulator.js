@@ -344,12 +344,17 @@ class CTMMSimulator {
                     return `FAULT: Invalid CR index ${crIdx} (valid: 0-7, 8, 15)`;
                 }
                 
+                if (maskStr === undefined || maskStr === null) {
+                    return `FAULT: TPERM requires permission mask (e.g., TPERM 0 R)`;
+                }
+                
                 const cr = crIdx < 8 ? this.contextRegs[crIdx] : 
                            crIdx === 8 ? this.cr8 : 
                            this.cr15;
                 
                 const validPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F'];
-                const requiredPerms = maskStr.toUpperCase().split('').filter(p => validPerms.includes(p));
+                const maskString = String(maskStr);
+                const requiredPerms = maskString.toUpperCase().split('').filter(p => validPerms.includes(p));
                 const actualPerms = cr.perms || [];
                 
                 const permsOK = requiredPerms.every(p => actualPerms.includes(p));
