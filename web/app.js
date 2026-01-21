@@ -1761,6 +1761,23 @@ function updateGTFromEditor() {
     currentEditingCap.perms = perms;
     currentEditingCap.spare = spare;
     
+    // CRITICAL: Sync permissions back to simulator context registers
+    // This ensures Assembly Editor sees the updated permissions
+    if (currentEditingRegLabel) {
+        const match = currentEditingRegLabel.match(/^CR(\d+)$/);
+        if (match) {
+            const regNum = parseInt(match[1]);
+            if (regNum < 8 && simulator.contextRegs[regNum]) {
+                simulator.contextRegs[regNum].perms = [...perms];
+                simulator.contextRegs[regNum].location = currentEditingCap.location;
+            } else if (regNum === 8 && simulator.cr8) {
+                simulator.cr8.perms = [...perms];
+            } else if (regNum === 15 && simulator.cr15) {
+                simulator.cr15.perms = [...perms];
+            }
+        }
+    }
+    
     const gt = encodeGoldenToken(offset, perms, spare);
     const gtHexBtn = document.getElementById('gtHexBtn');
     const gtLeBtn = document.getElementById('gtLeBtn');
