@@ -605,8 +605,7 @@ const bootSteps = [
             }
             simulator.reset();
             coldRestart = true;  // Set cold restart flag
-            // Clear editor to match reset state - no code loaded
-            setEditorCode('', '', '');
+            // Note: Editor content preserved - user code is independent of boot state
         }
     },
     {
@@ -725,8 +724,7 @@ function executeFaultRestart() {
         simulator.reset();
         bootState.step = 1; // Step 1 (Fault Restart) is now complete
         bootState.complete = false;
-        // Clear editor to match reset state - no code loaded
-        setEditorCode('', '', '');
+        // Note: Editor content preserved - user code is independent of boot state
         updateBootDisplay();
         updateDisplay();
         updateCapabilityExplorer();
