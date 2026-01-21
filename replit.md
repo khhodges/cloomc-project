@@ -56,6 +56,13 @@ The web interface is composed of five distinct views:
 
 ## Recent Changes
 
+- 2026-01-20: Updated Church instructions to 6 + TPERM format per user specification
+- 2026-01-20: LOAD requires L (Load) permission, SAVE requires S (Save) on dest + B (Bind) on source
+- 2026-01-20: CALL requires E (Enter), adds Mask field clearing, loads CR6 (nodal C-List) + CR7 (Access Code)
+- 2026-01-20: RETURN restores CR6/CR7, surrenders bound GTs automatically
+- 2026-01-20: All error messages changed to FAULT (failsafe pattern - no information leakage)
+- 2026-01-20: Added callStack for proper CALL/RETURN frame management
+- 2026-01-20: Added Export/Import buttons for tutorial edits in Tutorial footer
 - 2026-01-19: Added Church Instructions Deep Dive tutorial: comprehensive explanations for all 8 Church instructions
 - 2026-01-19: Added Failsafe Security tutorial: information leakage, single failure mode, Access.asm, FirstFault.asm
 - 2026-01-19: Added Access.asm and FirstFault.asm examples demonstrating failsafe validation pattern
