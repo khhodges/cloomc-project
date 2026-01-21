@@ -527,7 +527,7 @@ class CTMMSimulator {
                 }
                 if (!cr.perms.includes('E')) {
                     const permStr = cr.perms.length > 0 ? `[${cr.perms.join('')}]` : '[no perms]';
-                    return `FAULT: CR${crIdx} ${permStr} "${cr.name}" lacks Enter (E) permission`;
+                    return `FAULT: Source CR${crIdx} ${permStr} "${cr.name}" lacks Enter (E) permission`;
                 }
                 
                 this.callStack.push({
