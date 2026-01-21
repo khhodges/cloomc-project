@@ -3301,7 +3301,7 @@ function runProgram() {
     markEditorSaved();
     clearEditorConsole();
     editorLog('Running program...', 'info');
-    simulator.reset();
+    simulator.softReset();
     
     while (editorState.pc < editorState.program.length) {
         const instr = editorState.program[editorState.pc];
@@ -3331,7 +3331,7 @@ function stepProgram() {
         const code = document.getElementById('codeEditor').value;
         editorState.program = parseProgram(code);
         editorState.pc = 0;
-        simulator.reset();
+        simulator.softReset();
         markEditorSaved();
         clearEditorConsole();
         editorLog('Starting step execution...', 'info');

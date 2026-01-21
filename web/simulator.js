@@ -22,6 +22,20 @@ class CTMMSimulator {
         
         this.flags = { N: false, Z: false, C: false, V: false };
     }
+    
+    softReset() {
+        // Reset only data registers and flags, preserve context registers from boot
+        this.dataRegs = {};
+        for (let i = 0; i < 16; i++) {
+            this.dataRegs[i] = BigInt(0);
+        }
+        
+        this.ip = 0;
+        this.stackDepth = 0;
+        this.callStack = [];
+        
+        this.flags = { N: false, Z: false, C: false, V: false };
+    }
 
     createNullCapability() {
         return {
