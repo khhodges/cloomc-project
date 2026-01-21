@@ -1893,6 +1893,27 @@ function updateCapabilityExplorer() {
     
     if (!crGrid) return;
     
+    // Sync simulator.clist from CR6's clist entries
+    const cr6Cap = simulator.contextRegs[6];
+    if (cr6Cap && cr6Cap.clist && cr6Cap.clist.length > 0) {
+        simulator.clist = cr6Cap.clist.map(entry => {
+            const nsObj = namespaceObjects.find(o => o.offset === entry.nsOffset);
+            const isAbstraction = ['Abacus', 'SlideRule', 'Circle'].includes(entry.name) || 
+                                 (nsObj && nsObj.type === 'Abstraction');
+            return {
+                name: entry.name,
+                type: entry.type || (nsObj ? nsObj.type : 'Unknown'),
+                perms: entry.perms || [],
+                locked: isAbstraction,
+                location: { type: 'Local', offset: entry.nsOffset || 0 },
+                nsOffset: entry.nsOffset || 0,
+                size: nsObj ? (nsObj.word2_limit || nsObj.size || 1024) : 1024,
+                nsEntry: nsObj || null,
+                goldenKey: entry.goldenKey || generateGoldenKey()
+            };
+        });
+    }
+    
     // Render 16 CR buttons with type-based color coding
     crGrid.innerHTML = '';
     for (let i = 0; i < 16; i++) {
