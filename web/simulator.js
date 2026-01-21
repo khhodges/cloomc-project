@@ -352,6 +352,14 @@ class CTMMSimulator {
                            crIdx === 8 ? this.cr8 : 
                            this.cr15;
                 
+                if (!cr || cr.name === 'NULL') {
+                    this.flags.N = true;
+                    this.flags.Z = false;
+                    this.flags.C = false;
+                    this.flags.V = false;
+                    return `TPERM CR${crIdx} [NULL] - no capability loaded (Z=0)`;
+                }
+                
                 const validPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F'];
                 const maskString = String(maskStr);
                 const requiredPerms = maskString.toUpperCase().split('').filter(p => validPerms.includes(p));
@@ -402,7 +410,8 @@ class CTMMSimulator {
                 
                 const indexStr = indexArg !== undefined ? ` INDEX ${indexArg}` : "";
                 const failStr = details.length > 0 ? ` (${details.join(", ")})` : "";
-                return `TPERM CR${crIdx} ${maskStr}${indexStr} -> ${result}${failStr} (Z=${this.flags.Z ? 1 : 0}, size=${objectSize})`;
+                const actualPermStr = actualPerms.length > 0 ? `[${actualPerms.join('')}]` : '[no perms]';
+                return `TPERM CR${crIdx} ${actualPermStr} "${cr.name}" need [${maskStr}]${indexStr} -> ${result}${failStr} (Z=${this.flags.Z ? 1 : 0}, size=${objectSize})`;
             }
             
             case "B": {
@@ -426,8 +435,12 @@ class CTMMSimulator {
                 const src = srcCR < 8 ? this.contextRegs[srcCR] : 
                            srcCR === 8 ? this.cr8 : this.cr15;
                 
+                if (!src || src.name === 'NULL') {
+                    return `FAULT: CR${srcCR} [NULL] - no capability loaded`;
+                }
                 if (!src.perms.includes('L')) {
-                    return `FAULT: CR${srcCR} lacks Load permission`;
+                    const permStr = src.perms.length > 0 ? `[${src.perms.join('')}]` : '[no perms]';
+                    return `FAULT: CR${srcCR} ${permStr} "${src.name}" lacks Load (L) permission`;
                 }
                 
                 const newCap = {
@@ -457,11 +470,19 @@ class CTMMSimulator {
                 const src = srcCR < 8 ? this.contextRegs[srcCR] : 
                            srcCR === 8 ? this.cr8 : this.cr15;
                 
+                if (!dest || dest.name === 'NULL') {
+                    return `FAULT: CR${destCR} [NULL] - no capability loaded (destination)`;
+                }
+                if (!src || src.name === 'NULL') {
+                    return `FAULT: CR${srcCR} [NULL] - no capability loaded (source)`;
+                }
                 if (!dest.perms.includes('S')) {
-                    return `FAULT: CR${destCR} lacks Save permission (S required on destination C-List)`;
+                    const permStr = dest.perms.length > 0 ? `[${dest.perms.join('')}]` : '[no perms]';
+                    return `FAULT: CR${destCR} ${permStr} "${dest.name}" lacks Save (S) permission`;
                 }
                 if (!src.perms.includes('B')) {
-                    return `FAULT: CR${srcCR} lacks Bind permission (B required to save GT)`;
+                    const permStr = src.perms.length > 0 ? `[${src.perms.join('')}]` : '[no perms]';
+                    return `FAULT: CR${srcCR} ${permStr} "${src.name}" lacks Bind (B) permission`;
                 }
                 return `Saved GT from CR${srcCR} to CR${destCR}[${idx || 0}] (B-bit validated)`;
             }
@@ -471,8 +492,12 @@ class CTMMSimulator {
                 const cr = crIdx < 8 ? this.contextRegs[crIdx] : 
                           crIdx === 8 ? this.cr8 : this.cr15;
                 
+                if (!cr || cr.name === 'NULL') {
+                    return `FAULT: CR${crIdx} [NULL] - no capability loaded`;
+                }
                 if (!cr.perms.includes('E')) {
-                    return `FAULT: CR${crIdx} lacks Enter permission`;
+                    const permStr = cr.perms.length > 0 ? `[${cr.perms.join('')}]` : '[no perms]';
+                    return `FAULT: CR${crIdx} ${permStr} "${cr.name}" lacks Enter (E) permission`;
                 }
                 
                 this.callStack.push({
@@ -557,11 +582,12 @@ class CTMMSimulator {
                 const cr = crIdx < 8 ? this.contextRegs[crIdx] : 
                           crIdx === 8 ? this.cr8 : this.cr15;
                 
-                if (cr.name === 'NULL') {
-                    return `FAULT: CR${crIdx} is NULL`;
+                if (!cr || cr.name === 'NULL') {
+                    return `FAULT: CR${crIdx} [NULL] - no capability loaded`;
                 }
                 if (!cr.perms.includes('L') && !cr.perms.includes('E')) {
-                    return `FAULT: CR${crIdx} lacks Load/Enter permission for namespace switch`;
+                    const permStr = cr.perms.length > 0 ? `[${cr.perms.join('')}]` : '[no perms]';
+                    return `FAULT: CR${crIdx} ${permStr} "${cr.name}" lacks Load (L) or Enter (E) permission`;
                 }
                 this.cr15 = { ...cr, goldenKey: cr.goldenKey || this.generateKey() };
                 return `Switched namespace to ${cr.name}`;
