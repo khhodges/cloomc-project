@@ -3349,6 +3349,7 @@ function runProgram() {
     updateEditorRegisters();
     updateParsedView();
     updateDisplay();
+    updateCapabilityExplorer();
 }
 
 function stepProgram() {
@@ -3380,6 +3381,7 @@ function stepProgram() {
     updateEditorRegisters();
     highlightCurrentLine();
     updateDisplay();
+    updateCapabilityExplorer();
 }
 
 function executeEditorInstruction(instr) {
