@@ -3539,7 +3539,7 @@ function findLabel(label) {
 function resetProgram(preserveLinkage = true) {
     editorState.program = [];
     editorState.pc = 0;
-    simulator.reset();
+    simulator.softReset();
     
     clearEditorConsole();
     editorLog('Program reset', 'info');
