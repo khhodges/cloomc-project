@@ -3314,12 +3314,23 @@ function updateEditorRegisters() {
             const reg = simulator.contextRegs[i];
             const isNull = !reg || reg.name === 'NULL';
             const role = roles[i] || '';
+            let permsDisplay = '---';
+            if (reg && reg.perms && reg.perms.length > 0) {
+                if (i === 6) {
+                    const count = reg.clistCount !== undefined ? reg.clistCount : (reg.clist?.length || 0);
+                    permsDisplay = `[${count}]`;
+                } else if (i === 7) {
+                    permsDisplay = `[${reg.perms.join('')}]`;
+                } else {
+                    permsDisplay = reg.perms.join('');
+                }
+            }
             const row = document.createElement('div');
             row.className = `register-row ${isNull ? 'null' : ''}`;
             row.innerHTML = `
                 <span class="name">CR${i}${role ? ' ' + role : ''}</span>
                 <span class="value">${reg ? reg.name : 'NULL'}</span>
-                <span class="perms">${reg && reg.perms ? reg.perms.join('') : '---'}</span>
+                <span class="perms">${permsDisplay}</span>
             `;
             crContainer.appendChild(row);
         }
