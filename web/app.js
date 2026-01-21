@@ -2886,6 +2886,7 @@ function setupCodeEditor() {
     // Capture state immediately on first input, then debounce subsequent saves
     let historyTimeout = null;
     let firstInputSinceChange = true;
+    let saveTimeout = null;
     editor.addEventListener('input', () => {
         updateLineNumbers();
         checkEditorModified();
@@ -2902,6 +2903,14 @@ function setupCodeEditor() {
             pushCodeHistory(editor.value);
             firstInputSinceChange = true; // Reset for next batch of changes
         }, 1000);
+        
+        // Auto-save to localStorage on every change (debounced)
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            localStorage.setItem('ctmm_editor_content', editor.value);
+            localStorage.setItem('ctmm_editor_linkage', editorState.currentLinkage || '');
+            localStorage.setItem('ctmm_editor_perms', editorState.currentPerms || '');
+        }, 300);
     });
     editor.addEventListener('scroll', syncScroll);
     editor.addEventListener('keydown', handleTab);
