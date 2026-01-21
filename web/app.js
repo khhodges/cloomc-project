@@ -3426,129 +3426,7 @@ function loadCR7() {
     editorLog('CR7 capability loaded into editor', 'success');
 }
 
-const mintedCapabilities = [];
 
-function mintCapability() {
-    const name = document.getElementById('mintName').value.trim();
-    const locationType = document.getElementById('mintLocationType').value;
-    const locationValue = document.getElementById('mintLocation').value.trim();
-    const targetReg = parseInt(document.getElementById('mintTarget').value);
-    const size = parseInt(document.getElementById('mintSize').value);
-    
-    if (!name) {
-        dnsLog('ERROR: Capability name is required', 'error');
-        return;
-    }
-    
-    if (!locationValue) {
-        dnsLog('ERROR: Location is required', 'error');
-        return;
-    }
-    
-    let location;
-    if (locationType === 'local') {
-        const offset = parseInt(locationValue);
-        if (isNaN(offset)) {
-            dnsLog('ERROR: Local location requires a numeric offset', 'error');
-            return;
-        }
-        location = { type: 'Local', offset: offset };
-    } else {
-        location = { type: 'Literal', name: locationValue };
-    }
-    
-    const perms = [];
-    if (document.getElementById('mintPermR').checked) perms.push('R');
-    if (document.getElementById('mintPermW').checked) perms.push('W');
-    if (document.getElementById('mintPermX').checked) perms.push('X');
-    if (document.getElementById('mintPermL').checked) perms.push('L');
-    if (document.getElementById('mintPermS').checked) perms.push('S');
-    if (document.getElementById('mintPermE').checked) perms.push('E');
-    if (document.getElementById('mintPermB').checked) perms.push('B');
-    
-    if (perms.length === 0) {
-        dnsLog('WARNING: No permissions selected - capability will have no access rights', 'warning');
-    }
-    
-    const goldenKey = generateGoldenKey();
-    
-    const newCapability = {
-        name: name,
-        location: location,
-        perms: perms,
-        size: size,
-        locked: true,
-        goldenKey: goldenKey
-    };
-    
-    simulator.contextRegs[targetReg] = newCapability;
-    
-    mintedCapabilities.push({
-        ...newCapability,
-        targetReg: targetReg,
-        timestamp: new Date().toLocaleTimeString()
-    });
-    
-    updateMintPreview(newCapability, targetReg);
-    updateRegistryList();
-    dnsLog(`MINTED: ${name} [${perms.join('')}] -> CR${targetReg}`, 'success');
-    
-    updateDisplay();
-    updateCapabilityExplorer();
-    log(`Capability minted: ${name} [${perms.join('')}] in CR${targetReg}`, 'success');
-}
-
-function updateMintPreview(cap, targetReg) {
-    const preview = document.getElementById('mintPreview');
-    const locationStr = cap.location.type === 'Local' 
-        ? `local:${cap.location.offset}` 
-        : cap.location.name;
-    
-    const sizeStr = cap.size >= 1048576 ? `${cap.size / 1048576} MB` :
-                    cap.size >= 1024 ? `${cap.size / 1024} KB` : 
-                    `${cap.size} bytes`;
-    
-    let permsHtml = cap.perms.map(p => `<span class="preview-perm">${p}</span>`).join('');
-    if (permsHtml === '') permsHtml = '<span class="preview-perm" style="opacity: 0.5;">---</span>';
-    
-    preview.innerHTML = `
-        <div class="preview-token">
-            <div class="preview-token-header">
-                <span class="preview-token-icon">🔑</span>
-                <span class="preview-token-name">${cap.name}</span>
-            </div>
-            <div class="preview-token-key">${cap.goldenKey}</div>
-            <div class="preview-token-perms">${permsHtml}</div>
-            <div class="preview-token-target">CR${targetReg} | ${locationStr} | ${sizeStr}</div>
-        </div>
-    `;
-}
-
-function updateRegistryList() {
-    const list = document.getElementById('registryList');
-    
-    if (mintedCapabilities.length === 0) {
-        list.innerHTML = '<div class="registry-empty">No capabilities minted yet</div>';
-        return;
-    }
-    
-    let html = '';
-    mintedCapabilities.slice().reverse().forEach(cap => {
-        const permsHtml = cap.perms.map(p => {
-            const permClass = `perm-${p.toLowerCase()}`;
-            return `<span class="registry-item-perm ${permClass}">${p}</span>`;
-        }).join('');
-        
-        html += `
-            <div class="registry-item">
-                <span class="registry-item-name">${cap.name} (CR${cap.targetReg})</span>
-                <div class="registry-item-perms">${permsHtml}</div>
-            </div>
-        `;
-    });
-    
-    list.innerHTML = html;
-}
 
 function dnsLog(message, type = 'info') {
     const logOutput = document.getElementById('dnsLogOutput');
@@ -4742,7 +4620,7 @@ FAULT             ; Uniform failure</pre>
                     <li><strong>No context switches</strong> - Capabilities eliminate kernel trap overhead</li>
                 </ul>
                 <div class="key-concept">
-                    <strong>Key Insight:</strong> Security becomes a compile-time/mint-time cost, not a runtime cost.
+                    <strong>Key Insight:</strong> Security becomes a compile-time cost, not a runtime cost.
                 </div>`,
                 demo: `<div class="demo-title">Traditional vs. Capability Access</div>
                 <div class="demo-content">
@@ -5037,7 +4915,7 @@ Client side:
                     <li><strong>Batching</strong> - Multiple remote calls combined into single request</li>
                     <li><strong>Connection pooling</strong> - Reuse connections to same remote host</li>
                 </ul>
-                <p>The key insight: <strong>capability validation happens once</strong> when the GT is minted, not on every remote call.</p>`,
+                <p>The key insight: <strong>capability validation happens once</strong> when the GT is created, not on every remote call.</p>`,
                 demo: `<div class="demo-title">Performance Optimization</div>
                 <div class="demo-content">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -5370,7 +5248,7 @@ LOAD 2 7 5      ; Get from Nucleus entry 5</pre>
 SAVE CR[source] CR[dest] 5
 
 ; Build a new C-List by storing capabilities:
-f(MINT)         ; CR0 = new empty C-List GT
+; (allocate new C-List GT)
 SAVE 0 1 0      ; Store CR1 as entry 0
 ; Now CR0 is a C-List with 1 new entry
 
@@ -5586,46 +5464,6 @@ B NE fault
                 </div>`
             },
             {
-                text: `<h3>MINT: Creating New Golden Tokens</h3>
-                <p>The <strong>MINT</strong> instruction creates a new Golden Token, allocating space in the Namespace.</p>
-                <p><strong>What happens during MINT:</strong></p>
-                <ol>
-                    <li><strong>Permission Check</strong> - Caller must have E (Extend) permission on parent</li>
-                    <li><strong>Find Free Slot</strong> - Locate next available Namespace entry</li>
-                    <li><strong>Allocate Entry</strong> - Create 3-word descriptor (Location, Limit, Seals)</li>
-                    <li><strong>Generate GT</strong> - Create GT with specified permissions</li>
-                    <li><strong>Calculate MAC</strong> - Hardware generates integrity code</li>
-                    <li><strong>Return in CR0</strong> - New GT available for use</li>
-                </ol>
-                <p><strong>MINT is creation:</strong> This is the ONLY way to create new capabilities. You cannot forge a GT - only MINT can produce valid ones.</p>`,
-                demo: `<div class="demo-title">MINT Instruction Examples</div>
-                <div class="demo-content">
-                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
-; Syntax: MINT
-; Returns: CR0 = new GT with default permissions
-
-; Create a new empty object:
-MINT              ; CR0 = new GT
-SAVE 6 0 10       ; Store new GT in C-List[10]
-
-; Create and immediately use:
-MINT              ; CR0 = new object GT
-SAVE 0 1 0        ; Store some capability in it
-SAVE 0 2 1        ; Store another
-; Now CR0 points to an object with 2 GT entries
-
-; Create with specific permissions:
-MINT              ; CR0 = new GT (default perms)
-; Use TPERM to verify, modify as needed
-
-; Building a new C-List:
-MINT              ; CR0 = empty C-List
-SAVE 0 7 0        ; Add Nucleus reference
-SAVE 0 8 1        ; Add Thread reference
-CHANGE 0          ; Use as new capability context</pre>
-                </div>`
-            },
-            {
                 text: `<h3>Church Instructions Summary</h3>
                 <p>The <strong>6 Church instructions</strong> plus TPERM form a complete <strong>capability manipulation language</strong>:</p>
                 <div class="key-concept" style="border-color: var(--accent);">
@@ -5690,17 +5528,17 @@ FAULT             ; Uniform failure</pre>
                 </div>`,
                 interactive: {
                     type: "quiz",
-                    question: "Which Church instruction is the ONLY way to create a new Golden Token?",
+                    question: "Which Church instruction transfers control to an abstraction?",
                     options: [
                         "LOAD - loads capabilities from memory",
                         "SAVE - stores capabilities to memory",
-                        "MINT - allocates and creates new GTs",
-                        "CHANGE - switches to a different C-List"
+                        "CALL - invokes abstraction with E permission",
+                        "CHANGE - switches thread identity"
                     ],
                     correct: 2,
                     feedback: {
-                        correct: "Correct! MINT is the only instruction that can create new Golden Tokens. This is fundamental to capability security - you cannot forge capabilities, only mint new ones with proper authorization.",
-                        incorrect: "Not quite. MINT is the only instruction that creates new GTs. LOAD/SAVE only move existing GTs, and CHANGE switches contexts."
+                        correct: "Correct! CALL is the instruction that transfers control to abstractions. It requires the E (Enter) permission on the target GT.",
+                        incorrect: "Not quite. CALL is the instruction for invoking abstractions. LOAD/SAVE move GTs, and CHANGE switches thread identity."
                     }
                 }
             }
@@ -7005,87 +6843,6 @@ function getNextFreeNamespaceOffset() {
     return maxOffset + 1;
 }
 
-// MINT: Create a new Golden Token capability
-function confirmLinkModal() {
-    const source = document.getElementById('linkSource').value;
-    
-    closeLinkModal();
-    
-    // Find source object to copy properties from
-    const sourceObj = findObject(source);
-    if (!sourceObj) {
-        log(`MINT ERROR: Source object "${source}" not found`, 'error');
-        return;
-    }
-    
-    // Get next free namespace slot
-    const newOffset = getNextFreeNamespaceOffset();
-    const newLocation = newOffset * 0x1000; // Each object gets 4K address space
-    
-    // Generate unique name for minted capability
-    const mintedName = `${source}_minted_${newOffset}`;
-    
-    // Always normalize permissions (enforces all rules)
-    const originalPerms = sourceObj.perms ? [...sourceObj.perms] : ['R'];
-    let mintPerms = normalizePermissions(originalPerms);
-    
-    // Log any changes made by normalization
-    if (JSON.stringify(originalPerms) !== JSON.stringify(mintPerms)) {
-        log(`Permissions normalized: ${originalPerms.join(',')} → ${mintPerms.join(',')}`, 'warn');
-    }
-    
-    // Create new namespace entry (3-word format)
-    const newNamespaceEntry = {
-        offset: newOffset,
-        location: newLocation,
-        name: mintedName,
-        type: sourceObj.type || 'Data',
-        perms: mintPerms,
-        size: sourceObj.size || 1024,
-        word1_location: newLocation,
-        word2_limit: sourceObj.size || 1024,
-        word3_seals: 0n,
-        tooltip: `MINTED from ${source}. Created by MINT operation at offset ${newOffset}.`,
-        mintedFrom: source,
-        mintedAt: new Date().toISOString()
-    };
-    
-    // Add to namespace table
-    namespaceObjects.push(newNamespaceEntry);
-    
-    // Create GT structure for CR0
-    const permsValue = calculatePermissionBits(newNamespaceEntry.perms);
-    const newGT = {
-        name: mintedName,
-        type: newNamespaceEntry.type,
-        perms: newNamespaceEntry.perms,
-        nsOffset: newOffset,
-        location: { offset: newOffset },
-        offset: newOffset,
-        permissions: permsValue,
-        spare: 0,
-        description: `GT for ${mintedName} (MINTED from ${source})`,
-        // 64-bit GT: Offset[0:31] | Spare[32:47] | Perms[48:63]
-        value: BigInt(newOffset) | (BigInt(permsValue) << 48n)
-    };
-    
-    // Load the new GT into CR0 (return value register)
-    // GT remains in CR0 until RETURN releases it
-    contextRegisters[0] = newGT;
-    
-    // Update displays
-    updateNamespaceDisplay();
-    updateRegisterDisplay();
-    
-    // Switch to Capabilities view to show the result
-    switchView('capabilities');
-    
-    // Select and display the new capability
-    setTimeout(() => {
-        updateCapabilityDetail(newGT);
-        log(`MINT: Created GT for "${mintedName}" at NS offset ${newOffset}, loaded in CR0 (use SAVE to persist to C-List)`, 'info');
-    }, 100);
-}
 
 // Calculate permission bits from permission array
 function calculatePermissionBits(perms) {
@@ -8912,24 +8669,6 @@ const churchInstrFormats = [
         variants: [
             { name: "Full mask", fields: { Perms: "All 9 permission bits" } },
             { name: "Partial mask", fields: { Perms: "Selected bits only" } }
-        ]
-    },
-    {
-        name: "MINT",
-        brief: "Create new capability",
-        syntax: "MINT CRd, perms, size",
-        desc: "Mint new Golden Token in next free Namespace slot.",
-        format: [
-            { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "001000", desc: "MINT opcode" },
-            { name: "CRd", bits: 3, desc: "Destination CR (0-7)" },
-            { name: "Reserved", bits: 1, value: "0", desc: "Reserved" },
-            { name: "Perms", bits: 9, desc: "Initial permissions" },
-            { name: "Size", bits: 9, desc: "Object size (encoded)" }
-        ],
-        variants: [
-            { name: "Fixed", fields: { Size: "Encoded size 0-511" } },
-            { name: "Register", fields: { Size: "From DRn[8:0]" } }
         ]
     }
 ];

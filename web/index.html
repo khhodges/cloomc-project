@@ -130,7 +130,6 @@
                 <div class="toolbar-buttons">
                     <button class="btn btn-toolbar tooltip-bottom" onclick="toolbarAction('add')" data-tooltip="Add new object as child of selected">+ Add</button>
                     <button class="btn btn-toolbar tooltip-bottom" onclick="toolbarAction('edit')" data-tooltip="Edit selected object properties">Edit</button>
-                    <button class="btn btn-toolbar tooltip-bottom" onclick="toolbarAction('link')" data-tooltip="MINT a new Golden Token capability">MINT</button>
                     <button class="btn btn-toolbar btn-danger tooltip-bottom" onclick="toolbarAction('delete')" data-tooltip="Delete selected object from namespace">Delete</button>
                     <span class="toolbar-separator"></span>
                     <button class="btn btn-toolbar tooltip-bottom" onclick="exportNamespaceState()" data-tooltip="Export namespace state to JSON file">Export</button>
@@ -350,108 +349,10 @@
 
         <section id="dnseditor" class="view" style="display:none;">
             <div class="dns-layout">
-                <div class="dns-panel dns-mint">
-                    <h2>MINT New Capability</h2>
-                    <p class="dns-intro">Create a new Golden Token with custom access rights</p>
-                    
-                    <div class="mint-form">
-                        <div class="mint-field">
-                            <label>Capability Name</label>
-                            <input type="text" id="mintName" placeholder="e.g., USER_FILE, API_KEY" value="NEW_CAP">
-                        </div>
-                        
-                        <div class="mint-field">
-                            <label>Location Type</label>
-                            <select id="mintLocationType">
-                                <option value="literal">Literal (Named Resource)</option>
-                                <option value="local">Local (Offset-based)</option>
-                            </select>
-                            <input type="text" id="mintLocation" placeholder="Resource name or offset" value="user.data">
-                        </div>
-                        
-                        <div class="mint-field">
-                            <label>Capability Size (bytes)</label>
-                            <select id="mintSize">
-                                <option value="64">64 bytes (Minimal)</option>
-                                <option value="256">256 bytes (Small)</option>
-                                <option value="1024" selected>1 KB (Standard)</option>
-                                <option value="4096">4 KB (Page)</option>
-                                <option value="65536">64 KB (Large)</option>
-                                <option value="1048576">1 MB (Huge)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mint-field">
-                            <label>Access Permissions</label>
-                            <div class="mint-perms">
-                                <label class="mint-perm" title="Read - View data or code">
-                                    <input type="checkbox" id="mintPermR" checked>
-                                    <span class="perm-badge perm-r">R</span>
-                                </label>
-                                <label class="mint-perm" title="Write - Modify data">
-                                    <input type="checkbox" id="mintPermW">
-                                    <span class="perm-badge perm-w">W</span>
-                                </label>
-                                <label class="mint-perm" title="Execute - Run as code">
-                                    <input type="checkbox" id="mintPermX">
-                                    <span class="perm-badge perm-x">X</span>
-                                </label>
-                                <label class="mint-perm" title="Load - Load capabilities from children">
-                                    <input type="checkbox" id="mintPermL">
-                                    <span class="perm-badge perm-l">L</span>
-                                </label>
-                                <label class="mint-perm" title="Store - Store capabilities to children">
-                                    <input type="checkbox" id="mintPermS">
-                                    <span class="perm-badge perm-s">S</span>
-                                </label>
-                                <label class="mint-perm" title="Enter - Switch namespace or call procedure">
-                                    <input type="checkbox" id="mintPermE">
-                                    <span class="perm-badge perm-e">E</span>
-                                </label>
-                                <label class="mint-perm" title="Bind - Save token to namespace DNA">
-                                    <input type="checkbox" id="mintPermB">
-                                    <span class="perm-badge perm-b">B</span>
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="mint-field">
-                            <label>Target Register</label>
-                            <select id="mintTarget">
-                                <option value="1" selected>CR1 (Default)</option>
-                                <option value="0">CR0</option>
-                                <option value="2">CR2</option>
-                                <option value="3">CR3</option>
-                                <option value="4">CR4</option>
-                                <option value="5">CR5</option>
-                            </select>
-                        </div>
-                        
-                        <button onclick="mintCapability()" class="btn btn-mint" data-tooltip="Create a new Golden Token with the specified permissions and store it in the target register.">MINT Capability</button>
-                    </div>
-                </div>
-                
-                <div class="dns-panel dns-result">
-                    <h2>Minted Token Preview</h2>
-                    <div class="mint-preview" id="mintPreview">
-                        <div class="preview-empty">
-                            <p>Configure and MINT a capability to see it here</p>
-                        </div>
-                    </div>
-                    
-                    <div class="dns-registry">
-                        <h3>Capability Registry</h3>
-                        <p class="dns-intro">All minted capabilities in this session</p>
-                        <div class="registry-list" id="registryList">
-                            <div class="registry-empty">No capabilities minted yet</div>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="dns-panel dns-log">
                     <h3>DNS Operations Log</h3>
                     <div class="dns-log-output" id="dnsLogOutput">
-                        <div class="log-entry log-info">DNS Editor initialized. Ready to MINT capabilities.</div>
+                        <div class="log-entry log-info">DNS Editor initialized.</div>
                     </div>
                 </div>
             </div>
@@ -562,11 +463,6 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
         <div class="context-menu-item" onclick="contextMenuAction('edit')">
             <span class="menu-icon">✎</span>
             <span>Edit Object</span>
-        </div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" onclick="contextMenuAction('link')">
-            <span class="menu-icon">🔑</span>
-            <span>MINT Capability</span>
         </div>
         <div class="context-menu-separator"></div>
         <div class="context-menu-item" onclick="contextMenuAction('delete')">
@@ -763,43 +659,6 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
             <div class="modal-footer">
                 <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
                 <button class="modal-btn modal-btn-danger" onclick="confirmDeleteCapability()">Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MINT Capability Modal -->
-    <div class="modal-overlay" id="linkModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🔑 MINT New Capability</h3>
-                <button class="modal-close" onclick="closeLinkModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                    MINT creates a new Golden Token in the next free Namespace slot and returns it in CR0. The GT remains accessible until RETURN releases the register.
-                </p>
-                <div class="modal-field">
-                    <label>Source Object</label>
-                    <input type="text" id="linkSource" readonly>
-                </div>
-                <div class="mint-info" style="background: var(--bg-tertiary); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem;">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                        <strong>MINT will:</strong>
-                        <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
-                            <li>Allocate next free Namespace offset</li>
-                            <li>Create 3-word Namespace entry (W1, W2, W3)</li>
-                            <li>Generate GT with source permissions</li>
-                            <li>Load new GT into CR0</li>
-                        </ul>
-                        <p style="margin-top: 0.5rem; font-style: italic;">
-                            Note: To persist the GT beyond RETURN, use SAVE to add it to a C-List programmatically.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-cancel" onclick="closeLinkModal()">Cancel</button>
-                <button class="modal-btn modal-btn-confirm" onclick="confirmLinkModal()">🔑 MINT</button>
             </div>
         </div>
     </div>

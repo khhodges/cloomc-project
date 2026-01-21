@@ -45,7 +45,6 @@ The web interface is composed of five distinct views:
 -   **State Persistence**: Automatic saving and restoring of simulator state using local storage.
 -   **Export/Import**: Functionality to export and import the complete simulator state as a JSON file.
 -   **Permission Management**: Permission validation rules are implemented, defining categories (Data, Capability, Protected, Meta) and ensuring normalization across all mutation paths.
--   **MINT Operation**: Creates a new GT in the next free Namespace slot, allocates a 3-word entry, and returns the GT in CR0.
 -   **Failsafe Security**: All validation failures use single FAULT handler - no error codes, no information leakage. Access.asm validates inputs, FirstFault.asm handles all failures uniformly.
 
 ## External Dependencies
@@ -70,7 +69,8 @@ The web interface is composed of five distinct views:
 - 2026-01-20: All error messages changed to FAULT (failsafe pattern - no information leakage)
 - 2026-01-20: Added callStack for proper CALL/RETURN frame management
 - 2026-01-20: Added Export/Import buttons for tutorial edits in Tutorial footer
-- 2026-01-19: Added Church Instructions Deep Dive tutorial: comprehensive explanations for all 8 Church instructions
+- 2026-01-21: Removed all MINT instruction references from codebase (6 Church instructions + TPERM only)
+- 2026-01-19: Added Church Instructions Deep Dive tutorial: comprehensive explanations for Church instructions
 - 2026-01-19: Added Failsafe Security tutorial: information leakage, single failure mode, Access.asm, FirstFault.asm
 - 2026-01-19: Added Access.asm and FirstFault.asm examples demonstrating failsafe validation pattern
 - 2026-01-19: Fixed all code examples to use FAULT instead of error codes (capcheck, ycombinator, tutorials)
@@ -85,7 +85,7 @@ The web interface is composed of five distinct views:
 - 2026-01-19: Bit fields have hover tooltips explaining each field's purpose and encoding
 - 2026-01-18: Instructions page redesigned as ARM binary format design reference with visual bit-field diagrams
 - 2026-01-18: Each instruction shows 32-bit encoding with field names, bit positions, widths, and variants
-- 2026-01-18: Church instructions: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, MINT with binary formats
+- 2026-01-18: Church instructions: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM with binary formats
 - 2026-01-18: Turing instructions: Data Processing, Multiply, Branch, Load/Store, Shift with ARM-style encoding
 - 2026-01-18: Added Instructions view with Church/Turing tabs and hover tooltips
 - 2026-01-18: Comprehensive permission validation: M clears software perms, Data/Capability mutually exclusive
