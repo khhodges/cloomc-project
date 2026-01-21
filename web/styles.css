@@ -2884,6 +2884,22 @@ main {
     grid-template-columns: 0 1fr 0 280px;
 }
 
+.editor-content.hide-output .editor-output-panel {
+    display: none;
+}
+
+.editor-content.hide-examples.hide-output {
+    grid-template-columns: 0 1fr 180px 0;
+}
+
+.editor-content.hide-registers.hide-output {
+    grid-template-columns: 120px 1fr 0 0;
+}
+
+.editor-content.hide-examples.hide-registers.hide-output {
+    grid-template-columns: 1fr;
+}
+
 /* Full code expansion - hide all side panels */
 .editor-content.full-code {
     grid-template-columns: 1fr;

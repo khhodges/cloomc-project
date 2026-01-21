@@ -3075,16 +3075,21 @@ function toggleExamplesPanel() {
     const content = document.querySelector('.editor-content');
     const btn = document.getElementById('toggleExamples');
     const fullBtn = document.getElementById('toggleFullCode');
+    const regBtn = document.getElementById('toggleRegisters');
     
     if (content.classList.contains('full-code')) {
         content.classList.remove('full-code');
         fullBtn.classList.remove('active');
         fullBtn.textContent = 'Expand';
+        content.classList.add('hide-registers');
+        content.classList.add('hide-output');
+        regBtn.classList.remove('active');
     }
     
     content.classList.toggle('hide-examples');
     btn.classList.toggle('active', !content.classList.contains('hide-examples'));
     
+    updateExpandButtonState();
     saveEditorPanelState();
 }
 
@@ -3092,17 +3097,37 @@ function toggleRegistersPanel() {
     const content = document.querySelector('.editor-content');
     const btn = document.getElementById('toggleRegisters');
     const fullBtn = document.getElementById('toggleFullCode');
+    const exBtn = document.getElementById('toggleExamples');
     
     if (content.classList.contains('full-code')) {
         content.classList.remove('full-code');
         fullBtn.classList.remove('active');
         fullBtn.textContent = 'Expand';
+        content.classList.add('hide-examples');
+        content.classList.add('hide-output');
+        exBtn.classList.remove('active');
     }
     
     content.classList.toggle('hide-registers');
     btn.classList.toggle('active', !content.classList.contains('hide-registers'));
     
+    updateExpandButtonState();
     saveEditorPanelState();
+}
+
+function updateExpandButtonState() {
+    const content = document.querySelector('.editor-content');
+    const fullBtn = document.getElementById('toggleFullCode');
+    
+    const allHidden = content.classList.contains('hide-examples') && 
+                      content.classList.contains('hide-registers') &&
+                      content.classList.contains('hide-output');
+    
+    if (allHidden && !content.classList.contains('full-code')) {
+        content.classList.add('full-code');
+        fullBtn.classList.add('active');
+        fullBtn.textContent = 'Collapse';
+    }
 }
 
 function toggleFullCode() {
@@ -3114,12 +3139,13 @@ function toggleFullCode() {
     const isExpanded = content.classList.toggle('full-code');
     
     if (isExpanded) {
-        content.classList.remove('hide-examples', 'hide-registers');
+        content.classList.add('hide-examples', 'hide-registers', 'hide-output');
         fullBtn.classList.add('active');
         fullBtn.textContent = 'Collapse';
         exBtn.classList.remove('active');
         regBtn.classList.remove('active');
     } else {
+        content.classList.remove('hide-examples', 'hide-registers', 'hide-output');
         fullBtn.classList.remove('active');
         fullBtn.textContent = 'Expand';
         exBtn.classList.add('active');
@@ -3145,6 +3171,7 @@ function saveEditorPanelState() {
     const state = {
         hideExamples: content.classList.contains('hide-examples'),
         hideRegisters: content.classList.contains('hide-registers'),
+        hideOutput: content.classList.contains('hide-output'),
         fullCode: content.classList.contains('full-code')
     };
     localStorage.setItem('ctmm_editor_panels', JSON.stringify(state));
@@ -3162,7 +3189,7 @@ function restoreEditorPanelState() {
         const fullBtn = document.getElementById('toggleFullCode');
         
         if (state.fullCode) {
-            content.classList.add('full-code');
+            content.classList.add('full-code', 'hide-examples', 'hide-registers', 'hide-output');
             fullBtn.classList.add('active');
             fullBtn.textContent = 'Collapse';
             exBtn.classList.remove('active');
@@ -3179,6 +3206,9 @@ function restoreEditorPanelState() {
                 regBtn.classList.remove('active');
             } else {
                 regBtn.classList.add('active');
+            }
+            if (state.hideOutput) {
+                content.classList.add('hide-output');
             }
         }
     } catch (e) {
