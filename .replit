@@ -32,7 +32,7 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["python", "web/server.py"]
+run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--chdir=web", "app:app"]
 
 [nix]
 channel = "stable-25_05"
