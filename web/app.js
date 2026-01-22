@@ -9002,7 +9002,97 @@ type_trap:
 divzero_trap:
     ; CRITICAL: Division by zero attempted
     ; This is a fatal arithmetic exception
-    ; Hardware halts and reports fault`
+    ; Hardware halts and reports fault`,
+
+    GT_CREATE: `; ====================================================
+; GT_CREATE (CapabilityManager): Create New Golden Token
+; Allocates a new object and returns a GT with permissions
+; API: DR0=type (0=Data, 1=C-List), DR1=size in words
+; Returns: CR0 = new GT with appropriate permissions
+; ====================================================
+; Register usage:
+;   DR0 = type (0=Data Object, 1=C-List)
+;   DR1 = size in words (object capacity)
+;   CR0 = output: new Golden Token
+; Permission Sets:
+;   Data:   [R,W,X,B] - Read, Write, Execute, Bind
+;   C-List: [L,S,E,B] - Load, Save, Enter, Bind
+; ====================================================
+
+; === PARAMETER VALIDATION ===
+; Step 1: Validate type is valid (0 or 1)
+CMP 0 0             ; Check if DR0 == 0 (Data)
+B EQ valid_type
+CMP 0 1             ; Check if DR0 == 1 (C-List)
+B EQ valid_type
+B NE fault          ; Invalid type -> FAULT
+
+valid_type:
+; Step 2: Validate size is reasonable (1-65536 words)
+CMP 1 0             ; Check DR1 > 0
+B LE fault          ; Size <= 0 -> FAULT
+MOV 2 65536         ; Maximum size
+CMP 1 2
+B GT fault          ; Size > 65536 -> FAULT
+
+; === NAMESPACE ALLOCATION ===
+; Step 3: Find free slot in Namespace Table
+; Hardware searches for unused entry (W0[valid]=0)
+; Allocates 3-word descriptor:
+;   W0: Location (base address in memory)
+;   W1: Limit (size in words - 1)
+;   W2: Seals (MAC, type metadata)
+
+; Step 4: Allocate memory for the object
+; Hardware allocates DR1 words of zeroed memory
+; Sets W0 = allocated base address
+; Sets W1 = DR1 - 1 (limit is size-1)
+; Sets W2 = calculated MAC + type bits
+
+; === GOLDEN TOKEN CONSTRUCTION ===
+; Step 5: Build 64-bit Golden Token
+; Bits 0-31:  Offset into Namespace Table
+; Bits 32-40: Permissions (based on type)
+; Bits 41-63: Spare/reserved
+
+; Step 6: Set permissions based on type
+CMP 0 0             ; Is this a Data object?
+B EQ data_perms
+B NE clist_perms
+
+data_perms:
+; Data object: grant [R,W,X,B]
+; Allows reading, writing, executing, and binding
+; R = Read data values     (bit 0 = 0x01)
+; W = Write data values    (bit 1 = 0x02)
+; X = Execute as code      (bit 2 = 0x04)
+; B = Bind into C-Lists    (bit 6 = 0x40)
+MOV 0 #0x47         ; R+W+X+B = 0x01+0x02+0x04+0x40 = 0x47
+B done_perms
+
+clist_perms:
+; C-List object: grant [L,S,E,B]
+; Allows loading, saving, entering, and binding
+; L = Load GTs from C-List (bit 3 = 0x08)
+; S = Save GTs into C-List (bit 4 = 0x10)
+; E = Enter/CALL through   (bit 5 = 0x20)
+; B = Bind into parents    (bit 6 = 0x40)
+MOV 0 #0x78         ; L+S+E+B = 0x08+0x10+0x20+0x40 = 0x78
+
+done_perms:
+; Step 7: Store new GT in CR0 for caller
+; Hardware constructs GT from:
+;   - Namespace offset (from allocation)
+;   - Permissions (from DR0)
+;   - Valid bit set
+
+; CR0 now contains the new Golden Token
+; Caller owns full permissions to the new object
+RETURN              ; Return with GT in CR0
+
+; === FAILSAFE: No error codes ===
+fault:
+    FAULT           ; Uniform failure - no information leakage`
 };
 
 function openFunctionInEditor(funcName, parentAbstraction) {
