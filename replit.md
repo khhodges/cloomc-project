@@ -41,7 +41,7 @@ The web interface is composed of seven distinct views:
 
 ### Key Features
 
--   **Built-in Abstractions**: Includes `Boot` (root namespace), `Threads` (user identities), `SlideRule` (IEEE 754 float operations), `Abacus` (64-bit integer operations), `Circle` (geometric calculations), and `CapabilityManager` (GT creation).
+-   **Built-in Abstractions**: Includes `Boot` (root namespace), `Threads` (user identities), `SlideRule` (IEEE 754 float operations), `Abacus` (64-bit integer operations), `Circle` (geometric calculations), `CapabilityManager` (GT creation), and `DateTime` (ISO 8601 date/time).
 -   **CapabilityManager Abstraction**: Creates new Golden Tokens for objects.
     -   **Namespace Position**: Offset 9, child of Boot, sibling to other abstractions
     -   **Boot C-List Entry**: [E] permission (Enter only)
@@ -63,6 +63,9 @@ The web interface is composed of seven distinct views:
 
 ## Recent Changes
 
+- 2026-01-22: Added DateTime abstraction (NS offset 10, Boot C-List index 8): ISO 8601 date/time with modes for timestamp, date, time, epoch, and components
+- 2026-01-22: DateTime API: DR0=mode (0=ISO, 1=Date, 2=Time, 3=Unix epoch, 4=Components) returns DR1-DR6 for components
+- 2026-01-22: Added DateTime example button in Assembly Editor demonstrating epoch and component retrieval
 - 2026-01-22: Added user authentication with Replit Auth - users can sign in, save/load their simulator state to server
 - 2026-01-22: Added PostgreSQL database for storing user accounts and simulator states
 - 2026-01-22: Flask backend replaces simple HTTP server - supports API endpoints for state persistence

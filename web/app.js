@@ -328,7 +328,11 @@ const namespaceObjects = [
     // Offset 9: CapabilityManager abstraction
     { offset: 9, name: "CapabilityManager", type: "Abstraction",
       word1_location: 0x8000, word2_limit: 0x1000, word3_seals: 0n,
-      tooltip: "CapabilityManager [CAPABILITY] - Creates new Golden Tokens. API: DR0=type (0=Data, 1=C-List), DR1=size. Returns CR0 with [RWXB] or [LSEB]." }
+      tooltip: "CapabilityManager [CAPABILITY] - Creates new Golden Tokens. API: DR0=type (0=Data, 1=C-List), DR1=size. Returns CR0 with [RWXB] or [LSEB]." },
+    // Offset 10: DateTime abstraction
+    { offset: 10, name: "DateTime", type: "Abstraction",
+      word1_location: 0x9000, word2_limit: 0x1000, word3_seals: 0n,
+      tooltip: "DateTime [TIME] - ISO 8601 date/time. API: DR0=mode (0=ISO timestamp, 1=Date, 2=Time, 3=Unix epoch, 4=Components). Returns DR1-DR6 for components." }
 ];
 
 // Boot C-List at Namespace offset 2
@@ -366,7 +370,11 @@ const bootCList = {
         // Index 7: CapabilityManager abstraction - GT pointing to NS offset 9
         // E = Enter only (minimal privilege for calling)
         { index: 7, name: "CapabilityManager", nsOffset: 9, perms: ["E"], type: "Abstraction", 
-          desc: "Creates new Golden Tokens", size: 0x1000 }
+          desc: "Creates new Golden Tokens", size: 0x1000 },
+        // Index 8: DateTime abstraction - GT pointing to NS offset 10
+        // E = Enter only, B = Bind (can return GT references)
+        { index: 8, name: "DateTime", nsOffset: 10, perms: ["E", "B"], type: "Abstraction", 
+          desc: "ISO 8601 date/time functions", size: 0x1000 }
     ]
 };
 
@@ -595,6 +603,20 @@ const abstractionCLists = {
             { name: "GT_CREATE", type: "Function", perms: ["R", "X"], desc: "Create new GT: DR0=type, DR1=size → CR0", base: 0x8100, size: 512 },
             { name: "LocalCode", type: "Code", perms: ["R", "X"], base: 0x8000, size: 256 },
             { name: "LocalData", type: "Data", perms: ["R", "W"], base: 0x8600, size: 512 }
+        ]
+    },
+    DateTime: {
+        name: "DateTime",
+        mathType: "TIME",
+        description: "ISO 8601 date/time. API: DR0=mode (0=ISO timestamp, 1=Date, 2=Time, 3=Unix epoch, 4=Components). Components return in DR1-DR6.",
+        clist: [
+            { name: "GT_DATETIME", type: "Function", perms: ["R", "X"], desc: "Get date/time: DR0=mode → DR1-DR6 or string GT", base: 0x9100, size: 512 },
+            { name: "GT_TIMESTAMP", type: "Function", perms: ["R", "X"], desc: "ISO 8601 full timestamp string", base: 0x9200, size: 256 },
+            { name: "GT_DATE", type: "Function", perms: ["R", "X"], desc: "ISO 8601 date only (YYYY-MM-DD)", base: 0x9300, size: 256 },
+            { name: "GT_TIME", type: "Function", perms: ["R", "X"], desc: "ISO 8601 time only (HH:MM:SS)", base: 0x9400, size: 256 },
+            { name: "GT_EPOCH", type: "Function", perms: ["R", "X"], desc: "Unix epoch seconds in DR1", base: 0x9500, size: 128 },
+            { name: "LocalCode", type: "Code", perms: ["R", "X"], base: 0x9000, size: 256 },
+            { name: "LocalData", type: "Data", perms: ["R", "W"], base: 0x9600, size: 512 }
         ]
     }
 };
@@ -1024,15 +1046,17 @@ function buildHierarchyTree() {
         'SlideRule': '[FLOAT] IEEE 754 floating-point. CALL to use: ADD, SUB, MUL, DIV, LOG, EXP, SQRT, POW',
         'Abacus': '[INTEGER] 64-bit integer arithmetic. CALL to use: ADD, SUB, MUL, DIV, MOD, ABS, NEG, INC, DEC',
         'Circle': '[GEOMETRY] Circle calculations (uses floats). PI, TWO_PI, CIRCUMFERENCE, AREA, DIAMETER',
-        'CapabilityManager': '[CAPABILITY] Creates new Golden Tokens. DR0=type (0=Data, 1=C-List), DR1=size → CR0'
+        'CapabilityManager': '[CAPABILITY] Creates new Golden Tokens. DR0=type (0=Data, 1=C-List), DR1=size → CR0',
+        'DateTime': '[TIME] ISO 8601 date/time. DR0=mode (0=ISO, 1=Date, 2=Time, 3=Epoch, 4=Components) → DR1-DR6'
     };
     const mathTypeBadges = {
         'SlideRule': 'FLOAT',
         'Abacus': 'INTEGER',
         'Circle': 'GEOMETRY',
-        'CapabilityManager': 'CAPABILITY'
+        'CapabilityManager': 'CAPABILITY',
+        'DateTime': 'TIME'
     };
-    ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager'].forEach(name => {
+    ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager', 'DateTime'].forEach(name => {
         const gtEntry = getBootGT(name);
         const absPerms = gtEntry ? `[${gtEntry.perms.join('')}]` : '[E]';
         const mathBadge = mathTypeBadges[name];
@@ -2022,7 +2046,7 @@ function getCapabilityTypeLabel(cap) {
     if (type === 'Code' || name === 'Access' || name.endsWith('.asm')) {
         return 'Code';
     }
-    if (type === 'Abstraction' || ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager'].includes(name)) {
+    if (type === 'Abstraction' || ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager', 'DateTime'].includes(name)) {
         return 'Abstraction';
     }
     if (type === 'C-List' || name === 'Boot') {
@@ -2060,7 +2084,7 @@ function updateCapabilityExplorer() {
     if (cr6Cap && cr6Cap.clist && cr6Cap.clist.length > 0) {
         simulator.clist = cr6Cap.clist.map(entry => {
             const nsObj = namespaceObjects.find(o => o.offset === entry.nsOffset);
-            const isAbstraction = ['Abacus', 'SlideRule', 'Circle'].includes(entry.name) || 
+            const isAbstraction = ['Abacus', 'SlideRule', 'Circle', 'CapabilityManager', 'DateTime'].includes(entry.name) || 
                                  (nsObj && nsObj.type === 'Abstraction');
             return {
                 name: entry.name,
@@ -9093,6 +9117,92 @@ RETURN              ; Return with GT in CR0
 
 ; === FAILSAFE: No error codes ===
 fault:
+    FAULT           ; Uniform failure - no information leakage`,
+
+    GT_DATETIME: `; ====================================================
+; GT_DATETIME (DateTime): ISO 8601 Date/Time Functions
+; Returns current date/time in various ISO 8601 formats
+; API: DR0=mode selects output format
+; ====================================================
+; Mode values (DR0):
+;   0 = Full ISO timestamp (YYYY-MM-DDTHH:MM:SSZ)
+;   1 = Date only (YYYY-MM-DD)
+;   2 = Time only (HH:MM:SS)
+;   3 = Unix epoch seconds (numeric in DR1)
+;   4 = Components (Y/M/D/H/M/S in DR1-DR6)
+; ====================================================
+; Return values:
+;   Modes 0-2: CR0 = GT to string data object
+;   Mode 3:    DR1 = Unix epoch seconds
+;   Mode 4:    DR1=Year, DR2=Month, DR3=Day,
+;              DR4=Hour, DR5=Minute, DR6=Second
+; ====================================================
+
+; === PARAMETER VALIDATION ===
+; Step 1: Validate mode is valid (0-4)
+CMP 0 0             ; Check if DR0 >= 0
+B LT fault          ; Negative mode -> FAULT
+CMP 0 4             ; Check if DR0 <= 4
+B GT fault          ; Mode > 4 -> FAULT
+
+; === MODE DISPATCH ===
+CMP 0 0
+B EQ mode_timestamp
+CMP 0 1
+B EQ mode_date
+CMP 0 2
+B EQ mode_time
+CMP 0 3
+B EQ mode_epoch
+CMP 0 4
+B EQ mode_components
+B fault             ; Shouldn't reach here
+
+; === MODE 0: Full ISO Timestamp ===
+mode_timestamp:
+; Hardware reads system RTC (Real-Time Clock)
+; Formats as: YYYY-MM-DDTHH:MM:SSZ (20 chars)
+; Allocates string object, stores formatted time
+; Returns GT to string in CR0
+; String is read-only: permissions [R,B]
+RETURN
+
+; === MODE 1: Date Only ===
+mode_date:
+; Hardware reads system RTC
+; Formats as: YYYY-MM-DD (10 chars)
+; Returns GT to string in CR0
+RETURN
+
+; === MODE 2: Time Only ===
+mode_time:
+; Hardware reads system RTC
+; Formats as: HH:MM:SS (8 chars)
+; Returns GT to string in CR0
+RETURN
+
+; === MODE 3: Unix Epoch ===
+mode_epoch:
+; Hardware reads system RTC
+; Converts to seconds since 1970-01-01T00:00:00Z
+; Stores 64-bit integer in DR1
+RETURN
+
+; === MODE 4: Date/Time Components ===
+mode_components:
+; Hardware reads system RTC
+; Decomposes into individual values:
+;   DR1 = Year (e.g., 2026)
+;   DR2 = Month (1-12)
+;   DR3 = Day (1-31)
+;   DR4 = Hour (0-23)
+;   DR5 = Minute (0-59)
+;   DR6 = Second (0-59)
+; All values as 64-bit integers
+RETURN
+
+; === FAILSAFE: No error codes ===
+fault:
     FAULT           ; Uniform failure - no information leakage`
 };
 
@@ -9649,6 +9759,59 @@ RETURN
     ; Success! DR0 indicates how many objects created
     MOV DR0, #2          ; Created 2 objects
     RETURN
+
+; === FAILSAFE: No error codes ===
+fault:
+    FAULT                ; Uniform failure - no information leakage`,
+
+    'datetime': `; ================================================
+; DATETIME DEMO
+; Demonstrates the DateTime abstraction
+; API: DR0=mode (0=ISO, 1=Date, 2=Time, 3=Epoch, 4=Components)
+; Returns: DR1-DR6 for components, or CR0 for string GT
+; ================================================
+; Boot C-List Layout:
+;   [8] = DateTime [E,B]
+
+; ------------------------------------------------
+; PART 1: Get Unix Epoch (Mode 3)
+; ------------------------------------------------
+    MOV DR0, #3          ; Mode 3 = Unix epoch seconds
+    LOAD 1 8 CR1         ; CR1 = DateTime [E,B]
+    TPERM CR1, E         ; Verify Enter permission
+    BNE fault            ; No E -> FAULT
+    CALL 1 0             ; Get epoch time
+    ; DR1 now contains Unix epoch seconds
+    
+    ; Save epoch to DR7 for later comparison
+    MOV DR7, DR1         ; DR7 = epoch seconds
+
+; ------------------------------------------------
+; PART 2: Get Date/Time Components (Mode 4)
+; ------------------------------------------------
+    MOV DR0, #4          ; Mode 4 = Components
+    LOAD 1 8 CR1         ; CR1 = DateTime [E,B]
+    CALL 1 0             ; Get components
+    ; DR1 = Year (e.g., 2026)
+    ; DR2 = Month (1-12)
+    ; DR3 = Day (1-31)
+    ; DR4 = Hour (0-23)
+    ; DR5 = Minute (0-59)
+    ; DR6 = Second (0-59)
+    
+    ; Example: Check if it's afternoon
+    CMP DR4, #12         ; Compare hour with 12
+    BLT morning          ; If < 12, it's morning
+    
+afternoon:
+    MOV DR0, #1          ; Afternoon indicator
+    B done
+    
+morning:
+    MOV DR0, #0          ; Morning indicator
+    
+done:
+    RETURN               ; Return with time info in registers
 
 ; === FAILSAFE: No error codes ===
 fault:
