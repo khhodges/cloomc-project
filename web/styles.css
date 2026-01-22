@@ -5149,6 +5149,11 @@ body.tooltip-hidden [data-tooltip]:hover::after {
     color: white;
 }
 
+.math-type-badge.math-functional {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+}
+
 /* Instruction Security Notes */
 .instr-security {
     display: flex;

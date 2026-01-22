@@ -1075,16 +1075,18 @@ function buildHierarchyTree() {
         'Abacus': '[INTEGER] 64-bit integer arithmetic. CALL to use: ADD, SUB, MUL, DIV, MOD, ABS, NEG, INC, DEC',
         'Circle': '[GEOMETRY] Circle calculations (uses floats). PI, TWO_PI, CIRCUMFERENCE, AREA, DIAMETER',
         'CapabilityManager': '[CAPABILITY] Creates new Golden Tokens. DR0=type (0=Data, 1=C-List), DR1=size → CR0',
-        'DateTime': '[TIME] ISO 8601 date/time. DR0=mode (0=ISO, 1=Date, 2=Time, 3=Epoch, 4=Components) → DR1-DR6'
+        'DateTime': '[TIME] ISO 8601 date/time. DR0=mode (0=ISO, 1=Date, 2=Time, 3=Epoch, 4=Components) → DR1-DR6',
+        'Lambda': '[FUNCTIONAL] Church lambda calculus primitives. Y-Combinator, Church numerals, Pairs, Booleans'
     };
     const mathTypeBadges = {
         'SlideRule': 'FLOAT',
         'Abacus': 'INTEGER',
         'Circle': 'GEOMETRY',
         'CapabilityManager': 'CAPABILITY',
-        'DateTime': 'TIME'
+        'DateTime': 'TIME',
+        'Lambda': 'FUNCTIONAL'
     };
-    ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager', 'DateTime'].forEach(name => {
+    ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager', 'DateTime', 'Lambda'].forEach(name => {
         const gtEntry = getBootGT(name);
         const absPerms = gtEntry ? `[${gtEntry.perms.join('')}]` : '[E]';
         const mathBadge = mathTypeBadges[name];
@@ -2074,7 +2076,7 @@ function getCapabilityTypeLabel(cap) {
     if (type === 'Code' || name === 'Access' || name.endsWith('.asm')) {
         return 'Code';
     }
-    if (type === 'Abstraction' || ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager', 'DateTime'].includes(name)) {
+    if (type === 'Abstraction' || ['SlideRule', 'Abacus', 'Circle', 'CapabilityManager', 'DateTime', 'Lambda'].includes(name)) {
         return 'Abstraction';
     }
     if (type === 'C-List' || name === 'Boot') {
