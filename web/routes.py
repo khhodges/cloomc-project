@@ -4,8 +4,19 @@ from replit_auth import require_login, make_replit_blueprint
 from flask_login import current_user
 from models import SimulatorState
 import json
+import os
+import logging
 
-app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+logger = logging.getLogger(__name__)
+
+try:
+    replit_bp = make_replit_blueprint()
+    app.register_blueprint(replit_bp, url_prefix="/auth")
+    auth_enabled = True
+    logger.info("Replit Auth enabled")
+except Exception as e:
+    auth_enabled = False
+    logger.warning(f"Replit Auth not available: {e}")
 
 @app.before_request
 def make_session_permanent():
