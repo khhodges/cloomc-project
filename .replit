@@ -1,6 +1,7 @@
 modules = ["haskell-ghc9.8", "python-3.11", "postgresql-16"]
 [agent]
 expertMode = true
+integrations = ["resend:1.0.0"]
 
 [workflows]
 runButton = "Project"

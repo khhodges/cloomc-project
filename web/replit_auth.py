@@ -18,6 +18,7 @@ from werkzeug.local import LocalProxy
 
 from app import app, db
 from models import OAuth, User
+from email_service import send_welcome_email
 
 login_manager = LoginManager(app)
 
@@ -118,14 +119,22 @@ def make_replit_blueprint():
     return replit_bp
 
 def save_user(user_claims):
+    user_id = user_claims['sub']
+    existing_user = User.query.get(user_id)
+    is_new_user = existing_user is None
+    
     user = User()
-    user.id = user_claims['sub']
+    user.id = user_id
     user.email = user_claims.get('email')
     user.first_name = user_claims.get('first_name')
     user.last_name = user_claims.get('last_name')
     user.profile_image_url = user_claims.get('profile_image_url')
     merged_user = db.session.merge(user)
     db.session.commit()
+    
+    if is_new_user and user.email:
+        send_welcome_email(user.email, user.first_name)
+    
     return merged_user
 
 @oauth_authorized.connect
