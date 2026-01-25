@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Church-Turing Meta-Machine (CTMM) Simulator</title>
-    <link rel="stylesheet" href="styles.css?v=20260125i">
+    <link rel="stylesheet" href="styles.css?v=20260125j">
 </head>
 <body class="landing-mode">
     <div class="fixed-toolbar">
@@ -128,7 +128,7 @@
                         <pre>; Y-Combinator enables recursion
 ; Y = λf.(λx.f(x x))(λx.f(x x))
 LOAD CR0, CR6, #9       ; Load Lambda abstraction
-CALL CR0                ; Enter Lambda namespace
+CALL CR0                ; Enter Lambda abstraction
 MOV DR0, #0             ; Y_COMBINATOR function
 CALL CR0                ; Execute Y-Combinator
 RETURN                  ; Result in DR1</pre>
@@ -139,7 +139,7 @@ RETURN                  ; Result in DR1</pre>
                         <pre>; Church encoding: numbers as functions
 ; SUCC n = λf.λx.f(n f x)
 LOAD CR0, CR6, #9       ; Load Lambda abstraction
-CALL CR0                ; Enter Lambda namespace
+CALL CR0                ; Enter Lambda abstraction
 MOV DR0, #1             ; CHURCH_SUCC function
 MOV DR1, #5             ; Apply to number 5
 CALL CR0                ; Returns Church 6
@@ -151,7 +151,7 @@ RETURN</pre>
                         <pre>; TRUE = λx.λy.x (select first)
 ; FALSE = λx.λy.y (select second)
 LOAD CR0, CR6, #9       ; Load Lambda abstraction
-CALL CR0                ; Enter Lambda namespace
+CALL CR0                ; Enter Lambda abstraction
 MOV DR0, #7             ; TRUE function
 MOV DR1, #42            ; First value
 MOV DR2, #0             ; Second value
