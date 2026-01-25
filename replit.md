@@ -63,6 +63,10 @@ The web interface is composed of seven distinct views:
 
 ## Recent Changes
 
+- 2026-01-25: Added landing page editing feature - authenticated users in development mode can edit and save landing page content
+- 2026-01-25: Landing page content stored in database (LandingPageContent table) with HTML sanitization for XSS protection
+- 2026-01-25: Edit Landing Page option in user menu (only visible in development mode, disabled in production)
+- 2026-01-25: Responsive landing page tiles using CSS Grid auto-fit for automatic screen width adjustment
 - 2026-01-25: Added landing/registration page for unauthenticated users with CTMM description and Lambda Calculus examples
 - 2026-01-25: Landing page requires sign-in to access simulator, hiding navigation buttons until authenticated
 - 2026-01-25: Added three-dot dropdown menu for logged-in users (Save State, Load State, Sign Out)

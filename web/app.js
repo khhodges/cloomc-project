@@ -11038,7 +11038,10 @@ async function checkAuthStatus() {
             userName.textContent = data.first_name || data.email || 'User';
             
             console.log('[INFO] Logged in as:', data.email || data.id);
+            
+            checkEnvironment();
         } else {
+            checkEnvironment();
             currentUser = null;
             document.getElementById('authLoggedIn').style.display = 'none';
             document.getElementById('authLoggedOut').style.display = 'none';
@@ -11146,6 +11149,178 @@ async function loadStateFromServer() {
     }
 }
 
+let isDevelopmentMode = false;
+let landingEditMode = false;
+let originalLandingContent = {};
+
+async function checkEnvironment() {
+    try {
+        const response = await fetch('/api/environment');
+        const data = await response.json();
+        isDevelopmentMode = data.is_development;
+        
+        if (isDevelopmentMode && currentUser) {
+            const editLandingBtn = document.getElementById('editLandingBtn');
+            if (editLandingBtn) {
+                editLandingBtn.style.display = 'block';
+            }
+        }
+    } catch (err) {
+        console.error('Environment check failed:', err);
+    }
+}
+
+function showLandingPageEditor() {
+    if (!isDevelopmentMode) {
+        alert('Editing is only available in development mode');
+        return;
+    }
+    
+    const landingPage = document.getElementById('landingPage');
+    const mainContent = document.getElementById('mainContent');
+    const editControls = document.getElementById('landingEditControls');
+    
+    landingPage.style.display = 'block';
+    mainContent.style.display = 'none';
+    editControls.style.display = 'flex';
+    
+    toggleLandingEditMode();
+}
+
+function exitLandingPageEditor() {
+    const landingPage = document.getElementById('landingPage');
+    const mainContent = document.getElementById('mainContent');
+    const editControls = document.getElementById('landingEditControls');
+    
+    landingPage.style.display = 'none';
+    mainContent.style.display = 'block';
+    editControls.style.display = 'none';
+    document.body.classList.remove('landing-mode');
+}
+
+async function loadLandingContent() {
+    try {
+        const response = await fetch('/api/landing-content');
+        const data = await response.json();
+        
+        if (data.contents) {
+            for (const [key, content] of Object.entries(data.contents)) {
+                const section = document.querySelector(`[data-section="${key}"]`);
+                if (section) {
+                    section.innerHTML = content;
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Failed to load landing content:', err);
+    }
+}
+
+function toggleLandingEditMode() {
+    const welcomeSection = document.getElementById('landingWelcome');
+    const cloocmSection = document.getElementById('landingCloomc');
+    
+    if (!landingEditMode) {
+        landingEditMode = true;
+        originalLandingContent = {
+            welcome: welcomeSection.innerHTML,
+            cloomc: cloocmSection.innerHTML
+        };
+        
+        welcomeSection.classList.add('editing');
+        cloocmSection.classList.add('editing');
+        
+        makeEditable(welcomeSection);
+        makeEditable(cloocmSection);
+    }
+}
+
+function makeEditable(container) {
+    const editableElements = container.querySelectorAll('h2, h3, p, strong, em, span, pre');
+    editableElements.forEach(el => {
+        if (!el.querySelector('h2, h3, p, strong, em, span, pre')) {
+            el.setAttribute('contenteditable', 'true');
+        }
+    });
+}
+
+function removeEditable(container) {
+    const editableElements = container.querySelectorAll('[contenteditable]');
+    editableElements.forEach(el => {
+        el.removeAttribute('contenteditable');
+    });
+}
+
+function cancelLandingEdit() {
+    const welcomeSection = document.getElementById('landingWelcome');
+    const cloocmSection = document.getElementById('landingCloomc');
+    
+    if (originalLandingContent.welcome) {
+        welcomeSection.innerHTML = originalLandingContent.welcome;
+    }
+    if (originalLandingContent.cloomc) {
+        cloocmSection.innerHTML = originalLandingContent.cloomc;
+    }
+    
+    landingEditMode = false;
+    welcomeSection.classList.remove('editing');
+    cloocmSection.classList.remove('editing');
+    removeEditable(welcomeSection);
+    removeEditable(cloocmSection);
+    
+    exitLandingPageEditor();
+}
+
+async function saveLandingContent() {
+    if (!isDevelopmentMode) {
+        alert('Editing is only available in development mode');
+        return;
+    }
+    
+    const welcomeSection = document.getElementById('landingWelcome');
+    const cloocmSection = document.getElementById('landingCloomc');
+    
+    try {
+        const welcomeResponse = await fetch('/api/landing-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                section_key: 'welcome',
+                content: welcomeSection.innerHTML
+            })
+        });
+        
+        const cloocmResponse = await fetch('/api/landing-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                section_key: 'cloomc',
+                content: cloocmSection.innerHTML
+            })
+        });
+        
+        const welcomeResult = await welcomeResponse.json();
+        const cloocmResult = await cloocmResponse.json();
+        
+        if (welcomeResult.success && cloocmResult.success) {
+            landingEditMode = false;
+            welcomeSection.classList.remove('editing');
+            cloocmSection.classList.remove('editing');
+            removeEditable(welcomeSection);
+            removeEditable(cloocmSection);
+            
+            alert('Landing page content saved successfully!');
+            exitLandingPageEditor();
+        } else {
+            alert('Failed to save some content');
+        }
+    } catch (err) {
+        console.error('Save failed:', err);
+        alert('Failed to save: ' + err.message);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     checkAuthStatus();
+    loadLandingContent();
 });

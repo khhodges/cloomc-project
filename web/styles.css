@@ -5931,3 +5931,82 @@ body.landing-mode .auth-logged-in {
 body.landing-mode .auth-section {
     display: none !important;
 }
+
+.landing-edit-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.btn-edit-landing {
+    background: var(--accent);
+    color: var(--bg-main);
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-edit-landing:hover {
+    background: var(--accent-hover);
+}
+
+.landing-edit-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-save-landing {
+    background: var(--success);
+    color: var(--bg-main);
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-cancel-landing {
+    background: var(--text-secondary);
+    color: var(--bg-main);
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-back-landing {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-back-landing:hover {
+    background: var(--bg-main);
+    border-color: var(--accent);
+}
+
+.landing-description.editing,
+.landing-examples.editing {
+    outline: 2px dashed var(--accent);
+    outline-offset: 4px;
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.landing-description.editing *[contenteditable="true"],
+.landing-examples.editing *[contenteditable="true"] {
+    min-height: 1em;
+}
+
+.landing-description.editing *[contenteditable="true"]:focus,
+.landing-examples.editing *[contenteditable="true"]:focus {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+}

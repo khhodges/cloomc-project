@@ -38,3 +38,11 @@ class SimulatorState(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_state_name'),)
+
+class LandingPageContent(db.Model):
+    __tablename__ = 'landing_page_content'
+    id = db.Column(db.Integer, primary_key=True)
+    section_key = db.Column(db.String(50), unique=True, nullable=False)
+    content = db.Column(Text, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    updated_by = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)

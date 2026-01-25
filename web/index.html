@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Church-Turing Meta-Machine (CTMM) Simulator</title>
-    <link rel="stylesheet" href="styles.css?v=20260125k">
+    <link rel="stylesheet" href="styles.css?v=20260125m">
 </head>
 <body class="landing-mode">
     <div class="fixed-toolbar">
@@ -34,6 +34,7 @@
                                 <div id="userMenu" class="user-dropdown-menu">
                                     <button onclick="saveStateToServer(); toggleUserMenu();">Save State</button>
                                     <button onclick="loadStateFromServer(); toggleUserMenu();">Load State</button>
+                                    <button id="editLandingBtn" style="display: none;" onclick="showLandingPageEditor(); toggleUserMenu();">Edit Landing Page</button>
                                     <hr>
                                     <a href="/auth/logout">Sign Out</a>
                                 </div>
@@ -53,8 +54,16 @@
                 <p class="landing-subtitle">A Capability-Based Security Simulator</p>
             </div>
             
+            <div class="landing-edit-controls" id="landingEditControls" style="display: none;">
+                <button class="btn btn-back-landing" onclick="exitLandingPageEditor()">Back to Simulator</button>
+                <div class="landing-edit-buttons" id="landingEditButtons">
+                    <button class="btn btn-save-landing" onclick="saveLandingContent()">Save Changes</button>
+                    <button class="btn btn-cancel-landing" onclick="cancelLandingEdit()">Discard Changes</button>
+                </div>
+            </div>
+            
             <div class="landing-content">
-                <div class="landing-description">
+                <div class="landing-description" id="landingWelcome" data-section="welcome">
                     <h2>Welcome to the CTMM Simulator</h2>
                     <p>
                         The Church-Turing Meta-Machine (CTMM) is a revolutionary computing architecture 
@@ -94,7 +103,7 @@
                     </div>
                 </div>
                 
-                <div class="landing-examples">
+                <div class="landing-examples" id="landingCloomc" data-section="cloomc">
                     <div class="cloomc-section">
                         <h2>CLOOMC: Computing on Solid Ground</h2>
                         <p>
@@ -913,6 +922,6 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
     </div>
 
     <script src="simulator.js?v=20260122a"></script>
-    <script src="app.js?v=20260125c"></script>
+    <script src="app.js?v=20260125e"></script>
 </body>
 </html>
