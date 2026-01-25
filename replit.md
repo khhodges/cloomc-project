@@ -63,6 +63,9 @@ The web interface is composed of seven distinct views:
 
 ## Recent Changes
 
+- 2026-01-25: Added landing/registration page for unauthenticated users with CTMM description and Lambda Calculus examples
+- 2026-01-25: Landing page requires sign-in to access simulator, hiding navigation buttons until authenticated
+- 2026-01-25: Added three-dot dropdown menu for logged-in users (Save State, Load State, Sign Out)
 - 2026-01-24: Added welcome email for new user registration using Resend integration
 - 2026-01-24: email_service.py handles Resend API credentials via Replit connector with robust error handling
 - 2026-01-24: Welcome email includes Ken's custom message about CTMM, CLOOMC, and capability-based security
