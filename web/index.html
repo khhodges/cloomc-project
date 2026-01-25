@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Church-Turing Meta-Machine (CTMM) Simulator</title>
-    <link rel="stylesheet" href="styles.css?v=20260125b">
+    <link rel="stylesheet" href="styles.css?v=20260125f">
 </head>
-<body>
+<body class="landing-mode">
     <div class="fixed-toolbar">
         <header>
             <h1>CTMM</h1>
@@ -45,7 +45,106 @@
         </header>
     </div>
 
-    <main id="mainContent">
+    <!-- Landing Page for Unauthenticated Users -->
+    <section id="landingPage" class="landing-page">
+        <div class="landing-container">
+            <div class="landing-header">
+                <h1>Church-Turing Meta-Machine</h1>
+                <p class="landing-subtitle">A Capability-Based Security Simulator</p>
+            </div>
+            
+            <div class="landing-content">
+                <div class="landing-description">
+                    <h2>Welcome to the CTMM Simulator</h2>
+                    <p>
+                        The Church-Turing Meta-Machine (CTMM) is a revolutionary computing architecture 
+                        designed by <strong>Kenneth James Hamer-Hodges</strong>. It implements failsafe 
+                        security through <strong>Golden Tokens</strong> - 64-bit capability keys that 
+                        govern all access control.
+                    </p>
+                    <p>
+                        This simulator combines <strong>Alonzo Church's Lambda Calculus</strong> with 
+                        <strong>Alan Turing's computational model</strong> to demonstrate how capability-based 
+                        security can eliminate entire classes of vulnerabilities including buffer overflows, 
+                        privilege escalation, and unauthorized access.
+                    </p>
+                    
+                    <div class="landing-features">
+                        <div class="feature-item">
+                            <span class="feature-icon">🔐</span>
+                            <div>
+                                <strong>Golden Tokens</strong>
+                                <p>Every access requires a valid capability token with explicit permissions</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">λ</span>
+                            <div>
+                                <strong>Lambda Calculus</strong>
+                                <p>Church's mathematical foundation for computation and recursion</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">⚙️</span>
+                            <div>
+                                <strong>Turing Machine</strong>
+                                <p>Complete instruction set for arithmetic, logic, and control flow</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="landing-examples">
+                    <h2>Lambda Calculus Examples</h2>
+                    <div class="example-code">
+                        <h3>Y-Combinator (Fixed-Point Recursion)</h3>
+                        <pre>; Y-Combinator enables recursion
+; Y = λf.(λx.f(x x))(λx.f(x x))
+LOAD CR0, CR6, #9       ; Load Lambda abstraction
+CALL CR0                ; Enter Lambda namespace
+MOV DR0, #0             ; Y_COMBINATOR function
+CALL CR0                ; Execute Y-Combinator
+RETURN                  ; Result in DR1</pre>
+                    </div>
+                    
+                    <div class="example-code">
+                        <h3>Church Numerals</h3>
+                        <pre>; Church encoding: numbers as functions
+; SUCC n = λf.λx.f(n f x)
+LOAD CR0, CR6, #9       ; Load Lambda abstraction
+CALL CR0                ; Enter Lambda namespace
+MOV DR0, #1             ; CHURCH_SUCC function
+MOV DR1, #5             ; Apply to number 5
+CALL CR0                ; Returns Church 6
+RETURN</pre>
+                    </div>
+                    
+                    <div class="example-code">
+                        <h3>Church Booleans</h3>
+                        <pre>; TRUE = λx.λy.x (select first)
+; FALSE = λx.λy.y (select second)
+LOAD CR0, CR6, #9       ; Load Lambda abstraction
+CALL CR0                ; Enter Lambda namespace
+MOV DR0, #7             ; TRUE function
+MOV DR1, #42            ; First value
+MOV DR2, #0             ; Second value
+CALL CR0                ; Returns 42 (first)
+RETURN</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="landing-cta">
+                <p>Sign in to access the full CTMM Simulator with interactive debugging, namespace exploration, and assembly programming.</p>
+                <a href="/auth/replit_auth" class="btn btn-register">
+                    Sign In to Get Started
+                </a>
+                <p class="landing-note">Join the CTMM Open Source community and explore capability-based security.</p>
+            </div>
+        </div>
+    </section>
+
+    <main id="mainContent" style="display: none;">
         <section id="dashboard" class="view active">
             <div class="boot-sequence-banner">
                 <span class="boot-label">Boot Sequence:</span>
@@ -787,6 +886,6 @@ ADD 0 1      ; DR0 = DR0 + DR1"></textarea>
     </div>
 
     <script src="simulator.js?v=20260122a"></script>
-    <script src="app.js?v=20260125a"></script>
+    <script src="app.js?v=20260125c"></script>
 </body>
 </html>

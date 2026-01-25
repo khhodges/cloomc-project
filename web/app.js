@@ -11013,10 +11013,18 @@ async function checkAuthStatus() {
         
         document.getElementById('authLoading').style.display = 'none';
         
+        const landingPage = document.getElementById('landingPage');
+        const mainContent = document.getElementById('mainContent');
+        
         if (data.authenticated) {
             currentUser = data;
             document.getElementById('authLoggedIn').style.display = 'flex';
             document.getElementById('authLoggedOut').style.display = 'none';
+            
+            // Show simulator, hide landing page
+            landingPage.style.display = 'none';
+            mainContent.style.display = 'block';
+            document.body.classList.remove('landing-mode');
             
             const avatar = document.getElementById('userAvatar');
             if (data.profile_image_url) {
@@ -11033,12 +11041,24 @@ async function checkAuthStatus() {
         } else {
             currentUser = null;
             document.getElementById('authLoggedIn').style.display = 'none';
-            document.getElementById('authLoggedOut').style.display = 'flex';
+            document.getElementById('authLoggedOut').style.display = 'none';
+            
+            // Show landing page, hide simulator
+            landingPage.style.display = 'block';
+            mainContent.style.display = 'none';
+            document.body.classList.add('landing-mode');
         }
     } catch (err) {
         console.error('Auth check failed:', err);
         document.getElementById('authLoading').style.display = 'none';
-        document.getElementById('authLoggedOut').style.display = 'flex';
+        document.getElementById('authLoggedOut').style.display = 'none';
+        
+        // Show landing page on error
+        const landingPage = document.getElementById('landingPage');
+        const mainContent = document.getElementById('mainContent');
+        landingPage.style.display = 'block';
+        mainContent.style.display = 'none';
+        document.body.classList.add('landing-mode');
     }
 }
 
