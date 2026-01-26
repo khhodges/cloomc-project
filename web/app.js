@@ -4305,10 +4305,11 @@ const lessons = [
                             <span class="perm-demo-badge" style="background: #2dd4bf; color: #1a1a2e;">B</span>
                             <span class="perm-demo-badge" style="background: #a855f7; color: #1a1a2e;">M</span>
                             <span class="perm-demo-badge" style="background: #06b6d4; color: #1a1a2e;">F</span>
+                            <span class="perm-demo-badge" style="background: #84cc16; color: #1a1a2e;">G</span>
                         </div>
                     </div>
                     <div class="demo-explanation">
-                        <p>Permissions are encoded in bits [48:63] of the GT. The <code>M</code> permission marks hardware-level resources (Namespace, Threads), while <code>F</code> indicates a remote URL.</p>
+                        <p>Permissions are encoded in bits [48:63] of the GT. The <code>M</code> permission marks hardware-level resources (Namespace, Threads), <code>F</code> indicates a remote URL, and <code>G</code> is the garbage collection flag for deterministic GC.</p>
                     </div>
                 </div>`
             },
