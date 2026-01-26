@@ -65,7 +65,9 @@ Word 3: Seals/MAC (64 bits)
 | CR6      | C-List         | Current Capability List pointer   |
 | CR7      | CLOOMC Nucleus | Function Abstraction Code         |
 | CR8      | Thread         | Suspended Thread State            |
-| CR9-CR14 | General        | General purpose capability storage |
+| CR9      | Interrupt      | Interrupt Thread                  |
+| CR10     | Double Fault   | Double Fault Recovery Thread      |
+| CR11-CR14| General        | General purpose capability storage |
 | CR15     | Namespace      | Namespace root capability         |
 
 ### Data Registers (Turing) - 16 x 64-bit

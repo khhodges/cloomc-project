@@ -11,6 +11,8 @@
 //   CR6:  Current C-List
 //   CR7:  CLOOMC Nucleus (Function Abstraction Code)
 //   CR8:  Suspended Thread State
+//   CR9:  Interrupt Thread
+//   CR10: Double Fault Recovery Thread
 //   CR15: Namespace root
 //
 // Data Registers (DR0-DR15): 64-bit data values for Turing operations

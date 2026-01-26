@@ -91,6 +91,8 @@ package ctmm_pkg;
     localparam logic [3:0] CR_CLIST     = 4'd6;   // CR6: Current C-List
     localparam logic [3:0] CR_CLOOMC    = 4'd7;   // CR7: CLOOMC Nucleus (Function Abstraction Code)
     localparam logic [3:0] CR_THREAD    = 4'd8;   // CR8: Suspended Thread State
+    localparam logic [3:0] CR_INTERRUPT = 4'd9;   // CR9: Interrupt Thread
+    localparam logic [3:0] CR_DFAULT    = 4'd10;  // CR10: Double Fault Recovery Thread
     localparam logic [3:0] CR_NAMESPACE = 4'd15;  // CR15: Namespace root
     
     // ========================================================================
