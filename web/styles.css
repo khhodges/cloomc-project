@@ -4328,6 +4328,17 @@ body.tooltip-hidden [data-tooltip]:hover::after {
     border-color: #dc3545;
 }
 
+.btn-toolbar.btn-gc {
+    border-color: #17a2b8;
+    color: #17a2b8;
+}
+
+.btn-toolbar.btn-gc:hover {
+    background: #17a2b8;
+    border-color: #17a2b8;
+    color: #fff;
+}
+
 .ns-object.selected,
 .hier-item.selected > .hier-node {
     outline: 2px solid var(--accent);

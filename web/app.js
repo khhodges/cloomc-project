@@ -7196,6 +7196,72 @@ function exportNamespaceState() {
     log('Exported namespace state to file', 'success');
 }
 
+function runGCCycle() {
+    // Run garbage collection cycle on the namespace hierarchy (DNA)
+    // Uses CR15 as the root of the namespace
+    
+    if (!simulator.cr15 || simulator.cr15.name === 'NULL') {
+        addToLog('error', 'GC CYCLE: Cannot run - no namespace loaded (CR15 is NULL). Boot the system first.');
+        return;
+    }
+    
+    addToLog('info', 'GC CYCLE: Starting hierarchical DNA scan...');
+    
+    // Build root set from all active context registers
+    const roots = [];
+    if (simulator.cr15 && simulator.cr15.name !== 'NULL') {
+        roots.push(simulator.cr15);
+    }
+    
+    // Add CR6 (current C-List) if loaded
+    if (simulator.contextRegs[6] && simulator.contextRegs[6].name !== 'NULL') {
+        roots.push(simulator.contextRegs[6]);
+    }
+    
+    // Add any other loaded CRs with clists
+    for (let i = 0; i < 8; i++) {
+        const cr = simulator.contextRegs[i];
+        if (cr && cr.name !== 'NULL' && cr.clist) {
+            roots.push(cr);
+        }
+    }
+    
+    // Phase 1: Mark - set G=TRUE on all namespace entries
+    addToLog('info', 'GC PHASE 1 (Mark): Setting G=TRUE on all Namespace entries...');
+    let totalMarked = 0;
+    for (const root of roots) {
+        totalMarked += simulator.gcMark(root);
+    }
+    addToLog('info', `GC PHASE 1 Complete: Marked ${totalMarked} entries with G=TRUE`);
+    
+    // Phase 2: Scan - walk hierarchy from roots, valid key access resets G
+    addToLog('info', 'GC PHASE 2 (Scan): Walking hierarchy from roots...');
+    let totalScanned = 0;
+    for (const root of roots) {
+        totalScanned += simulator.gcScan(root, new Set());
+    }
+    addToLog('info', `GC PHASE 2 Complete: Scanned ${totalScanned} reachable entries (G reset to FALSE)`);
+    
+    // Phase 3: Sweep - find entries still marked with G (garbage)
+    addToLog('info', 'GC PHASE 3 (Sweep): Identifying unreachable entries...');
+    const garbage = [];
+    for (const root of roots) {
+        garbage.push(...simulator.gcSweep(root));
+    }
+    
+    if (garbage.length === 0) {
+        addToLog('success', 'GC CYCLE COMPLETE: No garbage found - all entries are reachable');
+    } else {
+        addToLog('warn', `GC CYCLE COMPLETE: Found ${garbage.length} unreachable entries (garbage):`);
+        for (const item of garbage) {
+            addToLog('warn', `  - ${item.path} (G=TRUE, no valid key access)`);
+        }
+    }
+    
+    // Refresh the namespace browser to show updated G flags
+    renderNamespaceBrowser();
+}
+
 function importNamespaceState(file) {
     const reader = new FileReader();
     reader.onload = function(e) {

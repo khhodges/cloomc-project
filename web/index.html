@@ -319,6 +319,8 @@ RETURN</pre>
                         Import
                         <input type="file" accept=".json" onchange="importNamespaceState(this.files[0]); this.value='';" style="display:none;">
                     </label>
+                    <span class="toolbar-separator"></span>
+                    <button class="btn btn-toolbar btn-gc tooltip-bottom" onclick="runGCCycle()" data-tooltip="Run garbage collection cycle: Mark all entries, scan from roots, sweep unreachable">GC Scan</button>
                 </div>
             </div>
             <div class="namespace-layout">

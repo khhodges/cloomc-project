@@ -22,7 +22,7 @@ The CTMM simulator provides both a Haskell console interface and a primary web-b
 -   **Register Architecture**:
     -   **Context Registers (CR0-CR7)**: Hold Golden Tokens for access rights. CR15 serves as the Namespace root, CR8 for Thread identity, CR7 for the Nucleus (kernel capability), and CR6 for the current C-List.
     -   **Data Registers (DR0-DR15)**: Hold 64-bit numeric values for computation.
--   **Golden Token Structure**: A 64-bit key composed of Offset (index into Namespace Table), Permissions (R, W, X, L, S, E, B, M, F bits), and Spare bits. The `M` bit distinguishes hardware-level from software-level permissions, and `F` indicates remote URL location.
+-   **Golden Token Structure**: A 64-bit key composed of Offset (index into Namespace Table), Permissions (R, W, X, L, S, E, B, M, F, G bits), and Spare bits. The `M` bit distinguishes hardware-level from software-level permissions, `F` indicates remote URL location, and `G` is the deterministic garbage collection flag.
 -   **Namespace Entry**: A 3-word descriptor for each object (Location, Limit, Seals). Namespace objects contain only raw 3-word entries without embedded permissions.
 -   **MAC Validation**: Hardware-enforced security check during `LOAD` operations, comparing a calculated hash against the stored MAC.
 -   **Boot Sequence**: A 4-step process (Fault Restart, Load Namespace, Initialize Thread, Load Nucleus) to securely initialize the CTMM.
@@ -48,6 +48,7 @@ The web interface is composed of seven distinct views:
 -   **State Persistence**: Automatic saving and restoring of simulator state using local storage, with export/import functionality.
 -   **Permission Management**: Permission validation rules are implemented, defining categories (Data, Capability, Protected, Meta) and ensuring normalization across all mutation paths.
 -   **Failsafe Security**: All validation failures use a single FAULT handler for secure error management without information leakage.
+-   **Deterministic Garbage Collection**: The G (Garbage) permission bit enables deterministic GC by marking entries during collection cycles. When a valid key accesses a Namespace entry via LOAD, the G bit is reset to FALSE. The "GC Scan" button in the Namespace Browser runs a full Mark-Scan-Sweep cycle over the DNA hierarchy.
 
 ## External Dependencies
 

@@ -637,6 +637,149 @@ class CTMMSimulator {
                 return `Unknown instruction: ${instr}`;
         }
     }
+    
+    // ============================================
+    // Garbage Collection - Hierarchical DNA Scan
+    // ============================================
+    
+    // Generate a unique ID for cycle detection
+    gcGetObjectId(obj, index, parentPath) {
+        if (obj.goldenKey) return obj.goldenKey;
+        if (obj.nsOffset !== undefined) return `ns:${obj.nsOffset}`;
+        return `${parentPath}:${index}:${obj.name || 'unnamed'}`;
+    }
+    
+    // Check if object has valid key access (L or M permission)
+    hasValidKeyAccess(parent) {
+        if (!parent || !parent.perms) return false;
+        return parent.perms.includes('L') || parent.perms.includes('M');
+    }
+    
+    // Mark phase: Set G=TRUE on all entries in the Namespace hierarchy
+    gcMark(namespace, visited = new Set(), path = '') {
+        if (!namespace || !namespace.clist) return 0;
+        
+        const objId = this.gcGetObjectId(namespace, 0, path);
+        if (visited.has(objId)) return 0;
+        visited.add(objId);
+        
+        let marked = 0;
+        
+        for (let i = 0; i < namespace.clist.length; i++) {
+            const entry = namespace.clist[i];
+            if (entry && entry.perms) {
+                // Add G bit if not already present
+                if (!entry.perms.includes('G')) {
+                    entry.perms.push('G');
+                    marked++;
+                }
+                // Recursively mark nested namespaces (DNA hierarchy)
+                if (entry.clist) {
+                    marked += this.gcMark(entry, visited, `${path}/${namespace.name || 'root'}`);
+                }
+            }
+        }
+        return marked;
+    }
+    
+    // Scan phase: Walk hierarchy from root, simulating valid key access
+    // Each access resets G to FALSE (same as LOAD with valid key)
+    // Only clears G if parent has L or M permission (valid key check)
+    gcScan(namespace, visited = new Set(), path = '') {
+        if (!namespace || !namespace.clist) return 0;
+        
+        const objId = this.gcGetObjectId(namespace, 0, path);
+        if (visited.has(objId)) return 0;
+        visited.add(objId);
+        
+        // Check if parent has valid key access (L or M permission)
+        const isNamespaceEntry = namespace.perms && 
+            (namespace.perms.includes('M') || namespace.perms.includes('L'));
+        
+        let scanned = 0;
+        
+        for (let i = 0; i < namespace.clist.length; i++) {
+            const entry = namespace.clist[i];
+            if (entry && entry.perms) {
+                // Valid key access resets G bit only if parent has L or M permission
+                // This simulates the LOAD behavior where valid key access clears G
+                if (isNamespaceEntry && entry.perms.includes('G')) {
+                    entry.perms = entry.perms.filter(p => p !== 'G');
+                    scanned++;
+                }
+                // Recursively scan nested namespaces (DNA hierarchy)
+                if (entry.clist) {
+                    scanned += this.gcScan(entry, visited, `${path}/${namespace.name || 'root'}`);
+                }
+            }
+        }
+        return scanned;
+    }
+    
+    // Sweep phase: Find entries still marked with G (no valid key touched them)
+    gcSweep(namespace, visited = new Set(), path = '') {
+        if (!namespace || !namespace.clist) return [];
+        
+        const objId = this.gcGetObjectId(namespace, 0, path);
+        if (visited.has(objId)) return [];
+        visited.add(objId);
+        
+        const garbage = [];
+        
+        for (let i = 0; i < namespace.clist.length; i++) {
+            const entry = namespace.clist[i];
+            if (entry && entry.perms) {
+                const entryPath = `${path}/${entry.name || i}`;
+                // Still has G = no valid key accessed this entry
+                if (entry.perms.includes('G')) {
+                    garbage.push({
+                        path: entryPath,
+                        entry: entry
+                    });
+                }
+                // Recursively check nested namespaces
+                if (entry.clist) {
+                    garbage.push(...this.gcSweep(entry, visited, entryPath));
+                }
+            }
+        }
+        return garbage;
+    }
+    
+    // Full GC cycle: Mark → Scan from roots → Sweep unreachable
+    gcCycle(roots) {
+        const results = {
+            phase: 'complete',
+            marked: 0,
+            scanned: 0,
+            garbage: []
+        };
+        
+        // If no roots provided, use CR15 (Namespace root)
+        if (!roots) {
+            roots = [this.cr15];
+        }
+        
+        // Phase 1: Mark all entries in the namespace hierarchy with G=TRUE
+        const markVisited = new Set();
+        for (const root of roots) {
+            results.marked += this.gcMark(root, markVisited, '');
+        }
+        
+        // Phase 2: Scan from roots - valid key access resets G
+        const scanVisited = new Set();
+        for (const root of roots) {
+            results.scanned += this.gcScan(root, scanVisited, '');
+        }
+        
+        // Phase 3: Sweep - find entries where G is still TRUE (garbage)
+        const sweepVisited = new Set();
+        for (const root of roots) {
+            results.garbage.push(...this.gcSweep(root, sweepVisited, ''));
+        }
+        
+        return results;
+    }
 }
 
 const simulator = new CTMMSimulator();
