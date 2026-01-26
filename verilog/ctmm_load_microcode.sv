@@ -5,18 +5,17 @@
 //   LOAD CRd, [CRn + Index]
 //
 // Microcode Sequence:
-//   Step 1: Check CRn has M or L permission; fetch GT from CRn[Index] → CRd.W0
+//   Step 1: Check CRn has M or L permission
 //   Step 2: Check bounds: Index < CRn.Limit  
-//   Step 3: Check CRd.W0 (GT) has M permission to access CR15 (Namespace)
-//   Step 4: Fetch Word 1 (Location) from Namespace at CRd.W0.Offset
-//   Step 5: Fetch Word 2 (Limit) from Namespace
-//   Step 6: Fetch Word 3 (Seals) from Namespace
-//   Step 7: Validate MAC (calculated hash vs Seals)
-//   Step 8: Reset G bit if namespace access (M permission set)
-//   Step 9: Write all 4 words to destination CRd
-//   Step 10: Advance NIA, instruction complete
-//
-// Note: CR15 (Namespace) access requires M permission on the GT
+//   Step 3: Fetch GT from CRn[Index] → CRd.W0
+//   Step 4: Check GT.offset < CR15.limit AND CR15 = M
+//   Step 5: Fetch Word 1 (Location) from Namespace at GT.Offset
+//   Step 6: Fetch Word 2 (Limit) from Namespace
+//   Step 7: Fetch Word 3 (Seals) from Namespace
+//   Step 8: Validate MAC (calculated hash vs Seals)
+//   Step 9: Reset G bit
+//   Step 10: Write all 4 words to destination CRd
+//   Step 11: Advance NIA, instruction complete
 // Each step takes 1 clock cycle (synchronous memory assumed)
 // ============================================================================
 
@@ -199,9 +198,13 @@ module ctmm_load_microcode
     logic src_is_null;
     assign src_is_null = (src_cap.word0_gt == GT_NULL);
     
-    // Check M permission on fetched GT (required to access Namespace CR15)
-    logic gt_has_m_permission;
-    assign gt_has_m_permission = dst_cap.word0_gt.perms[PERM_M];
+    // Step 4: Check GT.offset < CR15.limit AND CR15 = M
+    logic cr15_has_m;
+    logic gt_offset_in_bounds;
+    logic step4_ok;
+    assign cr15_has_m = cr15_namespace.word0_gt.perms[PERM_M];
+    assign gt_offset_in_bounds = ({32'h0, dst_cap.word0_gt.offset} < cr15_namespace.word2_limit);
+    assign step4_ok = gt_offset_in_bounds && cr15_has_m;
     
     // Check G bit on fetched GT
     logic gt_has_g_bit;
@@ -271,33 +274,33 @@ module ctmm_load_microcode
                     next_state = LOAD_FETCH_W0;  // Fetch GT from C-List
             end
             
-            // Step 1 continued: Fetch GT from CRn[Index] → CRd.W0
+            // Step 3: Fetch GT from CRn[Index] → CRd.W0
             LOAD_FETCH_W0: begin
                 if (ns_rd_valid)
-                    next_state = LOAD_CALC_ADDR;  // GT fetched, now check M permission
+                    next_state = LOAD_CALC_ADDR;  // GT fetched, now do Step 4 check
             end
             
-            // Step 3: Check GT has M permission to access CR15 Namespace
+            // Step 4: Check GT.offset < CR15.limit AND CR15 = M
             LOAD_CALC_ADDR: begin
-                if (!gt_has_m_permission)
-                    next_state = LOAD_FAULT;  // M permission required for Namespace access
+                if (!step4_ok)
+                    next_state = LOAD_FAULT;  // Bounds or M permission failed
                 else
                     next_state = LOAD_FETCH_W1;  // Begin namespace fetch
             end
             
-            // Step 4: Fetch W1 (Location) from Namespace
+            // Step 5: Fetch W1 (Location) from Namespace
             LOAD_FETCH_W1: begin
                 if (ns_rd_valid)
                     next_state = LOAD_FETCH_W2;
             end
             
-            // Step 5: Fetch W2 (Limit) from Namespace
+            // Step 6: Fetch W2 (Limit) from Namespace
             LOAD_FETCH_W2: begin
                 if (ns_rd_valid)
                     next_state = LOAD_FETCH_W3;
             end
             
-            // Step 6: Fetch W3 (Seals) from Namespace
+            // Step 7: Fetch W3 (Seals) from Namespace
             LOAD_FETCH_W3: begin
                 if (ns_rd_valid)
                     next_state = LOAD_CHECK_MAC;

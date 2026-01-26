@@ -124,7 +124,7 @@ The LOAD instruction (`LOAD CRd, [CRn + Index]`) fetches a capability from a C-L
 | 1    | CHECK_L       | Check CRn has M or L permission                  |
 | 2    | CHECK_BOUNDS  | Verify Index < CRn.Limit                         |
 | 3    | FETCH_W0      | Fetch GT from CRn[Index] → CRd.W0                |
-| 4    | CALC_ADDR     | Check CRd.W0 (GT) has M permission for CR15 access |
+| 4    | CALC_ADDR     | Check GT.offset < CR15.limit AND CR15 = M        |
 | 5    | FETCH_W1      | Fetch W1 (Location) from Namespace at GT.Offset  |
 | 6    | FETCH_W2      | Fetch W2 (Limit) from Namespace                  |
 | 7    | FETCH_W3      | Fetch W3 (Seals/MAC) from Namespace              |
@@ -136,13 +136,13 @@ The LOAD instruction (`LOAD CRd, [CRn + Index]`) fetches a capability from a C-L
 **Key Points:**
 - CRd.W0 = GT fetched from CRn[Index] (the Golden Token)
 - CRd.W1, W2, W3 = fetched from CR15 (Namespace) using GT.Offset
-- CR15 access requires M permission on the GT
+- Step 4 validates: GT.offset < CR15.limit AND CR15 has M permission
 
 **Fault Conditions:**
 - NULL capability access → FAULT_NULL_CAP
 - M or L permission missing on CRn → FAULT_PERM_L
 - Index >= CRn.Limit → FAULT_BOUNDS
-- M permission missing on GT for Namespace → FAULT_PERM_M
+- GT.offset >= CR15.limit OR CR15 missing M → FAULT_BOUNDS/FAULT_PERM_M
 - MAC mismatch → FAULT_MAC
 
 ## Garbage Collection
