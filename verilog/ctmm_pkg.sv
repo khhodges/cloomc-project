@@ -8,7 +8,7 @@
 package ctmm_pkg;
 
     // ========================================================================
-    // Golden Token (GT) Structure - 64-bit capability key
+    // Golden Token (GT) Structure - 64-bit capability key (Word 0 of CR)
     // ========================================================================
     // Bits [31:0]  - Offset: Index into Namespace Table
     // Bits [47:32] - Spare: Reserved for future use
@@ -50,7 +50,7 @@ package ctmm_pkg;
     // Meta permission category (M, F, G)
     localparam logic [15:0] META_PERMS = PERM_MASK_M | PERM_MASK_F | PERM_MASK_G;
     
-    // Golden Token structure
+    // Golden Token structure (Word 0)
     typedef struct packed {
         logic [15:0] perms;     // Bits [63:48] - Permission flags
         logic [15:0] spare;     // Bits [47:32] - Reserved
@@ -61,7 +61,42 @@ package ctmm_pkg;
     localparam golden_token_t GT_NULL = '{perms: 16'h0000, spare: 16'h0000, offset: 32'h0000};
     
     // ========================================================================
-    // Namespace Entry - 3-word descriptor (192 bits)
+    // Capability Register (CR) Structure - 4 x 64-bit words (256 bits)
+    // ========================================================================
+    // Word 0: Golden Token (Permissions + Offset)
+    // Word 1: Location - Physical address/base pointer
+    // Word 2: Limit - Size/bounds for access checking  
+    // Word 3: Seals/MAC - Security validation hash
+    // ========================================================================
+    
+    typedef struct packed {
+        logic [63:0] word3_seals;    // Word 3: MAC/Seals for validation
+        logic [63:0] word2_limit;    // Word 2: Size limit for bounds checking
+        logic [63:0] word1_location; // Word 1: Physical location/base address
+        golden_token_t word0_gt;     // Word 0: Golden Token (64 bits)
+    } capability_reg_t;
+    
+    // Null Capability Register (all zeros)
+    localparam capability_reg_t CR_NULL = '{
+        word3_seals: 64'h0,
+        word2_limit: 64'h0,
+        word1_location: 64'h0,
+        word0_gt: GT_NULL
+    };
+    
+    // Number of Capability Registers
+    localparam int NUM_CAP_REGS = 18;
+    
+    // Special Capability Register indices
+    localparam logic [4:0] CR_CLIST     = 5'd6;   // CR6: Current C-List
+    localparam logic [4:0] CR_NUCLEUS   = 5'd7;   // CR7: Nucleus (kernel)
+    localparam logic [4:0] CR_THREAD    = 5'd8;   // CR8: Thread identity
+    localparam logic [4:0] CR_NAMESPACE = 5'd15;  // CR15: Namespace root
+    localparam logic [4:0] CR_NIA       = 5'd16;  // CR16: Next Instruction Address
+    localparam logic [4:0] CR_FAULT     = 5'd17;  // CR17: Fault handler
+    
+    // ========================================================================
+    // Namespace Entry - 3-word descriptor (192 bits) in memory
     // ========================================================================
     // Word 1: Location - physical address/pointer
     // Word 2: Limit - size/bounds for access checking
@@ -172,5 +207,30 @@ package ctmm_pkg;
         BOOT_LOAD_NUC   = 3'd4,  // Step 4: Load nucleus
         BOOT_COMPLETE   = 3'd5
     } boot_state_t;
+    
+    // ========================================================================
+    // LOAD Instruction Microcode States
+    // ========================================================================
+    // LOAD CRd, [CRn + Index]
+    // Fetches a capability from the C-List pointed to by CRn at Index
+    // and loads it into destination register CRd
+    // ========================================================================
+    
+    typedef enum logic [3:0] {
+        LOAD_IDLE       = 4'd0,   // Waiting for LOAD instruction
+        LOAD_FETCH_SRC  = 4'd1,   // Step 1: Read source CR (CRn) to get C-List pointer
+        LOAD_CHECK_L    = 4'd2,   // Step 2: Check L permission on CRn
+        LOAD_CALC_ADDR  = 4'd3,   // Step 3: Calculate address: CRn.Location + (Index * 32)
+        LOAD_CHECK_BOUNDS=4'd4,   // Step 4: Check Index < CRn.Limit
+        LOAD_FETCH_W0   = 4'd5,   // Step 5: Fetch Word 0 (GT) from memory
+        LOAD_FETCH_W1   = 4'd6,   // Step 6: Fetch Word 1 (Location) from memory
+        LOAD_FETCH_W2   = 4'd7,   // Step 7: Fetch Word 2 (Limit) from memory
+        LOAD_FETCH_W3   = 4'd8,   // Step 8: Fetch Word 3 (Seals) from memory
+        LOAD_CHECK_MAC  = 4'd9,   // Step 9: Validate MAC (Seals vs calculated hash)
+        LOAD_RESET_G    = 4'd10,  // Step 10: Reset G bit if namespace access (M or L set)
+        LOAD_WRITE_DST  = 4'd11,  // Step 11: Write all 4 words to destination CRd
+        LOAD_COMPLETE   = 4'd12,  // Step 12: Instruction complete, advance NIA
+        LOAD_FAULT      = 4'd13   // Fault occurred - transfer to fault handler
+    } load_state_t;
 
 endpackage

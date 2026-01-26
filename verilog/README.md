@@ -15,46 +15,63 @@ The CTMM hardware implements failsafe security through Golden Tokens (64-bit cap
 
 ```
 verilog/
-├── ctmm_pkg.sv        # Package with types, constants, and definitions
-├── ctmm_registers.sv  # Register file (CR0-CR15, DR0-DR15, flags)
-├── ctmm_perm_check.sv # Permission checking unit
-├── ctmm_gc_unit.sv    # Garbage collection unit with G bit
-├── ctmm_decoder.sv    # Instruction decoder
-├── ctmm_core.sv       # Top-level processor core
-├── ctmm_tb.sv         # Testbench
-└── README.md          # This file
+├── ctmm_pkg.sv           # Package with types, constants, and definitions
+├── ctmm_registers.sv     # Register file (18 x 256-bit CRs, 16 x 64-bit DRs)
+├── ctmm_load_microcode.sv # LOAD instruction microcode sequencer
+├── ctmm_perm_check.sv    # Permission checking unit
+├── ctmm_gc_unit.sv       # Garbage collection unit with G bit
+├── ctmm_decoder.sv       # Instruction decoder
+├── ctmm_core.sv          # Top-level processor core
+├── ctmm_tb.sv            # Testbench
+└── README.md             # This file
 ```
 
-## Golden Token (GT) Format
+## Capability Register (CR) Format - 4 x 64-bit Words (256 bits)
+
+Each of the 18 Capability Registers contains 4 words:
 
 ```
-Bits [63:48] - Permissions (16 bits)
-  Bit 0: R - Read
-  Bit 1: W - Write
-  Bit 2: X - Execute
-  Bit 3: L - Load (capability from C-List)
-  Bit 4: S - Save/Store (capability to C-List)
-  Bit 5: E - Enter (call procedure)
-  Bit 6: B - Bind (save to namespace DNA)
-  Bit 7: M - Meta-Machine (hardware-level access)
-  Bit 8: F - Far (remote URL location)
-  Bit 9: G - Garbage (deterministic GC flag)
+Word 0: Golden Token (64 bits)
+  Bits [63:48] - Permissions (16 bits)
+    Bit 0: R - Read
+    Bit 1: W - Write
+    Bit 2: X - Execute
+    Bit 3: L - Load (capability from C-List)
+    Bit 4: S - Save/Store (capability to C-List)
+    Bit 5: E - Enter (call procedure)
+    Bit 6: B - Bind (save to namespace DNA)
+    Bit 7: M - Meta-Machine (hardware-level access)
+    Bit 8: F - Far (remote URL location)
+    Bit 9: G - Garbage (deterministic GC flag)
+  Bits [47:32] - Spare (reserved)
+  Bits [31:0]  - Offset (index into Namespace Table)
 
-Bits [47:32] - Spare (reserved)
-Bits [31:0]  - Offset (index into Namespace Table)
+Word 1: Location (64 bits)
+  Physical address or base pointer to the object
+
+Word 2: Limit (64 bits)
+  Size/bounds for access checking
+
+Word 3: Seals/MAC (64 bits)
+  Security validation hash for integrity checking
 ```
 
 ## Register Architecture
 
-### Context Registers (Church)
-- **CR0-CR7**: General purpose capability registers
-- **CR6**: Current C-List
-- **CR7**: Nucleus (kernel capability)
-- **CR8**: Thread identity
-- **CR15**: Namespace root
+### Capability Registers (Church) - 18 x 256-bit
+| Register | Name      | Purpose                           |
+|----------|-----------|-----------------------------------|
+| CR0-CR5  | General   | General purpose capability storage |
+| CR6      | C-List    | Current Capability List pointer   |
+| CR7      | Nucleus   | Kernel/supervisor capability      |
+| CR8      | Thread    | Thread identity capability        |
+| CR9-CR14 | General   | General purpose capability storage |
+| CR15     | Namespace | Namespace root capability         |
+| CR16     | NIA       | Next Instruction Address          |
+| CR17     | Fault     | Fault handler capability          |
 
-### Data Registers (Turing)
-- **DR0-DR15**: 64-bit data registers
+### Data Registers (Turing) - 16 x 64-bit
+- **DR0-DR15**: 64-bit data registers for arithmetic/logic operations
 
 ### Condition Flags
 - N (Negative), Z (Zero), C (Carry), V (Overflow)
@@ -97,6 +114,31 @@ Bits [31:0]  - Offset (index into Namespace Table)
 2. **LOAD_NS**: Load namespace root into CR15 with M+L permissions
 3. **INIT_THRD**: Initialize thread identity in CR8
 4. **LOAD_NUC**: Load CR6 (Boot C-List) and CR7 (Nucleus)
+
+## LOAD Instruction Microcode
+
+The LOAD instruction (`LOAD CRd, [CRn + Index]`) fetches a capability from a C-List and loads it into a destination register. The microcode sequence is:
+
+| Step | State         | Description                                      |
+|------|---------------|--------------------------------------------------|
+| 1    | FETCH_SRC     | Read source CR (CRn) - all 4 words               |
+| 2    | CHECK_L       | Verify L permission on CRn.Word0 (Golden Token)  |
+| 3    | CALC_ADDR     | Calculate address: CRn.Location + (Index * 32)   |
+| 4    | CHECK_BOUNDS  | Verify Index < CRn.Limit                         |
+| 5    | FETCH_W0      | Fetch Word 0 (GT) from C-List memory             |
+| 6    | FETCH_W1      | Fetch Word 1 (Location) from memory              |
+| 7    | FETCH_W2      | Fetch Word 2 (Limit) from memory                 |
+| 8    | FETCH_W3      | Fetch Word 3 (Seals/MAC) from memory             |
+| 9    | CHECK_MAC     | Validate MAC (calculated hash vs Seals)          |
+| 10   | RESET_G       | Reset G bit if namespace access (M or L set)     |
+| 11   | WRITE_DST     | Write all 4 words to destination CRd             |
+| 12   | COMPLETE      | Advance NIA, instruction complete                |
+
+**Fault Conditions:**
+- NULL capability access → FAULT_NULL_CAP
+- L permission missing → FAULT_PERM_L
+- Index >= Limit → FAULT_BOUNDS
+- MAC mismatch → FAULT_MAC
 
 ## Garbage Collection
 
