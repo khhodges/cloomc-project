@@ -967,6 +967,7 @@ main {
 .perm-b { background: #14b8a6; }
 .perm-m { background: #7c3aed; }
 .perm-f { background: #06b6d4; }
+.perm-g { background: #84cc16; }
 
 .cap-main {
     display: flex;

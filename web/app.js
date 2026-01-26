@@ -1565,7 +1565,7 @@ function createTokenCard(cap, regLabel, showDeleteBtn = true) {
         showCapabilityDetail(evt, cap, regLabel);
     };
     
-    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F'];
+    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F', 'G'];
     const permBadges = allPerms.map(p => {
         const hasIt = cap.perms.includes(p);
         return `<span class="perm-badge perm-${p.toLowerCase()} ${hasIt ? '' : 'inactive'}">${p}</span>`;
@@ -4351,7 +4351,7 @@ const lessons = [
                 <ul>
                     <li><strong>Offset [0:31]</strong> - 32-bit index into the Namespace Table</li>
                     <li><strong>Spare [32:47]</strong> - 16 reserved bits for future use</li>
-                    <li><strong>Perms [48:63]</strong> - 16-bit permission flags (R, W, X, L, S, E, B, M, F)</li>
+                    <li><strong>Perms [48:63]</strong> - 16-bit permission flags (R, W, X, L, S, E, B, M, F, G)</li>
                 </ul>
                 <div class="key-concept">
                     <strong>Key Insight:</strong> The GT contains just enough to locate and authorize access. The detailed resource description lives in the Namespace Entry.
@@ -6303,7 +6303,7 @@ SWITCH 5        ; Become original user again</pre>
                     <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
 ; Syntax: TPERM source, permissions
 ; source = CR containing GT to test (0-15)
-; permissions = bit mask (R, W, X, L, S, E, B, M)
+; permissions = bit mask (R, W, X, L, S, E, B, M, F, G)
 
 ; Test for read permission:
 TPERM 0 R         ; Test if CR0 has Read
@@ -6601,7 +6601,7 @@ Set by: TPERM instruction</pre>
                 <p><strong>Parameters:</strong></p>
                 <ul>
                     <li><strong>CRs</strong> - Context Register to test (0-15)</li>
-                    <li><strong>permMask</strong> - Permission bits to check (R, W, X, L, S, E, B, M, F)</li>
+                    <li><strong>permMask</strong> - Permission bits to check (R, W, X, L, S, E, B, M, F, G)</li>
                     <li><strong>index</strong> - Optional index for bounds checking against W2 limit</li>
                 </ul>
                 <p><strong>Flags Set:</strong></p>
@@ -8213,7 +8213,7 @@ function getNextFreeNamespaceOffset() {
 function calculatePermissionBits(perms) {
     const permBits = {
         'R': 0x0001, 'W': 0x0002, 'X': 0x0004, 'L': 0x0008,
-        'S': 0x0010, 'E': 0x0020, 'B': 0x0040, 'M': 0x0080, 'F': 0x0100
+        'S': 0x0010, 'E': 0x0020, 'B': 0x0040, 'M': 0x0080, 'F': 0x0100, 'G': 0x0200
     };
     let value = 0;
     if (perms) {
@@ -10612,7 +10612,7 @@ const churchInstrFormats = [
             { name: "Op", bits: 6, value: "000111", desc: "TPERM opcode" },
             { name: "CRs", bits: 3, desc: "CR to test (0-7)" },
             { name: "I", bits: 1, desc: "Index present (1=yes)" },
-            { name: "Perms", bits: 9, desc: "Permission mask (9 bits: R W X L S E B M F)" },
+            { name: "Perms", bits: 10, desc: "Permission mask (10 bits: R W X L S E B M F G)" },
             { name: "Index", bits: 9, desc: "Access index to validate against W2 limit (if I=1)" }
         ],
         variants: [
