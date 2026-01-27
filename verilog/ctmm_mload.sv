@@ -24,8 +24,8 @@
 //   Step 6: Fetch Word 2 (Limit) from CR15.Location + GT.offset + 8
 //   Step 7: Fetch Word 3 (Seals) from CR15.Location + GT.offset + 16
 //   Step 8: Validate MAC (calculated hash vs Seals)
-//   Step 9: Reset G bit in CR15[GT.offset].Word3.Gbit
-//   Step 10: Output complete capability
+//   Step 9: If G=1, reset G bit in CR15[GT.offset].Word3.Gbit
+//   Step 10: Write capability to CRd, signal done
 //
 // Note: GT.offset is a direct memory offset (bytes), not an index.
 //       This provides hardware error detection - bit errors in the offset

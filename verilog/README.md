@@ -168,7 +168,7 @@ The mLoad micro-routine fetches a capability from a C-List. The microcode sequen
 | 6    | FETCH_W2      | Fetch W2 (Limit) from CR15.Location + GT.offset + 8 |
 | 7    | FETCH_W3      | Fetch W3 (Seals/MAC) from CR15.Location + GT.offset + 16 |
 | 8    | CHECK_MAC     | Validate MAC (calculated hash vs Seals)          |
-| 9    | RESET_G       | Reset G bit in CR15[GT.offset].Word3.Gbit        |
+| 9    | RESET_G       | **If G=1**: Reset G bit in CR15[GT.offset].Word3.Gbit |
 | 10   | COMPLETE      | Write all 4 words to CRd, assert sub_done        |
 
 **Key Points:**
