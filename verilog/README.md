@@ -23,6 +23,7 @@ verilog/
 ├── ctmm_msave.sv         # mSave micro-routine (shared trusted code)
 ├── ctmm_save.sv          # SAVE Church-Instruction (uses mSave)
 ├── ctmm_change.sv        # CHANGE Church-Instruction (uses mSave + mLoad)
+├── ctmm_call.sv          # CALL Church-Instruction (uses mLoad)
 ├── ctmm_perm_check.sv    # Permission checking unit
 ├── ctmm_gc_unit.sv       # Garbage collection unit with G bit
 ├── ctmm_decoder.sv       # Instruction decoder
@@ -127,7 +128,7 @@ The mLoad micro-routine (`ctmm_mload.sv`) is the **single trusted microcode** fo
 | Instruction | Uses mLoad For | Status |
 |-------------|----------------|--------|
 | **LOAD**    | Fetch capability into destination register | Implemented |
-| **CALL**    | Fetch procedure capability, then transfer control | Planned |
+| **CALL**    | Fetch nucleus capability into CR7 | Implemented |
 | **RETURN**  | Fetch return capability from stack | Planned |
 | **CHANGE**  | Fetch new thread identity into CR8 | Planned |
 | **SWITCH**  | Fetch new namespace capability into CR15 | Implemented |
