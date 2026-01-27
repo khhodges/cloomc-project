@@ -26,13 +26,12 @@ module ctmm_decoder
     output logic        is_church_op,     // Church (capability) operation
     output logic        is_turing_op,     // Turing (data) operation
     
-    // Church instruction decoded fields
+    // Church instruction decoded fields (all use 3-bit CR: CR0-CR5 only)
     output church_opcode_t church_op,
-    output logic [3:0]  cr_src,           // Source CR
-    output logic [3:0]  cr_dst,           // Destination CR
+    output logic [2:0]  cr_src,           // Source CR (3 bits: 0-5)
+    output logic [2:0]  cr_dst,           // Destination CR (3 bits: 0-5)
     output logic [7:0]  clist_index,      // C-List index
     output logic [15:0] perm_mask,        // Permission mask for TPERM
-    output logic [2:0]  call_crs,         // CALL source CR (3 bits: CR0-CR5)
     output logic [13:0] call_mask,        // CALL preserve mask: [7:0]=DR0-7, [13:8]=CR0-5
     
     // Turing instruction decoded fields
@@ -108,31 +107,33 @@ module ctmm_decoder
     assign church_op = church_opcode_t'(opcode_field);
     
     // LOAD/SAVE: CR_dst, CR_src, index
-    // Bits [21:18] = dst CR
-    // Bits [17:14] = src CR (4 bits for LOAD/SAVE)
-    // Bits [13:6]  = C-List index
-    assign cr_dst = operand_field[21:18];
-    assign cr_src = operand_field[17:14];  // 4 bits for LOAD/SAVE; CALL uses [17:15]
-    assign clist_index = operand_field[13:6];
+    // Bits [21:19] = dst CR (3 bits: CR0-CR5)
+    // Bits [18:16] = src CR (3 bits: CR0-CR5)
+    // Bits [15:8]  = C-List index
+    // Bits [7:0]   = spare (available for instruction-specific use)
+    assign cr_dst = operand_field[21:19];
+    assign cr_src = operand_field[18:16];
+    assign clist_index = operand_field[15:8];
     
     // TPERM: CR_src, perm_mask
-    // Bits [21:18] = CR to test
+    // Bits [21:19] = CR to test (3 bits)
     // Bits [15:0]  = permission mask
     assign perm_mask = operand_field[15:0];
     
     // CALL: CR_src, index, mask (uses spare bits for isolation mask)
-    // Bits [17:15] = src CR (3 bits: CR0-CR5 only)
-    // Bits [13:6]  = C-List index (8 bits = 256 entries)
-    // Bits [21:18] = CR preserve mask for CR0-CR3 (4 bits)
-    // Bits [14]    = CR preserve for CR4 (1 bit)
-    // Bits [5:0]   = DR preserve mask for DR0-DR5 (6 bits)
-    // Total: 11 spare bits encode 11 registers
-    assign call_crs = operand_field[17:15];
+    // Standard Church layout: [21:19]=dst, [18:16]=src, [15:8]=index
+    // CALL uses: src=cr_src, index=clist_index, dst bits + spare for mask
+    //
+    // Spare bits for CALL mask:
+    // Bits [21:19] = spare (dst not used by CALL) - 3 bits
+    // Bits [7:0]   = spare - 8 bits
+    // Total: 11 spare bits
     //
     // call_mask format: [13:8]=CR0-5, [7:0]=DR0-7
-    // Encoding: CR[4:0]={[14],[21:18]}, CR5=0, DR[5:0]=[5:0], DR[7:6]=11
-    assign call_mask = {1'b0, operand_field[14], operand_field[21:18], 
-                        2'b11, operand_field[5:0]};
+    // Encoding: CR[5:0]={[21:19],[7:5]}, DR[7:0]=[7:0] with [4:0] from spare
+    // Simplified: use [7:0] for DR0-7, [21:19]+[4:2] for CR0-5
+    assign call_mask = {operand_field[21:19], operand_field[7:5],  // CR0-5
+                        operand_field[4:0], 3'b111};               // DR0-7 (DR5-7 preserve)
     
     // ========================================================================
     // Turing Instruction Decode
