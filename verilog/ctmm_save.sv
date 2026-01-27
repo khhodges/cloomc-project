@@ -8,21 +8,17 @@
 //   CRs = Source CR (the capability whose GT we're saving)
 //   CRd[Index] = Destination C-List slot
 //
-// SAVE Steps (optimized):
-//   Step 1: Verify CRd in 0-6 AND initiate register read (parallel)
-//   Step 2: Verify CRd has S (Save) permission
-//   Step 3: Verify GT.B = TRUE - the Golden Token must allow being saved
-//   Step 4: Verify Index < CRd.Limit
-//   Step 5: Write CRs.Word0 (GT) to CRd.Location + Index*8
+// SAVE Steps:
+//   Step 1: Verify CRd in 0-6 AND initiate register reads (parallel)
+//   Step 2: Latch destination and source register data
+//   Step 3: Call mSave with destination cap, source GT, and index
 //
-// Note: SAVE does not use mLoad - it's a simpler write-only operation.
-// No MAC validation or G bit handling needed.
+// The actual permission checks and memory write are done by ctmm_msave.sv
+// This reduces the Trusted Computing Base - SAVE and CHANGE share mSave.
 //
 // FAULT conditions:
-//   - Destination CRd not in range 0-6
-//   - Destination CRd lacks S permission
-//   - GT.B = FALSE (Golden Token cannot be saved)
-//   - Index >= CRd.Limit (out of bounds)
+//   - Destination CRd not in range 0-6 (checked here)
+//   - mSave faults (S permission, M||B, bounds)
 // ============================================================================
 
 module ctmm_save
@@ -45,7 +41,7 @@ module ctmm_save
     output logic [3:0]  cr_rd_addr,           // Register to read
     input  capability_reg_t cr_rd_data,       // Full 256-bit register data
     
-    // Memory write interface
+    // Memory write interface (directly from subroutine)
     output logic [63:0] mem_wr_addr,          // Memory address to write
     output logic [63:0] mem_wr_data,          // Data to write (GT)
     output logic        mem_wr_en,            // Write enable
@@ -59,16 +55,15 @@ module ctmm_save
     localparam logic [3:0] MAX_CLIST_REG = 4'd6;  // Maximum allowed destination register
     
     // ========================================================================
-    // State Machine
+    // State Machine - SAVE instruction wrapper
     // ========================================================================
     
     typedef enum logic [2:0] {
         SAVE_IDLE,
         SAVE_CHECK_DST_READ,  // Verify CRd in 0-6 AND initiate destination read
-        SAVE_LATCH_DST,       // Wait for register data and latch destination
-        SAVE_READ_SRC,        // Read source register to get GT
-        SAVE_CHECK_S_BOUNDS,  // Verify S permission AND bounds (combined for speed)
-        SAVE_WRITE_GT         // Write GT to memory
+        SAVE_LATCH_DST,       // Latch destination, initiate source read
+        SAVE_LATCH_SRC,       // Latch source
+        SAVE_CALL_SUB         // Call mSave and wait for completion
     } save_state_t;
     
     save_state_t state, next_state;
@@ -80,53 +75,29 @@ module ctmm_save
     capability_reg_t dst_reg_latched;  // Destination C-List register
     capability_reg_t src_reg_latched;  // Source register (for GT)
     
-    // Latch destination data when it becomes valid (one cycle after read initiated)
-    // Latch source data when it becomes valid (one cycle after read initiated)
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             dst_reg_latched <= '0;
             src_reg_latched <= '0;
         end else begin
             if (state == SAVE_LATCH_DST) begin
-                dst_reg_latched <= cr_rd_data;  // Data valid after CHECK_DST_READ
+                dst_reg_latched <= cr_rd_data;
             end
-            if (state == SAVE_CHECK_S_BOUNDS) begin
-                src_reg_latched <= cr_rd_data;  // Data valid after READ_SRC
+            if (state == SAVE_LATCH_SRC) begin
+                src_reg_latched <= cr_rd_data;
             end
         end
     end
     
     // ========================================================================
-    // Permission and Bounds Check Logic
+    // Destination Range Check
     // ========================================================================
     
     logic dst_in_range;
-    logic dst_has_s_perm;
-    logic src_has_b_perm;
-    logic index_in_bounds;
-    logic [9:0] dst_perms;
-    logic [9:0] src_perms;
-    logic [63:0] dst_limit;
-    logic [63:0] dst_location;
-    
     assign dst_in_range = (cr_dst <= MAX_CLIST_REG);
-    assign dst_perms = dst_reg_latched.word0_gt[57:48];  // Permission bits from destination GT
-    assign src_perms = src_reg_latched.word0_gt[57:48];  // Permission bits from source GT
-    assign dst_has_s_perm = dst_perms[PERM_S];
-    assign src_has_b_perm = src_perms[PERM_B];           // GT.B must be TRUE to allow saving
-    assign dst_limit = dst_reg_latched.word2_limit;
-    assign dst_location = dst_reg_latched.word1_location;
-    assign index_in_bounds = ({56'b0, index} < dst_limit);
     
     // ========================================================================
-    // Memory Write Address Calculation
-    // ========================================================================
-    
-    logic [63:0] write_addr;
-    assign write_addr = dst_location + ({56'b0, index} << 3);  // index * 8 bytes
-    
-    // ========================================================================
-    // Fault Latching
+    // Fault Latching (for local range check fault)
     // ========================================================================
     
     logic        fault_latched;
@@ -142,17 +113,71 @@ module ctmm_save
         end else if (state == SAVE_CHECK_DST_READ && !dst_in_range) begin
             fault_latched <= 1'b1;
             fault_type_latched <= FAULT_PERM;  // Invalid destination register
-        end else if (state == SAVE_CHECK_S_BOUNDS && !dst_has_s_perm) begin
+        end else if (state == SAVE_CALL_SUB && sub_fault_latched) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // Missing S permission on destination
-        end else if (state == SAVE_CHECK_S_BOUNDS && dst_has_s_perm && !src_has_b_perm) begin
-            fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // GT.B = FALSE (Golden Token cannot be saved)
-        end else if (state == SAVE_CHECK_S_BOUNDS && dst_has_s_perm && src_has_b_perm && !index_in_bounds) begin
-            fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_BOUNDS;  // Index out of bounds
+            fault_type_latched <= sub_fault_type;
         end
     end
+    
+    // ========================================================================
+    // mSave Subroutine Instance
+    // ========================================================================
+    
+    logic        sub_start;
+    logic        sub_start_reg;      // Registered pulse - one cycle only
+    logic        sub_busy;
+    logic        sub_done;
+    logic        sub_fault;
+    logic        sub_done_latched;   // Sticky latch for completion
+    logic        sub_fault_latched;  // Sticky latch for fault
+    fault_type_t sub_fault_type;
+    
+    // Generate single-cycle pulse on entry to SAVE_CALL_SUB
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            sub_start_reg <= 1'b0;
+        else if (state == SAVE_LATCH_SRC && next_state == SAVE_CALL_SUB)
+            sub_start_reg <= 1'b1;  // Set on transition to CALL_SUB
+        else
+            sub_start_reg <= 1'b0;  // Clear after one cycle
+    end
+    
+    // Sticky latch for sub_done/sub_fault to avoid missing single-cycle signals
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            sub_done_latched <= 1'b0;
+            sub_fault_latched <= 1'b0;
+        end else if (state == SAVE_IDLE) begin
+            sub_done_latched <= 1'b0;
+            sub_fault_latched <= 1'b0;
+        end else begin
+            if (sub_done) sub_done_latched <= 1'b1;
+            if (sub_fault) sub_fault_latched <= 1'b1;
+        end
+    end
+    
+    assign sub_start = sub_start_reg;
+    
+    ctmm_msave u_msave (
+        .clk            (clk),
+        .rst_n          (rst_n),
+        
+        // Subroutine interface
+        .sub_start      (sub_start),
+        .sub_dst_cap    (dst_reg_latched),
+        .sub_src_gt     (src_reg_latched.word0_gt),
+        .sub_index      (index),
+        .sub_busy       (sub_busy),
+        .sub_done       (sub_done),
+        .sub_fault      (sub_fault),
+        .sub_fault_type (sub_fault_type),
+        
+        // Memory write interface
+        .mem_wr_addr    (mem_wr_addr),
+        .mem_wr_data    (mem_wr_data),
+        .mem_wr_en      (mem_wr_en),
+        .mem_wr_done    (mem_wr_done)
+    );
     
     // ========================================================================
     // State Register
@@ -180,38 +205,27 @@ module ctmm_save
             end
             
             SAVE_CHECK_DST_READ: begin
-                // Step 1: Verify CRd in 0-6 (combinational) AND initiate read
-                // Range check happens combinationally, data available next cycle
+                // Verify CRd in 0-6 AND initiate read
                 if (!dst_in_range)
-                    next_state = SAVE_IDLE;  // Fault - destination out of range
+                    next_state = SAVE_IDLE;  // Fault
                 else
                     next_state = SAVE_LATCH_DST;
             end
             
             SAVE_LATCH_DST: begin
-                // Data from destination read now valid, latch it
-                // Also initiate source read
-                next_state = SAVE_READ_SRC;
+                // Destination data now valid, latch it
+                next_state = SAVE_LATCH_SRC;
             end
             
-            SAVE_READ_SRC: begin
-                // Wait for source register data to become valid
-                next_state = SAVE_CHECK_S_BOUNDS;
+            SAVE_LATCH_SRC: begin
+                // Source data now valid, latch it
+                next_state = SAVE_CALL_SUB;
             end
             
-            SAVE_CHECK_S_BOUNDS: begin
-                // Step 2+3+4: Verify S permission, GT.B, AND bounds
-                // Source data also latched in this cycle
-                // Checks: dst.S (can save to), GT.B (can be saved), Index < Limit
-                if (!dst_has_s_perm || !src_has_b_perm || !index_in_bounds)
-                    next_state = SAVE_IDLE;  // Fault
-                else
-                    next_state = SAVE_WRITE_GT;
-            end
-            
-            SAVE_WRITE_GT: begin
-                // Step 4: Write GT to memory
-                if (mem_wr_done)
+            SAVE_CALL_SUB: begin
+                // sub_start_reg pulses once on entry (registered)
+                // Wait for subroutine to complete (using sticky latches)
+                if (sub_done_latched || sub_fault_latched)
                     next_state = SAVE_IDLE;
             end
             
@@ -221,12 +235,6 @@ module ctmm_save
     
     // ========================================================================
     // Register Read Control
-    // ========================================================================
-    // Read timing:
-    //   IDLE (if save_start) -> CHECK_DST_READ: cr_rd_addr = cr_dst
-    //   CHECK_DST_READ -> LATCH_DST: data valid, latch destination
-    //   LATCH_DST -> READ_SRC: cr_rd_addr = cr_src
-    //   READ_SRC -> CHECK_S_BOUNDS: data valid, latch source
     // ========================================================================
     
     always_comb begin
@@ -243,7 +251,7 @@ module ctmm_save
             SAVE_LATCH_DST: begin
                 cr_rd_addr = cr_src;  // Initiate source read
             end
-            SAVE_READ_SRC: begin
+            SAVE_LATCH_SRC: begin
                 cr_rd_addr = cr_src;  // Continue reading source
             end
             default: cr_rd_addr = 4'd0;
@@ -251,20 +259,16 @@ module ctmm_save
     end
     
     // ========================================================================
-    // Memory Write Control
-    // ========================================================================
-    
-    assign mem_wr_en = (state == SAVE_WRITE_GT);
-    assign mem_wr_addr = write_addr;
-    assign mem_wr_data = src_reg_latched.word0_gt;  // Write the Golden Token
-    
-    // ========================================================================
     // Output Signals
     // ========================================================================
+    // Note: sub_done/sub_fault may be single-cycle pulses from mSave.
+    // SAVE uses sticky latches (sub_done_latched, sub_fault_latched) to
+    // ensure completion/fault signals are not missed.
     
     assign save_busy = (state != SAVE_IDLE);
-    assign save_complete = (state == SAVE_WRITE_GT) && mem_wr_done;
+    assign save_complete = (state == SAVE_CALL_SUB) && sub_done_latched;
     assign save_fault = fault_latched;
     assign fault_type = fault_type_latched;
 
 endmodule
+

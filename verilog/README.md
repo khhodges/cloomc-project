@@ -20,7 +20,8 @@ verilog/
 ├── ctmm_mload.sv         # mLoad micro-routine (shared trusted code)
 ├── ctmm_load.sv          # LOAD Church-Instruction (uses mLoad)
 ├── ctmm_switch.sv        # SWITCH Church-Instruction (uses mLoad)
-├── ctmm_save.sv          # SAVE Church-Instruction (GT write)
+├── ctmm_msave.sv         # mSave micro-routine (shared trusted code)
+├── ctmm_save.sv          # SAVE Church-Instruction (uses mSave)
 ├── ctmm_perm_check.sv    # Permission checking unit
 ├── ctmm_gc_unit.sv       # Garbage collection unit with G bit
 ├── ctmm_decoder.sv       # Instruction decoder
@@ -130,11 +131,24 @@ The mLoad micro-routine (`ctmm_mload.sv`) is the **single trusted microcode** fo
 | **CHANGE**  | Fetch new thread identity into CR8 | Planned |
 | **SWITCH**  | Fetch new namespace capability into CR15 | Implemented |
 
-### Non-mLoad Church Instructions
+### mSave Micro-Routine - Shared Trusted Code for GT Saving
+
+The mSave micro-routine (`ctmm_msave.sv`) is the **single trusted microcode** for all GT saving operations:
+
+| Instruction | Uses mSave For | Status |
+|-------------|----------------|--------|
+| **SAVE**    | Write GT to C-List[Index] | Implemented |
+| **CHANGE**  | Save CR states to Thread before context switch | Planned |
+
+**mSave Permission Rule:**
+- Check dst.S (destination allows saving)
+- Check GT.M || GT.B (machine-level bypasses B check)
+- Check Index < Limit (bounds)
+
+### Non-mLoad/mSave Church Instructions
 
 | Instruction | Description | Status |
 |-------------|-------------|--------|
-| **SAVE**    | Write GT from source CR to C-List[Index] | Implemented |
 | **TPERM**   | Trim permissions on a capability | Planned |
 
 ### mLoad Interface
