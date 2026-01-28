@@ -11149,9 +11149,8 @@ const churchInstrFormats = [
         format: [
             { name: "Op", bits: 5, value: "11101", desc: "LDI opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "I", bits: 1, desc: "Reserved (always 1)" },
-            { name: "DRd", bits: 4, desc: "Destination data register (0-15)" },
-            { name: "Imm18", bits: 18, desc: "18-bit immediate (0 to 262,143)" }
+            { name: "I", bits: 1, desc: "0=16-bit imm + shift, 1=22-bit direct" },
+            { name: "Imm22/DRd+Imm", bits: 22, desc: "I=1: 22-bit immediate direct; I=0: DRd[3:0]+Imm16+Shift[1:0]" }
         ],
         notes: "Zero-extended to 64 bits. For full 64-bit constants, chain multiple LDI with LSL."
     }
