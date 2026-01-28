@@ -136,7 +136,10 @@ This document maps each instruction across all implementation layers for verific
 
 | Issue | Location | Description | Status |
 |-------|----------|-------------|--------|
-| (none yet) | | | |
+| Opcode width | UI (app.js) | All Church instructions showed 6-bit opcodes, should be 5-bit | FIXED |
+| Index width | UI (app.js) | LOAD/SAVE showed 13-bit index, should be 10-bit (1024 entries) | FIXED |
+| Bit order | UI (app.js) | Format showed Cond before Op, should be Op first per Verilog [31:27] | FIXED |
+| CR8/CR15 access | JS Simulator | LOAD allows writing to CR8/CR15 as special cases | REVIEW NEEDED |
 
 ---
 

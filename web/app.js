@@ -10945,16 +10945,16 @@ const churchInstrFormats = [
         syntax: "LOAD CRd, [CRn+idx]",
         desc: "Copy Golden Token from C-List slot into Context Register.",
         format: [
+            { name: "Op", bits: 5, value: "00001", desc: "LOAD opcode" },
             { name: "Cond", bits: 4, desc: "Condition code (AL=always)" },
-            { name: "Op", bits: 6, value: "000001", desc: "LOAD opcode" },
+            { name: "I", bits: 1, desc: "0=immediate offset, 1=register" },
             { name: "CRd", bits: 3, desc: "Destination CR (0-7)" },
             { name: "CRn", bits: 3, desc: "Source C-List register (0-7)" },
-            { name: "Reserved", bits: 2, value: "0", desc: "Reserved (CR8-15 meta-machine only)" },
-            { name: "I", bits: 1, desc: "0=immediate offset, 1=register" },
-            { name: "Index", bits: 13, desc: "Offset or DR number" }
+            { name: "Index", bits: 10, desc: "C-List index (0-1023)" },
+            { name: "Reserved", bits: 6, value: "0", desc: "Reserved" }
         ],
         variants: [
-            { name: "Immediate", fields: { I: "0", Index: "Literal offset 0-8191" } },
+            { name: "Immediate", fields: { I: "0", Index: "Literal offset 0-1023" } },
             { name: "Register", fields: { I: "1", Index: "Index[3:0] = DR number" } }
         ]
     },
@@ -10964,16 +10964,16 @@ const churchInstrFormats = [
         syntax: "SAVE CRs, [CRn+idx]",
         desc: "Copy Context Register GT into C-List slot.",
         format: [
+            { name: "Op", bits: 5, value: "00010", desc: "SAVE opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "000010", desc: "SAVE opcode" },
+            { name: "I", bits: 1, desc: "0=immediate offset, 1=register" },
             { name: "CRs", bits: 3, desc: "Source CR (0-7)" },
             { name: "CRn", bits: 3, desc: "Target C-List register (0-7)" },
-            { name: "Reserved", bits: 2, value: "0", desc: "Reserved (CR8-15 meta-machine only)" },
-            { name: "I", bits: 1, desc: "0=immediate offset, 1=register" },
-            { name: "Index", bits: 13, desc: "Offset or DR number" }
+            { name: "Index", bits: 10, desc: "C-List index (0-1023)" },
+            { name: "Reserved", bits: 6, value: "0", desc: "Reserved" }
         ],
         variants: [
-            { name: "Immediate", fields: { I: "0", Index: "Literal offset 0-8191" } },
+            { name: "Immediate", fields: { I: "0", Index: "Literal offset 0-1023" } },
             { name: "Register", fields: { I: "1", Index: "Index[3:0] = DR number" } }
         ]
     },
@@ -10983,13 +10983,13 @@ const churchInstrFormats = [
         syntax: "CALL CRs [, mask]",
         desc: "Transfer control to abstraction entry point. Pushes return state, switches context. Clears registers per mask to prevent information leakage. DR8-15 always cleared automatically.",
         format: [
+            { name: "Op", bits: 5, value: "00011", desc: "CALL opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "000011", desc: "CALL opcode" },
+            { name: "I", bits: 1, desc: "1=embedded mask, 0=use DR15" },
             { name: "CRs", bits: 3, desc: "Abstraction capability (0-7)" },
-            { name: "Reserved", bits: 1, value: "0", desc: "Reserved for future use" },
-            { name: "DR", bits: 8, desc: "DR0-7 clear mask (1=clear, prevents leakage to callee)" },
-            { name: "CR", bits: 6, desc: "CR0-5 clear mask (1=clear, prevents leakage to callee)" },
-            { name: "Reserved", bits: 4, value: "0", desc: "Reserved for future use" }
+            { name: "CRn", bits: 3, desc: "Return capability register" },
+            { name: "Mask", bits: 10, desc: "Permission mask (when I=1)" },
+            { name: "Reserved", bits: 6, value: "0", desc: "Reserved" }
         ],
         variants: [
             { name: "No mask", fields: { DR: "0x00", CR: "0x00", desc: "All API registers passed" } },
@@ -11003,11 +11003,11 @@ const churchInstrFormats = [
         syntax: "RETURN [mask]",
         desc: "Return from CALL. Pops return state, restores caller context. Clears registers per mask to prevent information leakage back to caller. DR8-15 always cleared automatically.",
         format: [
+            { name: "Op", bits: 5, value: "00100", desc: "RETURN opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "000100", desc: "RETURN opcode" },
-            { name: "DR", bits: 8, desc: "DR0-7 clear mask (1=clear, prevents leakage to caller)" },
-            { name: "CR", bits: 6, desc: "CR0-5 clear mask (1=clear, prevents leakage to caller)" },
-            { name: "Reserved", bits: 8, value: "0", desc: "Reserved for future use" }
+            { name: "I", bits: 1, desc: "Reserved" },
+            { name: "CRn", bits: 3, desc: "Return capability (0-7)" },
+            { name: "Reserved", bits: 19, value: "0", desc: "Reserved" }
         ],
         variants: [
             { name: "No mask", fields: { DR: "0x00", CR: "0x00", desc: "All results returned" } },
@@ -11021,12 +11021,12 @@ const churchInstrFormats = [
         syntax: "CHANGE CRn, idx | CHANGE nsOffset",
         desc: "Load new thread capability into CR8.",
         format: [
+            { name: "Op", bits: 5, value: "00101", desc: "CHANGE opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "000101", desc: "CHANGE opcode" },
-            { name: "Mode", bits: 1, desc: "0=NS offset, 1=C-List lookup" },
-            { name: "CRn", bits: 3, desc: "Source C-List (0-7, Mode=1)" },
-            { name: "Reserved", bits: 1, value: "0", desc: "Reserved" },
-            { name: "Idx/Offset", bits: 17, desc: "C-List index or NS offset" }
+            { name: "I", bits: 1, desc: "0=NS offset, 1=C-List lookup" },
+            { name: "CRn", bits: 3, desc: "Source C-List (0-7, when I=1)" },
+            { name: "Reserved", bits: 3, value: "0", desc: "Reserved" },
+            { name: "Offset", bits: 16, desc: "C-List index or NS offset" }
         ],
         variants: [
             { name: "NS Offset", fields: { Mode: "0", Idx: "Namespace offset" } },
@@ -11039,13 +11039,13 @@ const churchInstrFormats = [
         syntax: "SWITCH CRs | SWITCH CRn, idx",
         desc: "Load new C-List capability into CR6.",
         format: [
+            { name: "Op", bits: 5, value: "00110", desc: "SWITCH opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "000110", desc: "SWITCH opcode" },
-            { name: "Mode", bits: 1, desc: "0=direct CR, 1=C-List lookup" },
-            { name: "CRs", bits: 3, desc: "Source CR (0-7, Mode=0)" },
-            { name: "CRn", bits: 3, desc: "Source C-List (0-7, Mode=1)" },
-            { name: "Reserved", bits: 2, value: "0", desc: "Reserved (CR8-15 meta-machine only)" },
-            { name: "Index", bits: 13, desc: "C-List slot index (Mode=1)" }
+            { name: "I", bits: 1, desc: "0=direct CR, 1=C-List lookup" },
+            { name: "CRs", bits: 3, desc: "Source CR (0-7, when I=0)" },
+            { name: "CRn", bits: 3, desc: "Source C-List (0-7, when I=1)" },
+            { name: "Index", bits: 10, desc: "C-List slot index (when I=1)" },
+            { name: "Reserved", bits: 6, value: "0", desc: "Reserved" }
         ],
         variants: [
             { name: "Direct", fields: { Mode: "0", CRs: "CR containing C-List GT" } },
@@ -11058,13 +11058,13 @@ const churchInstrFormats = [
         syntax: "TPERM CRs, permMask [, index]",
         desc: "Compare CR permission bits against mask. Optional index validates against object size from namespace metadata (W2 limit). Sets Z=1 if all checks pass.",
         format: [
+            { name: "Op", bits: 5, value: "00111", desc: "TPERM opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "000111", desc: "TPERM opcode" },
-            { name: "CRs", bits: 3, desc: "CR to test (0-7)" },
             { name: "P", bits: 1, desc: "0=mask mode, 1=preset mode" },
+            { name: "CRs", bits: 3, desc: "CR to test (0-7)" },
             { name: "I", bits: 1, desc: "Index present (1=yes)" },
-            { name: "Perms/Preset", bits: 10, desc: "P=0: Permission mask (10 bits). P=1: Preset[3:0] (0-13 valid, 14-15 reserved)" },
-            { name: "Index", bits: 8, desc: "Access index to validate against W2 limit (if I=1)" }
+            { name: "Perms/Preset", bits: 10, desc: "P=0: 10-bit mask. P=1: Preset[3:0] (0-13)" },
+            { name: "Index", bits: 8, desc: "Access index for bounds check (if I=1)" }
         ],
         variants: [
             { name: "Mask mode", fields: { P: "0", Perms: "10-bit permission mask (R W X L S E B M F G)" } },
@@ -11078,12 +11078,13 @@ const churchInstrFormats = [
         syntax: "LOADX CRd, [CRn+idx]",
         desc: "Load GT from C-List and set exclusive monitor for current thread. Used with SAVEX for atomic read-modify-write operations.",
         format: [
+            { name: "Op", bits: 5, value: "01000", desc: "LOADX opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "001000", desc: "LOADX opcode" },
+            { name: "I", bits: 1, desc: "0=immediate, 1=register index" },
             { name: "CRd", bits: 3, desc: "Destination CR (0-7)" },
             { name: "CRn", bits: 3, desc: "Source C-List register (0-7)" },
-            { name: "Reserved", bits: 3, value: "0", desc: "Reserved" },
-            { name: "Index", bits: 13, desc: "C-List slot index" }
+            { name: "Index", bits: 10, desc: "C-List slot index (0-1023)" },
+            { name: "Reserved", bits: 6, value: "0", desc: "Reserved" }
         ],
         security: "Sets per-thread exclusive monitor. Monitor cleared by SAVEX, CHANGE, or interrupts. Enables lock-free synchronization.",
         notes: "16 per-thread monitors (one per Thread ID 0-15). ARM LDREX semantics."
@@ -11094,12 +11095,14 @@ const churchInstrFormats = [
         syntax: "SAVEX DRd, CRs, [CRn+idx]",
         desc: "Conditionally store GT if exclusive monitor is still valid. Returns success/fail status in data register.",
         format: [
+            { name: "Op", bits: 5, value: "01001", desc: "SAVEX opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "001001", desc: "SAVEX opcode" },
-            { name: "DRd", bits: 4, desc: "Result register (0=success, 1=fail)" },
+            { name: "I", bits: 1, desc: "0=immediate, 1=register index" },
             { name: "CRs", bits: 3, desc: "Source CR to store (0-7)" },
             { name: "CRn", bits: 3, desc: "Target C-List register (0-7)" },
-            { name: "Index", bits: 12, desc: "C-List slot index" }
+            { name: "Index", bits: 10, desc: "C-List slot index (0-1023)" },
+            { name: "DRd", bits: 4, desc: "Result register (0=success, 1=fail)" },
+            { name: "Reserved", bits: 2, value: "0", desc: "Reserved" }
         ],
         security: "Atomic compare-and-swap for capabilities. Prevents race conditions in multi-threaded GT updates.",
         notes: "DRd=0 on success (store completed), DRd=1 on failure (retry needed). Monitor always cleared after SAVEX."
@@ -11110,12 +11113,12 @@ const churchInstrFormats = [
         syntax: "LDM CRn, {CR0-CR7}",
         desc: "Load multiple Context Registers from consecutive C-List entries. Each CR in register list uses mLoad with full permission/bounds/MAC validation.",
         format: [
+            { name: "Op", bits: 5, value: "01010", desc: "LDM opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "001010", desc: "LDM opcode" },
-            { name: "CRn", bits: 3, desc: "Base C-List register (0-7)" },
             { name: "U", bits: 1, desc: "0=descending, 1=ascending" },
+            { name: "CRn", bits: 3, desc: "Base C-List register (0-7)" },
             { name: "W", bits: 1, desc: "Writeback base register" },
-            { name: "Reserved", bits: 9, value: "0", desc: "Reserved" },
+            { name: "Reserved", bits: 10, value: "0", desc: "Reserved" },
             { name: "RegList", bits: 8, desc: "CR bitmask (bit i = CR[i])" }
         ],
         security: "Each load goes through mLoad subroutine - full capability security enforced. Cannot bypass permission checks.",
@@ -11127,12 +11130,12 @@ const churchInstrFormats = [
         syntax: "STM CRn, {CR0-CR7}",
         desc: "Store multiple Context Registers to consecutive C-List entries. Each CR in register list uses mSave with full permission/bounds/MAC validation.",
         format: [
+            { name: "Op", bits: 5, value: "01011", desc: "STM opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "001011", desc: "STM opcode" },
-            { name: "CRn", bits: 3, desc: "Base C-List register (0-7)" },
             { name: "U", bits: 1, desc: "0=descending, 1=ascending" },
+            { name: "CRn", bits: 3, desc: "Base C-List register (0-7)" },
             { name: "W", bits: 1, desc: "Writeback base register" },
-            { name: "Reserved", bits: 9, value: "0", desc: "Reserved" },
+            { name: "Reserved", bits: 10, value: "0", desc: "Reserved" },
             { name: "RegList", bits: 8, desc: "CR bitmask (bit i = CR[i])" }
         ],
         security: "Each store goes through mSave subroutine - B-bit binding validation enforced. Cannot bypass capability security model.",
@@ -11144,10 +11147,11 @@ const churchInstrFormats = [
         syntax: "LDI DRd, #imm22",
         desc: "Load 22-bit zero-extended immediate constant into data register. For larger constants, use LDI followed by shift/add.",
         format: [
+            { name: "Op", bits: 5, value: "11101", desc: "LDI opcode" },
             { name: "Cond", bits: 4, desc: "Condition code" },
-            { name: "Op", bits: 6, value: "001100", desc: "LDI opcode" },
+            { name: "I", bits: 1, desc: "Reserved (always 1)" },
             { name: "DRd", bits: 4, desc: "Destination data register (0-15)" },
-            { name: "Imm22", bits: 22, desc: "22-bit immediate (0 to 4,194,303)" }
+            { name: "Imm18", bits: 18, desc: "18-bit immediate (0 to 262,143)" }
         ],
         notes: "Zero-extended to 64 bits. For full 64-bit constants, chain multiple LDI with LSL."
     }
