@@ -843,6 +843,8 @@ class CTMMSimulator {
             
             case "CHANGE": {
                 const [offset] = args;
+                // Clear exclusive monitor on thread change (ARM CLREX semantics)
+                this.exclusiveMonitors[this.currentThread] = { valid: false, addr: 0 };
                 this.cr8 = {
                     name: `THREAD_${offset}`,
                     location: { type: 'Local', offset: offset },
@@ -850,7 +852,7 @@ class CTMMSimulator {
                     locked: false,
                     goldenKey: this.generateKey()
                 };
-                return `Changed to thread at offset ${offset}`;
+                return `Changed to thread at offset ${offset}, exclusive monitor cleared`;
             }
             
             case "SWITCH": {
