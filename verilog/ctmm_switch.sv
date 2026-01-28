@@ -186,7 +186,7 @@ module ctmm_switch
         .sub_start      (sub_start),
         .sub_cr_src     ({1'b0, cr_src}),    // Pad 3-bit to 4-bit for mLoad
         .sub_cr_dst     (dest_cr),           // CR8 + target (0-7) = CR8-CR15
-        .sub_index      (index[7:0]),        // mLoad uses 8-bit index (TODO: extend mLoad to 10-bit)
+        .sub_index      (index),             // Full 10-bit index (0-1023)
         .sub_busy       (sub_busy),
         .sub_done       (sub_done),
         .sub_fault      (sub_fault),

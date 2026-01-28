@@ -45,7 +45,7 @@ module ctmm_mload
     input  logic        sub_start,            // Start subroutine execution
     input  logic [3:0]  sub_cr_src,           // Source register (CRn)
     input  logic [3:0]  sub_cr_dst,           // Destination register (CRd) - written directly
-    input  logic [7:0]  sub_index,            // C-List index
+    input  logic [9:0]  sub_index,            // C-List index (10-bit, 0-1023)
     output logic        sub_busy,             // Subroutine in progress
     output logic        sub_done,             // Subroutine completed successfully
     output logic        sub_fault,            // Subroutine caused a fault
@@ -120,7 +120,7 @@ module ctmm_mload
     // Latched operands
     logic [3:0]  cr_src_reg;
     logic [3:0]  cr_dst_reg;
-    logic [7:0]  index_reg;
+    logic [9:0]  index_reg;
     
     // Latched source capability register (CRn)
     capability_reg_t src_cap;
@@ -148,7 +148,7 @@ module ctmm_mload
         if (!rst_n) begin
             cr_src_reg <= 4'd0;
             cr_dst_reg <= 4'd0;
-            index_reg <= 8'd0;
+            index_reg <= 10'd0;
         end else if (state == SUB_IDLE && sub_start) begin
             cr_src_reg <= sub_cr_src;
             cr_dst_reg <= sub_cr_dst;
@@ -174,7 +174,7 @@ module ctmm_mload
     
     // Address in CRn's C-List: CRn.Location + (Index * 8) for GT fetch
     logic [63:0] clist_gt_addr;
-    assign clist_gt_addr = src_cap.word1_location + ({56'h0, index_reg} << 3);
+    assign clist_gt_addr = src_cap.word1_location + ({54'h0, index_reg} << 3);
     
     // ========================================================================
     // Result Capability Building
@@ -234,7 +234,7 @@ module ctmm_mload
     
     // Step 2: Check bounds: Index < CRn.Limit
     logic bounds_ok;
-    assign bounds_ok = ({56'h0, index_reg} < src_cap.word2_limit);
+    assign bounds_ok = ({54'h0, index_reg} < src_cap.word2_limit);
     
     // Check if source CRn is null capability
     logic src_is_null;

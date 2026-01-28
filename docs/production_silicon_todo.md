@@ -5,18 +5,19 @@ This document tracks requirements for synthesizing the CTMM Verilog to productio
 ## SWITCH/CHANGE Instruction Pipeline
 
 ### 1. CR9-CR14 Register Storage Paths
-**Status**: Not implemented (targets silently ignored)
+**Status**: IMPLEMENTED (2026-01-28)
 
-**Required work**:
-- Add dedicated storage for CR9 (Interrupt), CR10 (DFault), CR11-CR14 (reserved)
-- Wire write enables (`cr9_wr_en`, `cr10_wr_en`, etc.) in `ctmm_registers.sv`
-- Route SWITCH target decoding for values 1-6 in `ctmm_core.sv`
-- Define fault behavior if targeting unimplemented registers
+**Completed**:
+- Added cr9_wr_en through cr14_wr_en ports in `ctmm_registers.sv`
+- Added GT write logic for CR9-CR14 in register file
+- Updated SWITCH routing in `ctmm_core.sv` with full case statement for all 8 targets
+- All targets now functional (no more silent ignore)
 
 **Architecture notes**:
 - CR9: Interrupt handler capability
 - CR10: Data fault handler capability  
 - CR11-CR14: Reserved for future expansion
+- Note: Current implementation writes GT (Word 0) only; full capability writes via mLoad path
 
 ### 2. Memory Latency Handling for I=1 Mode
 **Status**: Assumes single-cycle memory access
@@ -49,12 +50,13 @@ This document tracks requirements for synthesizing the CTMM Verilog to productio
 ## Other Production Requirements
 
 ### 4. mLoad 10-bit Index Extension
-**Status**: Index truncated to 8-bit in some modules
+**Status**: IMPLEMENTED (2026-01-28)
 
-**Required work**:
-- Verify all C-List index paths support full 10-bit range
-- Update `ctmm_switch.sv` if integrated (currently uses 8-bit)
-- Update `ctmm_mload.sv` for full index width
+**Completed**:
+- `ctmm_mload.sv`: sub_index extended from 8-bit to 10-bit
+- `ctmm_mload.sv`: index_reg extended from 8-bit to 10-bit
+- `ctmm_mload.sv`: Updated address/bounds calculations for 10-bit width
+- `ctmm_switch.sv`: Removed index[7:0] truncation, now passes full 10-bit index
 
 ### 5. MAC Validation
 **Status**: Disabled (`check_mac = 1'b0`)
@@ -65,12 +67,22 @@ This document tracks requirements for synthesizing the CTMM Verilog to productio
 - Wire calculated MAC comparison for LOAD operations
 
 ### 6. Type Alignment
-**Status**: `ctmm_switch.sv` uses `capability_reg_t` (256-bit), core uses `golden_token_t` (64-bit)
+**Status**: Mixed types in use - architectural decision needed
 
-**Required work**:
-- Decide on canonical capability representation
-- Either simplify `ctmm_switch.sv` to use `golden_token_t`
-- Or extend register file to support full `capability_reg_t`
+**Current situation**:
+- `ctmm_core.sv` uses `golden_token_t` (64-bit) for CR read/write
+- `ctmm_switch.sv` and `ctmm_mload.sv` use `capability_reg_t` (256-bit)
+- `ctmm_registers.sv` stores `capability_reg_t` but special write ports accept `golden_token_t`
+- SWITCH/CHANGE write GT (Word 0) only via special ports
+
+**Design decision required**:
+- Option A: Simplify to GT-only for SWITCH (current approach - fast path)
+- Option B: Full capability writes via mLoad subroutine (complete but slower)
+- Option C: Extend core to handle full capability_reg_t
+
+**Notes**:
+- Current implementation is functionally correct for GT-based security
+- Full capability (Location, Limit, Seals) only needed for namespace lookups
 
 ---
 

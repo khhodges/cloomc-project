@@ -164,6 +164,57 @@ After boot completes:
 
 ---
 
+## SWITCH/CHANGE Instruction Encoding
+
+### SWITCH Format (32 bits)
+```
+[31:27] = 00110 (Opcode = 6)
+[26:23] = Cond  (4-bit condition code)
+[22]    = I     (0=Register source, 1=C-List lookup)
+[21:19] = CRn   (Source register CR0-CR7, or C-List reference for I=1)
+[18:16] = Tgt   (Target system register: 0=CR8, 1=CR9, ... 7=CR15)
+[15:6]  = Idx   (10-bit C-List index when I=1, ignored when I=0)
+[5:0]   = spare
+```
+
+### CHANGE Format (32 bits)
+```
+[31:27] = 00101 (Opcode = 5)
+[26:23] = Cond  (4-bit condition code)
+[22]    = I     (0=Register source, 1=C-List lookup)
+[21:19] = CRn   (Source register CR0-CR7, or C-List reference for I=1)
+[18:16] = spare (CHANGE always targets CR8)
+[15:6]  = Idx   (10-bit C-List index when I=1, ignored when I=0)
+[5:0]   = spare
+```
+
+### I-bit Variants
+
+| I | Source | Example |
+|---|--------|---------|
+| 0 | Register | `SWITCH CR2, CR9` - Copy GT from CR2 to CR9 |
+| 1 | C-List | `SWITCH CR6[5], CR15` - Lookup entry 5 in CR6's C-List, copy to CR15 |
+
+### Target Field Mapping
+
+| Target | Register | Purpose |
+|--------|----------|---------|
+| 000 | CR8 | Thread identity (CHANGE always uses this) |
+| 001 | CR9 | Interrupt handler thread |
+| 010 | CR10 | Double fault recovery thread |
+| 011 | CR11 | Reserved (future virtual namespace) |
+| 100 | CR12 | Reserved (future virtual namespace) |
+| 101 | CR13 | Reserved (future virtual namespace) |
+| 110 | CR14 | Reserved (future virtual namespace) |
+| 111 | CR15 | Namespace root |
+
+### Permission Requirements
+
+- **L (Load)**: Required on source capability to read GT
+- Source must be CR0-CR7 (3-bit encoding prevents direct access to CR8-CR15)
+
+---
+
 ## Notes
 
 - Opcode format: 5-bit, with Church instructions 00001-01011, Turing 10000-11111

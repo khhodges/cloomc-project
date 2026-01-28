@@ -54,6 +54,29 @@ module ctmm_registers
     output capability_reg_t cr8_thread,       // CR8: Suspended Thread State
     output capability_reg_t cr15_namespace,   // CR15: Namespace root
     
+    // Special register write interfaces (GT only - Word 0)
+    // Used by boot sequence and SWITCH/CHANGE instructions
+    input  golden_token_t   cr6_wr_data,      // Write GT to CR6
+    input  logic            cr6_wr_en,
+    input  golden_token_t   cr7_wr_data,      // Write GT to CR7
+    input  logic            cr7_wr_en,
+    input  golden_token_t   cr8_wr_data,      // Write GT to CR8
+    input  logic            cr8_wr_en,
+    input  golden_token_t   cr9_wr_data,      // Write GT to CR9 (Interrupt)
+    input  logic            cr9_wr_en,
+    input  golden_token_t   cr10_wr_data,     // Write GT to CR10 (DFault)
+    input  logic            cr10_wr_en,
+    input  golden_token_t   cr11_wr_data,     // Write GT to CR11 (reserved)
+    input  logic            cr11_wr_en,
+    input  golden_token_t   cr12_wr_data,     // Write GT to CR12 (reserved)
+    input  logic            cr12_wr_en,
+    input  golden_token_t   cr13_wr_data,     // Write GT to CR13 (reserved)
+    input  logic            cr13_wr_en,
+    input  golden_token_t   cr14_wr_data,     // Write GT to CR14 (reserved)
+    input  logic            cr14_wr_en,
+    input  golden_token_t   cr15_wr_data,     // Write GT to CR15
+    input  logic            cr15_wr_en,
+    
     // ========================================================================
     // Data Register Interface (Turing)
     // ========================================================================
@@ -126,6 +149,19 @@ module ctmm_registers
                     2'd3: cap_regs[cr_word_wr_addr].word3_seals <= cr_word_wr_data;
                 endcase
             end
+            
+            // Special register GT writes (Word 0 only)
+            // Used by boot sequence and SWITCH/CHANGE instructions
+            if (cr6_wr_en)  cap_regs[CR_CLIST].word0_gt <= cr6_wr_data;
+            if (cr7_wr_en)  cap_regs[CR_CLOOMC].word0_gt <= cr7_wr_data;
+            if (cr8_wr_en)  cap_regs[CR_THREAD].word0_gt <= cr8_wr_data;
+            if (cr9_wr_en)  cap_regs[9].word0_gt <= cr9_wr_data;
+            if (cr10_wr_en) cap_regs[10].word0_gt <= cr10_wr_data;
+            if (cr11_wr_en) cap_regs[11].word0_gt <= cr11_wr_data;
+            if (cr12_wr_en) cap_regs[12].word0_gt <= cr12_wr_data;
+            if (cr13_wr_en) cap_regs[13].word0_gt <= cr13_wr_data;
+            if (cr14_wr_en) cap_regs[14].word0_gt <= cr14_wr_data;
+            if (cr15_wr_en) cap_regs[CR_NAMESPACE].word0_gt <= cr15_wr_data;
         end
     end
     

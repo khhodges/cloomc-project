@@ -66,7 +66,9 @@ module ctmm_core
     logic        cr_wr_en;
     golden_token_t cr6_clist, cr7_cloomc, cr8_thread, cr15_namespace;
     golden_token_t cr6_wr_data, cr7_wr_data, cr8_wr_data, cr15_wr_data;
+    golden_token_t cr9_wr_data, cr10_wr_data, cr11_wr_data, cr12_wr_data, cr13_wr_data, cr14_wr_data;
     logic        cr6_wr_en, cr7_wr_en, cr8_wr_en, cr15_wr_en;
+    logic        cr9_wr_en, cr10_wr_en, cr11_wr_en, cr12_wr_en, cr13_wr_en, cr14_wr_en;
     
     logic [3:0]  dr_rd_addr1, dr_rd_addr2, dr_wr_addr;
     logic [63:0] dr_rd_data1, dr_rd_data2, dr_wr_data;
@@ -154,6 +156,18 @@ module ctmm_core
         .cr7_wr_en      (cr7_wr_en),
         .cr8_wr_data    (cr8_wr_data),
         .cr8_wr_en      (cr8_wr_en),
+        .cr9_wr_data    (cr9_wr_data),
+        .cr9_wr_en      (cr9_wr_en),
+        .cr10_wr_data   (cr10_wr_data),
+        .cr10_wr_en     (cr10_wr_en),
+        .cr11_wr_data   (cr11_wr_data),
+        .cr11_wr_en     (cr11_wr_en),
+        .cr12_wr_data   (cr12_wr_data),
+        .cr12_wr_en     (cr12_wr_en),
+        .cr13_wr_data   (cr13_wr_data),
+        .cr13_wr_en     (cr13_wr_en),
+        .cr14_wr_data   (cr14_wr_data),
+        .cr14_wr_en     (cr14_wr_en),
         .cr15_wr_data   (cr15_wr_data),
         .cr15_wr_en     (cr15_wr_en),
         .dr_rd_addr1    (dr_rd_addr1),
@@ -345,14 +359,16 @@ module ctmm_core
     
     // Boot sequence register loading
     always_comb begin
-        cr15_wr_en = 1'b0;
-        cr15_wr_data = GT_NULL;
-        cr8_wr_en = 1'b0;
-        cr8_wr_data = GT_NULL;
-        cr6_wr_en = 1'b0;
-        cr6_wr_data = GT_NULL;
-        cr7_wr_en = 1'b0;
-        cr7_wr_data = GT_NULL;
+        cr6_wr_en = 1'b0;  cr6_wr_data = GT_NULL;
+        cr7_wr_en = 1'b0;  cr7_wr_data = GT_NULL;
+        cr8_wr_en = 1'b0;  cr8_wr_data = GT_NULL;
+        cr9_wr_en = 1'b0;  cr9_wr_data = GT_NULL;
+        cr10_wr_en = 1'b0; cr10_wr_data = GT_NULL;
+        cr11_wr_en = 1'b0; cr11_wr_data = GT_NULL;
+        cr12_wr_en = 1'b0; cr12_wr_data = GT_NULL;
+        cr13_wr_en = 1'b0; cr13_wr_data = GT_NULL;
+        cr14_wr_en = 1'b0; cr14_wr_data = GT_NULL;
+        cr15_wr_en = 1'b0; cr15_wr_data = GT_NULL;
         
         case (boot_state_reg)
             BOOT_LOAD_NS: begin
@@ -410,17 +426,18 @@ module ctmm_core
             // Source: I=0 uses cr_rd_data, I=1 uses clist_rd_data
             // For CHANGE, target is always 0 (CR8)
             
-            if (church_op == OP_CHANGE || switch_target == 3'b000) begin
-                // Target is CR8 (Thread)
-                cr8_wr_en = 1'b1;
-                cr8_wr_data = imm_mode ? clist_rd_data : cr_rd_data;
-            end else if (switch_target == 3'b111) begin
-                // Target is CR15 (Namespace)
-                cr15_wr_en = 1'b1;
-                cr15_wr_data = imm_mode ? clist_rd_data : cr_rd_data;
-            end
-            // CR9-CR14: FAULT - targets 1-6 not implemented (reserved for future)
-            // Currently silently ignored; could trigger FAULT_INVAL_TARGET
+            // Route write to target system register based on switch_target[2:0]
+            // CHANGE always targets CR8 (target=0)
+            case (church_op == OP_CHANGE ? 3'b000 : switch_target)
+                3'b000: begin cr8_wr_en = 1'b1;  cr8_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+                3'b001: begin cr9_wr_en = 1'b1;  cr9_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+                3'b010: begin cr10_wr_en = 1'b1; cr10_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+                3'b011: begin cr11_wr_en = 1'b1; cr11_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+                3'b100: begin cr12_wr_en = 1'b1; cr12_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+                3'b101: begin cr13_wr_en = 1'b1; cr13_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+                3'b110: begin cr14_wr_en = 1'b1; cr14_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+                3'b111: begin cr15_wr_en = 1'b1; cr15_wr_data = imm_mode ? clist_rd_data : cr_rd_data; end
+            endcase
         end
     end
     
