@@ -5047,6 +5047,194 @@ body.tooltip-hidden [data-tooltip]:hover::after {
     font-size: 0.7rem;
 }
 
+/* Instruction Timing Table */
+.timing-header {
+    background: var(--bg-panel);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.timing-header h3 {
+    margin: 0 0 0.75rem 0;
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.timing-specs {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.timing-spec {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.spec-label {
+    color: var(--text-muted);
+    margin-right: 0.5rem;
+}
+
+.timing-assumptions {
+    background: var(--bg-tertiary);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-left: 3px solid var(--border);
+}
+
+.timing-assumptions h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.timing-assumptions ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.3rem;
+}
+
+.timing-assumptions li {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.timing-category {
+    margin-bottom: 1.5rem;
+}
+
+.timing-category h4 {
+    margin: 0 0 0.75rem 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.timing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.timing-table thead {
+    background: var(--bg-dark);
+}
+
+.timing-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.timing-table td {
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.timing-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.timing-table .instr-name {
+    font-family: 'Consolas', monospace;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.timing-table .cycles {
+    font-family: 'Consolas', monospace;
+    color: var(--success);
+    font-weight: 600;
+}
+
+.timing-table .best {
+    font-family: 'Consolas', monospace;
+    color: #4ade80;
+}
+
+.timing-table .worst {
+    font-family: 'Consolas', monospace;
+    color: #f87171;
+}
+
+.timing-table .time {
+    font-family: 'Consolas', monospace;
+    color: #60a5fa;
+}
+
+.timing-table .notes {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.timing-legend {
+    background: var(--bg-panel);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.timing-legend h4 {
+    margin: 0 0 0.75rem 0;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.5rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.legend-cycles {
+    font-family: 'Consolas', monospace;
+    background: var(--bg-dark);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: var(--success);
+    font-weight: 600;
+    min-width: 50px;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.legend-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.timing-security-note {
+    background: linear-gradient(135deg, rgba(192, 132, 252, 0.1), rgba(233, 69, 96, 0.1));
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.timing-security-note strong {
+    color: var(--accent);
+}
+
 /* Opcodes Section */
 .instr-opcodes {
     margin-top: 0.75rem;

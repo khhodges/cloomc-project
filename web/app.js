@@ -11290,20 +11290,190 @@ const turingInstrFormats = [
 function switchInstrTab(tab) {
     const churchPanel = document.getElementById('instrChurch');
     const turingPanel = document.getElementById('instrTuring');
+    const timingPanel = document.getElementById('instrTiming');
     const tabChurch = document.getElementById('tabChurch');
     const tabTuring = document.getElementById('tabTuring');
+    const tabTiming = document.getElementById('tabTiming');
+    
+    churchPanel.classList.add('hidden');
+    turingPanel.classList.add('hidden');
+    timingPanel.classList.add('hidden');
+    tabChurch.classList.remove('active');
+    tabTuring.classList.remove('active');
+    tabTiming.classList.remove('active');
     
     if (tab === 'church') {
         churchPanel.classList.remove('hidden');
-        turingPanel.classList.add('hidden');
         tabChurch.classList.add('active');
-        tabTuring.classList.remove('active');
-    } else {
-        churchPanel.classList.add('hidden');
+    } else if (tab === 'turing') {
         turingPanel.classList.remove('hidden');
-        tabChurch.classList.remove('active');
         tabTuring.classList.add('active');
+    } else if (tab === 'timing') {
+        timingPanel.classList.remove('hidden');
+        tabTiming.classList.add('active');
+        renderTimingTable();
     }
+}
+
+const instructionTiming = {
+    clockSpeed: 2.0,
+    technology: "28nm CMOS",
+    assumptions: [
+        "2 GHz clock (500 ps cycle time)",
+        "L1 cache hit: 1 cycle latency",
+        "L2 cache hit: 10 cycle latency",
+        "Main memory: 100 cycle latency",
+        "MAC validation: 3 cycles (pipelined SHA-256)",
+        "Permission check: 1 cycle (combinational)",
+        "Bounds check: 1 cycle (comparator)",
+        "Exclusive monitor check: 1 cycle"
+    ],
+    categories: [
+        {
+            name: "Church Instructions (Capability Operations)",
+            color: "#c084fc",
+            instructions: [
+                { name: "LOAD", cycles: "5-6", best: 5, worst: 106, time: "2.5-53 ns", notes: "L+Bounds+MAC validation; cache-dependent" },
+                { name: "SAVE", cycles: "4-5", best: 4, worst: 105, time: "2.0-52.5 ns", notes: "S+B-bit+Bounds check; write-through" },
+                { name: "LOADX", cycles: "6-7", best: 6, worst: 107, time: "3.0-53.5 ns", notes: "LOAD + monitor set (memory barrier)" },
+                { name: "SAVEX", cycles: "5-6", best: 5, worst: 106, time: "2.5-53 ns", notes: "Monitor check + conditional store" },
+                { name: "LDM", cycles: "5+4n", best: 9, worst: "5+104n", time: "4.5+ ns", notes: "n=register count; each uses mLoad" },
+                { name: "STM", cycles: "4+4n", best: 8, worst: "4+104n", time: "4.0+ ns", notes: "n=register count; each uses mSave" },
+                { name: "CALL", cycles: "8-12", best: 8, worst: 112, time: "4.0-56 ns", notes: "Push state + context switch + E check" },
+                { name: "RETURN", cycles: "6-10", best: 6, worst: 110, time: "3.0-55 ns", notes: "Pop state + restore context" },
+                { name: "CHANGE", cycles: "10-15", best: 10, worst: 115, time: "5.0-57.5 ns", notes: "Thread switch + monitor clear" },
+                { name: "SWITCH", cycles: "8-12", best: 8, worst: 112, time: "4.0-56 ns", notes: "C-List context switch" },
+                { name: "TPERM", cycles: "2", best: 2, worst: 2, time: "1.0 ns", notes: "Permission test (combinational)" }
+            ]
+        },
+        {
+            name: "Turing Instructions (Data Operations)",
+            color: "#4ade80",
+            instructions: [
+                { name: "MOV", cycles: "1", best: 1, worst: 1, time: "0.5 ns", notes: "Register-to-register" },
+                { name: "LDI", cycles: "1", best: 1, worst: 1, time: "0.5 ns", notes: "22-bit immediate load" },
+                { name: "ADD/SUB", cycles: "1", best: 1, worst: 1, time: "0.5 ns", notes: "64-bit integer arithmetic" },
+                { name: "MUL", cycles: "3-4", best: 3, worst: 4, time: "1.5-2.0 ns", notes: "64-bit multiply (pipelined)" },
+                { name: "DIV", cycles: "20-40", best: 20, worst: 40, time: "10-20 ns", notes: "Iterative division" },
+                { name: "AND/OR/XOR", cycles: "1", best: 1, worst: 1, time: "0.5 ns", notes: "Bitwise logic" },
+                { name: "LSL/LSR/ASR", cycles: "1", best: 1, worst: 1, time: "0.5 ns", notes: "Barrel shifter" },
+                { name: "ROR", cycles: "1", best: 1, worst: 1, time: "0.5 ns", notes: "Rotate right" },
+                { name: "CMP/TST", cycles: "1", best: 1, worst: 1, time: "0.5 ns", notes: "Sets NZCV flags only" },
+                { name: "B/BL", cycles: "1-3", best: 1, worst: 3, time: "0.5-1.5 ns", notes: "Branch (pipeline flush if taken)" },
+                { name: "Bcond", cycles: "1-3", best: 1, worst: 3, time: "0.5-1.5 ns", notes: "Conditional branch" }
+            ]
+        },
+        {
+            name: "Abstraction Calls (Built-in Services)",
+            color: "#f59e0b",
+            instructions: [
+                { name: "Abacus.add", cycles: "12-16", best: 12, worst: 116, time: "6-58 ns", notes: "CALL + 1-cycle op + RETURN" },
+                { name: "Abacus.mul", cycles: "15-20", best: 15, worst: 120, time: "7.5-60 ns", notes: "CALL + 3-cycle MUL + RETURN" },
+                { name: "SlideRule.fadd", cycles: "18-25", best: 18, worst: 125, time: "9-62.5 ns", notes: "IEEE 754 FP add" },
+                { name: "SlideRule.fmul", cycles: "20-28", best: 20, worst: 128, time: "10-64 ns", notes: "IEEE 754 FP multiply" },
+                { name: "SlideRule.fdiv", cycles: "40-60", best: 40, worst: 160, time: "20-80 ns", notes: "IEEE 754 FP divide" },
+                { name: "Circle.sin/cos", cycles: "50-80", best: 50, worst: 180, time: "25-90 ns", notes: "CORDIC algorithm" },
+                { name: "CapMgr.create", cycles: "100-200", best: 100, worst: 300, time: "50-150 ns", notes: "Namespace allocation + MAC" },
+                { name: "DateTime.now", cycles: "15-20", best: 15, worst: 120, time: "7.5-60 ns", notes: "Read system clock" }
+            ]
+        }
+    ]
+};
+
+function renderTimingTable() {
+    const container = document.getElementById('timingContent');
+    if (!container) return;
+    
+    const t = instructionTiming;
+    
+    let html = `
+        <div class="timing-header">
+            <h3>Instruction Timing Estimates</h3>
+            <div class="timing-specs">
+                <div class="timing-spec"><span class="spec-label">Technology:</span> ${t.technology}</div>
+                <div class="timing-spec"><span class="spec-label">Clock Speed:</span> ${t.clockSpeed} GHz (${(1000/t.clockSpeed).toFixed(0)} ps cycle)</div>
+            </div>
+        </div>
+        
+        <div class="timing-assumptions">
+            <h4>Timing Assumptions</h4>
+            <ul>
+                ${t.assumptions.map(a => `<li>${a}</li>`).join('')}
+            </ul>
+        </div>
+    `;
+    
+    t.categories.forEach(cat => {
+        html += `
+            <div class="timing-category">
+                <h4 style="border-left: 4px solid ${cat.color}; padding-left: 0.75rem;">${cat.name}</h4>
+                <table class="timing-table">
+                    <thead>
+                        <tr>
+                            <th>Instruction</th>
+                            <th>Cycles</th>
+                            <th>Best Case</th>
+                            <th>Worst Case</th>
+                            <th>Time @ 2GHz</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${cat.instructions.map(instr => `
+                            <tr>
+                                <td class="instr-name">${instr.name}</td>
+                                <td class="cycles">${instr.cycles}</td>
+                                <td class="best">${instr.best}</td>
+                                <td class="worst">${instr.worst}</td>
+                                <td class="time">${instr.time}</td>
+                                <td class="notes">${instr.notes}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    });
+    
+    html += `
+        <div class="timing-legend">
+            <h4>Cycle Breakdown for Capability Operations</h4>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <span class="legend-cycles">1</span>
+                    <span class="legend-desc">Permission check (L/S/E bits)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-cycles">1</span>
+                    <span class="legend-desc">Bounds check (index vs limit)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-cycles">3</span>
+                    <span class="legend-desc">MAC validation (pipelined SHA-256)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-cycles">1-100</span>
+                    <span class="legend-desc">Memory access (cache hierarchy)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-cycles">1</span>
+                    <span class="legend-desc">Exclusive monitor set/check</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-cycles">2-4</span>
+                    <span class="legend-desc">Context state save/restore</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="timing-security-note">
+            <strong>Security vs Performance:</strong> Church instructions include mandatory security checks (permissions, bounds, MAC) 
+            that add 3-5 cycles compared to raw memory access. This is the cost of failsafe security - every access is validated, 
+            making buffer overflows, ROP attacks, and privilege escalation architecturally impossible.
+        </div>
+    `;
+    
+    container.innerHTML = html;
 }
 
 function renderBitField(field, startBit, totalBits) {
