@@ -869,14 +869,10 @@ class CTMMSimulator {
                         return `FAULT: Index ${index} out of bounds for C-List (size: ${clist.clist ? clist.clist.length : 0})`;
                     }
                     const entry = clist.clist[index];
-                    // Validate entry permissions (L or E required to read capability)
-                    if (entry.perms && !entry.perms.includes('L') && !entry.perms.includes('E') && !entry.perms.includes('R')) {
-                        return `FAULT: Entry ${index} lacks required permissions for access`;
-                    }
                     sourceCap = {
                         name: entry.name || `Entry_${index}`,
                         location: entry.location || { type: 'Local', offset: index * 256 },
-                        perms: entry.perms ? [...entry.perms] : ['R'],
+                        perms: entry.perms ? [...entry.perms] : [],
                         locked: entry.locked || false,
                         goldenKey: entry.goldenKey || this.generateKey(),
                         clist: entry.clist || null
@@ -932,14 +928,10 @@ class CTMMSimulator {
                         return `FAULT: Index ${index} out of bounds for C-List (size: ${clist.clist ? clist.clist.length : 0})`;
                     }
                     const entry = clist.clist[index];
-                    // Validate entry permissions (L or E required to read capability)
-                    if (entry.perms && !entry.perms.includes('L') && !entry.perms.includes('E') && !entry.perms.includes('R')) {
-                        return `FAULT: Entry ${index} lacks required permissions for access`;
-                    }
                     sourceCap = {
                         name: entry.name || `Entry_${index}`,
                         location: entry.location || { type: 'Local', offset: index * 256 },
-                        perms: entry.perms ? [...entry.perms] : ['R'],
+                        perms: entry.perms ? [...entry.perms] : [],
                         locked: entry.locked || false,
                         goldenKey: entry.goldenKey || this.generateKey(),
                         clist: entry.clist || null
