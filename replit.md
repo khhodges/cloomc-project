@@ -91,10 +91,10 @@ The `verilog/` directory contains a synthesizable SystemVerilog implementation o
 -   **ctmm_registers.sv**: Register file implementing CR0-CR15 (context/capability) and DR0-DR15 (data) with special registers for Namespace (CR15), Thread (CR8), C-List (CR6), and Nucleus (CR7)
 -   **ctmm_perm_check.sv**: Hardware permission validation with bounds checking, MAC validation, and G bit detection for namespace access
 -   **ctmm_gc_unit.sv**: Garbage collection unit implementing Mark-Scan-Sweep phases with G bit state machine
--   **ctmm_decoder.sv**: Instruction decoder for Church (LOAD, SAVE, LOADX, SAVEX, LDM, STM, CALL, RETURN, CHANGE, SWITCH, TPERM) and Turing (arithmetic, logic, branch, LDI) instructions with ARM-style condition code evaluation
+-   **ctmm_decoder.sv**: Instruction decoder for Church (LOAD, SAVE, LOADX, SAVEX, LDM, STM, CALL, RETURN, CHANGE, SWITCH, TPERM) and Turing (arithmetic, logic, branch, LDI) instructions with ARM-style condition code evaluation; exports switch_target[2:0] from [18:16] for system register routing
 -   **ctmm_loadx_savex.sv**: Atomic load/store exclusive with 16 per-thread exclusive monitors
 -   **ctmm_ldm_stm.sv**: Multiple register load/store with mLoad/mSave security per transfer
--   **ctmm_core.sv**: Top-level processor core integrating all components with boot sequence state machine
+-   **ctmm_core.sv**: Top-level processor core integrating all components with boot sequence state machine; SWITCH/CHANGE runtime execution writes to CR8 (target=0) or CR15 (target=7), I-bit variants supported
 -   **ctmm_tb.sv**: Testbench for verification
 
 The hardware captures the architectural concepts; a full execution pipeline would be expanded for production silicon.
