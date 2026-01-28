@@ -62,11 +62,29 @@ The `verilog/` directory contains a synthesizable SystemVerilog implementation o
 -   **ctmm_registers.sv**: Register file implementing CR0-CR15 (context/capability) and DR0-DR15 (data) with special registers for Namespace (CR15), Thread (CR8), C-List (CR6), and Nucleus (CR7)
 -   **ctmm_perm_check.sv**: Hardware permission validation with bounds checking, MAC validation, and G bit detection for namespace access
 -   **ctmm_gc_unit.sv**: Garbage collection unit implementing Mark-Scan-Sweep phases with G bit state machine
--   **ctmm_decoder.sv**: Instruction decoder for Church (LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM) and Turing (arithmetic, logic, branch) instructions with ARM-style condition code evaluation
+-   **ctmm_decoder.sv**: Instruction decoder for Church (LOAD, SAVE, LOADX, SAVEX, LDM, STM, CALL, RETURN, CHANGE, SWITCH, TPERM) and Turing (arithmetic, logic, branch, LDI) instructions with ARM-style condition code evaluation
+-   **ctmm_loadx_savex.sv**: Atomic load/store exclusive with 16 per-thread exclusive monitors
+-   **ctmm_ldm_stm.sv**: Multiple register load/store with mLoad/mSave security per transfer
 -   **ctmm_core.sv**: Top-level processor core integrating all components with boot sequence state machine
 -   **ctmm_tb.sv**: Testbench for verification
 
 The hardware captures the architectural concepts; a full execution pipeline would be expanded for production silicon.
+
+### Instruction Format (Standardized)
+
+All instructions use a 32-bit format with 5-bit opcodes:
+```
+[31:27] = Opcode (5 bits)
+[26:23] = Condition (4 bits)
+[22]    = I-bit (immediate/register mode)
+[21:0]  = Operands (22 bits)
+```
+
+**Security by Design**: Only CR0-CR7 are instruction-addressable via 3-bit encoding. System registers CR8-CR15 (Thread, Nucleus, C-List, Namespace) are physically unreachable through instruction encoding to prevent privilege escalation.
+
+**Boot Sequence Exception**: The only time CR8 and CR15 can be addressed is during boot:
+- CR15 (Namespace): Hardwired GT at offset 0, M permission only
+- CR8 (Thread): Hardwired GT at offset 3, M permission only
 
 ## External Dependencies
 
