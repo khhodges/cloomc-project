@@ -4462,15 +4462,14 @@ const lessons = [
                 <p>When the CTMM powers on, it goes through a <strong>4-step boot sequence</strong> to establish a secure foundation.</p>
                 <p>This sequence ensures that the system starts in a known, secure state with proper capabilities in place.</p>
                 <div class="key-concept">
-                    <strong>Why it matters:</strong> Each step builds upon the previous one, creating a chain of trust from hardware to user space.
-                </div>`,
+                    <strong>Why it matters:</strong> Each step builds upon the previous one, creating a chain of trust from hardware to user space. This sequence runs for all double-faults (unrecovered).</div>`,
                 demo: `<div class="demo-title">Boot Sequence Steps</div>
                 <div class="demo-content">
                     <div class="demo-visual">
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <div style="padding: 0.8rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid var(--accent);">1. Hardware Reset</div>
                             <div style="padding: 0.8rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid var(--success);">2. Load Namespace</div>
-                            <div style="padding: 0.8rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid #60a5fa;">3. Initialize Thread</div>
+                            <div style="padding: 0.8rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid #60a5fa;">3. Initialise Thread</div>
                             <div style="padding: 0.8rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid var(--warning);">4. Load Nucleus</div>
                         </div>
                     </div>
@@ -4484,17 +4483,17 @@ const lessons = [
                 <p>All registers are cleared to <code>NULL</code>. This ensures no leftover data from previous sessions.</p>
                 <h3>Step 2: Load Namespace</h3>
                 <p><code>CR15</code> receives the system namespace capability with <code>M</code> permission only - the root of all accessible resources. The M (Meta-Machine) permission marks hardware-level access exclusively.</p>
-                <h3>Step 3: Initialize Thread</h3>
-                <p><code>CR8</code> gets the user thread capability, and <code>CR6</code> receives the C-List (capability list) for user access.</p>
+                <h3>Step 3: Initialise Thread</h3>
+                <p><code>CR8</code> gets the user thread capability for the Namespace Context Register, and <code>CR6</code> receives the C-List (capability list) for Boot abstraction.</p>
                 <h3>Step 4: Load Nucleus</h3>
-                <p>The kernel code capability is loaded into <code>CR7</code>. This is the core operating system code with <code>X</code> permission (data access to code object).</p>`,
+                <p>The CLOOMC code object is loaded into <code>CR7</code>. This is the core boot code with <code>X</code> permission (execute access to code object).</p><p>Sets the IA (Instruction Address) to zero to start the Boot Programmed Function Abstraction that kicks off self-test and recovery actions</p>`,
                 demo: `<div class="demo-title">Register States After Boot</div>
                 <div class="demo-content">
                     <div class="demo-visual register-demo">
-                        <div class="reg-demo-item"><span class="reg-demo-name">CR7</span><span class="reg-demo-value">NUCLEUS [X]</span></div>
+                        <div class="reg-demo-item"><span class="reg-demo-name">CR7</span><span class="reg-demo-value">CLOOMC [X]</span></div>
                         <div class="reg-demo-item"><span class="reg-demo-name">CR15</span><span class="reg-demo-value">NAMESPACE [M]</span></div>
-                        <div class="reg-demo-item"><span class="reg-demo-name">CR8</span><span class="reg-demo-value">KENNETH [M]</span></div>
-                        <div class="reg-demo-item"><span class="reg-demo-name">CR6</span><span class="reg-demo-value">BOOT [E]</span></div>
+                        <div class="reg-demo-item"><span class="reg-demo-name">CR8</span><span class="reg-demo-value">THREAD SHELL [M]</span></div>
+                        <div class="reg-demo-item"><span class="reg-demo-name">CR6</span><span class="reg-demo-value">BOOT C-LIST [E]</span></div>
                     </div>
                     <div class="demo-explanation">
                         <p>After boot, these four registers hold the essential capabilities needed to run the system securely.</p>
@@ -4508,10 +4507,10 @@ const lessons = [
                     <li>Go to the <strong>CPU State Dashboard</strong></li>
                     <li>Click <strong>Step</strong> to advance through each boot stage</li>
                     <li>Watch how registers change from NULL to active capabilities</li>
-                    <li>Or click <strong>Run</strong> to complete all steps at once</li>
+                    <li>Or click <strong>Run</strong> to complete all steps at once</li><li>Go to the ASSEMBLY tab to try the samples and your hand at CLOOMC</li>
                 </ol>
                 <div class="highlight">
-                    After booting, check the <strong>Capability Explorer</strong> to see the Golden Tokens that were created!
+                    After booting, check the <strong>Capability Explorer</strong> to see the Golden Tokens that were LOADED!
                 </div>`,
                 interactive: {
                     type: "quiz",
@@ -4533,13 +4532,12 @@ const lessons = [
                 text: `<h3>Two Types of Registers</h3>
                 <p>The CTMM has two distinct register types, each serving a different purpose:</p>
                 <ul>
-                    <li><strong>Context Registers (CR0-CR7)</strong>: Hold capabilities (programmer-accessible)</li>
-                    <li><strong>Meta-Machine Registers (CR8-CR15)</strong>: Reserved for hardware/OS</li>
+                    <li><strong>Context GT Registers (CR0-CR7)</strong>: Hold capabilities (programmer contoled security)</li>
+                    <li><strong>Meta-Machine Registers (CR8-CR15)</strong>: Reserved for hardware (Lambda Calculus functions)</li>
                     <li><strong>Data Registers (DR0-DR15)</strong>: Hold 64-bit numeric values</li>
                 </ul>
                 <div class="key-concept">
-                    <strong>Key Insight:</strong> This separation enforces security at the hardware level. You cannot accidentally treat a number as a capability or vice versa.
-                </div>`,
+                    <strong>Key Insight:</strong> This separation enforces security at the hardware level. You cannot accidentally treat a number as a capability or vice versa, and it supports real-time, deterministic garbage collection.</div>`,
                 demo: `<div class="demo-title">Register Comparison</div>
                 <div class="demo-content">
                     <div class="demo-visual">
@@ -4547,11 +4545,11 @@ const lessons = [
                             <div style="background: rgba(233, 69, 96, 0.2); padding: 1rem; border-radius: 6px;">
                                 <div style="color: var(--accent); font-weight: bold; margin-bottom: 0.5rem;">Context Registers</div>
                                 <div style="font-size: 0.85rem; color: var(--text-secondary);">CR0-CR7, CR8, CR15</div>
-                                <div style="font-size: 0.85rem; color: var(--text-primary); margin-top: 0.3rem;">Hold capabilities</div>
+                                <div style="font-size: 0.85rem; color: var(--text-primary); margin-top: 0.3rem;">Hold type, location, range, and access capabilities rights</div>
                             </div>
                             <div style="background: rgba(74, 222, 128, 0.2); padding: 1rem; border-radius: 6px;">
                                 <div style="color: var(--success); font-weight: bold; margin-bottom: 0.5rem;">Data Registers</div>
-                                <div style="font-size: 0.85rem; color: var(--text-secondary);">DR0-DR7</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">DR0-DR15 (like ARM)</div>
                                 <div style="font-size: 0.85rem; color: var(--text-primary); margin-top: 0.3rem;">Hold 64-bit numbers</div>
                             </div>
                         </div>
@@ -4562,28 +4560,28 @@ const lessons = [
                 text: `<h3>Special Context Registers</h3>
                 <p>The 16 Context Registers are divided into two groups:</p>
                 <ul>
-                    <li><strong>CR0-CR7 (Programmer)</strong>: Accessible to application code
+                    <li><strong>CR0-CR7 (Programmer Security)</strong>: Accessible to application code
                         <ul>
                             <li><code>CR0-CR5</code> - General-purpose capability registers</li>
-                            <li><code>CR6</code> - <strong>C-List LCA</strong>: Current capability list</li>
-                            <li><code>CR7</code> - <strong>Nucleus</strong>: Kernel code capability</li>
+                            <li><code>CR6</code> - <strong>C-List</strong>: Current capability list</li>
+                            <li><code>CR7</code> - <strong>Nucleus</strong>: CLOOMC functions as eXecutable capability</li>
                         </ul>
                     </li>
                     <li><strong>CR8-CR15 (Meta-Machine)</strong>: Reserved for hardware/OS
                         <ul>
-                            <li><code>CR8</code> - <strong>Thread</strong>: Current process identity</li>
+                            <li><code>CR8</code> - <strong>Thread</strong>: Current process identity (full machine state when suspended)</li>
                             <li><code>CR15</code> - <strong>Namespace</strong>: Root of resources</li>
                         </ul>
                     </li>
                 </ul>
                 <div class="highlight">
-                    Only CR0-CR7 can be addressed by programmer instructions. CR8-CR15 are managed by the meta-machine.
+                    Only CR0-CR7 can be addressed by programmer instructions. CR8-CR15 are managed by the Lambda Calculus meta-machine.
                 </div>`,
                 demo: `<div class="demo-title">Special Register Roles</div>
                 <div class="demo-content">
                     <div class="demo-visual register-demo">
-                        <div class="reg-demo-item"><span class="reg-demo-name">CR6</span><span class="reg-demo-value">C-List (Your capabilities)</span></div>
-                        <div class="reg-demo-item"><span class="reg-demo-name">CR7</span><span class="reg-demo-value">Nucleus (Kernel)</span></div>
+                        <div class="reg-demo-item"><span class="reg-demo-name">CR6</span><span class="reg-demo-value">C-List (Golden Tokens)</span></div>
+                        <div class="reg-demo-item"><span class="reg-demo-name">CR7</span><span class="reg-demo-value">Nucleus (CLOOMC)</span></div>
                         <div class="reg-demo-item"><span class="reg-demo-name">CR8</span><span class="reg-demo-value">Thread (Your identity)</span></div>
                         <div class="reg-demo-item"><span class="reg-demo-name">CR15</span><span class="reg-demo-value">Namespace (Root scope)</span></div>
                     </div>
