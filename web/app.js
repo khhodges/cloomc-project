@@ -7369,21 +7369,47 @@ function tutorialNextStep() {
     }
 }
 
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const icons = {
+        success: '✓',
+        error: '✗',
+        info: 'ℹ'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span>${message}`;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
 function saveTutorialEdits() {
-    const lessonKey = `tutorial_${tutorialState.currentLesson}_${tutorialState.currentStep}`;
-    const savedEdits = JSON.parse(localStorage.getItem('tutorialEdits') || '{}');
-    
-    const lessonTextEl = document.getElementById('lessonText');
-    const lessonDemoEl = document.getElementById('lessonDemo');
-    
-    savedEdits[lessonKey + '_text'] = lessonTextEl.innerHTML;
-    savedEdits[lessonKey + '_demo'] = lessonDemoEl.innerHTML;
-    
-    localStorage.setItem('tutorialEdits', JSON.stringify(savedEdits));
-    tutorialState.hasUnsavedChanges = false;
-    updateTutorialSaveButton();
-    
-    log('Tutorial edits saved', 'success');
+    try {
+        const lessonKey = `tutorial_${tutorialState.currentLesson}_${tutorialState.currentStep}`;
+        const savedEdits = JSON.parse(localStorage.getItem('tutorialEdits') || '{}');
+        
+        const lessonTextEl = document.getElementById('lessonText');
+        const lessonDemoEl = document.getElementById('lessonDemo');
+        
+        savedEdits[lessonKey + '_text'] = lessonTextEl.innerHTML;
+        savedEdits[lessonKey + '_demo'] = lessonDemoEl.innerHTML;
+        
+        localStorage.setItem('tutorialEdits', JSON.stringify(savedEdits));
+        tutorialState.hasUnsavedChanges = false;
+        updateTutorialSaveButton();
+        
+        showToast('Tutorial edits saved', 'success');
+        log('Tutorial edits saved', 'success');
+    } catch (error) {
+        showToast('Failed to save edits', 'error');
+        log('Failed to save tutorial edits: ' + error.message, 'error');
+    }
 }
 
 function resetTutorialStep() {
