@@ -4315,15 +4315,15 @@ const lessons = [
             },
             {
                 text: `<h3>Why Capabilities Matter</h3>
-                <p>Traditional security has a fundamental flaw called the <strong>"Confused Deputy"</strong> problem:</p>
+                <p>Traditional security has fundamental flaws like the <strong>"Confused Deputy"</strong> problem, "ROP" (Return-Oriented Programming), default privileges, and centralised superusers:</p>
                 <div class="highlight">
                     A trusted program (the deputy) can be tricked into misusing its authority on behalf of a malicious actor.
-                </div>
+                </div><div class="highlight">Malware can silently create attack code inside the system without detection.</div><div class="highlight">Increased surveillance to detect malware only leads to digital dictatorship</div>
                 <p>Capabilities solve this because:</p>
                 <ul>
                     <li>Authority is always explicit - you must present the capability</li>
                     <li>Delegation is controlled - you can only give away what you have</li>
-                    <li>No ambient authority - programs only have the capabilities they're given</li>
+                    <li>No ambient authority - programs only have the capabilities they're given</li><li>The power is distributed atomically and incrementally in line with democracy</li>
                 </ul>`,
                 interactive: {
                     type: "quiz",
@@ -4352,10 +4352,10 @@ const lessons = [
                 <ul>
                     <li><strong>Offset [0:31]</strong> - 32-bit index into the Namespace Table</li>
                     <li><strong>Spare [32:47]</strong> - 16 reserved bits for future use</li>
-                    <li><strong>Perms [48:63]</strong> - 16-bit permission flags (R, W, X, L, S, E, B, M, F, G)</li>
+                    <li><strong>Perms [48:63]</strong> - 16-bit permission flags (R, W, X, L, S, E, B, M, F, G) Read Data Allowed, Write Data Allowed, eXecute CLOOMC allowed, Load Capability from a GT allowed, Save GT allowed, Enter a Lambda Calculus Abstraction allowed, Bind a GT into the Namespace DNA hierarchy allowed, Meta-Machine Microcode allowed, Far object remotly addressed, Garbage collection identification</li>
                 </ul>
                 <div class="key-concept">
-                    <strong>Key Insight:</strong> The GT contains just enough to locate and authorize access. The detailed resource description lives in the Namespace Entry.
+                    <strong>Key Insight:</strong> The GT contains just enough to locate and authorise access. The detailed resource description lives in the Namespace Entry.
                 </div>`,
                 demo: `<div class="demo-title">GT Bit Layout (Little-Endian)</div>
                 <div class="demo-content">
@@ -4389,7 +4389,7 @@ const lessons = [
                     <li><strong>Word 3 (W3)</strong> - <em>Seals</em>: Metadata, Type, and MAC for integrity</li>
                 </ul>
                 <div class="highlight">
-                    The F (Far) permission changes how W1 is interpreted: local memory address vs. remote URL.
+                    The F (Far) permission changes how W1 &amp; W2 are interpreted: local memory address vs. remote URL.
                 </div>`,
                 demo: `<div class="demo-title">Namespace Entry Structure</div>
                 <div class="demo-content">
