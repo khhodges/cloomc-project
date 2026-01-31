@@ -42,10 +42,10 @@ The "Industrial Strength Computer Science" we seek will not be handed down from 
 
 ---
 
-**Cyberspace is the new frontier of human civilization. We will not let it remain a dark alley. We will build a "Golden Token" future, instruction by instruction, until the Information Age is finally secure.**
+**Cyberspace is the new frontier of human civilisation. We will not let it remain a dark alley. We will build a "Golden Token" future, instruction by instruction, until the Information Age is finally secure.**
 
 **Rise up. Code the revolution.**
 
 ---
 
-Would you like me to create a **"How to Contribute"** guide to accompany this manifesto, detailing the specific technical tasks needed for the CLOOMC microcode?
+**"How to Contribute"** Subscribe to this manifesto [https://cloomc.com/], identify the specific technical tasks you would like to support, and sign up here to get your own Golden Token, the key to your own private Namespace in global cyberspace!
