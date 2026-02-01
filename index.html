@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLOOMC Foundation | Industrial Strength Computer Science</title>
+    <style>
+        :root {
+            --bg-carbon: #121212;
+            --bg-surface: #1e1e1e;
+            --gold-token: #D4AF37;
+            --gold-glow: rgba(212, 175, 55, 0.3);
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+        }
+
+        body {
+            background-color: var(--bg-carbon);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header & Hero */
+        header { padding: 60px 0; text-align: center; border-bottom: 1px solid #333; }
+        h1 { color: var(--gold-token); font-size: 3rem; margin: 0; letter-spacing: 2px; }
+        .tagline { font-style: italic; color: var(--text-muted); font-size: 1.2rem; }
+
+        /* Navigation Grid */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: -40px;
+        }
+
+        .card {
+            background: var(--bg-surface);
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            transition: transform 0.3s, border-color 0.3s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold-token);
+            box-shadow: 0 10px 20px var(--gold-glow);
+        }
+
+        .card h3 { color: var(--gold-token); margin-top: 0; }
+
+        /* Trilogy Section */
+        .trilogy { padding: 80px 0; text-align: center; }
+        .book-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin-top: 30px; }
+        .book-item { max-width: 250px; }
+        .book-item a { color: var(--gold-token); text-decoration: none; font-weight: bold; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid #333;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--gold-token);
+            color: black;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>CLOOMC FOUNDATION</h1>
+        <p class="tagline">Civilizing Cyberspace through Industrial Strength Engineering</p>
+    </div>
+</header>
+
+<div class="container">
+    <div class="nav-grid">
+        <a href="/docs/intro" class="card">
+            <h3>The Library (.org)</h3>
+            <p>The formal residency for CTMM specifications, the 6 Church Instructions, and the philosophy of Type Segregation.</p>
+            <small>EXPLORE STANDARDS &rarr;</small>
+        </a>
+
+        <a href="https://cloomc.com" class="card">
+            <h3>The Gateway (.com)</h3>
+            <p>Establish your private namespace and mint your Golden Tokens. The entry point for personal digital sovereignty.</p>
+            <small>VISIT CLOOMC.COM &rarr;</small>
+        </a>
+
+        <a href="https://sipantic.blogspot.com" class="card">
+            <h3>SIPantic Blog</h3>
+            <p>Ongoing dispatches from the frontier of Lambda-based logic and the fight against monolithic privilege.</p>
+            <small>READ DISPATCHES &rarr;</small>
+        </a>
+    </div>
+
+    <section class="trilogy">
+        <h2>The Trilogy of Civilized Cyberspace</h2>
+        <p>The definitive guide to the What, Why, and How of the CTMM Architecture.</p>
+        
+        <div class="book-links">
+            <div class="book-item">
+                <p><strong>Civilizing Cyberspace</strong></p>
+                <a href="https://www.barnesandnoble.com/w/civilizing-cyberspace-kenneth-j-hamer-hodges/1141355444" target="_blank">View on B&N</a>
+            </div>
+            <div class="book-item">
+                <p><strong>The Fate of AI Society</strong></p>
+                <a href="https://onlinebookclub.org/reviews/by-kenneth-j-hamer-hodges.html" target="_blank">Read Reviews</a>
+            </div>
+            <div class="book-item">
+                <p><strong>Winning World War III</strong></p>
+                <span>(Coming Soon to the Forge)</span>
+            </div>
+        </div>
+    </section>
+
+    <div style="text-align: center; padding-bottom: 80px;">
+        <h2>The Forge</h2>
+        <p>Ready to audit the architecture? Launch the bit-accurate CTMM simulator.</p>
+        
+        <a href="/the-forge/simulator" class="cta-button">LAUNCH SIMULATOR</a>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 CLOOMC Technologies LLC | Stuart, Florida</p>
+    <p>Established on the principles of the PP250 and the Lambda Calculus.</p>
+</footer>
+
+</body>
+</html>
