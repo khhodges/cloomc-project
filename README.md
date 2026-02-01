@@ -1,10 +1,10 @@
-# cloomc-project
+# cloomc-open source project
 
 An open source hardware and software project to solve the digital insecurity, lack of personal privacy, and unacceptable malware intrusion that corrupts and will destroy democratic life in the Information Age. Visit [https://sipantic.blogspot.com/] for technical details.
 
 ## **The CLOOMC Manifesto: A Declaration of Digital Sovereignty**
 
-**The Information Age is built on sand.** For decades, we have accepted a "patch-and-pray" culture, relying on bloated corporations that prioritize "feature creep" over fundamental safety. They sold us a digital world where insecurity is a feature, not a bug, because it keeps the cycle of consumption and "security-as-a-service" turning.
+**The Information Age is built on sand.** For decades, we have accepted a "patch-and-pray" culture, relying on bloated corporations that prioritise "feature creep" over fundamental safety. They sold us a digital world where insecurity is a feature, not a bug, because it keeps the cycle of consumption and "security-as-a-service" turning.
 
 **Industry will not save us. Only a bottom-up, open-source revolution can.**
 
