@@ -1,6 +1,33 @@
-# cloomc-open source project
+# Cloomc-Open Source Project
 
-An open source hardware and software project to solve the digital insecurity, lack of personal privacy, and unacceptable malware intrusion that corrupts and will destroy democratic life in the Information Age. Visit [https://sipantic.blogspot.com/] for technical details.
+# Licensing & Commercial Use
+This project is Dual-Licensed. It is designed to be accessible for public audit and academic research while maintaining a sustainable model for industrial deployment.
+
+1. Open Source License
+For the open-source community, this software is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+Auditability: Anyone may inspect, modify, and redistribute the source code.
+
+Reciprocity: Any derivative works or "industrial strength" improvements made to this code must also be released under the GPL-3.0 if distributed.
+
+2. Commercial & Industrial License
+If you wish to incorporate this technology into proprietary hardware, closed-source systems, or "golden token" fail-safe environments where the GPL's reciprocity requirements are not acceptable, a Commercial License is required.
+
+The Commercial License provides:
+
+Proprietary Rights: The ability to keep your derivative source code private.
+
+Indemnification: Legal protections and warranties not provided under the GPL.
+
+Expert Support: Access to consulting regarding symbolic addressing, Lambda Calculus optimisations, and high-integrity namespace management.
+
+To obtain a commercial license, please contact:
+
+Kenneth Hamer-Hodges > SIPanticINC@gmail.com
+
+Subject: CLOOMC Commercial Licensing Inquiry
+
+This open source hardware and software project aims to solve the digital insecurity, lack of personal privacy, and unacceptable malware intrusion that corrupts and will destroy democratic life in the Information Age. Visit [https://sipantic.blogspot.com/] for technical details.
 
 ## **The CLOOMC Manifesto: A Declaration of Digital Sovereignty**
 
