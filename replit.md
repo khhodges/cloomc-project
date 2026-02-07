@@ -115,6 +115,31 @@ All instructions use a 32-bit format with 5-bit opcodes:
 - CR15 (Namespace): Hardwired GT at offset 0, M permission only
 - CR8 (Thread): Hardwired GT at offset 3, M permission only
 
+## Amaranth HDL Implementation
+
+The `ctmm_amaranth/` directory contains a Python-based HDL (Amaranth) implementation of the CTMM architecture, providing an alternative to the SystemVerilog in `verilog/`. All 15 modules elaborate and simulate successfully.
+
+### Module Structure
+-   **types.py**: Enums (opcodes, conditions, faults, boot states), permission constants, register indices
+-   **layouts.py**: StructLayouts for GoldenToken (64-bit), CapabilityReg (256-bit), NamespaceEntry, CondFlags, ExclMonitor
+-   **registers.py**: Register file (CR0-CR15 + DR0-DR15 + condition flags) with word-level and GT-level write ports
+-   **decoder.py**: Combinational instruction decoder with ARM-style condition evaluation
+-   **perm_check.py**: Permission/bounds/MAC validation (combinational)
+-   **gc_unit.py**: Deterministic GC with Mark-Scan-Sweep FSM and G-bit management
+-   **mload.py / msave.py**: Trusted micro-routines for capability load/save with multi-step FSMs
+-   **load.py / save.py**: Instruction wrappers delegating to mload/msave
+-   **call.py / ret.py**: CALL (two-phase mload: C-List→CR6, CR6→CR7) and RETURN (restore CR6/CR7/NIA)
+-   **switch.py / change.py**: SWITCH (copy cap to CR8-CR15) and CHANGE (context switch with save/restore loop)
+-   **loadx_savex.py**: Atomic load/store exclusive with 16 per-thread monitors
+-   **ldm_stm.py**: Load/Store Multiple CRs with priority encoder
+-   **core.py**: Top-level integration (registers + decoder + perm_check + GC + boot FSM + ALU)
+-   **testbench.py**: Simulation testbench verifying boot sequence, Turing instructions, and fault detection
+
+### Amaranth-Specific Notes
+-   Views over StructLayouts require `.as_value()` before slicing (e.g., `view.field.as_value()[:32]`)
+-   Signals can only be driven from one clock domain (d.comb OR d.sync, not both)
+-   All modules verified: `python -c "from ctmm_amaranth.core import CTMMCore; ..."` elaborates cleanly
+
 ## External Dependencies
 
 -   **Python HTTP Server**: Serves the web interface files.

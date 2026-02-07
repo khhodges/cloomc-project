@@ -55,14 +55,8 @@ class CTMMLdmStm(Elaboratable):
 
         next_reg = Signal(4)
         has_more_regs = Signal()
-
-        m.d.comb += has_more_regs.eq(reg_list_remaining.any())
-        for i in range(16):
-            with m.If(reg_list_remaining[i] & ~has_more_regs):
-                m.d.comb += next_reg.eq(i)
-                m.d.comb += has_more_regs.eq(1)
-
         prio_found = Signal()
+
         m.d.comb += [prio_found.eq(0), next_reg.eq(0)]
         for i in range(16):
             with m.If(reg_list_remaining[i] & ~prio_found):

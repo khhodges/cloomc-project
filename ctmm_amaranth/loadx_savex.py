@@ -63,19 +63,19 @@ class CTMMLoadxSavex(Elaboratable):
 
         rd_data_view = View(CAP_REG_LAYOUT, self.cr_rd_data)
         target_addr = Signal(32)
-        m.d.comb += target_addr.eq(rd_data_view.word1_location[:32] + Cat(Const(0, 5), self.offset, Const(0, 17)))
+        loc_val = Signal(64)
+        m.d.comb += loc_val.eq(rd_data_view.word1_location)
+        m.d.comb += target_addr.eq(loc_val[:32] + Cat(Const(0, 5), self.offset, Const(0, 17)))
 
         bounds_ok = Signal()
-        m.d.comb += bounds_ok.eq(Cat(self.offset, Const(0, 20)) < base_view.word2_limit[:32])
-
-        monitor_valid = Signal()
-        m.d.comb += monitor_valid.eq(
-            (monitor_states[0].replicate(1) == ExclMonitorState.ACTIVE) &  # placeholder
-            (monitor_addrs[0] == addr_latched)  # placeholder
-        )
+        limit_val = Signal(64)
+        m.d.comb += limit_val.eq(base_view.word2_limit)
+        m.d.comb += bounds_ok.eq(Cat(self.offset, Const(0, 20)) < limit_val[:32])
 
         current_mon_state = Array(monitor_states)[self.thread_id]
         current_mon_addr = Array(monitor_addrs)[self.thread_id]
+
+        monitor_valid = Signal()
         m.d.comb += monitor_valid.eq(
             (current_mon_state == ExclMonitorState.ACTIVE) &
             (current_mon_addr == addr_latched)

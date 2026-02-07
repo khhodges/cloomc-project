@@ -78,13 +78,13 @@ class CTMMMLoad(Elaboratable):
 
         with m.FSM(name="mload") as fsm:
             with m.State("IDLE"):
-                m.d.comb += fault_type_reg.eq(FaultType.NONE)
                 with m.If(self.sub_start):
                     m.d.sync += [
                         cr_src_reg.eq(self.sub_cr_src),
                         cr_dst_reg.eq(self.sub_cr_dst),
                         index_reg.eq(self.sub_index),
                         result_cap.eq(0),
+                        fault_type_reg.eq(FaultType.NONE),
                     ]
                     m.next = "FETCH_SRC"
 
