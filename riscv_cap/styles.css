@@ -853,6 +853,82 @@ main {
     border: 1px solid #0f3460;
 }
 
+.bit-field[data-tooltip] {
+    cursor: pointer;
+    position: relative;
+    transition: filter 0.15s;
+}
+
+.bit-field[data-tooltip]:hover {
+    filter: brightness(1.4);
+}
+
+.field-tooltip {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    padding: 10px 14px;
+    min-width: 220px;
+    max-width: 340px;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.field-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid #0f3460;
+}
+
+.field-tooltip .tip-title {
+    font-weight: 700;
+    font-size: 12px;
+    color: #e0e0e0;
+    margin-bottom: 4px;
+}
+
+.field-tooltip .tip-bits {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #f0a500;
+    margin-bottom: 6px;
+}
+
+.field-tooltip .tip-desc {
+    font-size: 11px;
+    color: #a0a0a0;
+    line-height: 1.5;
+}
+
+.field-church-tgt {
+    background: rgba(233, 69, 96, 0.2);
+    color: #e94560;
+    flex: 0.8;
+}
+
+.field-church-cr {
+    background: rgba(78, 204, 163, 0.2);
+    color: #4ecca3;
+    flex: 1;
+}
+
+.field-reserved {
+    background: rgba(100, 100, 100, 0.15);
+    color: #888;
+    flex: 1;
+}
+
 .instr-table {
     width: 100%;
     border-collapse: collapse;

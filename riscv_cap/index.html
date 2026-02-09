@@ -263,60 +263,60 @@
                         <div class="format-row">
                             <span class="format-label">R-type:</span>
                             <div class="bit-fields">
-                                <span class="bit-field field-funct7" data-bits="31:25">funct7</span>
-                                <span class="bit-field field-rs2" data-bits="24:20">rs2</span>
-                                <span class="bit-field field-rs1" data-bits="19:15">rs1</span>
-                                <span class="bit-field field-funct3" data-bits="14:12">funct3</span>
-                                <span class="bit-field field-rd" data-bits="11:7">rd</span>
-                                <span class="bit-field field-opcode" data-bits="6:0">opcode</span>
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7|Bits [31:25] — 7 bits|Function modifier. Distinguishes variants of the same opcode+funct3 combination. For example, ADD uses 0000000 while SUB uses 0100000.">funct7</span>
+                                <span class="bit-field field-rs2" data-bits="24:20" data-tooltip="rs2 (Source Register 2)|Bits [24:20] — 5 bits|Second source register (x0-x31). Provides the second operand for register-register operations like ADD, SUB, AND, OR.">rs2</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Source Register 1)|Bits [19:15] — 5 bits|First source register (x0-x31). Provides the first operand. Used in all R, I, S, and B-type instructions.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3|Bits [14:12] — 3 bits|Function selector. Combined with opcode to determine the specific operation. For example, under opcode 0110011: 000=ADD/SUB, 111=AND, 110=OR.">funct3</span>
+                                <span class="bit-field field-rd" data-bits="11:7" data-tooltip="rd (Destination Register)|Bits [11:7] — 5 bits|Destination register (x0-x31). The result of the operation is written here. Writing to x0 discards the result (x0 is hardwired to zero).">rd</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode|Bits [6:0] — 7 bits|Primary operation code. Identifies the instruction class. R-type arithmetic uses 0110011. The lowest 2 bits are always 11 for 32-bit instructions.">opcode</span>
                             </div>
                         </div>
                         <div class="format-row">
                             <span class="format-label">I-type:</span>
                             <div class="bit-fields">
-                                <span class="bit-field field-imm" data-bits="31:20">imm[11:0]</span>
-                                <span class="bit-field field-rs1" data-bits="19:15">rs1</span>
-                                <span class="bit-field field-funct3" data-bits="14:12">funct3</span>
-                                <span class="bit-field field-rd" data-bits="11:7">rd</span>
-                                <span class="bit-field field-opcode" data-bits="6:0">opcode</span>
+                                <span class="bit-field field-imm" data-bits="31:20" data-tooltip="imm[11:0] (Immediate)|Bits [31:20] — 12 bits|Sign-extended 12-bit immediate value (-2048 to +2047). Used for arithmetic immediates (ADDI), load offsets (LW), and JALR target offset.">imm[11:0]</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Source/Base Register)|Bits [19:15] — 5 bits|Source register for arithmetic, or base address register for loads. The immediate is added to this register's value.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3|Bits [14:12] — 3 bits|Function selector. Determines the specific I-type operation: 000=ADDI/LB, 001=SLLI/LH, 010=SLTI/LW, etc.">funct3</span>
+                                <span class="bit-field field-rd" data-bits="11:7" data-tooltip="rd (Destination Register)|Bits [11:7] — 5 bits|Destination register. Receives the computed result (arithmetic) or loaded data (memory loads).">rd</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode|Bits [6:0] — 7 bits|I-type opcodes: 0010011 (arithmetic immediate), 0000011 (loads), 1100111 (JALR), 1110011 (ECALL/EBREAK).">opcode</span>
                             </div>
                         </div>
                         <div class="format-row">
                             <span class="format-label">S-type:</span>
                             <div class="bit-fields">
-                                <span class="bit-field field-imm" data-bits="31:25">imm[11:5]</span>
-                                <span class="bit-field field-rs2" data-bits="24:20">rs2</span>
-                                <span class="bit-field field-rs1" data-bits="19:15">rs1</span>
-                                <span class="bit-field field-funct3" data-bits="14:12">funct3</span>
-                                <span class="bit-field field-imm" data-bits="11:7">imm[4:0]</span>
-                                <span class="bit-field field-opcode" data-bits="6:0">opcode</span>
+                                <span class="bit-field field-imm" data-bits="31:25" data-tooltip="imm[11:5] (Immediate High)|Bits [31:25] — 7 bits|Upper 7 bits of the 12-bit store offset. Combined with imm[4:0] in bits [11:7] to form the full signed offset (-2048 to +2047).">imm[11:5]</span>
+                                <span class="bit-field field-rs2" data-bits="24:20" data-tooltip="rs2 (Source Data)|Bits [24:20] — 5 bits|Register containing the data to store to memory. SB stores the low byte, SH the low halfword, SW the full word.">rs2</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Base Address)|Bits [19:15] — 5 bits|Base address register. The effective memory address is rs1 + sign_extend(imm).">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3|Bits [14:12] — 3 bits|Store width selector: 000=SB (byte), 001=SH (halfword), 010=SW (word).">funct3</span>
+                                <span class="bit-field field-imm" data-bits="11:7" data-tooltip="imm[4:0] (Immediate Low)|Bits [11:7] — 5 bits|Lower 5 bits of the 12-bit store offset. S-type splits the immediate across two fields to keep rs1 and rs2 in fixed positions.">imm[4:0]</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode|Bits [6:0] — 7 bits|Store opcode: 0100011. All store instructions (SB, SH, SW) share this opcode and differ by funct3.">opcode</span>
                             </div>
                         </div>
                         <div class="format-row">
                             <span class="format-label">B-type:</span>
                             <div class="bit-fields">
-                                <span class="bit-field field-imm" data-bits="31:25">imm[12|10:5]</span>
-                                <span class="bit-field field-rs2" data-bits="24:20">rs2</span>
-                                <span class="bit-field field-rs1" data-bits="19:15">rs1</span>
-                                <span class="bit-field field-funct3" data-bits="14:12">funct3</span>
-                                <span class="bit-field field-imm" data-bits="11:7">imm[4:1|11]</span>
-                                <span class="bit-field field-opcode" data-bits="6:0">opcode</span>
+                                <span class="bit-field field-imm" data-bits="31:25" data-tooltip="imm[12|10:5] (Branch Offset High)|Bits [31:25] — 7 bits|Bit 31 = sign bit (imm[12]), bits [30:25] = imm[10:5]. Part of the 13-bit branch offset (always even, range +/-4096 bytes).">imm[12|10:5]</span>
+                                <span class="bit-field field-rs2" data-bits="24:20" data-tooltip="rs2 (Compare Register 2)|Bits [24:20] — 5 bits|Second register for comparison. BEQ branches if rs1 == rs2, BNE if rs1 != rs2, BLT if rs1 < rs2 (signed), etc.">rs2</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Compare Register 1)|Bits [19:15] — 5 bits|First register for comparison. The branch condition is evaluated between rs1 and rs2.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3|Bits [14:12] — 3 bits|Branch condition: 000=BEQ, 001=BNE, 100=BLT, 101=BGE, 110=BLTU, 111=BGEU.">funct3</span>
+                                <span class="bit-field field-imm" data-bits="11:7" data-tooltip="imm[4:1|11] (Branch Offset Low)|Bits [11:7] — 5 bits|Bits [11:8] = imm[4:1], bit [7] = imm[11]. The offset is reconstructed by combining both immediate fields. Bit 0 is always 0 (2-byte aligned).">imm[4:1|11]</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode|Bits [6:0] — 7 bits|Branch opcode: 1100011. All conditional branches share this opcode and differ by funct3.">opcode</span>
                             </div>
                         </div>
                         <div class="format-row">
                             <span class="format-label">U-type:</span>
                             <div class="bit-fields">
-                                <span class="bit-field field-imm" data-bits="31:12">imm[31:12]</span>
-                                <span class="bit-field field-rd" data-bits="11:7">rd</span>
-                                <span class="bit-field field-opcode" data-bits="6:0">opcode</span>
+                                <span class="bit-field field-imm" data-bits="31:12" data-tooltip="imm[31:12] (Upper Immediate)|Bits [31:12] — 20 bits|20-bit upper immediate value, placed in bits [31:12] of the result. LUI loads this directly into rd. AUIPC adds it to the current PC. Used with ADDI to construct full 32-bit constants.">imm[31:12]</span>
+                                <span class="bit-field field-rd" data-bits="11:7" data-tooltip="rd (Destination Register)|Bits [11:7] — 5 bits|Destination register. LUI writes imm << 12 here. AUIPC writes PC + (imm << 12) here.">rd</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode|Bits [6:0] — 7 bits|U-type opcodes: 0110111 (LUI), 0010111 (AUIPC).">opcode</span>
                             </div>
                         </div>
                         <div class="format-row">
                             <span class="format-label">J-type:</span>
                             <div class="bit-fields">
-                                <span class="bit-field field-imm" data-bits="31:12">imm[20|10:1|11|19:12]</span>
-                                <span class="bit-field field-rd" data-bits="11:7">rd</span>
-                                <span class="bit-field field-opcode" data-bits="6:0">opcode</span>
+                                <span class="bit-field field-imm" data-bits="31:12" data-tooltip="imm[20|10:1|11|19:12] (Jump Offset)|Bits [31:12] — 20 bits|21-bit signed jump offset (bit 0 always 0, range +/-1MB). Bits are scrambled for hardware efficiency: [31]=imm[20], [30:21]=imm[10:1], [20]=imm[11], [19:12]=imm[19:12].">imm[20|10:1|11|19:12]</span>
+                                <span class="bit-field field-rd" data-bits="11:7" data-tooltip="rd (Link Register)|Bits [11:7] — 5 bits|Destination for the return address (PC + 4). Typically x1 (ra). Set to x0 if no return is needed (plain jump).">rd</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode|Bits [6:0] — 7 bits|JAL opcode: 1101111. Jump And Link — the only J-type instruction in RV32I.">opcode</span>
                             </div>
                         </div>
                     </div>
@@ -372,59 +372,99 @@
 
                 <div class="instr-section">
                     <h2>Church Capability Extensions</h2>
+
+                    <h3>Church Instruction Format (custom-0)</h3>
+                    <p style="color:#a0a0a0; font-size:12px; margin-bottom:10px;">All Church instructions use RISC-V custom-0 opcode (0x0B). Hover over each field for details.</p>
+                    <div class="format-diagrams">
+                        <div class="format-row">
+                            <span class="format-label">LOAD:</span>
+                            <div class="bit-fields">
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Reserved)|Bits [31:25] — 7 bits|Reserved for future use. Currently ignored by the simulator. Could encode additional modifiers in future extensions.">0000000</span>
+                                <span class="bit-field field-reserved" data-bits="24:20" data-tooltip="rs2 (Unused)|Bits [24:20] — 5 bits|Not used by CAP.LOAD. The source C-List is always CR6 (implied). This field is ignored.">-----</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Index Register)|Bits [19:15] — 5 bits|Data register (x0-x31) containing the namespace index. The value in x[rs1] is used to look up the capability entry in the namespace table.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 000 (LOAD)|Bits [14:12] — 3 bits|Church instruction selector. 000 = CAP.LOAD. Selects the Load Capability operation from the 6 Church instructions.">000</span>
+                                <span class="bit-field field-church-cr" data-bits="11:7" data-tooltip="cr_dst (Destination CR)|Bits [9:7] — 3 bits (within rd[4:0])|Destination capability register CR0-CR7. Only 3 bits are used (bits [9:7]) — this limits addressing to CR0-CR7, preventing direct access to system registers CR8-CR15.">cr_dst</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011. This is one of four opcode slots reserved by RISC-V for user-defined extensions. All 6 Church instructions share this opcode.">0001011</span>
+                            </div>
+                        </div>
+                        <div class="format-row">
+                            <span class="format-label">SAVE:</span>
+                            <div class="bit-fields">
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Reserved)|Bits [31:25] — 7 bits|Reserved for future use. Currently ignored.">0000000</span>
+                                <span class="bit-field field-church-cr" data-bits="24:20" data-tooltip="cr_src (Source CR)|Bits [22:20] — 3 bits (within rs2[4:0])|Source capability register CR0-CR7 containing the Golden Token to save. Only 3 bits used — system registers CR8-CR15 are not addressable.">cr_src</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Index Register)|Bits [19:15] — 5 bits|Data register (x0-x31) containing the namespace index. The capability from cr_src is written to namespace table at this index.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 001 (SAVE)|Bits [14:12] — 3 bits|Church instruction selector. 001 = CAP.SAVE. Selects the Save Capability operation.">001</span>
+                                <span class="bit-field field-reserved" data-bits="11:7" data-tooltip="rd (Unused)|Bits [11:7] — 5 bits|Not used by CAP.SAVE. The destination is always the namespace table (addressed by rs1). This field is ignored.">-----</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
+                            </div>
+                        </div>
+                        <div class="format-row">
+                            <span class="format-label">CALL:</span>
+                            <div class="bit-fields">
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Reserved)|Bits [31:25] — 7 bits|Reserved. Could encode a register clearing mask in future extensions (as Sim-64 CTMM does).">0000000</span>
+                                <span class="bit-field field-church-cr" data-bits="24:20" data-tooltip="cr_src (Target CR)|Bits [22:20] — 3 bits (within rs2[4:0])|Capability register CR0-CR7 holding the Golden Token for the abstraction to call. Must have E (Enter) permission.">cr_src</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Unused)|Bits [19:15] — 5 bits|Not used by the current CAP.CALL implementation. Reserved for future use.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 010 (CALL)|Bits [14:12] — 3 bits|Church instruction selector. 010 = CAP.CALL. Invokes a protected abstraction, pushing return context onto the call stack.">010</span>
+                                <span class="bit-field field-reserved" data-bits="11:7" data-tooltip="rd (Unused)|Bits [11:7] — 5 bits|Not used by CAP.CALL. Return state is saved on an internal stack, not written to a register.">-----</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
+                            </div>
+                        </div>
+                        <div class="format-row">
+                            <span class="format-label">RETURN:</span>
+                            <div class="bit-fields">
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Unused)|Bits [31:25] — 7 bits|Not used. RETURN takes no operands — it pops the most recent saved context from the call stack.">0000000</span>
+                                <span class="bit-field field-reserved" data-bits="24:20" data-tooltip="rs2 (Unused)|Bits [24:20] — 5 bits|Not used. RETURN has no source register.">-----</span>
+                                <span class="bit-field field-reserved" data-bits="19:15" data-tooltip="rs1 (Unused)|Bits [19:15] — 5 bits|Not used. RETURN has no source register.">-----</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 011 (RETURN)|Bits [14:12] — 3 bits|Church instruction selector. 011 = CAP.RETURN. Restores CR6, CR7, and PC from the call stack. FAULTs on stack underflow.">011</span>
+                                <span class="bit-field field-reserved" data-bits="11:7" data-tooltip="rd (Unused)|Bits [11:7] — 5 bits|Not used. Context is restored from the stack, not written to a specific register.">-----</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
+                            </div>
+                        </div>
+                        <div class="format-row">
+                            <span class="format-label">CHANGE:</span>
+                            <div class="bit-fields">
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Reserved)|Bits [31:25] — 7 bits|Reserved for future use. Could encode I-bit variant for C-List lookup mode (as Sim-64 CTMM does).">0000000</span>
+                                <span class="bit-field field-church-cr" data-bits="24:20" data-tooltip="cr_src (Source CR)|Bits [22:20] — 3 bits (within rs2[4:0])|Source capability register CR0-CR7 containing the capability to copy into CR8 (Thread). Must have M (Machine) permission.">cr_src</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Unused)|Bits [19:15] — 5 bits|Not used by the current implementation. Reserved for future use.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 100 (CHANGE)|Bits [14:12] — 3 bits|Church instruction selector. 100 = CAP.CHANGE. Copies a capability to CR8 (Thread identity register) for context switching.">100</span>
+                                <span class="bit-field field-reserved" data-bits="11:7" data-tooltip="rd (Unused)|Bits [11:7] — 5 bits|Not used. The destination is always CR8 (Thread) — hardwired, not selectable.">-----</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
+                            </div>
+                        </div>
+                        <div class="format-row">
+                            <span class="format-label">SWITCH:</span>
+                            <div class="bit-fields">
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Reserved)|Bits [31:25] — 7 bits|Reserved for future use. Currently ignored.">0000000</span>
+                                <span class="bit-field field-church-tgt" data-bits="24:22" data-tooltip="tgt (Switch Target)|Bits [24:22] — 3 bits (top 3 bits of rs2 field)|Target system register selector. Decoded as (instruction >>> 22) & 0x7. Maps to CR8+tgt: 0=CR8 (Thread), 1=CR9 (Interrupt), 2=CR10 (DFault), 3-6=CR11-14 (future), 7=CR15 (Namespace). This is the ONLY instruction that can write to system registers." style="flex:0.8">tgt</span>
+                                <span class="bit-field field-church-cr" data-bits="22:20" data-tooltip="cr_src (Source CR)|Bits [22:20] — 3 bits (low 3 bits of rs2 field)|Source capability register CR0-CR7. Must have M (Machine) permission. Note: bit 22 is shared with the tgt field — in practice this works because cr_src values 0-7 and tgt values 0-7 are independently decoded from overlapping bit positions." style="flex:0.8">cr_src</span>
+                                <span class="bit-field field-rs1" data-bits="19:15" data-tooltip="rs1 (Unused)|Bits [19:15] — 5 bits|Not used by the current implementation. Reserved for future use.">rs1</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 101 (SWITCH)|Bits [14:12] — 3 bits|Church instruction selector. 101 = CAP.SWITCH. The only instruction that can modify system registers CR8-CR15, making it the privilege gate.">101</span>
+                                <span class="bit-field field-reserved" data-bits="11:7" data-tooltip="rd (Unused)|Bits [11:7] — 5 bits|Not used. The destination is determined by the tgt field (bits [24:22]), not rd.">-----</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3>funct3 Encoding Map</h3>
                     <table class="instr-table">
                         <thead>
                             <tr>
+                                <th>funct3</th>
                                 <th>Mnemonic</th>
-                                <th>Format</th>
                                 <th>Description</th>
-                                <th>Required Permissions</th>
-                                <th>Encoding</th>
+                                <th>Required Permission</th>
+                                <th>Operands</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>CAP.LOAD</td>
-                                <td>custom-0</td>
-                                <td>Load capability from C-List into CR</td>
-                                <td>L (Load)</td>
-                                <td>funct7 --- rs1 000 cr_dst 0001011</td>
-                            </tr>
-                            <tr>
-                                <td>CAP.SAVE</td>
-                                <td>custom-0</td>
-                                <td>Save capability from CR to C-List</td>
-                                <td>S (Save)</td>
-                                <td>funct7 cr_src rs1 001 --- 0001011</td>
-                            </tr>
-                            <tr>
-                                <td>CAP.CALL</td>
-                                <td>custom-0</td>
-                                <td>Protected call through capability, save return state</td>
-                                <td>E (Enter)</td>
-                                <td>funct7 cr_src rs1 010 cr_dst 0001011</td>
-                            </tr>
-                            <tr>
-                                <td>CAP.RETURN</td>
-                                <td>custom-0</td>
-                                <td>Return from protected call, restore context</td>
-                                <td>(none)</td>
-                                <td>funct7 ----- --- 011 ----- 0001011</td>
-                            </tr>
-                            <tr>
-                                <td>CAP.CHANGE</td>
-                                <td>custom-0</td>
-                                <td>Change thread context, create new thread GT in CR8</td>
-                                <td>M (Machine)</td>
-                                <td>funct7 cr_src rs1 100 ----- 0001011</td>
-                            </tr>
-                            <tr>
-                                <td>CAP.SWITCH</td>
-                                <td>custom-0</td>
-                                <td>Copy capability to system register CR8-CR15 (target in bits [24:22])</td>
-                                <td>M (Machine)</td>
-                                <td>tgt cr_src rs1 101 ----- 0001011</td>
-                            </tr>
+                            <tr><td>000</td><td>CAP.LOAD</td><td>Load capability from namespace into CR</td><td>L (Load) on CR6</td><td>cr_dst, rs1 (index)</td></tr>
+                            <tr><td>001</td><td>CAP.SAVE</td><td>Save capability from CR to namespace</td><td>S (Save) on CR6</td><td>cr_src, rs1 (index)</td></tr>
+                            <tr><td>010</td><td>CAP.CALL</td><td>Protected call through capability</td><td>E (Enter) on cr_src</td><td>cr_src</td></tr>
+                            <tr><td>011</td><td>CAP.RETURN</td><td>Return from protected call</td><td>(none)</td><td>(none)</td></tr>
+                            <tr><td>100</td><td>CAP.CHANGE</td><td>Copy capability to CR8 (Thread)</td><td>M (Machine) on cr_src</td><td>cr_src</td></tr>
+                            <tr><td>101</td><td>CAP.SWITCH</td><td>Copy capability to system register CR8-CR15</td><td>M (Machine) on cr_src</td><td>cr_src, tgt[24:22]</td></tr>
+                            <tr style="color:#666"><td>110</td><td>(reserved)</td><td>Available for future Church instruction</td><td>-</td><td>-</td></tr>
+                            <tr style="color:#666"><td>111</td><td>(reserved)</td><td>Available for future Church instruction</td><td>-</td><td>-</td></tr>
                         </tbody>
                     </table>
                 </div>

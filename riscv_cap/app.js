@@ -362,4 +362,62 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('rv32cap-asm', editor.value);
         });
     }
+
+    let activeTooltip = null;
+
+    function showFieldTooltip(el) {
+        hideFieldTooltip();
+        const data = el.getAttribute('data-tooltip');
+        if (!data) return;
+        const parts = data.split('|');
+        const title = parts[0] || '';
+        const bits = parts[1] || '';
+        const desc = parts[2] || '';
+
+        const tip = document.createElement('div');
+        tip.className = 'field-tooltip';
+        tip.innerHTML =
+            '<div class="tip-title">' + title + '</div>' +
+            '<div class="tip-bits">' + bits + '</div>' +
+            '<div class="tip-desc">' + desc + '</div>';
+
+        el.style.position = 'relative';
+        el.appendChild(tip);
+        activeTooltip = { el: el, tip: tip };
+
+        const rect = tip.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            tip.style.left = 'auto';
+            tip.style.right = '0';
+            tip.style.transform = 'none';
+        }
+        if (rect.left < 0) {
+            tip.style.left = '0';
+            tip.style.transform = 'none';
+        }
+    }
+
+    function hideFieldTooltip() {
+        if (activeTooltip) {
+            if (activeTooltip.tip.parentNode) {
+                activeTooltip.tip.parentNode.removeChild(activeTooltip.tip);
+            }
+            activeTooltip = null;
+        }
+    }
+
+    document.querySelectorAll('.bit-field[data-tooltip]').forEach(el => {
+        el.addEventListener('mouseenter', () => showFieldTooltip(el));
+        el.addEventListener('mouseleave', () => hideFieldTooltip());
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (activeTooltip && activeTooltip.el === el) {
+                hideFieldTooltip();
+            } else {
+                showFieldTooltip(el);
+            }
+        });
+    });
+
+    document.addEventListener('click', () => hideFieldTooltip());
 });
