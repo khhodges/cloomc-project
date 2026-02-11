@@ -63,7 +63,8 @@ This simulator (`riscv_cap/`) uses a Flask web server, `index.html`, `styles.css
 -   **RV32I Base**: Full integer instruction set with x0-x31 data registers.
 -   **16 Capability Registers**: CR0-CR15, each 128-bit.
 -   **32-bit Golden Token Format**: Version (5 bits), Index (15 bits), Permissions (10 bits), Type (2 bits).
--   **Church Instructions**: Six instructions (`CAP.LOAD`, `CAP.CALL`, `CAP.SAVE`, `CAP.RETURN`, `CAP.CHANGE`, `CAP.SWITCH`) across four RISC-V custom opcodes.
+-   **Church Instructions**: Seven instructions (`CAP.LOAD`, `CAP.CALL`, `CAP.SAVE`, `CAP.RETURN`, `CAP.CHANGE`, `CAP.SWITCH`, `CAP.TPERM`) across four RISC-V custom opcodes.
+-   **Web Views**: Dashboard, Namespace Browser, Assembly Editor, Capabilities Explorer, Instructions, Docs.
 -   **MAC Seal Validation**: 27-bit FNV hash seal in `VersionSeals` checked on `LOAD` and `CALL`.
 -   **Deterministic Garbage Collection**: Three-phase Mark-Scan-Sweep cycle using a G-bit.
 

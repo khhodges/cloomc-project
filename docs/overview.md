@@ -16,7 +16,7 @@ Located in the `web/` directory, Sim-64 is the original CTMM simulator. It uses 
 
 ### Sim-32 (RV32-Cap)
 
-Located in the `riscv_cap/` directory, Sim-32 extends the standard RISC-V RV32I instruction set with capability-based security. It uses 32-bit Golden Tokens with explicit Version and Type fields. The web interface provides five views: Dashboard, Namespace Browser, Assembly Editor, Capabilities Explorer, and Instructions.
+Located in the `riscv_cap/` directory, Sim-32 extends the standard RISC-V RV32I instruction set with capability-based security. It uses 32-bit Golden Tokens with explicit Version and Type fields. The web interface provides six views: Dashboard, Namespace Browser, Assembly Editor, Capabilities Explorer, Instructions, and Docs.
 
 ---
 
@@ -47,7 +47,7 @@ Both simulators enforce the same core security model:
 | **Base ISA** | Custom ARM-style encoding | RISC-V RV32I |
 | **Data Registers** | DR0-DR15 (64-bit each) | x0-x31 (32-bit each) |
 | **Capability Registers** | CR0-CR15 (64-bit GTs) | CR0-CR15 (128-bit, 4x32-bit words) |
-| **Church Instructions** | 11 (LOAD, SAVE, LOADX, SAVEX, LDM, STM, CALL, RETURN, CHANGE, SWITCH, TPERM) | 6 (CAP.LOAD, CAP.SAVE, CAP.CALL, CAP.RETURN, CAP.CHANGE, CAP.SWITCH) |
+| **Church Instructions** | 11 (LOAD, SAVE, LOADX, SAVEX, LDM, STM, CALL, RETURN, CHANGE, SWITCH, TPERM) | 7 (CAP.LOAD, CAP.SAVE, CAP.CALL, CAP.RETURN, CAP.CHANGE, CAP.SWITCH, CAP.TPERM) |
 | **Condition Codes** | ARM-style (N, Z, C, V) on all instructions | None (RISC-V uses explicit branches) |
 | **Namespace Entries** | 3 words (Location, Limit, Seals) | 3x32-bit words (Location, Limit, VersionSeals) |
 | **Max Namespace Entries** | Offset-dependent | 32,768 (15-bit index) |
@@ -55,7 +55,7 @@ Both simulators enforce the same core security model:
 | **GT Type Field** | None (implicit) | 2-bit: Inform, Outform, Literal, Abstract |
 | **MAC Validation** | Hardware-enforced hash | 27-bit FNV seal in VersionSeals |
 | **Garbage Collection** | G-bit cleared on LOAD access | Separate Mark-Scan-Sweep cycle with version bump |
-| **Web Views** | 7 | 5 |
+| **Web Views** | 7 | 6 |
 | **Hardware Implementations** | SystemVerilog + Amaranth HDL | Software simulation only |
 
 ---
