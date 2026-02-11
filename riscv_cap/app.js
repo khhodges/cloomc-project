@@ -17,12 +17,14 @@ function switchView(viewName) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
     document.getElementById('view-' + viewName).classList.add('active');
+    const viewMap = {dashboard:'Dashboard', namespace:'Namespace', editor:'Assembly', capabilities:'Capabilities', instructions:'Instructions', docs:'Docs'};
     document.querySelectorAll('.btn-view').forEach(b => {
-        if (b.textContent.toLowerCase().includes(viewName.substring(0, 4))) b.classList.add('active');
+        if (b.textContent === viewMap[viewName]) b.classList.add('active');
     });
     if (viewName === 'dashboard') updateUI();
     if (viewName === 'namespace') updateNamespaceView();
     if (viewName === 'capabilities') updateCapabilitiesView();
+    if (viewName === 'docs') loadDocsList();
 }
 
 function doReset() {
@@ -493,3 +495,125 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', () => hideFieldTooltip());
 });
+
+let docsListLoaded = false;
+
+function loadDocsList() {
+    if (docsListLoaded) return;
+    fetch('/api/docs')
+        .then(r => r.json())
+        .then(files => {
+            const list = document.getElementById('docs-file-list');
+            list.innerHTML = '';
+            files.forEach(f => {
+                const btn = document.createElement('button');
+                btn.className = 'docs-file-btn';
+                btn.textContent = f.title;
+                btn.dataset.file = f.name;
+                btn.addEventListener('click', () => loadDoc(f.name, f.title));
+                list.appendChild(btn);
+            });
+            docsListLoaded = true;
+        })
+        .catch(err => console.error('Failed to load docs list:', err));
+}
+
+function loadDoc(filename, title) {
+    document.querySelectorAll('.docs-file-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.docs-file-btn[data-file="${filename}"]`)?.classList.add('active');
+    document.getElementById('docs-current-file').textContent = title;
+    const content = document.getElementById('docs-content');
+    content.innerHTML = '<div class="docs-loading">Loading...</div>';
+    fetch('/api/docs/' + filename)
+        .then(r => r.text())
+        .then(md => {
+            content.innerHTML = renderMarkdown(md);
+        })
+        .catch(err => {
+            content.innerHTML = '<div class="docs-error">Failed to load document.</div>';
+        });
+}
+
+function escapeHtmlDoc(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderMarkdown(md) {
+    let html = escapeHtmlDoc(md);
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    const lines = html.split('\n');
+    let result = [];
+    let inTable = false;
+    let inCode = false;
+    let codeBlock = [];
+    let inList = false;
+    let listItems = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (line.startsWith('```')) {
+            if (inCode) {
+                result.push('<pre><code>' + codeBlock.join('\n').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>');
+                codeBlock = [];
+                inCode = false;
+            } else {
+                inCode = true;
+            }
+            continue;
+        }
+        if (inCode) {
+            codeBlock.push(line);
+            continue;
+        }
+
+        if (line.startsWith('|') && line.endsWith('|')) {
+            if (!inTable) {
+                inTable = true;
+                const cells = line.split('|').filter(c => c.trim());
+                result.push('<div class="docs-table-wrap"><table><thead><tr>' + cells.map(c => '<th>' + c.trim() + '</th>').join('') + '</tr></thead><tbody>');
+            } else if (line.match(/^\|[\s\-:|]+\|$/)) {
+                continue;
+            } else {
+                const cells = line.split('|').filter(c => c.trim());
+                result.push('<tr>' + cells.map(c => '<td>' + c.trim() + '</td>').join('') + '</tr>');
+            }
+            continue;
+        } else if (inTable) {
+            result.push('</tbody></table></div>');
+            inTable = false;
+        }
+
+        if (line.match(/^[-*] /)) {
+            if (!inList) { inList = true; result.push('<ul>'); }
+            result.push('<li>' + line.replace(/^[-*] /, '') + '</li>');
+            continue;
+        } else if (line.match(/^\d+\. /)) {
+            if (!inList) { inList = true; result.push('<ol>'); }
+            result.push('<li>' + line.replace(/^\d+\. /, '') + '</li>');
+            continue;
+        } else if (inList && line.trim() === '') {
+            inList = false;
+            result.push(result[result.length-1]?.includes('<ol>') ? '</ol>' : '</ul>');
+        }
+
+        if (line.startsWith('<h')) {
+            if (inList) { inList = false; result.push('</ul>'); }
+            result.push(line);
+        } else if (line.trim() === '') {
+            result.push('');
+        } else if (!line.startsWith('|')) {
+            result.push('<p>' + line + '</p>');
+        }
+    }
+    if (inTable) result.push('</tbody></table></div>');
+    if (inList) result.push('</ul>');
+
+    return '<div class="docs-rendered">' + result.join('\n') + '</div>';
+}

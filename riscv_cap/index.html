@@ -17,6 +17,7 @@
             <button class="btn btn-view" onclick="switchView('editor')">Assembly</button>
             <button class="btn btn-view" onclick="switchView('capabilities')">Capabilities</button>
             <button class="btn btn-view" onclick="switchView('instructions')">Instructions</button>
+            <button class="btn btn-view" onclick="switchView('docs')">Docs</button>
         </nav>
         <div class="toolbar-right">
             <button class="btn btn-control" id="btn-reset">Reset</button>
@@ -604,6 +605,27 @@
                             <tr><td>Meta</td><td>B, M, F, G</td><td>System operations</td><td>Independent</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Docs View -->
+        <section id="view-docs" class="view">
+            <div class="docs-layout">
+                <div class="docs-sidebar">
+                    <h3>Documentation</h3>
+                    <div class="docs-file-list" id="docs-file-list"></div>
+                </div>
+                <div class="docs-content-panel">
+                    <div class="docs-header">
+                        <span class="docs-current-file" id="docs-current-file">Select a document</span>
+                    </div>
+                    <div class="docs-content" id="docs-content">
+                        <div class="docs-welcome">
+                            <h2>CTMM Capability Architecture Documentation</h2>
+                            <p>Select a document from the sidebar to browse the unified documentation covering both Sim-64 (CTMM) and Sim-32 (RV32-Cap) simulators.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

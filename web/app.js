@@ -11802,6 +11802,30 @@ function executeCodeSearch() {
     resultsEl.textContent = matchCount > 0 ? `${matchCount} matches` : 'No matches';
 }
 
+// ==================== DOC FILE VIEWER ====================
+
+async function loadDocFile(filename) {
+    document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+    const fileItem = document.querySelector(`.file-item[data-file="docs/${filename}"]`);
+    if (fileItem) fileItem.classList.add('active');
+
+    document.getElementById('currentFileName').textContent = `docs/${filename}`;
+    currentSourceFile = 'docs/' + filename;
+
+    const viewer = document.getElementById('codeViewerContent');
+    viewer.innerHTML = '<div class="code-welcome"><p>Loading...</p></div>';
+
+    try {
+        const response = await fetch(`/docs/${filename}?t=${Date.now()}`);
+        if (!response.ok) throw new Error('File not found');
+        const code = await response.text();
+        sourceCodeCache['docs/' + filename] = code;
+        displaySourceCode(code, filename);
+    } catch (err) {
+        viewer.innerHTML = `<div class="code-welcome"><p style="color: var(--danger);">Error loading doc: ${err.message}</p></div>`;
+    }
+}
+
 // ==================== AUTHENTICATION ====================
 
 function toggleUserMenu() {
