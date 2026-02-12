@@ -15,19 +15,20 @@ This project develops a comprehensive simulator for the Church-Turing Meta-Machi
 
 ## Recent Changes (2026-02-12)
 
-### Network Transparency Architecture (Design Document)
-- New doc: `docs/network-transparency.md` — specifies symmetrical network transparency
+### GT-Literals and Network Transparency (Design Document)
+- New doc: `docs/network-transparency.md` — retitled to "GT-Literals and Network Transparency"
+- GT-Literal (Type=10) = capability-secured handle to a secret value in namespace entry Location/Limit fields
+- GT-Literal use cases: RPC tunnel keys, transparent login, session tokens, encryption keys at rest, API key wrapping
+- Common pattern: GT is the handle (Version/Index/Permissions/Type), namespace entry holds the secret, MAC protects integrity
 - GT Type field (Inform=00, Outform=01, Literal=10, Abstract=11) drives local vs remote behavior
 - R on Outform = object fetch via standard HTTPS GET (browser mechanisms: TLS, ETag, Cache-Control)
 - W on Outform = modify locally, flush to home URL via standard HTTPS PUT (ETag/If-Match for conflicts)
-- E on Outform Abstract = RPC call through Literal GT encrypted tunnel (Meta Machine to Meta Machine only)
+- E on Outform Abstract = RPC call through GT-Literal encrypted tunnel (Meta Machine to Meta Machine only)
 - L, S, X on Outform = TRAP (future-safe extension points, no hardware change needed)
 - TRAP vs FAULT distinction: TRAP = recoverable architectural event, FAULT = security violation
-- Literal GT = handle to namespace entry holding symmetric crypto key for RPC tunnels only
-- Key material in namespace entry Location/Limit fields, not in GT index bits
 - Fetch/flush use standard HTTPS — interworks with existing web servers, CDNs, REST APIs
 - Symmetrical: Meta Machine is both client (fetch/flush/RPC) and server (serve/invoke/accept)
-- Tunnel revocation via GC sweep of Literal GT (version bump kills tunnel)
+- Tunnel revocation via GC sweep of GT-Literal (version bump kills tunnel)
 - Design validation tests: `riscv_cap/tests/test_network_transparency.py` (32 tests)
 - F (Foreign/Far) permission was for network transparency — now removed from GT but concept lives in Type field
 
