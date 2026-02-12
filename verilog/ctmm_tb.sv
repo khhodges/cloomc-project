@@ -184,14 +184,14 @@ module ctmm_tb;
         end
         
         // Initialize Boot C-List entries
-        clist_mem[0] = '{perms: PERM_MASK_X, spare: 16'h0, offset: 32'h1};           // Access.asm
-        clist_mem[1] = '{perms: PERM_MASK_M, spare: 16'h0, offset: 32'h3};           // Kenneth
-        clist_mem[2] = '{perms: PERM_MASK_M, spare: 16'h0, offset: 32'h4};           // Matthew
-        clist_mem[3] = '{perms: PERM_MASK_M, spare: 16'h0, offset: 32'h5};           // Daniel
-        clist_mem[4] = '{perms: PERM_MASK_E, spare: 16'h0, offset: 32'h6};           // SlideRule
-        clist_mem[5] = '{perms: PERM_MASK_E, spare: 16'h0, offset: 32'h7};           // Abacus
-        clist_mem[6] = '{perms: PERM_MASK_E, spare: 16'h0, offset: 32'h8};           // Circle
-        clist_mem[7] = '{perms: PERM_MASK_E, spare: 16'h0, offset: 32'h9};           // CapabilityManager
+        clist_mem[0] = '{perms: PERM_MASK_X, spare: 26'h0, offset: 32'h1};           // Access.asm
+        clist_mem[1] = '{perms: PERM_MASK_L, spare: 26'h0, offset: 32'h3};           // Kenneth
+        clist_mem[2] = '{perms: PERM_MASK_L, spare: 26'h0, offset: 32'h4};           // Matthew
+        clist_mem[3] = '{perms: PERM_MASK_L, spare: 26'h0, offset: 32'h5};           // Daniel
+        clist_mem[4] = '{perms: PERM_MASK_E, spare: 26'h0, offset: 32'h6};           // SlideRule
+        clist_mem[5] = '{perms: PERM_MASK_E, spare: 26'h0, offset: 32'h7};           // Abacus
+        clist_mem[6] = '{perms: PERM_MASK_E, spare: 26'h0, offset: 32'h8};           // Circle
+        clist_mem[7] = '{perms: PERM_MASK_E, spare: 26'h0, offset: 32'h9};           // CapabilityManager
         
         // Test program: MOV DR0, #42; ADD DR1, DR0, #10; CMP DR1, #52
         // MOV instruction: opcode=010000, dr_dst=0, imm=42, use_imm=1
@@ -250,8 +250,8 @@ module ctmm_tb;
         $display("------------------------------------------");
         
         // Set G bit on some entries
-        clist_mem[10] = '{perms: PERM_MASK_R | PERM_MASK_G, spare: 16'h0, offset: 32'hA};
-        clist_mem[11] = '{perms: PERM_MASK_W | PERM_MASK_G, spare: 16'h0, offset: 32'hB};
+        clist_mem[10] = '{perms: PERM_MASK_R, spare: 26'h1, offset: 32'hA};  // spare[0]=G bit
+        clist_mem[11] = '{perms: PERM_MASK_W, spare: 26'h1, offset: 32'hB};  // spare[0]=G bit
         
         gc_start = 1;
         #10;

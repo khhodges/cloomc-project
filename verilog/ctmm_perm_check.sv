@@ -13,7 +13,7 @@ module ctmm_perm_check
     
     // Permission check request
     input  golden_token_t gt_in,          // Golden Token to check
-    input  logic [15:0] required_perms,   // Required permission mask
+    input  logic [5:0]  required_perms,   // Required permission mask
     input  logic        check_valid,      // Check request valid
     
     // Bounds checking
@@ -43,12 +43,11 @@ module ctmm_perm_check
     // Permission Check Logic
     // ========================================================================
     
-    logic [15:0] gt_perms;
+    logic [5:0] gt_perms;
     assign gt_perms = gt_in.perms;
     
-    // Check if GT is null (offset and perms both zero)
     logic is_null_gt;
-    assign is_null_gt = (gt_in.offset == 32'h0) && (gt_in.perms == 16'h0);
+    assign is_null_gt = (gt_in.offset == 32'h0) && (gt_in.perms == 6'h0);
     
     // Check if all required permissions are present
     logic perms_match;
@@ -75,11 +74,9 @@ module ctmm_perm_check
     // G Bit and Namespace Access Detection
     // ========================================================================
     
-    // G bit is set if permission bit 9 is high
-    assign g_bit_set = gt_perms[PERM_G];
+    assign g_bit_set = gt_in.spare[0];
     
-    // Namespace access if M permission is set (hardware-level access)
-    assign is_namespace_access = gt_perms[PERM_M] || gt_perms[PERM_L];
+    assign is_namespace_access = gt_perms[PERM_L];
     
     // ========================================================================
     // Combined Result
@@ -114,10 +111,8 @@ module ctmm_perm_check
                     fault_type = FAULT_PERM_S;
                 else if ((required_perms & PERM_MASK_E) && !(gt_perms & PERM_MASK_E))
                     fault_type = FAULT_PERM_E;
-                else if ((required_perms & PERM_MASK_M) && !(gt_perms & PERM_MASK_M))
-                    fault_type = FAULT_PERM_M;
                 else
-                    fault_type = FAULT_PERM_R; // Default
+                    fault_type = FAULT_PERM_R;
             end else if (check_bounds && !bounds_ok) begin
                 fault_valid = 1'b1;
                 fault_type = FAULT_BOUNDS;

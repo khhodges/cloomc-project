@@ -32,7 +32,7 @@ class CTMMSimulator {
         this.currentThread = 0;
     }
     
-    // TPERM preset codes: 0-5 data perms, 6-12 Lambda perms (L,S,E,B,M,F,G), 13 combo
+    // TPERM preset codes: 0-5 data perms, 6-8 Lambda perms (L,S,E), 9-11 combos
     // Reserved codes 14-15 cause FAULT
     getTpermMask(code) {
         const presets = {
@@ -45,11 +45,11 @@ class CTMMSimulator {
             6:  ['L'],                           // L: Load capability
             7:  ['S'],                           // S: Save capability
             8:  ['E'],                           // E: Enter abstraction
-            9:  ['B'],                           // B: Bind (can delegate)
-            10: ['M'],                           // M: Meta/internal
-            11: ['F'],                           // F: Foreign/remote
-            12: ['G'],                           // G: GC marking
-            13: ['L', 'S'],                      // LS: Load + Save (common combo)
+            9:  ['L', 'S'],                      // LS: Load + Save (common combo)
+            10: ['L', 'S', 'E'],                 // LSE: Full Lambda access
+            11: ['R', 'W', 'X', 'L', 'S', 'E'], // ALL: All 6 permissions
+            12: ['E', 'L'],                      // EL: Enter + Load
+            13: ['E', 'S'],                      // ES: Enter + Save
             14: null,                            // RESERVED - causes FAULT
             15: null                             // RESERVED - causes FAULT
         };
@@ -131,7 +131,7 @@ class CTMMSimulator {
         }
 
         if (requiredPerm !== null && requiredPerm !== undefined) {
-            if (!src.perms.includes(requiredPerm) && !src.perms.includes('M')) {
+            if (!src.perms.includes(requiredPerm)) {
                 return { ok: false, fault: 'PERMISSION', message: `lacks ${requiredPerm} permission` };
             }
         }
@@ -148,10 +148,6 @@ class CTMMSimulator {
             if (src.seal !== expectedMAC) {
                 return { ok: false, fault: 'MAC', message: 'MAC seal validation failed (capability tampered)' };
             }
-        }
-
-        if (src.perms && src.perms.includes('G')) {
-            src.perms = src.perms.filter(p => p !== 'G');
         }
 
         if (idx !== undefined && idx !== null) {
@@ -172,10 +168,6 @@ class CTMMSimulator {
                 if (entry.seal !== expectedMAC) {
                     return { ok: false, fault: 'MAC', message: `entry ${idx}: MAC seal validation failed` };
                 }
-            }
-
-            if (entry.perms && entry.perms.includes('G')) {
-                entry.perms = entry.perms.filter(p => p !== 'G');
             }
 
             const loadedCap = {
@@ -221,12 +213,13 @@ class CTMMSimulator {
     }
 
     _updateThreadShadow(crIdx) {
+        if (crIdx > 7) return;
         if (!this.cr8 || this.cr8.name === 'NULL') return;
         if (!this.threadShadow) this.threadShadow = {};
         const tid = this.currentThread;
         if (!this.threadShadow[tid]) {
             this.threadShadow[tid] = { cr: {}, dr: {}, nia: this.nia };
-            for (let i = 0; i < 16; i++) this.threadShadow[tid].cr[i] = this.createNullCapability();
+            for (let i = 0; i < 8; i++) this.threadShadow[tid].cr[i] = this.createNullCapability();
             for (let i = 0; i < 16; i++) this.threadShadow[tid].dr[i] = 0n;
         }
         this.threadShadow[tid].cr[crIdx] = { ...this._getCR(crIdx) };
@@ -543,7 +536,7 @@ class CTMMSimulator {
                     return `TPERM CR${crIdx} [NULL] - no capability loaded (Z=0)`;
                 }
                 
-                const validPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F', 'G'];
+                const validPerms = ['R', 'W', 'X', 'L', 'S', 'E'];
                 const maskString = String(maskStr);
                 const requiredPerms = maskString.toUpperCase().split('').filter(p => validPerms.includes(p));
                 const actualPerms = cr.perms || [];
@@ -636,11 +629,8 @@ class CTMMSimulator {
                 if (!src || src.name === 'NULL') {
                     return `FAULT: NULL: CR${srcCR} - no capability loaded (source)`;
                 }
-                if (!dest.perms.includes('S') && !dest.perms.includes('M')) {
+                if (!dest.perms.includes('S')) {
                     return `FAULT: PERMISSION: CR${destCR} - lacks S permission (destination C-List)`;
-                }
-                if (!src.perms.includes('B') && !src.perms.includes('M')) {
-                    return `FAULT: PERMISSION: CR${srcCR} - lacks B permission (source, Bind required)`;
                 }
                 const saveIdx = idx || 0;
                 if (!dest.clist) {
@@ -652,7 +642,7 @@ class CTMMSimulator {
                 while (dest.clist.length <= saveIdx) {
                     dest.clist.push(this.createNullCapability());
                 }
-                const savedPerms = src.perms ? src.perms.filter(p => p !== 'G') : [];
+                const savedPerms = src.perms ? [...src.perms] : [];
                 const savedCap = {
                     name: src.name || `Saved_${srcCR}`,
                     location: src.location,
@@ -663,11 +653,8 @@ class CTMMSimulator {
                 };
                 this.registerCapability(savedCap);
                 dest.clist[saveIdx] = savedCap;
-                if (dest.perms && dest.perms.includes('G')) {
-                    dest.perms = dest.perms.filter(p => p !== 'G');
-                }
                 this._setCR(destCR, dest);
-                return `SAVE: Stored CR${srcCR} (${src.name}) into CR${destCR} C-List[${saveIdx}] (S+B validated, sealed)`;
+                return `SAVE: Stored CR${srcCR} (${src.name}) into CR${destCR} C-List[${saveIdx}] (S validated, sealed)`;
             }
             
             case "LOADX": {
@@ -796,7 +783,7 @@ class CTMMSimulator {
                 }
                 
                 this.callStack.push({
-                    returnNIA: this.nia + 1,
+                    returnNIA: this.nia,
                     cr5: this.contextRegs[5] ? { ...this.contextRegs[5] } : null,
                     cr6: this.contextRegs[6] ? { ...this.contextRegs[6] } : null,
                     cr7: this.contextRegs[7] ? { ...this.contextRegs[7] } : null,
@@ -828,9 +815,6 @@ class CTMMSimulator {
                 }
                 
                 const nodalPerms = [...cr.perms];
-                if (!nodalPerms.includes('M')) {
-                    nodalPerms.push('M');
-                }
                 this._setCR(6, {
                     name: `CLIST_${cr.name}`,
                     location: cr.location,
@@ -871,11 +855,15 @@ class CTMMSimulator {
                     }
                     
                     if (frame.cr6) {
-                        const cr6Result = this.mLoad(frame.cr6, null);
+                        if (!frame.cr6.perms || !frame.cr6.perms.includes('E')) {
+                            return `FAULT: PERMISSION: RETURN: saved CR6 lacks E permission`;
+                        }
+                        const cr6Result = this.mLoad(frame.cr6, 'E');
                         if (!cr6Result.ok) {
                             return `FAULT: ${cr6Result.fault}: RETURN CR6 restore: ${cr6Result.message}`;
                         }
-                        this._setCR(6, cr6Result.cap);
+                        const cr6Restored = { ...cr6Result.cap };
+                        this._setCR(6, cr6Restored);
                     } else {
                         this._clearCR(6);
                     }
@@ -899,7 +887,7 @@ class CTMMSimulator {
                         }
                     }
                     
-                    this.nia = frame.returnNIA;
+                    this.nia = frame.returnNIA + 1;
                     const surrenderMsg = surrendered.length > 0 ? `, surrendered bound GTs: ${surrendered.join(',')}` : '';
                     return `RETURN: restored CR5/CR6/CR7 via mLoad, stack depth: ${this.stackDepth}${surrenderMsg}`;
                 }
@@ -908,11 +896,6 @@ class CTMMSimulator {
             
             case "CHANGE": {
                 const [arg1, arg2] = args;
-
-                const cr8 = this._getCR(8);
-                if (!cr8 || !cr8.perms || !cr8.perms.includes('M')) {
-                    return `FAULT: PERMISSION: CR8 lacks M permission (save side)`;
-                }
 
                 this.exclusiveMonitors[this.currentThread] = { valid: false, addr: 0 };
 
@@ -940,32 +923,22 @@ class CTMMSimulator {
                     sourceDesc = `CR${crIdx}`;
                 }
 
-                if (!sourceCap.perms || !sourceCap.perms.includes('M')) {
-                    return `FAULT: PERMISSION: target thread GT lacks M permission`;
-                }
-
-                const cr7 = this._getCR(7);
-                const cr7Base = (cr7 && cr7.location) ? cr7.location.offset || 0 : 0;
-                const pcOffset = this.nia - cr7Base;
-                const flagsBits = (this.flags.N ? 8 : 0) | (this.flags.Z ? 4 : 0) |
-                                  (this.flags.C ? 2 : 0) | (this.flags.V ? 1 : 0);
-                const packedPC = (pcOffset & 0x0FFFFFFF) | ((flagsBits & 0xF) << 28);
-
-                if (this.callStack.length > 0) {
-                    this.callStack[this.callStack.length - 1].returnNIA = packedPC;
-                }
+                this.callStack.push({
+                    returnNIA: this.nia,
+                    cr5: this.contextRegs[5] ? { ...this.contextRegs[5] } : null,
+                    cr6: this.contextRegs[6] ? { ...this.contextRegs[6] } : null,
+                    cr7: this.contextRegs[7] ? { ...this.contextRegs[7] } : null,
+                });
 
                 if (!this.threadShadow) this.threadShadow = {};
                 const tid = this.currentThread;
                 if (!this.threadShadow[tid]) {
                     this.threadShadow[tid] = { cr: {}, dr: {}, nia: this.nia };
-                    for (let i = 0; i < 16; i++) this.threadShadow[tid].cr[i] = this.createNullCapability();
+                    for (let i = 0; i < 8; i++) this.threadShadow[tid].cr[i] = this.createNullCapability();
                     for (let i = 0; i < 16; i++) this.threadShadow[tid].dr[i] = 0n;
                 }
                 this.threadShadow[tid].dr = { ...this.dataRegs };
                 this.threadShadow[tid].callStack = this.callStack.map(f => ({...f}));
-                this.threadShadow[tid].packedPC = packedPC;
-                this.threadShadow[tid].stackDepth = this.stackDepth;
 
                 const targetId = sourceCap.name || sourceDesc;
                 const target = this.threadShadow[targetId];
@@ -977,23 +950,50 @@ class CTMMSimulator {
 
                     if (target.callStack && target.callStack.length > 0) {
                         this.callStack = target.callStack.map(f => ({...f}));
-                        this.stackDepth = target.stackDepth || target.callStack.length;
                     } else {
                         this.callStack = [];
-                        this.stackDepth = 0;
                     }
 
-                    const targetPackedPC = target.packedPC || 0;
-                    const targetPcOffset = targetPackedPC & 0x0FFFFFFF;
-                    const targetFlagsBits = (targetPackedPC >>> 28) & 0xF;
-                    this.flags.N = !!(targetFlagsBits & 8);
-                    this.flags.Z = !!(targetFlagsBits & 4);
-                    this.flags.C = !!(targetFlagsBits & 2);
-                    this.flags.V = !!(targetFlagsBits & 1);
+                    if (this.callStack.length > 0) {
+                        const resumeFrame = this.callStack.pop();
+                        this.stackDepth = this.callStack.length;
 
-                    const targetCR7 = target.cr[7];
-                    const targetCR7Base = (targetCR7 && targetCR7.location) ? targetCR7.location.offset || 0 : 0;
-                    this.nia = targetCR7Base + targetPcOffset;
+                        if (resumeFrame.cr5) {
+                            const cr5Result = this.mLoad(resumeFrame.cr5, null);
+                            if (cr5Result.ok) {
+                                this._setCR(5, cr5Result.cap);
+                            } else {
+                                this._clearCR(5);
+                            }
+                        } else {
+                            this._clearCR(5);
+                        }
+
+                        if (resumeFrame.cr6) {
+                            const cr6Result = this.mLoad(resumeFrame.cr6, null);
+                            if (!cr6Result.ok) {
+                                return `FAULT: ${cr6Result.fault}: CHANGE restore CR6: ${cr6Result.message}`;
+                            }
+                            this._setCR(6, cr6Result.cap);
+                        } else {
+                            this._clearCR(6);
+                        }
+
+                        if (resumeFrame.cr7) {
+                            const cr7Result = this.mLoad(resumeFrame.cr7, null);
+                            if (!cr7Result.ok) {
+                                return `FAULT: ${cr7Result.fault}: CHANGE restore CR7: ${cr7Result.message}`;
+                            }
+                            this._setCR(7, cr7Result.cap);
+                        } else {
+                            this._clearCR(7);
+                        }
+
+                        this.nia = resumeFrame.returnNIA + 1;
+                    } else {
+                        this.stackDepth = 0;
+                        this.nia = (sourceCap.location && sourceCap.location.offset) || 0;
+                    }
                 } else {
                     for (let i = 0; i < 16; i++) this.dataRegs[i] = 0n;
                     this.callStack = [];
@@ -1005,7 +1005,7 @@ class CTMMSimulator {
                 this._setCR(8, {
                     name: `THREAD_${sourceCap.name}`,
                     location: sourceCap.location || { type: 'Local', offset: 0 },
-                    perms: sourceCap.perms || ['M'],
+                    perms: sourceCap.perms || [],
                     locked: false,
                     goldenKey: sourceCap.goldenKey || this.generateKey(),
                     version: sourceCap.version,
@@ -1077,7 +1077,8 @@ class CTMMSimulator {
     }
     
     
-    // Mark phase: Set G=TRUE on all entries in the Namespace hierarchy
+    // Mark phase: Set gcMarked flag on all entries in the Namespace hierarchy
+    // G is namespace metadata, not a GT permission bit
     gcMark(namespace, visited = new Set(), path = '') {
         if (!namespace || !namespace.clist) return 0;
         
@@ -1089,13 +1090,11 @@ class CTMMSimulator {
         
         for (let i = 0; i < namespace.clist.length; i++) {
             const entry = namespace.clist[i];
-            if (entry && entry.perms) {
-                // Add G bit if not already present
-                if (!entry.perms.includes('G')) {
-                    entry.perms.push('G');
+            if (entry) {
+                if (!entry.gcMarked) {
+                    entry.gcMarked = true;
                     marked++;
                 }
-                // Recursively mark nested namespaces (DNA hierarchy)
                 if (entry.clist) {
                     marked += this.gcMark(entry, visited, `${path}/${namespace.name || 'root'}`);
                 }
@@ -1104,7 +1103,7 @@ class CTMMSimulator {
         return marked;
     }
     
-    // Scan phase: Walk hierarchy from root, clearing G on all reachable entries
+    // Scan phase: Walk hierarchy from root, clearing gcMarked on all reachable entries
     // Reachability in the tree determines liveness, not parent permissions
     gcScan(namespace, visited = new Set(), path = '') {
         if (!namespace || !namespace.clist) return 0;
@@ -1117,9 +1116,9 @@ class CTMMSimulator {
         
         for (let i = 0; i < namespace.clist.length; i++) {
             const entry = namespace.clist[i];
-            if (entry && entry.perms) {
-                if (entry.perms.includes('G')) {
-                    entry.perms = entry.perms.filter(p => p !== 'G');
+            if (entry) {
+                if (entry.gcMarked) {
+                    entry.gcMarked = false;
                     scanned++;
                 }
                 if (entry.clist) {
@@ -1130,7 +1129,7 @@ class CTMMSimulator {
         return scanned;
     }
     
-    // Sweep phase: Find entries still marked with G (no valid key touched them)
+    // Sweep phase: Find entries still marked (no valid key touched them)
     gcSweep(namespace, visited = new Set(), path = '') {
         if (!namespace || !namespace.clist) return [];
         
@@ -1142,16 +1141,14 @@ class CTMMSimulator {
         
         for (let i = 0; i < namespace.clist.length; i++) {
             const entry = namespace.clist[i];
-            if (entry && entry.perms) {
+            if (entry) {
                 const entryPath = `${path}/${entry.name || i}`;
-                // Still has G = no valid key accessed this entry
-                if (entry.perms.includes('G')) {
+                if (entry.gcMarked) {
                     garbage.push({
                         path: entryPath,
                         entry: entry
                     });
                 }
-                // Recursively check nested namespaces
                 if (entry.clist) {
                     garbage.push(...this.gcSweep(entry, visited, entryPath));
                 }
@@ -1160,7 +1157,12 @@ class CTMMSimulator {
         return garbage;
     }
     
-    // Full GC cycle: Mark → Scan from roots → Sweep unreachable
+    // PP250 Design: Mark-Scan-Sweep GC via DNA tree walk.
+    // Mark: sets gcMarked flag on all entries in the namespace hierarchy.
+    // Scan: walks the DNA tree from roots (CR15),
+    //   clearing gcMarked on every reachable entry. All entries are reachable from
+    //   CR15 root in the Sim-64 namespace hierarchy model.
+    // Sweep: entries still marked are garbage (no valid key touched them).
     gcCycle(roots) {
         const results = {
             phase: 'complete',

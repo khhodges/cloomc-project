@@ -153,7 +153,7 @@ module ctmm_call
     
     logic src_in_range;
     logic src_has_l_perm;
-    logic [9:0] src_perms;
+    logic [5:0] src_perms;
     
     capability_reg_t src_reg_latched;
     
@@ -166,7 +166,7 @@ module ctmm_call
     end
     
     assign src_in_range = (cr_src <= MAX_SRC_REG);
-    assign src_perms = src_reg_latched.word0_gt[57:48];
+    assign src_perms = src_reg_latched.word0_gt.perms;
     assign src_has_l_perm = src_perms[PERM_L];
     
     // ========================================================================
@@ -200,10 +200,10 @@ module ctmm_call
             fault_type_latched <= FAULT_NONE;
         end else if (state == CALL_CHECK_SRC && !src_in_range) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;
+            fault_type_latched <= FAULT_INVALID_OP;
         end else if (state == CALL_CHECK_PERM && !src_has_l_perm) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;
+            fault_type_latched <= FAULT_PERM_L;
         end else if ((state == CALL_PHASE1 || state == CALL_PHASE2) && sub_fault_latched) begin
             fault_latched <= 1'b1;
             fault_type_latched <= sub_fault_type;

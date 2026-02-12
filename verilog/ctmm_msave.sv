@@ -58,7 +58,6 @@ module ctmm_msave
     typedef enum logic [2:0] {
         SUB_IDLE,
         SUB_CHECK_S,          // Check destination has S permission
-        SUB_CHECK_MB,         // Check GT.M || GT.B
         SUB_CHECK_BOUNDS,     // Check Index < Limit
         SUB_WRITE_GT,         // Write GT to memory
         SUB_COMPLETE,         // Signal completion
@@ -92,21 +91,13 @@ module ctmm_msave
     // ========================================================================
     
     logic dst_has_s_perm;
-    logic gt_has_m_perm;
-    logic gt_has_b_perm;
-    logic gt_can_be_saved;
     logic index_in_bounds;
-    logic [9:0] dst_perms;
-    logic [9:0] gt_perms;
+    logic [5:0] dst_perms;
     logic [63:0] dst_limit;
     logic [63:0] dst_location;
     
-    assign dst_perms = dst_cap_reg.word0_gt[57:48];     // Destination permissions
-    assign gt_perms = src_gt_reg[57:48];                // Source GT permissions
+    assign dst_perms = dst_cap_reg.word0_gt.perms;
     assign dst_has_s_perm = dst_perms[PERM_S];
-    assign gt_has_m_perm = gt_perms[PERM_M];
-    assign gt_has_b_perm = gt_perms[PERM_B];
-    assign gt_can_be_saved = gt_has_m_perm || gt_has_b_perm;  // M bypasses B check
     assign dst_limit = dst_cap_reg.word2_limit;
     assign dst_location = dst_cap_reg.word1_location;
     assign index_in_bounds = ({56'b0, index_reg} < dst_limit);
@@ -130,9 +121,7 @@ module ctmm_msave
         end else if (state == SUB_IDLE) begin
             fault_type_reg <= FAULT_NONE;
         end else if (state == SUB_CHECK_S && !dst_has_s_perm) begin
-            fault_type_reg <= FAULT_PERM;  // Missing S permission
-        end else if (state == SUB_CHECK_MB && !gt_can_be_saved) begin
-            fault_type_reg <= FAULT_PERM;  // GT.M=0 AND GT.B=0
+            fault_type_reg <= FAULT_PERM_S;
         end else if (state == SUB_CHECK_BOUNDS && !index_in_bounds) begin
             fault_type_reg <= FAULT_BOUNDS;  // Index out of bounds
         end
@@ -164,16 +153,7 @@ module ctmm_msave
             end
             
             SUB_CHECK_S: begin
-                // Step 1: Verify destination has S permission
                 if (!dst_has_s_perm)
-                    next_state = SUB_FAULT;
-                else
-                    next_state = SUB_CHECK_MB;
-            end
-            
-            SUB_CHECK_MB: begin
-                // Step 2: Verify GT.M || GT.B (M bypasses B check)
-                if (!gt_can_be_saved)
                     next_state = SUB_FAULT;
                 else
                     next_state = SUB_CHECK_BOUNDS;

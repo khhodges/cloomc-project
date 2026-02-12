@@ -149,7 +149,7 @@ function updateCRDisplay() {
         if (CR_LABELS[i]) label += ` <span class="cr-label">(${CR_LABELS[i]})</span>`;
 
         let permBadges = '';
-        const permNames = ['R','W','X','L','S','E','B','M','F','G'];
+        const permNames = ['R','W','X','L','S','E'];
         permNames.forEach(p => {
             if (gt.permissions[p]) permBadges += `<span class="perm-badge perm-${p}">${p}</span>`;
         });
@@ -294,8 +294,8 @@ function updateNamespaceView() {
     sim.namespaceTable.forEach((entry, i) => {
         if (!entry) return;
         const tr = document.createElement('tr');
-        const version = (entry.versionSeals >>> 27) & 0x1F;
-        const seals = entry.versionSeals & 0x07FFFFFF;
+        const version = (entry.versionSeals >>> 25) & 0x7F;
+        const seals = entry.versionSeals & 0x01FFFFFF;
         const macValid = sim.validateMAC(entry);
         const macBadge = macValid
             ? '<span class="mac-badge mac-valid">MAC OK</span>'
@@ -324,19 +324,18 @@ function updateGTDiagram(crIndex) {
     const diagram = document.getElementById('gt-diagram');
     let html = `<div class="gt-title">CR${crIndex} Golden Token: ${toHex32(cr.word0)}</div>`;
     html += '<div class="gt-bits">';
-    html += `<div class="gt-field gt-version" style="width:15.625%"><div class="gt-field-label">Version</div><div class="gt-field-value">${gt.version}</div><div class="gt-field-bits">[31:27]</div></div>`;
-    html += `<div class="gt-field gt-index" style="width:46.875%"><div class="gt-field-label">Index</div><div class="gt-field-value">${gt.index}</div><div class="gt-field-bits">[26:12]</div></div>`;
-    html += `<div class="gt-field gt-perms" style="width:31.25%"><div class="gt-field-label">Permissions</div><div class="gt-field-value">${((cr.word0 >> 2) & 0x3FF).toString(2).padStart(10, '0')}</div><div class="gt-field-bits">[11:2]</div></div>`;
+    html += `<div class="gt-field gt-version" style="width:21.875%"><div class="gt-field-label">Version</div><div class="gt-field-value">${gt.version}</div><div class="gt-field-bits">[31:25]</div></div>`;
+    html += `<div class="gt-field gt-index" style="width:53.125%"><div class="gt-field-label">Index</div><div class="gt-field-value">${gt.index}</div><div class="gt-field-bits">[24:8]</div></div>`;
+    html += `<div class="gt-field gt-perms" style="width:18.75%"><div class="gt-field-label">Permissions</div><div class="gt-field-value">${((cr.word0 >> 2) & 0x3F).toString(2).padStart(6, '0')}</div><div class="gt-field-bits">[7:2]</div></div>`;
     html += `<div class="gt-field gt-type" style="width:6.25%"><div class="gt-field-label">Type</div><div class="gt-field-value">${gt.type}</div><div class="gt-field-bits">[1:0]</div></div>`;
     html += '</div>';
     diagram.innerHTML = html;
 
     const permDisplay = document.getElementById('perm-display');
-    const permNames = ['R','W','X','L','S','E','B','M','F','G'];
+    const permNames = ['R','W','X','L','S','E'];
     const permDescriptions = {
         R:'Read data', W:'Write data', X:'Execute code',
         L:'Load capability', S:'Save capability', E:'Enter abstraction',
-        B:'Bound check', M:'Machine level', F:'Foreign/remote', G:'Garbage collection'
     };
     let permHtml = '<div class="perm-grid">';
     permNames.forEach(p => {

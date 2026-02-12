@@ -8,7 +8,7 @@ from .layouts import GT_LAYOUT
 class CTMMPermCheck(Elaboratable):
     def __init__(self):
         self.gt_in = Signal(GT_LAYOUT)
-        self.required_perms = Signal(16)
+        self.required_perms = Signal(6)
         self.check_valid = Signal()
 
         self.access_index = Signal(32)
@@ -47,9 +47,10 @@ class CTMMPermCheck(Elaboratable):
         m.d.comb += self.bounds_ok.eq(~self.check_bounds | (self.access_index < self.limit[:32]))
         m.d.comb += self.mac_valid.eq(~self.check_mac | (self.calculated_mac == self.stored_mac))
 
+        gt_view_full = View(GT_LAYOUT, self.gt_in)
         m.d.comb += [
-            self.g_bit_set.eq(gt_perms[PERM_G]),
-            self.is_namespace_access.eq(gt_perms[PERM_M] | gt_perms[PERM_L]),
+            self.g_bit_set.eq(gt_view_full.g_bit),
+            self.is_namespace_access.eq(gt_perms[PERM_L]),
         ]
 
         m.d.comb += self.all_checks_pass.eq(self.perm_granted & self.bounds_ok & self.mac_valid)
@@ -79,8 +80,6 @@ class CTMMPermCheck(Elaboratable):
                     m.d.comb += self.fault_type.eq(FaultType.PERM_S)
                 with m.Elif((self.required_perms & PERM_MASK_E) & ~(gt_perms & PERM_MASK_E)):
                     m.d.comb += self.fault_type.eq(FaultType.PERM_E)
-                with m.Elif((self.required_perms & PERM_MASK_M) & ~(gt_perms & PERM_MASK_M)):
-                    m.d.comb += self.fault_type.eq(FaultType.PERM_M)
                 with m.Else():
                     m.d.comb += self.fault_type.eq(FaultType.PERM_R)
             with m.Elif(self.check_bounds & ~self.bounds_ok):

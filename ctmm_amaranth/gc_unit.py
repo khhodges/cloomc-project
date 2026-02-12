@@ -5,6 +5,14 @@ from .types import *
 from .layouts import GT_LAYOUT
 
 
+# PP250 Design: Mark-Scan-Sweep.
+#   Mark:  Sets G=1 on all namespace entries.
+#   Scan:  Relies on mLoad (in the LOAD/CALL paths) resetting G=0 on every
+#          valid access. No explicit scan state needed in hardware — the
+#          normal execution path between Mark and Sweep IS the scan phase.
+#   Sweep: Identifies entries still with G=1 as garbage.
+# TODO: Sweep currently only counts garbage entries. To fully reclaim,
+#       add a SWEEP_WRITE state to bump version and clear G on garbage.
 class CTMMGCUnit(Elaboratable):
     def __init__(self):
         self.gc_start = Signal()
@@ -69,9 +77,9 @@ class CTMMGCUnit(Elaboratable):
                     self.ns_wr_data.eq(self.ns_rd_data),
                     self.ns_wr_en.eq(1),
                 ]
-                m.d.comb += wr_view.perms[PERM_G].eq(1)
+                m.d.comb += wr_view.g_bit.eq(1)
 
-                with m.If(~rd_view.perms[PERM_G]):
+                with m.If(~rd_view.g_bit):
                     m.d.sync += mark_counter.eq(mark_counter + 1)
 
                 m.d.sync += current_addr.eq(current_addr + 1)
@@ -93,7 +101,7 @@ class CTMMGCUnit(Elaboratable):
                 m.next = "SWEEP_CHECK"
 
             with m.State("SWEEP_CHECK"):
-                with m.If(rd_view.perms[PERM_G]):
+                with m.If(rd_view.g_bit):
                     m.d.sync += garbage_counter.eq(garbage_counter + 1)
 
                 m.d.sync += current_addr.eq(current_addr + 1)

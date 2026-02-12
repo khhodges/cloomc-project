@@ -33,7 +33,7 @@ class CTMMMLoad(Elaboratable):
         self.mem_rd_valid = Signal()
 
         self.thread_wr_en = Signal()
-        self.thread_wr_idx = Signal(4)
+        self.thread_wr_idx = Signal(3)
         self.thread_wr_data = Signal(64)
 
         self.g_bit_reset = Signal()
@@ -60,19 +60,18 @@ class CTMMMLoad(Elaboratable):
         ns_gt = View(GT_LAYOUT, ns_view.word0_gt)
 
         has_l_perm = src_gt.perms[PERM_L]
-        has_m_perm = src_gt.perms[PERM_M]
-        has_load_perm = has_l_perm | has_m_perm
+        has_load_perm = has_l_perm
         src_is_null = Signal()
         m.d.comb += src_is_null.eq(src_view.word0_gt.as_value() == 0)
         bounds_ok = Signal()
         m.d.comb += bounds_ok.eq(Cat(index_reg, Const(0, 54)) < src_view.word2_limit)
 
-        cr15_has_m = ns_gt.perms[PERM_M]
+        cr15_has_l = ns_gt.perms[PERM_L]
         gt_offset_in_bounds = Signal()
         m.d.comb += gt_offset_in_bounds.eq(Cat(result_gt.offset, Const(0, 32)) < ns_view.word2_limit)
-        step4_ok = cr15_has_m & gt_offset_in_bounds
+        step4_ok = cr15_has_l & gt_offset_in_bounds
 
-        gt_has_g_bit = result_gt.perms[PERM_G]
+        gt_has_g_bit = result_gt.g_bit
 
         clist_gt_addr = Signal(64)
         m.d.comb += clist_gt_addr.eq(src_view.word1_location + (Cat(index_reg, Const(0, 54)) << 3))
@@ -182,12 +181,13 @@ class CTMMMLoad(Elaboratable):
                     gt_g_cleared.eq(result_view.word0_gt),
                 ]
                 gt_g_view = View(GT_LAYOUT, gt_g_cleared)
-                m.d.comb += gt_g_view.perms[PERM_G].eq(0)
-                m.d.comb += [
-                    self.thread_wr_en.eq(1),
-                    self.thread_wr_idx.eq(cr_dst_reg),
-                    self.thread_wr_data.eq(gt_g_cleared),
-                ]
+                m.d.comb += gt_g_view.g_bit.eq(0)
+                with m.If(cr_dst_reg <= 7):
+                    m.d.comb += [
+                        self.thread_wr_en.eq(1),
+                        self.thread_wr_idx.eq(cr_dst_reg),
+                        self.thread_wr_data.eq(gt_g_cleared),
+                    ]
                 m.next = "COMPLETE"
 
             with m.State("COMPLETE"):
@@ -195,7 +195,7 @@ class CTMMMLoad(Elaboratable):
                 m.d.comb += wr_data.eq(result_cap)
                 wr_view = View(CAP_REG_LAYOUT, wr_data)
                 wr_gt = View(GT_LAYOUT, wr_view.word0_gt)
-                m.d.comb += wr_gt.perms[PERM_G].eq(0)
+                m.d.comb += wr_gt.g_bit.eq(0)
 
                 m.d.comb += [
                     self.cr_wr_addr.eq(cr_dst_reg),

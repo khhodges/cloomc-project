@@ -11,54 +11,43 @@ package ctmm_pkg;
     // Golden Token (GT) Structure - 64-bit capability key (Word 0 of CR)
     // ========================================================================
     // Bits [31:0]  - Offset: Index into Namespace Table
-    // Bits [47:32] - Spare: Reserved for future use
-    // Bits [63:48] - Permissions: 16-bit permission flags
+    // Bits [57:32] - Spare: Reserved (includes G bit at spare[0] for GC)
+    // Bits [63:58] - Permissions: 6-bit permission flags (R,W,X,L,S,E)
     // ========================================================================
     
-    // Permission bit positions
-    typedef enum logic [3:0] {
-        PERM_R = 4'd0,   // Read - load data from object
-        PERM_W = 4'd1,   // Write - store data to object
-        PERM_X = 4'd2,   // Execute - load code into CR7 (Nucleus)
-        PERM_L = 4'd3,   // Load - copy capability from C-List
-        PERM_S = 4'd4,   // Save/Store - store capability to C-List
-        PERM_E = 4'd5,   // Enter - switch namespace or call procedure
-        PERM_B = 4'd6,   // Bind - save token to namespace DNA
-        PERM_M = 4'd7,   // Meta-Machine - hardware-level access
-        PERM_F = 4'd8,   // Far - remote URL location
-        PERM_G = 4'd9    // Garbage - deterministic GC flag
+    // Permission bit positions (6-bit GT permission field: R,W,X,L,S,E)
+    typedef enum logic [2:0] {
+        PERM_R = 3'd0,   // Read - load data from object
+        PERM_W = 3'd1,   // Write - store data to object
+        PERM_X = 3'd2,   // Execute - load code into CR7 (Nucleus)
+        PERM_L = 3'd3,   // Load - copy capability from C-List
+        PERM_S = 3'd4,   // Save/Store - store capability to C-List
+        PERM_E = 3'd5    // Enter - switch namespace or call procedure
     } perm_bit_t;
     
-    // Permission masks
-    localparam logic [15:0] PERM_MASK_R = 16'h0001;
-    localparam logic [15:0] PERM_MASK_W = 16'h0002;
-    localparam logic [15:0] PERM_MASK_X = 16'h0004;
-    localparam logic [15:0] PERM_MASK_L = 16'h0008;
-    localparam logic [15:0] PERM_MASK_S = 16'h0010;
-    localparam logic [15:0] PERM_MASK_E = 16'h0020;
-    localparam logic [15:0] PERM_MASK_B = 16'h0040;
-    localparam logic [15:0] PERM_MASK_M = 16'h0080;
-    localparam logic [15:0] PERM_MASK_F = 16'h0100;
-    localparam logic [15:0] PERM_MASK_G = 16'h0200;
+    // Permission masks (6-bit)
+    localparam logic [5:0] PERM_MASK_R = 6'b000001;
+    localparam logic [5:0] PERM_MASK_W = 6'b000010;
+    localparam logic [5:0] PERM_MASK_X = 6'b000100;
+    localparam logic [5:0] PERM_MASK_L = 6'b001000;
+    localparam logic [5:0] PERM_MASK_S = 6'b010000;
+    localparam logic [5:0] PERM_MASK_E = 6'b100000;
     
     // Data permission category (R, W, X)
-    localparam logic [15:0] DATA_PERMS = PERM_MASK_R | PERM_MASK_W | PERM_MASK_X;
+    localparam logic [5:0] DATA_PERMS = PERM_MASK_R | PERM_MASK_W | PERM_MASK_X;
     
-    // Capability permission category (L, S, E, B)
-    localparam logic [15:0] CAP_PERMS = PERM_MASK_L | PERM_MASK_S | PERM_MASK_E | PERM_MASK_B;
-    
-    // Meta permission category (M, F, G)
-    localparam logic [15:0] META_PERMS = PERM_MASK_M | PERM_MASK_F | PERM_MASK_G;
+    // Capability permission category (L, S, E)
+    localparam logic [5:0] CAP_PERMS = PERM_MASK_L | PERM_MASK_S | PERM_MASK_E;
     
     // Golden Token structure (Word 0)
     typedef struct packed {
-        logic [15:0] perms;     // Bits [63:48] - Permission flags
-        logic [15:0] spare;     // Bits [47:32] - Reserved
+        logic [5:0]  perms;     // Bits [63:58] - Permission flags (R,W,X,L,S,E)
+        logic [25:0] spare;     // Bits [57:32] - Reserved (spare[0] = G bit for GC)
         logic [31:0] offset;    // Bits [31:0]  - Namespace offset
     } golden_token_t;
     
     // Null Golden Token (all zeros)
-    localparam golden_token_t GT_NULL = '{perms: 16'h0000, spare: 16'h0000, offset: 32'h0000};
+    localparam golden_token_t GT_NULL = '{perms: 6'h00, spare: 26'h0, offset: 32'h0000};
     
     // ========================================================================
     // Capability Register (CR) Structure - 4 x 64-bit words (256 bits)
@@ -204,38 +193,34 @@ package ctmm_pkg;
         TPERM_X     = 4'd3,     // Execute code only
         TPERM_RX    = 4'd4,     // Read + Execute
         TPERM_RWX   = 4'd5,     // Read + Write + Execute (full data)
-        // Lambda permission order: L, S, E, B, M, F, G
         TPERM_L     = 4'd6,     // Load capability
         TPERM_S     = 4'd7,     // Save capability
         TPERM_E     = 4'd8,     // Enter abstraction
-        TPERM_B     = 4'd9,     // Bind (can delegate)
-        TPERM_M     = 4'd10,    // Meta/internal
-        TPERM_F     = 4'd11,    // Foreign/remote
-        TPERM_G     = 4'd12,    // GC marking
-        TPERM_LS    = 4'd13,    // Load + Save (common combo)
+        TPERM_LS    = 4'd9,     // Load + Save (common combo)
+        TPERM_LSE   = 4'd10,    // Load + Save + Enter (full capability)
+        TPERM_ALL   = 4'd11,    // All permissions (R,W,X,L,S,E)
+        TPERM_RSV3  = 4'd12,    // RESERVED - causes FAULT
+        TPERM_RSV4  = 4'd13,    // RESERVED - causes FAULT
         TPERM_RSV1  = 4'd14,    // RESERVED - causes FAULT
         TPERM_RSV2  = 4'd15     // RESERVED - causes FAULT
     } tperm_preset_t;
     
     // TPERM preset mask values (actual permission bits to AND)
-    function automatic logic [15:0] get_tperm_mask(tperm_preset_t preset);
+    function automatic logic [5:0] get_tperm_mask(tperm_preset_t preset);
         case (preset)
-            TPERM_CLEAR: return 16'h0000;                              // None
-            TPERM_R:     return PERM_MASK_R;                           // R
-            TPERM_RW:    return PERM_MASK_R | PERM_MASK_W;             // R,W
-            TPERM_X:     return PERM_MASK_X;                           // X
-            TPERM_RX:    return PERM_MASK_R | PERM_MASK_X;             // R,X
+            TPERM_CLEAR: return 6'b000000;                              // None
+            TPERM_R:     return PERM_MASK_R;                            // R
+            TPERM_RW:    return PERM_MASK_R | PERM_MASK_W;              // R,W
+            TPERM_X:     return PERM_MASK_X;                            // X
+            TPERM_RX:    return PERM_MASK_R | PERM_MASK_X;              // R,X
             TPERM_RWX:   return PERM_MASK_R | PERM_MASK_W | PERM_MASK_X; // R,W,X
-            // Lambda permission order: L, S, E, B, M, F, G
-            TPERM_L:     return PERM_MASK_L;                           // L
-            TPERM_S:     return PERM_MASK_S;                           // S
-            TPERM_E:     return PERM_MASK_E;                           // E
-            TPERM_B:     return PERM_MASK_B;                           // B
-            TPERM_M:     return PERM_MASK_M;                           // M
-            TPERM_F:     return PERM_MASK_F;                           // F
-            TPERM_G:     return PERM_MASK_G;                           // G
-            TPERM_LS:    return PERM_MASK_L | PERM_MASK_S;             // L,S combo
-            default:     return 16'hFFFF;                              // Invalid - will fault
+            TPERM_L:     return PERM_MASK_L;                            // L
+            TPERM_S:     return PERM_MASK_S;                            // S
+            TPERM_E:     return PERM_MASK_E;                            // E
+            TPERM_LS:    return PERM_MASK_L | PERM_MASK_S;              // L,S combo
+            TPERM_LSE:   return PERM_MASK_L | PERM_MASK_S | PERM_MASK_E; // L,S,E
+            TPERM_ALL:   return 6'b111111;                              // All permissions
+            default:     return 6'b111111;                              // Invalid - will fault
         endcase
     endfunction
     
@@ -251,13 +236,12 @@ package ctmm_pkg;
         FAULT_PERM_L      = 4'h4,  // Load permission denied
         FAULT_PERM_S      = 4'h5,  // Save permission denied
         FAULT_PERM_E      = 4'h6,  // Enter permission denied
-        FAULT_PERM_M      = 4'h7,  // Meta permission denied
-        FAULT_NULL_CAP    = 4'h8,  // Null capability access
-        FAULT_BOUNDS      = 4'h9,  // Bounds check failed
-        FAULT_MAC         = 4'hA,  // MAC validation failed
-        FAULT_INVALID_OP  = 4'hB,  // Invalid opcode
-        FAULT_TPERM_RSV   = 4'hC,  // Reserved TPERM code (14 or 15)
-        FAULT_EXCL_FAIL   = 4'hD   // Store-Exclusive failed (for status only)
+        FAULT_NULL_CAP    = 4'h7,  // Null capability access
+        FAULT_BOUNDS      = 4'h8,  // Bounds check failed
+        FAULT_MAC         = 4'h9,  // MAC validation failed
+        FAULT_INVALID_OP  = 4'hA,  // Invalid opcode
+        FAULT_TPERM_RSV   = 4'hB,  // Reserved TPERM code
+        FAULT_EXCL_FAIL   = 4'hC   // Store-Exclusive failed (for status only)
     } fault_type_t;
     
     // ========================================================================
@@ -308,7 +292,7 @@ package ctmm_pkg;
         LOAD_FETCH_W2   = 4'd7,   // Step 7: Fetch Word 2 (Limit) from memory
         LOAD_FETCH_W3   = 4'd8,   // Step 8: Fetch Word 3 (Seals) from memory
         LOAD_CHECK_MAC  = 4'd9,   // Step 9: Validate MAC (Seals vs calculated hash)
-        LOAD_RESET_G    = 4'd10,  // Step 10: Reset G bit if namespace access (M or L set)
+        LOAD_RESET_G    = 4'd10,  // Step 10: Reset G bit (spare[0]) if namespace access
         LOAD_WRITE_DST  = 4'd11,  // Step 11: Write all 4 words to destination CRd
         LOAD_COMPLETE   = 4'd12,  // Step 12: Instruction complete, advance NIA
         LOAD_FAULT      = 4'd13   // Fault occurred - transfer to fault handler

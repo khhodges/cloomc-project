@@ -87,7 +87,7 @@ module ctmm_core
     logic [9:0]  call_mask;
     logic        imm_mode;
     logic [2:0]  switch_target;       // SWITCH target: 0=CR8, 7=CR15
-    logic [15:0] perm_mask;
+    logic [5:0]  perm_mask;
     
     // SWITCH module signals
     logic        switch_start, switch_busy, switch_complete, switch_fault;
@@ -105,7 +105,7 @@ module ctmm_core
     
     // Permission checker signals
     golden_token_t perm_gt;
-    logic [15:0] required_perms;
+    logic [5:0]  required_perms;
     logic        perm_check_valid;
     logic [31:0] access_index;
     logic [63:0] limit;
@@ -372,38 +372,35 @@ module ctmm_core
         
         case (boot_state_reg)
             BOOT_LOAD_NS: begin
-                // Load namespace root GT into CR15
                 cr15_wr_en = 1'b1;
                 cr15_wr_data = '{
-                    perms: PERM_MASK_M | PERM_MASK_L,  // M+L permissions
-                    spare: 16'h0,
-                    offset: 32'h0  // Offset 0 = Namespace
+                    perms: PERM_MASK_L,
+                    spare: 26'h0,
+                    offset: 32'h0
                 };
             end
             
             BOOT_INIT_THRD: begin
-                // Load thread GT into CR8
                 cr8_wr_en = 1'b1;
                 cr8_wr_data = '{
-                    perms: PERM_MASK_M,  // M permission
-                    spare: 16'h0,
-                    offset: 32'h3  // Offset 3 = Kenneth thread
+                    perms: PERM_MASK_L,
+                    spare: 26'h0,
+                    offset: 32'h3
                 };
             end
             
             BOOT_LOAD_NUC: begin
-                // Load CR6 (Boot C-List) and CR7 (Nucleus)
                 cr6_wr_en = 1'b1;
                 cr6_wr_data = '{
                     perms: PERM_MASK_L | PERM_MASK_S | PERM_MASK_E,
-                    spare: 16'h0,
-                    offset: 32'h2  // Offset 2 = Boot C-List
+                    spare: 26'h0,
+                    offset: 32'h2
                 };
                 cr7_wr_en = 1'b1;
                 cr7_wr_data = '{
                     perms: PERM_MASK_X,
-                    spare: 16'h0,
-                    offset: 32'h1  // Offset 1 = Access.asm (Nucleus)
+                    spare: 26'h0,
+                    offset: 32'h1
                 };
             end
             
@@ -476,12 +473,12 @@ module ctmm_core
     // Permission check setup for LOAD operation
     assign cr_rd_addr = cr_src;
     assign perm_gt = cr_rd_data;
-    assign required_perms = (church_op == OP_LOAD) ? (PERM_MASK_L | PERM_MASK_M) :
+    assign required_perms = (church_op == OP_LOAD) ? PERM_MASK_L :
                             (church_op == OP_SAVE) ? PERM_MASK_S :
                             (church_op == OP_CALL) ? PERM_MASK_E :
                             (church_op == OP_SWITCH) ? PERM_MASK_L :
                             (church_op == OP_CHANGE) ? PERM_MASK_L :
-                            16'h0;
+                            6'h0;
     assign perm_check_valid = exec_enable && is_church_op;
     assign access_index = {24'h0, clist_index};
     assign limit = ns_rd_data.word2_limit;

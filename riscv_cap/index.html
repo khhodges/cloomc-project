@@ -219,10 +219,10 @@
                     <h2>Golden Token Bit-Field Breakdown</h2>
                     <div class="gt-diagram" id="gt-diagram">
                         <div class="bit-field-row">
-                            <span class="bit-field field-perms" data-bits="31:24">Permissions [31:24]</span>
-                            <span class="bit-field field-type" data-bits="23:20">Type [23:20]</span>
-                            <span class="bit-field field-version" data-bits="19:16">Version [19:16]</span>
-                            <span class="bit-field field-index" data-bits="15:0">Index [15:0]</span>
+                            <span class="bit-field field-version" data-bits="31:25">Version [31:25]</span>
+                            <span class="bit-field field-index" data-bits="24:8">Index [24:8]</span>
+                            <span class="bit-field field-perms" data-bits="7:2">Perms [7:2]</span>
+                            <span class="bit-field field-type" data-bits="1:0">Type [1:0]</span>
                         </div>
                     </div>
 
@@ -236,11 +236,9 @@
                             <label><input type="checkbox" disabled> Read</label>
                             <label><input type="checkbox" disabled> Write</label>
                             <label><input type="checkbox" disabled> Execute</label>
-                            <label><input type="checkbox" disabled> Enter</label>
                             <label><input type="checkbox" disabled> Load</label>
                             <label><input type="checkbox" disabled> Save</label>
-                            <label><input type="checkbox" disabled> Seal</label>
-                            <label><input type="checkbox" disabled> Unseal</label>
+                            <label><input type="checkbox" disabled> Enter</label>
                         </div>
                     </div>
 
@@ -449,7 +447,7 @@
                             <span class="format-label">SWITCH:</span>
                             <div class="bit-fields">
                                 <span class="bit-field field-church-tgt" data-bits="24:22" data-tooltip="tgt (Switch Target)|Bits [24:22] — 3 bits (top 3 bits of funct7/rs2)|Target system register selector. Maps to CR8+tgt: 0=CR8 (Thread), 1=CR9 (Interrupt), 2=CR10 (DFault), 3-6=CR11-14 (future), 7=CR15 (Namespace). This is the ONLY instruction that can write to system registers.">tgt</span>
-                                <span class="bit-field field-church-cr" data-bits="22:20" data-tooltip="cr_src (Source CR)|Bits [22:20] — 3 bits (within rs2[4:0])|Source capability register CR0-CR7. Must have M (Machine) permission.">cr_src</span>
+                                <span class="bit-field field-church-cr" data-bits="22:20" data-tooltip="cr_src (Source CR)|Bits [22:20] — 3 bits (within rs2[4:0])|Source capability register CR0-CR7. GT validated (version, MAC). M is transient — elevated implicitly by SWITCH.">cr_src</span>
                                 <span class="bit-field field-reserved" data-bits="19:15" data-tooltip="rs1 (Unused)|Bits [19:15] — 5 bits|Not used.">-----</span>
                                 <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 010 (SWITCH)|Bits [14:12] — 3 bits|Church instruction selector. 010 = CAP.SWITCH. The only instruction that can modify system registers CR8-CR15, making it the privilege gate.">010</span>
                                 <span class="bit-field field-reserved" data-bits="11:7" data-tooltip="rd (Unused)|Bits [11:7] — 5 bits|Not used. Destination is determined by tgt field.">-----</span>
@@ -462,8 +460,8 @@
                                 <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Reserved)|Bits [31:25] — 7 bits|Reserved for future use.">0000000</span>
                                 <span class="bit-field field-church-cr" data-bits="24:20" data-tooltip="CRs (Source CR)|Bits [22:20] — 3 bits (within rs2[4:0])|Capability register CR0-CR7 whose Golden Token permissions are tested. The GT's permission bits, validity, and type are extracted and written to rd.">CRs</span>
                                 <span class="bit-field field-reserved" data-bits="19:15" data-tooltip="rs1 (Unused)|Bits [19:15] — 5 bits|Not used.">-----</span>
-                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 011 (TPERM)|Bits [14:12] — 3 bits|Church instruction selector. 011 = CAP.TPERM. Tests permissions and stack state. Result in rd: [9:0]=permission bits (R,W,X,L,S,E,B,M,F,G), [10]=stackFrames (RETURN safe), [11]=stackSpace (CALL safe), [12]=GT valid, [14:13]=GT type.">011</span>
-                                <span class="bit-field field-rs1" data-bits="11:7" data-tooltip="rd (Destination Register)|Bits [11:7] — 5 bits|Data register (x0-x31) to receive the test result. Bit layout: [9:0] permission bits, [10] stackFrames indicator, [11] stackSpace indicator, [12] GT validity, [14:13] GT type.">rd</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 011 (TPERM)|Bits [14:12] — 3 bits|Church instruction selector. 011 = CAP.TPERM. Tests permissions and stack state. Result in rd: [5:0]=permission bits (R,W,X,L,S,E), [6]=stackFrames (RETURN safe), [7]=stackSpace (CALL safe), [8]=GT valid, [10:9]=GT type.">011</span>
+                                <span class="bit-field field-rs1" data-bits="11:7" data-tooltip="rd (Destination Register)|Bits [11:7] — 5 bits|Data register (x0-x31) to receive the test result. Bit layout: [5:0] permission bits, [6] stackFrames indicator, [7] stackSpace indicator, [8] GT validity, [10:9] GT type.">rd</span>
                                 <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
                             </div>
                         </div>
@@ -502,7 +500,7 @@
                         <tbody>
                             <tr><td>000</td><td>CAP.RETURN</td><td>Return from protected call (pops CR5+CR6+CR7+PC)</td><td>(none)</td><td>CAP.RETURN</td></tr>
                             <tr><td>001</td><td>CAP.CHANGE</td><td>Atomic thread swap (x0-x31, CR0-CR8, PC)</td><td>E (Enter) on cr_src</td><td>CAP.CHANGE CRs</td></tr>
-                            <tr><td>010</td><td>CAP.SWITCH</td><td>Copy capability to system register CR8-CR15</td><td>M (Machine) on cr_src</td><td>CAP.SWITCH CRs, CR8-CR15</td></tr>
+                            <tr><td>010</td><td>CAP.SWITCH</td><td>Copy capability to system register CR8-CR15</td><td>GT validated (M transient)</td><td>CAP.SWITCH CRs, CR8-CR15</td></tr>
                             <tr><td>011</td><td>CAP.TPERM</td><td>Test GT permissions, validity, type, and stack indicators</td><td>(none)</td><td>CAP.TPERM rd, CRs</td></tr>
                             <tr style="color:#666"><td>100-111</td><td>(reserved)</td><td>Available for future Church instructions</td><td>-</td><td>-</td></tr>
                         </tbody>
@@ -520,8 +518,8 @@
                         </thead>
                         <tbody>
                             <tr><td>CR5</td><td>Save Area</td><td>Pushed to call stack, then cleared</td><td>Restored from call stack</td></tr>
-                            <tr><td>CR6</td><td>C-List</td><td>Pushed; set to callee's C-List (M-bit set)</td><td>Restored; M-bit set on restored value</td></tr>
-                            <tr><td>CR7</td><td>Nucleus</td><td>Pushed; set to callee's code (M-bit set)</td><td>Restored from call stack</td></tr>
+                            <tr><td>CR6</td><td>C-List</td><td>Pushed; set to callee's C-List</td><td>Restored from call stack</td></tr>
+                            <tr><td>CR7</td><td>Nucleus</td><td>Pushed; set to callee's code</td><td>Restored from call stack</td></tr>
                             <tr><td>PC</td><td>Program Counter</td><td>Pushed; set to callee's entry point</td><td>Restored to caller PC + 4</td></tr>
                             <tr><td>x0-x31</td><td>Data Registers</td><td>Software clears before CALL</td><td>Software clears before RETURN</td></tr>
                             <tr><td>CR0-CR4</td><td>User CRs</td><td>Software clears (caller responsibility)</td><td>Software clears (callee responsibility)</td></tr>
@@ -540,12 +538,12 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td>[9:0]</td><td>Permissions</td><td>R, W, X, L, S, E, B, M, F, G from CRs Golden Token</td></tr>
-                            <tr><td>[10]</td><td>stackFrames</td><td>1 = at least one frame on call stack (RETURN safe)</td></tr>
-                            <tr><td>[11]</td><td>stackSpace</td><td>1 = room for at least one more frame (CALL safe)</td></tr>
-                            <tr><td>[12]</td><td>Valid</td><td>1 = GT passes version and bounds validation</td></tr>
-                            <tr><td>[14:13]</td><td>Type</td><td>GT type: 00=Inform, 01=Outform, 10=Literal, 11=Abstract</td></tr>
-                            <tr><td>[31:15]</td><td>(Reserved)</td><td>Zero, available for future use</td></tr>
+                            <tr><td>[5:0]</td><td>Permissions</td><td>R, W, X, L, S, E from CRs Golden Token</td></tr>
+                            <tr><td>[6]</td><td>stackFrames</td><td>1 = at least one frame on call stack (RETURN safe)</td></tr>
+                            <tr><td>[7]</td><td>stackSpace</td><td>1 = room for at least one more frame (CALL safe)</td></tr>
+                            <tr><td>[8]</td><td>Valid</td><td>1 = GT passes version and bounds validation</td></tr>
+                            <tr><td>[10:9]</td><td>Type</td><td>GT type: 00=Inform, 01=Outform, 10=Literal, 11=Abstract</td></tr>
+                            <tr><td>[31:11]</td><td>(Reserved)</td><td>Zero, available for future use</td></tr>
                         </tbody>
                     </table>
 
@@ -559,8 +557,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td>Version</td><td>[31:27]</td><td>5-bit version tag. Bumped on GC sweep to invalidate stale tokens.</td></tr>
-                            <tr><td>Seal</td><td>[26:0]</td><td>27-bit FNV-style hash of Location and Limit. Hardware-enforced integrity check.</td></tr>
+                            <tr><td>Version</td><td>[31:25]</td><td>7-bit version tag. Bumped on GC sweep to invalidate stale tokens.</td></tr>
+                            <tr><td>Seal</td><td>[24:0]</td><td>25-bit FNV-style hash of Location and Limit. Hardware-enforced integrity check.</td></tr>
                         </tbody>
                     </table>
                     <p style="color:#a0a0a0;font-size:13px;margin:8px 0;">
@@ -581,12 +579,12 @@
                         </thead>
                         <tbody>
                             <tr><td>1. Mark</td><td>Set G-flag on all entries</td><td>Marks every non-empty namespace entry as potentially garbage.</td></tr>
-                            <tr><td>2. Scan</td><td>Clear G-flag on reachable entries</td><td>Walks CR0-CR15 and call stack. Clears G-flag on entries reachable via valid GTs with L or M permission.</td></tr>
+                            <tr><td>2. Scan</td><td>Clear G-flag on reachable entries</td><td>Walks CR0-CR15 and call stack. Clears G-flag on entries reachable via valid GTs.</td></tr>
                             <tr><td>3. Sweep</td><td>Collect still-marked entries</td><td>Entries still marked with G-flag are garbage. Zeroed out and version bumped to invalidate stale tokens.</td></tr>
                         </tbody>
                     </table>
                     <p style="color:#a0a0a0;font-size:13px;margin:8px 0;">
-                        The G permission bit enables deterministic garbage collection. The three-phase Mark-Scan-Sweep cycle can be run manually via the Dashboard buttons (Mark, Scan, Sweep, or full GC Cycle). Swept entries have their version number incremented, which causes any existing Golden Tokens referencing those entries to fail validation — preventing use-after-free.
+                        The G-bit (tracked per namespace entry, not in the GT permission bits) enables deterministic garbage collection. The three-phase Mark-Scan-Sweep cycle can be run manually via the Dashboard buttons (Mark, Scan, Sweep, or full GC Cycle). Swept entries have their version number incremented, which causes any existing Golden Tokens referencing those entries to fail validation — preventing use-after-free.
                     </p>
 
                     <h3>Permission Domain Separation</h3>
@@ -603,7 +601,6 @@
                             <tr><td>Church</td><td>L, S</td><td>Load/Save Golden Tokens</td><td>Cannot appear with R, W, X on same GT</td></tr>
                             <tr><td>Turing</td><td>R, W, X</td><td>Read/Write data, Execute code</td><td>Cannot appear with L, S on same GT</td></tr>
                             <tr><td>Lambda</td><td>E</td><td>Enter abstraction (CALL target)</td><td>Independent</td></tr>
-                            <tr><td>Meta</td><td>B, M, F, G</td><td>System operations</td><td>Independent</td></tr>
                         </tbody>
                     </table>
                 </div>

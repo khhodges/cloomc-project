@@ -127,7 +127,6 @@ module ctmm_change
     
     typedef enum logic [3:0] {
         CHANGE_IDLE,
-        CHANGE_CHECK_CR8_M,
         CHANGE_READ_CR7,
         CHANGE_LATCH_CR7,
         CHANGE_READ_CRn,
@@ -137,7 +136,6 @@ module ctmm_change
         CHANGE_SAVE_PACKED_PC,
         CHANGE_SAVE_PACKED_PC_WAIT,
         CHANGE_LOAD_THREAD,
-        CHANGE_CHECK_M_PERM,
         CHANGE_RESTORE_CALL,
         CHANGE_RESTORE_NEXT,
         CHANGE_COMPLETE,
@@ -229,28 +227,11 @@ module ctmm_change
     // Permission Checks
     // ========================================================================
     
-    logic cr8_has_m_perm;
     logic crn_has_l_perm;
-    logic [9:0] cr8_perms;
-    logic [9:0] crn_perms;
+    logic [5:0] crn_perms;
     
-    assign cr8_perms = cr8_thread.word0_gt[57:48];
-    assign cr8_has_m_perm = cr8_perms[PERM_M];
-    assign crn_perms = crn_reg_latched.word0_gt[57:48];
+    assign crn_perms = crn_reg_latched.word0_gt.perms;
     assign crn_has_l_perm = crn_perms[PERM_L];
-    
-    // M permission check on fetched thread GT (after mLoad completes)
-    logic fetched_gt_has_m;
-    logic [63:0] fetched_gt_latched;
-    
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            fetched_gt_latched <= '0;
-        else if (state == CHANGE_LOAD_THREAD && mload_done_latched)
-            fetched_gt_latched <= cr_rd_data.word0_gt;
-    end
-    
-    assign fetched_gt_has_m = fetched_gt_latched[48 + PERM_M];
 
     // ========================================================================
     // Phase 1: Save Address/Data Calculation
@@ -328,7 +309,7 @@ module ctmm_change
             mload_start_reg <= 1'b0;
         else if ((state == CHANGE_SAVE_PACKED_PC_WAIT && next_state == CHANGE_LOAD_THREAD) ||
                  (state == CHANGE_LATCH_CRn && next_state == CHANGE_LOAD_THREAD) ||
-                 (state == CHANGE_CHECK_M_PERM && next_state == CHANGE_RESTORE_CALL) ||
+                 (state == CHANGE_LOAD_THREAD && next_state == CHANGE_RESTORE_CALL) ||
                  (state == CHANGE_RESTORE_NEXT && next_state == CHANGE_RESTORE_CALL))
             mload_start_reg <= 1'b1;
         else
@@ -397,15 +378,9 @@ module ctmm_change
         end else if (state == CHANGE_IDLE) begin
             fault_latched <= 1'b0;
             fault_type_latched <= FAULT_NONE;
-        end else if (state == CHANGE_CHECK_CR8_M && !cr8_has_m_perm) begin
-            fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;
         end else if (state == CHANGE_LATCH_CRn && !crn_has_l_perm) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;
-        end else if (state == CHANGE_CHECK_M_PERM && !fetched_gt_has_m) begin
-            fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;
+            fault_type_latched <= FAULT_PERM_L;
         end else if (mload_fault_latched) begin
             fault_latched <= 1'b1;
             fault_type_latched <= mload_fault_type;
@@ -439,15 +414,8 @@ module ctmm_change
                 if (change_start) begin
                     dr_save_reset = 1'b1;
                     cr_index_reset = 1'b1;
-                    next_state = CHANGE_CHECK_CR8_M;
-                end
-            end
-            
-            CHANGE_CHECK_CR8_M: begin
-                if (!cr8_has_m_perm)
-                    next_state = CHANGE_FAULT;
-                else
                     next_state = CHANGE_READ_CR7;
+                end
             end
             
             CHANGE_READ_CR7: begin
@@ -505,14 +473,6 @@ module ctmm_change
                 if (mload_fault_latched)
                     next_state = CHANGE_FAULT;
                 else if (mload_done_latched) begin
-                    next_state = CHANGE_CHECK_M_PERM;
-                end
-            end
-            
-            CHANGE_CHECK_M_PERM: begin
-                if (!fetched_gt_has_m)
-                    next_state = CHANGE_FAULT;
-                else begin
                     cr_index_reset = 1'b1;
                     next_state = CHANGE_RESTORE_CALL;
                 end
@@ -578,9 +538,6 @@ module ctmm_change
             end
             CHANGE_READ_CRn, CHANGE_LATCH_CRn: begin
                 cr_rd_addr = cr_src;
-            end
-            CHANGE_CHECK_M_PERM: begin
-                cr_rd_addr = 4'd8;
             end
             default: begin
                 cr_rd_addr = mload_cr_rd_addr;

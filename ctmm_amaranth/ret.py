@@ -23,7 +23,6 @@ class CTMMReturn(Elaboratable):
 
         self.nia_set = Signal()
         self.nia_value = Signal(64)
-        self.clear_m_bit = Signal()
 
         self.cr15_namespace = Signal(CAP_REG_LAYOUT)
 
@@ -65,6 +64,8 @@ class CTMMReturn(Elaboratable):
         saved_cr6_gt_view = View(GT_LAYOUT, saved_cr6_gt)
         saved_cr7_gt_view = View(GT_LAYOUT, saved_cr7_gt)
 
+        saved_cr6_has_e = saved_cr6_gt_view.perms[PERM_E]
+
         CR5_SCRATCH = 5
 
         phase = Signal(2)
@@ -78,6 +79,8 @@ class CTMMReturn(Elaboratable):
         local_cr_wr_en = Signal()
         local_cr_wr_addr = Signal(4)
         local_cr_wr_data = Signal(CAP_REG_LAYOUT)
+
+        cr6_latched = Signal(CAP_REG_LAYOUT)
 
         mload_dst = Signal(4)
         mload_direct_gt = Signal(64)
@@ -169,18 +172,26 @@ class CTMMReturn(Elaboratable):
                     local_cr_wr_data.eq(0),
                 ]
                 m.d.sync += [sub_done_latched.eq(0), sub_fault_latched.eq(0)]
-                m.d.sync += [phase.eq(1), sub_start_reg.eq(1)]
-                m.next = "PHASE1"
+                m.d.sync += phase.eq(1)
+                m.next = "CHECK_CR6_E"
 
             with m.State("PHASE0_DONE"):
                 m.d.sync += [phase.eq(1), sub_done_latched.eq(0), sub_fault_latched.eq(0)]
-                m.d.sync += sub_start_reg.eq(1)
-                m.next = "PHASE1"
+                m.next = "CHECK_CR6_E"
+
+            with m.State("CHECK_CR6_E"):
+                with m.If(~saved_cr6_has_e):
+                    m.d.sync += [fault_flag.eq(1), fault_latched.eq(FaultType.PERM_E)]
+                    m.next = "FAULT"
+                with m.Else():
+                    m.d.sync += [sub_done_latched.eq(0), sub_fault_latched.eq(0)]
+                    m.d.sync += sub_start_reg.eq(1)
+                    m.next = "PHASE1"
 
             with m.State("PHASE1"):
                 m.d.sync += sub_start_reg.eq(0)
                 with m.If(u_mload.sub_done):
-                    m.d.sync += sub_done_latched.eq(1)
+                    m.d.sync += [sub_done_latched.eq(1), cr6_latched.eq(u_mload.cr_wr_data)]
                 with m.If(u_mload.sub_fault):
                     m.d.sync += sub_fault_latched.eq(1)
                     m.d.sync += [fault_flag.eq(1), fault_latched.eq(u_mload.sub_fault_type)]
@@ -190,6 +201,11 @@ class CTMMReturn(Elaboratable):
                     m.next = "PHASE1_DONE"
 
             with m.State("PHASE1_DONE"):
+                m.d.comb += [
+                    local_cr_wr_en.eq(1),
+                    local_cr_wr_addr.eq(CR6_CLIST),
+                    local_cr_wr_data.eq(cr6_latched),
+                ]
                 m.d.sync += [phase.eq(2), sub_done_latched.eq(0), sub_fault_latched.eq(0)]
                 m.d.sync += sub_start_reg.eq(1)
                 m.next = "PHASE2"
@@ -209,8 +225,7 @@ class CTMMReturn(Elaboratable):
             with m.State("SET_NIA"):
                 m.d.comb += [
                     self.nia_set.eq(1),
-                    self.nia_value.eq(saved_nia),
-                    self.clear_m_bit.eq(1),
+                    self.nia_value.eq(saved_nia + 1),
                 ]
                 m.next = "COMPLETE"
 

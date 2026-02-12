@@ -173,11 +173,11 @@ module ctmm_loadx_savex
     // Permission Check
     // ========================================================================
     
-    logic has_l_perm;  // For LOADX
-    logic has_s_perm;  // For SAVEX
-    logic [9:0] base_perms;
+    logic has_l_perm;
+    logic has_s_perm;
+    logic [5:0] base_perms;
     
-    assign base_perms = base_reg_latched.word0_gt.perms[9:0];
+    assign base_perms = base_reg_latched.word0_gt.perms;
     assign has_l_perm = base_perms[PERM_L];
     assign has_s_perm = base_perms[PERM_S];
     

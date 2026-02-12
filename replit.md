@@ -11,6 +11,51 @@ This project develops a comprehensive simulator for the Church-Turing Meta-Machi
 - Assembly Editor defaults to Access.asm when empty
 - Example buttons append code instead of replacing
 - Ctrl+Z undoes last code change
+- Punt TPERM standardization until Sim-32 mature and ARM market direction clear
+
+## Recent Changes (2026-02-12)
+
+### GT Permission Reduction: 10 → 6 bits
+- Permissions reduced to 6 bits: R, W, X, L, S, E
+- M (Meta) is now transient — elevated by instructions (RETURN, CHANGE), not stored in GT
+- B (Bind), F (Far), G (Garbage) removed from GT permissions
+- G-bit is per-namespace-entry metadata (gBit field), not a GT permission
+- Freed 4 bits reallocated: Sim-32 now has Version(7), Index(17); Sim-64 has larger spare field
+- All four implementations updated consistently
+
+### Thread Table C-List Snippet: CR0-CR7 Only
+- Thread shadow tracks only CR0-CR7 (instruction-addressable registers)
+- CR8-CR15 (system registers) excluded from thread table shadow
+- Hardware thread_wr_idx narrowed to 3 bits with guard: only updates when CRd <= 7
+
+### CHANGE Uses CALL Microcode
+- CHANGE pushes a call stack frame (CR5/CR6/CR7 + PC) before saving DRs
+- Eliminates separate packedPC/pcOffset fields in thread table
+- On restore: pops top frame, revalidates CR5/CR6/CR7 through mLoad
+- Dormant thread saves: DRs + call stack (with frames maintained by CALL/RETURN)
+
+### Unified PC Save Semantics
+- CALL and CHANGE both store the instruction address (not +step)
+- RETURN always adds step size: +4 for Sim-32, +1 for Sim-64
+- Hardware RETURN: `nia_value = saved_nia + 1`
+
+### RETURN CR6 E-Check + M Elevation
+- RETURN checks E permission on saved CR6 GT before mLoad revalidation
+- After mLoad succeeds, M is elevated transiently (runtime flag, not GT bit)
+- Hardware: CHECK_CR6_E state added between Phase 0 and Phase 1
+
+### PP250 Garbage Collection
+- Mark: Set G=1 (gBit) on all namespace entries
+- Scan: Walk DNA tree from roots via mLoad; each mLoad access resets G=0
+- Sweep: Entries still with G=1 are garbage; version bumped
+- Sim-32 gcScan now uses mLoadByIndex for tree walk
+- Sim-32 gcScan walks dormant thread call stacks (previously missing)
+
+### Boot Image Builder
+- New tool: `riscv_cap/boot_builder.py`
+- Constructs namespace table, thread objects, C-Lists, GTs
+- Exports as JSON or binary memory image
+- Matches simulator's MAC computation (FNV hash with correct offsets)
 
 ## System Architecture
 
@@ -18,18 +63,18 @@ The CTMM simulator offers both a Haskell console interface and a web-based visua
 
 ### Core Architectural Concepts
 
--   **Capability-based Security**: Access control via 64-bit "Golden Tokens" (GTs).
+-   **Capability-based Security**: Access control via "Golden Tokens" (GTs).
 -   **Register Architecture**:
-    -   **Context Registers (CR0-CR7)**: Hold Golden Tokens. CR15 for Namespace root, CR8 for Thread identity, CR7 for Nucleus, CR6 for current C-List.
-    -   **Data Registers (DR0-DR15)**: Hold 64-bit numeric values.
--   **Golden Token Structure**: 64-bit key with Offset, Permissions (R, W, X, L, S, E, B, M, F, G bits), and Spare bits.
--   **Namespace Entry**: A 3-word descriptor (Location, Limit, Seals).
--   **MAC Validation**: Hardware-enforced security check during `LOAD`. Sim-64 uses namespace registry with FNV hash MAC computation.
+    -   **Context Registers (CR0-CR7)**: Hold Golden Tokens (instruction-addressable). CR15 for Namespace root, CR8 for Thread identity, CR7 for Nucleus, CR6 for current C-List.
+    -   **Data Registers (DR0-DR15)**: Hold 64-bit numeric values (Sim-64) or x0-x31 32-bit (Sim-32).
+-   **Golden Token Permissions**: 6 bits — R (Read), W (Write), X (Execute), L (Load), S (Save), E (Enter). M is transient (elevated by microcode). G is per-namespace-entry metadata.
+-   **Permission Domains**: Turing (R, W, X), Church (L, S), Lambda (E). M is transient, not a stored permission.
+-   **Namespace Entry**: A 3-word descriptor (Location, Limit, Seals) with per-entry gBit for GC.
+-   **MAC Validation**: Hardware-enforced security check during `LOAD`. FNV hash MAC computation.
 -   **mLoad Master Validation**: Single trusted path for all namespace access — every Church instruction routes through mLoad, which enforces permission check, bounds check, MAC validation, G-bit reset, and thread table shadow update. Golden Rule: mLoad is the sole path for all CR writes across all four implementations.
 -   **Boot Sequence**: A 4-step secure initialization process.
--   **Permission Domains**: Mutually exclusive for Church (L, S), Turing (R, W, X), Lambda (E), and Meta (B, M, F, G) operations.
 -   **Failsafe Security**: All validation failures route to a single FAULT handler.
--   **Deterministic Garbage Collection**: G-bit reset on every namespace access via mLoad; three-phase Mark-Scan-Sweep cycle with DNA tree walk (no permission filtering during scan).
+-   **Deterministic Garbage Collection (PP250)**: Three-phase Mark-Scan-Sweep. Mark sets G=1 on all namespace entries. Scan walks DNA tree via mLoad (resets G=0 on reachable entries). Sweep identifies entries still G=1 as garbage, bumps version.
 
 ### Web Interface (UI/UX)
 
@@ -47,8 +92,8 @@ The web interface provides seven views: Dashboard, Namespace Browser, Assembly E
 ### Hardware Implementations
 
 The project includes synthesizable hardware implementations in:
--   **SystemVerilog (`verilog/`)**: Full CTMM architecture.
--   **Amaranth HDL (`ctmm_amaranth/`)**: Python-based HDL implementation.
+-   **SystemVerilog (`verilog/`)**: Full CTMM architecture with 6-bit permissions.
+-   **Amaranth HDL (`ctmm_amaranth/`)**: Python-based HDL implementation with 6-bit permissions.
 
 ### Simulator Comparison: Sim-64 (CTMM) vs Sim-32 (RV32-Cap)
 
@@ -63,15 +108,21 @@ This simulator (`riscv_cap/`) uses a Flask web server, `index.html`, `styles.css
 
 -   **RV32I Base**: Full integer instruction set with x0-x31 data registers.
 -   **16 Capability Registers**: CR0-CR15, each 128-bit.
--   **32-bit Golden Token Format**: Version (5 bits), Index (15 bits), Permissions (10 bits), Type (2 bits).
+-   **32-bit Golden Token Format**: Version (7 bits), Index (17 bits), Permissions (6 bits: R,W,X,L,S,E), Type (2 bits).
 -   **Church Instructions**: Seven instructions (`CAP.LOAD`, `CAP.CALL`, `CAP.SAVE`, `CAP.RETURN`, `CAP.CHANGE`, `CAP.SWITCH`, `CAP.TPERM`) across four RISC-V custom opcodes.
 -   **Web Views**: Dashboard, Namespace Browser, Assembly Editor, Capabilities Explorer, Instructions, Docs.
--   **MAC Seal Validation**: 27-bit FNV hash seal in `VersionSeals` checked on `LOAD` and `CALL`.
--   **mLoad/mLoadByIndex**: Unified validation path for all Church instructions — validates version, MAC, permissions, resets G-bit, writes to destination CR, and updates thread table shadow on every namespace access. Golden Rule: mLoad is the sole path for all CR writes. Hardware mLoad supports `sub_direct` mode for direct GT validation (skips C-List fetch, used by RETURN).
--   **Thread Table Shadow (Trusted C-List Snippet)**: mLoad updates Thread[CRd] on every CR write, keeping the thread's CR slots (a trusted C-List snippet) continuously current. CALL/RETURN keep stack frames current. CHANGE save side only needs to save data registers + PC offset with packed indicators.
--   **CHANGE Context Switch**: Reuses CALL/RETURN/mLoad microcode paths for minimal TCB. Saves only DR + packed PC offset (PC as offset from CR7 with condition indicators in spare high bits, written into current stack frame's PC slot). CRs already current via mLoad shadow; stack frames already current via CALL/RETURN. Requires M permission on CR8 (save side) and M on target thread GT fetched from C-List with L permission. Boot exception: initial hardwired thread GT has M directly without C-List.
--   **RETURN Revalidation**: RETURN routes saved CR5/CR6/CR7 GTs through mLoad's direct mode (`sub_direct=1`) for namespace revalidation against CR15, catching recycled entries (use-after-free prevention). Software simulators pass GT values directly; hardware uses `sub_direct_gt` input.
--   **Deterministic Garbage Collection**: G-bit reset via mLoad on every access; three-phase Mark-Scan-Sweep cycle with DNA tree walk from registers, call stack, and thread table (no permission filtering during scan); version bump on sweep.
+-   **MAC Seal Validation**: 25-bit FNV hash seal in `VersionSeals` checked on `LOAD` and `CALL`. Version field is 7 bits.
+-   **mLoad/mLoadByIndex**: Unified validation path for all Church instructions — validates version, MAC, permissions, resets G-bit (namespace entry gBit), writes to destination CR, and updates thread table shadow (CR0-CR7 only) on every namespace access. Golden Rule: mLoad is the sole path for all CR writes. Hardware mLoad supports `sub_direct` mode for direct GT validation (skips C-List fetch, used by RETURN).
+-   **Thread Table Shadow (Trusted C-List Snippet)**: mLoad updates Thread[CRd] for CR0-CR7 only (instruction-addressable registers) on every CR write, keeping the thread's CR slots continuously current. CALL/RETURN keep stack frames current. CHANGE save side only needs to save data registers + call stack.
+-   **CHANGE Context Switch**: Pushes call stack frame (CR5/CR6/CR7 + CHANGE instruction PC) via CALL microcode before saving DRs. CRs already current via mLoad shadow; stack frames already current via CALL/RETURN. L permission on C-List authorizes thread GT fetch. Boot exception: initial hardwired thread GT.
+-   **RETURN Revalidation**: RETURN checks E permission on saved CR6 GT, routes saved CR5/CR6/CR7 GTs through mLoad's direct mode (`sub_direct=1`) for namespace revalidation against CR15, catching recycled entries (use-after-free prevention). M elevated transiently on CR6 after successful revalidation.
+-   **Deterministic Garbage Collection (PP250)**: G-bit (per namespace entry, not GT permission) reset via mLoad on every access; three-phase Mark-Scan-Sweep cycle with DNA tree walk from registers, call stack, dormant thread call stacks, and thread table (no permission filtering during scan); version bump on sweep.
+-   **Boot Image Builder**: `riscv_cap/boot_builder.py` — offline tool to construct namespace table, thread objects, C-Lists, GTs as binary/JSON memory images.
+
+### Dormant Thread Object Structure
+
+-   **Sim-32**: x0-x31 (32 registers including x0) at offsets 0-31, call stack (with CR5/CR6/CR7 + PC frames), CR0-CR7 shadow maintained by mLoad
+-   **Sim-64**: DR0-DR15 at offsets 0-15, packed PC+indicators at offset 16, call stack, CR0-CR7 shadow maintained by mLoad
 
 ## External Dependencies
 

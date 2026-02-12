@@ -57,13 +57,12 @@ class RiscVCapSimulator {
             this.cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0 };
         }
 
-        const permM = this.getPermBits({ R:0,W:0,X:0,L:0,S:0,E:0,B:0,M:1,F:0,G:0 });
-        this.cr[15].word0 = this.createGT(0, 0, { R:0,W:0,X:0,L:0,S:0,E:0,B:0,M:1,F:0,G:0 }, 3);
+        this.cr[15].word0 = this.createGT(0, 0, { R:0,W:0,X:0,L:0,S:0,E:0 }, 3);
 
-        this.cr[8].word0 = this.createGT(0, 3, { R:0,W:0,X:0,L:0,S:0,E:0,B:0,M:1,F:0,G:0 }, 3);
+        this.cr[8].word0 = this.createGT(0, 3, { R:0,W:0,X:0,L:0,S:0,E:0 }, 3);
 
-        this.cr[7].word0 = this.createGT(0, 0, { R:0,W:0,X:0,L:0,S:0,E:1,B:0,M:1,F:0,G:0 }, 3);
-        this.cr[6].word0 = this.createGT(0, 1, { R:0,W:0,X:0,L:1,S:1,E:0,B:0,M:0,F:0,G:0 }, 3);
+        this.cr[7].word0 = this.createGT(0, 0, { R:0,W:0,X:0,L:0,S:0,E:1 }, 3);
+        this.cr[6].word0 = this.createGT(0, 1, { R:0,W:0,X:0,L:1,S:1,E:0 }, 3);
 
         this.bootComplete = true;
     }
@@ -72,9 +71,9 @@ class RiscVCapSimulator {
 
     parseGT(gt32) {
         gt32 = gt32 >>> 0;
-        const version = (gt32 >>> 27) & 0x1F;
-        const index = (gt32 >>> 12) & 0x7FFF;
-        const permBits = (gt32 >>> 2) & 0x3FF;
+        const version = (gt32 >>> 25) & 0x7F;
+        const index = (gt32 >>> 8) & 0x1FFFF;
+        const permBits = (gt32 >>> 2) & 0x3F;
         const type = gt32 & 0x3;
 
         return {
@@ -87,10 +86,6 @@ class RiscVCapSimulator {
                 L: (permBits >>> 3) & 1,
                 S: (permBits >>> 4) & 1,
                 E: (permBits >>> 5) & 1,
-                B: (permBits >>> 6) & 1,
-                M: (permBits >>> 7) & 1,
-                F: (permBits >>> 8) & 1,
-                G: (permBits >>> 9) & 1,
             },
             type,
             typeName: this.getTypeName(type),
@@ -98,8 +93,8 @@ class RiscVCapSimulator {
     }
 
     createGT(version, index, perms, type) {
-        const v = ((version & 0x1F) << 27) >>> 0;
-        const i = ((index & 0x7FFF) << 12) >>> 0;
+        const v = ((version & 0x7F) << 25) >>> 0;
+        const i = ((index & 0x1FFFF) << 8) >>> 0;
         const p = (this.getPermBits(perms) << 2) >>> 0;
         const t = type & 0x3;
         return (v | i | p | t) >>> 0;
@@ -113,11 +108,7 @@ class RiscVCapSimulator {
         if (permsObj.L) bits |= (1 << 3);
         if (permsObj.S) bits |= (1 << 4);
         if (permsObj.E) bits |= (1 << 5);
-        if (permsObj.B) bits |= (1 << 6);
-        if (permsObj.M) bits |= (1 << 7);
-        if (permsObj.F) bits |= (1 << 8);
-        if (permsObj.G) bits |= (1 << 9);
-        return bits & 0x3FF;
+        return bits & 0x3F;
     }
 
     checkPermission(gt, requiredPerm) {
@@ -130,17 +121,17 @@ class RiscVCapSimulator {
         h = ((h ^ location) * 0x01000193) >>> 0;
         h = ((h ^ limit) * 0x01000193) >>> 0;
         h = (h ^ (h >>> 16)) >>> 0;
-        return h & 0x07FFFFFF;
+        return h & 0x01FFFFFF;
     }
 
     makeVersionSeals(version, location, limit) {
         const seal = this.computeSeal(location, limit);
-        return (((version & 0x1F) << 27) | (seal & 0x07FFFFFF)) >>> 0;
+        return (((version & 0x7F) << 25) | (seal & 0x01FFFFFF)) >>> 0;
     }
 
     validateMAC(entry) {
         if (!entry) return false;
-        const storedSeal = entry.versionSeals & 0x07FFFFFF;
+        const storedSeal = entry.versionSeals & 0x01FFFFFF;
         const computedSeal = this.computeSeal(entry.location, entry.limit);
         return storedSeal === computedSeal;
     }
@@ -150,7 +141,7 @@ class RiscVCapSimulator {
         if (parsed.index >= this.namespaceTable.length) return false;
         const entry = this.namespaceTable[parsed.index];
         if (!entry) return false;
-        const nsVersion = (entry.versionSeals >>> 27) & 0x1F;
+        const nsVersion = (entry.versionSeals >>> 25) & 0x7F;
         if (parsed.version !== nsVersion) return false;
         return this.validateMAC(entry);
     }
@@ -164,7 +155,7 @@ class RiscVCapSimulator {
         if (!entry) {
             return { ok: false, fault: 'BOUNDS', message: `namespace entry ${parsed.index} is null` };
         }
-        const nsVersion = (entry.versionSeals >>> 27) & 0x1F;
+        const nsVersion = (entry.versionSeals >>> 25) & 0x7F;
         if (parsed.version !== nsVersion) {
             return { ok: false, fault: 'VERSION', message: `version mismatch: GT has ${parsed.version}, entry has ${nsVersion}` };
         }
@@ -194,8 +185,8 @@ class RiscVCapSimulator {
         }
         entry.gBit = 0;
         if (destCR !== null) {
-            const version = (entry.versionSeals >>> 27) & 0x1F;
-            const gt = this.createGT(version, index, { R:0,W:0,X:0,L:0,S:0,E:0,B:0,M:0,F:0,G:0 }, 0);
+            const version = (entry.versionSeals >>> 25) & 0x7F;
+            const gt = this.createGT(version, index, { R:0,W:0,X:0,L:0,S:0,E:0 }, 0);
             this._writeCR(destCR, gt, entry);
         }
         return { ok: true, entry, index };
@@ -215,6 +206,7 @@ class RiscVCapSimulator {
     }
 
     _updateThreadShadow(crIdx) {
+        if (crIdx > 7) return;
         const threadGT = this.cr[8].word0;
         if (threadGT === 0) return;
         const threadId = this.parseGT(threadGT).index;
@@ -224,7 +216,7 @@ class RiscVCapSimulator {
                 cr: [],
                 pc: this.pc,
             };
-            for (let i = 0; i < 16; i++) {
+            for (let i = 0; i < 8; i++) {
                 this.threadTable[threadId].cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0 };
             }
         }
@@ -561,11 +553,10 @@ class RiscVCapSimulator {
         const entry = targetResult.entry;
         const srcPerms = clistResult.parsed.permissions;
         const loadedGT = this.createGT(
-            (entry.versionSeals >>> 27) & 0x1F,
+            (entry.versionSeals >>> 25) & 0x7F,
             index,
             { R: srcPerms.R, W: srcPerms.W, X: srcPerms.X,
-              L: srcPerms.L, S: srcPerms.S, E: srcPerms.E,
-              B: srcPerms.B, M: 0, F: srcPerms.F, G: srcPerms.G },
+              L: srcPerms.L, S: srcPerms.S, E: srcPerms.E },
             0
         );
         this._writeCR(crDst, loadedGT, entry);
@@ -595,7 +586,7 @@ class RiscVCapSimulator {
         const srcCR = this.cr[crSrcCap];
         const loc = srcCR.word1 >>> 0;
         const lim = srcCR.word2 >>> 0;
-        const existingVersion = (this.namespaceTable[index].versionSeals >>> 27) & 0x1F;
+        const existingVersion = (this.namespaceTable[index].versionSeals >>> 25) & 0x7F;
         this.namespaceTable[index] = {
             location: loc,
             limit: lim,
@@ -637,15 +628,14 @@ class RiscVCapSimulator {
         const calleePerms = parsed.permissions;
         const cr6GT = this.createGT(
             parsed.version, parsed.index,
-            { R:0, W:0, X:0, L: calleePerms.L, S: calleePerms.S,
-              E:0, B:0, M:1, F:0, G:0 },
+            { R:0, W:0, X:0, L: calleePerms.L, S: calleePerms.S, E:0 },
             3
         );
         this._writeCR(6, cr6GT, entry);
         const cr7GT = this.createGT(
             parsed.version, parsed.index,
             { R: calleePerms.R, W: calleePerms.W, X: calleePerms.X,
-              L:0, S:0, E: calleePerms.E, B:0, M:1, F:0, G:0 },
+              L:0, S:0, E: calleePerms.E },
             3
         );
         this._writeCR(7, cr7GT, entry);
@@ -673,10 +663,11 @@ class RiscVCapSimulator {
                     this._clearCR(5);
                 }
                 const cr6Parsed = this.parseGT(saved.cr6.word0);
-                const cr6Perms = cr6Parsed.permissions;
-                cr6Perms.M = 1;
-                const cr6GT = this.createGT(cr6Parsed.version, cr6Parsed.index, cr6Perms, cr6Parsed.type);
-                const cr6Result = this.mLoad(cr6GT, 'L', 6);
+                if (!cr6Parsed.permissions.E) {
+                    this.fault('PERMISSION', 'RETURN: saved CR6 lacks E permission');
+                    return;
+                }
+                const cr6Result = this.mLoad(saved.cr6.word0, 'E', 6);
                 if (!cr6Result.ok) {
                     this.fault(cr6Result.fault, `RETURN: CR6 restore: ${cr6Result.message}`);
                     return;
@@ -693,10 +684,6 @@ class RiscVCapSimulator {
             case 0x1: { // CHANGE
                 const cr8GT = this.cr[8].word0;
                 const cr8Parsed = this.parseGT(cr8GT);
-                if (!cr8Parsed.permissions.M) {
-                    this.fault('PERMISSION', `CHANGE: CR8 lacks M permission (save side)`);
-                    return;
-                }
 
                 const threadGT = this.cr[crSrc].word0;
                 const changeResult = this.mLoad(threadGT, 'L');
@@ -705,10 +692,6 @@ class RiscVCapSimulator {
                     return;
                 }
                 const parsed = changeResult.parsed;
-                if (!parsed.permissions.M) {
-                    this.fault('PERMISSION', `CHANGE: target thread GT lacks M permission`);
-                    return;
-                }
                 const threadId = parsed.index;
                 const currentThreadId = cr8Parsed.index;
 
@@ -718,21 +701,20 @@ class RiscVCapSimulator {
                         cr: [],
                         callStack: [],
                     };
-                    for (let i = 0; i < 16; i++) {
+                    for (let i = 0; i < 8; i++) {
                         this.threadTable[currentThreadId].cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0 };
                     }
                 }
 
-                const cr7Base = this.cr[7].word1 >>> 0;
-                const pcOffset = ((this.pc + 4) - cr7Base) >>> 0;
-                const packedPC = pcOffset & 0x0FFFFFFF;
-                if (this.callStack.length > 0) {
-                    this.callStack[this.callStack.length - 1].pc = packedPC;
-                }
+                this.callStack.push({
+                    pc: this.pc,
+                    cr5: { ...this.cr[5] },
+                    cr6: { ...this.cr[6] },
+                    cr7: { ...this.cr[7] },
+                });
 
                 this.threadTable[currentThreadId].x = [...this.x];
                 this.threadTable[currentThreadId].callStack = this.callStack.map(f => ({...f}));
-                this.threadTable[currentThreadId].packedPC = packedPC;
 
                 const target = this.threadTable[threadId];
                 if (target) {
@@ -740,18 +722,26 @@ class RiscVCapSimulator {
 
                     if (target.callStack && target.callStack.length > 0) {
                         this.callStack = target.callStack.map(f => ({...f}));
-                        this.stackFrames = this.callStack.length > 0;
-                        this.stackSpace = this.callStack.length < this.callStackMax;
                     } else {
                         this.callStack = [];
-                        this.stackFrames = false;
-                        this.stackSpace = true;
                     }
 
-                    const targetCR7Base = target.cr[7] ? target.cr[7].word1 >>> 0 : 0;
-                    const targetPackedPC = target.packedPC || 0;
-                    const targetPcOffset = targetPackedPC & 0x0FFFFFFF;
-                    this.pc = (targetCR7Base + targetPcOffset) >>> 0;
+                    if (this.callStack.length > 0) {
+                        const resumeFrame = this.callStack.pop();
+                        this.stackFrames = this.callStack.length > 0;
+                        this.stackSpace = true;
+                        const cr5Result = this.mLoad(resumeFrame.cr5.word0, null, 5);
+                        if (!cr5Result.ok) this._clearCR(5);
+                        const cr6Result = this.mLoad(resumeFrame.cr6.word0, null, 6);
+                        if (!cr6Result.ok) { this.fault(cr6Result.fault, `CHANGE restore CR6: ${cr6Result.message}`); return; }
+                        const cr7Result = this.mLoad(resumeFrame.cr7.word0, null, 7);
+                        if (!cr7Result.ok) { this.fault(cr7Result.fault, `CHANGE restore CR7: ${cr7Result.message}`); return; }
+                        this.pc = (resumeFrame.pc + 4) >>> 0;
+                    } else {
+                        this.stackFrames = false;
+                        this.stackSpace = true;
+                        this.pc = 0;
+                    }
                 } else {
                     for (let i = 0; i < 32; i++) this.x[i] = 0;
                     this.callStack = [];
@@ -771,7 +761,7 @@ class RiscVCapSimulator {
 
             case 0x2: { // SWITCH
                 const srcGT = this.cr[crSrc].word0;
-                const switchResult = this.mLoad(srcGT, 'M');
+                const switchResult = this.mLoad(srcGT, null);
                 if (!switchResult.ok) {
                     this.fault(switchResult.fault, `SWITCH: CR${crSrc}: ${switchResult.message}`);
                     return;
@@ -791,14 +781,14 @@ class RiscVCapSimulator {
                 const crIdx = crSrc;
                 const gt = this.cr[crIdx].word0;
                 const parsed = this.parseGT(gt);
-                const permBits = this.getPermBits(parsed.permissions) & 0x3FF;
+                const permBits = this.getPermBits(parsed.permissions) & 0x3F;
                 const valid = this.validateGT(gt) ? 1 : 0;
                 const typeBits = parsed.type & 0x3;
-                const result = ((typeBits & 0x3) << 13) |
-                               ((valid & 0x1) << 12) |
-                               ((this.stackSpace ? 1 : 0) << 11) |
-                               ((this.stackFrames ? 1 : 0) << 10) |
-                               (permBits & 0x3FF);
+                const result = ((typeBits & 0x3) << 9) |
+                               ((valid & 0x1) << 8) |
+                               ((this.stackSpace ? 1 : 0) << 7) |
+                               ((this.stackFrames ? 1 : 0) << 6) |
+                               (permBits & 0x3F);
                 if (rd !== 0) this.x[rd] = result >>> 0;
                 this.pc = (this.pc + 4) >>> 0;
                 break;
@@ -1069,7 +1059,7 @@ class RiscVCapSimulator {
             const entry = this.namespaceTable[i];
             if (entry && (entry.location !== 0 || entry.limit !== 0)) {
                 const vs = entry.versionSeals;
-                const version = (vs >>> 27) & 0x1F;
+                const version = (vs >>> 25) & 0x7F;
                 entry.versionSeals = this.makeVersionSeals(version, entry.location, entry.limit);
                 entry.gBit = 1;
                 marked++;
@@ -1084,27 +1074,31 @@ class RiscVCapSimulator {
 
     gcScan() {
         let scanned = 0;
-        const reachable = new Set();
+        const visited = new Set();
+
+        const walkEntry = (index) => {
+            if (visited.has(index)) return;
+            if (index >= this.namespaceTable.length) return;
+            const entry = this.namespaceTable[index];
+            if (!entry) return;
+            visited.add(index);
+
+            const result = this.mLoadByIndex(index);
+            if (result && result.ok) {
+                scanned++;
+            }
+        };
 
         for (let i = 0; i < 16; i++) {
-            const gt = this.cr[i].word0;
-            const parsed = this.parseGT(gt);
-            if (parsed.index < this.namespaceTable.length && this.namespaceTable[parsed.index]) {
-                const entry = this.namespaceTable[parsed.index];
-                if (this.validateMAC(entry)) {
-                    reachable.add(parsed.index);
-                }
-            }
+            const parsed = this.parseGT(this.cr[i].word0);
+            if (parsed.index > 0) walkEntry(parsed.index);
         }
 
         for (const frame of this.callStack) {
             for (const crKey of ['cr5', 'cr6', 'cr7']) {
-                const cr = frame[crKey];
-                if (cr) {
-                    const parsed = this.parseGT(cr.word0);
-                    if (parsed.index < this.namespaceTable.length && this.namespaceTable[parsed.index]) {
-                        reachable.add(parsed.index);
-                    }
+                if (frame[crKey]) {
+                    const parsed = this.parseGT(frame[crKey].word0);
+                    if (parsed.index > 0) walkEntry(parsed.index);
                 }
             }
         }
@@ -1112,23 +1106,22 @@ class RiscVCapSimulator {
         for (const threadId in this.threadTable) {
             const thread = this.threadTable[threadId];
             if (thread && thread.cr) {
-                for (let i = 0; i < thread.cr.length; i++) {
-                    const cr = thread.cr[i];
-                    if (cr) {
-                        const parsed = this.parseGT(cr.word0);
-                        if (parsed.index < this.namespaceTable.length && this.namespaceTable[parsed.index]) {
-                            reachable.add(parsed.index);
-                        }
+                for (let i = 0; i < 8; i++) {
+                    if (thread.cr[i]) {
+                        const parsed = this.parseGT(thread.cr[i].word0);
+                        if (parsed.index > 0) walkEntry(parsed.index);
                     }
                 }
             }
-        }
-
-        for (const idx of reachable) {
-            const entry = this.namespaceTable[idx];
-            if (entry && entry.gBit === 1) {
-                entry.gBit = 0;
-                scanned++;
+            if (thread && thread.callStack) {
+                for (const frame of thread.callStack) {
+                    for (const crKey of ['cr5', 'cr6', 'cr7']) {
+                        if (frame[crKey]) {
+                            const parsed = this.parseGT(frame[crKey].word0);
+                            if (parsed.index > 0) walkEntry(parsed.index);
+                        }
+                    }
+                }
             }
         }
 
@@ -1149,8 +1142,8 @@ class RiscVCapSimulator {
                     location: entry.location,
                     limit: entry.limit,
                 });
-                const version = ((entry.versionSeals >>> 27) & 0x1F);
-                const newVersion = (version + 1) & 0x1F;
+                const version = ((entry.versionSeals >>> 25) & 0x7F);
+                const newVersion = (version + 1) & 0x7F;
                 entry.location = 0;
                 entry.limit = 0;
                 entry.versionSeals = this.makeVersionSeals(newVersion, 0, 0);
@@ -1164,6 +1157,11 @@ class RiscVCapSimulator {
         return garbage;
     }
 
+    // PP250 Design: Mark-Scan-Sweep GC using mLoad for reachability.
+    // Mark: sets G=1 on all namespace entries.
+    // Scan: walks DNA tree from roots (registers, call stack, dormant threads)
+    //   via mLoadByIndex — each valid access resets G=0 on reachable entries.
+    // Sweep: entries still G=1 are garbage — bump version to invalidate.
     gcCycle() {
         const marked = this.gcMark();
         const scanned = this.gcScan();

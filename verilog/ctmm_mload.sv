@@ -86,7 +86,7 @@ module ctmm_mload
     // This enables thread suspension/rescheduling - CRs can be reloaded from saved GTs.
     // ========================================================================
     output logic        thread_wr_en,         // Write enable for Thread[CRd]
-    output logic [3:0]  thread_wr_idx,        // Index into Thread (= CRd)
+    output logic [2:0]  thread_wr_idx,        // Index into Thread (= CRd, 0-7 only)
     output logic [63:0] thread_wr_data,       // GT with G=0
     
     // ========================================================================
@@ -238,13 +238,10 @@ module ctmm_mload
     // Permission and Bounds Checking
     // ========================================================================
     
-    // Step 1: Check L or M permission on source capability CRn
     logic has_l_permission;
-    logic has_m_permission;
     logic has_load_permission;
     assign has_l_permission = src_cap.word0_gt.perms[PERM_L];
-    assign has_m_permission = src_cap.word0_gt.perms[PERM_M];
-    assign has_load_permission = has_l_permission || has_m_permission;
+    assign has_load_permission = has_l_permission;
     
     // Step 2: Check bounds: Index < CRn.Limit
     logic bounds_ok;
@@ -254,17 +251,13 @@ module ctmm_mload
     logic src_is_null;
     assign src_is_null = (src_cap.word0_gt == GT_NULL);
     
-    // Step 4: Check GT.offset < CR15.limit AND CR15 = M
-    logic cr15_has_m;
     logic gt_offset_in_bounds;
     logic step4_ok;
-    assign cr15_has_m = cr15_namespace.word0_gt.perms[PERM_M];
     assign gt_offset_in_bounds = ({32'h0, result_cap.word0_gt.offset} < cr15_namespace.word2_limit);
-    assign step4_ok = gt_offset_in_bounds && cr15_has_m;
+    assign step4_ok = gt_offset_in_bounds;
     
-    // Check G bit on fetched GT
     logic gt_has_g_bit;
-    assign gt_has_g_bit = result_cap.word0_gt.perms[PERM_G];
+    assign gt_has_g_bit = result_cap.word0_gt.spare[0];
     
     // ========================================================================
     // Namespace Address Calculation
@@ -455,10 +448,9 @@ module ctmm_mload
     
     assign cr_wr_addr = cr_dst_reg;
     
-    // Write data with G bit cleared
     always_comb begin
         cr_wr_data = result_cap;
-        cr_wr_data.word0_gt.perms[PERM_G] = 1'b0;  // Always clear G bit
+        cr_wr_data.word0_gt.spare[0] = 1'b0;
     end
     
     // Write enable on successful completion (one cycle pulse)
@@ -494,11 +486,11 @@ module ctmm_mload
     logic [63:0] gt_with_g_cleared;
     always_comb begin
         gt_with_g_cleared = result_cap.word0_gt;
-        gt_with_g_cleared[PERM_G + 48] = 1'b0;  // Clear G bit in permissions field
+        gt_with_g_cleared[32] = 1'b0;  // Clear G bit (spare[0] = bit 32)
     end
     
-    assign thread_wr_en = (state == SUB_UPDATE_THREAD);
-    assign thread_wr_idx = cr_dst_reg;         // Write to Thread[CRd]
+    assign thread_wr_en = (state == SUB_UPDATE_THREAD) && (cr_dst_reg <= 4'd7);
+    assign thread_wr_idx = cr_dst_reg[2:0];    // Write to Thread[CRd], 0-7 only
     assign thread_wr_data = gt_with_g_cleared;
     
     // G bit reset output - writes to CR15[GT.offset].Word3.Gbit

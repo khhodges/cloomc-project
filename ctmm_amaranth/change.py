@@ -79,16 +79,12 @@ class CTMMChange(Elaboratable):
 
         cr8_view = View(CAP_REG_LAYOUT, self.cr8_thread)
         cr8_gt = View(GT_LAYOUT, cr8_view.word0_gt)
-        cr8_has_m_perm = cr8_gt.perms[PERM_M]
 
         thread_base = cr8_view.word1_location
 
         cr7_base = Signal(64)
 
         fetched_gt_latched = Signal(64)
-        fetched_gt_has_m = Signal()
-        fetched_gt_view = View(GT_LAYOUT, fetched_gt_latched)
-        m.d.comb += fetched_gt_has_m.eq(fetched_gt_view.perms[PERM_M])
 
         DR_OFFSET = 0
         PACKED_PC_OFFSET = 16
@@ -146,13 +142,6 @@ class CTMMChange(Elaboratable):
                         cr_index.eq(0),
                         save_index.eq(0),
                     ]
-                    m.next = "CHECK_CR8_M"
-
-            with m.State("CHECK_CR8_M"):
-                with m.If(~cr8_has_m_perm):
-                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_M)]
-                    m.next = "FAULT"
-                with m.Else():
                     m.d.comb += self.cr_rd_addr.eq(7)
                     m.next = "READ_CR7"
 
@@ -218,13 +207,6 @@ class CTMMChange(Elaboratable):
                 with m.If(mload_fault_latched):
                     m.next = "FAULT"
                 with m.Elif(mload_done_latched):
-                    m.next = "CHECK_M_PERM"
-
-            with m.State("CHECK_M_PERM"):
-                with m.If(~fetched_gt_has_m):
-                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_M)]
-                    m.next = "FAULT"
-                with m.Else():
                     m.d.sync += cr_index.eq(0)
                     m.next = "RESTORE_CALL"
 

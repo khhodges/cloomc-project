@@ -14,14 +14,16 @@
 //   4. Phase 0: Route saved CR5 GT through mLoad → CR5 (tolerant: fault clears CR5)
 //      - Revalidates version/MAC against namespace (catches recycled entries)
 //      - If mLoad faults, CR5 is cleared and execution continues
-//   5. Phase 1: Route saved CR6 GT through mLoad → CR6
+//   5. Check saved CR6 GT has E permission (fault if not)
+//   6. Phase 1: Route saved CR6 GT through mLoad → CR6
 //      - Revalidates version/MAC against namespace (catches recycled entries)
 //      - Resets G-bit on namespace entry
 //      - Updates thread table shadow at Thread[CR6]
-//   6. Phase 2: Route saved CR7 GT through mLoad → CR7
+//   7. Elevate M permission on CR6 after successful mLoad
+//   8. Phase 2: Route saved CR7 GT through mLoad → CR7
 //      - Same validation pipeline as Phase 1
-//   7. Set NIA to saved return address
-//   8. Clear M bit (leaving internal abstraction)
+//   9. Set NIA to saved return address + 1 (advance past CALL/CHANGE)
+//  10. Clear M bit (leaving internal abstraction)
 //
 // Golden Rule: All CR writes go through mLoad. RETURN does NOT directly
 // write to CR6/CR7. Instead, mLoad revalidates the saved GTs against
@@ -30,6 +32,7 @@
 // FAULT conditions:
 //   - CRn lacks E permission
 //   - CRn is null capability
+//   - Saved CR6 GT lacks E permission
 //   - Saved CR6/CR7 GT fails mLoad validation (version/MAC/bounds)
 // ============================================================================
 
@@ -51,7 +54,7 @@ module ctmm_return
     output logic [3:0]  cr_rd_addr,
     input  capability_reg_t cr_rd_data,
     
-    // Capability register write interface (driven by mLoad)
+    // Capability register write interface (driven by mLoad or local)
     output logic [3:0]  cr_wr_addr,
     output capability_reg_t cr_wr_data,
     output logic        cr_wr_en,
@@ -104,6 +107,7 @@ module ctmm_return
         PHASE0_START,
         PHASE0_WAIT,
         PHASE0_DONE,
+        CHECK_CR6_E,
         PHASE1_START,
         PHASE1_WAIT,
         PHASE1_DONE,
@@ -135,9 +139,9 @@ module ctmm_return
     
     logic has_e_perm;
     logic is_null_cap;
-    logic [9:0] src_perms;
+    logic [5:0] src_perms;
     
-    assign src_perms = return_cap.word0_gt.perms[9:0];
+    assign src_perms = return_cap.word0_gt.perms;
     assign has_e_perm = src_perms[PERM_E];
     assign is_null_cap = (return_cap.word0_gt == GT_NULL);
     
@@ -152,6 +156,15 @@ module ctmm_return
     assign saved_nia = return_cap.word1_location;
     assign saved_cr6_gt = return_cap.word2_limit;
     assign saved_cr7_gt = return_cap.word3_seals;
+    
+    // ========================================================================
+    // Saved CR6 GT E Permission Check
+    // ========================================================================
+    
+    logic saved_cr6_has_e;
+    logic [5:0] saved_cr6_perms;
+    assign saved_cr6_perms = saved_cr6_gt.perms;
+    assign saved_cr6_has_e = saved_cr6_perms[PERM_E];
     
     // ========================================================================
     // Phase Tracking
@@ -169,6 +182,24 @@ module ctmm_return
         else if (state == PHASE1_DONE)
             phase <= 2'd2;
     end
+    
+    // ========================================================================
+    // CR6 Latch - captures mLoad output when writing CR6 during Phase 1
+    // ========================================================================
+    
+    logic [3:0]      mload_cr_wr_addr;
+    capability_reg_t mload_cr_wr_data;
+    logic            mload_cr_wr_en;
+    
+    capability_reg_t cr6_latched;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            cr6_latched <= '0;
+        else if (mload_cr_wr_en && mload_cr_wr_addr == CR6_CLIST)
+            cr6_latched <= mload_cr_wr_data;
+    end
+    
+    // (M elevation removed - M is transient, not stored in GT)
     
     // ========================================================================
     // State Register
@@ -203,6 +234,9 @@ module ctmm_return
                 fault_flag <= 1'b1;
                 fault_latched <= FAULT_PERM_E;
             end
+        end else if (state == CHECK_CR6_E && !saved_cr6_has_e) begin
+            fault_flag <= 1'b1;
+            fault_latched <= FAULT_PERM_E;
         end else if ((state == PHASE1_WAIT || state == PHASE2_WAIT) && sub_fault_latched) begin
             fault_flag <= 1'b1;
             fault_latched <= sub_fault_type;
@@ -286,9 +320,9 @@ module ctmm_return
         
         .cr_rd_addr     (sub_cr_rd_addr),
         .cr_rd_data     (cr_rd_data),
-        .cr_wr_addr     (cr_wr_addr),
-        .cr_wr_data     (cr_wr_data),
-        .cr_wr_en       (cr_wr_en),
+        .cr_wr_addr     (mload_cr_wr_addr),
+        .cr_wr_data     (mload_cr_wr_data),
+        .cr_wr_en       (mload_cr_wr_en),
         
         .cr15_namespace (cr15_namespace),
         
@@ -304,6 +338,25 @@ module ctmm_return
         .g_bit_reset    (g_bit_reset),
         .g_bit_addr     (g_bit_addr)
     );
+    
+    // ========================================================================
+    // Local CR Write Mux (for CR5 fault clear and CR6 M elevation)
+    // ========================================================================
+    
+    logic local_cr_wr_en;
+    logic [3:0] local_cr_wr_addr;
+    capability_reg_t local_cr_wr_data;
+    
+    logic cr5_fault_clear;
+    assign cr5_fault_clear = (state == PHASE0_DONE) && sub_fault_latched;
+    
+    assign local_cr_wr_en   = cr5_fault_clear;
+    assign local_cr_wr_addr = CR5_SAVED;
+    assign local_cr_wr_data = '0;
+    
+    assign cr_wr_en   = mload_cr_wr_en | local_cr_wr_en;
+    assign cr_wr_addr = local_cr_wr_en ? local_cr_wr_addr : mload_cr_wr_addr;
+    assign cr_wr_data = local_cr_wr_en ? local_cr_wr_data : mload_cr_wr_data;
     
     // ========================================================================
     // Next State Logic
@@ -336,7 +389,14 @@ module ctmm_return
                     next_state = PHASE0_DONE;
             end
             
-            PHASE0_DONE: next_state = PHASE1_START;
+            PHASE0_DONE: next_state = CHECK_CR6_E;
+            
+            CHECK_CR6_E: begin
+                if (!saved_cr6_has_e)
+                    next_state = FAULT;
+                else
+                    next_state = PHASE1_START;
+            end
             
             PHASE1_START: next_state = PHASE1_WAIT;
             
@@ -378,16 +438,10 @@ module ctmm_return
     assign local_cr_rd_en = (state == IDLE && return_start) || (state == READ_SRC);
     assign cr_rd_addr = local_cr_rd_en ? {1'b0, cr_src} : sub_cr_rd_addr;
     
-    // CR5 clear on phase 0 fault - tolerant restoration
-    // When phase 0 (CR5) mLoad faults, we clear CR5 and continue
-    logic cr5_fault_clear;
-    assign cr5_fault_clear = (state == PHASE0_DONE) && sub_fault_latched;
-    
-    // NIA update
+    // NIA update - advance past saved instruction (CALL or CHANGE)
     assign nia_set = (state == SET_NIA);
-    assign nia_value = saved_nia;
+    assign nia_value = saved_nia + 64'd1;
     
-    // Clear M bit when leaving abstraction
-    assign clear_m_bit = (state == SET_NIA);
+    assign clear_m_bit = 1'b0;
 
 endmodule

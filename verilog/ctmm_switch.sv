@@ -120,7 +120,7 @@ module ctmm_switch
     
     logic src_in_range;
     logic src_has_l_perm;
-    logic [9:0] src_perms;
+    logic [5:0] src_perms;
     
     // Latched source register data for permission check
     capability_reg_t src_reg_latched;
@@ -134,7 +134,7 @@ module ctmm_switch
     end
     
     assign src_in_range = (cr_src <= MAX_CLIST_REG);
-    assign src_perms = src_reg_latched.word0_gt[57:48];  // Permission bits from latched GT
+    assign src_perms = src_reg_latched.word0_gt.perms;
     assign src_has_l_perm = src_perms[PERM_L];
     
     // ========================================================================
@@ -155,10 +155,10 @@ module ctmm_switch
             fault_type_latched <= FAULT_NONE;
         end else if (state == SWITCH_CHECK_SRC && !src_in_range) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // Invalid source register
+            fault_type_latched <= FAULT_INVALID_OP;
         end else if (state == SWITCH_CHECK_PERM && !src_has_l_perm) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // Missing L permission
+            fault_type_latched <= FAULT_PERM_L;
         end else if (state == SWITCH_CALL_SUB && sub_fault) begin
             fault_latched <= 1'b1;
             fault_type_latched <= sub_fault_type;

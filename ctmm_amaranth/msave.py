@@ -34,9 +34,6 @@ class CTMMMSave(Elaboratable):
         src_gt_view = View(GT_LAYOUT, src_gt_reg)
 
         dst_has_s_perm = dst_gt.perms[PERM_S]
-        gt_has_m_perm = src_gt_view.perms[PERM_M]
-        gt_has_b_perm = src_gt_view.perms[PERM_B]
-        gt_can_be_saved = gt_has_m_perm | gt_has_b_perm
         index_in_bounds = Signal()
         m.d.comb += index_in_bounds.eq(Cat(index_reg, Const(0, 56)) < dst_view.word2_limit)
 
@@ -56,13 +53,6 @@ class CTMMMSave(Elaboratable):
 
             with m.State("CHECK_S"):
                 with m.If(~dst_has_s_perm):
-                    m.d.sync += fault_type_reg.eq(FaultType.PERM_S)
-                    m.next = "FAULT"
-                with m.Else():
-                    m.next = "CHECK_MB"
-
-            with m.State("CHECK_MB"):
-                with m.If(~gt_can_be_saved):
                     m.d.sync += fault_type_reg.eq(FaultType.PERM_S)
                     m.next = "FAULT"
                 with m.Else():

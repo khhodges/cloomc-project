@@ -117,10 +117,10 @@ class CTMMCore(Elaboratable):
         perm_gt_sig = Signal(GT_LAYOUT)
         m.d.comb += perm_gt_sig.eq(View(CAP_REG_LAYOUT, u_regs.cr_rd_data).word0_gt)
 
-        required_perms = Signal(16)
+        required_perms = Signal(6)
         with m.Switch(church_op):
             with m.Case(ChurchOpcode.LOAD):
-                m.d.comb += required_perms.eq(PERM_MASK_L | PERM_MASK_M)
+                m.d.comb += required_perms.eq(PERM_MASK_L)
             with m.Case(ChurchOpcode.SAVE):
                 m.d.comb += required_perms.eq(PERM_MASK_S)
             with m.Case(ChurchOpcode.CALL):
@@ -315,7 +315,8 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     ns_gt_view.offset.eq(0),
                     ns_gt_view.spare.eq(0),
-                    ns_gt_view.perms.eq(PERM_MASK_M | PERM_MASK_L),
+                    ns_gt_view.g_bit.eq(0),
+                    ns_gt_view.perms.eq(PERM_MASK_L),
                 ]
                 m.d.comb += [boot_wr_en[15].eq(1), boot_wr_gt[15].eq(ns_gt)]
             with m.Case(BootState.INIT_THRD):
@@ -324,7 +325,8 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     thrd_gt_view.offset.eq(3),
                     thrd_gt_view.spare.eq(0),
-                    thrd_gt_view.perms.eq(PERM_MASK_M),
+                    thrd_gt_view.g_bit.eq(0),
+                    thrd_gt_view.perms.eq(PERM_MASK_L),
                 ]
                 m.d.comb += [boot_wr_en[8].eq(1), boot_wr_gt[8].eq(thrd_gt)]
             with m.Case(BootState.LOAD_NUC):
@@ -333,6 +335,7 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     cr6_gt_view.offset.eq(2),
                     cr6_gt_view.spare.eq(0),
+                    cr6_gt_view.g_bit.eq(0),
                     cr6_gt_view.perms.eq(PERM_MASK_L | PERM_MASK_S | PERM_MASK_E),
                 ]
                 m.d.comb += [boot_wr_en[6].eq(1), boot_wr_gt[6].eq(cr6_gt)]
@@ -342,6 +345,7 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     cr7_gt_view.offset.eq(1),
                     cr7_gt_view.spare.eq(0),
+                    cr7_gt_view.g_bit.eq(0),
                     cr7_gt_view.perms.eq(PERM_MASK_X),
                 ]
                 m.d.comb += [boot_wr_en[7].eq(1), boot_wr_gt[7].eq(cr7_gt)]

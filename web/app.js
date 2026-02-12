@@ -174,12 +174,13 @@ function generateGoldenKey() {
 
 // ==================== GOLDEN TOKEN (64-bit) STRUCTURE ====================
 // Bits 0-31:  Offset (index into Namespace Table)
-// Bits 32-47: Permissions (R/W/X/L/S/E/B/M/F/G on/off bits - M=Meta-Machine for hardware-level)
-// Bits 48-63: Spare (future flags or Thread ID)
+// Bits 32-37: Permissions (R/W/X/L/S/E - 6 bits only)
+// Bits 38-47: Version (10 bits, reallocated from removed B/M/F/G)
+// Bits 48-63: Index/Spare (16 bits)
 
 const PERM_BITS = {
     R: 0x0001, W: 0x0002, X: 0x0004, L: 0x0008,
-    S: 0x0010, E: 0x0020, B: 0x0040, M: 0x0080, F: 0x0100, G: 0x0200
+    S: 0x0010, E: 0x0020
 };
 
 function encodeGoldenToken(offset, perms, spare = 0) {
@@ -370,32 +371,31 @@ const bootCList = {
         { index: 0, name: "Access", nsOffset: 1, perms: ["X"], type: "Code", 
           desc: "Nucleus entry code", size: 0x1000 },
         // Index 1: Kenneth thread - GT pointing to NS offset 3
-        // M = Meta-Machine hardware permission (clears all software permissions)
-        { index: 1, name: "Kenneth", nsOffset: 3, perms: ["M"], type: "Thread", 
+        { index: 1, name: "Kenneth", nsOffset: 3, perms: ["L", "S"], type: "Thread", 
           desc: "Primary user identity", size: 0x0800 },
         // Index 2: Matthew thread - GT pointing to NS offset 4
-        { index: 2, name: "Matthew", nsOffset: 4, perms: ["M"], type: "Thread", 
+        { index: 2, name: "Matthew", nsOffset: 4, perms: ["L", "S"], type: "Thread", 
           desc: "Secondary user identity", size: 0x0800 },
         // Index 3: Daniel thread - GT pointing to NS offset 5
-        { index: 3, name: "Daniel", nsOffset: 5, perms: ["M"], type: "Thread", 
+        { index: 3, name: "Daniel", nsOffset: 5, perms: ["L", "S"], type: "Thread", 
           desc: "Tertiary user identity", size: 0x0800 },
         // Index 4: SlideRule abstraction - GT pointing to NS offset 6
-        // E = Enter (external interface), B = Bind (capability permissions only)
-        { index: 4, name: "SlideRule", nsOffset: 6, perms: ["E", "B"], type: "Abstraction", 
+        // E = Enter (external interface)
+        { index: 4, name: "SlideRule", nsOffset: 6, perms: ["E"], type: "Abstraction", 
           desc: "IEEE 754 float operations", size: 0x1000 },
         // Index 5: Abacus abstraction - GT pointing to NS offset 7
-        { index: 5, name: "Abacus", nsOffset: 7, perms: ["E", "B"], type: "Abstraction", 
+        { index: 5, name: "Abacus", nsOffset: 7, perms: ["E"], type: "Abstraction", 
           desc: "64-bit integer operations", size: 0x1000 },
         // Index 6: Circle abstraction - GT pointing to NS offset 8
-        { index: 6, name: "Circle", nsOffset: 8, perms: ["E", "B"], type: "Abstraction", 
+        { index: 6, name: "Circle", nsOffset: 8, perms: ["E"], type: "Abstraction", 
           desc: "Geometric calculations", size: 0x1000 },
         // Index 7: CapabilityManager abstraction - GT pointing to NS offset 9
         // E = Enter only (minimal privilege for calling)
         { index: 7, name: "CapabilityManager", nsOffset: 9, perms: ["E"], type: "Abstraction", 
           desc: "Creates new Golden Tokens", size: 0x1000 },
         // Index 8: DateTime abstraction - GT pointing to NS offset 10
-        // E = Enter only, B = Bind (can return GT references)
-        { index: 8, name: "DateTime", nsOffset: 10, perms: ["E", "B"], type: "Abstraction", 
+        // E = Enter only
+        { index: 8, name: "DateTime", nsOffset: 10, perms: ["E"], type: "Abstraction", 
           desc: "ISO 8601 date/time functions", size: 0x1000 },
         // Index 9: Lambda abstraction - GT pointing to NS offset 11
         // E = Enter only (pure functions, no state mutation)
@@ -404,87 +404,31 @@ const bootCList = {
     ]
 };
 
-// Permission validation constants
+// Permission validation constants - 6 GT permission bits only (R,W,X,L,S,E)
 const DATA_PERMS = ['R', 'W', 'X'];  // Data permissions - for data/code access
-const CAP_PERMS = ['E', 'B'];        // Capability permissions - for object entry/binding
-const PROTECTED_PERMS = ['L', 'S'];  // Protected - only via CALL with M elevation
-const META_PERM = 'M';               // Hardware-level access, clears all software perms
-const FAR_PERM = 'F';                // Far - indicates remote URL location
+const LAMBDA_PERMS = ['L', 'S', 'E'];  // Lambda permissions - for capability operations
+const ALL_GT_PERMS = ['R', 'W', 'X', 'L', 'S', 'E'];
 
 // Validate permission combinations
 function validatePermissions(perms) {
     const errors = [];
-    const permSet = new Set(perms);
     
-    // Rule 1: M clears all software permissions
-    if (permSet.has('M')) {
-        const softwarePerms = perms.filter(p => p !== 'M' && p !== 'F');
-        if (softwarePerms.length > 0) {
-            errors.push({
-                type: 'critical',
-                msg: `M (Meta-Machine) is a hardware permission that clears all software permissions. Remove: ${softwarePerms.join(', ')}`
-            });
-        }
-    }
-    
-    // Rule 2: Data and Capability permissions are mutually exclusive
-    const hasData = perms.some(p => DATA_PERMS.includes(p));
-    const hasCap = perms.some(p => CAP_PERMS.includes(p));
-    if (hasData && hasCap) {
-        const dataFound = perms.filter(p => DATA_PERMS.includes(p));
-        const capFound = perms.filter(p => CAP_PERMS.includes(p));
+    const invalidPerms = perms.filter(p => !ALL_GT_PERMS.includes(p));
+    if (invalidPerms.length > 0) {
         errors.push({
             type: 'critical',
-            msg: `Data permissions (${dataFound.join(',')}) and Capability permissions (${capFound.join(',')}) are mutually exclusive`
-        });
-    }
-    
-    // Rule 3: L and S should not appear in user-facing GTs
-    const hasProtected = perms.some(p => PROTECTED_PERMS.includes(p));
-    if (hasProtected) {
-        const protFound = perms.filter(p => PROTECTED_PERMS.includes(p));
-        errors.push({
-            type: 'warning',
-            msg: `L/S are protected permissions (hidden from users). ${protFound.join(',')} exposed - only accessible via CALL with M elevation`
+            msg: `Invalid GT permissions: ${invalidPerms.join(', ')}. Only R,W,X,L,S,E are valid GT permissions.`
         });
     }
     
     return errors;
 }
 
-// Apply M permission rule: clears all software permissions
-function applyMPermRule(perms) {
-    if (perms.includes('M')) {
-        // M clears everything except F (Far)
-        return perms.filter(p => p === 'M' || p === 'F');
-    }
-    return perms;
-}
-
 // Normalize permissions to enforce all rules
 function normalizePermissions(perms) {
     if (!perms || !Array.isArray(perms)) return [];
     
-    let result = [...perms];
-    
-    // Rule 1: M clears all software permissions
-    if (result.includes('M')) {
-        result = result.filter(p => p === 'M' || p === 'F');
-        return result;
-    }
-    
-    // Rule 2: Data and Capability are mutually exclusive - prefer Data if both present
-    const hasData = result.some(p => DATA_PERMS.includes(p));
-    const hasCap = result.some(p => CAP_PERMS.includes(p));
-    if (hasData && hasCap) {
-        // Remove capability permissions, keep data permissions
-        result = result.filter(p => !CAP_PERMS.includes(p));
-    }
-    
-    // Rule 3: Remove L and S (protected permissions) from user-facing GTs
-    result = result.filter(p => !PROTECTED_PERMS.includes(p));
-    
-    return result;
+    return perms.filter(p => ALL_GT_PERMS.includes(p));
 }
 
 // Safe accessor for permissions - always returns normalized perms for display/encoding
@@ -624,7 +568,7 @@ const abstractionCLists = {
     CapabilityManager: {
         name: "CapabilityManager",
         mathType: "CAPABILITY",
-        description: "Creates new Golden Tokens. API: DR0=type (0=Data, 1=C-List), DR1=size. Returns CR0 with full type permissions + Bind.",
+        description: "Creates new Golden Tokens. API: DR0=type (0=Data, 1=C-List), DR1=size. Returns CR0 with full type permissions.",
         clist: [
             { name: "GT_CREATE", type: "Function", perms: ["R", "X"], desc: "Create new GT: DR0=type, DR1=size → CR0", base: 0x8100, size: 512 },
             { name: "LocalCode", type: "Code", perms: ["R", "X"], base: 0x8000, size: 256 },
@@ -697,17 +641,17 @@ const bootSteps = [
     },
     {
         name: "Load Namespace",
-        description: "LOAD_NS CR15: Loading Namespace capability (offset 0, perms M+L)...",
+        description: "LOAD_NS CR15: Loading Namespace capability (offset 0, perms L+S)...",
         action: () => {
             // CR15 = GT pointing to Namespace offset 0 (self-reference)
-            // Namespace GT has M (Meta-Machine) and L (Load) permissions for boot
+            // Namespace GT has L (Load) and S (Save) permissions for boot
             const nsEntry = getNSEntry(0);
             simulator.cr15 = {
                 name: "Namespace",
                 nsOffset: 0,
                 type: "System",
                 location: { type: "Local", offset: nsEntry.word1_location },
-                perms: ["M", "L"],  // Meta-Machine + Load for boot operations
+                perms: ["L", "S"],  // Load + Save for boot operations
                 locked: true,
                 goldenKey: generateGoldenKey(),
                 word1: nsEntry.word1_location,
@@ -1187,7 +1131,7 @@ function updateContextRegisters() {
         const tooltip = crTooltips[i];
         const permTooltip = reg.perms.length > 0 ? 
             `Permissions: ${reg.perms.map(p => {
-                const permNames = {R:'Read', W:'Write', X:'Execute', L:'Load', S:'Store', E:'Enter', B:'Bind', M:'Meta-Machine', F:'Far (Remote URL)', G:'Garbage (GC flag)'};
+                const permNames = {R:'Read', W:'Write', X:'Execute', L:'Load', S:'Store', E:'Enter'};
                 return permNames[p] || p;
             }).join(', ')}` : 'No capability loaded. Register is empty.';
         
@@ -1565,7 +1509,7 @@ function createTokenCard(cap, regLabel, showDeleteBtn = true) {
         showCapabilityDetail(evt, cap, regLabel);
     };
     
-    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F', 'G'];
+    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E'];
     const permBadges = allPerms.map(p => {
         const hasIt = cap.perms.includes(p);
         return `<span class="perm-badge perm-${p.toLowerCase()} ${hasIt ? '' : 'inactive'}">${p}</span>`;
@@ -1684,14 +1628,14 @@ function getRegisterAssignment(cap) {
     // Check special registers - order: CRn first, then Type, then size/status
     if (simulator.cr15 && simulator.cr15.name === cap.name) {
         assignments.push({ reg: 'CR15', desc: 'Namespace Root' });
-        if (cap.perms && cap.perms.includes('M')) {
-            assignments.push({ reg: 'Namespace', desc: 'Namespace root (M permission)' });
+        if (cap.type === 'Namespace' || cap.name === 'Namespace' || cap.name === 'SYSTEM_ROOT') {
+            assignments.push({ reg: 'Namespace', desc: 'Namespace root' });
         }
     }
     if (simulator.cr8 && simulator.cr8.name === cap.name) {
         assignments.push({ reg: 'CR8', desc: 'Current Thread' });
-        if (cap.perms && cap.perms.includes('M')) {
-            assignments.push({ reg: 'Thread', desc: 'Thread identity (M permission)' });
+        if (cap.type === 'Thread') {
+            assignments.push({ reg: 'Thread', desc: 'Thread identity' });
             assignments.push({ reg: 'Running', desc: 'Thread is active in CR8' });
         }
     }
@@ -1723,9 +1667,8 @@ function getRegisterAssignment(cap) {
                 const statusLabel = getCodeStatusLabel(metadata);
                 assignments.push({ reg: 'Code', desc: 'Executable code' });
                 assignments.push({ reg: statusLabel, desc: 'Code status from metadata' });
-            } else if (regCap.type === 'Thread' || regCap.perms?.includes('M')) {
+            } else if (regCap.type === 'Thread') {
                 assignments.push({ reg: 'Thread', desc: 'Thread identity' });
-                // Check if this thread is in CR8 (running) or not (suspended)
                 const isInCR8 = simulator.cr8 && simulator.cr8.name === cap.name;
                 assignments.push({ reg: isInCR8 ? 'Running' : 'Suspended', desc: isInCR8 ? 'Thread is active in CR8' : 'Thread is not loaded in CR8' });
             } else if (regCap.type === 'Abstraction') {
@@ -1749,7 +1692,7 @@ function getRegisterAssignment(cap) {
                 const statusLabel = getCodeStatusLabel(metadata);
                 assignments.push({ reg: 'Code', desc: 'Executable code' });
                 assignments.push({ reg: statusLabel, desc: 'Code status from metadata' });
-            } else if (clistEntry.type === 'Thread' || clistEntry.perms?.includes('M')) {
+            } else if (clistEntry.type === 'Thread') {
                 assignments.push({ reg: 'Thread', desc: 'Thread identity capability' });
                 // Check if this thread is in CR8 (running) or not (suspended)
                 const isInCR8 = simulator.cr8 && simulator.cr8.name === cap.name;
@@ -1790,10 +1733,10 @@ function showCapabilityDetail(evt, cap, regLabel) {
     }
     
     const panel = document.getElementById('capDetailPanel');
-    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'F', 'G'];
+    const allPerms = ['R', 'W', 'X', 'L', 'S', 'E'];
     const permNames = {
         R: 'Read', W: 'Write', X: 'Execute',
-        L: 'Load', S: 'Store', E: 'Enter', B: 'Bind', M: 'Meta-Machine', F: 'Far (Remote URL)', G: 'Garbage (GC flag)'
+        L: 'Load', S: 'Store', E: 'Enter'
     };
     
     const offset = cap.location.offset || 0;
@@ -1876,7 +1819,7 @@ function showCapabilityDetail(evt, cap, regLabel) {
                     </div>
                     <div class="field-group field-right">
                         <div class="field-label-row">
-                            <span class="field-label" data-tooltip="Bits 48-63: Permission flags (R=Read, W=Write, X=Execute, L=Load, S=Save, E=Enter, B=Bind, M=Meta-Machine, F=Far/Remote, G=Garbage/GC)">Perms [48:63]</span>
+                            <span class="field-label" data-tooltip="Bits 48-53: Permission flags (R=Read, W=Write, X=Execute, L=Load, S=Save, E=Enter)">Perms [48:53]</span>
                             <span class="perm-hex">= 0x${gtDecoded.permBits.toString(16).toUpperCase().padStart(4, '0')}</span>
                         </div>
                         <div class="perm-checkboxes">${permCheckboxes}</div>
@@ -1885,28 +1828,28 @@ function showCapabilityDetail(evt, cap, regLabel) {
             </div>
             
             <div class="word-row nmd-row">
-                <div class="word-key" data-tooltip="Namespace Descriptor Word 1 - ${cap.perms.includes('F') ? 'Remote URL location' : 'Physical memory address'}">W1</div>
+                <div class="word-key" data-tooltip="Namespace Descriptor Word 1 - ${cap.isFar ? 'Remote URL location' : 'Physical memory address'}">W1</div>
                 <div class="hex-btns">
-                    ${cap.perms.includes('F') ? '<span class="hex-btn-disabled" data-tooltip="URL mode - hex display not applicable">--</span>' : `<button class="hex-btn" data-tooltip="Big-Endian (MSB first): ${formatWord(cap.nsEntry.word1_location)}" id="w1HexBtn">Hex</button>`}
-                    ${cap.perms.includes('F') ? '<span class="hex-btn-disabled" data-tooltip="URL mode - LE display not applicable">--</span>' : `<button class="le-btn" data-tooltip="Little-Endian (LSB first, ARM byte order): ${formatLittleEndian(cap.nsEntry.word1_location)}" id="w1LeBtn">LE</button>`}
+                    ${cap.isFar ? '<span class="hex-btn-disabled" data-tooltip="URL mode - hex display not applicable">--</span>' : `<button class="hex-btn" data-tooltip="Big-Endian (MSB first): ${formatWord(cap.nsEntry.word1_location)}" id="w1HexBtn">Hex</button>`}
+                    ${cap.isFar ? '<span class="hex-btn-disabled" data-tooltip="URL mode - LE display not applicable">--</span>' : `<button class="le-btn" data-tooltip="Little-Endian (LSB first, ARM byte order): ${formatLittleEndian(cap.nsEntry.word1_location)}" id="w1LeBtn">LE</button>`}
                 </div>
                 <div class="word-fields">
                     <div class="field-group field-right-full">
-                        <span class="field-label" data-tooltip="Bits 0-63: ${cap.perms.includes('F') ? 'Remote URL location (F bit set)' : 'Physical memory address (local)'}">${cap.perms.includes('F') ? 'Location (URL)' : 'Location (Address)'} [0:63]</span>
-                        <input type="text" id="nsLocation" class="field-input field-wide ${cap.perms.includes('F') ? 'url-field' : ''}" value="${formatLocation(cap.nsEntry.word1_location, cap.perms.includes('F'))}" onchange="updateNSFromEditor()">
+                        <span class="field-label" data-tooltip="Bits 0-63: ${cap.isFar ? 'Remote URL location' : 'Physical memory address (local)'}">${cap.isFar ? 'Location (URL)' : 'Location (Address)'} [0:63]</span>
+                        <input type="text" id="nsLocation" class="field-input field-wide ${cap.isFar ? 'url-field' : ''}" value="${formatLocation(cap.nsEntry.word1_location, cap.isFar)}" onchange="updateNSFromEditor()">
                     </div>
                 </div>
             </div>
             
             <div class="word-row nmd-row">
-                <div class="word-key" data-tooltip="Namespace Descriptor Word 2 - ${cap.perms.includes('F') ? 'Content length in bytes' : 'Size limit in bytes'}">W2</div>
+                <div class="word-key" data-tooltip="Namespace Descriptor Word 2 - ${cap.isFar ? 'Content length in bytes' : 'Size limit in bytes'}">W2</div>
                 <div class="hex-btns">
                     <button class="hex-btn" data-tooltip="Big-Endian (MSB first): ${formatWord(cap.nsEntry.word2_limit)}" id="w2HexBtn">Hex</button>
                     <button class="le-btn" data-tooltip="Little-Endian (LSB first, ARM byte order): ${formatLittleEndian(cap.nsEntry.word2_limit)}" id="w2LeBtn">LE</button>
                 </div>
                 <div class="word-fields">
                     <div class="field-group field-right-full">
-                        <span class="field-label" data-tooltip="Bits 0-63: ${cap.perms.includes('F') ? 'Content length for remote resource' : 'Maximum size - hardware enforces bounds checking'}">${cap.perms.includes('F') ? 'Length' : 'Limit'} [0:63]</span>
+                        <span class="field-label" data-tooltip="Bits 0-63: ${cap.isFar ? 'Content length for remote resource' : 'Maximum size - hardware enforces bounds checking'}">${cap.isFar ? 'Length' : 'Limit'} [0:63]</span>
                         <input type="text" id="nsLimit" class="field-input field-wide" value="${formatWord(cap.nsEntry.word2_limit)}" onchange="updateNSFromEditor()">
                     </div>
                 </div>
@@ -2009,7 +1952,7 @@ function updateNSFromEditor() {
     const metaStr = document.getElementById('nsMeta').value;
     const typeVal = document.getElementById('nsType').value;
     
-    const isFar = currentEditingCap.perms.includes('F');
+    const isFar = currentEditingCap.isFar || false;
     let location;
     if (isFar && !locationStr.startsWith('0x')) {
         location = locationStr;
@@ -2160,7 +2103,7 @@ function updateCapabilityExplorer() {
             const type = getCapabilityTypeLabel(reg);
             if (type === 'Namespace' || reg.name === 'Namespace' || reg.name === 'SYSTEM_ROOT') {
                 typeClass = 'cr-namespace';
-            } else if (type === 'Thread' || reg.perms?.includes('M')) {
+            } else if (type === 'Thread') {
                 typeClass = 'cr-thread';
             } else if (type === 'C-List') {
                 typeClass = 'cr-clist';
@@ -2821,7 +2764,7 @@ const examplePrograms = {
 TPERM 0 RW        ; Must have Read+Write
 B NE fault        ; Any failure -> FAULT
 
-TPERM 0 B         ; Must have Bind permission
+TPERM 0 S         ; Must have Save permission
 B NE fault        ; Any failure -> FAULT
 
 ; === DATA BOUNDS VALIDATION ===
@@ -4287,10 +4230,6 @@ const lessons = [
                     <li><code>L</code> - <strong>Load</strong>: Load capabilities from children</li>
                     <li><code>S</code> - <strong>Store</strong>: Store capabilities to children</li>
                     <li><code>E</code> - <strong>Enter</strong>: Switch namespace or call procedure</li>
-                    <li><code>B</code> - <strong>Bind</strong>: Save token to namespace DNA (persistent storage)</li>
-                    <li><code>M</code> - <strong>Meta-Machine</strong>: Hardware-level access (Namespace, Threads only)</li>
-                    <li><code>F</code> - <strong>Far</strong>: Indicates remote URL location vs local memory</li>
-                    <li><code>G</code> - <strong>Garbage</strong>: Deterministic GC flag - reset to FALSE when Namespace entry touched by valid key</li>
                 </ul>`,
                 demo: `<div class="demo-title">Permission Badges</div>
                 <div class="demo-content">
@@ -4352,7 +4291,7 @@ const lessons = [
                 <ul>
                     <li><strong>Offset [0:31]</strong> - 32-bit index into the Namespace Table</li>
                     <li><strong>Spare [32:47]</strong> - 16 reserved bits for future use</li>
-                    <li><strong>Perms [48:63]</strong> - 16-bit permission flags (R, W, X, L, S, E, B, M, F, G) Read Data Allowed, Write Data Allowed, eXecute CLOOMC allowed, Load Capability from a GT allowed, Save GT allowed, Enter a Lambda Calculus Abstraction allowed, Bind a GT into the Namespace DNA hierarchy allowed, Meta-Machine Microcode allowed, Far object remotly addressed, Garbage collection identification</li>
+                    <li><strong>Perms [48:53]</strong> - 6-bit permission flags (R, W, X, L, S, E) Read Data Allowed, Write Data Allowed, eXecute CLOOMC allowed, Load Capability from a GT allowed, Save GT allowed, Enter a Lambda Calculus Abstraction allowed</li>
                 </ul>
                 <div class="key-concept">
                     <strong>Key Insight:</strong> The GT contains just enough to locate and authorise access. The detailed resource description lives in the Namespace Entry.
@@ -4389,7 +4328,7 @@ const lessons = [
                     <li><strong>Word 3 (W3)</strong> - <em>Seals</em>: Metadata, Type, and MAC for integrity</li>
                 </ul>
                 <div class="highlight">
-                    The F (Far) permission changes how W1 &amp; W2 are interpreted: local memory address vs. remote URL.
+                    The isFar property on a capability changes how W1 &amp; W2 are interpreted: local memory address vs. remote URL.
                 </div>`,
                 demo: `<div class="demo-title">Namespace Entry Structure</div>
                 <div class="demo-content">
@@ -4482,7 +4421,7 @@ const lessons = [
                 text: `<h3>Step 1: Hardware Reset</h3>
                 <p>All registers are cleared to <code>NULL</code>. This ensures no leftover data from previous sessions.</p>
                 <h3>Step 2: Load Namespace</h3>
-                <p><code>CR15</code> receives the system namespace capability with <code>M</code> permission only - the root of all accessible resources. The M (Meta-Machine) permission marks hardware-level access exclusively.</p>
+                <p><code>CR15</code> receives the system namespace capability with <code>L,S</code> permissions - the root of all accessible resources.</p>
                 <h3>Step 3: Initialise Thread</h3>
                 <p><code>CR8</code> gets the user thread capability for the Namespace Context Register, and <code>CR6</code> receives the C-List (capability list) for Boot abstraction.</p>
                 <h3>Step 4: Load Nucleus</h3>
@@ -4629,7 +4568,7 @@ const lessons = [
                     <li><code>SWITCH reg</code> - Change namespace to capability in reg</li>
                 </ul>
                 <div class="key-concept">
-                    <strong>Important:</strong> These operations always check permissions. You cannot SAVE without the B (Bind) permission!
+                    <strong>Important:</strong> These operations always check permissions. You cannot SAVE without the S (Save) permission!
                 </div>`,
                 demo: `<div class="demo-title">Capability Flow</div>
                 <div class="demo-content">
@@ -4643,7 +4582,7 @@ const lessons = [
                         </div>
                     </div>
                     <div class="demo-explanation">
-                        <p>LOAD brings capabilities into registers for use. SAVE (with B permission) stores them persistently.</p>
+                        <p>LOAD brings capabilities into registers for use. SAVE (with S permission) stores them persistently.</p>
                     </div>
                 </div>`
             },
@@ -4741,8 +4680,8 @@ const lessons = [
                 <div class="demo-content">
                     <div class="demo-visual">
                         <div style="background: rgba(248, 113, 113, 0.2); padding: 1rem; border-radius: 6px; border: 1px solid var(--error);">
-                            <div style="color: var(--error); font-weight: bold;">Attempted: SAVE without B permission</div>
-                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">Result: Operation denied - missing Bind permission</div>
+                            <div style="color: var(--error); font-weight: bold;">Attempted: SAVE without S permission</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">Result: Operation denied - missing Save permission</div>
                         </div>
                     </div>
                     <div class="demo-explanation">
@@ -4847,7 +4786,7 @@ const lessons = [
                 <p>You've learned the fundamentals of capability-based security:</p>
                 <ul>
                     <li>Capabilities are unforgeable tokens granting specific access</li>
-                    <li>The 10 permissions (R, W, X, L, S, E, B, M, F, G) control what you can do. M=Meta-Machine distinguishes hardware-level access, F=Far for remote URLs, G=Garbage for deterministic GC.</li>
+                    <li>The 6 permissions (R, W, X, L, S, E) control what you can do.</li>
                     <li>The boot sequence establishes the secure foundation</li>
                     <li>Context and Data registers serve different purposes</li>
                     <li>Capability operations require proper permissions</li>
@@ -4882,7 +4821,7 @@ const lessons = [
                 <ul>
                     <li><strong>Lambda abstraction</strong> (λx.body) = A GT pointing to executable code</li>
                     <li><strong>Application</strong> (f x) = CALL instruction with arguments in registers</li>
-                    <li><strong>Binding</strong> = Loading GTs from C-Lists into Context Registers</li>
+                    <li><strong>Loading</strong> = Loading GTs from C-Lists into Context Registers</li>
                 </ul>
                 <div class="key-concept">
                     <strong>Key Insight:</strong> Every lambda becomes a capability. You can only apply functions you have tokens for.
@@ -5808,7 +5747,7 @@ FAULT             ; Uniform - attacker learns nothing</pre>
 TPERM 0 RW        ; Required permissions
 B NE fault
 
-TPERM 0 B         ; Additional permission
+TPERM 0 S         ; Additional permission
 B NE fault
 
 ; === DATA VALIDATION ===
@@ -6093,7 +6032,7 @@ LOAD 2 7 5      ; Get from Nucleus entry 5</pre>
                 <ol>
                     <li><strong>Permission Check</strong> - Destination GT must be a C-List with Save (S) permission</li>
                     <li><strong>Bounds Check</strong> - Index must be within the object's size Limit</li>
-                    <li><strong>B-bit Check</strong> - The source GT to be saved must have the B (Bind) bit. If not set, it cannot be saved, preventing theft of a capability when dynamically sharing a GT. It is bound to the CRn of the dynamic thread and is automatically surrendered when the RETURN occurs.</li>
+                    <li><strong>S-bit Check</strong> - The source GT to be saved must have the S (Save) bit. If not set, it cannot be saved, preventing theft of a capability when dynamically sharing a GT.</li>
                     <li><strong>MAC Update</strong> - The MAC for stored GT is unchanged</li>
                     <li><strong>Write to Memory</strong> - The GT is stored at the C-List destination offset if Save permission exists</li>
                 </ol>
@@ -6103,7 +6042,7 @@ LOAD 2 7 5      ; Get from Nucleus entry 5</pre>
                     <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
 ; Syntax: SAVE dest, source, index
 ; dest   = destination C-List allowing Save
-; source = source CRn containing GT to be saved with B (Bind) set
+; source = source CRn containing GT to be saved with S (Save) set
 ; index  = offset within the destination object <= size
 
 ; Store GT from CR0 into C-List entry 5:
@@ -6114,7 +6053,7 @@ SAVE CR[source] CR[dest] 5
 SAVE 0 1 0      ; Store CR1 as entry 0
 ; Now CR0 is a C-List with 1 new entry
 
-; SECURITY: Cannot save a GT without bind allowed (B=true)</pre>
+; SECURITY: Cannot save a GT without save allowed (S=true)</pre>
                 </div>`
             },
             {
@@ -6287,19 +6226,17 @@ SWITCH 0, 1     ; CR9 = interrupt handler
                     <li><strong>Compare with Mask</strong> - Check if required bits are set</li>
                     <li><strong>Set Condition Flags</strong> - Z=1 if ALL required permissions present</li>
                 </ol>
-                <p><strong>Permission Bits (10 total in 4 mutually exclusive domains):</strong></p>
+                <p><strong>Permission Bits (6 total in 2 mutually exclusive domains):</strong></p>
                 <ul>
                     <li><strong>Turing (Data):</strong> R (Read), W (Write), X (Execute)</li>
-                    <li><strong>Church (Capability):</strong> L (Load from C-List), S (Save to C-List)</li>
-                    <li><strong>Lambda:</strong> E (Enter abstraction)</li>
-                    <li><strong>Meta:</strong> B (Bind), M (Machine), F (Foreign), G (Garbage)</li>
+                    <li><strong>Church (Capability):</strong> L (Load from C-List), S (Save to C-List), E (Enter abstraction)</li>
                 </ul>`,
                 demo: `<div class="demo-title">TPERM Instruction Examples</div>
                 <div class="demo-content">
                     <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.8rem;">
 ; Syntax: TPERM source, permissions
 ; source = CR containing GT to test (0-15)
-; permissions = bit mask (R, W, X, L, S, E, B, M, F, G)
+; permissions = bit mask (R, W, X, L, S, E)
 
 ; Test for read permission:
 TPERM 0 R         ; Test if CR0 has Read
@@ -6597,7 +6534,7 @@ Set by: TPERM instruction</pre>
                 <p><strong>Parameters:</strong></p>
                 <ul>
                     <li><strong>CRs</strong> - Context Register to test (0-15)</li>
-                    <li><strong>permMask</strong> - Permission bits to check (R, W, X, L, S, E, B, M, F, G)</li>
+                    <li><strong>permMask</strong> - Permission bits to check (R, W, X, L, S, E)</li>
                     <li><strong>index</strong> - Optional index for bounds checking against W2 limit</li>
                 </ul>
                 <p><strong>Flags Set:</strong></p>
@@ -6718,7 +6655,7 @@ first_fault:
                 text: `<h3>Creating New Golden Tokens</h3>
                 <p>The <strong>CapabilityManager</strong> abstraction creates new Golden Tokens for objects. Unlike other abstractions that perform computations, CapabilityManager allocates and initializes new capabilities.</p>
                 <div class="key-concept">
-                    <strong>Key Concept:</strong> To create objects in CTMM, you CALL the CapabilityManager with the object type and size. It returns a new GT in CR0 with full type-appropriate permissions plus Bind.
+                    <strong>Key Concept:</strong> To create objects in CTMM, you CALL the CapabilityManager with the object type and size. It returns a new GT in CR0 with full type-appropriate permissions.
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 1rem 0;">
                     <tr style="background: var(--bg-tertiary);"><th style="padding: 0.5rem; text-align: left;">Property</th><th style="padding: 0.5rem; text-align: left;">Value</th></tr>
@@ -6776,11 +6713,11 @@ CALL 1 0             ; CALL CapabilityManager
                 <p>The CapabilityManager returns the new GT in <strong>CR0</strong> with permissions based on object type:</p>
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 1rem 0;">
                     <tr style="background: var(--bg-tertiary);"><th style="padding: 0.5rem; text-align: center;">Type</th><th style="padding: 0.5rem; text-align: center;">DR0</th><th style="padding: 0.5rem; text-align: center;">Returned Permissions</th><th style="padding: 0.5rem; text-align: left;">Meaning</th></tr>
-                    <tr><td style="padding: 0.5rem; text-align: center;"><strong>Data</strong></td><td style="text-align: center;">0</td><td style="text-align: center;"><span style="background: #4ade80; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">R</span> <span style="background: #f87171; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">W</span> <span style="background: #60a5fa; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">X</span> <span style="background: #2dd4bf; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">B</span></td><td>Read, Write, Execute, Bind</td></tr>
-                    <tr style="background: var(--bg-tertiary);"><td style="padding: 0.5rem; text-align: center;"><strong>C-List</strong></td><td style="text-align: center;">1</td><td style="text-align: center;"><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span> <span style="background: #2dd4bf; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">B</span></td><td>Load, Save, Enter, Bind</td></tr>
+                    <tr><td style="padding: 0.5rem; text-align: center;"><strong>Data</strong></td><td style="text-align: center;">0</td><td style="text-align: center;"><span style="background: #4ade80; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">R</span> <span style="background: #f87171; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">W</span> <span style="background: #60a5fa; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">X</span></td><td>Read, Write, Execute</td></tr>
+                    <tr style="background: var(--bg-tertiary);"><td style="padding: 0.5rem; text-align: center;"><strong>C-List</strong></td><td style="text-align: center;">1</td><td style="text-align: center;"><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Load, Save, Enter</td></tr>
                 </table>
                 <div class="key-concept">
-                    <strong>Mutual Exclusivity:</strong> Data permissions (R,W,X) and Capability permissions (L,S,E) are mutually exclusive. A GT has either data access OR capability access, never both. The <strong>B</strong> (Bind) permission is included in both sets.
+                    <strong>Mutual Exclusivity:</strong> Data permissions (R,W,X) and Capability permissions (L,S,E) are mutually exclusive. A GT has either data access OR capability access, never both.
                 </div>`,
                 demo: `<div class="demo-title">Permission Sets</div>
                 <div class="demo-content">
@@ -6791,7 +6728,6 @@ CALL 1 0             ; CALL CapabilityManager
                                 <span style="background: #4ade80; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">R</span>
                                 <span style="background: #f87171; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">W</span>
                                 <span style="background: #60a5fa; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">X</span>
-                                <span style="background: #2dd4bf; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">B</span>
                             </div>
                         </div>
                         <div style="text-align: center;">
@@ -6800,7 +6736,6 @@ CALL 1 0             ; CALL CapabilityManager
                                 <span style="background: #c084fc; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">L</span>
                                 <span style="background: #fb923c; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">S</span>
                                 <span style="background: #fbbf24; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">E</span>
-                                <span style="background: #2dd4bf; color: #1a1a2e; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.1rem;">B</span>
                             </div>
                         </div>
                     </div>
@@ -7085,7 +7020,7 @@ LOAD CR5, [CR6+5]</pre>
                     <li><strong>{register-list}</strong>: Bitmask of CR0-CR7 to store</li>
                 </ul>
                 <div class="key-concept">
-                    <strong>B-bit validation:</strong> Each CR being stored must have the <code>B</code> (Bind) permission, just like individual SAVE operations.
+                    <strong>S-bit validation:</strong> Each CR being stored must have the <code>S</code> (Save) permission, just like individual SAVE operations.
                 </div>`,
                 demo: `<div class="demo-title">Context Save/Restore Pattern</div>
                 <div class="demo-content">
@@ -7164,7 +7099,7 @@ LDI DR1, #0x3FFFFF   ; DR1 = 4194303 (max 22-bit)</pre>
             },
             {
                 text: `<h3>TPERM Presets Overview</h3>
-                <p>Instead of specifying a 10-bit permission mask, TPERM can use <strong>preset codes</strong> for common patterns:</p>
+                <p>Instead of specifying a 6-bit permission mask, TPERM can use <strong>preset codes</strong> for common patterns:</p>
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0.5rem 0;">
                     <tr style="background: var(--bg-tertiary);"><th style="padding: 0.3rem;">Code</th><th>Name</th><th>Permissions</th><th>Category</th></tr>
                     <tr><td style="text-align: center;">0</td><td>CLEAR</td><td>(none)</td><td>-</td></tr>
@@ -7194,13 +7129,13 @@ TPERM CR2, #5        ; Test for full RWX access</pre>
                     <tr><td style="text-align: center; background: #c084fc22;">6</td><td>L</td><td><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span></td><td>Load capability</td></tr>
                     <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #fb923c22;">7</td><td>S</td><td><span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span></td><td>Save capability</td></tr>
                     <tr><td style="text-align: center; background: #fbbf2422;">8</td><td>E</td><td><span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Enter abstraction</td></tr>
-                    <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #2dd4bf22;">9</td><td>B</td><td><span style="background: #2dd4bf; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">B</span></td><td>Bind (delegate)</td></tr>
-                    <tr><td style="text-align: center; background: #a855f722;">10</td><td>M</td><td><span style="background: #a855f7; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">M</span></td><td>Meta/internal</td></tr>
-                    <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #06b6d422;">11</td><td>F</td><td><span style="background: #06b6d4; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">F</span></td><td>Foreign/remote</td></tr>
-                    <tr><td style="text-align: center; background: #84cc1622;">12</td><td>G</td><td><span style="background: #84cc16; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">G</span></td><td>GC marking</td></tr>
+                    <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #2dd4bf22;">9</td><td>LS</td><td><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span></td><td>Load + Save</td></tr>
+                    <tr><td style="text-align: center; background: #a855f722;">10</td><td>LSE</td><td><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Full capability access</td></tr>
+                    <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #06b6d422;">11</td><td>ALL</td><td><span style="background: #4ade80; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">R</span> <span style="background: #f87171; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">W</span> <span style="background: #60a5fa; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">X</span> <span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>All 6 permissions</td></tr>
+                    <tr><td style="text-align: center; background: #84cc1622;">12</td><td>EL</td><td><span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span> <span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span></td><td>Enter + Load</td></tr>
                 </table>
                 <div class="key-concept">
-                    <strong>Order:</strong> Codes 6-12 follow the Lambda permission order: <strong>L, S, E, B, M, F, G</strong>
+                    <strong>Order:</strong> Codes 6-8 map to individual Lambda permissions: <strong>L, S, E</strong>. Codes 9-13 are common combos.
                 </div>`,
                 demo: `<div class="demo-title">Lambda Permission Tests</div>
                 <div class="demo-content">
@@ -7209,8 +7144,8 @@ TPERM CR2, #5        ; Test for full RWX access</pre>
 TPERM CR0, #6        ; Has L (Load)?
 BEQ can_load         ; Yes - can load from this C-List
 
-TPERM CR1, #9        ; Has B (Bind)?
-BEQ can_delegate     ; Yes - can delegate this GT</pre>
+TPERM CR1, #7        ; Has S (Save)?
+BEQ can_save         ; Yes - can save to this C-List</pre>
                 </div>`
             },
             {
@@ -7237,7 +7172,7 @@ SAVE CR1, [CR0+1]    ; Save to it</pre>
                 text: `<h3>TPERM Binary Format with Presets</h3>
                 <p>TPERM has a P-bit to select between mask mode and preset mode:</p>
                 <ul>
-                    <li><strong>P=0</strong>: Use 10-bit explicit permission mask</li>
+                    <li><strong>P=0</strong>: Use 6-bit explicit permission mask</li>
                     <li><strong>P=1</strong>: Use 4-bit preset code (0-13)</li>
                 </ul>`,
                 demo: `<div class="demo-title">TPERM Format</div>
@@ -7266,7 +7201,7 @@ SAVE CR1, [CR0+1]    ; Save to it</pre>
                         </div>
                     </div>
                     <div style="margin-top: 1rem; font-size: 0.85rem;">
-                        <strong>P=0</strong>: Perms = 10-bit mask (R,W,X,L,S,E,B,M,F,G)<br>
+                        <strong>P=0</strong>: Perms = 6-bit mask (R,W,X,L,S,E)<br>
                         <strong>P=1</strong>: Perms[3:0] = preset code (0-13)
                     </div>
                 </div>`,
@@ -7281,8 +7216,8 @@ SAVE CR1, [CR0+1]    ; Save to it</pre>
                     ],
                     correct: 2,
                     feedback: {
-                        correct: "Correct! Preset codes 6-12 follow the Lambda permission order (L,S,E,B,M,F,G), so E is at code 8.",
-                        incorrect: "Remember: codes 6-12 follow Lambda order (L,S,E,B,M,F,G). E is the 3rd Lambda permission, so it's at code 6+2=8."
+                        correct: "Correct! Preset codes 6-8 follow the Lambda permission order (L,S,E), so E is at code 8.",
+                        incorrect: "Remember: codes 6-8 follow Lambda order (L,S,E). E is the 3rd Lambda permission, so it's at code 6+2=8."
                     }
                 }
             }
@@ -7864,7 +7799,7 @@ function contextMenuAction(action) {
 
 function updatePermissionsForType(type) {
     const dataPerms = ['R', 'W', 'X'];
-    const capPerms = ['L', 'S', 'E', 'B'];
+    const capPerms = ['L', 'S', 'E'];
     
     const isDataType = (type === 'Data');
     
@@ -7894,7 +7829,7 @@ function openAddObjectModal() {
     document.getElementById('modalObjType').value = 'Data';
     document.getElementById('modalObjSize').value = '1024';
     
-    ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'G'].forEach(p => {
+    ['R', 'W', 'X', 'L', 'S', 'E'].forEach(p => {
         const el = document.getElementById(`modalPerm${p}`);
         if (el) el.checked = (p === 'R');
     });
@@ -7926,7 +7861,7 @@ function openEditObjectModal() {
     
     updatePermissionsForType(obj.type);
     
-    ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'G'].forEach(p => {
+    ['R', 'W', 'X', 'L', 'S', 'E'].forEach(p => {
         const checkbox = document.getElementById(`modalPerm${p}`);
         if (checkbox && !checkbox.disabled) {
             checkbox.checked = obj.perms.includes(p);
@@ -7965,7 +7900,7 @@ function showAddCapabilityModal() {
     updatePermissionsForType('Data');
     
     // Set default permissions
-    ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'G'].forEach(p => {
+    ['R', 'W', 'X', 'L', 'S', 'E'].forEach(p => {
         const checkbox = document.getElementById(`modalPerm${p}`);
         if (checkbox) {
             checkbox.checked = (p === 'R'); // Only R checked by default
@@ -8062,7 +7997,7 @@ function analyzeDeleteImpact(clistIndex, capName) {
     }
     
     // Check if it's a Thread
-    if (cap.type === 'Thread' || cap.perms?.includes('M')) {
+    if (cap.type === 'Thread') {
         impacts.push({
             message: 'Thread capability - associated thread context will be lost',
             severity: 'warning'
@@ -8215,7 +8150,7 @@ function confirmObjectModal() {
     const parent = document.getElementById('modalParent').value;
     
     let perms = [];
-    ['R', 'W', 'X', 'L', 'S', 'E', 'B', 'M', 'G'].forEach(p => {
+    ['R', 'W', 'X', 'L', 'S', 'E'].forEach(p => {
         const el = document.getElementById(`modalPerm${p}`);
         if (el && el.checked) {
             perms.push(p);
@@ -8537,7 +8472,7 @@ function analyzeObjectDeleteImpact(objName, objType) {
     }
     
     // Type-specific warnings
-    if (objType === 'Thread' || (obj && obj.perms && obj.perms.includes('M'))) {
+    if (objType === 'Thread') {
         impacts.push({
             message: '<strong>Thread capability</strong> - Thread context and identity will be permanently lost',
             severity: 'danger'
@@ -8680,11 +8615,11 @@ function getNextFreeNamespaceOffset() {
 }
 
 
-// Calculate permission bits from permission array
+// Calculate permission bits from permission array (6-bit: R,W,X,L,S,E)
 function calculatePermissionBits(perms) {
     const permBits = {
         'R': 0x0001, 'W': 0x0002, 'X': 0x0004, 'L': 0x0008,
-        'S': 0x0010, 'E': 0x0020, 'B': 0x0040, 'M': 0x0080, 'F': 0x0100, 'G': 0x0200
+        'S': 0x0010, 'E': 0x0020
     };
     let value = 0;
     if (perms) {
@@ -9743,8 +9678,8 @@ divzero_trap:
 ;   DR1 = size in words (object capacity)
 ;   CR0 = output: new Golden Token
 ; Permission Sets:
-;   Data:   [R,W,X,B] - Read, Write, Execute, Bind
-;   C-List: [L,S,E,B] - Load, Save, Enter, Bind
+;   Data:   [R,W,X] - Read, Write, Execute
+;   C-List: [L,S,E] - Load, Save, Enter
 ; ====================================================
 
 ; === PARAMETER VALIDATION ===
@@ -9780,8 +9715,8 @@ B GT fault          ; Size > 65536 -> FAULT
 ; === GOLDEN TOKEN CONSTRUCTION ===
 ; Step 5: Build 64-bit Golden Token
 ; Bits 0-31:  Offset into Namespace Table
-; Bits 32-40: Permissions (based on type)
-; Bits 41-63: Spare/reserved
+; Bits 32-37: Permissions (6-bit: R,W,X,L,S,E)
+; Bits 38-63: Version/spare
 
 ; Step 6: Set permissions based on type
 CMP 0 0             ; Is this a Data object?
@@ -9789,23 +9724,21 @@ B EQ data_perms
 B NE clist_perms
 
 data_perms:
-; Data object: grant [R,W,X,B]
-; Allows reading, writing, executing, and binding
+; Data object: grant [R,W,X]
+; Allows reading, writing, and executing
 ; R = Read data values     (bit 0 = 0x01)
 ; W = Write data values    (bit 1 = 0x02)
 ; X = Execute as code      (bit 2 = 0x04)
-; B = Bind into C-Lists    (bit 6 = 0x40)
-MOV 0 #0x47         ; R+W+X+B = 0x01+0x02+0x04+0x40 = 0x47
+MOV 0 #0x07         ; R+W+X = 0x01+0x02+0x04 = 0x07
 B done_perms
 
 clist_perms:
-; C-List object: grant [L,S,E,B]
-; Allows loading, saving, entering, and binding
+; C-List object: grant [L,S,E]
+; Allows loading, saving, and entering
 ; L = Load GTs from C-List (bit 3 = 0x08)
 ; S = Save GTs into C-List (bit 4 = 0x10)
 ; E = Enter/CALL through   (bit 5 = 0x20)
-; B = Bind into parents    (bit 6 = 0x40)
-MOV 0 #0x78         ; L+S+E+B = 0x08+0x10+0x20+0x40 = 0x78
+MOV 0 #0x38         ; L+S+E = 0x08+0x10+0x20 = 0x38
 
 done_perms:
 ; Step 7: Store new GT in CR0 for caller
@@ -10080,7 +10013,7 @@ fault:
 ; Step 3: Create GT with read permission
 ; Pair is immutable once created
 
-; CR0 = GT to pair with [R,B] permissions
+; CR0 = GT to pair with [R] permissions
 RETURN
 
 ; === FAILSAFE: No error codes ===
@@ -10507,7 +10440,7 @@ TPERM 0 RWX       ; Check CR0 has Read+Write+Execute
 B NE fault        ; If missing -> FAULT (no error codes!)
 
 ; Step 2: Test bounds (optional size check)
-TPERM 0 B         ; Verify has Bind permission
+TPERM 0 S         ; Verify has Save permission
 B NE fault        ; If missing -> FAULT
 
 ; Step 3: Capability is valid - proceed
@@ -11009,7 +10942,7 @@ const churchInstrFormats = [
             { name: "I", bits: 1, desc: "1=embedded mask, 0=use DR15" },
             { name: "CRs", bits: 3, desc: "Abstraction capability (0-7)" },
             { name: "CRn", bits: 3, desc: "Return capability register" },
-            { name: "Mask", bits: 10, desc: "Permission mask (when I=1)" },
+            { name: "Mask", bits: 6, desc: "Permission mask (when I=1)" },
             { name: "Reserved", bits: 6, value: "0", desc: "Reserved" }
         ],
         variants: [
@@ -11087,14 +11020,14 @@ const churchInstrFormats = [
             { name: "P", bits: 1, desc: "0=mask mode, 1=preset mode" },
             { name: "CRs", bits: 3, desc: "CR to test (0-7)" },
             { name: "I", bits: 1, desc: "Index present (1=yes)" },
-            { name: "Perms/Preset", bits: 10, desc: "P=0: 10-bit mask. P=1: Preset[3:0] (0-13)" },
+            { name: "Perms/Preset", bits: 6, desc: "P=0: 6-bit mask (R,W,X,L,S,E). P=1: Preset[3:0] (0-13)" },
             { name: "Index", bits: 8, desc: "Access index for bounds check (if I=1)" }
         ],
         variants: [
-            { name: "Mask mode", fields: { P: "0", Perms: "10-bit permission mask (R W X L S E B M F G)" } },
-            { name: "Preset mode", fields: { P: "1", Preset: "0=CLEAR, 1=R, 2=RW, 3=X, 4=RX, 5=RWX, 6=L, 7=S, 8=E, 9=B, 10=M, 11=F, 12=G, 13=LS" } }
+            { name: "Mask mode", fields: { P: "0", Perms: "6-bit permission mask (R W X L S E)" } },
+            { name: "Preset mode", fields: { P: "1", Preset: "0=CLEAR, 1=R, 2=RW, 3=X, 4=RX, 5=RWX, 6=L, 7=S, 8=E, 9=LS, 10=LSE, 11=ALL, 12=EL, 13=ES" } }
         ],
-        notes: "Codes 6-12 match Lambda permission order (L,S,E,B,M,F,G). Codes 14-15 cause FAULT_TPERM_RSV."
+        notes: "Codes 6-8 match Lambda permission order (L,S,E). Codes 9-13 are common combos. Codes 14-15 cause FAULT_TPERM_RSV."
     },
     {
         name: "LOADX",
@@ -11162,7 +11095,7 @@ const churchInstrFormats = [
             { name: "Reserved", bits: 10, value: "0", desc: "Reserved" },
             { name: "RegList", bits: 8, desc: "CR bitmask (bit i = CR[i])" }
         ],
-        security: "Each store goes through mSave subroutine - B-bit binding validation enforced. Cannot bypass capability security model.",
+        security: "Each store goes through mSave subroutine - S-bit save validation enforced. Cannot bypass capability security model.",
         notes: "3-bit CR field prevents instruction-level access to protected system registers CR8-CR15."
     },
     {
@@ -11361,7 +11294,7 @@ const instructionTiming = {
             color: "#c084fc",
             instructions: [
                 { name: "LOAD", cycles: "5-6", best: 5, worst: 106, time: "2.5-53 ns", notes: "L+Bounds+MAC validation; cache-dependent" },
-                { name: "SAVE", cycles: "4-5", best: 4, worst: 105, time: "2.0-52.5 ns", notes: "S+B-bit+Bounds check; write-through" },
+                { name: "SAVE", cycles: "4-5", best: 4, worst: 105, time: "2.0-52.5 ns", notes: "S-bit+Bounds check; write-through" },
                 { name: "LOADX", cycles: "6-7", best: 6, worst: 107, time: "3.0-53.5 ns", notes: "LOAD + monitor set (memory barrier)" },
                 { name: "SAVEX", cycles: "5-6", best: 5, worst: 106, time: "2.5-53 ns", notes: "Monitor check + conditional store" },
                 { name: "LDM", cycles: "5+4n", best: 9, worst: "5+104n", time: "4.5+ ns", notes: "n=register count; each uses mLoad" },

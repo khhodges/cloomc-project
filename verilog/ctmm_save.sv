@@ -127,7 +127,7 @@ module ctmm_save
             fault_type_latched <= FAULT_NONE;
         end else if (state == SAVE_CHECK_DST_READ && !dst_in_range) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // Invalid destination register
+            fault_type_latched <= FAULT_INVALID_OP;
         end else if (state == SAVE_CALL_SUB && sub_fault_latched) begin
             fault_latched <= 1'b1;
             fault_type_latched <= sub_fault_type;

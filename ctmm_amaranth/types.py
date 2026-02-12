@@ -6,10 +6,6 @@ PERM_X = 2
 PERM_L = 3
 PERM_S = 4
 PERM_E = 5
-PERM_B = 6
-PERM_M = 7
-PERM_F = 8
-PERM_G = 9
 
 PERM_MASK_R = 1 << PERM_R
 PERM_MASK_W = 1 << PERM_W
@@ -17,14 +13,9 @@ PERM_MASK_X = 1 << PERM_X
 PERM_MASK_L = 1 << PERM_L
 PERM_MASK_S = 1 << PERM_S
 PERM_MASK_E = 1 << PERM_E
-PERM_MASK_B = 1 << PERM_B
-PERM_MASK_M = 1 << PERM_M
-PERM_MASK_F = 1 << PERM_F
-PERM_MASK_G = 1 << PERM_G
 
 DATA_PERMS = PERM_MASK_R | PERM_MASK_W | PERM_MASK_X
-CAP_PERMS = PERM_MASK_L | PERM_MASK_S | PERM_MASK_E | PERM_MASK_B
-META_PERMS = PERM_MASK_M | PERM_MASK_F | PERM_MASK_G
+CAP_PERMS = PERM_MASK_L | PERM_MASK_S | PERM_MASK_E
 
 NUM_CAP_REGS = 16
 
@@ -98,11 +89,11 @@ class TpermPreset(IntEnum):
     L     = 6
     S     = 7
     E     = 8
-    B     = 9
-    M     = 10
-    F     = 11
-    G     = 12
-    LS    = 13
+    LS    = 9
+    LE    = 10
+    SE    = 11
+    LSE   = 12
+    RWXL  = 13
     RSV1  = 14
     RSV2  = 15
 
@@ -117,11 +108,11 @@ TPERM_MASKS = {
     TpermPreset.L:     PERM_MASK_L,
     TpermPreset.S:     PERM_MASK_S,
     TpermPreset.E:     PERM_MASK_E,
-    TpermPreset.B:     PERM_MASK_B,
-    TpermPreset.M:     PERM_MASK_M,
-    TpermPreset.F:     PERM_MASK_F,
-    TpermPreset.G:     PERM_MASK_G,
     TpermPreset.LS:    PERM_MASK_L | PERM_MASK_S,
+    TpermPreset.LE:    PERM_MASK_L | PERM_MASK_E,
+    TpermPreset.SE:    PERM_MASK_S | PERM_MASK_E,
+    TpermPreset.LSE:   PERM_MASK_L | PERM_MASK_S | PERM_MASK_E,
+    TpermPreset.RWXL:  PERM_MASK_R | PERM_MASK_W | PERM_MASK_X | PERM_MASK_L,
 }
 
 
@@ -133,13 +124,12 @@ class FaultType(IntEnum):
     PERM_L     = 0x4
     PERM_S     = 0x5
     PERM_E     = 0x6
-    PERM_M     = 0x7
-    NULL_CAP   = 0x8
-    BOUNDS     = 0x9
-    MAC        = 0xA
-    INVALID_OP = 0xB
-    TPERM_RSV  = 0xC
-    EXCL_FAIL  = 0xD
+    NULL_CAP   = 0x7
+    BOUNDS     = 0x8
+    MAC        = 0x9
+    INVALID_OP = 0xA
+    TPERM_RSV  = 0xB
+    EXCL_FAIL  = 0xC
 
 
 class ExclMonitorState(IntEnum):
