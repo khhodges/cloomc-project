@@ -128,6 +128,40 @@ class CTMMSimulator {
         return { ok: true, cap: src };
     }
 
+    _getCR(crIdx) {
+        if (crIdx < 8) return this.contextRegs[crIdx];
+        if (crIdx === 8) return this.cr8;
+        if (crIdx === 15) return this.cr15;
+        return this.systemRegs ? this.systemRegs[crIdx] : null;
+    }
+
+    _setCR(crIdx, cap) {
+        if (crIdx < 8) this.contextRegs[crIdx] = cap;
+        else if (crIdx === 8) this.cr8 = cap;
+        else if (crIdx === 15) this.cr15 = cap;
+        else {
+            if (!this.systemRegs) this.systemRegs = {};
+            this.systemRegs[crIdx] = cap;
+        }
+        this._updateThreadShadow(crIdx);
+    }
+
+    _clearCR(crIdx) {
+        this._setCR(crIdx, this.createNullCapability());
+    }
+
+    _updateThreadShadow(crIdx) {
+        if (!this.cr8 || this.cr8.name === 'NULL') return;
+        if (!this.threadShadow) this.threadShadow = {};
+        const tid = this.currentThread;
+        if (!this.threadShadow[tid]) {
+            this.threadShadow[tid] = { cr: {}, dr: {}, nia: this.nia };
+            for (let i = 0; i < 16; i++) this.threadShadow[tid].cr[i] = this.createNullCapability();
+            for (let i = 0; i < 16; i++) this.threadShadow[tid].dr[i] = 0n;
+        }
+        this.threadShadow[tid].cr[crIdx] = { ...this._getCR(crIdx) };
+    }
+
     checkCondition(cond) {
         if (!cond || cond === '') return true;
         
@@ -511,14 +545,12 @@ class CTMMSimulator {
             
             case "LOAD": {
                 const [destCR, srcCR, idx] = args;
-                const src = srcCR < 8 ? this.contextRegs[srcCR] : srcCR === 8 ? this.cr8 : this.cr15;
+                const src = this._getCR(srcCR);
                 const result = this.mLoad(src, 'L', idx);
                 if (!result.ok) {
                     return `FAULT: ${result.fault}: CR${srcCR} - ${result.message}`;
                 }
-                if (destCR < 8) this.contextRegs[destCR] = result.cap;
-                else if (destCR === 8) this.cr8 = result.cap;
-                else if (destCR === 15) this.cr15 = result.cap;
+                this._setCR(destCR, result.cap);
                 const destName = destCR === 8 ? 'CR8 (Thread)' : destCR === 15 ? 'CR15 (Namespace)' : `CR${destCR}`;
                 const permStr = result.cap.perms.length > 0 ? `[${result.cap.perms.join('')}]` : '';
                 return `Loaded ${result.cap.name} ${permStr} into ${destName} via CR${srcCR}[${idx}]`;
@@ -541,14 +573,12 @@ class CTMMSimulator {
             
             case "LOADX": {
                 const [destCR, srcCR, idx] = args;
-                const src = srcCR < 8 ? this.contextRegs[srcCR] : srcCR === 8 ? this.cr8 : this.cr15;
+                const src = this._getCR(srcCR);
                 const result = this.mLoad(src, 'L', idx);
                 if (!result.ok) {
                     return `FAULT: ${result.fault}: CR${srcCR} - ${result.message}`;
                 }
-                if (destCR < 8) {
-                    this.contextRegs[destCR] = result.cap;
-                }
+                this._setCR(destCR, result.cap);
                 const addr = (srcCR << 16) | idx;
                 this.exclusiveMonitors[this.currentThread] = { valid: true, addr: addr };
                 return `LOADX: Loaded ${result.cap.name} into CR${destCR}, exclusive monitor set for addr 0x${addr.toString(16)}`;
@@ -579,7 +609,7 @@ class CTMMSimulator {
             
             case "LDM": {
                 const [baseCR, regList] = args;
-                const base = baseCR < 8 ? this.contextRegs[baseCR] : baseCR === 8 ? this.cr8 : this.cr15;
+                const base = this._getCR(baseCR);
                 const baseResult = this.mLoad(base, 'L');
                 if (!baseResult.ok) {
                     return `FAULT: ${baseResult.fault}: CR${baseCR} - ${baseResult.message}`;
@@ -590,7 +620,7 @@ class CTMMSimulator {
                     if ((regList >> i) & 1) {
                         const entryResult = this.mLoad(base, 'L', idx);
                         if (entryResult.ok) {
-                            this.contextRegs[i] = entryResult.cap;
+                            this._setCR(i, entryResult.cap);
                         }
                         loaded.push(`CR${i}`);
                         idx++;
@@ -660,7 +690,7 @@ class CTMMSimulator {
             
             case "CALL": {
                 const [crIdx, maskField] = args;
-                const cr = crIdx < 8 ? this.contextRegs[crIdx] : crIdx === 8 ? this.cr8 : this.cr15;
+                const cr = this._getCR(crIdx);
                 const callResult = this.mLoad(cr, 'L');
                 if (!callResult.ok) {
                     return `FAULT: ${callResult.fault}: CR${crIdx} - ${callResult.message}`;
@@ -673,14 +703,9 @@ class CTMMSimulator {
                     boundGTs: []
                 });
                 
-                // CALL isolation mask (11 bits): [10:5]=CR0-5, [4:0]=DR1-5
-                // bit=1 means PRESERVE, bit=0 means CLEAR
-                // Fixed behaviors: DR0 always preserved, DR6-7 always cleared, DR8-15 always cleared
                 const mask = maskField || 0;
                 let clearedRegs = [];
                 
-                // DR0: always preserved (not in mask)
-                // DR1-DR5: based on mask bits [4:0]
                 for (let i = 1; i <= 5; i++) {
                     const preserve = (mask >> (i - 1)) & 1;
                     if (!preserve) {
@@ -688,42 +713,40 @@ class CTMMSimulator {
                         clearedRegs.push(`DR${i}`);
                     }
                 }
-                // DR6-DR15: always cleared
                 for (let i = 6; i < 16; i++) {
                     this.dataRegs[i] = 0n;
                     clearedRegs.push(`DR${i}`);
                 }
                 
-                // CR0-CR5: based on mask bits [10:5]
                 let clearedCRs = [];
                 for (let i = 0; i <= 5; i++) {
                     const preserve = (mask >> (i + 5)) & 1;
                     if (!preserve) {
-                        this.contextRegs[i] = { name: 'NULL', perms: [], location: null, locked: true };
+                        this._clearCR(i);
                         clearedCRs.push(`CR${i}`);
                     }
                 }
                 
                 const nodalPerms = [...cr.perms];
                 if (!nodalPerms.includes('M')) {
-                    nodalPerms.push('M');  // Append M after successful CALL
+                    nodalPerms.push('M');
                 }
-                this.contextRegs[6] = {
+                this._setCR(6, {
                     name: `CLIST_${cr.name}`,
                     location: cr.location,
                     perms: nodalPerms,
                     locked: false,
                     goldenKey: this.generateKey(),
                     isNodalCList: true
-                };
+                });
                 
-                this.contextRegs[7] = {
+                this._setCR(7, {
                     name: `ACCESS_${cr.name}`,
                     location: { type: 'Code', offset: 0 },
                     perms: ['X'],
                     locked: false,
                     goldenKey: this.generateKey()
-                };
+                });
                 
                 this.stackDepth++;
                 const drClearMsg = clearedRegs.length > 0 ? `, DRs cleared: ${clearedRegs.join(',')}` : '';
@@ -736,14 +759,14 @@ class CTMMSimulator {
                     const frame = this.callStack.pop();
                     this.stackDepth--;
                     
-                    if (frame.cr6) this.contextRegs[6] = frame.cr6;
-                    if (frame.cr7) this.contextRegs[7] = frame.cr7;
+                    if (frame.cr6) this._setCR(6, frame.cr6);
+                    if (frame.cr7) this._setCR(7, frame.cr7);
                     
                     let surrendered = [];
                     for (let i = 0; i < 8; i++) {
                         const cr = this.contextRegs[i];
                         if (cr && cr.boundDuringCall) {
-                            this.contextRegs[i] = { name: 'NULL', perms: [], location: null, locked: true };
+                            this._clearCR(i);
                             surrendered.push(`CR${i}`);
                         }
                     }
@@ -759,13 +782,18 @@ class CTMMSimulator {
                 
                 this.exclusiveMonitors[this.currentThread] = { valid: false, addr: 0 };
                 
+                if (this.threadShadow && this.threadShadow[this.currentThread]) {
+                    this.threadShadow[this.currentThread].dr = { ...this.dataRegs };
+                    this.threadShadow[this.currentThread].nia = this.nia;
+                }
+                
                 let sourceCap = null;
                 let sourceDesc = '';
                 
                 if (arg2 !== undefined) {
                     const crIdx = parseInt(arg1);
                     const index = parseInt(arg2);
-                    const clist = crIdx < 8 ? this.contextRegs[crIdx] : null;
+                    const clist = this._getCR(crIdx);
                     const result = this.mLoad(clist, 'L', index);
                     if (!result.ok) {
                         return `FAULT: ${result.fault}: CR${crIdx} - ${result.message}`;
@@ -774,7 +802,7 @@ class CTMMSimulator {
                     sourceDesc = `C-List CR${crIdx}[${index}]`;
                 } else {
                     const crIdx = parseInt(arg1);
-                    const src = crIdx < 8 ? this.contextRegs[crIdx] : crIdx === 8 ? this.cr8 : this.cr15;
+                    const src = this._getCR(crIdx);
                     const result = this.mLoad(src, 'L');
                     if (!result.ok) {
                         return `FAULT: ${result.fault}: CR${crIdx} - ${result.message}`;
@@ -783,13 +811,13 @@ class CTMMSimulator {
                     sourceDesc = `CR${crIdx}`;
                 }
                 
-                this.cr8 = {
+                this._setCR(8, {
                     name: `THREAD_${sourceCap.name}`,
                     location: sourceCap.location || { type: 'Local', offset: 0 },
                     perms: ['R', 'W'],
                     locked: false,
                     goldenKey: this.generateKey()
-                };
+                });
                 return `CHANGE: Created thread GT from ${sourceDesc}, exclusive monitor cleared`;
             }
             
@@ -804,7 +832,7 @@ class CTMMSimulator {
                     const crIdx = parseInt(arg1);
                     const index = parseInt(arg2);
                     target = parseInt(arg3);
-                    const clist = crIdx < 8 ? this.contextRegs[crIdx] : null;
+                    const clist = this._getCR(crIdx);
                     const result = this.mLoad(clist, 'L', index);
                     if (!result.ok) {
                         return `FAULT: ${result.fault}: CR${crIdx} - ${result.message}`;
@@ -814,7 +842,7 @@ class CTMMSimulator {
                 } else {
                     const crIdx = parseInt(arg1);
                     target = arg2 !== undefined ? parseInt(arg2) : 7;
-                    const src = crIdx < 8 ? this.contextRegs[crIdx] : crIdx === 8 ? this.cr8 : this.cr15;
+                    const src = this._getCR(crIdx);
                     const resultL = this.mLoad(src, 'L');
                     const resultE = this.mLoad(src, 'E');
                     if (!resultL.ok && !resultE.ok) {
@@ -824,24 +852,13 @@ class CTMMSimulator {
                     sourceDesc = `CR${crIdx}`;
                 }
                 
-                // Map target to destination system register (CR8 + target)
                 const destCR = 8 + target;
                 const destName = ['CR8 (Thread)', 'CR9 (Interrupt)', 'CR10 (DFault)', 
                                   'CR11', 'CR12', 'CR13', 'CR14', 'CR15 (Namespace)'][target];
                 const newCap = { ...sourceCap, goldenKey: sourceCap.goldenKey || this.generateKey() };
                 
-                // Store to appropriate system register
-                if (destCR === 8) {
-                    this.cr8 = newCap;
-                } else if (destCR === 15) {
-                    this.cr15 = newCap;
-                } else {
-                    // CR9-14: Store in system register array (future use)
-                    if (!this.systemRegs) this.systemRegs = {};
-                    this.systemRegs[destCR] = newCap;
-                }
+                this._setCR(destCR, newCap);
                 
-                // Clear exclusive monitor on thread change (target=0 is CR8/Thread)
                 if (target === 0) {
                     this.exclusiveMonitors[this.currentThread] = { valid: false, addr: 0 };
                 }

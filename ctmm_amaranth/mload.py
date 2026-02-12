@@ -11,6 +11,8 @@ class CTMMMLoad(Elaboratable):
         self.sub_cr_src = Signal(4)
         self.sub_cr_dst = Signal(4)
         self.sub_index = Signal(10)
+        self.sub_direct = Signal()        # Direct GT mode: skip C-List fetch
+        self.sub_direct_gt = Signal(64)   # GT value for direct validation (RETURN)
         self.sub_busy = Signal()
         self.sub_done = Signal()
         self.sub_fault = Signal()
@@ -43,6 +45,8 @@ class CTMMMLoad(Elaboratable):
         cr_src_reg = Signal(4)
         cr_dst_reg = Signal(4)
         index_reg = Signal(10)
+        direct_mode = Signal()
+        direct_gt_reg = Signal(64)
         src_cap = Signal(CAP_REG_LAYOUT)
         result_cap = Signal(CAP_REG_LAYOUT)
         fault_type_reg = Signal(4)
@@ -83,15 +87,21 @@ class CTMMMLoad(Elaboratable):
                         cr_src_reg.eq(self.sub_cr_src),
                         cr_dst_reg.eq(self.sub_cr_dst),
                         index_reg.eq(self.sub_index),
+                        direct_mode.eq(self.sub_direct),
+                        direct_gt_reg.eq(self.sub_direct_gt),
                         result_cap.eq(0),
                         fault_type_reg.eq(FaultType.NONE),
                     ]
                     m.next = "FETCH_SRC"
 
             with m.State("FETCH_SRC"):
-                m.d.comb += self.cr_rd_addr.eq(cr_src_reg)
-                m.d.sync += src_cap.eq(self.cr_rd_data)
-                m.next = "CHECK_L"
+                with m.If(direct_mode):
+                    m.d.sync += result_view.word0_gt.eq(direct_gt_reg)
+                    m.next = "CHECK_NS"
+                with m.Else():
+                    m.d.comb += self.cr_rd_addr.eq(cr_src_reg)
+                    m.d.sync += src_cap.eq(self.cr_rd_data)
+                    m.next = "CHECK_L"
 
             with m.State("CHECK_L"):
                 with m.If(src_is_null):

@@ -66,6 +66,8 @@ class CTMMSwitch(Elaboratable):
             u_mload.sub_cr_src.eq(Cat(self.cr_src, Const(0, 1))),
             u_mload.sub_cr_dst.eq(dest_cr),
             u_mload.sub_index.eq(self.index),
+            u_mload.sub_direct.eq(0),             # SWITCH uses C-List fetch mode
+            u_mload.sub_direct_gt.eq(0),
             u_mload.cr_rd_data.eq(self.cr_rd_data),
             u_mload.cr15_namespace.eq(self.cr15_namespace),
             u_mload.mem_rd_data.eq(self.mem_rd_data),

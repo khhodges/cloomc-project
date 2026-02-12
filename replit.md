@@ -67,7 +67,9 @@ This simulator (`riscv_cap/`) uses a Flask web server, `index.html`, `styles.css
 -   **Church Instructions**: Seven instructions (`CAP.LOAD`, `CAP.CALL`, `CAP.SAVE`, `CAP.RETURN`, `CAP.CHANGE`, `CAP.SWITCH`, `CAP.TPERM`) across four RISC-V custom opcodes.
 -   **Web Views**: Dashboard, Namespace Browser, Assembly Editor, Capabilities Explorer, Instructions, Docs.
 -   **MAC Seal Validation**: 27-bit FNV hash seal in `VersionSeals` checked on `LOAD` and `CALL`.
--   **mLoad/mLoadByIndex**: Unified validation path for all Church instructions — validates version, MAC, permissions, and resets G-bit on every namespace access.
+-   **mLoad/mLoadByIndex**: Unified validation path for all Church instructions — validates version, MAC, permissions, resets G-bit, writes to destination CR, and updates thread table shadow on every namespace access. Golden Rule: mLoad is the sole path for all CR writes. Hardware mLoad supports `sub_direct` mode for direct GT validation (skips C-List fetch, used by RETURN).
+-   **Thread Table Shadow**: mLoad updates Thread[CRd] on every CR write, keeping the thread table continuously current. CHANGE save side only needs to save data registers + PC.
+-   **RETURN Revalidation**: RETURN routes saved CR5/CR6/CR7 GTs through mLoad's direct mode (`sub_direct=1`) for namespace revalidation against CR15, catching recycled entries (use-after-free prevention). Software simulators pass GT values directly; hardware uses `sub_direct_gt` input.
 -   **Deterministic Garbage Collection**: G-bit reset via mLoad on every access; three-phase Mark-Scan-Sweep cycle with DNA tree walk from registers, call stack, and thread table (no permission filtering during scan); version bump on sweep.
 
 ## External Dependencies

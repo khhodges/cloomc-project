@@ -3,6 +3,7 @@ from amaranth.lib.data import View
 
 from .types import *
 from .layouts import GT_LAYOUT, CAP_REG_LAYOUT
+from .mload import CTMMMLoad
 
 
 class CTMMReturn(Elaboratable):
@@ -25,6 +26,16 @@ class CTMMReturn(Elaboratable):
         self.clear_m_bit = Signal()
 
         self.cr15_namespace = Signal(CAP_REG_LAYOUT)
+
+        self.mem_addr = Signal(64)
+        self.mem_rd_en = Signal()
+        self.mem_rd_data = Signal(64)
+        self.mem_rd_valid = Signal()
+
+        self.thread_wr_en = Signal()
+        self.thread_wr_idx = Signal(4)
+        self.thread_wr_data = Signal(64)
+
         self.g_bit_reset = Signal()
         self.g_bit_addr = Signal(64)
 
@@ -33,6 +44,9 @@ class CTMMReturn(Elaboratable):
 
         CR6_CLIST = 6
         CR7_NUCLEUS = 7
+
+        u_mload = CTMMMLoad()
+        m.submodules.u_mload = u_mload
 
         return_cap = Signal(CAP_REG_LAYOUT)
         ret_view = View(CAP_REG_LAYOUT, return_cap)
@@ -46,18 +60,64 @@ class CTMMReturn(Elaboratable):
         saved_cr6_gt = ret_view.word2_limit
         saved_cr7_gt = ret_view.word3_seals
 
+        saved_cr6_gt_view = View(GT_LAYOUT, saved_cr6_gt)
+        saved_cr7_gt_view = View(GT_LAYOUT, saved_cr7_gt)
+
+        phase = Signal()
         fault_flag = Signal()
         fault_latched = Signal(4)
+        sub_start_reg = Signal()
+        sub_done_latched = Signal()
+        sub_fault_latched = Signal()
 
-        m.d.comb += self.cr_rd_addr.eq(Cat(self.cr_src, Const(0, 1)))
+        local_cr_rd_en = Signal()
+
+        mload_dst = Signal(4)
+        mload_direct_gt = Signal(64)
+        m.d.comb += [
+            mload_dst.eq(Mux(phase, CR7_NUCLEUS, CR6_CLIST)),
+            mload_direct_gt.eq(Mux(phase, saved_cr7_gt, saved_cr6_gt)),
+        ]
+
+        m.d.comb += [
+            u_mload.sub_start.eq(sub_start_reg),
+            u_mload.sub_cr_src.eq(0),              # Unused in direct mode
+            u_mload.sub_cr_dst.eq(mload_dst),
+            u_mload.sub_index.eq(0),               # Unused in direct mode
+            u_mload.sub_direct.eq(1),              # RETURN uses direct GT validation
+            u_mload.sub_direct_gt.eq(mload_direct_gt),  # Saved GT for revalidation
+            u_mload.cr_rd_data.eq(self.cr_rd_data),
+            u_mload.cr15_namespace.eq(self.cr15_namespace),
+            u_mload.mem_rd_data.eq(self.mem_rd_data),
+            u_mload.mem_rd_valid.eq(self.mem_rd_valid),
+        ]
+
+        m.d.comb += [
+            self.cr_wr_addr.eq(u_mload.cr_wr_addr),
+            self.cr_wr_data.eq(u_mload.cr_wr_data),
+            self.cr_wr_en.eq(u_mload.cr_wr_en),
+            self.mem_addr.eq(u_mload.mem_addr),
+            self.mem_rd_en.eq(u_mload.mem_rd_en),
+            self.thread_wr_en.eq(u_mload.thread_wr_en),
+            self.thread_wr_idx.eq(u_mload.thread_wr_idx),
+            self.thread_wr_data.eq(u_mload.thread_wr_data),
+            self.g_bit_reset.eq(u_mload.g_bit_reset),
+            self.g_bit_addr.eq(u_mload.g_bit_addr),
+        ]
+
+        m.d.comb += self.cr_rd_addr.eq(
+            Mux(local_cr_rd_en, Cat(self.cr_src, Const(0, 1)), u_mload.cr_rd_addr)
+        )
 
         with m.FSM(name="ret") as fsm:
             with m.State("IDLE"):
                 m.d.sync += [fault_flag.eq(0), fault_latched.eq(FaultType.NONE)]
+                m.d.sync += [phase.eq(0), sub_done_latched.eq(0), sub_fault_latched.eq(0)]
                 with m.If(self.return_start):
                     m.next = "READ_SRC"
 
             with m.State("READ_SRC"):
+                m.d.comb += local_cr_rd_en.eq(1)
                 m.d.sync += return_cap.eq(self.cr_rd_data)
                 m.next = "CHECK_PERM"
 
@@ -69,47 +129,37 @@ class CTMMReturn(Elaboratable):
                     m.d.sync += [fault_flag.eq(1), fault_latched.eq(FaultType.PERM_E)]
                     m.next = "FAULT"
                 with m.Else():
-                    m.next = "RESTORE_CR6"
+                    m.d.sync += sub_start_reg.eq(1)
+                    m.next = "PHASE1"
 
-            with m.State("RESTORE_CR6"):
-                wr_data = Signal(CAP_REG_LAYOUT)
-                wr_view = View(CAP_REG_LAYOUT, wr_data)
-                m.d.comb += wr_view.word0_gt.eq(saved_cr6_gt)
-                m.d.comb += [
-                    self.cr_wr_addr.eq(CR6_CLIST),
-                    self.cr_wr_data.eq(wr_data),
-                    self.cr_wr_en.eq(1),
-                ]
-                m.next = "RESTORE_CR7"
+            with m.State("PHASE1"):
+                m.d.sync += sub_start_reg.eq(0)
+                with m.If(u_mload.sub_done):
+                    m.d.sync += sub_done_latched.eq(1)
+                with m.If(u_mload.sub_fault):
+                    m.d.sync += sub_fault_latched.eq(1)
+                    m.d.sync += [fault_flag.eq(1), fault_latched.eq(u_mload.sub_fault_type)]
+                with m.If(sub_fault_latched):
+                    m.next = "FAULT"
+                with m.Elif(sub_done_latched):
+                    m.next = "PHASE1_DONE"
 
-            with m.State("RESTORE_CR7"):
-                wr_data7 = Signal(CAP_REG_LAYOUT)
-                wr_view7 = View(CAP_REG_LAYOUT, wr_data7)
-                m.d.comb += wr_view7.word0_gt.eq(saved_cr7_gt)
-                m.d.comb += [
-                    self.cr_wr_addr.eq(CR7_NUCLEUS),
-                    self.cr_wr_data.eq(wr_data7),
-                    self.cr_wr_en.eq(1),
-                ]
-                m.next = "RESET_G_CR6"
+            with m.State("PHASE1_DONE"):
+                m.d.sync += [phase.eq(1), sub_done_latched.eq(0), sub_fault_latched.eq(0)]
+                m.d.sync += sub_start_reg.eq(1)
+                m.next = "PHASE2"
 
-            with m.State("RESET_G_CR6"):
-                cr15_view = View(CAP_REG_LAYOUT, self.cr15_namespace)
-                cr6_gt_view = View(GT_LAYOUT, saved_cr6_gt)
-                m.d.comb += [
-                    self.g_bit_reset.eq(1),
-                    self.g_bit_addr.eq(cr15_view.word1_location + Cat(cr6_gt_view.offset, Const(0, 32)) + 16),
-                ]
-                m.next = "RESET_G_CR7"
-
-            with m.State("RESET_G_CR7"):
-                cr15_view7 = View(CAP_REG_LAYOUT, self.cr15_namespace)
-                cr7_gt_view = View(GT_LAYOUT, saved_cr7_gt)
-                m.d.comb += [
-                    self.g_bit_reset.eq(1),
-                    self.g_bit_addr.eq(cr15_view7.word1_location + Cat(cr7_gt_view.offset, Const(0, 32)) + 16),
-                ]
-                m.next = "SET_NIA"
+            with m.State("PHASE2"):
+                m.d.sync += sub_start_reg.eq(0)
+                with m.If(u_mload.sub_done):
+                    m.d.sync += sub_done_latched.eq(1)
+                with m.If(u_mload.sub_fault):
+                    m.d.sync += sub_fault_latched.eq(1)
+                    m.d.sync += [fault_flag.eq(1), fault_latched.eq(u_mload.sub_fault_type)]
+                with m.If(sub_fault_latched):
+                    m.next = "FAULT"
+                with m.Elif(sub_done_latched):
+                    m.next = "SET_NIA"
 
             with m.State("SET_NIA"):
                 m.d.comb += [

@@ -46,6 +46,8 @@ module ctmm_mload
     input  logic [3:0]  sub_cr_src,           // Source register (CRn)
     input  logic [3:0]  sub_cr_dst,           // Destination register (CRd) - written directly
     input  logic [9:0]  sub_index,            // C-List index (10-bit, 0-1023)
+    input  logic        sub_direct,           // Direct GT mode: skip C-List fetch, use sub_direct_gt
+    input  logic [63:0] sub_direct_gt,        // GT value for direct validation (RETURN restoration)
     output logic        sub_busy,             // Subroutine in progress
     output logic        sub_done,             // Subroutine completed successfully
     output logic        sub_fault,            // Subroutine caused a fault
@@ -121,6 +123,8 @@ module ctmm_mload
     logic [3:0]  cr_src_reg;
     logic [3:0]  cr_dst_reg;
     logic [9:0]  index_reg;
+    logic        direct_mode;     // Direct GT mode (skip C-List fetch)
+    logic [63:0] direct_gt_reg;   // Saved direct GT value
     
     // Latched source capability register (CRn)
     capability_reg_t src_cap;
@@ -149,10 +153,14 @@ module ctmm_mload
             cr_src_reg <= 4'd0;
             cr_dst_reg <= 4'd0;
             index_reg <= 10'd0;
+            direct_mode <= 1'b0;
+            direct_gt_reg <= 64'd0;
         end else if (state == SUB_IDLE && sub_start) begin
             cr_src_reg <= sub_cr_src;
             cr_dst_reg <= sub_cr_dst;
             index_reg <= sub_index;
+            direct_mode <= sub_direct;
+            direct_gt_reg <= sub_direct_gt;
         end
     end
     
@@ -187,6 +195,12 @@ module ctmm_mload
             case (state)
                 SUB_IDLE: begin
                     result_cap <= CR_NULL;
+                end
+                
+                SUB_FETCH_SRC: begin
+                    if (direct_mode) begin
+                        result_cap.word0_gt <= direct_gt_reg;  // Use provided GT directly
+                    end
                 end
                 
                 SUB_FETCH_W0: begin
@@ -292,7 +306,10 @@ module ctmm_mload
             end
             
             SUB_FETCH_SRC: begin
-                next_state = SUB_CHECK_L;
+                if (direct_mode)
+                    next_state = SUB_CHECK_NS;  // Skip C-List fetch, GT provided directly
+                else
+                    next_state = SUB_CHECK_L;
             end
             
             SUB_CHECK_L: begin

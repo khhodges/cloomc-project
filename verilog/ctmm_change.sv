@@ -327,6 +327,8 @@ module ctmm_change
         .sub_cr_src     (mload_src),
         .sub_cr_dst     (mload_dst),
         .sub_index      (mload_index),
+        .sub_direct     (1'b0),           // CHANGE uses C-List fetch mode
+        .sub_direct_gt  (64'd0),
         .sub_busy       (mload_busy),
         .sub_done       (mload_done),
         .sub_fault      (mload_fault),

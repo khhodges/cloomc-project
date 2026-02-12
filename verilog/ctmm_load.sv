@@ -87,6 +87,8 @@ module ctmm_load
         .sub_cr_src     (cr_src),
         .sub_cr_dst     (cr_dst),        // Destination passed to subroutine
         .sub_index      (index),
+        .sub_direct     (1'b0),           // LOAD uses C-List fetch mode
+        .sub_direct_gt  (64'd0),
         .sub_busy       (sub_busy),
         .sub_done       (sub_done),
         .sub_fault      (sub_fault),

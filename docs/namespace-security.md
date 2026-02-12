@@ -46,10 +46,11 @@ Having a single validation path:
 Every namespace access follows this exact sequence. Any failure at any step triggers an immediate FAULT:
 
 ```
-mLoad(source_capability, required_permission, index):
+mLoad(source_capability, required_permission, index, destCR):
 
   1. Permission Check
      Does the source capability have L or M permission?
+     (requiredPerm=null skips this check — used for RETURN context restoration)
      Failure → FAULT
 
   2. Bounds Check
@@ -79,22 +80,42 @@ mLoad(source_capability, required_permission, index):
      This is unconditional — happens on every successful access.
      (GC integration: signals that this entry is reachable)
 
-  8. Thread Update
-     Write the GT (with G=0) to Thread[CRd] for suspension/rescheduling.
-
-  9. Result
+  8. Write to Destination CR (if destCR specified)
      Write the full capability (GT + namespace entry data) to the destination register.
+     This is the SOLE path for writing to any CR.
+
+  9. Thread Table Shadow Update
+     Write the full CR to Thread[CRd] in the thread table shadow.
+     This is unconditional — happens on every CR write.
+     Keeps the thread table continuously current, eliminating the need
+     to save CRs during CHANGE context switches.
 ```
+
+### The Golden Rule: mLoad Is the Sole Path for All CR Writes
+
+No instruction directly writes to a capability register. All CR writes route through mLoad (or its helpers `_writeCR` and `_clearCR`), which:
+
+1. **Validates** the GT against the namespace (version, MAC, bounds)
+2. **Resets G=0** on the accessed namespace entry (GC liveness)
+3. **Writes** the validated capability to the destination CR
+4. **Updates** the thread table shadow at Thread[CRd]
+
+This means:
+- **LOAD**: mLoad validates and writes to CRd
+- **CALL**: mLoad writes CR6 (nodal C-List) and CR7 (access code); `_clearCR` writes NULL to CR5
+- **RETURN**: mLoad (direct mode: `sub_direct=1`) revalidates saved CR6/CR7 GTs against namespace before restoring — catches recycled entries (use-after-free prevention)
+- **SWITCH**: mLoad validates source GT and writes to system register CR8-CR15
+- **CHANGE**: Only saves data registers + PC (CRs already current in thread table shadow)
 
 ### Instructions Using mLoad
 
 | Instruction | Source | Destination | Notes |
 |-------------|--------|-------------|-------|
-| **LOAD** | CRs (user-specified) | CRd (user-specified) | Standard capability fetch |
-| **CALL** | CRs (callee C-List) | CR7 (Nucleus) | Loads callee's code reference |
-| **RETURN** | Return capability | CR6/CR7 (restored) | G-bit reset on restored entries |
-| **CHANGE** | CRs/C-List | CR8 (Thread) | Thread context switch |
-| **SWITCH** | CRs/C-List | CR8-CR15 (system) | Privilege gate |
+| **LOAD** | CRs (user-specified) | CRd (user-specified) | Standard capability fetch via mLoad |
+| **CALL** | CRs (callee C-List) | CR6, CR7 | Two-phase mLoad: CRs[idx]→CR6, CR6[0]→CR7 |
+| **RETURN** | Saved GTs from stack | CR5, CR6, CR7 | mLoad revalidates saved GTs, catches recycled entries |
+| **CHANGE** | CRs/C-List | CR8 (Thread) | Thread switch; CRs saved via thread table shadow |
+| **SWITCH** | CRs/C-List | CR8-CR15 (system) | mLoad validates and writes to system register |
 | **SAVE** | CRd (C-List dest) | Namespace write | G-bit reset on accessed C-List entry |
 
 ---

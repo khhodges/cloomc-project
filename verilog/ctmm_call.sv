@@ -251,6 +251,8 @@ module ctmm_call
         .sub_cr_src     (mload_src),
         .sub_cr_dst     (mload_dst),
         .sub_index      (mload_index),
+        .sub_direct     (1'b0),           // CALL always uses C-List fetch mode
+        .sub_direct_gt  (64'd0),
         .sub_busy       (sub_busy),
         .sub_done       (sub_done),
         .sub_fault      (sub_fault),

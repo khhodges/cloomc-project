@@ -155,7 +155,7 @@ class RiscVCapSimulator {
         return this.validateMAC(entry);
     }
 
-    mLoad(gt32, requiredPerm) {
+    mLoad(gt32, requiredPerm, destCR = null) {
         const parsed = this.parseGT(gt32);
         if (parsed.index >= this.namespaceTable.length) {
             return { ok: false, fault: 'BOUNDS', message: `namespace index ${parsed.index} out of bounds` };
@@ -171,14 +171,17 @@ class RiscVCapSimulator {
         if (!this.validateMAC(entry)) {
             return { ok: false, fault: 'MAC', message: `MAC seal validation failed for namespace entry ${parsed.index}` };
         }
-        if (!parsed.permissions[requiredPerm]) {
+        if (requiredPerm !== null && !parsed.permissions[requiredPerm]) {
             return { ok: false, fault: 'PERMISSION', message: `lacks ${requiredPerm} permission` };
         }
         entry.gBit = 0;
+        if (destCR !== null) {
+            this._writeCR(destCR, gt32, entry);
+        }
         return { ok: true, parsed, entry, index: parsed.index };
     }
 
-    mLoadByIndex(index) {
+    mLoadByIndex(index, destCR = null) {
         if (index >= this.namespaceTable.length) {
             return { ok: false, fault: 'BOUNDS', message: `namespace index ${index} out of bounds` };
         }
@@ -190,7 +193,42 @@ class RiscVCapSimulator {
             return { ok: false, fault: 'MAC', message: `MAC seal validation failed for namespace entry ${index}` };
         }
         entry.gBit = 0;
+        if (destCR !== null) {
+            const version = (entry.versionSeals >>> 27) & 0x1F;
+            const gt = this.createGT(version, index, { R:0,W:0,X:0,L:0,S:0,E:0,B:0,M:0,F:0,G:0 }, 0);
+            this._writeCR(destCR, gt, entry);
+        }
         return { ok: true, entry, index };
+    }
+
+    _writeCR(crIdx, gt32, entry) {
+        this.cr[crIdx].word0 = gt32;
+        this.cr[crIdx].word1 = entry.location >>> 0;
+        this.cr[crIdx].word2 = entry.limit >>> 0;
+        this.cr[crIdx].word3 = entry.versionSeals >>> 0;
+        this._updateThreadShadow(crIdx);
+    }
+
+    _clearCR(crIdx) {
+        this.cr[crIdx] = { word0: 0, word1: 0, word2: 0, word3: 0 };
+        this._updateThreadShadow(crIdx);
+    }
+
+    _updateThreadShadow(crIdx) {
+        const threadGT = this.cr[8].word0;
+        if (threadGT === 0) return;
+        const threadId = this.parseGT(threadGT).index;
+        if (!this.threadTable[threadId]) {
+            this.threadTable[threadId] = {
+                x: new Array(32).fill(0),
+                cr: [],
+                pc: this.pc,
+            };
+            for (let i = 0; i < 16; i++) {
+                this.threadTable[threadId].cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0 };
+            }
+        }
+        this.threadTable[threadId].cr[crIdx] = { ...this.cr[crIdx] };
     }
 
     getTypeName(type) {
@@ -522,7 +560,7 @@ class RiscVCapSimulator {
         }
         const entry = targetResult.entry;
         const srcPerms = clistResult.parsed.permissions;
-        this.cr[crDst].word0 = this.createGT(
+        const loadedGT = this.createGT(
             (entry.versionSeals >>> 27) & 0x1F,
             index,
             { R: srcPerms.R, W: srcPerms.W, X: srcPerms.X,
@@ -530,9 +568,7 @@ class RiscVCapSimulator {
               B: srcPerms.B, M: 0, F: srcPerms.F, G: srcPerms.G },
             0
         );
-        this.cr[crDst].word1 = entry.location >>> 0;
-        this.cr[crDst].word2 = entry.limit >>> 0;
-        this.cr[crDst].word3 = entry.versionSeals >>> 0;
+        this._writeCR(crDst, loadedGT, entry);
         this.pc = (this.pc + 4) >>> 0;
         this.x[0] = 0;
     }
@@ -599,26 +635,22 @@ class RiscVCapSimulator {
         }
         const entry = nsResult.entry;
         const calleePerms = parsed.permissions;
-        this.cr[6].word0 = this.createGT(
+        const cr6GT = this.createGT(
             parsed.version, parsed.index,
             { R:0, W:0, X:0, L: calleePerms.L, S: calleePerms.S,
               E:0, B:0, M:1, F:0, G:0 },
             3
         );
-        this.cr[6].word1 = entry.location >>> 0;
-        this.cr[6].word2 = entry.limit >>> 0;
-        this.cr[6].word3 = entry.versionSeals >>> 0;
-        this.cr[7].word0 = this.createGT(
+        this._writeCR(6, cr6GT, entry);
+        const cr7GT = this.createGT(
             parsed.version, parsed.index,
             { R: calleePerms.R, W: calleePerms.W, X: calleePerms.X,
               L:0, S:0, E: calleePerms.E, B:0, M:1, F:0, G:0 },
             3
         );
-        this.cr[7].word1 = entry.location >>> 0;
-        this.cr[7].word2 = entry.limit >>> 0;
-        this.cr[7].word3 = entry.versionSeals >>> 0;
+        this._writeCR(7, cr7GT, entry);
         this.pc = entry.location >>> 0;
-        this.cr[5] = { word0: 0, word1: 0, word2: 0, word3: 0 };
+        this._clearCR(5);
         this.x[0] = 0;
     }
 
@@ -636,13 +668,24 @@ class RiscVCapSimulator {
                 const saved = this.callStack.pop();
                 this.stackFrames = this.callStack.length > 0;
                 this.stackSpace = true;
-                this.cr[5] = { ...saved.cr5 };
-                this.cr[6] = { ...saved.cr6 };
-                this.cr[7] = { ...saved.cr7 };
-                const cr6GT = this.parseGT(this.cr[6].word0);
-                const cr6Perms = cr6GT.permissions;
+                const cr5Result = this.mLoad(saved.cr5.word0, null, 5);
+                if (!cr5Result.ok) {
+                    this._clearCR(5);
+                }
+                const cr6Parsed = this.parseGT(saved.cr6.word0);
+                const cr6Perms = cr6Parsed.permissions;
                 cr6Perms.M = 1;
-                this.cr[6].word0 = this.createGT(cr6GT.version, cr6GT.index, cr6Perms, cr6GT.type);
+                const cr6GT = this.createGT(cr6Parsed.version, cr6Parsed.index, cr6Perms, cr6Parsed.type);
+                const cr6Result = this.mLoad(cr6GT, 'L', 6);
+                if (!cr6Result.ok) {
+                    this.fault(cr6Result.fault, `RETURN: CR6 restore: ${cr6Result.message}`);
+                    return;
+                }
+                const cr7Result = this.mLoad(saved.cr7.word0, null, 7);
+                if (!cr7Result.ok) {
+                    this.fault(cr7Result.fault, `RETURN: CR7 restore: ${cr7Result.message}`);
+                    return;
+                }
                 this.pc = (saved.pc + 4) >>> 0;
                 break;
             }
@@ -657,11 +700,18 @@ class RiscVCapSimulator {
                 const parsed = changeResult.parsed;
                 const threadId = parsed.index;
                 const currentThreadId = this.parseGT(this.cr[8].word0).index;
-                this.threadTable[currentThreadId] = {
-                    x: [...this.x],
-                    cr: this.cr.slice(0, 9).map(c => ({ ...c })),
-                    pc: (this.pc + 4) >>> 0,
-                };
+                if (!this.threadTable[currentThreadId]) {
+                    this.threadTable[currentThreadId] = {
+                        x: new Array(32).fill(0),
+                        cr: [],
+                        pc: 0,
+                    };
+                    for (let i = 0; i < 16; i++) {
+                        this.threadTable[currentThreadId].cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0 };
+                    }
+                }
+                this.threadTable[currentThreadId].x = [...this.x];
+                this.threadTable[currentThreadId].pc = (this.pc + 4) >>> 0;
                 const target = this.threadTable[threadId];
                 if (target) {
                     for (let i = 0; i < 32; i++) this.x[i] = target.x[i];
@@ -670,9 +720,9 @@ class RiscVCapSimulator {
                 } else {
                     for (let i = 0; i < 32; i++) this.x[i] = 0;
                     for (let i = 0; i <= 8; i++) {
-                        this.cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0 };
+                        this._clearCR(i);
                     }
-                    this.cr[8] = { ...this.cr[crSrc] };
+                    this._writeCR(8, threadGT, changeResult.entry);
                     const nsResult = this.mLoadByIndex(parsed.index);
                     if (nsResult.ok) {
                         this.pc = nsResult.entry.location >>> 0;
@@ -695,7 +745,7 @@ class RiscVCapSimulator {
                     this.fault('BOUNDS', `SWITCH: Invalid target register index ${destIdx}`);
                     return;
                 }
-                this.cr[destIdx] = { ...this.cr[crSrc] };
+                this._writeCR(destIdx, srcGT, switchResult.entry);
                 this.pc = (this.pc + 4) >>> 0;
                 break;
             }

@@ -19,20 +19,24 @@ The G-bit reset is not a separate mechanism — it is an integral part of the mL
 
 ```
 mLoad Validation Pipeline:
-  1. Permission check (L/M on source)
+  1. Permission check (L/M on source, or null for restoration)
   2. Bounds check (index within C-List)
   3. Fetch GT from C-List
   4. Namespace bounds check (GT.offset within CR15 range)
   5. Fetch namespace entry (Location, Limit, Seals)
   6. MAC/seal validation
   7. G-bit reset on accessed namespace entry  ← GC integration point
-  8. Thread update (save GT with G=0 for suspension)
-  9. Write result to destination register
+  8. Write capability to destination CR       ← sole path for all CR writes
+  9. Thread table shadow update at Thread[CRd] ← keeps thread table current
 ```
 
 Step 7 is unconditional — it happens on every successful namespace access regardless of the instruction type or permission domain. This ensures that **reachability determines liveness, not permissions**.
 
-For write-path instructions (SAVE, RETURN), the G-bit reset is applied to the namespace entries accessed during the operation, even though these instructions use different validation subroutines (mSave for SAVE, direct E-permission check for RETURN).
+Steps 8-9 enforce the Golden Rule: mLoad is the sole path for all CR writes. Every CR write automatically updates the thread table shadow, keeping it continuously current. This eliminates the need for CHANGE to save CR state — only data registers and PC need saving during context switches.
+
+For RETURN, mLoad revalidates saved CR5/CR6/CR7 GTs against the namespace before restoring them. If a namespace entry was recycled during the call (version bumped by GC sweep), mLoad detects the version mismatch and faults — preventing use-after-free of recycled capabilities.
+
+For write-path instructions (SAVE), the G-bit reset is applied to the namespace entries accessed during the operation through the mSave validation subroutine.
 
 ---
 

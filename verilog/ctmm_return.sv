@@ -1,8 +1,8 @@
 // ============================================================================
-// CTMM RETURN Instruction
+// CTMM RETURN Instruction - Using mLoad for CR Restoration
 // ============================================================================
 // Implements the RETURN instruction which returns from a procedure call
-// by restoring the saved context and jumping to the return address.
+// by restoring the saved context through mLoad validation.
 //
 // Syntax: RETURN CRn
 //   CRn = Register containing return capability (saved by CALL)
@@ -10,28 +10,24 @@
 // RETURN Steps:
 //   1. Read return capability from CRn
 //   2. Verify CRn has E (Enter) permission
-//   3. Restore CR6 (C-List) from return capability Word 2 (saved GT)
-//   4. Restore CR7 (Nucleus) from return capability Word 3 (saved GT)
-//   5. Reset G-bit in namespace for restored CR6 GT entry
-//   6. Reset G-bit in namespace for restored CR7 GT entry
-//   7. Set NIA to saved return address
-//   8. Clear internal abstraction state
+//   3. Extract saved CR6 GT and CR7 GT from return capability
+//   4. Phase 1: Route saved CR6 GT through mLoad → CR6
+//      - Revalidates version/MAC against namespace (catches recycled entries)
+//      - Resets G-bit on namespace entry
+//      - Updates thread table shadow at Thread[CR6]
+//   5. Phase 2: Route saved CR7 GT through mLoad → CR7
+//      - Same validation pipeline as Phase 1
+//   6. Set NIA to saved return address
+//   7. Clear M bit (leaving internal abstraction)
 //
-// The return capability structure (saved by CALL):
-//   Word 0: GT with saved permissions
-//   Word 1: Return NIA (instruction address)
-//   Word 2: Saved CR6 offset
-//   Word 3: Saved CR7 offset
-//
-// G-bit Reset:
-//   After restoring CR6/CR7 GTs, the namespace entries they point to have
-//   their G-bits reset. This signals the garbage collector that these
-//   namespace entries are actively referenced, preventing premature collection.
-//   Address calculation: CR15.Location + GT.offset + 16 (Word 3 of NS entry)
+// Golden Rule: All CR writes go through mLoad. RETURN does NOT directly
+// write to CR6/CR7. Instead, mLoad revalidates the saved GTs against
+// the namespace, catching any entries that were recycled during the call.
 //
 // FAULT conditions:
 //   - CRn lacks E permission
 //   - CRn is null capability
+//   - Saved CR6/CR7 GT fails mLoad validation (version/MAC/bounds)
 // ============================================================================
 
 module ctmm_return
@@ -41,35 +37,46 @@ module ctmm_return
     input  logic        rst_n,
     
     // Control interface
-    input  logic        return_start,         // Start RETURN execution
-    input  logic [2:0]  cr_src,               // Source register (3-bit: CR0-CR7)
-    output logic        busy,                 // RETURN in progress
-    output logic        complete,             // RETURN finished
-    output logic        fault_valid,          // RETURN caused a fault
-    output fault_type_t fault_type,           // Type of fault
+    input  logic        return_start,
+    input  logic [2:0]  cr_src,
+    output logic        busy,
+    output logic        complete,
+    output logic        fault_valid,
+    output fault_type_t fault_type,
     
     // Capability register read interface
-    output logic [3:0]  cr_rd_addr,           // Register to read
-    input  capability_reg_t cr_rd_data,       // Full 256-bit register data
+    output logic [3:0]  cr_rd_addr,
+    input  capability_reg_t cr_rd_data,
     
-    // Capability register write interface (for CR6, CR7)
-    output logic [3:0]  cr_wr_addr,           // Register to write
-    output capability_reg_t cr_wr_data,       // Data to write
-    output logic        cr_wr_en,             // Write enable
+    // Capability register write interface (driven by mLoad)
+    output logic [3:0]  cr_wr_addr,
+    output capability_reg_t cr_wr_data,
+    output logic        cr_wr_en,
     
     // NIA update interface
-    output logic        nia_set,              // Set NIA enable
-    output logic [63:0] nia_value,            // New NIA value
+    output logic        nia_set,
+    output logic [63:0] nia_value,
     
-    // M bit clear interface (leaving internal abstraction)
-    output logic        clear_m_bit,          // Clear M bit on current context
+    // M bit clear interface
+    output logic        clear_m_bit,
     
-    // CR15 (Namespace) interface for G-bit reset
-    input  capability_reg_t cr15_namespace,   // CR15 Namespace register
+    // CR15 (Namespace) interface for mLoad
+    input  capability_reg_t cr15_namespace,
     
-    // G bit reset interface
-    output logic        g_bit_reset,          // Signal to reset G bit
-    output logic [63:0] g_bit_addr            // Address: CR15.Location + GT.offset + 16
+    // Memory interface (for mLoad namespace fetches)
+    output logic [63:0] mem_addr,
+    output logic        mem_rd_en,
+    input  logic [63:0] mem_rd_data,
+    input  logic        mem_rd_valid,
+    
+    // Thread update interface (driven by mLoad)
+    output logic        thread_wr_en,
+    output logic [3:0]  thread_wr_idx,
+    output logic [63:0] thread_wr_data,
+    
+    // G bit reset interface (driven by mLoad)
+    output logic        g_bit_reset,
+    output logic [63:0] g_bit_addr
 );
 
     // ========================================================================
@@ -85,13 +92,14 @@ module ctmm_return
     
     typedef enum logic [3:0] {
         IDLE,
-        READ_SRC,             // Read source register (return capability)
-        CHECK_PERM,           // Check E permission
-        RESTORE_CR6,          // Restore CR6 (C-List) GT
-        RESTORE_CR7,          // Restore CR7 (Nucleus) GT
-        RESET_G_CR6,          // Reset G-bit for CR6 namespace entry
-        RESET_G_CR7,          // Reset G-bit for CR7 namespace entry
-        SET_NIA,              // Set NIA to return address
+        READ_SRC,
+        CHECK_PERM,
+        PHASE1_START,
+        PHASE1_WAIT,
+        PHASE1_DONE,
+        PHASE2_START,
+        PHASE2_WAIT,
+        SET_NIA,
         COMPLETE,
         FAULT
     } state_t;
@@ -126,24 +134,29 @@ module ctmm_return
     // ========================================================================
     // Extracted Return Values
     // ========================================================================
-    // Return capability structure (saved by CALL):
-    //   Word 0: GT with E permission (identifies return point)
-    //   Word 1: Return NIA (instruction address to resume)
-    //   Word 2: Saved CR6.GT (C-List Golden Token)
-    //   Word 3: Saved CR7.GT (Nucleus Golden Token)
-    //
-    // To fully restore CR6/CR7, we write the saved GTs directly and then
-    // reset the G-bit on the corresponding namespace entries to signal
-    // the garbage collector that these entries are actively referenced.
-    // ========================================================================
     
     logic [63:0] saved_nia;
     golden_token_t saved_cr6_gt;
     golden_token_t saved_cr7_gt;
     
     assign saved_nia = return_cap.word1_location;
-    assign saved_cr6_gt = return_cap.word2_limit;  // Full GT for CR6
-    assign saved_cr7_gt = return_cap.word3_seals;  // Full GT for CR7
+    assign saved_cr6_gt = return_cap.word2_limit;
+    assign saved_cr7_gt = return_cap.word3_seals;
+    
+    // ========================================================================
+    // Phase Tracking
+    // ========================================================================
+    
+    logic phase;  // 0 = Phase 1 (restore CR6), 1 = Phase 2 (restore CR7)
+    
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            phase <= 1'b0;
+        else if (state == IDLE)
+            phase <= 1'b0;
+        else if (state == PHASE1_DONE)
+            phase <= 1'b1;
+    end
     
     // ========================================================================
     // State Register
@@ -178,8 +191,92 @@ module ctmm_return
                 fault_flag <= 1'b1;
                 fault_latched <= FAULT_PERM_E;
             end
+        end else if ((state == PHASE1_WAIT || state == PHASE2_WAIT) && sub_fault_latched) begin
+            fault_flag <= 1'b1;
+            fault_latched <= sub_fault_type;
         end
     end
+    
+    // ========================================================================
+    // mLoad Subroutine Instance
+    // ========================================================================
+    
+    logic        sub_start;
+    logic        sub_start_reg;
+    logic        sub_busy;
+    logic        sub_done;
+    logic        sub_fault_sig;
+    logic        sub_done_latched;
+    logic        sub_fault_latched;
+    fault_type_t sub_fault_type;
+    
+    logic [3:0]  sub_cr_rd_addr;
+    
+    logic [3:0]  mload_dst;
+    logic [63:0] mload_direct_gt;
+    
+    assign mload_dst = phase ? CR7_NUCLEUS : CR6_CLIST;
+    assign mload_direct_gt = phase ? saved_cr7_gt : saved_cr6_gt;
+    
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            sub_start_reg <= 1'b0;
+        else if ((state == PHASE1_START) || (state == PHASE2_START))
+            sub_start_reg <= 1'b1;
+        else
+            sub_start_reg <= 1'b0;
+    end
+    
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            sub_done_latched <= 1'b0;
+            sub_fault_latched <= 1'b0;
+        end else if (state == IDLE || state == PHASE1_START || state == PHASE2_START) begin
+            sub_done_latched <= 1'b0;
+            sub_fault_latched <= 1'b0;
+        end else begin
+            if (sub_done) sub_done_latched <= 1'b1;
+            if (sub_fault_sig) sub_fault_latched <= 1'b1;
+        end
+    end
+    
+    assign sub_start = sub_start_reg;
+    
+    ctmm_mload u_mload (
+        .clk            (clk),
+        .rst_n          (rst_n),
+        
+        .sub_start      (sub_start),
+        .sub_cr_src     (4'd0),            // Unused in direct mode
+        .sub_cr_dst     (mload_dst),
+        .sub_index      (10'd0),           // Unused in direct mode
+        .sub_direct     (1'b1),            // RETURN uses direct GT validation
+        .sub_direct_gt  (mload_direct_gt), // Saved GT for revalidation
+        .sub_busy       (sub_busy),
+        .sub_done       (sub_done),
+        .sub_fault      (sub_fault_sig),
+        .sub_fault_type (sub_fault_type),
+        
+        .cr_rd_addr     (sub_cr_rd_addr),
+        .cr_rd_data     (cr_rd_data),
+        .cr_wr_addr     (cr_wr_addr),
+        .cr_wr_data     (cr_wr_data),
+        .cr_wr_en       (cr_wr_en),
+        
+        .cr15_namespace (cr15_namespace),
+        
+        .mem_addr       (mem_addr),
+        .mem_rd_en      (mem_rd_en),
+        .mem_rd_data    (mem_rd_data),
+        .mem_rd_valid   (mem_rd_valid),
+        
+        .thread_wr_en   (thread_wr_en),
+        .thread_wr_idx  (thread_wr_idx),
+        .thread_wr_data (thread_wr_data),
+        
+        .g_bit_reset    (g_bit_reset),
+        .g_bit_addr     (g_bit_addr)
+    );
     
     // ========================================================================
     // Next State Logic
@@ -200,15 +297,29 @@ module ctmm_return
                 if (is_null_cap || !has_e_perm)
                     next_state = FAULT;
                 else
-                    next_state = RESTORE_CR6;
+                    next_state = PHASE1_START;
             end
             
-            RESTORE_CR6: next_state = RESTORE_CR7;
-            RESTORE_CR7: next_state = RESET_G_CR6;
-            RESET_G_CR6: next_state = RESET_G_CR7;
-            RESET_G_CR7: next_state = SET_NIA;
-            SET_NIA: next_state = COMPLETE;
+            PHASE1_START: next_state = PHASE1_WAIT;
             
+            PHASE1_WAIT: begin
+                if (sub_fault_latched)
+                    next_state = FAULT;
+                else if (sub_done_latched)
+                    next_state = PHASE1_DONE;
+            end
+            
+            PHASE1_DONE: next_state = PHASE2_START;
+            PHASE2_START: next_state = PHASE2_WAIT;
+            
+            PHASE2_WAIT: begin
+                if (sub_fault_latched)
+                    next_state = FAULT;
+                else if (sub_done_latched)
+                    next_state = SET_NIA;
+            end
+            
+            SET_NIA: next_state = COMPLETE;
             COMPLETE: next_state = IDLE;
             FAULT: next_state = IDLE;
             
@@ -225,31 +336,9 @@ module ctmm_return
     assign fault_valid = fault_flag;
     assign fault_type = fault_latched;
     
-    // CR read (source register) - 3-bit CR expanded to 4-bit address
-    assign cr_rd_addr = {1'b0, cr_src};
-    
-    // CR write (restore CR6 or CR7 with full GT)
-    always_comb begin
-        cr_wr_addr = 4'h0;
-        cr_wr_data = '0;
-        cr_wr_en = 1'b0;
-        
-        case (state)
-            RESTORE_CR6: begin
-                cr_wr_addr = CR6_CLIST;
-                cr_wr_data.word0_gt = saved_cr6_gt;
-                cr_wr_en = 1'b1;
-            end
-            
-            RESTORE_CR7: begin
-                cr_wr_addr = CR7_NUCLEUS;
-                cr_wr_data.word0_gt = saved_cr7_gt;
-                cr_wr_en = 1'b1;
-            end
-            
-            default: ;
-        endcase
-    end
+    logic local_cr_rd_en;
+    assign local_cr_rd_en = (state == IDLE && return_start) || (state == READ_SRC);
+    assign cr_rd_addr = local_cr_rd_en ? {1'b0, cr_src} : sub_cr_rd_addr;
     
     // NIA update
     assign nia_set = (state == SET_NIA);
@@ -257,23 +346,5 @@ module ctmm_return
     
     // Clear M bit when leaving abstraction
     assign clear_m_bit = (state == SET_NIA);
-    
-    // ========================================================================
-    // G-bit Reset Interface
-    // ========================================================================
-    // After restoring CR6/CR7 GTs, reset the G-bit on the namespace entries
-    // they point to. This signals the garbage collector that these namespace
-    // entries are actively referenced.
-    //
-    // Address calculation: CR15.Location + GT.offset + 16
-    //   - CR15.Location = base of namespace table
-    //   - GT.offset = direct byte offset into namespace
-    //   - +16 = offset to Word 3 (Seals) where G-bit resides
-    // ========================================================================
-    
-    assign g_bit_reset = (state == RESET_G_CR6) || (state == RESET_G_CR7);
-    assign g_bit_addr = (state == RESET_G_CR6) ?
-        (cr15_namespace.word1_location + {32'h0, saved_cr6_gt.offset} + 64'd16) :
-        (cr15_namespace.word1_location + {32'h0, saved_cr7_gt.offset} + 64'd16);
 
 endmodule
