@@ -2657,7 +2657,7 @@ function populateCodeFileDropdown() {
     // Group 2: Lambda/Church Examples
     const lambdaGroup = document.createElement('optgroup');
     lambdaGroup.label = 'Lambda Examples';
-    const lambdaExamples = ['ycombinator', 'factorial', 'capcheck', 'capmgr', 'datetime', 'church_bool', 'church_num', 'pair'];
+    const lambdaExamples = ['hello_mum', 'ycombinator', 'factorial', 'capcheck', 'capmgr', 'datetime', 'church_bool', 'church_num', 'pair'];
     lambdaExamples.forEach(name => {
         if (codeTemplates[name]) {
             const opt = document.createElement('option');
@@ -4097,19 +4097,70 @@ function loadExample(name) {
         pushCodeHistory(newCode);
         resetProgram();
         
+        if (name === 'hello_mum') {
+            setupHelloMumNamespace();
+        }
+        
         if (!shouldReplace) {
             editorLog(`Appended example: ${name}`, 'success');
         } else {
             editorLog(`Loaded example: ${name}`, 'success');
         }
         
-        // Update paradigm tab to match loaded example
         if (isTuring) {
             switchParadigm('turing');
         } else if (isLambda) {
             switchParadigm('church');
         }
     }
+}
+
+function setupHelloMumNamespace() {
+    const tunnelKey = simulator.createCapability("Tunnel_Key_Mum", ["R"]);
+    tunnelKey.type = "Inform";
+    tunnelKey.tunnelEndpoint = "mymother.namespace.local";
+    tunnelKey.keyMaterial = "[HMAC-SHA256 tunnel key — hardware-protected]";
+
+    const mumService = simulator.createCapability("Mum_Messaging", ["L", "E"]);
+    mumService.type = "Outform";
+    mumService.remoteEndpoint = "https://mymother.ctmm.net/messaging";
+    mumService.tunnelId = "tunnel_me_mum_001";
+
+    const abiDescriptor = simulator.createCapability("ABI_Mum", ["R"]);
+    abiDescriptor.type = "Inform";
+    abiDescriptor.abiMap = {
+        src_arch: "CTMM-64", src_regs: "DR0-DR15 (64-bit)",
+        dst_arch: "RV32-Cap", dst_regs: "x0-x31 (32-bit)",
+        arg_map: "DR0→x10, DR1→x11, DR2→x12, DR3→x13, DR4→x14, DR5→x15",
+        ret_map: "x10→DR0"
+    };
+
+    const meCList = simulator.createCapability("Me_CList", ["L", "S", "E"]);
+    meCList.type = "Inform";
+    meCList.clist = [tunnelKey, mumService, abiDescriptor];
+
+    simulator.contextRegs[6] = meCList;
+    simulator.registerCapability(meCList);
+
+    updateDisplay();
+    updateCapabilityExplorer();
+    updateNamespaceDisplay();
+
+    log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+    log('🌍 HELLO MUM — Namespace configured', 'success');
+    log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+    log('CR6 = Me_CList [L,S,E] — "me" C-List', 'info');
+    log('  [0] Tunnel_Key_Mum  [R]   — Inform (tunnel crypto key)', 'info');
+    log('  [1] Mum_Messaging   [L,E] — Outform (remote service)', 'info');
+    log('  [2] ABI_Mum         [R]   — Inform (register map)', 'info');
+    log('', 'info');
+    log('"me" = CTMM Sim-64 (DR0-DR15, 64-bit)', 'info');
+    log('"mymother" = RV32-Cap Sim-32 (x0-x31, 32-bit)', 'info');
+    log('', 'info');
+    log('Click Step to trace the Hello Mum flow.', 'info');
+    log('Open RV32-Cap Simulator for "mymother" side.', 'info');
+    log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+    editorLog('Hello Mum: Namespace ready. Step through to send message.', 'success');
 }
 
 function loadCR7() {
@@ -10654,6 +10705,66 @@ RETURN
 ; LOAD 0 6 n      ; Load omega GT from C-List (CR6)
 ; CALL 0          ; This triggers infinite recursion
 ; This demonstrates non-termination in lambda calc`,
+
+    'hello_mum': `; ================================================
+; HELLO MUM — The Holy Grail of Computer Science
+; ================================================
+; "me" (Sim-64, CTMM) sends a message to
+; "mymother" (Sim-32, RV32-Cap) through an
+; encrypted capability tunnel.
+;
+; ONE Church instruction: CALL(CONNECT(me, mymother))
+; THREE Golden Tokens: tunnel key, service GT, C-List
+; SEVEN zeroes: no OS, no VM, no privilege, no superuser,
+;   no unauthorized code, no unauthorized data, no escape
+;
+; C-List layout (CR6):
+;   [0] = Tunnel_Key_Mum  [R]     (Inform)
+;   [1] = Mum_Messaging   [L,E]   (Outform — remote)
+;   [2] = ABI_Mum          [R]     (Inform — register map)
+; ================================================
+
+; === STEP 1: Load tunnel key ===
+LOAD 0 6 0        ; CR0 = Tunnel_Key_Mum from C-List
+TPERM 0 R         ; Verify R permission (read key material)
+B NE fault        ; FAULT if permission missing
+
+; === STEP 2: Load service GT ===
+LOAD 1 6 1        ; CR1 = Mum_Messaging (Outform GT)
+TPERM 1 E         ; Verify E permission (enter service)
+B NE fault        ; FAULT if permission missing
+
+; === STEP 3: Prepare message in data registers ===
+; DR0-DR5 = "Hello Mum" in ASCII
+; Domain separation: values in DRs only, capabilities in CRs only
+ADDI 0 72         ; DR0 = 'H' (72)
+ADDI 1 101        ; DR1 = 'e' (101)
+ADDI 2 108        ; DR2 = 'l' (108)
+ADDI 3 108        ; DR3 = 'l' (108)
+ADDI 4 111        ; DR4 = 'o' (111)
+ADDI 5 77         ; DR5 = 'M' (77)
+
+; === STEP 4: THE Church instruction ===
+; CALL CR1 — this is CALL(CONNECT(me, mymother))
+; mLoad validates: permission, MAC, version, bounds
+; Outform detected: tunnel path entered
+;   → Key read from CR0 via mLoad (R permission)
+;   → ABI descriptor maps DR0-DR15 to x0-x31
+;   → Payload encrypted with tunnel key
+;   → Sent to mymother's endpoint (no OS in path)
+CALL 1            ; ONE instruction. The Holy Grail.
+
+; === Message sent! ===
+; On return: DR0 = acknowledgment from mymother
+; The entire path was validated by hardware.
+; No OS touched the message. No privilege was used.
+RETURN
+
+; === FAILSAFE: Single failure mode ===
+; All validation failures route here
+; No error codes — no information leakage
+fault:
+FAULT`,
 
     'capmgr': `; ================================================
 ; CAPABILITY MANAGER DEMO

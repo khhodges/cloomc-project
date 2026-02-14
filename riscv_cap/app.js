@@ -278,13 +278,113 @@ loop:
     add  t1, t1, t2      # sum += i
     addi t2, t2, 1       # i++
     bge  t0, t2, loop    # if N >= i, goto loop (i.e., while i <= N)
-    ecall                 # halt`
+    ecall                 # halt`,
+
+        'hello_mum': `# ================================================
+# HELLO MUM — "mymother" side (receiver)
+# ================================================
+# "mymother" (Sim-32, RV32-Cap) receives a message
+# from "me" (Sim-64, CTMM) through the encrypted
+# capability tunnel.
+#
+# This is the receiving half of:
+#   CALL(CONNECT(me, mymother))
+# ONE Church instruction + THREE Golden Tokens
+#
+# Namespace layout:
+#   [4] = Tunnel_Key_Me   (tunnel crypto key)
+#   [5] = Inbox           (message buffer, RW)
+#   [6] = Service_Handler (messaging service code)
+#   [7] = ABI_Me          (register map descriptor)
+#
+# CR6 = C-List [L,S] (from boot)
+# ================================================
+
+# === STEP 1: Load inbox capability ===
+# mLoad validates: L permission on CR6, MAC, version
+    cap.load cr0, cr6, 5     # CR0 = Inbox GT from namespace[5]
+
+# === STEP 2: Load tunnel key for decryption ===
+    cap.load cr1, cr6, 4     # CR1 = Tunnel_Key_Me from namespace[4]
+
+# === STEP 3: Simulate received message ===
+# In real hardware, tunnel microcode would decrypt
+# and ABI-translate the payload into x10-x15.
+# Here we simulate the received "Hello" message:
+    addi a0, zero, 72        # x10 = 'H' (72) — from DR0 via ABI
+    addi a1, zero, 101       # x11 = 'e' (101) — from DR1 via ABI
+    addi a2, zero, 108       # x12 = 'l' (108) — from DR2 via ABI
+    addi a3, zero, 108       # x13 = 'l' (108) — from DR3 via ABI
+    addi a4, zero, 111       # x14 = 'o' (111) — from DR4 via ABI
+    addi a5, zero, 77        # x15 = 'M' (77)  — from DR5 via ABI
+
+# === STEP 4: Store message to inbox ===
+# CAP.SAVE writes the inbox capability back
+# validating W permission through mLoad
+    cap.save cr0, cr6, 5     # Store inbox GT back to namespace[5]
+
+# === STEP 5: Send acknowledgment ===
+# Set return value: message received successfully
+    addi a0, zero, 1         # x10 = 1 (ACK: message received)
+
+# === Message received! ===
+# The tunnel returns ACK to "me"
+# ABI descriptor maps x10 back to DR0
+    ecall                     # halt — demo complete`
     };
 
     const editor = document.getElementById('asm-editor');
     if (examples[name]) {
         editor.value = examples[name];
         localStorage.setItem('rv32cap-asm', editor.value);
+        if (name === 'hello_mum') {
+            setupHelloMumNamespace();
+        }
+    }
+}
+
+function setupHelloMumNamespace() {
+    const entries = [
+        { location: 0x0000A000, limit: 0x0000A0FF, name: 'Tunnel_Key_Me' },
+        { location: 0x0000B000, limit: 0x0000B0FF, name: 'Inbox' },
+        { location: 0x0000C000, limit: 0x0000C0FF, name: 'Service_Handler' },
+        { location: 0x0000D000, limit: 0x0000D0FF, name: 'ABI_Me' }
+    ];
+
+    for (let i = 0; i < entries.length; i++) {
+        const e = entries[i];
+        const nsIdx = 4 + i;
+        while (sim.namespaceTable.length <= nsIdx) {
+            sim.namespaceTable.push({ location: 0, limit: 0, versionSeals: sim.makeVersionSeals(0, 0, 0), gBit: 0 });
+        }
+        sim.namespaceTable[nsIdx] = {
+            location: e.location,
+            limit: e.limit,
+            versionSeals: sim.makeVersionSeals(0, e.location, e.limit),
+            gBit: 0
+        };
+    }
+
+    sim.cr[6].word0 = sim.createGT(0, 1, { R:1, W:1, X:0, L:1, S:1, E:0 }, 0);
+
+    updateNamespaceView();
+    updateRegisterView();
+
+    const output = document.getElementById('asm-output');
+    if (output) {
+        output.innerHTML =
+            '<span style="color:#7fd">━━━ HELLO MUM — Namespace configured ━━━</span>\n' +
+            '"mymother" = RV32-Cap Sim-32 (x0-x31, 32-bit)\n' +
+            '"me"       = CTMM Sim-64 (DR0-DR15, 64-bit)\n\n' +
+            'Namespace entries added:\n' +
+            '  [4] Tunnel_Key_Me   (0xA000-0xA0FF)\n' +
+            '  [5] Inbox           (0xB000-0xB0FF)\n' +
+            '  [6] Service_Handler (0xC000-0xC0FF)\n' +
+            '  [7] ABI_Me          (0xD000-0xD0FF)\n\n' +
+            'CR6 = C-List [R,W,L,S] — "mymother" C-List\n\n' +
+            'Click Assemble → Load → Step to receive message.\n' +
+            'Open CTMM Simulator for "me" sender side.\n' +
+            '<span style="color:#7fd">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>';
     }
 }
 
