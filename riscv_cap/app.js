@@ -7,7 +7,8 @@ const ABI_NAMES = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
     's2','s3','s4','s5','s6','s7','s8','s9','s10','s11',
     't3','t4','t5','t6'];
 
-const CR_LABELS = {6:'C-List', 7:'Nucleus', 8:'Thread', 15:'Namespace'};
+const CR_LABELS = {6:'C-List', 7:'Nucleus', 8:'Percilla', 15:'Namespace'};
+const NS_NAMES = {0:'Namespace', 1:'Nucleus', 2:'Boot C-List', 3:'Percilla'};
 
 function toHex32(val) {
     return '0x' + ((val >>> 0).toString(16)).padStart(8, '0');
@@ -354,6 +355,7 @@ function setupHelloMumNamespace() {
     for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
         const nsIdx = 4 + i;
+        NS_NAMES[nsIdx] = e.name;
         while (sim.namespaceTable.length <= nsIdx) {
             sim.namespaceTable.push({ location: 0, limit: 0, versionSeals: sim.makeVersionSeals(0, 0, 0), gBit: 0 });
         }
@@ -374,8 +376,8 @@ function setupHelloMumNamespace() {
     if (output) {
         output.innerHTML =
             '<span style="color:#7fd">━━━ HELLO MUM — Namespace configured ━━━</span>\n' +
-            '"mymother" = RV32-Cap Sim-32 (x0-x31, 32-bit)\n' +
-            '"me"       = CTMM Sim-64 (DR0-DR15, 64-bit)\n\n' +
+            '"mymother" (Percilla) = RV32-Cap Sim-32 (x0-x31, 32-bit)\n' +
+            '"me" (Kenneth)       = CTMM Sim-64 (DR0-DR15, 64-bit)\n\n' +
             'Namespace entries added:\n' +
             '  [4] Tunnel_Key_Me   (0xA000-0xA0FF)\n' +
             '  [5] Inbox           (0xB000-0xB0FF)\n' +
@@ -402,7 +404,8 @@ function updateNamespaceView() {
             : '<span class="mac-badge mac-invalid">MAC FAIL</span>';
         const gBit = entry.gBit || 0;
         const gBadge = gBit ? '<span class="mac-badge mac-invalid">G</span>' : '<span class="mac-badge mac-valid">-</span>';
-        tr.innerHTML = `<td>${i}</td><td>${toHex32(entry.location)}</td><td>${toHex32(entry.limit)}</td><td>${version}</td><td>${toHex32(seals)}</td><td>${macBadge}</td><td>${gBadge}</td>`;
+        const nsName = NS_NAMES[i] || '';
+        tr.innerHTML = `<td>${i}</td><td>${nsName}</td><td>${toHex32(entry.location)}</td><td>${toHex32(entry.limit)}</td><td>${version}</td><td>${toHex32(seals)}</td><td>${macBadge}</td><td>${gBadge}</td>`;
         tbody.appendChild(tr);
     });
 }
