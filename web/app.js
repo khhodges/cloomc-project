@@ -672,7 +672,7 @@ const bootSteps = [
                 nsOffset: 0,
                 type: "System",
                 location: { type: "Local", offset: nsEntry.word1_location },
-                perms: ["L", "S"],  // Load + Save for boot operations
+                perms: ["L", "S", "M"],  // Load + Save + Meta (M elevated by microcode during boot)
                 locked: true,
                 goldenKey: generateGoldenKey(),
                 word1: nsEntry.word1_location,
@@ -695,7 +695,7 @@ const bootSteps = [
                 nsOffset: kennethEntry.nsOffset,
                 type: "Thread",
                 location: { type: "Local", offset: kennethNS.word1_location },
-                perms: kennethEntry.perms,
+                perms: [...kennethEntry.perms, "M"],
                 locked: false,
                 goldenKey: generateGoldenKey(),
                 word1: kennethNS.word1_location,
@@ -719,7 +719,7 @@ const bootSteps = [
                 nsOffset: 2,
                 type: "C-List",
                 location: { type: "Local", offset: bootNS.word1_location },
-                perms: ["E", "M"],  // Enter + Meta after successful boot
+                perms: ["L", "S", "E", "M"],  // Load + Save + Enter + Meta (M elevated by microcode during boot)
                 locked: false,
                 goldenKey: generateGoldenKey(),
                 word1: bootNS.word1_location,
@@ -737,7 +737,7 @@ const bootSteps = [
                 nsOffset: accessEntry.nsOffset,
                 type: "Code",
                 location: { type: "Local", offset: accessNS.word1_location },
-                perms: accessEntry.perms,
+                perms: [...accessEntry.perms, "M"],
                 locked: true,
                 goldenKey: generateGoldenKey(),
                 word1: accessNS.word1_location,
