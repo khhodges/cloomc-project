@@ -4142,12 +4142,46 @@ function setupHelloMumNamespace() {
     simulator.contextRegs[6] = meCList;
     simulator.registerCapability(meCList);
 
+    const helloMumNsEntries = [
+        { name: "Tunnel_Key_Mum", type: "Abstraction", perms: ["R"],
+          word1_location: 0xA100, word2_limit: 0x100,
+          tooltip: "HMAC-SHA256 tunnel key for encrypted channel to mymother." },
+        { name: "Mum_Messaging", type: "Abstraction", perms: ["L", "E"],
+          word1_location: 0xA200, word2_limit: 0x200,
+          tooltip: "Outform GT — remote messaging service on mymother (RV32-Cap)." },
+        { name: "ABI_Mum", type: "Abstraction", perms: ["R"],
+          word1_location: 0xA400, word2_limit: 0x100,
+          tooltip: "ABI descriptor: DR0-DR5 (64-bit) → x10-x15 (32-bit)." },
+        { name: "Me_CList", type: "C-List", perms: ["L", "S", "E"],
+          word1_location: 0xA500, word2_limit: 0x100,
+          tooltip: "Hello Mum C-List for \"me\" — holds Tunnel Key, Messaging, ABI." }
+    ];
+
+    const baseOffset = namespaceObjects.length + dynamicObjects.filter(o => !o._helloMum).length;
+
+    dynamicObjects = dynamicObjects.filter(o => !o._helloMum);
+
+    helloMumNsEntries.forEach((entry, i) => {
+        dynamicObjects.push({
+            offset: baseOffset + i,
+            name: entry.name,
+            type: entry.type,
+            perms: entry.perms,
+            word1_location: entry.word1_location,
+            word2_limit: entry.word2_limit,
+            word3_seals: 0n,
+            tooltip: entry.tooltip,
+            dynamic: true,
+            _helloMum: true
+        });
+    });
+
     updateDisplay();
     updateCapabilityExplorer();
     updateNamespaceDisplay();
 
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-    log('🌍 HELLO MUM — Namespace configured', 'success');
+    log('HELLO MUM — Namespace configured', 'success');
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
     log('CR6 = Me_CList [L,S,E] — "me" C-List', 'info');
     log('  [0] Tunnel_Key_Mum  [R]   — Inform (tunnel crypto key)', 'info');
