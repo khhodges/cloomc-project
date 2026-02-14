@@ -874,20 +874,19 @@ function saveThreadState() {
     }
     
     const threadName = simulator.cr8.name;
+    const bigIntReplacer = (key, value) => typeof value === 'bigint' ? value.toString() : value;
+    const safeClone = (obj) => obj ? JSON.parse(JSON.stringify(obj, bigIntReplacer)) : null;
+    
     const threadState = {
-        // Context Registers (CR0-CR7)
-        contextRegs: JSON.parse(JSON.stringify(simulator.contextRegs)),
-        // Data Registers (DR0-DR15) - convert BigInt to string for storage
+        contextRegs: safeClone(simulator.contextRegs),
         dataRegs: {},
-        // Indicators (condition flags)
         flags: { ...simulator.flags },
-        // Lambda states
         nia: simulator.nia,
         stackDepth: simulator.stackDepth,
-        cr6: simulator.contextRegs[6] ? JSON.parse(JSON.stringify(simulator.contextRegs[6])) : null,
-        cr7: simulator.contextRegs[7] ? JSON.parse(JSON.stringify(simulator.contextRegs[7])) : null,
-        cr8: JSON.parse(JSON.stringify(simulator.cr8)),
-        cr15: simulator.cr15 ? JSON.parse(JSON.stringify(simulator.cr15)) : null
+        cr6: safeClone(simulator.contextRegs[6]),
+        cr7: safeClone(simulator.contextRegs[7]),
+        cr8: safeClone(simulator.cr8),
+        cr15: safeClone(simulator.cr15)
     };
     
     // Convert BigInt data registers to strings for JSON storage
