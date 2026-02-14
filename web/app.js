@@ -1172,7 +1172,12 @@ function openCListForCR(crIdx) {
     updateCapabilityExplorer();
     setTimeout(() => {
         if (crCap) {
-            showCapabilityDetail(null, crCap, `CR${crIdx}`);
+            const capWithCList = Object.assign({}, crCap);
+            if (!capWithCList.clist || capWithCList.clist.length === 0) {
+                const resolved = getCListForCR(crCap);
+                if (resolved) capWithCList.clist = resolved;
+            }
+            showCapabilityDetail(null, capWithCList, `CR${crIdx}`);
             document.querySelectorAll('.token-card').forEach(card => {
                 const regBadge = card.querySelector('.token-reg');
                 if (regBadge && regBadge.textContent === `CR${crIdx}`) {
