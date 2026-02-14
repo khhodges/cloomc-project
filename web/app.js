@@ -1172,11 +1172,8 @@ function openCListForCR(crIdx) {
     updateCapabilityExplorer();
     setTimeout(() => {
         if (crCap) {
-            const capWithCList = Object.assign({}, crCap);
-            if (!capWithCList.clist || capWithCList.clist.length === 0) {
-                const resolved = getCListForCR(crCap);
-                if (resolved) capWithCList.clist = resolved;
-            }
+            const resolvedCList = crCap.clist || getCListForCR(crCap);
+            const capWithCList = Object.assign({}, crCap, { clist: resolvedCList || null });
             showCapabilityDetail(null, capWithCList, `CR${crIdx}`);
             document.querySelectorAll('.token-card').forEach(card => {
                 const regBadge = card.querySelector('.token-reg');
@@ -2241,6 +2238,7 @@ function selectContextRegister(regIndex, hasGT) {
         return;
     }
     
+    const resolvedCList = reg.clist || getCListForCR(reg);
     const cap = {
         name: reg.name,
         type: reg.type || getCapabilityTypeLabel(reg),
@@ -2251,7 +2249,7 @@ function selectContextRegister(regIndex, hasGT) {
         nsOffset: reg.nsOffset || 0,
         nsEntry: reg.nsEntry,
         goldenKey: reg.goldenKey,
-        clist: reg.clist || null
+        clist: resolvedCList || null
     };
     
     if (!cap.location.offset && cap.location.offset !== 0) {
