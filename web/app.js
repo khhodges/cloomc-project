@@ -359,7 +359,7 @@ const namespaceObjects = [
     // Offset 12: Mint abstraction
     { offset: 12, name: "Mint", type: "Abstraction",
       word1_location: 0xC000, word2_limit: 0x1000, word3_seals: 0n,
-      tooltip: "Mint [CAPABILITY FORGE] - Creates Golden Tokens with arbitrary permission sets. GT_MINT (general), GT_RESTRICT (derive subset), GT_REVOKE (bump version). Foundation for all capability creation." }
+      tooltip: "Mint [CAPABILITY FORGE] - Creates domain-pure Golden Tokens (Turing [RWX] or Church [LSE], never both). GT_MINT (create), GT_RESTRICT (derive subset), GT_REVOKE (bump version). Foundation for all capability creation." }
 ];
 
 // Boot C-List at Namespace offset 2
@@ -620,9 +620,9 @@ const abstractionCLists = {
     Mint: {
         name: "Mint",
         mathType: "FORGE",
-        description: "Capability forge — mints Golden Tokens with arbitrary permission sets. GT_MINT creates new GTs, GT_RESTRICT derives subset permissions, GT_REVOKE bumps version to invalidate.",
+        description: "Capability forge — mints domain-pure Golden Tokens (Turing [RWX] or Church [LSE], never both). GT_MINT creates new GTs, GT_RESTRICT derives subset permissions, GT_REVOKE bumps version to invalidate.",
         clist: [
-            { name: "GT_MINT", type: "Function", perms: ["R", "X"], desc: "Mint new GT: DR0=perm mask (6-bit RWXLSE), DR1=type (0=Data,1=Code,2=C-List,3=Thread,4=Abstraction), DR2=size → CR0", base: 0xC100, size: 512 },
+            { name: "GT_MINT", type: "Function", perms: ["R", "X"], desc: "Mint new GT: DR0=domain-pure perm mask (Turing [RWX] or Church [LSE], never both), DR1=type (0=Data,1=Code,2=C-List,3=Thread,4=Abstraction), DR2=size → CR0", base: 0xC100, size: 512 },
             { name: "GT_RESTRICT", type: "Function", perms: ["R", "X"], desc: "Derive restricted GT: CR0=source GT, DR0=new perm mask (must be subset) → CR0=restricted GT", base: 0xC300, size: 512 },
             { name: "GT_REVOKE", type: "Function", perms: ["R", "X"], desc: "Revoke GT: CR0=target GT → bumps namespace version, all copies FAULT on next mLoad", base: 0xC500, size: 256 },
             { name: "GT_INSPECT", type: "Function", perms: ["R", "X"], desc: "Inspect GT metadata: CR0=target GT → DR0=perms, DR1=type, DR2=version, DR3=nsOffset", base: 0xC600, size: 256 },
@@ -1060,7 +1060,7 @@ function buildHierarchyTree() {
         'CapabilityManager': '[CAPABILITY] Creates new Golden Tokens. DR0=type (0=Data, 1=C-List), DR1=size → CR0',
         'DateTime': '[TIME] ISO 8601 date/time. DR0=mode (0=ISO, 1=Date, 2=Time, 3=Epoch, 4=Components) → DR1-DR6',
         'Lambda': '[FUNCTIONAL] Church lambda calculus primitives. Y-Combinator, Church numerals, Pairs, Booleans',
-        'Mint': '[FORGE] Capability forge. GT_MINT: DR0=perms DR1=type DR2=size → CR0. GT_RESTRICT: subset perms. GT_REVOKE: bump version. GT_INSPECT: read metadata'
+        'Mint': '[FORGE] Capability forge. Domain-pure only: Turing [RWX] or Church [LSE], never both. GT_MINT: DR0=perms DR1=type DR2=size → CR0. GT_RESTRICT: subset perms. GT_REVOKE: bump version. GT_INSPECT: read metadata'
     };
     const mathTypeBadges = {
         'SlideRule': 'FLOAT',
@@ -6891,7 +6891,7 @@ CALL 1 0             ; CALL CapabilityManager
         steps: [
             {
                 text: `<h3>Beyond CapabilityManager</h3>
-                <p>The <strong>Mint</strong> abstraction is the general-purpose capability forge. While CapabilityManager creates only Data [RWX] or C-List [LSE] objects, Mint can create Golden Tokens with <em>any</em> combination of the 6 permission bits.</p>
+                <p>The <strong>Mint</strong> abstraction is the general-purpose capability forge. While CapabilityManager creates only Data [RWX] or C-List [LSE] objects, Mint can create Golden Tokens with <em>any</em> domain-pure permission set — any subset of Turing [RWX] or any subset of Church [LSE], but never both. Oil and water do not mix.</p>
                 <div class="key-concept">
                     <strong>Key Concept:</strong> Mint is the foundation for all future capability creation. It provides four operations: GT_MINT (create), GT_RESTRICT (attenuate), GT_REVOKE (invalidate), and GT_INSPECT (read metadata).
                 </div>
@@ -6918,8 +6918,8 @@ CALL 1 0             ; CALL CapabilityManager
                 </div>`
             },
             {
-                text: `<h3>GT_MINT: Arbitrary Permission Creation</h3>
-                <p>GT_MINT creates a new Golden Token with any combination of the 6 permission bits:</p>
+                text: `<h3>GT_MINT: Domain-Pure Permission Creation</h3>
+                <p>GT_MINT creates a new Golden Token with any valid domain-pure permission set. Turing [RWX] and Church [LSE] are mutually exclusive — mixing them FAULTs immediately:</p>
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 1rem 0;">
                     <tr style="background: var(--bg-tertiary);"><th style="padding: 0.5rem;">Register</th><th style="padding: 0.5rem;">Input</th><th style="padding: 0.5rem;">Description</th></tr>
                     <tr><td style="padding: 0.5rem;"><strong>DR0</strong></td><td>Perm Mask</td><td>6-bit mask: R(0x01) W(0x02) X(0x04) L(0x08) S(0x10) E(0x20)</td></tr>
@@ -10350,16 +10350,13 @@ fault:
     FAULT           ; Uniform failure - no information leakage`,
 
     GT_MINT: `; ====================================================
-; GT_MINT (Mint): Create Golden Token with Arbitrary Perms
+; GT_MINT (Mint): Create Domain-Pure Golden Token
 ; The fundamental capability creation primitive
 ; ====================================================
-; API: DR0 = permission mask (6-bit: RWXLSE)
-;        Bit 0 = R (Read)    0x01
-;        Bit 1 = W (Write)   0x02
-;        Bit 2 = X (Execute) 0x04
-;        Bit 3 = L (Load)    0x08
-;        Bit 4 = S (Save)    0x10
-;        Bit 5 = E (Enter)   0x20
+; API: DR0 = permission mask (domain-pure, 6-bit)
+;        TURING domain: R(0x01) W(0x02) X(0x04)
+;        CHURCH domain: L(0x08) S(0x10) E(0x20)
+;        RWX and LSE are MUTUALLY EXCLUSIVE (oil and water)
 ;      DR1 = object type
 ;        0 = Data, 1 = Code, 2 = C-List
 ;        3 = Thread, 4 = Abstraction
@@ -10380,7 +10377,19 @@ B GT fault          ; Invalid perm mask -> FAULT
 CMP 0 #0            ; DR0 > 0? (must grant something)
 B EQ fault          ; Zero perms -> FAULT
 
-; Step 2: Validate object type (0-4)
+; Step 2: Domain exclusivity — RWX and LSE are oil and water
+; Turing domain (RWX) bits 0-2, Church domain (LSE) bits 3-5
+AND 3 0 #0x07       ; DR3 = Turing bits (R,W,X)
+AND 4 0 #0x38       ; DR4 = Church bits (L,S,E)
+CMP 3 #0            ; Has Turing bits?
+B NE .checkChurch   ; Yes — verify no Church bits
+B .domainOK         ; No Turing bits, Church-only is fine
+.checkChurch:
+CMP 4 #0            ; Also has Church bits?
+B NE fault          ; RWX + LSE mixed -> FAULT
+.domainOK:
+
+; Step 3: Validate object type (0-4)
 CMP 1 #0
 B MI fault          ; Negative type -> FAULT
 CMP 1 #4
@@ -10452,6 +10461,15 @@ B NE fault          ; Not a subset -> FAULT
 ; Step 4: Verify non-empty result
 CMP 0 #0
 B EQ fault          ; Zero perms -> FAULT
+
+; Step 5: Domain exclusivity — result must not mix RWX + LSE
+AND 3 0 #0x07       ; DR3 = Turing bits (R,W,X)
+AND 4 0 #0x38       ; DR4 = Church bits (L,S,E)
+CMP 3 #0
+B EQ .restrictOK    ; Pure Church — fine
+CMP 4 #0
+B NE fault          ; Mixed domains -> FAULT
+.restrictOK:
 
 ; === CONSTRUCT RESTRICTED GT ===
 ; Step 5: Build new GT with same offset, new perms

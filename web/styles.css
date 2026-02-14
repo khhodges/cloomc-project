@@ -162,6 +162,27 @@ nav.controls {
     pointer-events: none;
 }
 
+.btn-swap-sim {
+    padding: 0.35rem 0.8rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #1a1a2e;
+    border: 1px solid #f59e0b;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-swap-sim:hover {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    transform: translateY(-1px);
+}
+
 .action-buttons {
     display: flex;
     gap: 0.4rem;
