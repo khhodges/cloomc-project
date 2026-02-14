@@ -501,7 +501,7 @@ let docsListLoaded = false;
 
 function loadDocsList() {
     if (docsListLoaded) return;
-    fetch('/api/docs')
+    fetch('api/docs')
         .then(r => r.json())
         .then(files => {
             const list = document.getElementById('docs-file-list');
@@ -525,7 +525,7 @@ function loadDoc(filename, title) {
     document.getElementById('docs-current-file').textContent = title;
     const content = document.getElementById('docs-content');
     content.innerHTML = '<div class="docs-loading">Loading...</div>';
-    fetch('/api/docs/' + filename)
+    fetch('api/docs/' + filename)
         .then(r => r.text())
         .then(md => {
             content.innerHTML = renderMarkdown(md);

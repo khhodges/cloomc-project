@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTMM Capability Security Simulators</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e17;
+            color: #c8d6e5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 2.4rem;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            color: #8892a4;
+            margin-bottom: 48px;
+            text-align: center;
+            max-width: 620px;
+            line-height: 1.6;
+        }
+        .cards {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 900px;
+        }
+        .card {
+            background: #141a28;
+            border: 1px solid #1e2a3a;
+            border-radius: 12px;
+            padding: 36px 32px;
+            width: 380px;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.12);
+        }
+        .card h2 {
+            font-size: 1.5rem;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+        }
+        .card .tag {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-bottom: 16px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        .card p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #8892a4;
+            flex: 1;
+        }
+        .card .features {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .card .feature {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .card-ctmm .feature {
+            background: rgba(139, 92, 246, 0.1);
+            color: #a78bfa;
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+        .card .arrow {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        .card-ctmm .arrow { color: #8b5cf6; }
+        .card-ctmm:hover { border-color: #8b5cf6; box-shadow: 0 8px 30px rgba(139, 92, 246, 0.12); }
+        footer {
+            margin-top: 60px;
+            font-size: 0.82rem;
+            color: #4a5568;
+            text-align: center;
+        }
+        footer a { color: #60a5fa; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Capability Security Simulators</h1>
+    <p class="subtitle">
+        Interactive simulators for Kenneth Hamer-Hodges' failsafe capability-based architecture.
+        Golden Tokens enforce the Church-Turing security model with clean domain separation.
+    </p>
+    <div class="cards">
+        <a href="/ctmm/" class="card card-ctmm">
+            <h2>CTMM Simulator</h2>
+            <div class="tag">Sim-64 &middot; Custom ISA &middot; 64-bit Golden Tokens</div>
+            <p>
+                The Church-Turing Meta-Machine with custom instruction set,
+                namespace browser, assembly editor, capability explorer, and
+                interactive tutorials. Full authentication and state persistence.
+            </p>
+            <div class="features">
+                <span class="feature">Custom ISA</span>
+                <span class="feature">64-bit GTs</span>
+                <span class="feature">Namespace Browser</span>
+                <span class="feature">Assembly Editor</span>
+                <span class="feature">Tutorials</span>
+                <span class="feature">Auth &amp; Save</span>
+            </div>
+            <div class="arrow">Open CTMM Simulator &rarr;</div>
+        </a>
+        <a href="/rv32/" class="card card-rv32">
+            <h2>RV32-Cap Simulator</h2>
+            <div class="tag">Sim-32 &middot; RISC-V RV32I &middot; 32-bit Golden Tokens</div>
+            <p>
+                Capability security layered onto the RISC-V RV32I base instruction set.
+                Custom opcodes for capability instructions, boot image builder,
+                and interactive simulation with documentation browser.
+            </p>
+            <div class="features">
+                <span class="feature">RISC-V RV32I</span>
+                <span class="feature">32-bit GTs</span>
+                <span class="feature">Boot Builder</span>
+                <span class="feature">Cap Instructions</span>
+                <span class="feature">Doc Browser</span>
+            </div>
+            <div class="arrow">Open RV32-Cap Simulator &rarr;</div>
+        </a>
+    </div>
+    <footer>
+        <p>Church-Turing Meta-Machine &middot; <a href="https://sipantic.com">SIPantic.com</a></p>
+    </footer>
+</body>
+</html>

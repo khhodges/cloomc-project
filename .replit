@@ -13,19 +13,19 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "RV32-Cap Simulator"
+args = "CTMM Simulators"
 
 [[workflows.workflow]]
-name = "RV32-Cap Simulator"
+name = "CTMM Simulators"
 author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd riscv_cap && python main.py"
-waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ".pythonlibs/bin/python unified_server.py"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
@@ -33,7 +33,7 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--chdir=web", "app:app"]
+run = ["bash", "-c", "cd /home/runner/workspace && PYTHONPATH=web .pythonlibs/bin/gunicorn --bind=0.0.0.0:5000 --reuse-port --chdir /home/runner/workspace unified_server:app"]
 
 [nix]
 channel = "stable-25_05"

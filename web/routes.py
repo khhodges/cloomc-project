@@ -31,13 +31,13 @@ def add_cache_control_headers(response):
         response.headers['Expires'] = '0'
     return response
 
-@app.route('/')
-def index():
+@app.route('/ctmm/')
+def ctmm_index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/images/<path:filename>')
-def serve_images(filename):
-    return send_from_directory('images', filename)
+@app.route('/ctmm/<path:path>')
+def ctmm_static(path):
+    return send_from_directory('.', path)
 
 @app.route('/api/user')
 def get_user():

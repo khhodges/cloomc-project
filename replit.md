@@ -62,9 +62,20 @@ The project includes synthesizable hardware implementations in SystemVerilog (`v
 
 A tool (`riscv_cap/boot_builder.py`) constructs namespace tables, thread objects, C-Lists, and GTs, exporting them as JSON or binary memory images, matching the simulator's MAC computation.
 
+### Unified Server Architecture
+
+Both simulators are served from a single Flask application (`unified_server.py`) on port 5000:
+-   `/` — Landing page with links to both simulators
+-   `/ctmm/` — CTMM Simulator (Sim-64, custom ISA, full auth/DB features)
+-   `/rv32/` — RV32-Cap Simulator (Sim-32, RISC-V RV32I base)
+-   `/api/*` — CTMM API routes (user auth, state persistence, landing content)
+-   `/auth/*` — Replit Auth routes
+
+The CTMM app (`web/`) is the Flask base with database/auth. RV32-Cap (`riscv_cap/`) is mounted as a Blueprint at `/rv32/`. The workflow runs `.pythonlibs/bin/python unified_server.py` (using the venv's Python 3.11 to match installed packages).
+
 ## External Dependencies
 
--   **Python HTTP Server**: For serving web interfaces.
+-   **Python/Flask**: Unified web server for both simulators.
 -   **Haskell GHC**: For the console simulator.
 -   **`localStorage`**: Browser API for client-side state persistence.
 -   **PostgreSQL**: Database for user accounts and simulator states.
