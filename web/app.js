@@ -2827,37 +2827,32 @@ const examplePrograms = {
 ; same FAULT handler - no error codes, no timing
 ; differences, no information leakage.
 ;
-; Inputs:
-;   CR0 = Capability to validate
-;   DR0 = Data value to validate
-;   DR1 = Maximum allowed value
-;
 ; Output:
 ;   On success: Proceeds to protected operation
 ;   On failure: FAULT (uniform, no leakage)
 ; =============================================
 
-; === CAPABILITY VALIDATION ===
-; Test that CR0 has required permissions
-TPERM 0 RW        ; Must have Read+Write
-B NE fault        ; Any failure -> FAULT
+; === SETUP: Load capability into CR0 ===
+; CR6 = current C-List (loaded by boot)
+; Load Abacus [E] into CR0 from C-List[5]
+LOAD 0 6 5        ; CR0 <- C-List[5] (Abacus)
 
-TPERM 0 S         ; Must have Save permission
+; === CAPABILITY VALIDATION ===
+; Test that CR0 has required permission
+TPERM 0 E         ; Must have Enter
 B NE fault        ; Any failure -> FAULT
 
 ; === DATA BOUNDS VALIDATION ===
-; Ensure DR0 is within acceptable range
-CMP 0 0           ; DR0 >= 0? (non-negative)
-B MI fault        ; Negative -> FAULT
-
-CMP 0 1           ; DR0 <= DR1? (within max)
+; DR0 = value to check, DR1 = maximum
+ADDI 0 42         ; DR0 = test value (42)
+ADDI 1 100        ; DR1 = max allowed (100)
+CMP 0 1           ; DR0 <= DR1?
 B GT fault        ; Exceeds max -> FAULT
 
 ; === ALL CHECKS PASSED ===
 ; Safe to proceed with protected operation
-LOAD 1 0 0        ; Use validated capability
-; ... protected operations here ...
-RETURN            ; Success return
+; (In real code: CALL CR0 enters the abstraction)
+RETURN            ; Success - all validation passed
 
 ; === SINGLE FAILURE MODE ===
 ; All validation failures come here
