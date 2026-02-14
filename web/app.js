@@ -1139,6 +1139,51 @@ const crTooltips = {
     7: 'NUCLEUS: Hardware protection ring. Contains the trusted kernel capability.'
 };
 
+function getCListForCR(crCap) {
+    if (!crCap || crCap.name === 'NULL') return null;
+    if (crCap.clist && crCap.clist.length > 0) return crCap.clist;
+    const name = crCap.name.replace(/^CLIST_/, '');
+    if (abstractionCLists[name]) return abstractionCLists[name].clist;
+    if (threadCLists[name]) return threadCLists[name].clist;
+    return null;
+}
+
+function openCListForCR(crIdx) {
+    const crCap = crIdx < 8 ? simulator.contextRegs[crIdx] : null;
+    if (!crCap) return;
+    const clistEntries = getCListForCR(crCap);
+    if (clistEntries && clistEntries.length > 0) {
+        simulator.clist = clistEntries.map(entry => {
+            const nsObj = namespaceObjects.find(o => o.offset === entry.nsOffset);
+            const isLocked = entry.type === 'Abstraction';
+            return {
+                name: entry.name,
+                type: entry.type || 'Unknown',
+                nsOffset: entry.nsOffset,
+                location: { type: "Local", offset: nsObj ? nsObj.word1_location : (entry.base || 0) },
+                perms: entry.perms || [],
+                size: nsObj ? nsObj.word2_limit : (entry.size || 0),
+                goldenKey: generateGoldenKey(),
+                locked: isLocked
+            };
+        });
+    }
+    switchView('capabilities');
+    updateCapabilityExplorer();
+    setTimeout(() => {
+        if (crCap) {
+            showCapabilityDetail(null, crCap, `CR${crIdx}`);
+            document.querySelectorAll('.token-card').forEach(card => {
+                const regBadge = card.querySelector('.token-reg');
+                if (regBadge && regBadge.textContent === `CR${crIdx}`) {
+                    card.classList.add('selected');
+                }
+            });
+        }
+    }, 100);
+    log(`Switched to Capabilities Explorer (CR${crIdx} C-List)`, 'info');
+}
+
 function updateContextRegisters() {
     const container = document.getElementById('contextRegs');
     container.innerHTML = '';
@@ -1153,21 +1198,27 @@ function updateContextRegisters() {
         const isNull = reg.name === 'NULL';
         const role = 'GENERAL';
         const tooltip = crTooltips[i];
+        const hasCList = !isNull && getCListForCR(reg) !== null;
         const permTooltip = reg.perms.length > 0 ? 
             `Permissions: ${reg.perms.map(p => {
                 const permNames = {R:'Read', W:'Write', X:'Execute', L:'Load', S:'Store', E:'Enter'};
                 return permNames[p] || p;
-            }).join(', ')}` : 'No capability loaded. Register is empty.';
+            }).join(', ')}${hasCList ? ' — Click to view C-List' : ''}` : 'No capability loaded. Register is empty.';
         
         const row = document.createElement('div');
-        row.className = `register-row tooltip-bottom ${isNull ? 'null' : ''}`;
+        row.className = `register-row tooltip-bottom ${isNull ? 'null' : ''}${hasCList ? ' has-clist' : ''}`;
         row.setAttribute('data-tooltip', tooltip);
         row.innerHTML = `
             <span class="name">CR${i}</span>
             <span class="role">${role}</span>
-            <span class="value">${reg.name}</span>
+            <span class="value">${reg.name}${hasCList ? ' \u25B6' : ''}</span>
             <span class="perms tooltip-bottom" data-tooltip="${permTooltip}">${reg.perms.join('') || '---'}</span>
         `;
+        if (hasCList) {
+            row.style.cursor = 'pointer';
+            const crIdx = i;
+            row.addEventListener('click', () => openCListForCR(crIdx));
+        }
         container.appendChild(row);
     }
 }
@@ -1389,49 +1440,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // CR6 click handler - switch to Capabilities Explorer and show CR6 detail with C-List entries
     const cr6Row = document.getElementById('cr6Row');
     if (cr6Row) {
-        cr6Row.addEventListener('click', () => {
-            // Populate simulator.clist from CR6's clist entries before switching
-            const cr6Cap = simulator.contextRegs[6];
-            if (cr6Cap && cr6Cap.clist && cr6Cap.clist.length > 0) {
-                // Convert clist entries to capability objects for display
-                simulator.clist = cr6Cap.clist.map(entry => {
-                    const nsObj = namespaceObjects.find(o => o.offset === entry.nsOffset);
-                    // Determine locked status based on type (Abstractions are locked system resources)
-                    const isLocked = entry.type === 'Abstraction';
-                    return {
-                        name: entry.name,
-                        type: entry.type || 'Unknown',
-                        nsOffset: entry.nsOffset,
-                        location: { type: "Local", offset: nsObj ? nsObj.word1_location : 0 },
-                        perms: entry.perms || [],
-                        size: nsObj ? nsObj.word2_limit : 0,
-                        goldenKey: generateGoldenKey(),
-                        locked: isLocked
-                    };
-                });
-            }
-            switchView('capabilities');
-            // Re-render the Capabilities Explorer with the updated clist
-            updateCapabilityExplorer();
-            // After switching, select CR6 in the explorer (use longer timeout for DOM update)
-            setTimeout(() => {
-                if (cr6Cap) {
-                    // Show the capability detail panel first (this clears selections)
-                    showCapabilityDetail(null, cr6Cap, 'CR6');
-                    // Then find and select the CR6 card after showCapabilityDetail clears them
-                    document.querySelectorAll('.token-card').forEach(card => {
-                        const regBadge = card.querySelector('.token-reg');
-                        if (regBadge && regBadge.textContent === 'CR6') {
-                            card.classList.add('selected');
-                        }
-                    });
-                }
-            }, 100);
-            log('Switched to Capabilities Explorer (CR6 C-List)', 'info');
-        });
+        cr6Row.addEventListener('click', () => openCListForCR(6));
     }
     
     // Stack depth click handler - scroll to stack panel

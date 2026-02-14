@@ -354,6 +354,15 @@ main {
     color: var(--text-secondary);
 }
 
+.register-row.has-clist {
+    cursor: pointer;
+    border-left: 2px solid var(--accent);
+}
+
+.register-row.has-clist:hover {
+    background: var(--bg-tertiary);
+}
+
 .state-info {
     display: flex;
     flex-direction: column;
