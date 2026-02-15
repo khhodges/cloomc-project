@@ -2296,16 +2296,6 @@ main {
     justify-content: space-between;
 }
 
-.lesson-dropdown-group-label::after {
-    content: '\\25B8';
-    font-size: 0.6rem;
-    transition: transform 0.15s;
-}
-
-.lesson-dropdown-group:hover .lesson-dropdown-group-label::after,
-.lesson-dropdown-group.expanded .lesson-dropdown-group-label::after {
-    transform: rotate(90deg);
-}
 
 .lesson-dropdown-items {
     display: none;
