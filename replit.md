@@ -12,6 +12,7 @@ This project develops a comprehensive simulator for the Church-Turing Meta-Machi
 - Example buttons append code instead of replacing
 - Ctrl+Z undoes last code change
 - Punt TPERM standardization until Sim-32 mature and ARM market direction clear
+- No separate dynamicObjects — all entries live in namespaceObjects (dynamic entries flagged .dynamic = true)
 
 ## System Architecture
 
