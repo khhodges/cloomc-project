@@ -4453,11 +4453,8 @@ function loadExample(name) {
         let newCode;
         let shouldReplace = false;
         
-        // Replace if empty, Access.asm was auto-loaded, or Hello Mum (sets up new namespace context)
-        if (currentCode.trim() === '' || autoLoadedAccessAsm || name === 'hello_mum') {
-            shouldReplace = true;
-            autoLoadedAccessAsm = false;
-        }
+        shouldReplace = true;
+        if (autoLoadedAccessAsm) autoLoadedAccessAsm = false;
         
         if (shouldReplace) {
             newCode = code;
