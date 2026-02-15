@@ -2228,42 +2228,119 @@ main {
     color: white;
 }
 
-.lesson-title-select {
+.lesson-dropdown {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.lesson-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.lesson-dropdown-trigger:hover {
+    background: var(--bg-tertiary);
+}
+
+#lessonDropdownLabel {
     font-size: 0.85rem;
     font-weight: bold;
     color: var(--accent);
-    background: transparent;
-    border: none;
-    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lesson-dropdown-arrow {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.lesson-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 100;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    min-width: 220px;
+    max-height: 70vh;
+    overflow-y: auto;
     padding: 0.3rem 0;
-    flex: 1;
-    min-width: 0;
+}
+
+.lesson-dropdown.open .lesson-dropdown-menu {
+    display: block;
+}
+
+.lesson-dropdown-group-label {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: var(--accent);
+    padding: 0.5rem 0.8rem 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.lesson-dropdown-group-label::after {
+    content: '\\25B8';
+    font-size: 0.6rem;
+    transition: transform 0.15s;
+}
+
+.lesson-dropdown-group:hover .lesson-dropdown-group-label::after,
+.lesson-dropdown-group.expanded .lesson-dropdown-group-label::after {
+    transform: rotate(90deg);
+}
+
+.lesson-dropdown-items {
+    display: none;
+}
+
+.lesson-dropdown-group:hover .lesson-dropdown-items,
+.lesson-dropdown-group.expanded .lesson-dropdown-items {
+    display: block;
+}
+
+.lesson-dropdown-item {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.8rem 0.35rem 1.4rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lesson-dropdown-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--accent);
+}
+
+.lesson-dropdown-item.active {
+    color: var(--accent);
+    font-weight: bold;
 }
 
 .lesson-step-nav-bottom {
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border);
-}
-
-.lesson-title-select:hover {
-    color: var(--text-primary);
-}
-
-.lesson-title-select option {
-    background: var(--bg-panel);
-    color: var(--text-primary);
-    font-size: 0.8rem;
-    font-weight: normal;
-}
-
-.lesson-title-select optgroup {
-    background: var(--bg-secondary);
-    color: var(--accent);
-    font-size: 0.75rem;
-    font-style: normal;
-    font-weight: bold;
-    padding: 0.3rem 0;
 }
 
 .lesson-content {

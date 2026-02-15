@@ -8038,11 +8038,45 @@ function loadLesson(lessonIndex) {
     tutorialState.currentLesson = lessonIndex;
     tutorialState.currentStep = 0;
     
-    // Sync dropdown
-    const select = document.getElementById('lessonSelect');
-    if (select) select.value = lessonIndex;
+    updateLessonDropdownLabel(lessonIndex);
     
     renderCurrentStep();
+}
+
+function updateLessonDropdownLabel(lessonIndex) {
+    const label = document.getElementById('lessonDropdownLabel');
+    if (!label) return;
+    const item = document.querySelector(`.lesson-dropdown-item[data-lesson="${lessonIndex}"]`);
+    if (item) label.textContent = item.textContent;
+    document.querySelectorAll('.lesson-dropdown-item').forEach(el => el.classList.remove('active'));
+    if (item) item.classList.add('active');
+}
+
+function initLessonDropdown() {
+    const dropdown = document.getElementById('lessonDropdown');
+    const trigger = document.getElementById('lessonDropdownTrigger');
+    if (!dropdown || !trigger) return;
+
+    trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function() {
+        dropdown.classList.remove('open');
+    });
+
+    dropdown.querySelector('.lesson-dropdown-menu').addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    document.querySelectorAll('.lesson-dropdown-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            const lessonIndex = parseInt(this.getAttribute('data-lesson'));
+            dropdown.classList.remove('open');
+            loadLesson(lessonIndex);
+        });
+    });
 }
 
 function renderCurrentStep() {
@@ -8290,6 +8324,7 @@ function tryInSimulator() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    initLessonDropdown();
     if (lessons.length > 0) {
         loadLesson(0);
     }
