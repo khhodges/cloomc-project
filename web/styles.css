@@ -2257,6 +2257,15 @@ main {
     font-weight: normal;
 }
 
+.lesson-title-select optgroup {
+    background: var(--bg-secondary);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: bold;
+    padding: 0.3rem 0;
+}
+
 .lesson-content {
     flex: 1;
     overflow-y: auto;

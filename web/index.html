@@ -352,27 +352,33 @@ RETURN</pre>
                 <div class="tutorial-main">
                     <div class="lesson-header">
                         <select id="lessonSelect" class="lesson-title-select" onchange="loadLesson(parseInt(this.value))">
-                            <option value="0">1. Introduction to Capabilities</option>
-                            <option value="1">2. Golden Token Structure</option>
-                            <option value="2">3. The Boot Sequence</option>
-                            <option value="3">4. Context & Data Registers</option>
-                            <option value="4">5. Capability Operations</option>
-                            <option value="5">6. Security Boundaries</option>
-                            <option value="6">7. Lambda Combinators</option>
-                            <option value="7">8. Assembly Editor</option>
-                            <option value="8">9. Example Programs</option>
-                            <option value="9">10. Performance Benefits</option>
-                            <option value="10">11. Remote Golden Tokens</option>
-                            <option value="11">12. Failsafe Security</option>
-                            <option value="12">13. Church Instructions Deep Dive</option>
-                            <option value="13">14. Branch Instructions</option>
-                            <option value="14">15. Church Indicators & TPERM</option>
-                            <option value="15">16. Capability Manager</option>
-                            <option value="16">17. Mint: The Capability Forge</option>
-                            <option value="17">18. Atomic Operations (LOADX/SAVEX)</option>
-                            <option value="18">19. Multiple Register Operations (LDM/STM)</option>
-                            <option value="19">20. LDI and TPERM Presets</option>
-                            <option value="20">21. Hello Mum: The Holy Grail</option>
+                            <optgroup label="Informational">
+                                <option value="0">Introduction to Capabilities</option>
+                                <option value="1">Golden Token Structure</option>
+                                <option value="3">Context & Data Registers</option>
+                                <option value="5">Security Boundaries</option>
+                                <option value="9">Performance Benefits</option>
+                                <option value="10">Remote Golden Tokens</option>
+                                <option value="11">Failsafe Security</option>
+                            </optgroup>
+                            <optgroup label="Simulator">
+                                <option value="2">The Boot Sequence</option>
+                                <option value="4">Capability Operations</option>
+                                <option value="6">Lambda Combinators</option>
+                                <option value="7">Assembly Editor</option>
+                                <option value="12">Church Instructions Deep Dive</option>
+                                <option value="13">Branch Instructions</option>
+                                <option value="14">Church Indicators & TPERM</option>
+                                <option value="15">Capability Manager</option>
+                                <option value="16">Mint: The Capability Forge</option>
+                            </optgroup>
+                            <optgroup label="Examples">
+                                <option value="8">Example Programs</option>
+                                <option value="17">Atomic Operations (LOADX/SAVEX)</option>
+                                <option value="18">Multiple Register Operations (LDM/STM)</option>
+                                <option value="19">LDI and TPERM Presets</option>
+                                <option value="20">Hello Mum: The Holy Grail</option>
+                            </optgroup>
                         </select>
                         <div class="lesson-step-nav">
                             <button onclick="tutorialPrevStep()" class="btn btn-step" id="prevStepBtn">← Previous</button>
