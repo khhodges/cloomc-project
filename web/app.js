@@ -4335,7 +4335,7 @@ function setupHelloMumNamespace() {
     abiDescriptor.abiMap = {
         src_arch: "CTMM-64", src_regs: "DR0-DR15 (64-bit)",
         dst_arch: "RV32-Cap", dst_regs: "x0-x31 (32-bit)",
-        arg_map: "DR0→x10, DR1→x11, DR2→x12, DR3→x13, DR4→x14, DR5→x15",
+        arg_map: "DR0→x10, DR1→x11, DR2→x12, DR3→x13, DR4→x14, DR5→x15, DR6→x16, DR7→x17, DR8→x18",
         ret_map: "x10→DR0"
     };
 
@@ -7685,6 +7685,8 @@ SAVE CR1, [CR0+1]    ; Save to it</pre>
                         <pre style="font-size: 0.7rem; margin: 0; color: #e2e8f0;">Arguments:   DR0 &rarr; x10   DR1 &rarr; x11
              DR2 &rarr; x12   DR3 &rarr; x13
              DR4 &rarr; x14   DR5 &rarr; x15
+             DR6 &rarr; x16   DR7 &rarr; x17
+             DR8 &rarr; x18
 
 Returns:     x10  &rarr; DR0   x11 &rarr; DR1
 
@@ -7727,7 +7729,10 @@ Returns:     x10  &rarr; DR0   x11 &rarr; DR1
                                 DR2 = 'l' (108)<br>
                                 DR3 = 'l' (108)<br>
                                 DR4 = 'o' (111)<br>
-                                DR5 = 'M' (77)
+                                DR5 = ' ' (32)<br>
+                                DR6 = 'M' (77)<br>
+                                DR7 = 'u' (117)<br>
+                                DR8 = 'm' (109)
                             </div>
                         </div>
                     </div>
@@ -7850,7 +7855,10 @@ ADDI 1 101    ; DR1 = 'e' (ASCII 101)
 ADDI 2 108    ; DR2 = 'l' (ASCII 108)
 ADDI 3 108    ; DR3 = 'l' (ASCII 108)
 ADDI 4 111    ; DR4 = 'o' (ASCII 111)
-ADDI 5 77     ; DR5 = 'M' (ASCII 77)</pre>
+ADDI 5 32     ; DR5 = ' ' (ASCII 32)
+ADDI 6 77     ; DR6 = 'M' (ASCII 77)
+ADDI 7 117    ; DR7 = 'u' (ASCII 117)
+ADDI 8 109    ; DR8 = 'm' (ASCII 109)</pre>
                 <p>These are <strong>Turing instructions</strong> operating purely on values. No capabilities are involved. Domain separation is absolute:</p>
                 <ul style="font-size: 0.85rem;">
                     <li><strong>CRs</strong> hold Golden Tokens (Church domain) &mdash; oil</li>
@@ -7865,9 +7873,12 @@ ADDI 5 77     ; DR5 = 'M' (ASCII 77)</pre>
                         <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR2</strong> = 108<br><span style="color: #60a5fa; font-size: 1.2rem;">'l'</span></div>
                         <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR3</strong> = 108<br><span style="color: #60a5fa; font-size: 1.2rem;">'l'</span></div>
                         <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR4</strong> = 111<br><span style="color: #60a5fa; font-size: 1.2rem;">'o'</span></div>
-                        <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR5</strong> = 77<br><span style="color: #60a5fa; font-size: 1.2rem;">'M'</span></div>
+                        <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR5</strong> = 32<br><span style="color: #60a5fa; font-size: 1.2rem;">' '</span></div>
+                        <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR6</strong> = 77<br><span style="color: #60a5fa; font-size: 1.2rem;">'M'</span></div>
+                        <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR7</strong> = 117<br><span style="color: #60a5fa; font-size: 1.2rem;">'u'</span></div>
+                        <div style="background: #1e293b; padding: 0.4rem; border-radius: 4px; text-align: center;"><strong>DR8</strong> = 109<br><span style="color: #60a5fa; font-size: 1.2rem;">'m'</span></div>
                     </div>
-                    <div style="text-align: center; margin-top: 0.5rem; font-weight: bold; color: #60a5fa; font-size: 0.9rem;">"H e l l o M"</div>
+                    <div style="text-align: center; margin-top: 0.5rem; font-weight: bold; color: #60a5fa; font-size: 0.9rem;">"H e l l o &nbsp; M u m"</div>
                 </div>`
             },
             {
