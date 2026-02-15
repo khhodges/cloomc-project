@@ -4387,7 +4387,7 @@ function setupHelloMumNamespace() {
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
     log('HELLO MUM — Namespace configured', 'success');
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-    log('CR6 = Me_CList [E] — "me" C-List (M elevated on CR by microcode)', 'info');
+    log('CR6 = Me_CList [E] — "me" C-List (M elevated on CR by CALL/RETURN/CHANGE)', 'info');
     log('  [0] Tunnel_Key_Mum  [R]   — Inform (tunnel crypto key)', 'info');
     log('  [1] Mum_Messaging   [E]   — Outform (remote messaging abstraction)', 'info');
     log('  [2] ABI_Mum         [R]   — Inform (register map)', 'info');
@@ -7704,7 +7704,7 @@ Returns:     x10  &rarr; DR0   x11 &rarr; DR1
                     <tr><td style="text-align: center;">[2]</td><td>ABI_Mum</td><td>Inform</td><td><span style="background: #4ade80; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">R</span></td><td>Register mapping descriptor</td></tr>
                 </table>
                 <div class="highlight">
-                    Notice: the C-List GT has <strong>E</strong> permission only. Microcode elevates <strong>M</strong> on the CR during privileged operations (LOAD, SAVE, CHANGE). The M permission on CR6 is what allows mLoad to function &mdash; but M is <em>never</em> stored in the GT itself. Domain separation is absolute: capabilities in CRs, values in DRs.
+                    Notice: the C-List GT has <strong>E</strong> permission only. Three instructions have architectural approval to elevate <strong>M</strong> on a CR: <strong>CALL, RETURN, and CHANGE</strong>. M on the CR is what authorizes mLoad to access the namespace &mdash; but M is <em>never</em> stored in the GT itself. Domain separation is absolute: capabilities in CRs, values in DRs.
                 </div>
                 <p>Try it: Click the <strong>Hello Mum</strong> button in the Assembly Editor to load the example and configure the namespace.</p>`,
                 demo: `<div class="demo-title">Domain Separation</div>
@@ -7740,7 +7740,7 @@ Returns:     x10  &rarr; DR0   x11 &rarr; DR1
                 <pre style="background: var(--bg-tertiary); padding: 0.6rem; border-radius: 4px; font-size: 0.85rem;">LOAD 0 6 0    ; CR0 &larr; C-List[0] (Tunnel_Key_Mum)</pre>
                 <p>This is a <strong>Church instruction</strong>. Under the hood, the LOAD instruction triggers <strong>mLoad</strong> &mdash; the single trusted path for all namespace access:</p>
                 <ol style="font-size: 0.85rem;">
-                    <li><strong>Permission check:</strong> Microcode elevates M on CR6 &rarr; M authorizes namespace access &rarr; proceed.</li>
+                    <li><strong>Permission check:</strong> CR6 has M (elevated by CALL) &rarr; M authorizes namespace access &rarr; proceed.</li>
                     <li><strong>Bounds check:</strong> Is index 0 within the C-List? Yes (3 entries) &rarr; proceed.</li>
                     <li><strong>MAC validation:</strong> Does the entry's MAC match its computed hash? Yes &rarr; entry is untampered.</li>
                     <li><strong>Version check:</strong> Has the entry been recycled by GC? No &rarr; still valid.</li>
