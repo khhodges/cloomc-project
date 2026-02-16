@@ -469,6 +469,17 @@
                                 <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
                             </div>
                         </div>
+                        <div class="format-row">
+                            <span class="format-label">LAMBDA:</span>
+                            <div class="bit-fields">
+                                <span class="bit-field field-funct7" data-bits="31:25" data-tooltip="funct7 (Reserved)|Bits [31:25] — 7 bits|Reserved. Must be 0000000.">0000000</span>
+                                <span class="bit-field field-church-cr" data-bits="24:20" data-tooltip="CRs (Source CR)|Bits [22:20] — 3 bits (within rs2[4:0])|Capability register CR0-CR7 holding a function Golden Token. Must have X (Execute) permission. The GT's funcId identifies the function to apply to rd's value.">CRs</span>
+                                <span class="bit-field field-reserved" data-bits="19:15" data-tooltip="rs1 (Unused)|Bits [19:15] — 5 bits|Not used.">-----</span>
+                                <span class="bit-field field-funct3" data-bits="14:12" data-tooltip="funct3 = 100 (LAMBDA)|Bits [14:12] — 3 bits|Church instruction selector. 100 = CAP.LAMBDA. Lightweight in-scope code application — uses X permission (not E), operates in-place on data registers. Non-nestable. Machine-status fast path (zero stack access).">100</span>
+                                <span class="bit-field field-rs1" data-bits="11:7" data-tooltip="rd (Result Register)|Bits [11:7] — 5 bits|Data register (x0-x31) used as both input argument and result destination. The function identified by CRs is applied to rd's current value; the result overwrites rd.">rd</span>
+                                <span class="bit-field field-opcode" data-bits="6:0" data-tooltip="opcode = 0x0B (custom-0)|Bits [6:0] — 7 bits|RISC-V custom-0 opcode: 0001011.">0001011</span>
+                            </div>
+                        </div>
                     </div>
 
                     <h3>Church Opcode Map</h3>
