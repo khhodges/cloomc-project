@@ -4400,7 +4400,42 @@ function closeCR7Overlay() {
     if (overlay) overlay.remove();
 }
 
-function showTunnelMessage(direction, message, details) {
+function formatTunnelTime(ts) {
+    const d = ts ? new Date(ts) : new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function escapeTunnelHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function sendCtmmReply(replyText) {
+    if (!replyText || !replyText.trim()) return;
+    const notification = {
+        target: 'rv32cap',
+        message: replyText.trim(),
+        timestamp: Date.now(),
+        seen: false,
+        details: {
+            from: '<b>Kenneth</b> (CTMM Sim-64)',
+            to: '<b>Priscilla</b> (RV32-Cap Sim-32)',
+            items: [
+                { label: 'Instruction', value: 'CALL(CONNECT(me, mymother))' },
+                { label: 'Golden Tokens', value: '3 (Tunnel Key + Service + ABI)' },
+                { label: 'ABI Mapping', value: 'DR0-DR5 (64-bit) \u2192 x10-x15 (32-bit)' },
+                { label: 'Type', value: 'Interactive tunnel reply' }
+            ]
+        }
+    };
+    localStorage.setItem('ctmm-tunnel-notification', JSON.stringify(notification));
+    const overlay = document.getElementById('tunnelMsgOverlay');
+    if (overlay) overlay.remove();
+}
+
+function showTunnelMessage(direction, message, details, timestamp) {
     const existing = document.getElementById('tunnelMsgOverlay');
     if (existing) existing.remove();
     
@@ -4409,6 +4444,8 @@ function showTunnelMessage(direction, message, details) {
     const title = isSend ? 'Message Sent via Encrypted Tunnel' : 'Message Received via Encrypted Tunnel';
     const color = isSend ? '#00e676' : '#42a5f5';
     const icon = isSend ? '&#x1F4E4;' : '&#x1F4E5;';
+    const timeStr = formatTunnelTime(timestamp);
+    const safeMessage = escapeTunnelHtml(message);
     
     const overlay = document.createElement('div');
     overlay.id = 'tunnelMsgOverlay';
@@ -4423,8 +4460,9 @@ function showTunnelMessage(direction, message, details) {
                 <button onclick="document.getElementById('tunnelMsgOverlay').remove()" class="cr7-close">&times;</button>
             </div>
             <div class="tunnel-msg-body">
+                <div class="tunnel-msg-timestamp" style="color: ${color}">${timeStr}</div>
                 <div class="tunnel-msg-payload" style="border-color: ${color}; color: ${color}">
-                    "${message}"
+                    "${safeMessage}"
                 </div>
                 <div class="tunnel-msg-flow">
                     ${details.from} <span style="color:${color};font-size:1.5em">${arrow}</span> ${details.to}
@@ -4435,11 +4473,21 @@ function showTunnelMessage(direction, message, details) {
                 <div class="tunnel-msg-zeroes">
                     <span style="color: ${color}">7 Zeroes:</span> No OS, No VM, No privilege, No superuser, No unauthorized code, No unauthorized data, No containment escape
                 </div>
+                <div class="tunnel-reply-section">
+                    <input type="text" class="tunnel-reply-input" id="tunnelReplyInput" placeholder="Type a reply to Priscilla..." maxlength="200">
+                    <button class="tunnel-reply-btn" onclick="sendCtmmReply(document.getElementById('tunnelReplyInput').value)" style="background: ${color}">Send Reply</button>
+                </div>
             </div>
         </div>
     `;
     
     document.body.appendChild(overlay);
+    const input = document.getElementById('tunnelReplyInput');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendCtmmReply(input.value);
+        });
+    }
 }
 
 function closeTunnelMessage() {
@@ -14213,7 +14261,7 @@ function showTunnelNotification() {
             { label: 'Golden Tokens', value: '3 (Tunnel Key + ABI + Reply Tunnel)' },
             { label: 'ABI Mapping', value: 'x10-x15 (32-bit) \u2192 DR0-DR5 (64-bit)' }
         ]
-    });
+    }, notif.timestamp);
 }
 
 window.addEventListener('storage', (e) => {

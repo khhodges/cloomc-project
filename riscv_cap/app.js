@@ -926,6 +926,18 @@ function renderMarkdown(md) {
 
 let pendingTunnelMessages = [];
 
+function formatTunnelTime(ts) {
+    const d = ts ? new Date(ts) : new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function escapeTunnelHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 function checkTunnelNotifications() {
     const raw = localStorage.getItem('ctmm-tunnel-notification');
     if (!raw) return;
@@ -953,6 +965,30 @@ function updateNotifyBadge() {
     }
 }
 
+function sendRv32Reply(replyText) {
+    if (!replyText || !replyText.trim()) return;
+    const notification = {
+        target: 'ctmm',
+        message: replyText.trim(),
+        timestamp: Date.now(),
+        seen: false,
+        details: {
+            from: '<b>Priscilla</b> (RV32-Cap Sim-32)',
+            to: '<b>Kenneth</b> (CTMM Sim-64)',
+            items: [
+                { label: 'Instruction', value: 'CALL(CONNECT(mymother, son))' },
+                { label: 'Golden Tokens', value: '3 (Tunnel Key + ABI + Reply Tunnel)' },
+                { label: 'ABI Mapping', value: 'x10-x15 (32-bit) \u2192 DR0-DR5 (64-bit)' },
+                { label: 'Type', value: 'Interactive tunnel reply' }
+            ]
+        }
+    };
+    localStorage.setItem('rv32cap-tunnel-notification', JSON.stringify(notification));
+    const overlay = document.getElementById('tunnelMsgOverlay');
+    if (overlay) overlay.remove();
+    appendConsole('[NOTIFICATION] "' + replyText.trim() + '" sent to Kenneth (CTMM)');
+}
+
 function showTunnelNotification() {
     if (pendingTunnelMessages.length === 0) return;
     const notif = pendingTunnelMessages.shift();
@@ -974,6 +1010,8 @@ function showTunnelNotification() {
     const from = (notif.details && notif.details.from) || '<b>Kenneth</b> (CTMM Sim-64)';
     const to = (notif.details && notif.details.to) || '<b>Priscilla</b> (RV32-Cap Sim-32)';
     const message = notif.message || 'Hello Mum';
+    const safeMessage = escapeTunnelHtml(message);
+    const timeStr = formatTunnelTime(notif.timestamp);
 
     overlay.innerHTML = `
         <div class="tunnel-msg-panel">
@@ -983,7 +1021,8 @@ function showTunnelNotification() {
                 <button class="tunnel-msg-close" onclick="document.getElementById('tunnelMsgOverlay').remove()">&times;</button>
             </div>
             <div class="tunnel-msg-body">
-                <div class="tunnel-msg-payload">"${message}"</div>
+                <div class="tunnel-msg-timestamp">${timeStr}</div>
+                <div class="tunnel-msg-payload">"${safeMessage}"</div>
                 <div class="tunnel-msg-flow">
                     ${from} <span style="color:#42a5f5;font-size:1.5em">&rarr;</span> ${to}
                 </div>
@@ -993,11 +1032,21 @@ function showTunnelNotification() {
                 <div class="tunnel-msg-zeroes">
                     <span style="color: #42a5f5">7 Zeroes:</span> No OS, No VM, No privilege, No superuser, No unauthorized code, No unauthorized data, No containment escape
                 </div>
+                <div class="tunnel-reply-section">
+                    <input type="text" class="tunnel-reply-input" id="tunnelReplyInput" placeholder="Type a reply to Kenneth..." maxlength="200">
+                    <button class="tunnel-reply-btn" onclick="sendRv32Reply(document.getElementById('tunnelReplyInput').value)">Send Reply</button>
+                </div>
             </div>
         </div>
     `;
 
     document.body.appendChild(overlay);
+    const input = document.getElementById('tunnelReplyInput');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendRv32Reply(input.value);
+        });
+    }
 }
 
 window.addEventListener('storage', (e) => {

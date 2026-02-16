@@ -7196,3 +7196,55 @@ body.landing-mode .auth-section {
     0%, 100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
     50% { box-shadow: 0 0 12px 4px rgba(0, 230, 118, 0.2); }
 }
+
+.tunnel-msg-timestamp {
+    text-align: center;
+    font-size: 0.8rem;
+    font-family: monospace;
+    opacity: 0.7;
+    margin-bottom: 0.25rem;
+}
+
+.tunnel-reply-section {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tunnel-reply-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-primary, #e0e0e0);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.tunnel-reply-input:focus {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.tunnel-reply-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.tunnel-reply-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+}
+
+.tunnel-reply-btn:hover {
+    opacity: 0.85;
+}
