@@ -4083,6 +4083,69 @@ function stepProgram() {
     updateCapabilityExplorer();
 }
 
+function resolveCallTarget(targetName) {
+    const nsObj = namespaceObjects.find(o => o.name === targetName);
+    if (!nsObj) return;
+
+    if (nsObj.type === 'Abstraction' || nsObj.type === 'C-List' ||
+        (nsObj.type === 'Thread' && targetName === 'Boot')) {
+        const absCList = abstractionCLists[targetName];
+        if (absCList) {
+            const cr6 = simulator.contextRegs[6];
+            if (cr6) {
+                cr6.name = targetName;
+                cr6.nsOffset = nsObj.offset;
+                cr6.type = "C-List";
+                cr6.clist = absCList.clist;
+                cr6.clistCount = absCList.clist.length;
+                cr6.word1 = nsObj.word1_location;
+                cr6.word2 = nsObj.word2_limit;
+                cr6.word3 = nsObj.word3_seals;
+            }
+        } else if (targetName === 'Boot') {
+            const cr6 = simulator.contextRegs[6];
+            if (cr6) {
+                cr6.name = "Boot";
+                cr6.nsOffset = bootCList.nsOffset;
+                cr6.type = "C-List";
+                cr6.clist = bootCList.entries;
+                cr6.clistCount = bootCList.entries.length;
+                cr6.word1 = nsObj.word1_location;
+                cr6.word2 = nsObj.word2_limit;
+                cr6.word3 = nsObj.word3_seals;
+            }
+        }
+
+        let codeNS = null;
+        let codeLinkage = null;
+        if (absCList) {
+            codeNS = nsObj;
+            codeLinkage = `${targetName}/Nucleus.asm`;
+        } else if (targetName === 'Boot') {
+            const accessEntry = bootCList.entries.find(e => e.name === 'Access');
+            if (accessEntry) {
+                codeNS = namespaceObjects.find(o => o.offset === accessEntry.nsOffset);
+                codeLinkage = codeNS?.linkage || 'Boot/Access.asm';
+            }
+        }
+
+        if (codeNS) {
+            const cr7 = simulator.contextRegs[7];
+            if (cr7) {
+                cr7.name = codeNS.name || targetName;
+                cr7.nsOffset = codeNS.offset;
+                cr7.type = "Code";
+                cr7.linkage = codeLinkage;
+                cr7.base = codeNS.word1_location;
+                cr7.size = codeNS.word2_limit;
+                cr7.word1 = codeNS.word1_location;
+                cr7.word2 = codeNS.word2_limit;
+                cr7.word3 = codeNS.word3_seals;
+            }
+        }
+    }
+}
+
 function executeEditorInstruction(instr) {
     const { instr: op, args, line } = instr;
     let faultOccurred = false;
@@ -4225,9 +4288,15 @@ function executeEditorInstruction(instr) {
                 result = simulator.execute(op, args[0], args[1]);
                 break;
             
-            case 'CALL':
+            case 'CALL': {
+                const callCR = simulator.contextRegs[args[0]];
+                const callTargetName = callCR ? callCR.name : null;
                 result = simulator.execute(op, args[0]);
+                if (result && !result.startsWith('FAULT') && callTargetName) {
+                    resolveCallTarget(callTargetName);
+                }
                 break;
+            }
             
             case 'RETURN':
                 result = simulator.execute(op);
