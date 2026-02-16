@@ -13,7 +13,9 @@ const CR_LABELS = {6:'C-List', 7:'Nucleus', 8:'Percilla', 15:'Namespace'};
 const NS_NAMES = {0:'Namespace', 1:'Nucleus', 2:'Boot C-List', 3:'Percilla',
     4:'Lambda', 5:'GT_CHURCH_SUCC', 6:'GT_CHURCH_PRED', 7:'GT_CHURCH_ADD',
     8:'GT_CHURCH_MUL', 9:'GT_TRUE', 10:'GT_FALSE', 11:'GT_PAIR',
-    12:'GT_FST', 13:'GT_SND', 14:'GT_IF'};
+    12:'GT_FST', 13:'GT_SND', 14:'GT_IF',
+    15:'TunnelKey_Child', 16:'Son_Messaging', 17:'ABI_Child',
+    18:'Inbox', 19:'Outbox', 20:'Reply_Tunnel'};
 
 function toHex32(val) {
     return '0x' + ((val >>> 0).toString(16)).padStart(8, '0');
@@ -402,56 +404,111 @@ done:
     ecall                     # HALT — a0 = 42`,
 
         'hello_mum': `# ================================================
-# HELLO MUM — "mymother" side (receiver)
+# HELLO MUM / HELLO SON — Bidirectional Tunnel
 # ================================================
-# "mymother" (Sim-32, RV32-Cap) receives a message
-# from "me" (Sim-64, CTMM) through the encrypted
-# capability tunnel.
+# Percilla's machine (RV32-Cap Sim-32) — "mymother"
 #
-# This is the receiving half of:
-#   CALL(CONNECT(me, mymother))
-# ONE Church instruction + THREE Golden Tokens
+# PART 1: Receive "Hello Mum" from Kenneth (CTMM)
+#   Kenneth's CALL(CONNECT(me, mymother)) arrives
+#   via encrypted tunnel. ABI maps DR0-DR5 → x10-x15.
 #
-# Namespace layout:
-#   [4] = Tunnel_Key_Me   (tunnel crypto key)
-#   [5] = Inbox           (message buffer, RW)
-#   [6] = Service_Handler (messaging service code)
-#   [7] = ABI_Me          (register map descriptor)
+# PART 2: Send "Hello Son" back to Kenneth
+#   Percilla replies through the reverse tunnel.
+#   CALL(CONNECT(mymother, son)) — symmetric flow.
 #
-# CR6 = C-List [L,S] (from boot)
+# ONE Church instruction each direction.
+# THREE Golden Tokens each direction.
+# SEVEN zeroes — no OS, no VM, no privilege,
+#   no superuser, no unauthorized code,
+#   no unauthorized data, no containment escape.
+#
+# Namespace layout (ns[15-20]):
+#   [15] TunnelKey_Child [R]   — shared crypto key
+#   [16] Son_Messaging   [E]   — Outform to Kenneth
+#   [17] ABI_Child       [R]   — register map x→DR
+#   [18] Inbox           [R,W] — received messages
+#   [19] Outbox          [R,W] — outgoing messages
+#   [20] Reply_Tunnel    [E]   — return path
 # ================================================
 
-# === STEP 1: Load inbox capability ===
-# mLoad validates: L permission on CR6, MAC, version
-    cap.load cr0, cr6, 5     # CR0 = Inbox GT from namespace[5]
+# ────────────────────────────────────────────
+# PART 1: RECEIVE "Hello Mum" from Kenneth
+# ────────────────────────────────────────────
 
-# === STEP 2: Load tunnel key for decryption ===
-    cap.load cr1, cr6, 4     # CR1 = Tunnel_Key_Me from namespace[4]
+# === Load tunnel key for decryption ===
+    cap.load cr0, cr6, 15    # CR0 ← TunnelKey_Child [R]
+    cap.tperm t0, cr0        # test permissions
+    andi t0, t0, 0x01        # isolate R bit
+    beqz t0, fault           # FAULT if no R permission
 
-# === STEP 3: Simulate received message ===
-# In real hardware, tunnel microcode would decrypt
-# and ABI-translate the payload into x10-x15.
-# Here we simulate the received "Hello" message:
-    addi a0, zero, 72        # x10 = 'H' (72) — from DR0 via ABI
-    addi a1, zero, 101       # x11 = 'e' (101) — from DR1 via ABI
-    addi a2, zero, 108       # x12 = 'l' (108) — from DR2 via ABI
-    addi a3, zero, 108       # x13 = 'l' (108) — from DR3 via ABI
-    addi a4, zero, 111       # x14 = 'o' (111) — from DR4 via ABI
-    addi a5, zero, 77        # x15 = 'M' (77)  — from DR5 via ABI
+# === Load Inbox to store received message ===
+    cap.load cr1, cr6, 18    # CR1 ← Inbox [R,W]
+    cap.tperm t0, cr1        # test permissions
+    andi t0, t0, 0x02        # isolate W bit
+    beqz t0, fault           # FAULT if no W permission
 
-# === STEP 4: Store message to inbox ===
-# CAP.SAVE writes the inbox capability back
-# validating W permission through mLoad
-    cap.save cr0, cr6, 5     # Store inbox GT back to namespace[5]
+# === Simulate received "Hello Mum" payload ===
+# In hardware: tunnel microcode decrypts + ABI maps
+# DR0-DR5 (64-bit) → x10-x15 (32-bit)
+    addi a0, zero, 72        # x10 = 'H' (72)
+    addi a1, zero, 101       # x11 = 'e' (101)
+    addi a2, zero, 108       # x12 = 'l' (108)
+    addi a3, zero, 108       # x13 = 'l' (108)
+    addi a4, zero, 111       # x14 = 'o' (111)
+    addi a5, zero, 77        # x15 = 'M' (77)
 
-# === STEP 5: Send acknowledgment ===
-# Set return value: message received successfully
-    addi a0, zero, 1         # x10 = 1 (ACK: message received)
+# === Store to Inbox (W permission validated) ===
+    cap.save cr1, cr6, 18    # Persist Inbox GT
 
-# === Message received! ===
-# The tunnel returns ACK to "me"
-# ABI descriptor maps x10 back to DR0
-    ecall                     # halt — demo complete`
+# ────────────────────────────────────────────
+# PART 2: SEND "Hello Son" back to Kenneth
+# ────────────────────────────────────────────
+
+# === Load Outbox for composing reply ===
+    cap.load cr2, cr6, 19    # CR2 ← Outbox [R,W]
+
+# === Prepare "Hello Son" in data registers ===
+    addi a0, zero, 72        # x10 = 'H' (72)
+    addi a1, zero, 101       # x11 = 'e' (101)
+    addi a2, zero, 108       # x12 = 'l' (108)
+    addi a3, zero, 108       # x13 = 'l' (108)
+    addi a4, zero, 111       # x14 = 'o' (111)
+    addi a5, zero, 83        # x15 = 'S' (83)
+
+# === Store outgoing message ===
+    cap.save cr2, cr6, 19    # Persist Outbox GT
+
+# === Load ABI descriptor for Kenneth's arch ===
+    cap.load cr3, cr6, 17    # CR3 ← ABI_Child [R]
+    cap.tperm t0, cr3        # test permissions
+    andi t0, t0, 0x01        # isolate R bit
+    beqz t0, fault           # FAULT if no R
+
+# === Load reverse tunnel service ===
+    cap.load cr4, cr6, 20    # CR4 ← Reply_Tunnel [E]
+    cap.tperm t0, cr4        # test permissions
+    andi t0, t0, 0x20        # isolate E bit
+    beqz t0, fault           # FAULT if no E
+
+# === THE Church instruction — reverse direction ===
+# CALL(CONNECT(mymother, son))
+# → E permission on CR4 validated
+# → Outform detected: tunnel path entered
+# → ABI maps x10-x15 (32-bit) → DR0-DR5 (64-bit)
+# → Payload encrypted with TunnelKey_Child
+# → Sent to Kenneth's endpoint
+    cap.call cr4             # ONE instruction. Hello Son.
+
+# === Reply sent! Kenneth receives "Hello Son" ===
+# On return: x10 = Kenneth's acknowledgment
+# Bidirectional tunnel complete.
+    j done
+
+fault:
+    ebreak                    # FAULT — uniform failure
+
+done:
+    ecall                     # HALT — bidirectional demo complete`
     };
 
     const editor = document.getElementById('asm-editor');
@@ -465,49 +522,33 @@ done:
 }
 
 function setupHelloMumNamespace() {
-    const entries = [
-        { location: 0x0000A000, limit: 0x0000A0FF, name: 'Tunnel_Key_Me' },
-        { location: 0x0000B000, limit: 0x0000B0FF, name: 'Inbox' },
-        { location: 0x0000C000, limit: 0x0000C0FF, name: 'Service_Handler' },
-        { location: 0x0000D000, limit: 0x0000D0FF, name: 'ABI_Me' }
-    ];
-
-    for (let i = 0; i < entries.length; i++) {
-        const e = entries[i];
-        const nsIdx = 4 + i;
-        NS_NAMES[nsIdx] = e.name;
-        while (sim.namespaceTable.length <= nsIdx) {
-            sim.namespaceTable.push({ location: 0, limit: 0, versionSeals: sim.makeVersionSeals(0, 0, 0), gBit: 0 });
-        }
-        sim.namespaceTable[nsIdx] = {
-            location: e.location,
-            limit: e.limit,
-            versionSeals: sim.makeVersionSeals(0, e.location, e.limit),
-            gBit: 0
-        };
-    }
-
     sim.cr[6].word0 = sim.createGT(0, 1, { R:1, W:1, X:0, L:1, S:1, E:0 }, 0);
 
     updateNamespaceView();
-    updateRegisterView();
+    updateUI();
 
-    const output = document.getElementById('asm-output');
-    if (output) {
-        output.innerHTML =
-            '<span style="color:#7fd">━━━ HELLO MUM — Namespace configured ━━━</span>\n' +
-            '"mymother" (Percilla) = RV32-Cap Sim-32 (x0-x31, 32-bit)\n' +
-            '"me" (Kenneth)       = CTMM Sim-64 (DR0-DR15, 64-bit)\n\n' +
-            'Namespace entries added:\n' +
-            '  [4] Tunnel_Key_Me   (0xA000-0xA0FF)\n' +
-            '  [5] Inbox           (0xB000-0xB0FF)\n' +
-            '  [6] Service_Handler (0xC000-0xC0FF)\n' +
-            '  [7] ABI_Me          (0xD000-0xD0FF)\n\n' +
-            'CR6 = C-List [R,W,L,S] — "mymother" C-List\n\n' +
-            'Click Assemble → Load → Step to receive message.\n' +
-            'Open CTMM Simulator for "me" sender side.\n' +
-            '<span style="color:#7fd">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>';
-    }
+    appendConsole('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    appendConsole('HELLO MUM / HELLO SON — Bidirectional Tunnel');
+    appendConsole('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    appendConsole('"mymother" (Percilla) = RV32-Cap Sim-32');
+    appendConsole('"me" (Kenneth)        = CTMM Sim-64');
+    appendConsole('');
+    appendConsole('Tunnel namespace entries (ns[15-20]):');
+    appendConsole('  [15] TunnelKey_Child [R]   — shared crypto key');
+    appendConsole('  [16] Son_Messaging   [E]   — Outform to Kenneth');
+    appendConsole('  [17] ABI_Child       [R]   — register map x→DR');
+    appendConsole('  [18] Inbox           [R,W] — received messages');
+    appendConsole('  [19] Outbox          [R,W] — outgoing messages');
+    appendConsole('  [20] Reply_Tunnel    [E]   — return path');
+    appendConsole('');
+    appendConsole('CR6 = C-List [R,W,L,S] — mymother C-List');
+    appendConsole('');
+    appendConsole('PART 1: Receive "Hello Mum" from Kenneth');
+    appendConsole('PART 2: Send "Hello Son" back to Kenneth');
+    appendConsole('');
+    appendConsole('Click Assemble → Load → Step to trace.');
+    appendConsole('Open CTMM Simulator for Kenneth side.');
+    appendConsole('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 
 function updateNamespaceView() {

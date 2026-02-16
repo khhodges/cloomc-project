@@ -5017,9 +5017,15 @@ function setupHelloMumNamespace() {
         ret_map: "x10→DR0"
     };
 
+    const sonInbox = simulator.createCapability("Son_Inbox", ["R", "W"]);
+    sonInbox.type = "Inform";
+
+    const sonService = simulator.createCapability("Son_Receive", ["E"]);
+    sonService.type = "Inform";
+
     const meCList = simulator.createCapability("Me_CList", ["E"]);
     meCList.type = "Inform";
-    meCList.clist = [tunnelKey, mumService, abiDescriptor];
+    meCList.clist = [tunnelKey, mumService, abiDescriptor, sonInbox, sonService];
 
     simulator.contextRegs[6] = meCList;
     simulator.registerCapability(meCList);
@@ -5034,9 +5040,15 @@ function setupHelloMumNamespace() {
         { name: "ABI_Mum", type: "Abstraction", perms: ["R"],
           word1_location: 0xA400, word2_limit: 0x100,
           tooltip: "ABI descriptor: DR0-DR8 (64-bit) → x10-x18 (32-bit)." },
+        { name: "Son_Inbox", type: "Data", perms: ["R", "W"],
+          word1_location: 0xA600, word2_limit: 0x400,
+          tooltip: "Inbox for receiving \"Hello Son\" reply from mymother (Percilla)." },
+        { name: "Son_Receive", type: "Abstraction", perms: ["E"],
+          word1_location: 0xA700, word2_limit: 0x100,
+          tooltip: "Service handler for receiving reverse-tunnel messages from mymother." },
         { name: "Me_CList", type: "C-List", perms: ["E"],
           word1_location: 0xA500, word2_limit: 0x100,
-          tooltip: "Hello Mum C-List for \"me\" — holds Tunnel Key, Messaging, ABI." }
+          tooltip: "Hello Mum/Son C-List for \"me\" — holds Tunnel Key, Messaging, ABI, Son Inbox." }
     ];
 
     const baseOffset = namespaceObjects.length;
@@ -5063,20 +5075,25 @@ function setupHelloMumNamespace() {
     updateNamespaceDisplay();
 
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-    log('HELLO MUM — Namespace configured', 'success');
+    log('HELLO MUM / HELLO SON — Bidirectional Tunnel', 'success');
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-    log('CR6 = Me_CList [E] — "me" C-List (M elevated on CR by CALL/RETURN/CHANGE)', 'info');
+    log('CR6 = Me_CList [E] — "me" C-List:', 'info');
     log('  [0] Tunnel_Key_Mum  [R]   — Inform (tunnel crypto key)', 'info');
-    log('  [1] Mum_Messaging   [E]   — Outform (remote messaging abstraction)', 'info');
+    log('  [1] Mum_Messaging   [E]   — Outform (remote messaging)', 'info');
     log('  [2] ABI_Mum         [R]   — Inform (register map)', 'info');
+    log('  [3] Son_Inbox       [R,W] — Inform (receive reply)', 'info');
+    log('  [4] Son_Receive     [E]   — Inform (reply handler)', 'info');
     log('', 'info');
-    log('"me" = CTMM Sim-64 (DR0-DR15, 64-bit)', 'info');
-    log('"mymother" = RV32-Cap Sim-32 (x0-x31, 32-bit)', 'info');
+    log('"me" (Kenneth) = CTMM Sim-64 (DR0-DR15, 64-bit)', 'info');
+    log('"mymother" (Percilla) = RV32-Cap Sim-32 (x0-x31, 32-bit)', 'info');
     log('', 'info');
-    log('Click Step to trace the Hello Mum flow.', 'info');
+    log('PART 1: Send "Hello Mum" → mymother (Percilla)', 'info');
+    log('PART 2: Receive "Hello Son" ← mymother (Percilla)', 'info');
+    log('', 'info');
+    log('Click Step to trace the bidirectional flow.', 'info');
     log('Open RV32-Cap Simulator for "mymother" side.', 'info');
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-    editorLog('Hello Mum: Namespace ready. Step through to send message.', 'success');
+    editorLog('Hello Mum/Son: Namespace ready. Step to send + receive.', 'success');
 }
 
 function loadCR7() {
@@ -12396,36 +12413,45 @@ RETURN
 ; This demonstrates non-termination in lambda calc`,
 
     'hello_mum': `; ================================================
-; HELLO MUM — The Holy Grail of Computer Science
+; HELLO MUM / HELLO SON — Bidirectional Tunnel
 ; ================================================
-; "me" (Sim-64, CTMM) sends a message to
-; "mymother" (Sim-32, RV32-Cap) through an
-; encrypted capability tunnel.
+; Kenneth's machine (CTMM Sim-64) — "me"
 ;
-; ONE Church instruction: CALL(CONNECT(me, mymother))
-; THREE Golden Tokens: tunnel key, service GT, C-List
-; SEVEN zeroes: no OS, no VM, no privilege, no superuser,
-;   no unauthorized code, no unauthorized data, no escape
+; PART 1: Send "Hello Mum" → mymother (Percilla)
+;   CALL(CONNECT(me, mymother)) — one Church instruction
+;   THREE Golden Tokens: tunnel key, service, ABI
+;
+; PART 2: Receive "Hello Son" ← mymother (Percilla)
+;   Percilla's reply arrives via reverse tunnel
+;   Son_Inbox [R,W] stores the incoming message
+;
+; SEVEN zeroes both directions: no OS, no VM,
+;   no privilege, no superuser, no unauthorized code,
+;   no unauthorized data, no containment escape
 ;
 ; C-List layout (CR6):
-;   [0] = Tunnel_Key_Mum  [R]     (Inform)
-;   [1] = Mum_Messaging   [L,E]   (Outform — remote)
-;   [2] = ABI_Mum          [R]     (Inform — register map)
+;   [0] Tunnel_Key_Mum  [R]   — Inform (crypto key)
+;   [1] Mum_Messaging   [E]   — Outform (remote)
+;   [2] ABI_Mum         [R]   — Inform (register map)
+;   [3] Son_Inbox       [R,W] — Inform (reply buffer)
+;   [4] Son_Receive     [E]   — Inform (reply handler)
 ; ================================================
 
-; === STEP 1: Load tunnel key ===
+; ────────────────────────────────────────────
+; PART 1: SEND "Hello Mum" to Percilla
+; ────────────────────────────────────────────
+
+; === Load tunnel key ===
 LOAD 0 6 0        ; CR0 = Tunnel_Key_Mum from C-List
-TPERM 0 R         ; Verify R permission (read key material)
-B NE fault        ; FAULT if permission missing
+TPERM 0 R         ; Verify R permission
+B NE fault        ; FAULT if missing
 
-; === STEP 2: Load service GT ===
-LOAD 1 6 1        ; CR1 = Mum_Messaging (Outform GT)
-TPERM 1 E         ; Verify E permission (enter service)
-B NE fault        ; FAULT if permission missing
+; === Load service GT ===
+LOAD 1 6 1        ; CR1 = Mum_Messaging (Outform)
+TPERM 1 E         ; Verify E permission
+B NE fault        ; FAULT if missing
 
-; === STEP 3: Prepare message in data registers ===
-; DR0-DR5 = "Hello Mum" in ASCII
-; Domain separation: values in DRs only, capabilities in CRs only
+; === Prepare "Hello Mum" in data registers ===
 ADDI 0 72         ; DR0 = 'H' (72)
 ADDI 1 101        ; DR1 = 'e' (101)
 ADDI 2 108        ; DR2 = 'l' (108)
@@ -12433,25 +12459,35 @@ ADDI 3 108        ; DR3 = 'l' (108)
 ADDI 4 111        ; DR4 = 'o' (111)
 ADDI 5 77         ; DR5 = 'M' (77)
 
-; === STEP 4: THE Church instruction ===
-; CALL CR1 — this is CALL(CONNECT(me, mymother))
-; mLoad validates: permission, MAC, version, bounds
-; Outform detected: tunnel path entered
-;   → Key read from CR0 via mLoad (R permission)
-;   → ABI descriptor maps DR0-DR15 to x0-x31
-;   → Payload encrypted with tunnel key
-;   → Sent to mymother's endpoint (no OS in path)
-CALL 1            ; ONE instruction. The Holy Grail.
+; === THE Church instruction — forward ===
+; CALL(CONNECT(me, mymother))
+CALL 1            ; ONE instruction. Hello Mum sent.
 
-; === Message sent! ===
-; On return: DR0 = acknowledgment from mymother
-; The entire path was validated by hardware.
-; No OS touched the message. No privilege was used.
-RETURN
+; ────────────────────────────────────────────
+; PART 2: RECEIVE "Hello Son" from Percilla
+; ────────────────────────────────────────────
 
-; === FAILSAFE: Single failure mode ===
-; All validation failures route here
-; No error codes — no information leakage
+; === Load Son_Inbox to read reply ===
+LOAD 2 6 3        ; CR2 = Son_Inbox [R,W]
+TPERM 2 R         ; Verify R permission
+B NE fault        ; FAULT if missing
+
+; === Simulate received "Hello Son" payload ===
+; In hardware: reverse tunnel decrypts + ABI maps
+; x10-x15 (32-bit) → DR0-DR5 (64-bit)
+ADDI 0 72         ; DR0 = 'H' (72)
+ADDI 1 101        ; DR1 = 'e' (101)
+ADDI 2 108        ; DR2 = 'l' (108)
+ADDI 3 108        ; DR3 = 'l' (108)
+ADDI 4 111        ; DR4 = 'o' (111)
+ADDI 5 83         ; DR5 = 'S' (83)
+
+; === Bidirectional tunnel complete ===
+; DR0-DR5 now holds "HelloS" from Percilla
+; Both sides validated by mLoad. No OS. No privilege.
+HALT
+
+; === FAILSAFE ===
 fault:
 FAULT`,
 

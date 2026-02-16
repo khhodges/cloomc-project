@@ -50,6 +50,12 @@ class RiscVCapSimulator {
             { location: 0x00011700, limit: 0x000117FF, funcId: 'GT_FST', entryPerms: {R:1,W:0,X:1,L:0,S:0,E:0} },
             { location: 0x00011800, limit: 0x000118FF, funcId: 'GT_SND', entryPerms: {R:1,W:0,X:1,L:0,S:0,E:0} },
             { location: 0x00011900, limit: 0x000119FF, funcId: 'GT_IF', entryPerms: {R:1,W:0,X:1,L:0,S:0,E:0} },
+            { location: 0x00020000, limit: 0x000200FF, funcId: 'TunnelKey_Child', entryPerms: {R:1,W:0,X:0,L:0,S:0,E:0} },
+            { location: 0x00020100, limit: 0x000201FF, funcId: 'Son_Messaging', entryPerms: {R:0,W:0,X:0,L:0,S:0,E:1} },
+            { location: 0x00020200, limit: 0x000202FF, funcId: 'ABI_Child', entryPerms: {R:1,W:0,X:0,L:0,S:0,E:0} },
+            { location: 0x00020300, limit: 0x000206FF, funcId: 'Inbox', entryPerms: {R:1,W:1,X:0,L:0,S:0,E:0} },
+            { location: 0x00020700, limit: 0x00020AFF, funcId: 'Outbox', entryPerms: {R:1,W:1,X:0,L:0,S:0,E:0} },
+            { location: 0x00020B00, limit: 0x00020BFF, funcId: 'Reply_Tunnel', entryPerms: {R:0,W:0,X:0,L:0,S:0,E:1} },
         ];
         for (let i = 0; i < defaults.length; i++) {
             const d = defaults[i];
