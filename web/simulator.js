@@ -613,12 +613,16 @@ class CTMMSimulator {
             
             case "LOAD": {
                 const [destCR, srcCR, idx] = args;
+                console.log(`[DEBUG LOAD] destCR=${destCR} srcCR=${srcCR} idx=${idx} types: dest=${typeof destCR} src=${typeof srcCR} idx=${typeof idx}`);
                 const src = this._getCR(srcCR);
+                console.log(`[DEBUG LOAD] src from _getCR(${srcCR}):`, src ? `name=${src.name} perms=[${src.perms}] clist=${src.clist ? src.clist.length + ' entries' : 'null'}` : 'null');
                 const result = this.mLoad(src, 'L', idx, true);
+                console.log(`[DEBUG LOAD] mLoad result: ok=${result.ok}`, result.ok ? `cap=${result.cap.name}` : `fault=${result.fault} msg=${result.message}`);
                 if (!result.ok) {
                     return `FAULT: ${result.fault}: CR${srcCR} - ${result.message}`;
                 }
                 this._setCR(destCR, result.cap);
+                console.log(`[DEBUG LOAD] After _setCR(${destCR}), contextRegs[${destCR}]:`, this.contextRegs[destCR] ? this.contextRegs[destCR].name : 'null');
                 const destName = destCR === 8 ? 'CR8 (Thread)' : destCR === 15 ? 'CR15 (Namespace)' : `CR${destCR}`;
                 const permStr = result.cap.perms.length > 0 ? `[${result.cap.perms.join('')}]` : '';
                 return `mLoad M↑: Loaded ${result.cap.name} ${permStr} into ${destName} via CR${srcCR}[${idx}]`;
