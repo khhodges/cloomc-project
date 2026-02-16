@@ -10,6 +10,7 @@ from app import app
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOCS_DIR = os.path.join(BASE_DIR, 'docs')
 RV32_DIR = os.path.join(BASE_DIR, 'riscv_cap')
+TEST_DIR = os.path.join(BASE_DIR, 'test_harness')
 
 rv32_bp = Blueprint('rv32', __name__, url_prefix='/rv32')
 
@@ -53,6 +54,18 @@ def rv32_static(path):
     return resp
 
 app.register_blueprint(rv32_bp)
+
+@app.route('/test/')
+def test_harness():
+    resp = make_response(send_from_directory(TEST_DIR, 'index.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+@app.route('/test/<path:path>')
+def test_static(path):
+    resp = make_response(send_from_directory(TEST_DIR, path))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
 
 @app.route('/')
 def landing_page():

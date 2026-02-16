@@ -1584,6 +1584,21 @@ main {
     line-height: 1.5;
 }
 
+.btn-tunnel-send {
+    background: linear-gradient(135deg, #1a3a5c, #2a5a3c) !important;
+    border: 1px solid #4a9 !important;
+    color: #7fd !important;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-tunnel-send:hover {
+    opacity: 0.85;
+}
+
 .tunnel-msg-timestamp {
     text-align: center;
     font-size: 0.8rem;

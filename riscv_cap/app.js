@@ -965,6 +965,31 @@ function updateNotifyBadge() {
     }
 }
 
+function sendHelloSon() {
+    const notification = {
+        target: 'ctmm',
+        message: 'Hello Son',
+        timestamp: Date.now(),
+        seen: false,
+        details: {
+            from: '<b>Priscilla</b> (RV32-Cap Sim-32)',
+            to: '<b>Kenneth</b> (CTMM Sim-64)',
+            items: [
+                { label: 'Instruction', value: 'CALL(CONNECT(mymother, son))' },
+                { label: 'Golden Tokens', value: '3 (Tunnel Key + ABI + Reply Tunnel)' },
+                { label: 'ABI Mapping', value: 'x10-x15 (32-bit) \u2192 DR0-DR5 (64-bit)' },
+                { label: 'Payload', value: 'HelloS (72,101,108,108,111,83)' },
+                { label: 'Result', value: 'x10 = 1 (ACK \u2014 remote acknowledged)' }
+            ]
+        }
+    };
+    localStorage.setItem('rv32cap-tunnel-notification', JSON.stringify(notification));
+    appendConsole('[TUNNEL] "Hello Son" sent to Kenneth (CTMM) via encrypted tunnel');
+    appendConsole('[TUNNEL] Notification posted — Kenneth\'s CTMM page will show badge');
+}
+
+window.sendHelloSon = sendHelloSon;
+
 function sendRv32Reply(replyText) {
     if (!replyText || !replyText.trim()) return;
     const notification = {

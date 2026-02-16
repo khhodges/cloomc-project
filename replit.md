@@ -91,9 +91,10 @@ A tool (`riscv_cap/boot_builder.py`) constructs namespace tables, thread objects
 ### Unified Server Architecture
 
 Both simulators are served from a single Flask application (`unified_server.py`) on port 5000:
--   `/` — Landing page with links to both simulators
+-   `/` — Landing page with links to both simulators and test harness
 -   `/ctmm/` — CTMM Simulator (Sim-64, custom ISA, full auth/DB features)
 -   `/rv32/` — RV32-Cap Simulator (Sim-32, RISC-V RV32I base)
+-   `/test/` — Tunnel Test Harness (both simulators side-by-side with automated messaging tests)
 -   `/api/*` — CTMM API routes (user auth, state persistence, landing content)
 -   `/auth/*` — Replit Auth routes
 
