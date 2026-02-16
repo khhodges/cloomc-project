@@ -794,6 +794,14 @@ function executeBootStep(stepNum) {
     const step = bootSteps[stepNum];
     step.action();
     log(`[BOOT ${stepNum + 1}] ${step.name}: ${step.description}`, 'info');
+    const bootDescs = [
+        'CLEAR_ALL — save state, clear registers, cold restart',
+        'LOAD_NS CR15 — Namespace root (wired GT, M elevated on CR)',
+        'CHANGE 1 — CR8 ← Kenneth, CR5 ← Services C-List [E]',
+        'CALL HWGT — CR6 ← Boot C-List [E], CR7 ← Access [X], NIA=0'
+    ];
+    traceRecord(`B${stepNum + 1}`, 'BOOT', [step.name], bootDescs[stepNum] || step.description);
+    updateTraceView();
 }
 
 function updateBootDisplay() {
@@ -4532,6 +4540,10 @@ function executeEditorInstruction(instr) {
                 if (result && !result.startsWith('FAULT') && callTargetName) {
                     resolveCallTarget(callTargetName);
                     syncEditorToCR7();
+                    const cr7Now = simulator.contextRegs[7];
+                    if (cr7Now && cr7Now.name !== 'NULL') {
+                        result += ` → CR7 = ${cr7Now.linkage || cr7Now.name}`;
+                    }
                 }
                 break;
             }
@@ -4540,6 +4552,10 @@ function executeEditorInstruction(instr) {
                 result = simulator.execute(op);
                 if (!result || !result.startsWith('FAULT')) {
                     syncEditorToCR7();
+                    const cr7Now = simulator.contextRegs[7];
+                    if (cr7Now && cr7Now.name !== 'NULL') {
+                        result += ` → CR7 = ${cr7Now.linkage || cr7Now.name}`;
+                    }
                 }
                 break;
             
@@ -4547,6 +4563,10 @@ function executeEditorInstruction(instr) {
                 result = simulator.execute(op, args[0], args[1]);
                 if (!result || !result.startsWith('FAULT')) {
                     syncEditorToCR7();
+                    const cr7Now = simulator.contextRegs[7];
+                    if (cr7Now && cr7Now.name !== 'NULL') {
+                        result += ` → CR7 = ${cr7Now.linkage || cr7Now.name}`;
+                    }
                 }
                 break;
             
