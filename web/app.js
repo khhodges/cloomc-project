@@ -4669,8 +4669,12 @@ function executeEditorInstruction(instr) {
                         const payloadMsg = tunnelMatch ? tunnelMatch[1] : drVals.map(c => String.fromCharCode(c & 0x7F)).join('');
                         const msgChars = payloadMsg.split('');
                         const displayMsg = msgChars.join('') === 'HelloM' ? 'Hello Mum' : payloadMsg;
-                        setTimeout(() => {
-                            showTunnelMessage('send', displayMsg, {
+                        const tunnelNotification = {
+                            target: 'rv32cap',
+                            message: displayMsg,
+                            timestamp: Date.now(),
+                            seen: false,
+                            details: {
                                 from: '<b>Kenneth</b> (CTMM Sim-64)',
                                 to: '<b>Priscilla</b> (RV32-Cap Sim-32)',
                                 items: [
@@ -4678,11 +4682,13 @@ function executeEditorInstruction(instr) {
                                     { label: 'Golden Tokens', value: '3 (Tunnel Key + Service + ABI)' },
                                     { label: 'Tunnel', value: callCR.tunnelId || 'encrypted' },
                                     { label: 'Endpoint', value: callCR.remoteEndpoint || 'remote' },
-                                    { label: 'ABI Mapping', value: 'DR0-DR5 (64-bit) → x10-x15 (32-bit)' },
-                                    { label: 'Result', value: 'DR0 = 1 (ACK — remote acknowledged)' }
+                                    { label: 'ABI Mapping', value: 'DR0-DR5 (64-bit) \u2192 x10-x15 (32-bit)' },
+                                    { label: 'Result', value: 'DR0 = 1 (ACK \u2014 remote acknowledged)' }
                                 ]
-                            });
-                        }, 100);
+                            }
+                        };
+                        localStorage.setItem('ctmm-tunnel-notification', JSON.stringify(tunnelNotification));
+                        result += '\n  [NOTIFICATION] Sent to Priscilla (RV32-Cap) \u2014 check her Sim-32 page';
                     } else {
                         resolveCallTarget(callTargetName);
                         syncEditorToCR7();

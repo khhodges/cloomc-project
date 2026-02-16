@@ -1420,3 +1420,161 @@ main {
         padding: 12px 16px;
     }
 }
+
+.btn-tunnel-notify {
+    position: relative;
+    background: transparent;
+    border: 1px solid #42a5f5;
+    color: #42a5f5;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+    animation: notifyPulse 2s infinite;
+}
+
+.btn-tunnel-notify:hover {
+    background: rgba(66, 165, 245, 0.15);
+    transform: scale(1.05);
+}
+
+.tunnel-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #e53935;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    border-radius: 50%;
+    text-align: center;
+    padding: 0 3px;
+}
+
+@keyframes notifyPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(66, 165, 245, 0.4); }
+    50% { box-shadow: 0 0 12px 4px rgba(66, 165, 245, 0.2); }
+}
+
+.tunnel-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(3px);
+}
+
+.tunnel-msg-panel {
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 12px;
+    width: 480px;
+    max-width: 95vw;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+    animation: tunnelMsgAppear 0.3s ease-out;
+    overflow: hidden;
+}
+
+@keyframes tunnelMsgAppear {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.tunnel-msg-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid #42a5f5;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #e0e0e0;
+}
+
+.tunnel-msg-icon {
+    font-size: 1.4rem;
+}
+
+.tunnel-msg-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.tunnel-msg-close:hover {
+    color: #fff;
+}
+
+.tunnel-msg-body {
+    padding: 1rem 1.25rem;
+}
+
+.tunnel-msg-payload {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 1rem;
+    margin: 0.5rem 0 1rem;
+    border: 2px solid #42a5f5;
+    border-radius: 8px;
+    background: rgba(66, 165, 245, 0.06);
+    letter-spacing: 0.05em;
+    font-family: 'Georgia', serif;
+    color: #42a5f5;
+}
+
+.tunnel-msg-flow {
+    text-align: center;
+    font-size: 0.95rem;
+    color: #aaa;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+}
+
+.tunnel-msg-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+}
+
+.tunnel-detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.tunnel-detail-label {
+    color: #888;
+    min-width: 100px;
+}
+
+.tunnel-detail-value {
+    color: #e0e0e0;
+    text-align: right;
+}
+
+.tunnel-msg-zeroes {
+    font-size: 0.78rem;
+    color: #888;
+    padding: 0.6rem 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 0.5rem;
+    line-height: 1.5;
+}

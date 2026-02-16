@@ -899,3 +899,95 @@ function renderMarkdown(md) {
 
     return '<div class="docs-rendered">' + result.join('\n') + '</div>';
 }
+
+let pendingTunnelMessages = [];
+
+function checkTunnelNotifications() {
+    const raw = localStorage.getItem('ctmm-tunnel-notification');
+    if (!raw) return;
+    try {
+        const notif = JSON.parse(raw);
+        if (notif && notif.target === 'rv32cap' && !notif.seen) {
+            pendingTunnelMessages.push(notif);
+            notif.seen = true;
+            localStorage.setItem('ctmm-tunnel-notification', JSON.stringify(notif));
+            updateNotifyBadge();
+            appendConsole('[TUNNEL] Incoming message from Kenneth (CTMM) — click notification to view');
+        }
+    } catch(e) {}
+}
+
+function updateNotifyBadge() {
+    const btn = document.getElementById('btn-tunnel-notify');
+    const badge = document.getElementById('tunnel-badge');
+    if (!btn || !badge) return;
+    if (pendingTunnelMessages.length > 0) {
+        btn.style.display = 'inline-flex';
+        badge.textContent = pendingTunnelMessages.length;
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+function showTunnelNotification() {
+    if (pendingTunnelMessages.length === 0) return;
+    const notif = pendingTunnelMessages.shift();
+    updateNotifyBadge();
+
+    const existing = document.getElementById('tunnelMsgOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'tunnelMsgOverlay';
+    overlay.className = 'tunnel-overlay';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    const items = (notif.details && notif.details.items) || [
+        { label: 'Instruction', value: 'CALL(CONNECT(me, mymother))' },
+        { label: 'Golden Tokens', value: '3 (Tunnel Key + Service + ABI)' },
+        { label: 'ABI Mapping', value: 'DR0-DR5 (64-bit) \u2192 x10-x15 (32-bit)' }
+    ];
+    const from = (notif.details && notif.details.from) || '<b>Kenneth</b> (CTMM Sim-64)';
+    const to = (notif.details && notif.details.to) || '<b>Priscilla</b> (RV32-Cap Sim-32)';
+    const message = notif.message || 'Hello Mum';
+
+    overlay.innerHTML = `
+        <div class="tunnel-msg-panel">
+            <div class="tunnel-msg-header">
+                <span class="tunnel-msg-icon">&#x1F4E5;</span>
+                <span>Message Received via Encrypted Tunnel</span>
+                <button class="tunnel-msg-close" onclick="document.getElementById('tunnelMsgOverlay').remove()">&times;</button>
+            </div>
+            <div class="tunnel-msg-body">
+                <div class="tunnel-msg-payload">"${message}"</div>
+                <div class="tunnel-msg-flow">
+                    ${from} <span style="color:#42a5f5;font-size:1.5em">&rarr;</span> ${to}
+                </div>
+                <div class="tunnel-msg-details">
+                    ${items.map(item => `<div class="tunnel-detail-row"><span class="tunnel-detail-label">${item.label}</span><span class="tunnel-detail-value">${item.value}</span></div>`).join('')}
+                </div>
+                <div class="tunnel-msg-zeroes">
+                    <span style="color: #42a5f5">7 Zeroes:</span> No OS, No VM, No privilege, No superuser, No unauthorized code, No unauthorized data, No containment escape
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+}
+
+window.addEventListener('storage', (e) => {
+    if (e.key === 'ctmm-tunnel-notification') {
+        checkTunnelNotifications();
+    }
+});
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        checkTunnelNotifications();
+        setInterval(checkTunnelNotifications, 2000);
+    });
+} else {
+    checkTunnelNotifications();
+    setInterval(checkTunnelNotifications, 2000);
+}
