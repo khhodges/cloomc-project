@@ -357,11 +357,13 @@ const bootCList = {
     entries: [
         { index: 0, name: "NULL", nsOffset: -1, perms: [], type: "NULL",
           desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
-        { index: 1, name: "Access", nsOffset: 4, perms: ["X"], type: "Code",
+        { index: 1, name: "Boot", nsOffset: 3, perms: ["E"], type: "Abstraction",
+          desc: "Boot abstraction self-reference — re-entry for fault recovery", size: 0x1000 },
+        { index: 2, name: "Access", nsOffset: 4, perms: ["X"], type: "Code",
           desc: "Boot nucleus code", size: 0x1000 },
-        { index: 2, name: "SlideRule", nsOffset: 5, perms: ["E"], type: "Abstraction",
+        { index: 3, name: "SlideRule", nsOffset: 5, perms: ["E"], type: "Abstraction",
           desc: "IEEE 754 float operations — LAMBDA dispatch", size: 0x1000 },
-        { index: 3, name: "Abacus", nsOffset: 6, perms: ["E"], type: "Abstraction",
+        { index: 4, name: "Abacus", nsOffset: 6, perms: ["E"], type: "Abstraction",
           desc: "64-bit integer operations — LAMBDA dispatch", size: 0x1000 }
     ]
 };
@@ -3161,8 +3163,9 @@ LOAD 5 6 0        ; CR5 = NULL GT
 ;   - Terminate or restart the thread
 ;   - Never reveal WHY it faulted
 
-; Jump to Nucleus handler (CR7) - never returns to caller
-CALL 7            ; Transfer control to Nucleus
+; Load Boot [E] from C-List[1] and CALL it
+LOAD 0 6 1        ; CR0 = Boot [E] from Boot C-List
+CALL 0            ; Enter Boot abstraction — never returns
 ; Nucleus decides: terminate thread or restart
 ; NO RETURN to original caller - no information leakage
 
