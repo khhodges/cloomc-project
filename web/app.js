@@ -4057,17 +4057,46 @@ function restoreEditorPanelState() {
 }
 
 function ensureBooted() {
-    if (!bootState.complete) {
-        while (bootState.step < 4) {
-            executeBootStep(bootState.step);
-            bootState.step++;
-        }
-        bootState.complete = true;
-        updateBootDisplay();
-        updateDisplay();
-        updateCapabilityExplorer();
-        log('Auto-boot: system initialized', 'info');
+    if (bootState.complete) return true;
+
+    const cr7 = simulator.contextRegs[7];
+    const stepsRun = bootState.step;
+    const stepsRemain = 4 - stepsRun;
+    const stepNames = ['Fault Restart', 'Load Namespace', 'Switch Thread + Load Services', 'Call Boot'];
+
+    let html = '<div class="cr7-overlay" id="cr7Overlay" onclick="if(event.target===this)closeCR7Overlay()">';
+    html += '<div class="cr7-panel">';
+    html += '<div class="cr7-panel-header">';
+    html += '<span>Boot Required — Cannot Execute</span>';
+    html += '<button onclick="closeCR7Overlay()" class="cr7-close">&times;</button>';
+    html += '</div>';
+    html += '<div class="cr7-panel-body">';
+
+    html += '<div class="cr7-section">';
+    html += '<div class="cr7-section-title">CR7 — Active Nucleus [X]</div>';
+    if (cr7 && cr7.name !== 'NULL') {
+        html += `<div class="cr7-field"><span class="cr7-label">Name</span><span class="cr7-value">${cr7.name}</span></div>`;
+        html += `<div class="cr7-field"><span class="cr7-label">Perms</span><span class="cr7-value">${cr7.perms ? '[' + cr7.perms.join('') + ']' : '[]'}</span></div>`;
+    } else {
+        html += '<div class="cr7-empty">NULL — no code loaded</div>';
     }
+    html += '</div>';
+
+    html += '<div class="cr7-section">';
+    html += '<div class="cr7-section-title" style="color: var(--error)">Diagnostic</div>';
+    html += `<div class="cr7-field"><span class="cr7-label">Boot steps completed</span><span class="cr7-value">${stepsRun} of 4</span></div>`;
+    for (let i = 0; i < 4; i++) {
+        const done = i < stepsRun;
+        const icon = done ? '<span style="color:var(--success)">&#10003;</span>' : '<span style="color:var(--error)">&#10007;</span>';
+        html += `<div class="cr7-field"><span class="cr7-label">${icon} Step ${i + 1}</span><span class="cr7-value">${stepNames[i]}</span></div>`;
+    }
+    html += `<div class="cr7-field" style="margin-top:0.5em"><span class="cr7-label">Status</span><span class="cr7-value" style="color:var(--error)">Cannot execute — ${stepsRemain} boot step${stepsRemain > 1 ? 's' : ''} remaining</span></div>`;
+    html += `<div class="cr7-field"><span class="cr7-label">Action</span><span class="cr7-value">Complete boot sequence on the Dashboard before running code</span></div>`;
+    html += '</div>';
+
+    html += '</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+    return false;
 }
 
 function runOrContinue() {
@@ -4081,6 +4110,8 @@ function runOrContinue() {
 function runProgram(continueFromCurrent = false) {
   try {
     if (!continueFromCurrent) {
+        if (!ensureBooted()) return;
+
         const code = document.getElementById('codeEditor').value;
         editorState.program = parseProgram(code);
         editorState.nia = 0;
@@ -4090,7 +4121,6 @@ function runProgram(continueFromCurrent = false) {
             return;
         }
         
-        ensureBooted();
         markEditorSaved();
         clearEditorConsole();
         simulator.softReset();
@@ -4156,11 +4186,12 @@ function runProgram(continueFromCurrent = false) {
 }
 
 function stepProgram() {
+    if (!ensureBooted()) return;
+
     if (editorState.program.length === 0) {
         const code = document.getElementById('codeEditor').value;
         editorState.program = parseProgram(code);
         editorState.nia = 0;
-        ensureBooted();
         simulator.softReset();
         markEditorSaved();
         clearEditorConsole();
@@ -4932,7 +4963,7 @@ function loadExample(name) {
 }
 
 function setupHelloMumNamespace() {
-    ensureBooted();
+    if (!ensureBooted()) return;
 
     const tunnelKey = simulator.createCapability("Tunnel_Key_Mum", ["R"]);
     tunnelKey.type = "Inform";
