@@ -911,7 +911,8 @@ class CTMMSimulator {
                     location: { type: 'Code', offset: 0 },
                     perms: ['X'],
                     locked: false,
-                    goldenKey: this.generateKey()
+                    goldenKey: this.generateKey(),
+                    linkage: `${cr.name}/Nucleus.asm`
                 });
                 
                 this.stackDepth++;

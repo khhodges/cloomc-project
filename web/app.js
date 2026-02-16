@@ -4110,6 +4110,16 @@ function stepProgram() {
     updateCapabilityExplorer();
 }
 
+function syncEditorToCR7() {
+    const cr7 = simulator.contextRegs[7];
+    if (!cr7 || cr7.name === 'NULL') return;
+    const linkage = cr7.linkage || `${cr7.name}/Nucleus.asm`;
+    const perms = cr7.perms ? `[${cr7.perms.join('')}]` : '[X]';
+    editorState.currentLinkage = linkage;
+    editorState.currentPerms = perms;
+    updateEditorToolbar();
+}
+
 function showCR7Code() {
     const cr6 = simulator.contextRegs[6];
     const cr7 = simulator.contextRegs[7];
@@ -4447,16 +4457,23 @@ function executeEditorInstruction(instr) {
                 result = simulator.execute(op, args[0]);
                 if (result && !result.startsWith('FAULT') && callTargetName) {
                     resolveCallTarget(callTargetName);
+                    syncEditorToCR7();
                 }
                 break;
             }
             
             case 'RETURN':
                 result = simulator.execute(op);
+                if (!result || !result.startsWith('FAULT')) {
+                    syncEditorToCR7();
+                }
                 break;
             
             case 'CHANGE':
                 result = simulator.execute(op, args[0], args[1]);
+                if (!result || !result.startsWith('FAULT')) {
+                    syncEditorToCR7();
+                }
                 break;
             
             case 'SWITCH':
