@@ -126,6 +126,18 @@ function switchView(viewId) {
         }
     }
     
+    if (viewId === 'capabilities') {
+        updateCapabilityExplorer();
+    }
+    
+    if (viewId === 'dashboard') {
+        updateDisplay();
+    }
+    
+    if (viewId === 'namespace') {
+        updateNamespaceDisplay();
+    }
+    
     if (viewId === 'editor') {
         const editor = document.getElementById('codeEditor');
         if (editor && savedEditorContent === '') {
