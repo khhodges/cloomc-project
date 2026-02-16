@@ -4226,6 +4226,24 @@ function syncEditorToCR7() {
     const perms = cr7.perms ? `[${cr7.perms.join('')}]` : '[X]';
     editorState.currentLinkage = linkage;
     editorState.currentPerms = perms;
+
+    const parentName = linkage.split('/')[1] || '';
+    let codeKey = cr7.name;
+    if (parentName === 'Abacus' && ['GT_ADD', 'GT_SUB', 'GT_MUL', 'GT_DIV'].includes(cr7.name)) {
+        codeKey = 'Abacus_' + cr7.name;
+    }
+    const nameLower = cr7.name.toLowerCase();
+    const code = functionBetaCode[codeKey] || functionBetaCode[cr7.name]
+              || examplePrograms[cr7.name] || examplePrograms[nameLower]
+              || codeTemplates[cr7.name] || codeTemplates[nameLower];
+    if (code) {
+        const editor = document.getElementById('codeEditor');
+        if (editor) {
+            editor.value = code;
+            updateLineNumbers();
+        }
+    }
+
     updateEditorToolbar();
 }
 
@@ -4618,6 +4636,21 @@ function executeEditorInstruction(instr) {
                         const lambdaPerms = lambdaCR.perms ? `[${lambdaCR.perms.join('')}]` : '[X]';
                         editorState.currentLinkage = lambdaLinkage;
                         editorState.currentPerms = lambdaPerms;
+
+                        const lambdaParent = lambdaLinkage.split('/')[1] || '';
+                        let lambdaKey = lambdaCR.name;
+                        if (lambdaParent === 'Abacus' && ['GT_ADD', 'GT_SUB', 'GT_MUL', 'GT_DIV'].includes(lambdaCR.name)) {
+                            lambdaKey = 'Abacus_' + lambdaCR.name;
+                        }
+                        const lambdaCode = functionBetaCode[lambdaKey] || functionBetaCode[lambdaCR.name];
+                        if (lambdaCode) {
+                            const editor = document.getElementById('codeEditor');
+                            if (editor) {
+                                editor.value = lambdaCode;
+                                updateLineNumbers();
+                            }
+                        }
+
                         updateEditorToolbar();
                     }
                 }
