@@ -2,6 +2,7 @@ let sim = null;
 let asm = null;
 let runInterval = null;
 let codeLoaded = false;
+let programListing = [];
 
 const ABI_NAMES = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
     'a0','a1','a2','a3','a4','a5','a6','a7',
@@ -36,6 +37,7 @@ function doReset() {
     stopRun();
     sim.reset();
     codeLoaded = false;
+    programListing = [];
     clearConsole();
     updateUI();
     switchView('dashboard');
@@ -148,6 +150,25 @@ function updateUI() {
     updateStepCount();
     updateBootStatus();
     updateStackIndicators();
+    updateProgramListing();
+}
+
+function updateProgramListing() {
+    const tbody = document.getElementById('dash-program-listing');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (programListing.length === 0) return;
+    const currentPC = sim.pc;
+    programListing.forEach(entry => {
+        const tr = document.createElement('tr');
+        const isActive = (entry.addr === currentPC);
+        if (isActive) tr.classList.add('pc-active');
+        tr.innerHTML = `<td>${toHex32(entry.addr)}</td><td>${entry.hex}</td><td>${entry.source}</td>`;
+        tbody.appendChild(tr);
+        if (isActive) {
+            setTimeout(() => tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 0);
+        }
+    });
 }
 
 function updateRegisters() {
@@ -260,9 +281,11 @@ function doLoad() {
     sim.reset();
     sim.loadProgram(result.bytes);
     codeLoaded = true;
+    programListing = result.listing || [];
     clearConsole();
     appendConsole(`Loaded ${result.bytes.length} bytes — Ready to Step or Run`);
     updateUI();
+    updateProgramListing();
     switchView('dashboard');
 }
 
@@ -626,6 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sim.reset();
             sim.loadProgram(result.bytes);
             codeLoaded = true;
+            programListing = result.listing || [];
             appendConsole(`Auto-loaded ${result.bytes.length} bytes — Ready to Step or Run`);
             updateUI();
         }

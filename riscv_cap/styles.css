@@ -463,6 +463,59 @@ main {
     border: 1px solid #ef5350;
 }
 
+.program-listing-panel {
+    margin-top: 0;
+}
+
+.listing-scroll {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 4px;
+    background: #0d0d1a;
+}
+
+.listing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.listing-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.listing-table th {
+    background: #1a1a3e;
+    color: #a0a0a0;
+    padding: 4px 8px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.listing-table td {
+    padding: 3px 8px;
+    color: #c0c0c0;
+    border-bottom: 1px solid #1a1a2e;
+}
+
+.listing-table tr.pc-active {
+    background: #0f3460;
+    color: #fff;
+}
+
+.listing-table tr.pc-active td {
+    color: #4ecca3;
+    font-weight: 700;
+}
+
+.listing-table tr.pc-active td:first-child {
+    color: #f0a500;
+}
+
 .console-panel {
     margin-top: 0;
 }
