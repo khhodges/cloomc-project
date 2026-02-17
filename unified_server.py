@@ -135,6 +135,12 @@ def figures_mint_nesting():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
+@app.route('/figures/hello-mum-tunnel')
+def figures_hello_mum_tunnel():
+    resp = make_response(send_from_directory(FIGURES_DIR, 'hello-mum-tunnel.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
 @app.route('/figures/<path:path>')
 def figures_static(path):
     resp = make_response(send_from_directory(FIGURES_DIR, path))

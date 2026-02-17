@@ -13771,7 +13771,8 @@ function loadFigure(url) {
         '/figures/conventional-vs-ctmm': 'figures/conv-vs-ctmm',
         '/figures/boot-sequence-state-machine': 'figures/boot-seq',
         '/figures/mload-validation-pipeline': 'figures/mload-pipeline',
-        '/figures/mint-abstraction-nesting': 'figures/mint-nesting'
+        '/figures/mint-abstraction-nesting': 'figures/mint-nesting',
+        '/figures/hello-mum-tunnel': 'figures/hello-mum'
     };
     const dataFile = figMap[url] || url.replace(/^\//, '');
     const fileItem = document.querySelector(`.file-item[data-file="${dataFile}"]`);
