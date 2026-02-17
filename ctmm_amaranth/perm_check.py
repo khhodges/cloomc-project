@@ -50,7 +50,7 @@ class CTMMPermCheck(Elaboratable):
         has_church = Signal()
         m.d.comb += [
             has_turing.eq((gt_perms & DATA_PERMS) != 0),
-            has_church.eq((gt_perms & (PERM_MASK_L | PERM_MASK_S)) != 0),
+            has_church.eq((gt_perms & CAP_PERMS) != 0),
             self.domain_purity_ok.eq(~(has_turing & has_church)),
         ]
 

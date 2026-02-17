@@ -28,7 +28,7 @@ The CTMM simulator offers both a Haskell console interface and a web-based visua
     -   **CR7 — Active Nucleus [X]**: The currently executing method/code of the active abstraction. Dynamic — switches on every CALL/RETURN. Resolves symbolic names from CR6 to executable code blocks.
     -   **Data Registers (DR0-DR15)**: Hold 64-bit numeric values (Sim-64) or x0-x31 32-bit (Sim-32).
 -   **Golden Token Permissions**: 6 bits — R (Read), W (Write), X (Execute), L (Load), S (Save), E (Enter). M is transient (elevated by microcode on CR, never on GT). G is per-namespace-entry metadata.
--   **Permission Domains**: Turing (R, W, X), Church (L, S), Lambda (E).
+-   **Permission Domains**: Turing (R, W, X), Church (L, S, E). E is Lambda domain, part of Church — never allowed with Turing permissions. Domain purity: Turing xor Church, never both.
 -   **M Elevation Rule**: M is never stored in the GT — only on the CR during microcode execution. Microcode elevates M to perform privileged actions (LOAD, SAVE, CHANGE, etc.) then clears it. No user instruction can set, test, or observe M. See `docs/boot-permission-rules.md`.
 -   **Boot CR Permissions**: CR15 (Namespace) = M only; CR8 (Thread) = M only; CR6 (Active C-List) = E only on GT, M elevated on CR by microcode; CR7 (Active Nucleus) = X (+R if constants); CR5 (Services C-List) = L+S (C-List access).
 -   **Namespace Entry**: A 3-word descriptor (Location, Limit, Seals) with per-entry gBit for GC.

@@ -99,26 +99,40 @@ def run_testbench():
         print("-" * 50)
         turing_gt = build_gt(0, PERM_MASK_R | PERM_MASK_W | PERM_MASK_X)
         church_gt = build_gt(0, PERM_MASK_L | PERM_MASK_S | PERM_MASK_E)
-        mixed_gt = build_gt(0, PERM_MASK_R | PERM_MASK_L)
+        mixed_rl = build_gt(0, PERM_MASK_R | PERM_MASK_L)
+        mixed_xe = build_gt(0, PERM_MASK_X | PERM_MASK_E)
+        mixed_rwxe = build_gt(0, PERM_MASK_R | PERM_MASK_W | PERM_MASK_X | PERM_MASK_E)
 
         turing_perms = (turing_gt >> 58) & 0x3F
         church_perms = (church_gt >> 58) & 0x3F
-        mixed_perms = (mixed_gt >> 58) & 0x3F
+        mixed_rl_perms = (mixed_rl >> 58) & 0x3F
+        mixed_xe_perms = (mixed_xe >> 58) & 0x3F
+        mixed_rwxe_perms = (mixed_rwxe >> 58) & 0x3F
 
-        has_turing = (turing_perms & DATA_PERMS) != 0
-        has_church_ls = (turing_perms & (PERM_MASK_L | PERM_MASK_S)) != 0
-        assert has_turing and not has_church_ls, "Turing GT should be domain-pure"
+        has_t = (turing_perms & DATA_PERMS) != 0
+        has_c = (turing_perms & CAP_PERMS) != 0
+        assert has_t and not has_c, "Turing GT should be domain-pure"
         print("  PASS: Turing-only GT (RWX) is domain-pure")
 
-        has_turing = (church_perms & DATA_PERMS) != 0
-        has_church_ls = (church_perms & (PERM_MASK_L | PERM_MASK_S)) != 0
-        assert not has_turing and has_church_ls, "Church GT should be domain-pure"
+        has_t = (church_perms & DATA_PERMS) != 0
+        has_c = (church_perms & CAP_PERMS) != 0
+        assert not has_t and has_c, "Church GT should be domain-pure"
         print("  PASS: Church-only GT (LSE) is domain-pure")
 
-        has_turing = (mixed_perms & DATA_PERMS) != 0
-        has_church_ls = (mixed_perms & (PERM_MASK_L | PERM_MASK_S)) != 0
-        assert has_turing and has_church_ls, "Mixed GT should fail domain purity"
+        has_t = (mixed_rl_perms & DATA_PERMS) != 0
+        has_c = (mixed_rl_perms & CAP_PERMS) != 0
+        assert has_t and has_c, "Mixed GT (R+L) should fail domain purity"
         print("  PASS: Mixed GT (R+L) correctly detected as domain-impure")
+
+        has_t = (mixed_xe_perms & DATA_PERMS) != 0
+        has_c = (mixed_xe_perms & CAP_PERMS) != 0
+        assert has_t and has_c, "Mixed GT (X+E) should fail domain purity"
+        print("  PASS: Mixed GT (X+E) correctly detected as domain-impure")
+
+        has_t = (mixed_rwxe_perms & DATA_PERMS) != 0
+        has_c = (mixed_rwxe_perms & CAP_PERMS) != 0
+        assert has_t and has_c, "Mixed GT (RWXE) should fail domain purity"
+        print("  PASS: Mixed GT (RWXE) correctly detected as domain-impure")
 
         print("\n[TEST 4] M Permission Rules")
         print("-" * 50)
