@@ -123,6 +123,12 @@ def figures_boot_sequence():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
+@app.route('/figures/mload-validation-pipeline')
+def figures_mload_pipeline():
+    resp = make_response(send_from_directory(FIGURES_DIR, 'mload-validation-pipeline.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
 @app.route('/figures/<path:path>')
 def figures_static(path):
     resp = make_response(send_from_directory(FIGURES_DIR, path))
