@@ -105,6 +105,12 @@ def figures_tunnel_architecture():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
+@app.route('/figures/dispatch-styles-comparison')
+def figures_dispatch_styles():
+    resp = make_response(send_from_directory(FIGURES_DIR, 'dispatch-styles-comparison.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
 @app.route('/figures/<path:path>')
 def figures_static(path):
     resp = make_response(send_from_directory(FIGURES_DIR, path))
