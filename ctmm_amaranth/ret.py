@@ -55,7 +55,7 @@ class CTMMReturn(Elaboratable):
 
         has_e_perm = ret_gt.perms[PERM_E]
         is_null_cap = Signal()
-        m.d.comb += is_null_cap.eq(ret_view.word0_gt.as_value() == 0)
+        m.d.comb += is_null_cap.eq(ret_gt.gt_type == GT_TYPE_NULL)
 
         saved_nia = ret_view.word1_location
         saved_cr6_gt = ret_view.word2_limit
@@ -107,6 +107,7 @@ class CTMMReturn(Elaboratable):
             u_mload.sub_cr_dst.eq(mload_dst),
             u_mload.sub_index.eq(0),               # Unused in direct mode
             u_mload.sub_direct.eq(1),              # RETURN uses direct GT validation
+            u_mload.sub_m_elevated.eq(1),
             u_mload.sub_direct_gt.eq(mload_direct_gt),  # Saved GT for revalidation
             u_mload.cr_rd_data.eq(self.cr_rd_data),
             u_mload.cr15_namespace.eq(self.cr15_namespace),
@@ -225,7 +226,7 @@ class CTMMReturn(Elaboratable):
             with m.State("SET_NIA"):
                 m.d.comb += [
                     self.nia_set.eq(1),
-                    self.nia_value.eq(saved_nia + 1),
+                    self.nia_value.eq(saved_nia + 4),
                 ]
                 m.next = "COMPLETE"
 

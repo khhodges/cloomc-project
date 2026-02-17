@@ -88,7 +88,7 @@ class CTMMDecoder(Elaboratable):
         m.d.comb += self.exec_enable.eq(self.instr_valid & cond_pass)
 
         m.d.comb += [
-            self.is_church_op.eq((opcode_field >= ChurchOpcode.LOAD) & (opcode_field <= ChurchOpcode.STM)),
+            self.is_church_op.eq((opcode_field >= ChurchOpcode.LOAD) & (opcode_field <= ChurchOpcode.LAMBDA)),
             self.is_turing_op.eq(opcode_field[4]),
         ]
 
@@ -127,7 +127,8 @@ class CTMMDecoder(Elaboratable):
                 ]
             with m.Elif((opcode_field == ChurchOpcode.TPERM) &
                          ((operand_field[0:4] == TpermPreset.RSV1) |
-                          (operand_field[0:4] == TpermPreset.RSV2))):
+                          (operand_field[0:4] == TpermPreset.RSV2) |
+                          (operand_field[0:4] == TpermPreset.RWXL))):
                 m.d.comb += [
                     self.fault_valid.eq(1),
                     self.fault.eq(FaultType.TPERM_RSV),

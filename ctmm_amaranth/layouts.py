@@ -2,10 +2,11 @@ from amaranth import *
 from amaranth.lib.data import StructLayout
 
 GT_LAYOUT = StructLayout({
-    "offset": unsigned(32),
-    "spare":  unsigned(25),
-    "g_bit":  unsigned(1),
-    "perms":  unsigned(6),
+    "offset":  unsigned(32),
+    "spare":   unsigned(23),
+    "gt_type": unsigned(2),
+    "g_bit":   unsigned(1),
+    "perms":   unsigned(6),
 })
 
 CAP_REG_LAYOUT = StructLayout({

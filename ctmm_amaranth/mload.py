@@ -13,6 +13,7 @@ class CTMMMLoad(Elaboratable):
         self.sub_index = Signal(10)
         self.sub_direct = Signal()        # Direct GT mode: skip C-List fetch
         self.sub_direct_gt = Signal(64)   # GT value for direct validation (RETURN)
+        self.sub_m_elevated = Signal()
         self.sub_busy = Signal()
         self.sub_done = Signal()
         self.sub_fault = Signal()
@@ -62,7 +63,7 @@ class CTMMMLoad(Elaboratable):
         has_l_perm = src_gt.perms[PERM_L]
         has_load_perm = has_l_perm
         src_is_null = Signal()
-        m.d.comb += src_is_null.eq(src_view.word0_gt.as_value() == 0)
+        m.d.comb += src_is_null.eq(src_gt.gt_type == GT_TYPE_NULL)
         bounds_ok = Signal()
         m.d.comb += bounds_ok.eq(Cat(index_reg, Const(0, 54)) < src_view.word2_limit)
 
@@ -106,7 +107,7 @@ class CTMMMLoad(Elaboratable):
                 with m.If(src_is_null):
                     m.d.sync += fault_type_reg.eq(FaultType.NULL_CAP)
                     m.next = "FAULT"
-                with m.Elif(~has_load_perm):
+                with m.Elif(~has_load_perm & ~self.sub_m_elevated):
                     m.d.sync += fault_type_reg.eq(FaultType.PERM_L)
                     m.next = "FAULT"
                 with m.Else():

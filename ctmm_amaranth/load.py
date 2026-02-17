@@ -50,6 +50,7 @@ class CTMMLoad(Elaboratable):
             u_mload.sub_index.eq(self.index),
             u_mload.sub_direct.eq(0),             # LOAD uses C-List fetch mode
             u_mload.sub_direct_gt.eq(0),
+            u_mload.sub_m_elevated.eq(1),
             u_mload.sub_start.eq(sub_start),
             u_mload.cr_rd_data.eq(self.cr_rd_data),
             u_mload.cr15_namespace.eq(self.cr15_namespace),

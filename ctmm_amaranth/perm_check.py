@@ -28,6 +28,8 @@ class CTMMPermCheck(Elaboratable):
 
         self.g_bit_set = Signal()
         self.is_namespace_access = Signal()
+        self.check_domain_purity = Signal()
+        self.domain_purity_ok = Signal()
 
     def elaborate(self, platform):
         m = Module()
@@ -39,9 +41,17 @@ class CTMMPermCheck(Elaboratable):
         perms_match = Signal()
 
         m.d.comb += [
-            is_null_gt.eq((gt_view.offset == 0) & (gt_perms == 0)),
+            is_null_gt.eq(gt_view.gt_type == GT_TYPE_NULL),
             perms_match.eq((gt_perms & self.required_perms) == self.required_perms),
             self.perm_granted.eq(~is_null_gt & perms_match),
+        ]
+
+        has_turing = Signal()
+        has_church = Signal()
+        m.d.comb += [
+            has_turing.eq((gt_perms & DATA_PERMS) != 0),
+            has_church.eq((gt_perms & (PERM_MASK_L | PERM_MASK_S)) != 0),
+            self.domain_purity_ok.eq(~(has_turing & has_church)),
         ]
 
         m.d.comb += self.bounds_ok.eq(~self.check_bounds | (self.access_index < self.limit[:32]))
@@ -91,6 +101,11 @@ class CTMMPermCheck(Elaboratable):
                 m.d.comb += [
                     self.fault_valid.eq(1),
                     self.fault_type.eq(FaultType.MAC),
+                ]
+            with m.Elif(self.check_domain_purity & ~self.domain_purity_ok):
+                m.d.comb += [
+                    self.fault_valid.eq(1),
+                    self.fault_type.eq(FaultType.DOMAIN_PURITY),
                 ]
 
         return m

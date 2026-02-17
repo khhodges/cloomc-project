@@ -9,6 +9,7 @@ from .perm_check import CTMMPermCheck
 from .gc_unit import CTMMGCUnit
 from .call import CTMMCall
 from .ret import CTMMReturn
+from .lambda_unit import CTMMLambda
 
 
 class CTMMCore(Elaboratable):
@@ -56,10 +57,16 @@ class CTMMCore(Elaboratable):
         u_decoder = CTMMDecoder()
         u_perm = CTMMPermCheck()
         u_gc = CTMMGCUnit()
+        u_lambda = CTMMLambda()
+        u_call = CTMMCall()
+        u_return = CTMMReturn()
         m.submodules.u_registers = u_regs
         m.submodules.u_decoder = u_decoder
         m.submodules.u_perm_check = u_perm
         m.submodules.u_gc_unit = u_gc
+        m.submodules.u_lambda = u_lambda
+        m.submodules.u_call = u_call
+        m.submodules.u_return = u_return
 
         nia_reg = Signal(32)
         nia_next = Signal(32)
@@ -111,7 +118,15 @@ class CTMMCore(Elaboratable):
         ldi_immediate = u_decoder.ldi_immediate
         branch_offset = u_decoder.branch_offset
 
-        m.d.comb += u_regs.cr_rd_addr.eq(Cat(cr_src, Const(0, 1)))
+        lambda_start_sig = Signal()
+        m.d.comb += lambda_start_sig.eq(
+            exec_enable & is_church_op & (church_op == ChurchOpcode.LAMBDA)
+        )
+
+        m.d.comb += u_regs.cr_rd_addr.eq(
+            Mux(lambda_start_sig, u_lambda.cr_rd_addr,
+                Cat(cr_src, Const(0, 1)))
+        )
 
         cr_rd_gt = View(GT_LAYOUT, Signal(GT_LAYOUT))
         perm_gt_sig = Signal(GT_LAYOUT)
@@ -129,6 +144,8 @@ class CTMMCore(Elaboratable):
                 m.d.comb += required_perms.eq(PERM_MASK_L)
             with m.Case(ChurchOpcode.CHANGE):
                 m.d.comb += required_perms.eq(PERM_MASK_L)
+            with m.Case(ChurchOpcode.LAMBDA):
+                m.d.comb += required_perms.eq(PERM_MASK_X)
             with m.Default():
                 m.d.comb += required_perms.eq(0)
 
@@ -142,6 +159,7 @@ class CTMMCore(Elaboratable):
             u_perm.calculated_mac.eq(0),
             u_perm.stored_mac.eq(0),
             u_perm.check_mac.eq(0),
+            u_perm.check_domain_purity.eq(exec_enable & is_church_op & (church_op == ChurchOpcode.TPERM)),
         ]
 
         all_checks_pass = u_perm.all_checks_pass
@@ -294,6 +312,12 @@ class CTMMCore(Elaboratable):
 
         with m.If(clear_all):
             m.d.sync += nia_reg.eq(0)
+        with m.Elif(u_lambda.nia_set):
+            m.d.sync += nia_reg.eq(u_lambda.nia_value)
+        with m.Elif(u_return.nia_set):
+            m.d.sync += nia_reg.eq(u_return.nia_value[:32])
+        with m.Elif(u_call.nia_set):
+            m.d.sync += nia_reg.eq(u_call.nia_value[:32])
         with m.Elif(nia_wr_en):
             m.d.sync += nia_reg.eq(nia_next)
         with m.Elif(exec_enable):
@@ -315,8 +339,9 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     ns_gt_view.offset.eq(0),
                     ns_gt_view.spare.eq(0),
+                    ns_gt_view.gt_type.eq(GT_TYPE_INFORM),
                     ns_gt_view.g_bit.eq(0),
-                    ns_gt_view.perms.eq(PERM_MASK_L),
+                    ns_gt_view.perms.eq(0),
                 ]
                 m.d.comb += [boot_wr_en[15].eq(1), boot_wr_gt[15].eq(ns_gt)]
             with m.Case(BootState.INIT_THRD):
@@ -325,8 +350,9 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     thrd_gt_view.offset.eq(3),
                     thrd_gt_view.spare.eq(0),
+                    thrd_gt_view.gt_type.eq(GT_TYPE_INFORM),
                     thrd_gt_view.g_bit.eq(0),
-                    thrd_gt_view.perms.eq(PERM_MASK_L),
+                    thrd_gt_view.perms.eq(0),
                 ]
                 m.d.comb += [boot_wr_en[8].eq(1), boot_wr_gt[8].eq(thrd_gt)]
             with m.Case(BootState.LOAD_NUC):
@@ -335,8 +361,9 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     cr6_gt_view.offset.eq(2),
                     cr6_gt_view.spare.eq(0),
+                    cr6_gt_view.gt_type.eq(GT_TYPE_INFORM),
                     cr6_gt_view.g_bit.eq(0),
-                    cr6_gt_view.perms.eq(PERM_MASK_L | PERM_MASK_S | PERM_MASK_E),
+                    cr6_gt_view.perms.eq(PERM_MASK_E),
                 ]
                 m.d.comb += [boot_wr_en[6].eq(1), boot_wr_gt[6].eq(cr6_gt)]
 
@@ -345,10 +372,22 @@ class CTMMCore(Elaboratable):
                 m.d.comb += [
                     cr7_gt_view.offset.eq(1),
                     cr7_gt_view.spare.eq(0),
+                    cr7_gt_view.gt_type.eq(GT_TYPE_INFORM),
                     cr7_gt_view.g_bit.eq(0),
                     cr7_gt_view.perms.eq(PERM_MASK_X),
                 ]
                 m.d.comb += [boot_wr_en[7].eq(1), boot_wr_gt[7].eq(cr7_gt)]
+
+                cr5_gt = Signal(GT_LAYOUT)
+                cr5_gt_view = View(GT_LAYOUT, cr5_gt)
+                m.d.comb += [
+                    cr5_gt_view.offset.eq(4),
+                    cr5_gt_view.spare.eq(0),
+                    cr5_gt_view.gt_type.eq(GT_TYPE_INFORM),
+                    cr5_gt_view.g_bit.eq(0),
+                    cr5_gt_view.perms.eq(PERM_MASK_E),
+                ]
+                m.d.comb += [boot_wr_en[5].eq(1), boot_wr_gt[5].eq(cr5_gt)]
 
         runtime_wr_en = [Signal(name=f"rt_cr{i}_wr_en") for i in range(16)]
         runtime_wr_gt = [Signal(GT_LAYOUT, name=f"rt_cr{i}_wr_gt") for i in range(16)]
@@ -380,6 +419,8 @@ class CTMMCore(Elaboratable):
             m.d.comb += [self.fault.eq(u_decoder.fault), self.fault_valid.eq(1)]
         with m.Elif(u_perm.fault_valid):
             m.d.comb += [self.fault.eq(u_perm.fault_type), self.fault_valid.eq(1)]
+        with m.Elif(u_lambda.lambda_fault):
+            m.d.comb += [self.fault.eq(u_lambda.fault_type), self.fault_valid.eq(1)]
         with m.Else():
             m.d.comb += [self.fault.eq(FaultType.NONE), self.fault_valid.eq(0)]
 
@@ -396,11 +437,6 @@ class CTMMCore(Elaboratable):
             self.ns_wr_en.eq(0),
         ]
 
-        u_call = CTMMCall()
-        u_return = CTMMReturn()
-        m.submodules.u_call = u_call
-        m.submodules.u_return = u_return
-
         call_start_sig = Signal()
         m.d.comb += call_start_sig.eq(
             exec_enable & is_church_op & (church_op == ChurchOpcode.CALL) & all_checks_pass
@@ -412,7 +448,7 @@ class CTMMCore(Elaboratable):
             u_call.index.eq(clist_index[:8]),
             u_call.mask.eq(u_decoder.call_mask),
             u_call.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_call.cr15_namespace.eq(u_regs.cr_rd_data),
+            u_call.cr15_namespace.eq(u_regs.cr15_namespace),
             u_call.mem_rd_data.eq(self.dmem_rd_data),
             u_call.mem_rd_valid.eq(1),
         ]
@@ -426,9 +462,16 @@ class CTMMCore(Elaboratable):
             u_return.return_start.eq(ret_start_sig),
             u_return.cr_src.eq(cr_src),
             u_return.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_return.cr15_namespace.eq(u_regs.cr_rd_data),
+            u_return.cr15_namespace.eq(u_regs.cr15_namespace),
             u_return.mem_rd_data.eq(self.dmem_rd_data),
             u_return.mem_rd_valid.eq(1),
+        ]
+
+        m.d.comb += [
+            u_lambda.lambda_start.eq(lambda_start_sig),
+            u_lambda.cr_target.eq(Cat(cr_dst, Const(0, 1))),
+            u_lambda.cr_rd_data.eq(u_regs.cr_rd_data),
+            u_lambda.saved_nia.eq(nia_reg + 4),
         ]
 
         CR5_STACK_DEPTH = 256

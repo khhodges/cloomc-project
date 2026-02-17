@@ -14,6 +14,14 @@ PERM_MASK_L = 1 << PERM_L
 PERM_MASK_S = 1 << PERM_S
 PERM_MASK_E = 1 << PERM_E
 
+PERM_M = 6
+PERM_MASK_M = 1 << PERM_M
+
+GT_TYPE_INFORM  = 0b00
+GT_TYPE_OUTFORM = 0b01
+GT_TYPE_NULL    = 0b10
+GT_TYPE_SPARE   = 0b11
+
 DATA_PERMS = PERM_MASK_R | PERM_MASK_W | PERM_MASK_X
 CAP_PERMS = PERM_MASK_L | PERM_MASK_S | PERM_MASK_E
 
@@ -58,6 +66,7 @@ class ChurchOpcode(IntEnum):
     SAVEX  = 0b01001
     LDM    = 0b01010
     STM    = 0b01011
+    LAMBDA = 0b01100
 
 
 class TuringOpcode(IntEnum):
@@ -112,7 +121,7 @@ TPERM_MASKS = {
     TpermPreset.LE:    PERM_MASK_L | PERM_MASK_E,
     TpermPreset.SE:    PERM_MASK_S | PERM_MASK_E,
     TpermPreset.LSE:   PERM_MASK_L | PERM_MASK_S | PERM_MASK_E,
-    TpermPreset.RWXL:  PERM_MASK_R | PERM_MASK_W | PERM_MASK_X | PERM_MASK_L,
+    TpermPreset.RWXL:  0x0000,
 }
 
 
@@ -130,6 +139,7 @@ class FaultType(IntEnum):
     INVALID_OP = 0xA
     TPERM_RSV  = 0xB
     EXCL_FAIL  = 0xC
+    DOMAIN_PURITY = 0xD
 
 
 class ExclMonitorState(IntEnum):
