@@ -13778,6 +13778,87 @@ function loadFigure(url) {
 
 // ==================== DOC FILE VIEWER ====================
 
+function renderMarkdown(md) {
+    let html = md;
+    html = html.replace(/^(#{1,6})\s+(.+)$/gm, function(_, hashes, text) {
+        const level = hashes.length;
+        return `<h${level}>${text}</h${level}>`;
+    });
+    html = html.replace(/^---+$/gm, '<hr>');
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(_, lang, code) {
+        return `<pre><code class="lang-${lang || 'text'}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    });
+    html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%">');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+    html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
+    const lines = html.split('\n');
+    let result = [];
+    let inList = false;
+    let listType = '';
+    let inTable = false;
+    let tableRows = [];
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const ulMatch = line.match(/^(\s*)[-*]\s+(.+)/);
+        const olMatch = line.match(/^(\s*)\d+\.\s+(.+)/);
+        const tableMatch = line.match(/^\|(.+)\|$/);
+        if (tableMatch) {
+            if (!inTable) { inTable = true; tableRows = []; }
+            if (!/^[\s|:-]+$/.test(tableMatch[1])) {
+                tableRows.push(tableMatch[1].split('|').map(c => c.trim()));
+            }
+            continue;
+        } else if (inTable) {
+            inTable = false;
+            let t = '<table>';
+            tableRows.forEach((row, ri) => {
+                const tag = ri === 0 ? 'th' : 'td';
+                t += '<tr>' + row.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+            });
+            t += '</table>';
+            result.push(t);
+            tableRows = [];
+        }
+        if (ulMatch) {
+            if (!inList || listType !== 'ul') {
+                if (inList) result.push(`</${listType}>`);
+                result.push('<ul>'); inList = true; listType = 'ul';
+            }
+            result.push(`<li>${ulMatch[2]}</li>`);
+        } else if (olMatch) {
+            if (!inList || listType !== 'ol') {
+                if (inList) result.push(`</${listType}>`);
+                result.push('<ol>'); inList = true; listType = 'ol';
+            }
+            result.push(`<li>${olMatch[2]}</li>`);
+        } else {
+            if (inList) { result.push(`</${listType}>`); inList = false; }
+            if (line.trim() === '' && !line.startsWith('<')) {
+                result.push('');
+            } else if (!line.startsWith('<')) {
+                result.push(`<p>${line}</p>`);
+            } else {
+                result.push(line);
+            }
+        }
+    }
+    if (inList) result.push(`</${listType}>`);
+    if (inTable && tableRows.length > 0) {
+        let t = '<table>';
+        tableRows.forEach((row, ri) => {
+            const tag = ri === 0 ? 'th' : 'td';
+            t += '<tr>' + row.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+        });
+        t += '</table>';
+        result.push(t);
+    }
+    return result.join('\n').replace(/<p><\/p>/g, '').replace(/\n{3,}/g, '\n\n');
+}
+
 async function loadDocFile(filename) {
     document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
     const fileItem = document.querySelector(`.file-item[data-file="docs/${filename}"]`);
@@ -13787,14 +13868,17 @@ async function loadDocFile(filename) {
     currentSourceFile = 'docs/' + filename;
 
     const viewer = document.getElementById('codeViewerContent');
+    viewer.style.padding = '';
+    viewer.style.overflow = '';
     viewer.innerHTML = '<div class="code-welcome"><p>Loading...</p></div>';
 
     try {
         const response = await fetch(`/docs/${filename}?t=${Date.now()}`);
         if (!response.ok) throw new Error('File not found');
-        const code = await response.text();
-        sourceCodeCache['docs/' + filename] = code;
-        displaySourceCode(code, filename);
+        const mdText = await response.text();
+        sourceCodeCache['docs/' + filename] = mdText;
+        const rendered = renderMarkdown(mdText);
+        viewer.innerHTML = `<div class="markdown-body">${rendered}</div>`;
     } catch (err) {
         viewer.innerHTML = `<div class="code-welcome"><p style="color: var(--danger);">Error loading doc: ${err.message}</p></div>`;
     }

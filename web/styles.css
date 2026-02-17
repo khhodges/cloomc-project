@@ -6283,6 +6283,151 @@ body.tooltip-hidden [data-tooltip]:hover::after {
     background: #0d0d12;
 }
 
+.markdown-body {
+    padding: 2rem 2.5rem;
+    color: var(--text-primary);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    max-width: 900px;
+    overflow-y: auto;
+}
+
+.markdown-body h1 {
+    color: var(--accent);
+    font-size: 1.8rem;
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.markdown-body h2 {
+    color: #f5c842;
+    font-size: 1.4rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid rgba(245,200,66,0.15);
+}
+
+.markdown-body h3 {
+    color: #5dade2;
+    font-size: 1.15rem;
+    margin: 1.5rem 0 0.6rem 0;
+}
+
+.markdown-body h4 {
+    color: #c39bd3;
+    font-size: 1.05rem;
+    margin: 1.2rem 0 0.5rem 0;
+}
+
+.markdown-body h5, .markdown-body h6 {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 1rem 0 0.4rem 0;
+}
+
+.markdown-body p {
+    margin: 0.4rem 0;
+    color: var(--text-secondary);
+}
+
+.markdown-body a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+
+.markdown-body strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.markdown-body em {
+    color: #c39bd3;
+    font-style: italic;
+}
+
+.markdown-body code {
+    background: rgba(0,0,0,0.3);
+    color: #e8b86d;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.85em;
+}
+
+.markdown-body pre {
+    background: #0a0e17;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    margin: 0.8rem 0;
+}
+
+.markdown-body pre code {
+    background: none;
+    color: #c8d6e5;
+    padding: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.markdown-body ul, .markdown-body ol {
+    margin: 0.5rem 0;
+    padding-left: 1.8rem;
+    color: var(--text-secondary);
+}
+
+.markdown-body li {
+    margin: 0.25rem 0;
+}
+
+.markdown-body blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 0.5rem 1rem;
+    margin: 0.8rem 0;
+    background: rgba(0,0,0,0.2);
+    color: var(--text-muted);
+    border-radius: 0 4px 4px 0;
+}
+
+.markdown-body hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+}
+
+.markdown-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.8rem 0;
+    font-size: 0.9rem;
+}
+
+.markdown-body th {
+    background: rgba(0,0,0,0.3);
+    color: var(--accent);
+    padding: 0.5rem 0.8rem;
+    border: 1px solid var(--border);
+    text-align: left;
+    font-weight: 600;
+}
+
+.markdown-body td {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.markdown-body tr:nth-child(even) td {
+    background: rgba(0,0,0,0.1);
+}
+
 .code-welcome {
     padding: 2rem;
     text-align: center;
