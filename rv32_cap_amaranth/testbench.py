@@ -73,7 +73,7 @@ def run_testbench():
         inform_gt = build_gt(0x100, PERM_MASK_L, gt_type=GT_TYPE_INFORM)
         outform_gt = build_gt(0x200, PERM_MASK_E, gt_type=GT_TYPE_OUTFORM)
         null_gt = build_null_gt()
-        spare_gt = build_gt(0x300, 0, gt_type=GT_TYPE_SPARE)
+        abstract_gt = build_gt(0x300, 0, gt_type=GT_TYPE_ABSTRACT)
 
         gt_type_bits = inform_gt & 0x3
         assert gt_type_bits == GT_TYPE_INFORM, f"Inform type mismatch: {gt_type_bits}"
@@ -81,9 +81,9 @@ def run_testbench():
         assert gt_type_bits == GT_TYPE_OUTFORM, f"Outform type mismatch: {gt_type_bits}"
         gt_type_bits = null_gt & 0x3
         assert gt_type_bits == GT_TYPE_NULL, f"NULL type mismatch: {gt_type_bits}"
-        gt_type_bits = spare_gt & 0x3
-        assert gt_type_bits == GT_TYPE_SPARE, f"Spare type mismatch: {gt_type_bits}"
-        print("  PASS: GT type field encodes Inform/Outform/NULL/Spare correctly")
+        gt_type_bits = abstract_gt & 0x3
+        assert gt_type_bits == GT_TYPE_ABSTRACT, f"Abstract type mismatch: {gt_type_bits}"
+        print("  PASS: GT type field encodes Inform/Outform/NULL/Abstract correctly")
 
         perms_field = (inform_gt >> 2) & 0x3F
         assert perms_field == PERM_MASK_L, f"Perm mismatch: {perms_field}"

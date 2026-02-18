@@ -246,7 +246,7 @@ class RiscVCapSimulator {
     }
 
     getTypeName(type) {
-        const names = ['Inform', 'Outform', 'NULL', 'Spare'];
+        const names = ['Inform', 'Outform', 'NULL', 'Abstract'];
         return names[type & 0x3];
     }
 

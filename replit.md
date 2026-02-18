@@ -39,6 +39,7 @@ The CTMM simulator provides a web-based visualization using a Python HTTP server
 
 ### Web Interface (UI/UX)
 The web interface features a dark-themed, IDE-like design with seven views: Dashboard, Namespace Browser, Assembly Editor, Capabilities Explorer, Instructions, Tutorial, and Code Browser.
+-   **Instructions View Tabs**: Church (capability opcodes), Turing (ARM-style opcodes), Timing (cycle counts), GT Types (Golden Token type system, Abstract GT reference, programmable method-selector security levels, namespace metadata flags, and Abstract GT vs software tokens comparison).
 
 ### Key Features
 -   **Built-in Abstractions**: Includes `Boot`, `Threads`, `SlideRule`, `Abacus`, `Circle`, `CapabilityManager`, `DateTime`, `Lambda`, and `FamilyRegistry`.

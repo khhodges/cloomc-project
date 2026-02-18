@@ -934,7 +934,7 @@ main {
     color: #f0a500;
 }
 
-.type-badge[data-type="spare"] {
+.type-badge[data-type="abstract"] {
     background: rgba(155, 93, 229, 0.2);
     color: #9b5de5;
 }

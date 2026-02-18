@@ -188,7 +188,7 @@ function generateGoldenKey() {
 // Bits 0-31:  Offset (index into Namespace Table)
 // Bits 32-37: Permissions (R/W/X/L/S/E - 6 bits only)
 // Bits 38-47: Version (10 bits, reallocated from removed B/M/F/G)
-// Bits 48-63: Index/Spare (16 bits)
+// Bits 48-63: Type (16 bits — Inform/Outform/NULL/Abstract)
 
 const PERM_BITS = {
     R: 0x0001, W: 0x0002, X: 0x0004, L: 0x0008,
@@ -2102,7 +2102,7 @@ function showCapabilityDetail(evt, cap, regLabel) {
                         <input type="text" id="gtOffset" class="field-input" value="0x${offset.toString(16).toUpperCase().padStart(8, '0')}" onchange="updateGTFromEditor()">
                     </div>
                     <div class="field-group field-center">
-                        <span class="field-label" data-tooltip="Bits 32-47: Reserved for future use">Spare [32:47]</span>
+                        <span class="field-label" data-tooltip="Bits 32-47: GT type field (Inform, Outform, NULL, Abstract)">Type [32:47]</span>
                         <input type="text" id="gtSpare" class="field-input" value="0x${spare.toString(16).toUpperCase().padStart(4, '0')}" onchange="updateGTFromEditor()">
                     </div>
                     <div class="field-group field-right">
@@ -5433,7 +5433,7 @@ const lessons = [
                         </div>
                     </div>
                     <div class="demo-explanation">
-                        <p>This is a <strong>Golden Token (GT)</strong> - a 64-bit capability key containing an offset, permissions, and spare bits.</p>
+                        <p>This is a <strong>Golden Token (GT)</strong> - a 64-bit capability key containing an offset, type, and permission bits.</p>
                         <p>Each GT points to a <strong>3-word Namespace Entry</strong> that describes the resource's location, size, and security seals.</p>
                     </div>
                 </div>`
@@ -5508,7 +5508,7 @@ const lessons = [
                 <p>Each capability is represented by a <strong>64-bit Golden Token (GT)</strong> with three fields in Little-Endian (ARM) format:</p>
                 <ul>
                     <li><strong>Offset [0:31]</strong> - 32-bit index into the Namespace Table</li>
-                    <li><strong>Spare [32:47]</strong> - 16 reserved bits for future use</li>
+                    <li><strong>Type [32:47]</strong> - 16-bit type field (Inform, Outform, NULL, Abstract)</li>
                     <li><strong>Perms [48:53]</strong> - 6-bit permission flags (R, W, X, L, S, E) Read Data Allowed, Write Data Allowed, eXecute CLOOMC allowed, Load Capability from a GT allowed, Save GT allowed, Enter a Lambda Calculus Abstraction allowed</li>
                 </ul>
                 <div class="key-concept">
@@ -5523,7 +5523,7 @@ const lessons = [
                                 <div>[0:31]</div>
                             </div>
                             <div style="background: #94a3b8; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 4px; text-align: center;">
-                                <div style="font-size: 0.7rem;">Spare</div>
+                                <div style="font-size: 0.7rem;">Type</div>
                                 <div>[32:47]</div>
                             </div>
                             <div style="background: #f59e0b; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 4px; text-align: center;">
@@ -8668,7 +8668,7 @@ Returns:     x10  &rarr; DR0   x11 &rarr; DR1
                     <li><strong>Bounds check:</strong> Is index 0 within the C-List? Yes (3 entries) &rarr; proceed.</li>
                     <li><strong>MAC validation:</strong> Does the entry's Fowler-Noll-Vo (FNV) Message Authentication Code match its computed hash? Yes &rarr; entry is untampered.</li>
                     <li><strong>Version check:</strong> Has the entry been recycled by GC? No &rarr; still valid.</li>
-                    <li><strong>Type check:</strong> Is the loaded GT NULL or Spare? No (it's Inform) &rarr; safe to write to CR.</li>
+                    <li><strong>Type check:</strong> Is the loaded GT NULL? No (it's Inform) &rarr; safe to write to CR.</li>
                 </ol>
                 <div class="key-concept">
                     <strong>Golden Rule:</strong> mLoad is the <em>only</em> way to write a capability into a Context Register. No instruction, no microcode, no hardware path bypasses it. This is the foundation of failsafe security.
@@ -8698,7 +8698,7 @@ Returns:     x10  &rarr; DR0   x11 &rarr; DR1
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.3rem;">
                             <span style="background: #4ade80; color: #1a1a2e; padding: 0.2rem 0.4rem; border-radius: 3px; font-weight: bold;">5</span>
-                            <span>Type = Inform (not NULL/Spare) &rarr;</span>
+                            <span>Type = Inform (not NULL) &rarr;</span>
                             <span style="color: #4ade80;">PASS</span>
                         </div>
                         <div style="margin-top: 0.5rem; padding: 0.4rem; background: #16a34a22; border-radius: 4px; text-align: center; color: #4ade80; font-weight: bold;">
@@ -8944,6 +8944,139 @@ RETURN                     ; Back through tunnel</pre>
                     feedback: {
                         correct: "Correct! Three Golden Tokens: 'me' (CR8, thread identity), the tunnel key (CR0, R permission), and 'mymother' (CR1, Outform with E permission).",
                         incorrect: "The answer is three: 'me' in CR8 (thread identity), the tunnel key in CR0 (R permission for crypto), and 'mymother' in CR1 (Outform GT with E permission for the remote service)."
+                    }
+                }
+            }
+        ]
+    },
+    {
+        title: "Programmable Method Security",
+        steps: [
+            {
+                text: `<h3>Three Levels of Method-Selector Security</h3>
+                <p>When you CALL an abstraction, the Access code at slot [1] dispatches to the requested method. In CTMM, the <strong>method selector itself is programmable</strong> &mdash; the abstraction author chooses the security level:</p>
+                <ol>
+                    <li><strong>Integer selector</strong> (DR0 = 0, 1, 2&hellip;) &mdash; simple, fast, but an attacker who gains the capability could walk the selector space</li>
+                    <li><strong>Text string selector</strong> (DR0 points to a data region) &mdash; the Access dispatcher matches a string, optionally obfuscated. Much harder to enumerate</li>
+                    <li><strong>Abstract GT selector</strong> (a CR holds an Abstract GT) &mdash; the dispatcher validates the GT before dispatching. You need a valid capability just to <em>select</em> the method</li>
+                </ol>
+                <div class="key-concept">
+                    <strong>Key Insight:</strong> This is programmable security that <em>cannot exist</em> without CTMM technology. In von Neumann machines, method dispatch is always by name or offset &mdash; structural, never secured. In CTMM, dispatch happens inside the abstraction's scope behind the Access code, so the author has complete freedom to program the security level of the selector itself.
+                </div>`,
+                demo: `<div class="demo-title">Three Dispatch Security Levels</div>
+                <div class="demo-content">
+                    <div style="font-size: 0.75rem;">
+                        <div style="margin-bottom: 0.8rem; padding: 0.5rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid #4ade80;">
+                            <div style="color: #4ade80; font-weight: bold; margin-bottom: 0.3rem;">Level 1: Integer (Simple)</div>
+                            <div style="font-family: monospace; color: #94a3b8;">MOV DR0, #3 &nbsp; ; method = DIV</div>
+                            <div style="font-family: monospace; color: #94a3b8;">CALL CR0 &nbsp;&nbsp;&nbsp;&nbsp; ; dispatch</div>
+                            <div style="color: #f87171; margin-top: 0.2rem; font-size: 0.7rem;">Risk: attacker can try DR0 = 0, 1, 2&hellip;</div>
+                        </div>
+                        <div style="margin-bottom: 0.8rem; padding: 0.5rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid #f59e0b;">
+                            <div style="color: #f59e0b; font-weight: bold; margin-bottom: 0.3rem;">Level 2: String (Obscured)</div>
+                            <div style="font-family: monospace; color: #94a3b8;">MOV DR0, #str_addr ; obfuscated name</div>
+                            <div style="font-family: monospace; color: #94a3b8;">CALL CR0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ; string match</div>
+                            <div style="color: #f59e0b; margin-top: 0.2rem; font-size: 0.7rem;">Harder: must guess the string</div>
+                        </div>
+                        <div style="padding: 0.5rem; background: var(--bg-panel); border-radius: 4px; border-left: 3px solid #a78bfa;">
+                            <div style="color: #a78bfa; font-weight: bold; margin-bottom: 0.3rem;">Level 3: Abstract GT (Capability-Protected)</div>
+                            <div style="font-family: monospace; color: #94a3b8;">LOAD CR1, CR6, #key ; Abstract GT</div>
+                            <div style="font-family: monospace; color: #94a3b8;">CALL CR0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ; GT validated</div>
+                            <div style="color: #4ade80; margin-top: 0.2rem; font-size: 0.7rem;">Secure: need valid GT to select method</div>
+                        </div>
+                    </div>
+                </div>`
+            },
+            {
+                text: `<h3>The Abstract GT Type</h3>
+                <p>The CTMM GT type field encodes four types:</p>
+                <ul>
+                    <li><strong>Inform (00)</strong> &mdash; local resource (data, code, C-List)</li>
+                    <li><strong>Outform (01)</strong> &mdash; remote resource (network-transparent)</li>
+                    <li><strong>NULL (10)</strong> &mdash; empty/cleared slot</li>
+                    <li><strong>Abstract (11)</strong> &mdash; pure identity token, no data access</li>
+                </ul>
+                <p>An <strong>Abstract GT</strong> carries <em>no</em> data access rights &mdash; no R, W, X, L, S, or E permissions. It is purely an <strong>identity token</strong>: unforgeable, revocable, and scope-confined.</p>
+                <div class="key-concept">
+                    <strong>Key Property:</strong> Abstract GTs can only exist in Context Registers (CRs), never in Data Registers (DRs). They are created by Mint, sealed with version+FNV, and validated by mLoad like any other GT. But they grant no resource access &mdash; they prove identity.
+                </div>`,
+                demo: `<div class="demo-title">Abstract GT Properties</div>
+                <div class="demo-content">
+                    <div style="font-size: 0.75rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="padding: 0.4rem; background: var(--bg-panel); border-radius: 4px; text-align: center;">
+                                <div style="color: #a78bfa; font-weight: bold;">Unforgeable</div>
+                                <div style="color: #94a3b8; font-size: 0.7rem;">Only Mint creates them</div>
+                            </div>
+                            <div style="padding: 0.4rem; background: var(--bg-panel); border-radius: 4px; text-align: center;">
+                                <div style="color: #a78bfa; font-weight: bold;">Revocable</div>
+                                <div style="color: #94a3b8; font-size: 0.7rem;">GC version bump invalidates all copies</div>
+                            </div>
+                            <div style="padding: 0.4rem; background: var(--bg-panel); border-radius: 4px; text-align: center;">
+                                <div style="color: #a78bfa; font-weight: bold;">Non-transferable</div>
+                                <div style="color: #94a3b8; font-size: 0.7rem;">Only moves via capability-safe paths</div>
+                            </div>
+                            <div style="padding: 0.4rem; background: var(--bg-panel); border-radius: 4px; text-align: center;">
+                                <div style="color: #a78bfa; font-weight: bold;">Scope-confined</div>
+                                <div style="color: #94a3b8; font-size: 0.7rem;">Valid only within issuing abstraction</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 0.5rem; padding: 0.4rem; background: #a78bfa22; border-radius: 4px; text-align: center; font-size: 0.7rem;">
+                            <span style="color: #a78bfa;">Type bits = 11 (Abstract)</span> &mdash; No permissions, pure identity
+                        </div>
+                    </div>
+                </div>`
+            },
+            {
+                text: `<h3>Abstract GTs as Protected Credentials</h3>
+                <p>In traditional systems, login credentials are just data &mdash; strings, tokens, cookies &mdash; that can be copied, leaked, replayed, or forged. Abstract GTs make credentials a <strong>hardware-protected type</strong>.</p>
+                <p>A service abstraction mints an Abstract GT, hands it to the caller via a CR, and that GT serves as both:</p>
+                <ul>
+                    <li><strong>Login credential</strong> &mdash; "prove you are authorised to use this service"</li>
+                    <li><strong>Method selector</strong> &mdash; "AND tell me what you want" in a single CR</li>
+                </ul>
+                <p>This is <strong>two layers</strong> of Golden Token protection: one GT to enter the abstraction (CALL), another GT to select the method (Abstract GT in CR). No operating system, no virtual memory, no privilege mode can offer this.</p>
+                <div class="key-concept">
+                    <strong>Versus Traditional Systems:</strong> Software tokens (JWT, OAuth, API keys) are just data strings &mdash; they can be leaked via logs, debuggers, memory dumps, or side channels. An Abstract GT is a hardware-enforced type that cannot exist in a Data Register, cannot be printed, and cannot be extracted from its capability-safe path.
+                </div>`,
+                demo: `<div class="demo-title">Credential Security Comparison</div>
+                <div class="demo-content">
+                    <div style="font-size: 0.75rem;">
+                        <div style="margin-bottom: 0.8rem;">
+                            <div style="color: #f87171; font-weight: bold; margin-bottom: 0.3rem;">Traditional Credentials (Software)</div>
+                            <div style="padding: 0.4rem; background: #f8717122; border-radius: 4px; font-family: monospace; font-size: 0.7rem; color: #94a3b8;">
+                                token = "eyJhbGciOiJIUzI1NiJ9..."<br>
+                                // Can be: logged, copied, leaked,<br>
+                                // replayed, forged, intercepted
+                            </div>
+                        </div>
+                        <div>
+                            <div style="color: #4ade80; font-weight: bold; margin-bottom: 0.3rem;">Abstract GT Credential (Hardware)</div>
+                            <div style="padding: 0.4rem; background: #4ade8022; border-radius: 4px; font-family: monospace; font-size: 0.7rem; color: #94a3b8;">
+                                LOAD CR1, CR6, #cred ; Abstract GT<br>
+                                CALL CR0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ; validated by mLoad<br>
+                                ; Cannot: log, copy to DR, print,<br>
+                                ; forge, or extract from CR path
+                            </div>
+                        </div>
+                        <div style="margin-top: 0.5rem; padding: 0.4rem; background: #16a34a22; border-radius: 4px; text-align: center; color: #4ade80; font-weight: bold; font-size: 0.8rem;">
+                            Hardware-enforced credential &gt; Software token
+                        </div>
+                    </div>
+                </div>`,
+                interactive: {
+                    type: "quiz",
+                    question: "Why can't an Abstract GT credential be leaked like a JWT token?",
+                    options: [
+                        "It uses stronger encryption",
+                        "It can only exist in Context Registers, never in Data Registers",
+                        "It has a shorter expiry time",
+                        "It requires two-factor authentication"
+                    ],
+                    correct: 1,
+                    feedback: {
+                        correct: "Correct! Abstract GTs are a hardware-enforced type that can only exist in CRs. They cannot be copied to DRs, printed, logged, or extracted from the capability-safe path. This is fundamentally different from software tokens which are just data.",
+                        incorrect: "The key insight is that Abstract GTs can only exist in Context Registers (CRs), never in Data Registers (DRs). Unlike software tokens (which are just data strings), an Abstract GT is a hardware-enforced type that cannot be copied, printed, or extracted from the capability path."
                     }
                 }
             }
@@ -12094,7 +12227,7 @@ fault:
 ;         DR2 = version number
 ;         DR3 = namespace offset
 ;         DR4 = GT type field (00=Inform, 01=Outform,
-;                              10=NULL, 11=Spare)
+;                              10=NULL, 11=Abstract)
 ; ====================================================
 ; Security: Read-only. Does not modify the GT or
 ; namespace entry. Requires valid GT in CR0
@@ -12104,7 +12237,7 @@ fault:
 ; === VALIDATION ===
 ; Step 1: Verify CR0 is valid
 ; mLoad checks MAC, version, bounds
-; NULL/Spare GT types cause FAULT
+; NULL GT types cause FAULT
 
 ; === EXTRACTION ===
 ; Step 2: Extract permission mask
@@ -13323,30 +13456,26 @@ const turingInstrFormats = [
 ];
 
 function switchInstrTab(tab) {
-    const churchPanel = document.getElementById('instrChurch');
-    const turingPanel = document.getElementById('instrTuring');
-    const timingPanel = document.getElementById('instrTiming');
-    const tabChurch = document.getElementById('tabChurch');
-    const tabTuring = document.getElementById('tabTuring');
-    const tabTiming = document.getElementById('tabTiming');
+    const panels = ['instrChurch', 'instrTuring', 'instrTiming', 'instrGtTypes'];
+    const tabs = ['tabChurch', 'tabTuring', 'tabTiming', 'tabGtTypes'];
     
-    churchPanel.classList.add('hidden');
-    turingPanel.classList.add('hidden');
-    timingPanel.classList.add('hidden');
-    tabChurch.classList.remove('active');
-    tabTuring.classList.remove('active');
-    tabTiming.classList.remove('active');
+    panels.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    tabs.forEach(id => document.getElementById(id)?.classList.remove('active'));
     
     if (tab === 'church') {
-        churchPanel.classList.remove('hidden');
-        tabChurch.classList.add('active');
+        document.getElementById('instrChurch').classList.remove('hidden');
+        document.getElementById('tabChurch').classList.add('active');
     } else if (tab === 'turing') {
-        turingPanel.classList.remove('hidden');
-        tabTuring.classList.add('active');
+        document.getElementById('instrTuring').classList.remove('hidden');
+        document.getElementById('tabTuring').classList.add('active');
     } else if (tab === 'timing') {
-        timingPanel.classList.remove('hidden');
-        tabTiming.classList.add('active');
+        document.getElementById('instrTiming').classList.remove('hidden');
+        document.getElementById('tabTiming').classList.add('active');
         renderTimingTable();
+    } else if (tab === 'gtTypes') {
+        document.getElementById('instrGtTypes').classList.remove('hidden');
+        document.getElementById('tabGtTypes').classList.add('active');
+        renderGtTypesReference();
     }
 }
 
@@ -13632,6 +13761,215 @@ function renderInstrFormat(instr) {
             ${variantsHtml}
             ${opcodesHtml}
             ${conditionsHtml}
+        </div>
+    `;
+}
+
+function renderGtTypesReference() {
+    const container = document.getElementById('gtTypesContent');
+    if (!container || container.dataset.rendered) return;
+    container.dataset.rendered = 'true';
+
+    container.innerHTML = `
+        <div style="padding: 1rem; max-width: 900px;">
+            <h3 style="color: var(--accent); margin-bottom: 1rem;">Golden Token Type System</h3>
+
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--text); margin-bottom: 0.75rem;">32-bit GT Format (Sim-32)</h4>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; font-family: monospace; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    <div style="background: #7c3aed; color: white; padding: 0.5rem; text-align: center; border-radius: 4px 0 0 4px;">
+                        Version [31:25]<br><span style="font-size: 0.75rem;">7 bits</span>
+                    </div>
+                    <div style="background: #2563eb; color: white; padding: 0.5rem; text-align: center;">
+                        Index [24:8]<br><span style="font-size: 0.75rem;">17 bits (131K entries)</span>
+                    </div>
+                    <div style="background: #059669; color: white; padding: 0.5rem; text-align: center;">
+                        Perms [7:2]<br><span style="font-size: 0.75rem;">6 bits (R,W,X,L,S,E)</span>
+                    </div>
+                    <div style="background: #dc2626; color: white; padding: 0.5rem; text-align: center; border-radius: 0 4px 4px 0;">
+                        Type [1:0]<br><span style="font-size: 0.75rem;">2 bits</span>
+                    </div>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">Domain purity enforced: R,W,X = Turing domain | L,S,E = Church domain — never both</p>
+            </div>
+
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--text); margin-bottom: 0.75rem;">GT Type Encoding</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border);">
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Bits</th>
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Type</th>
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Purpose</th>
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Permissions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; font-family: monospace; color: #4ade80;">0b00</td>
+                            <td style="padding: 0.5rem; color: var(--text); font-weight: bold;">Inform</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">Data access — read/write memory via namespace entry</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">R, W (Turing domain)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; font-family: monospace; color: #60a5fa;">0b01</td>
+                            <td style="padding: 0.5rem; color: var(--text); font-weight: bold;">Outform</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">Abstraction access — CALL entry, C-List traversal, LAMBDA</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">X, L, S, E (Church domain)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; font-family: monospace; color: #fbbf24;">0b10</td>
+                            <td style="padding: 0.5rem; color: var(--text); font-weight: bold;">NULL</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">Empty slot — clears CR, required at C-List slot [0]</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">None (all zero)</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.5rem; font-family: monospace; color: #f472b6;">0b11</td>
+                            <td style="padding: 0.5rem; color: var(--text); font-weight: bold;">Abstract</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">Pure identity token — unforgeable credential, method selector key</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">None (identity only)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--text); margin-bottom: 0.75rem;">Abstract GT (0b11) — Pure Identity Token</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <h5 style="color: #f472b6; margin-bottom: 0.5rem;">Properties</h5>
+                        <ul style="color: var(--text-secondary); font-size: 0.85rem; margin: 0; padding-left: 1.2rem;">
+                            <li><strong>Unforgeable</strong> — only Mint abstraction creates them</li>
+                            <li><strong>Revocable</strong> — GC version bump invalidates</li>
+                            <li><strong>CR-only path</strong> — cannot exist in Data Registers</li>
+                            <li><strong>Scope-confined</strong> — validated by issuing abstraction</li>
+                            <li><strong>No permissions</strong> — carries identity, not access rights</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="color: #f472b6; margin-bottom: 0.5rem;">Use Cases</h5>
+                        <ul style="color: var(--text-secondary); font-size: 0.85rem; margin: 0; padding-left: 1.2rem;">
+                            <li>Hardware-protected login credentials</li>
+                            <li>Method-selector keys for secure dispatch</li>
+                            <li>Opaque identity for authorization decisions</li>
+                            <li>Two-layer capability protection (GT + CR path)</li>
+                            <li>Revocable access tokens without software trust</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--text); margin-bottom: 0.75rem;">Programmable Method-Selector Security</h4>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Method dispatch executes inside the abstraction's protected scope. The abstraction author chooses the security level:
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                    <div style="background: var(--bg); border: 1px solid #4ade80; border-radius: 6px; padding: 0.75rem;">
+                        <div style="color: #4ade80; font-weight: bold; font-size: 0.9rem; margin-bottom: 0.5rem;">Level 1: Integer in DR0</div>
+                        <div style="color: var(--text-secondary); font-size: 0.8rem;">
+                            Fast enumerable dispatch. Caller sets DR0 = method number, CALL enters abstraction.
+                            Access code reads DR0 and branches.
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.5rem; font-style: italic;">
+                            Security: Low — integers are guessable
+                        </div>
+                    </div>
+                    <div style="background: var(--bg); border: 1px solid #60a5fa; border-radius: 6px; padding: 0.75rem;">
+                        <div style="color: #60a5fa; font-weight: bold; font-size: 0.9rem; margin-bottom: 0.5rem;">Level 2: String in DR0</div>
+                        <div style="color: var(--text-secondary); font-size: 0.8rem;">
+                            Symbolic resolver matches method name string.
+                            Harder to guess than integers but still data.
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.5rem; font-style: italic;">
+                            Security: Medium — strings can leak via DRs
+                        </div>
+                    </div>
+                    <div style="background: var(--bg); border: 1px solid #f472b6; border-radius: 6px; padding: 0.75rem;">
+                        <div style="color: #f472b6; font-weight: bold; font-size: 0.9rem; margin-bottom: 0.5rem;">Level 3: Abstract GT in CR</div>
+                        <div style="color: var(--text-secondary); font-size: 0.8rem;">
+                            Two-layer protection: caller must hold the Abstract GT (capability gate)
+                            AND pass it via CR (hardware-enforced path).
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.5rem; font-style: italic;">
+                            Security: Maximum — unforgeable + unextractable
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--text); margin-bottom: 0.75rem;">Namespace Entry Metadata Flags</h4>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    B and F are namespace entry metadata stored in high bits of the limit word — not GT permission bits:
+                </p>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border);">
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Flag</th>
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Bit</th>
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; color: var(--text); font-weight: bold;">B (Bind)</td>
+                            <td style="padding: 0.5rem; font-family: monospace; color: var(--accent);">limit[31]</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">Controls whether SAVE can write to this entry. SAVE faults BIND if B=0.</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; color: var(--text); font-weight: bold;">F (Far/Foreign)</td>
+                            <td style="padding: 0.5rem; font-family: monospace; color: var(--accent);">limit[30]</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">F=0: virtual memory (HTTP GET/PUT). F=1: remote execution (encrypted tunnel).</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.5rem; color: var(--text); font-weight: bold;">M (Machine)</td>
+                            <td style="padding: 0.5rem; font-family: monospace; color: var(--accent);">transient</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">Microcode elevation flag. Never stored in GT — exists only during mLoad execution.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem;">
+                <h4 style="color: var(--text); margin-bottom: 0.75rem;">Abstract GT vs Software Tokens</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border);">
+                            <th style="text-align: left; padding: 0.5rem; color: var(--text-secondary);">Property</th>
+                            <th style="text-align: center; padding: 0.5rem; color: #f472b6;">Abstract GT</th>
+                            <th style="text-align: center; padding: 0.5rem; color: var(--text-secondary);">JWT / OAuth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; color: var(--text);">Storage</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #4ade80;">CR only (hardware)</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #ef4444;">Any variable (software)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; color: var(--text);">Forgeable?</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #4ade80;">No — Mint only</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #ef4444;">Yes — string copy</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; color: var(--text);">Extractable?</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #4ade80;">No — CR path only</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #ef4444;">Yes — printable data</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; color: var(--text);">Revocable?</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #4ade80;">GC version bump</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #fbbf24;">Requires revocation list</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.5rem; color: var(--text);">Leakable?</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #4ade80;">No — cannot enter DR</td>
+                            <td style="padding: 0.5rem; text-align: center; color: #ef4444;">Yes — log, network, memory</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     `;
 }

@@ -561,6 +561,7 @@ RETURN</pre>
                         <button class="instr-tab active" id="tabChurch" onclick="switchInstrTab('church')" data-tooltip="Church capability instructions for secure object access">Church</button>
                         <button class="instr-tab" id="tabTuring" onclick="switchInstrTab('turing')" data-tooltip="Turing ARM-style instructions for computation">Turing</button>
                         <button class="instr-tab" id="tabTiming" onclick="switchInstrTab('timing')" data-tooltip="Instruction cycle counts and timing estimates">Timing</button>
+                        <button class="instr-tab" id="tabGtTypes" onclick="switchInstrTab('gtTypes')" data-tooltip="Golden Token types and programmable method-selector security">GT Types</button>
                     </div>
                 </div>
                 
@@ -573,6 +574,9 @@ RETURN</pre>
                     </div>
                     <div class="instr-panel hidden" id="instrTiming">
                         <div id="timingContent"></div>
+                    </div>
+                    <div class="instr-panel hidden" id="instrGtTypes">
+                        <div id="gtTypesContent"></div>
                     </div>
                 </div>
             </div>

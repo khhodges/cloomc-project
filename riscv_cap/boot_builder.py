@@ -59,7 +59,7 @@ class BootImageBuilder:
         index = (gt32 >> 8) & 0x1FFFF
         perm_bits = (gt32 >> 2) & 0x3F
         gt_type = gt32 & 0x3
-        type_names = ['Inform', 'Outform', 'NULL', 'Spare']
+        type_names = ['Inform', 'Outform', 'NULL', 'Abstract']
         return {
             'version': version,
             'index': index,
