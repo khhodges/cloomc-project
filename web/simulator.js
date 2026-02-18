@@ -35,8 +35,9 @@ class CTMMSimulator {
         this.currentThread = 0;
     }
     
-    // TPERM preset codes: 0-5 data perms, 6-8 Lambda perms (L,S,E), 9-11 combos
-    // Reserved codes 14-15 cause FAULT
+    // TPERM preset codes: 0-5 data perms, 6-8 Lambda perms (L,S,E), 9-12 combos
+    // Reserved codes 13-15 cause FAULT
+    // Matches Amaranth HDL canonical table (rv32_cap_amaranth/types.py TpermPreset)
     getTpermMask(code) {
         const presets = {
             0:  [],                              // CLEAR: No permissions
@@ -48,11 +49,11 @@ class CTMMSimulator {
             6:  ['L'],                           // L: Load capability
             7:  ['S'],                           // S: Save capability
             8:  ['E'],                           // E: Enter abstraction
-            9:  ['L', 'S'],                      // LS: Load + Save (common combo)
-            10: ['L', 'S', 'E'],                 // LSE: Full Lambda access
-            11: ['R', 'W', 'X', 'L', 'S', 'E'], // ALL: All 6 permissions
-            12: ['E', 'L'],                      // EL: Enter + Load
-            13: ['E', 'S'],                      // ES: Enter + Save
+            9:  ['L', 'S'],                      // LS: Load + Save
+            10: ['L', 'E'],                      // LE: Load + Enter
+            11: ['S', 'E'],                      // SE: Save + Enter
+            12: ['L', 'S', 'E'],                 // LSE: Full Lambda access
+            13: null,                            // RESERVED - causes FAULT
             14: null,                            // RESERVED - causes FAULT
             15: null                             // RESERVED - causes FAULT
         };

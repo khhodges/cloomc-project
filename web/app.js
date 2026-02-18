@@ -8712,12 +8712,12 @@ TPERM CR2, #5        ; Test for full RWX access</pre>
                     <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #fb923c22;">7</td><td>S</td><td><span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span></td><td>Save capability</td></tr>
                     <tr><td style="text-align: center; background: #fbbf2422;">8</td><td>E</td><td><span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Enter abstraction</td></tr>
                     <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #2dd4bf22;">9</td><td>LS</td><td><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span></td><td>Load + Save</td></tr>
-                    <tr><td style="text-align: center; background: #a855f722;">10</td><td>LSE</td><td><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Full capability access</td></tr>
-                    <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #06b6d422;">11</td><td>ALL</td><td><span style="background: #4ade80; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">R</span> <span style="background: #f87171; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">W</span> <span style="background: #60a5fa; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">X</span> <span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>All 6 permissions</td></tr>
-                    <tr><td style="text-align: center; background: #84cc1622;">12</td><td>EL</td><td><span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span> <span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span></td><td>Enter + Load</td></tr>
+                    <tr><td style="text-align: center; background: #a855f722;">10</td><td>LE</td><td><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Load + Enter</td></tr>
+                    <tr style="background: var(--bg-tertiary);"><td style="text-align: center; background: #06b6d422;">11</td><td>SE</td><td><span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Save + Enter</td></tr>
+                    <tr><td style="text-align: center; background: #84cc1622;">12</td><td>LSE</td><td><span style="background: #c084fc; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">L</span> <span style="background: #fb923c; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">S</span> <span style="background: #fbbf24; color: #1a1a2e; padding: 0.1rem 0.3rem; border-radius: 3px;">E</span></td><td>Full Lambda access</td></tr>
                 </table>
                 <div class="key-concept">
-                    <strong>Order:</strong> Codes 6-8 map to individual Lambda permissions: <strong>L, S, E</strong>. Codes 9-13 are common combos.
+                    <strong>Order:</strong> Codes 6-8 map to individual Lambda permissions: <strong>L, S, E</strong>. Codes 9-12 are common combos. Codes 13-15 are reserved (FAULT).
                 </div>`,
                 demo: `<div class="demo-title">Lambda Permission Tests</div>
                 <div class="demo-content">
@@ -13857,9 +13857,9 @@ const churchInstrFormats = [
         ],
         variants: [
             { name: "Mask mode", fields: { P: "0", Perms: "6-bit permission mask (R W X L S E)" } },
-            { name: "Preset mode", fields: { P: "1", Preset: "0=CLEAR, 1=R, 2=RW, 3=X, 4=RX, 5=RWX, 6=L, 7=S, 8=E, 9=LS, 10=LSE, 11=ALL, 12=EL, 13=ES" } }
+            { name: "Preset mode", fields: { P: "1", Preset: "0=CLEAR, 1=R, 2=RW, 3=X, 4=RX, 5=RWX, 6=L, 7=S, 8=E, 9=LS, 10=LE, 11=SE, 12=LSE, 13-15=FAULT" } }
         ],
-        notes: "Codes 6-8 match Lambda permission order (L,S,E). Codes 9-13 are common combos. Codes 14-15 cause FAULT_TPERM_RSV."
+        notes: "Codes 6-8 match Lambda permission order (L,S,E). Codes 9-12 are common combos (LS,LE,SE,LSE). Codes 13-15 cause FAULT_TPERM_RSV."
     },
     {
         name: "LOADX",

@@ -83,22 +83,22 @@ This document maps each instruction across all implementation layers for verific
 
 | Code | Name  | Permissions | Category | Verified JS | Verified Verilog |
 |:-----|:------|:------------|:---------|:------------|:-----------------|
-| 0    | CLEAR | (none)      | -        | [ ]         | [ ]              |
-| 1    | R     | R           | Data     | [ ]         | [ ]              |
-| 2    | RW    | R,W         | Data     | [ ]         | [ ]              |
-| 3    | X     | X           | Data     | [ ]         | [ ]              |
-| 4    | RX    | R,X         | Data     | [ ]         | [ ]              |
-| 5    | RWX   | R,W,X       | Data     | [ ]         | [ ]              |
-| 6    | L     | L           | Lambda   | [ ]         | [ ]              |
-| 7    | S     | S           | Lambda   | [ ]         | [ ]              |
-| 8    | E     | E           | Lambda   | [ ]         | [ ]              |
-| 9    | B     | B           | Lambda   | [ ]         | [ ]              |
-| 10   | M     | M           | Lambda   | [ ]         | [ ]              |
-| 11   | F     | F           | Lambda   | [ ]         | [ ]              |
-| 12   | G     | G           | Lambda   | [ ]         | [ ]              |
-| 13   | LS    | L,S         | Combo    | [ ]         | [ ]              |
-| 14   | RSVD  | FAULT       | Reserved | [ ]         | [ ]              |
-| 15   | RSVD  | FAULT       | Reserved | [ ]         | [ ]              |
+| 0    | CLEAR | (none)      | -        | [ ]         | [x] Amaranth     |
+| 1    | R     | R           | Data     | [ ]         | [x] Amaranth     |
+| 2    | RW    | R,W         | Data     | [ ]         | [x] Amaranth     |
+| 3    | X     | X           | Data     | [ ]         | [x] Amaranth     |
+| 4    | RX    | R,X         | Data     | [ ]         | [x] Amaranth     |
+| 5    | RWX   | R,W,X       | Data     | [ ]         | [x] Amaranth     |
+| 6    | L     | L           | Lambda   | [ ]         | [x] Amaranth     |
+| 7    | S     | S           | Lambda   | [ ]         | [x] Amaranth     |
+| 8    | E     | E           | Lambda   | [ ]         | [x] Amaranth     |
+| 9    | LS    | L,S         | Combo    | [ ]         | [x] Amaranth     |
+| 10   | LE    | L,E         | Combo    | [ ]         | [x] Amaranth     |
+| 11   | SE    | S,E         | Combo    | [ ]         | [x] Amaranth     |
+| 12   | LSE   | L,S,E       | Combo    | [ ]         | [x] Amaranth     |
+| 13   | RSVD  | FAULT       | Reserved | [ ]         | [x] Amaranth     |
+| 14   | RSVD  | FAULT       | Reserved | [ ]         | [x] Amaranth     |
+| 15   | RSVD  | FAULT       | Reserved | [ ]         | [x] Amaranth     |
 
 ---
 
