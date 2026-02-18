@@ -1,0 +1,22 @@
+# RV32-Cap FPGA Pin Constraints
+# Target: Lattice iCE40 HX8K (iCEstick or similar)
+# Edit pin numbers to match your specific board
+
+# Clock input (12 MHz on iCEstick, adjust uart_divisor accordingly)
+# For 12 MHz / 115200 baud: divisor = 104
+# For 100 MHz / 115200 baud: divisor = 868
+set_io clk 21
+
+# Reset (directly from Amaranth's implicit rst port)
+# Note: Amaranth uses active-high rst. If your board has an active-low
+# reset button, add an inverter in the top-level or remap accordingly.
+set_io rst 10
+
+# UART TX (directly on board or via FTDI)
+set_io uart_tx 8
+
+# Status LEDs
+set_io leds[0] 95   # Boot complete
+set_io leds[1] 96   # Fault active
+set_io leds[2] 97   # GC busy
+set_io leds[3] 98   # NIA bit 0 (activity indicator)

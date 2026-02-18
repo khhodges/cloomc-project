@@ -68,7 +68,6 @@ class RV32CapSave(Elaboratable):
                 m.d.sync += [fault_latched.eq(0), fault_type_latched.eq(FaultType.NONE)]
                 m.d.sync += [sub_done_latched.eq(0), sub_fault_latched.eq(0)]
                 with m.If(self.save_start):
-                    m.d.comb += self.cr_rd_addr.eq(self.cr_dst)
                     m.next = "CHECK_DST_READ"
 
             with m.State("CHECK_DST_READ"):

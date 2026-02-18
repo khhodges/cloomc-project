@@ -1,0 +1,31 @@
+# RV32-Cap FPGA Pin Constraints
+# Target: Lattice ECP5 (ULX3S, OrangeCrab, or similar)
+# Edit pin locations to match your specific board
+
+# Clock input (25 MHz on ULX3S, 48 MHz on OrangeCrab)
+# For 25 MHz / 115200 baud: divisor = 217
+# For 48 MHz / 115200 baud: divisor = 417
+LOCATE COMP "clk" SITE "G2";
+IOBUF PORT "clk" IO_TYPE=LVCMOS33;
+FREQUENCY PORT "clk" 25 MHZ;
+
+# Reset (Amaranth uses active-high rst; invert if board uses active-low button)
+LOCATE COMP "rst" SITE "D6";
+IOBUF PORT "rst" IO_TYPE=LVCMOS33;
+
+# UART TX
+LOCATE COMP "uart_tx" SITE "L4";
+IOBUF PORT "uart_tx" IO_TYPE=LVCMOS33;
+
+# Status LEDs
+LOCATE COMP "leds[0]" SITE "B2";
+IOBUF PORT "leds[0]" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "leds[1]" SITE "C2";
+IOBUF PORT "leds[1]" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "leds[2]" SITE "C1";
+IOBUF PORT "leds[2]" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "leds[3]" SITE "D2";
+IOBUF PORT "leds[3]" IO_TYPE=LVCMOS33;

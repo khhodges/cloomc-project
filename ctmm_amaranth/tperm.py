@@ -73,7 +73,6 @@ class CTMMTperm(Elaboratable):
             with m.State("IDLE"):
                 m.d.sync += [fault_flag.eq(0), fault_latched.eq(FaultType.NONE)]
                 with m.If(self.tperm_start):
-                    m.d.comb += self.cr_rd_addr.eq(self.cr_target)
                     m.d.sync += preset_reg.eq(self.preset)
                     m.next = "READ_CR"
 
