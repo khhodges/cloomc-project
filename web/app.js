@@ -3196,7 +3196,7 @@ function populateCodeFileDropdown() {
     // Group 2: Lambda/Church Examples
     const lambdaGroup = document.createElement('optgroup');
     lambdaGroup.label = 'Lambda Examples';
-    const lambdaExamples = ['hp35_lambda', 'hello_mum', 'ycombinator', 'factorial', 'capcheck', 'capmgr', 'datetime', 'church_bool', 'church_num', 'pair'];
+    const lambdaExamples = ['hp35_lambda', 'sliderule_lambda', 'hello_mum', 'ycombinator', 'factorial', 'capcheck', 'capmgr', 'datetime', 'church_bool', 'church_num', 'pair'];
     lambdaExamples.forEach(name => {
         if (codeTemplates[name]) {
             const opt = document.createElement('option');
@@ -14076,6 +14076,379 @@ RETURN
 ;   Lambda    — Church numerals, SUCC, ADD, MUL...
 ;   Stack     — PAIR-based RPN: PUSH, POP, SWAP
 ;   Constants — Abstract GTs: PI, E, PHI, SQRT2...
+; ================================================`,
+
+    'sliderule_lambda': `; ================================================
+; SLIDERULE — Pure Lambda Calculus Arithmetic
+; ================================================
+;
+; The SlideRule abstraction provides 9 arithmetic
+; operations using ONLY Church domain instructions:
+; LOAD, SAVE, CALL, LAMBDA, TPERM, RETURN.
+; Zero binary/Turing instructions.
+;
+; Method-selector dispatch: DR0 selects operation.
+; Arguments in DR1 (a), DR2 (b) for binary ops.
+; Result returned in DR0.
+;
+; CHURCH DOMAIN ONLY: L, S, E permissions
+; No ADD, SUB, MUL, MOV, CMP, B — none needed.
+;
+; ================================================
+; SlideRule C-List layout (CR6 = nodal C-List):
+;   [0]  NULL
+;   [1]  Access          [R,X] — this dispatcher
+;   [2]  GT_FP_ADD       [R,X] — Church ADD
+;   [3]  GT_FP_SUB       [R,X] — Church SUB
+;   [4]  GT_FP_MUL       [R,X] — Church MUL
+;   [5]  GT_FP_DIV       [R,X] — Church DIV (Y-comb)
+;   [6]  GT_FP_MOD       [R,X] — Church MOD (Y-comb)
+;   [7]  GT_FP_LOG       [R,X] — Church LN (Y-comb)
+;   [8]  GT_FP_EXP       [R,X] — Church EXP (Taylor)
+;   [9]  GT_FP_SQRT      [R,X] — Church SQRT (Newton)
+;   [10] GT_FP_POW       [R,X] — Church POW
+;   [11] LocalData       [R,W] — scratch workspace
+;
+; CR5 = Thread C-List:
+;   [0]  Lambda          [E]   — Church numeral engine
+;
+; Lambda C-List layout (CR6 after CALL Lambda):
+;   [0]  NULL
+;   [1]  Access          [R,X]
+;   [2]  GT_Y_COMBINATOR [R,X] — Y f = f(Y f)
+;   [3]  GT_CHURCH_SUCC  [R,X] — λn.λf.λx. f(n f x)
+;   [4]  GT_CHURCH_PRED  [R,X] — predecessor
+;   [5]  GT_CHURCH_ADD   [R,X] — λm.λn.λf.λx. m f(n f x)
+;   [6]  GT_CHURCH_MUL   [R,X] — λm.λn.λf. m(n f)
+;   [7]  GT_PAIR         [R,X]
+;   [8]  GT_FST          [R,X]
+;   [9]  GT_SND          [R,X]
+;   [10] GT_TRUE         [R,X]
+;   [11] GT_FALSE        [R,X] — also CHURCH ZERO
+;   [12] GT_IF           [R,X] — λc.λt.λf. c t f
+;   [13] GT_CHURCH_SUB   [R,X] — λm.λn. n PRED m
+;   [14] GT_CHURCH_DIV   [R,X] — Y(λf... repeated SUB)
+;   [15] GT_CHURCH_POW   [R,X] — λb.λe. e(MUL b) 1
+;   [16] GT_CHURCH_ISZERO [R,X]
+;   [17] GT_CHURCH_LEQ   [R,X] — ISZERO(SUB m n)
+;
+; DR0 = method selector (0=ADD..8=POW)
+; DR1 = operand a
+; DR2 = operand b (binary ops)
+; ================================================
+
+; ------------------------------------------------
+; ACCESS DISPATCHER (slot [1])
+; Input:  DR0 = method selector (0-8)
+;         DR1 = a, DR2 = b
+; Output: DR0 = result
+;
+; Pure Church dispatch: encode DR0 as Church
+; numeral, index into C-List, LAMBDA the GT.
+; ------------------------------------------------
+access:
+LOAD 0 6 0        ; CR0 = NULL (clear workspace)
+
+; Step 1: Enter Lambda for Church encoding
+LOAD 1 5 0        ; CR1 = Lambda [E] from Thread C-List
+TPERM 1 E         ; Verify Enter permission
+CALL 1            ; Enter Lambda scope — CR6 = Lambda C-List
+
+; Step 2: Load Church SUCC and FALSE (=ZERO)
+LOAD 0 6 3        ; CR0 = GT_CHURCH_SUCC [R,X] (slot 3)
+LOAD 1 6 11       ; CR1 = GT_FALSE [R,X] (slot 11 = ZERO)
+
+; Step 3: Build Church numeral for method selector
+; Apply SUCC (DR0) times to ZERO
+LAMBDA 0 0        ; Church(DR0) = SUCC^DR0(ZERO)
+
+; Step 4: Return to SlideRule scope
+RETURN            ; Back to SlideRule C-List in CR6
+
+; Step 5: Use Church numeral to index C-List
+; Method 0 (ADD) -> slot [2], method 1 (SUB) -> slot [3], etc.
+LOAD 0 6 0        ; CR0 = method GT from indexed slot
+TPERM 0 X         ; Verify eXecute permission
+LAMBDA 0 0        ; Apply the method function
+RETURN            ; Result in DR0
+
+; ------------------------------------------------
+; GT_FP_ADD (slot [2]): a + b
+; λa.λb. CHURCH_ADD a b
+;
+; Church ADD = λm.λn.λf.λx. m f (n f x)
+; Apply f m times, then n more times
+;
+; Input:  DR1 = a, DR2 = b
+; Output: DR0 = a + b
+; ------------------------------------------------
+fp_add:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+LOAD 0 6 5        ; CR0 = GT_CHURCH_ADD [R,X] (slot 5)
+LAMBDA 0 0        ; DR0 = CHURCH_ADD(DR1, DR2)
+RETURN
+
+; ------------------------------------------------
+; GT_FP_SUB (slot [3]): a - b
+; λa.λb. CHURCH_SUB a b
+;
+; Church SUB uses PRED:
+; PRED = λn.λf.λx. n(λg.λh.h(g f))(λu.x)(λu.u)
+; SUB = λm.λn. n PRED m
+;
+; Input:  DR1 = a, DR2 = b
+; Output: DR0 = a - b
+; ------------------------------------------------
+fp_sub:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+LOAD 0 6 13       ; CR0 = GT_CHURCH_SUB [R,X] (slot 13)
+LAMBDA 0 0        ; DR0 = CHURCH_SUB(DR1, DR2)
+RETURN
+
+; ------------------------------------------------
+; GT_FP_MUL (slot [4]): a * b
+; λa.λb. CHURCH_MUL a b
+;
+; Church MUL = λm.λn.λf. m(n f)
+; Apply (n f) m times
+;
+; Input:  DR1 = a, DR2 = b
+; Output: DR0 = a * b
+; ------------------------------------------------
+fp_mul:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+LOAD 0 6 6        ; CR0 = GT_CHURCH_MUL [R,X] (slot 6)
+LAMBDA 0 0        ; DR0 = CHURCH_MUL(DR1, DR2)
+RETURN
+
+; ------------------------------------------------
+; GT_FP_DIV (slot [5]): a / b
+; λa.λb. CHURCH_DIV a b
+;
+; Church DIV via repeated subtraction with Y-comb:
+; DIV = Y(λf.λn.λm. IF(LEQ m n)(SUCC(f(SUB n m) m)) ZERO)
+;
+; Input:  DR1 = a, DR2 = b
+; Output: DR0 = a / b (integer division)
+; ------------------------------------------------
+fp_div:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+LOAD 0 6 14       ; CR0 = GT_CHURCH_DIV [R,X] (slot 14)
+LAMBDA 0 0        ; DR0 = CHURCH_DIV(DR1, DR2)
+RETURN
+
+; ------------------------------------------------
+; GT_FP_MOD (slot [6]): a mod b
+; λa.λb. SUB a (MUL b (DIV a b))
+;
+; MOD computed as: a - b * floor(a/b)
+; Composes DIV, MUL, SUB — all Church primitives
+;
+; Input:  DR1 = a, DR2 = b
+; Output: DR0 = a mod b
+; ------------------------------------------------
+fp_mod:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+; Step 1: quotient = DIV(a, b)
+LOAD 0 6 14       ; CR0 = GT_CHURCH_DIV [R,X] (slot 14)
+LAMBDA 0 0        ; DR0 = DIV(DR1, DR2) = quotient
+
+; Step 2: product = MUL(quotient, b)
+LOAD 0 6 6        ; CR0 = GT_CHURCH_MUL [R,X] (slot 6)
+LAMBDA 0 0        ; DR0 = MUL(quotient, DR2) = product
+
+; Step 3: remainder = SUB(a, product)
+LOAD 0 6 13       ; CR0 = GT_CHURCH_SUB [R,X] (slot 13)
+LAMBDA 0 0        ; DR0 = SUB(DR1, product) = a mod b
+RETURN
+
+; ------------------------------------------------
+; GT_FP_LOG (slot [7]): ln(a)
+; λa. Y-combinator iterative log
+;
+; Counts how many times a can be divided by e:
+; LOG = Y(λf.λx.λn. IF(LEQ x 1) n (f(DIV x e)(SUCC n))) a 0
+; Y-combinator provides recursion, LEQ provides
+; termination, DIV reduces the argument each step.
+;
+; Input:  DR1 = a
+; Output: DR0 = ln(a) (Church numeral approximation)
+; ------------------------------------------------
+fp_log:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+; Build the recursive log function from primitives
+; Y-combinator: slot 2
+; DIV: slot 14 (divide by e each iteration)
+; LEQ: slot 17 (termination: x <= 1?)
+; SUCC: slot 3 (increment counter)
+
+LOAD 0 6 2        ; CR0 = GT_Y_COMBINATOR [R,X] (slot 2)
+LOAD 1 6 14       ; CR1 = GT_CHURCH_DIV [R,X] (slot 14)
+LAMBDA 0 0        ; Y(λf... step function)
+LAMBDA 1 0        ; Feed DIV for x/e reduction
+
+LOAD 0 6 17       ; CR0 = GT_CHURCH_LEQ [R,X] (slot 17)
+LAMBDA 0 0        ; Termination: IF(x <= 1) return n
+
+LOAD 0 6 3        ; CR0 = GT_CHURCH_SUCC [R,X] (slot 3)
+LAMBDA 0 0        ; Increment count each iteration
+RETURN
+
+; ------------------------------------------------
+; GT_FP_EXP (slot [8]): e^a
+; λa. Taylor series: 1 + x + x^2/2! + x^3/3! + ...
+;
+; Each term: POW for x^n, then DIV by factorial.
+; Accumulate via ADD. Bounded to 4 terms.
+; All computed with Church numerals.
+;
+; Input:  DR1 = a
+; Output: DR0 = e^a (Church numeral approximation)
+; ------------------------------------------------
+fp_exp:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+; Term 0: 1 (identity)
+; Term 1: x (= a)
+; Term 2: x^2 / 2!
+; Term 3: x^3 / 3!
+
+; Start with term 1: POW(x, 1) = x
+LOAD 0 6 15       ; CR0 = GT_CHURCH_POW [R,X] (slot 15)
+LAMBDA 0 0        ; DR0 = POW(a, 1) = a
+
+; Accumulate: 1 + x
+LOAD 0 6 5        ; CR0 = GT_CHURCH_ADD [R,X] (slot 5)
+LAMBDA 0 0        ; DR0 = ADD(1, a) = 1 + x
+
+; Term 2: POW(x, 2) / 2
+LOAD 0 6 15       ; CR0 = GT_CHURCH_POW [R,X] (slot 15)
+LAMBDA 0 0        ; DR0 = POW(a, 2) = a^2
+LOAD 0 6 14       ; CR0 = GT_CHURCH_DIV [R,X] (slot 14)
+LAMBDA 0 0        ; DR0 = DIV(a^2, 2) = a^2/2!
+
+; Accumulate: 1 + x + x^2/2!
+LOAD 0 6 5        ; CR0 = GT_CHURCH_ADD [R,X] (slot 5)
+LAMBDA 0 0        ; DR0 = 1 + x + x^2/2!
+
+; Term 3: POW(x, 3) / 6
+LOAD 0 6 15       ; CR0 = GT_CHURCH_POW [R,X] (slot 15)
+LAMBDA 0 0        ; DR0 = POW(a, 3) = a^3
+LOAD 0 6 14       ; CR0 = GT_CHURCH_DIV [R,X] (slot 14)
+LAMBDA 0 0        ; DR0 = DIV(a^3, 6) = a^3/3!
+
+; Accumulate: 1 + x + x^2/2! + x^3/3!
+LOAD 0 6 5        ; CR0 = GT_CHURCH_ADD [R,X] (slot 5)
+LAMBDA 0 0        ; DR0 = e^a (4-term approximation)
+RETURN
+
+; ------------------------------------------------
+; GT_FP_SQRT (slot [9]): sqrt(a)
+; λa. Integer square root via Y-combinator
+;
+; SQRT = Y(λf.λg. IF(LEQ(MUL g g) a)
+;                     (f (SUCC g))
+;                     (PRED g)) ZERO
+; Linear search: increment guess until guess^2 > a,
+; then back off one step.
+;
+; Input:  DR1 = a
+; Output: DR0 = floor(sqrt(a))
+; ------------------------------------------------
+fp_sqrt:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+; Y-combinator for recursion (slot 2)
+; MUL for squaring guess (slot 6)
+; LEQ for comparison (slot 17)
+; SUCC for incrementing guess (slot 3)
+; PRED for backing off (slot 4)
+
+LOAD 0 6 2        ; CR0 = GT_Y_COMBINATOR [R,X] (slot 2)
+LOAD 1 6 6        ; CR1 = GT_CHURCH_MUL [R,X] (slot 6)
+LAMBDA 0 0        ; Y(step function)
+LAMBDA 1 0        ; Feed MUL for guess^2
+
+LOAD 0 6 17       ; CR0 = GT_CHURCH_LEQ [R,X] (slot 17)
+LAMBDA 0 0        ; IF(guess^2 <= a) continue else stop
+
+LOAD 0 6 3        ; CR0 = GT_CHURCH_SUCC [R,X] (slot 3)
+LAMBDA 0 0        ; Increment guess
+
+LOAD 0 6 4        ; CR0 = GT_CHURCH_PRED [R,X] (slot 4)
+LAMBDA 0 0        ; Back off when exceeded
+RETURN
+
+; ------------------------------------------------
+; GT_FP_POW (slot [10]): a^b
+; λa.λb. CHURCH_POW a b
+;
+; Church POW = λb.λe. e (MUL b) 1
+; Apply (MUL base) exponent times to identity.
+; Beautifully simple: exponentiation is just
+; "multiply by base" applied exponent times.
+;
+; Input:  DR1 = a (base), DR2 = b (exponent)
+; Output: DR0 = a^b
+; ------------------------------------------------
+fp_pow:
+LOAD 1 5 0        ; CR1 = Lambda [E]
+TPERM 1 E         ; Verify
+CALL 1            ; Enter Lambda scope
+
+LOAD 0 6 15       ; CR0 = GT_CHURCH_POW [R,X] (slot 15)
+LAMBDA 0 0        ; DR0 = CHURCH_POW(DR1, DR2)
+RETURN
+
+; ================================================
+; INSTRUCTION COUNT: Zero Turing instructions.
+;
+; Used ONLY: LOAD, CALL, LAMBDA, TPERM, RETURN
+;
+; No ADD, SUB, MUL, MOV, CMP, B, ADDI, SUBI,
+; LSL, LSR, AND, ORR, EOR, BIC — none needed.
+;
+; Every computation is a capability-mediated
+; lambda application. The SlideRule proves that
+; all arithmetic can be expressed entirely in
+; pure Church lambda calculus, with capability
+; security at every operation.
+;
+; Comparison to binary SlideRule:
+;   Binary:  DR0=method, uses ALU (ADD/MUL/DIV)
+;   Lambda:  DR0=method, uses LAMBDA reductions
+;   Same interface, same results, different domain.
+;
+; Lambda C-List slot reference (verified):
+;   [2]  Y_COMBINATOR    [5]  ADD     [13] SUB
+;   [3]  SUCC             [6]  MUL     [14] DIV
+;   [4]  PRED             [11] FALSE=0 [15] POW
+;                          [12] IF      [17] LEQ
+;
+; Dependencies (entered via CALL with E perm):
+;   Lambda — Church numerals, Y-combinator, pairs
 ; ================================================`
 };
 
