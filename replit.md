@@ -32,7 +32,8 @@ The CTMM simulator provides a web-based visualization using a Python HTTP server
 -   **Atomic Abstraction Architecture**: No central OS, VM, privileged mode, or superuser. All system services are atomic abstractions accessed via Golden Tokens, with `mLoad` as the single trusted gate.
 -   **Three Dispatch Styles**: Abstractions can resolve method calls via Symbolic resolver (high-security), LAMBDA fast-path (performance), or Traditional compiled binary (fastest).
 -   **Hardware Implementations**:
-    -   **Amaranth HDL (`ctmm_amaranth/`)**: Defines GT layout, permission bits, fault types, core pipeline with a 5-phase boot FSM, and includes modules for `mLoad` (trusted gate), `PermCheck`, `GCUnit`, and various Church instructions (LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, LAMBDA).
+    -   **Amaranth HDL — Sim-64 (`ctmm_amaranth/`)**: 64-bit GT, custom ISA, ARM-style decoder, G-bit GC, exclusive monitor (LOADX/SAVEX), block transfer (LDM/STM). ~3,300 lines, 16 modules.
+    -   **Amaranth HDL — Sim-32 (`rv32_cap_amaranth/`)**: 32-bit GT, RISC-V RV32I base ISA + Church custom-0 extensions, version-based GC (7-bit version bump), FNV seal integrity, 128-bit CRs (4×32), 32-bit x0–x31 data registers. ~3,150 lines, 18 modules. Standalone implementation — no shared code with Sim-64.
     -   **SystemVerilog (`verilog/`)**: A parallel hardware implementation of the CTMM architecture.
 
 ### Web Interface (UI/UX)
@@ -51,7 +52,7 @@ The web interface features a dark-themed, IDE-like design with seven views: Dash
 -   VersionSeals: Version(7) + FNV Seal(25) for integrity and GC
 
 ### Simulator Comparison
--   **Sim-32 (RV32-Cap)**: RISC-V RV32I base ISA, 32-bit GTs, 17-bit index (131K entries), 7-bit version (128 GC generations), software simulation only.
+-   **Sim-32 (RV32-Cap)**: RISC-V RV32I base ISA, 32-bit GTs, 17-bit index (131K entries), 7-bit version (128 GC generations), software simulation + Amaranth HDL hardware implementation (`rv32_cap_amaranth/`).
 -   **Sim-64 (CTMM)**: Custom ISA, 64-bit GTs, custom processor, with hardware implementations in Amaranth HDL and SystemVerilog.
 
 ### Unified Server Architecture
