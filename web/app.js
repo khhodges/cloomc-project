@@ -491,12 +491,8 @@ const bootNamespace = {
 const threadCLists = {
     Kenneth: {
         name: "Kenneth",
-        description: "Primary thread — one thread at boot, others minted at runtime",
-        clist: [
-            { name: "SlideRule", type: "Abstraction", perms: ["E"] },
-            { name: "Abacus", type: "Abstraction", perms: ["E"] },
-            { name: "LocalData", type: "Data", perms: ["R", "W"] }
-        ]
+        description: "Primary thread — one thread at boot, others minted at runtime. Boot C-List (CR6) provides SlideRule, Abacus, Circle, DateTime, Lambda. Services C-List (CR5) provides self, Namespace, Mint.",
+        clist: []
     }
 };
 
@@ -1856,8 +1852,14 @@ function getContentTabInfo(cap) {
                     <div class="content-tab-field"><span class="content-tab-key">CR8</span><span class="content-tab-val">${capName} [M on CR]</span></div>
                     <div class="content-tab-field"><span class="content-tab-key">CR6</span><span class="content-tab-val">${capName} C-List [E]</span></div>
                 </div>
-                <div class="content-tab-heading" style="margin-top:0.5rem;">Thread C-List Shadow (CR0–CR7)</div>
-                <div class="clist-tab-entries">${renderCListEntries(threadEntries.map((e, i) => ({...e, nsOffset: e.nsOffset})), capName)}</div>
+                <div class="content-tab-heading" style="margin-top:0.5rem;">Context Registers</div>
+                <div class="content-tab-grid">
+                    <div class="content-tab-field"><span class="content-tab-key">CR5</span><span class="content-tab-val">Services C-List [E] (stable)</span></div>
+                    <div class="content-tab-field"><span class="content-tab-key">CR6</span><span class="content-tab-val">Boot C-List [E] (dynamic — switches on CALL/RETURN)</span></div>
+                    <div class="content-tab-field"><span class="content-tab-key">CR7</span><span class="content-tab-val">Access [X] (dynamic — switches on CALL/RETURN)</span></div>
+                </div>
+                ${threadEntries.length > 0 ? `<div class="content-tab-heading" style="margin-top:0.5rem;">Thread-Local Entries</div>
+                <div class="clist-tab-entries">${renderCListEntries(threadEntries.map((e, i) => ({...e, nsOffset: e.nsOffset})), capName)}</div>` : ''}
                 ${threadInfo ? `<div class="content-tab-desc">${threadInfo.description}</div>` : ''}
             </div>`
         };
