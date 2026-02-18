@@ -384,23 +384,21 @@ const bootCList = {
     entries: [
         { index: 0, name: "NULL", nsOffset: -1, perms: [], type: "NULL",
           desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
-        { index: 1, name: "Boot", nsOffset: 3, perms: ["E"], type: "Abstraction",
-          desc: "Boot abstraction self-reference — re-entry for fault recovery", size: 0x1000 },
-        { index: 2, name: "Access", nsOffset: 4, perms: ["X"], type: "Code",
-          desc: "Boot nucleus code", size: 0x1000 },
-        { index: 3, name: "SlideRule", nsOffset: 5, perms: ["E"], type: "Abstraction",
+        { index: 1, name: "Access", nsOffset: 4, perms: ["R", "X"], type: "Code",
+          desc: "Boot nucleus code — hardware-enforced CALL entry point (slot 1)", size: 0x1000 },
+        { index: 2, name: "SlideRule", nsOffset: 5, perms: ["E"], type: "Abstraction",
           desc: "IEEE 754 float operations — LAMBDA dispatch", size: 0x1000 },
-        { index: 4, name: "Abacus", nsOffset: 6, perms: ["E"], type: "Abstraction",
+        { index: 3, name: "Abacus", nsOffset: 6, perms: ["E"], type: "Abstraction",
           desc: "64-bit integer operations — LAMBDA dispatch", size: 0x1000 },
-        { index: 5, name: "Circle", nsOffset: 7, perms: ["E"], type: "Abstraction",
+        { index: 4, name: "Circle", nsOffset: 7, perms: ["E"], type: "Abstraction",
           desc: "Circle geometry — PI, circumference, area. LAMBDA dispatch", size: 0x1000 },
-        { index: 6, name: "Mint", nsOffset: 8, perms: ["E"], type: "Abstraction",
+        { index: 5, name: "Mint", nsOffset: 8, perms: ["E"], type: "Abstraction",
           desc: "Namespace Mint method — creates new GTs. CALL(Thread.Mint(type, size, access))", size: 0x1000 },
-        { index: 7, name: "CapabilityManager", nsOffset: 9, perms: ["E"], type: "Abstraction",
+        { index: 6, name: "CapabilityManager", nsOffset: 9, perms: ["E"], type: "Abstraction",
           desc: "Creates Data [RWX] and C-List [LSE] objects. Simplified Mint interface", size: 0x1000 },
-        { index: 8, name: "DateTime", nsOffset: 10, perms: ["E"], type: "Abstraction",
+        { index: 7, name: "DateTime", nsOffset: 10, perms: ["E"], type: "Abstraction",
           desc: "ISO 8601 date/time. DR0=mode → DR1-DR6 components", size: 0x1000 },
-        { index: 9, name: "Lambda", nsOffset: 11, perms: ["E"], type: "Abstraction",
+        { index: 8, name: "Lambda", nsOffset: 11, perms: ["E"], type: "Abstraction",
           desc: "Church lambda calculus primitives — Y-Combinator, Church numerals, Pairs, Booleans", size: 0x2000 }
     ]
 };
@@ -502,7 +500,7 @@ const abstractionCLists = {
         mathType: "FLOAT",
         description: "IEEE 754 floating-point operations. CALL this abstraction for float math. Slot [1] Access code is hardware-enforced entry point.",
         clist: [
-            { name: "SlideRule", type: "Abstraction", perms: ["E"], desc: "Self-reference — abstraction identity", base: 0x5000, size: 0x1000 },
+            { name: "NULL", type: "NULL", perms: [], desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
             { name: "Access", type: "Code", perms: ["R", "X"], desc: "CLOOMC code block — hardware-enforced CALL entry point (slot 1)", base: 0x5000, size: 256 },
             { name: "GT_ADD", type: "Function", mathType: "float", perms: ["R", "X"], desc: "Float: a + b", base: 0x5100, size: 256 },
             { name: "GT_SUB", type: "Function", mathType: "float", perms: ["R", "X"], desc: "Float: a - b", base: 0x5200, size: 256 },
@@ -520,7 +518,7 @@ const abstractionCLists = {
         mathType: "INTEGER",
         description: "64-bit integer arithmetic operations. CALL this abstraction for integer math. Slot [1] Access code is hardware-enforced entry point.",
         clist: [
-            { name: "Abacus", type: "Abstraction", perms: ["E"], desc: "Self-reference — abstraction identity", base: 0x6000, size: 0x1000 },
+            { name: "NULL", type: "NULL", perms: [], desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
             { name: "Access", type: "Code", perms: ["R", "X"], desc: "CLOOMC code block — hardware-enforced CALL entry point (slot 1)", base: 0x6000, size: 256 },
             { name: "GT_ADD", type: "Function", mathType: "int64", perms: ["R", "X"], desc: "Int64: a + b", base: 0x6100, size: 192 },
             { name: "GT_SUB", type: "Function", mathType: "int64", perms: ["R", "X"], desc: "Int64: a - b", base: 0x6200, size: 192 },
@@ -539,7 +537,7 @@ const abstractionCLists = {
         mathType: "GEOMETRY",
         description: "Circle geometry using float math. Provides PI constants and circle functions. Slot [1] Access code is hardware-enforced entry point.",
         clist: [
-            { name: "Circle", type: "Abstraction", perms: ["E"], desc: "Self-reference — abstraction identity", base: 0x7000, size: 0x1000 },
+            { name: "NULL", type: "NULL", perms: [], desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
             { name: "Access", type: "Code", perms: ["R", "X"], desc: "CLOOMC code block — hardware-enforced CALL entry point (slot 1)", base: 0x7080, size: 128 },
             { name: "GT_PI", type: "Constant", mathType: "float", perms: ["R"], desc: "Float: PI = 3.14159...", value: 3.14159265358979, base: 0x7000, size: 8 },
             { name: "GT_TWO_PI", type: "Constant", mathType: "float", perms: ["R"], desc: "Float: 2*PI = 6.28318...", value: 6.28318530717958, base: 0x7008, size: 8 },
@@ -554,7 +552,7 @@ const abstractionCLists = {
         mathType: "TIME",
         description: "ISO 8601 date/time. API: DR0=mode (0=ISO timestamp, 1=Date, 2=Time, 3=Unix epoch, 4=Components). Components return in DR1-DR6. Slot [1] Access code is hardware-enforced entry point.",
         clist: [
-            { name: "DateTime", type: "Abstraction", perms: ["E"], desc: "Self-reference — abstraction identity", base: 0x9000, size: 0x1000 },
+            { name: "NULL", type: "NULL", perms: [], desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
             { name: "Access", type: "Code", perms: ["R", "X"], desc: "CLOOMC code block — hardware-enforced CALL entry point (slot 1)", base: 0x9000, size: 256 },
             { name: "GT_DATETIME", type: "Function", perms: ["R", "X"], desc: "Get date/time: DR0=mode → DR1-DR6 or string GT", base: 0x9100, size: 512 },
             { name: "GT_TIMESTAMP", type: "Function", perms: ["R", "X"], desc: "ISO 8601 full timestamp string", base: 0x9200, size: 256 },
@@ -569,7 +567,7 @@ const abstractionCLists = {
         mathType: "FUNCTIONAL",
         description: "Church's lambda calculus primitives. Y-Combinator for recursion, Church numerals for arithmetic, Pairs for data structures, Booleans for logic. Slot [1] Access code is hardware-enforced entry point.",
         clist: [
-            { name: "Lambda", type: "Abstraction", perms: ["E"], desc: "Self-reference — abstraction identity", base: 0xA000, size: 0x2000 },
+            { name: "NULL", type: "NULL", perms: [], desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
             { name: "Access", type: "Code", perms: ["R", "X"], desc: "CLOOMC code block — hardware-enforced CALL entry point (slot 1)", base: 0xA000, size: 256 },
             { name: "GT_Y_COMBINATOR", type: "Function", perms: ["R", "X"], desc: "Y f = f (Y f) - fixed-point combinator for recursion", base: 0xA100, size: 512 },
             { name: "GT_CHURCH_SUCC", type: "Function", perms: ["R", "X"], desc: "λn.λf.λx. f (n f x) - successor", base: 0xA300, size: 256 },
@@ -591,7 +589,7 @@ const abstractionCLists = {
         description: "Namespace method (not standalone abstraction) — accessed via CALL(Thread.Mint(type, size, access)). Mints domain-pure Golden Tokens (Turing [RWX] or Church [LSE], never both). Slot [1] Access code is hardware-enforced entry point.",
         isNamespaceMethod: true,
         clist: [
-            { name: "Mint", type: "Abstraction", perms: ["E"], desc: "Self-reference — abstraction identity", base: 0xC000, size: 0x1000 },
+            { name: "NULL", type: "NULL", perms: [], desc: "NULL Golden Token — clears any CR when loaded", size: 0 },
             { name: "Access", type: "Code", perms: ["R", "X"], desc: "CLOOMC code block — hardware-enforced CALL entry point (slot 1)", base: 0xC000, size: 256 },
             { name: "GT_MINT", type: "Function", perms: ["R", "X"], desc: "Mint new GT: DR0=domain-pure perm mask (Turing [RWX] or Church [LSE], never both), DR1=type (0=Data,1=Code,2=C-List,3=Thread,4=Abstraction), DR2=size → CR0", base: 0xC100, size: 512 },
             { name: "GT_RESTRICT", type: "Function", perms: ["R", "X"], desc: "Derive restricted GT: CR0=source GT, DR0=new perm mask (must be subset) → CR0=restricted GT", base: 0xC300, size: 512 },
@@ -3194,8 +3192,8 @@ const examplePrograms = {
 ; =============================================
 
 ; === STEP 1: Enter Lambda Abstraction ===
-; Load Lambda [E] from root C-List index 9
-LOAD 0 6 9        ; CR0 <- C-List[9] (Lambda)
+; Load Lambda [E] from root C-List index 8
+LOAD 0 6 8        ; CR0 <- C-List[8] (Lambda)
 TPERM 0 E         ; Verify Enter permission
 B NE fault        ; FAULT if missing
 
@@ -3203,8 +3201,8 @@ B NE fault        ; FAULT if missing
 CALL 0            ; Enter Lambda scope
 
 ; === STEP 2: Load SUCC function [R,X] ===
-; Lambda C-List[1] = GT_CHURCH_SUCC
-LOAD 0 6 1        ; CR0 <- SUCC [R,X]
+; Lambda C-List[3] = GT_CHURCH_SUCC
+LOAD 0 6 3        ; CR0 <- SUCC [R,X]
 TPERM 0 X         ; Verify eXecute permission
 B NE fault        ; FAULT if missing
 
@@ -3214,8 +3212,8 @@ ADDI 0 3          ; DR0 = 3
 LAMBDA 0 0        ; SUCC(3) -> DR0 = 4
 
 ; === STEP 4: Load ADD function [R,X] ===
-; Lambda C-List[3] = GT_CHURCH_ADD
-LOAD 1 6 3        ; CR1 <- ADD [R,X]
+; Lambda C-List[5] = GT_CHURCH_ADD
+LOAD 1 6 5        ; CR1 <- ADD [R,X]
 
 ; === STEP 5: LAMBDA ADD ===
 ; DR0 = 4 (from SUCC), set DR1 = 10
@@ -3223,8 +3221,8 @@ ADDI 1 10         ; DR1 = 0+10 = 10
 LAMBDA 1 0        ; ADD(4, 10) -> DR0 = 14
 
 ; === STEP 6: Load MUL function [R,X] ===
-; Lambda C-List[4] = GT_CHURCH_MUL
-LOAD 2 6 4        ; CR2 <- MUL [R,X]
+; Lambda C-List[6] = GT_CHURCH_MUL
+LOAD 2 6 6        ; CR2 <- MUL [R,X]
 
 ; === STEP 7: LAMBDA MUL ===
 ; DR0 = 14 (from ADD), DR1 still 10
@@ -3300,9 +3298,9 @@ LOAD 5 6 0        ; CR5 = NULL GT
 ;   - Terminate or restart the thread
 ;   - Never reveal WHY it faulted
 
-; Load Boot [E] from C-List[1] and CALL it
-LOAD 0 6 1        ; CR0 = Boot [E] from Boot C-List
-CALL 0            ; Enter Boot abstraction — never returns
+; Load Access code [R,X] from C-List[1] (hardware-enforced entry point)
+LOAD 0 6 1        ; CR0 = Access [R,X] from Boot C-List
+CALL 0            ; Re-enter nucleus code — never returns
 ; Nucleus decides: terminate thread or restart
 ; NO RETURN to original caller - no information leakage
 
@@ -3646,7 +3644,7 @@ function setupCodeEditor() {
     
     if (savedContent) {
         const isOldAccess = (savedContent.includes('TPERM 0 RW') && savedContent.includes('TPERM 0 S') && savedContent.includes('ACCESS.ASM'))
-            || (savedContent.includes('LOAD 0 6 5') && savedContent.includes('TPERM 0 E') && savedContent.includes('RETURN'))
+            || (savedContent.includes('LOAD 0 6 4') && savedContent.includes('TPERM 0 E') && savedContent.includes('RETURN'))
             || (savedContent.includes('ACCESS.ASM') && savedContent.includes('TPERM 0 E') && !savedContent.includes('B done'))
             || (savedContent.includes('ACCESS.ASM') && savedContent.includes('TPERM 0 E') && !savedContent.includes('HALT'))
             || (savedContent.includes('ACCESS.ASM') && savedContent.includes('FAILSAFE INPUT VALIDATION') && !savedContent.includes('LAMBDA'));
@@ -7273,7 +7271,7 @@ LOAD 0 6 0      ; CR0 = GT pointing to THIS code
 CALL 0          ; Recursive self-invocation
 
 ; CALL to abstraction (math operation):
-LOAD 0 6 4      ; CR0 = Abacus (integer math) GT
+LOAD 0 6 3      ; CR0 = Abacus (integer math) GT
 CALL 0          ; Hardware integer operation</pre>
                 </div>`
             },
