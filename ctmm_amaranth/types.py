@@ -122,6 +122,8 @@ TPERM_MASKS = {
     TpermPreset.SE:    PERM_MASK_S | PERM_MASK_E,
     TpermPreset.LSE:   PERM_MASK_L | PERM_MASK_S | PERM_MASK_E,
     TpermPreset.RSV0:  0x0000,
+    TpermPreset.RSV1:  0x0000,
+    TpermPreset.RSV2:  0x0000,
 }
 
 
