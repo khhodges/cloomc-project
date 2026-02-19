@@ -67,7 +67,10 @@ The web interface features a dark-themed, IDE-like design with ten views: Dashbo
 ### Pure Church Computer REPL (`Church/`, `churchMachine.hs`)
 Interactive Haskell interpreter demonstrating the Pure Church Lambda Machine. GHCi acts as the lambda reducer; all computation goes through exactly six Church-domain instructions with Golden Token capability checking on every step.
 -   **Instruction Pipeline**: Every `Call(Abstraction.Method, args...)` executes: LOAD (namespace lookup, L permission) → TPERM (verify E) → CALL (enter scope, save context) → LOAD (C-List slot, L permission) → TPERM (verify X) → LAMBDA (Church reduction) → RETURN (restore scope).
--   **Modules**: `Church/Types.hs` (GTs, permissions, faults), `Church/Primitives.hs` (Church-encoded arithmetic), `Church/Machine.hs` (six instructions with capability checking), `Church/Abstractions.hs` (Lambda and SlideRule C-Lists), `Church/REPL.hs` (interactive interpreter with symbolic Call syntax and Turing rejection).
+-   **Symbolic Math**: Ada Lovelace-style notation — write `let x = 3 + 5`, `let y = sqrt(x)`, `n * n_plus_1` — translated to Church-domain calls. One operation per line, each mapped to one 7-step security pipeline. Operators: `+`, `-`, `*`, `/`, `%`, `^`. Functions: `sqrt()`, `log()`, `exp()`, `pow()`, `succ()`, `pred()`.
+-   **Variables**: `let` bindings store named intermediate results (Lovelace Note G style). `ANS` holds last result. `VARS` shows all. `CLEAR` resets.
+-   **Program Files**: `RUN Church/bernoulli.church` executes `.church` files. Bernoulli example computes 1²+2²+3²+4²=30 two ways.
+-   **Modules**: `Church/Types.hs` (GTs, permissions, faults), `Church/Primitives.hs` (Church-encoded arithmetic), `Church/Machine.hs` (six instructions with capability checking), `Church/Abstractions.hs` (Lambda and SlideRule C-Lists), `Church/REPL.hs` (interactive interpreter with symbolic math, variables, and Turing rejection).
 -   **Turing Rejection**: Any Turing-domain instruction (ADD, MOV, CMP, B, LDR, etc.) produces a FAULT — the instructions don't exist in this architecture.
 -   **Run**: `./churchMachine` or `ghci -i. churchMachine.hs` then type `main`.
 

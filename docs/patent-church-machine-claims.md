@@ -155,15 +155,22 @@ Notable: MOD is computed as SUB(a, MUL(b, DIV(a, b))) — composing three Church
 
 The Church Computer REPL is a Haskell implementation (~1,000 lines across 6 modules) that provides an interactive programming environment for the Pure Church Machine. It demonstrates that the architecture is not limited to pre-compiled programs but supports general-purpose interactive computation.
 
-**Programming Model — Ada Lovelace Variable Bindings**: The REPL supports named variable bindings following the style Ada Lovelace used in her Note G (1843) — widely recognized as the first computer program. Lovelace's method assigned names to each intermediate result in a step-by-step computation. The Church Computer reproduces this pattern:
+**Programming Model — Ada Lovelace Symbolic Mathematics**: The REPL accepts conventional mathematical notation — the same symbolic language Lovelace and Babbage exchanged daily — and translates it into capability-secured Church-domain operations. The programmer writes:
 
 ```
-let n = Call(Lambda.SUCC, 3)           -- n = 4
-let n_plus_1 = Call(Lambda.SUCC, n)    -- n_plus_1 = 5
-let product = Call(Lambda.MUL, n, n_plus_1)  -- product = 20
+let n = succ(3)                  -- n = 4
+let n_plus_1 = succ(n)           -- n_plus_1 = 5
+let product = n * n_plus_1       -- product = 20
+let root = sqrt(product)         -- root = 4
 ```
 
-Each `let` binding executes a Church-domain computation through the full 7-step capability-checked pipeline, stores the result with a human-readable name, and makes it available to subsequent computations. The REPL also provides ANS (last result) for quick sequential computation, VARS (display all bindings), REGS (register state), and NS (namespace inspection).
+The REPL translates each expression to its underlying Church-domain call and shows both:
+```
+  -- let product = n * n_plus_1  =>  Call(Lambda.MUL, 4, 5) --
+  product = 20
+```
+
+Supported operators: `+`, `-`, `*`, `/`, `%`, `^` (mapped to SlideRule and Lambda abstractions). Supported functions: `sqrt()`, `log()`, `exp()`, `pow()`, `succ()`, `pred()`. Each line expresses one operation — matching Lovelace's style where each step produces a named result. This one-operation-per-line design is architectural: each expression maps to exactly one 7-step capability-checked pipeline traversal, making the security properties visible and auditable. The explicit `Call()` syntax remains available for direct abstraction access. The REPL also provides ANS (last result) for quick sequential computation, VARS (display all bindings), REGS (register state), and NS (namespace inspection).
 
 **Bernoulli Demonstration**: A `.church` program file (Church/bernoulli.church) computes the sum of squares 1² + 2² + 3² + 4² = 30 using Lovelace's step-by-step style: first via the closed-form formula n×(n+1)×(2n+1)/6, then via direct computation, verifying both paths produce 30. The program uses 17 named intermediate results across Lambda and SlideRule abstractions — all executed through pure Church-domain instructions with zero Turing instructions.
 
@@ -263,7 +270,7 @@ wherein blocks (a) and (b) implement pure Church lambda calculus computation sec
 
 A method of programming the pure Church lambda processor of Claim 17, wherein all computations are executed by the pure Church instruction set of Claim 17 and maintain the security properties of Claim 18, comprising:
 
-(a) an interactive execution environment (Read-Eval-Print Loop) wherein each user-supplied expression is parsed, dispatched to the processor's six Church-domain instructions, executed through the complete capability-checked instruction pipeline (LOAD → TPERM → CALL → LOAD → TPERM → LAMBDA → RETURN), and the result displayed;
+(a) an interactive execution environment (Read-Eval-Print Loop) wherein each user-supplied expression — whether expressed in conventional mathematical notation (infix operators, function calls) or explicit abstraction call syntax — is parsed, translated to capability-secured Church-domain operations, dispatched to the processor's six Church-domain instructions, executed through the complete capability-checked instruction pipeline (LOAD → TPERM → CALL → LOAD → TPERM → LAMBDA → RETURN), and the result displayed;
 
 (b) named variable bindings, wherein the result of any Church-domain computation is stored with a programmer-assigned name and may be referenced as an argument in subsequent computations, following the step-by-step named-result programming style first described by Ada Lovelace in Note G (1843) for Babbage's Analytical Engine;
 
@@ -312,4 +319,4 @@ Bar chart showing both implementations: only LOAD, SAVE, CALL, RETURN, LAMBDA, T
 
 ### Figure 21: Ada Lovelace Programming Model — Bernoulli Sum-of-Squares
 
-Annotated program listing showing the Church Computer executing a step-by-step computation following Lovelace's Note G style: 17 named variable bindings computing 1² + 2² + 3² + 4² = 30 two ways (closed-form formula and direct summation). Each binding shows the Call syntax, the 7-step capability pipeline traversed, and the named result stored. Annotations highlight: (a) every operation is pure Church-domain lambda calculus, (b) variables reference previous results by name, (c) Turing instructions (ADD, MUL, POW) are not used — their lambda equivalents (Lambda.SUCC, Lambda.MUL, Lambda.POW, SlideRule.ADD, SlideRule.DIV) are Church-encoded abstractions accessed via Golden Tokens.
+Annotated program listing showing the Church Computer executing a step-by-step computation following Lovelace's Note G style. The programmer writes symbolic mathematics (`let product = n * n_plus_1`) and the REPL shows the translation to capability-secured Church-domain operations (`=> Call(Lambda.MUL, 4, 5)`). 17 named variable bindings compute 1² + 2² + 3² + 4² = 30 two ways (closed-form formula and direct summation). Annotations highlight: (a) conventional mathematical notation is the programming interface, (b) every operation translates to pure Church-domain lambda calculus underneath, (c) variables reference previous results by name, (d) Turing instructions (ADD, MUL, POW) do not exist — the symbolic operators `+`, `*`, `^` map to Church-encoded abstractions accessed via Golden Tokens.

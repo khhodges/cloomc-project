@@ -16,7 +16,7 @@ Since filing, I have demonstrated that the Church domain of the CTMM architectur
 
 2. **SlideRule Arithmetic Engine** — All 9 arithmetic operations (ADD, SUB, MUL, DIV, MOD, LOG, EXP, SQRT, POW) expressed in 98 pure Church-domain instructions using Church numeral encoding. Demonstrates that even low-level arithmetic can be performed entirely through capability-mediated lambda applications.
 
-3. **Interactive Church Computer REPL** — A working Haskell implementation of the Pure Church Machine as an interactive programming environment. This goes beyond fixed programs to demonstrate a complete programming model: users can compose arbitrary Church-domain computations interactively, with every expression executing through the full 7-step capability-checked security pipeline. The REPL supports Ada Lovelace-style variable bindings — named intermediate results following the step-by-step programming style first described in her Note G (1843). A Bernoulli sum-of-squares program demonstrates multi-step mathematical computation (17 named variables, verifying 1²+2²+3²+4²=30 two ways) using only lambda calculus. Any Turing-domain instruction entered at the REPL produces an immediate FAULT.
+3. **Interactive Church Computer REPL** — A working Haskell implementation of the Pure Church Machine as an interactive programming environment. This goes beyond fixed programs to demonstrate a complete programming model: users write conventional mathematical notation (`n * 5`, `sqrt(x)`, `a + b`) and the REPL translates each expression into capability-secured Church-domain operations, executing through the full 7-step security pipeline. The REPL supports Ada Lovelace-style variable bindings — named intermediate results following the step-by-step symbolic mathematics she exchanged with Babbage daily. A Bernoulli sum-of-squares program demonstrates multi-step computation (17 named variables, verifying 1²+2²+3²+4²=30 two ways) written in symbolic math notation, with every operation translated to lambda calculus underneath. Any Turing-domain instruction produces an immediate FAULT.
 
 **Why This Matters for Patentability**
 
@@ -31,7 +31,9 @@ None of these used the absence of Turing instructions as a security mechanism.
 
 **The Ada Lovelace Connection**
 
-The REPL's programming model is notable: it reproduces Ada Lovelace's 1843 method of naming intermediate results in step-by-step computation — the style she used in Note G to describe the first computer program for Babbage's Analytical Engine. The Bernoulli sum-of-squares program explicitly follows this pattern, making it both a technical demonstration and an elegant historical connection: Lovelace described computation in terms that fit naturally on a machine where all operations are lambda calculus reductions, mediated by capability tokens. Her programming model anticipated the capability-secured lambda machine by 180 years.
+The REPL's programming model directly reproduces the symbolic mathematics Lovelace and Babbage exchanged daily. Programmers write `let product = n * n_plus_1` and see the underlying Church-domain translation: `Call(Lambda.MUL, 4, 5)`. What looks like ordinary algebra is actually capability-secured lambda calculus — every `*` passes through LOAD, TPERM, CALL, LOAD, TPERM, LAMBDA, RETURN with Golden Token validation at each step.
+
+The Bernoulli sum-of-squares program follows the style of Lovelace's Note G (1843) — step-by-step named results computing a mathematical formula. It is both a technical demonstration and an elegant historical connection: Lovelace described computation in symbolic terms that fit naturally on a machine where all operations are lambda calculus reductions mediated by capability tokens. Her programming model anticipated the capability-secured lambda machine by 180 years.
 
 **Proposed New Claims**
 

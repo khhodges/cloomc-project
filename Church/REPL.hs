@@ -30,17 +30,21 @@ helpText = do
     putStrLn ""
     putStrLn "+======================== CHURCH COMPUTER COMMANDS ========================+"
     putStrLn "|                                                                          |"
-    putStrLn "|  SYMBOLIC CALLS (high-level):                                            |"
-    putStrLn "|    Call(SlideRule.ADD, 3, 5)     -- SlideRule arithmetic                  |"
-    putStrLn "|    Call(SlideRule.SQRT, 16)      -- Square root via Y-combinator          |"
-    putStrLn "|    Call(Lambda.MUL, 4, 5)        -- Church multiplication                 |"
+    putStrLn "|  SYMBOLIC MATH (Lovelace style — one operation per line):                 |"
+    putStrLn "|    3 + 5           sqrt(16)       -- arithmetic & functions               |"
+    putStrLn "|    6 * 7           log(100)       -- operators: + - * / % ^               |"
+    putStrLn "|    2 ^ 10          succ(n)        -- functions: sqrt log exp pow succ pred|"
     putStrLn "|                                                                          |"
     putStrLn "|  VARIABLES (Ada Lovelace style):                                         |"
-    putStrLn "|    let x = Call(Lambda.POW, 3, 2)  -- store result as 'x'                |"
-    putStrLn "|    Call(SlideRule.ADD, x, y)        -- use variables as arguments         |"
-    putStrLn "|    Call(SlideRule.SQRT, ANS)        -- ANS = last result                  |"
+    putStrLn "|    let x = 3 + 5                    -- store result as 'x'               |"
+    putStrLn "|    let y = x * 2                    -- use variables in expressions      |"
+    putStrLn "|    let z = sqrt(x)                  -- functions work too                |"
     putStrLn "|    VARS                             -- show all variables                 |"
     putStrLn "|    CLEAR                            -- clear all variables                |"
+    putStrLn "|                                                                          |"
+    putStrLn "|  CALL SYNTAX (explicit):                                                 |"
+    putStrLn "|    Call(SlideRule.ADD, 3, 5)         -- explicit abstraction call         |"
+    putStrLn "|    Call(Lambda.MUL, x, ANS)          -- ANS = last result                |"
     putStrLn "|                                                                          |"
     putStrLn "|  RAW INSTRUCTIONS (low-level):                                           |"
     putStrLn "|    LOAD  CR1 SlideRule           -- Load GT into context register         |"
@@ -106,6 +110,7 @@ loop ms vars = do
         _ | isLetSyntax input -> doLetBinding ms vars input
           | isTuringAttempt upperTokens -> turingFault >> loop ms vars
           | isCallSyntax input -> doSymbolicCall ms vars input
+          | isMathExpr input -> doMathExpr ms vars input Nothing
           | otherwise -> do
                 putStrLn "[ERROR] Unknown command. Type HELP for available commands."
                 loop ms vars
@@ -177,6 +182,7 @@ runCommands ms vars (cmd:rest) = do
         [] -> runCommands ms vars rest
         _ | isLetSyntax cmd -> doLetBindingBatch ms vars cmd rest
           | isCallSyntax cmd -> doCallBatch ms vars cmd rest
+          | isMathExpr cmd -> doMathBatch ms vars cmd rest Nothing
           | isTuringAttempt upperTokens -> turingFault >> runCommands ms vars rest
           | otherwise -> do
                 putStrLn $ "[ERROR] Unknown command: " ++ cmd
@@ -193,9 +199,12 @@ doLetBindingBatch ms vars input rest = do
         (varPart, _:callPart) -> do
             let varName = strip varPart
             let callStr = strip callPart
-            case parseCallSyntax callStr of
+            let parsed = case parseCallSyntax callStr of
+                    Just r  -> Just r
+                    Nothing -> parseMathExpr callStr
+            case parsed of
                 Nothing -> do
-                    putStrLn $ "[ERROR] Invalid Call in: " ++ input
+                    putStrLn $ "[ERROR] Invalid expression in: " ++ input
                     runCommands ms vars rest
                 Just (absName_, method, argTokens) ->
                     case resolveArgs vars ms argTokens of
@@ -203,7 +212,7 @@ doLetBindingBatch ms vars input rest = do
                             putStrLn $ "[ERROR] Unknown variable: " ++ badVar ++ " in: " ++ input
                             runCommands ms vars rest
                         Right args -> do
-                            putStrLn $ "  -- Executing: let " ++ varName ++ " = Call(" ++ absName_ ++ "." ++ method ++ concatMap (\a -> ", " ++ show a) args ++ ") --"
+                            putStrLn $ "  -- " ++ strip input ++ "  =>  Call(" ++ absName_ ++ "." ++ method ++ concatMap (\a -> ", " ++ show a) args ++ ") --"
                             let ms0 = ms { msTrace = [] }
                             result <- executeViaInstructions ms0 absName_ method args
                             case result of
@@ -215,6 +224,35 @@ doLetBindingBatch ms vars input rest = do
                                     putStrLn $ "  " ++ varName ++ " = " ++ show resultVal
                                     let vars' = Map.insert varName resultVal vars
                                     runCommands ms' vars' rest
+
+doMathBatch :: MachineState -> VarStore -> String -> [String] -> Maybe String -> IO ()
+doMathBatch ms vars input rest maybeVar =
+    case parseMathExpr input of
+        Nothing -> do
+            putStrLn $ "[ERROR] Invalid expression: " ++ input
+            runCommands ms vars rest
+        Just (absName_, method, argTokens) ->
+            case resolveArgs vars ms argTokens of
+                Left badVar -> do
+                    putStrLn $ "[ERROR] Unknown variable: " ++ badVar ++ " in: " ++ input
+                    runCommands ms vars rest
+                Right args -> do
+                    putStrLn $ "  -- " ++ strip input ++ "  =>  Call(" ++ absName_ ++ "." ++ method ++ concatMap (\a -> ", " ++ show a) args ++ ") --"
+                    let ms0 = ms { msTrace = [] }
+                    result <- executeViaInstructions ms0 absName_ method args
+                    case result of
+                        Left fault -> do
+                            putStrLn $ "  [FAULT] " ++ show fault
+                            runCommands ms vars rest
+                        Right ms' -> do
+                            let resultVal = Map.findWithDefault 0 0 (msDataRegs ms')
+                            case maybeVar of
+                                Just vn -> do
+                                    putStrLn $ "  " ++ vn ++ " = " ++ show resultVal
+                                    runCommands ms' (Map.insert vn resultVal vars) rest
+                                Nothing -> do
+                                    putStrLn $ "  Result: " ++ show resultVal
+                                    runCommands ms' vars rest
 
 doCallBatch :: MachineState -> VarStore -> String -> [String] -> IO ()
 doCallBatch ms vars input rest = do
@@ -251,16 +289,55 @@ doLetBinding ms vars input = do
     let afterLet = drop 4 stripped
     case break (== '=') afterLet of
         (_, []) -> do
-            putStrLn "[ERROR] Invalid let syntax. Use: let x = Call(SlideRule.ADD, 3, 5)"
+            putStrLn "[ERROR] Invalid let syntax. Use: let x = 3 + 5"
             loop ms vars
         (varPart, _:callPart) -> do
             let varName = strip varPart
             let callStr = strip callPart
-            if not (isCallSyntax callStr)
-                then do
-                    putStrLn "[ERROR] Right side must be a Call(). Use: let x = Call(SlideRule.ADD, 3, 5)"
+            if isCallSyntax callStr
+                then doSymbolicCallWithVar ms vars callStr (Just varName)
+                else if isMathExpr callStr
+                    then doMathExpr ms vars callStr (Just varName)
+                    else do
+                        putStrLn "[ERROR] Invalid expression. Use: let x = 3 + 5  or  let x = Call(SlideRule.ADD, 3, 5)"
+                        loop ms vars
+
+doMathExpr :: MachineState -> VarStore -> String -> Maybe String -> IO ()
+doMathExpr ms vars input maybeVar =
+    case parseMathExpr input of
+        Nothing -> do
+            putStrLn "[ERROR] Invalid math expression."
+            loop ms vars
+        Just (absName_, method, argTokens) ->
+            case resolveArgs vars ms argTokens of
+                Left badVar -> do
+                    putStrLn $ "[ERROR] Unknown variable: " ++ badVar
                     loop ms vars
-                else doSymbolicCallWithVar ms vars callStr (Just varName)
+                Right args -> do
+                    putStrLn ""
+                    putStrLn $ "  -- " ++ strip input ++ "  =>  Call(" ++ absName_ ++ "." ++ method ++ concatMap (\a -> ", " ++ show a) args ++ ") --"
+                    putStrLn ""
+                    let ms0 = ms { msTrace = [] }
+                    result <- executeViaInstructions ms0 absName_ method args
+                    case result of
+                        Left fault -> do
+                            putStrLn $ "  [FAULT] " ++ show fault
+                            putStrLn ""
+                            loop ms vars
+                        Right ms' -> do
+                            showTrace ms'
+                            let resultVal = Map.findWithDefault 0 0 (msDataRegs ms')
+                            putStrLn ""
+                            case maybeVar of
+                                Just vn -> do
+                                    putStrLn $ "  " ++ vn ++ " = " ++ show resultVal
+                                    let vars' = Map.insert vn resultVal vars
+                                    putStrLn ""
+                                    loop ms' vars'
+                                Nothing -> do
+                                    putStrLn $ "  Result: " ++ show resultVal
+                                    putStrLn ""
+                                    loop ms' vars
 
 doSymbolicCall :: MachineState -> VarStore -> String -> IO ()
 doSymbolicCall ms vars input = doSymbolicCallWithVar ms vars input Nothing
@@ -414,6 +491,72 @@ matchMethod gtName_ method =
         upperMethod = map toUpper method
     in upperGT == upperMethod
        || upperGT == ("SR_" ++ upperMethod)
+
+parseMathExpr :: String -> Maybe (String, String, [String])
+parseMathExpr input =
+    let stripped = strip input
+    in case parseMathFunc stripped of
+        Just result -> Just result
+        Nothing     -> parseMathInfix stripped
+
+parseMathFunc :: String -> Maybe (String, String, [String])
+parseMathFunc s =
+    let lower = map toLower (takeWhile (\c -> c /= '(' && c /= ' ') s)
+        rest = dropWhile (\c -> c /= '(') s
+    in if null rest || null lower then Nothing
+       else if last rest /= ')' then Nothing
+       else let inside = drop 1 (init rest)
+                args = map strip (splitOn ',' inside)
+            in if any null args then Nothing
+               else case lower of
+                "sqrt"  -> Just ("SlideRule", "SQRT", args)
+                "log"   -> Just ("SlideRule", "LOG", args)
+                "exp"   -> Just ("SlideRule", "EXP", args)
+                "pow"   -> Just ("Lambda", "POW", args)
+                "succ"  -> Just ("Lambda", "SUCC", args)
+                "pred"  -> Just ("Lambda", "PRED", args)
+                "mod"   -> Just ("SlideRule", "MOD", args)
+                _       -> Nothing
+
+parseMathInfix :: String -> Maybe (String, String, [String])
+parseMathInfix s =
+    case findInfixOp s of
+        Just (left, op, right) ->
+            let l = strip left
+                r = strip right
+            in if null l || null r then Nothing
+               else case op of
+                   '+' -> Just ("SlideRule", "ADD", [l, r])
+                   '-' -> Just ("SlideRule", "SUB", [l, r])
+                   '*' -> Just ("Lambda", "MUL", [l, r])
+                   '/' -> Just ("SlideRule", "DIV", [l, r])
+                   '%' -> Just ("SlideRule", "MOD", [l, r])
+                   '^' -> Just ("Lambda", "POW", [l, r])
+                   _   -> Nothing
+        Nothing -> Nothing
+
+findInfixOp :: String -> Maybe (String, Char, String)
+findInfixOp s = tryOps ['+', '-', '*', '/', '%', '^']
+  where
+    tryOps [] = Nothing
+    tryOps (op:ops) =
+        case splitInfix op s of
+            Just (l, r) | not (null (strip l)) && not (null (strip r)) -> Just (l, op, r)
+            _ -> tryOps ops
+    splitInfix op str =
+        case break (== op) str of
+            (_, [])    -> Nothing
+            (left, _:right) -> Just (left, right)
+
+isMathExpr :: String -> Bool
+isMathExpr s = case parseMathExpr (strip s) of
+    Just _  -> True
+    Nothing -> False
+
+toLower :: Char -> Char
+toLower c
+    | c >= 'A' && c <= 'Z' = toEnum (fromEnum c + 32)
+    | otherwise = c
 
 parseCallSyntax :: String -> Maybe (String, String, [String])
 parseCallSyntax input = do
