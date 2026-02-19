@@ -1,0 +1,47 @@
+# Church Machine — pico-ice pin constraints
+# Board: tinyVision.ai pico-ice (iCE40UP5K + RP2040)
+# Clock: 12 MHz from RP2040
+
+set_io -nowarn clk             35      # RP2040 clock output -> FPGA
+
+# UART to RP2040 (RP2040 bridges to USB serial)
+set_io -nowarn uart_tx         25      # FPGA TX -> RP2040 RX
+set_io -nowarn uart_rx         27      # FPGA RX <- RP2040 TX
+
+# RGB LED (active-low, accent indicators)
+set_io -nowarn led_r           41      # Red   = fault
+set_io -nowarn led_g           39      # Green = running
+set_io -nowarn led_b           40      # Blue  = booting
+
+# Push button (active-low) — directly usable as GPIO
+set_io -nowarn push_button     10      # ICE_PB / ICE_SW2
+
+# Reset — active-low, directly connect to PMOD pin or tie in Verilog
+# Note: Amaranth generates a 'rst' port. On pico-ice, RP2040 handles
+# FPGA reset via CRESET_B. The generated rst is internally tied low
+# by nextpnr when unconstrained — acceptable for this design since
+# the SPRAM init sequencer handles deterministic startup.
+
+# PMOD0A — expansion (e.g. "Hello Mum" button prototype)
+set_io -nowarn pmod0a_1         4      # GPIO / future button
+set_io -nowarn pmod0a_2         2      # GPIO
+set_io -nowarn pmod0a_3        47      # GPIO
+set_io -nowarn pmod0a_4        45      # GPIO
+
+# PMOD0B — expansion
+set_io -nowarn pmod0b_1         3      # GPIO
+set_io -nowarn pmod0b_2        48      # GPIO
+set_io -nowarn pmod0b_3        46      # GPIO
+set_io -nowarn pmod0b_4        44      # GPIO
+
+# PMOD1A — expansion (e.g. display, audio)
+set_io -nowarn pmod1a_1        43      # GPIO
+set_io -nowarn pmod1a_2        38      # GPIO
+set_io -nowarn pmod1a_3        34      # GPIO
+set_io -nowarn pmod1a_4        31      # GPIO
+
+# PMOD1B — expansion
+set_io -nowarn pmod1b_1        42      # GPIO
+set_io -nowarn pmod1b_2        36      # GPIO
+set_io -nowarn pmod1b_3        32      # GPIO
+set_io -nowarn pmod1b_4        28      # GPIO
