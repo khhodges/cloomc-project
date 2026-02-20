@@ -496,6 +496,7 @@ header h1 {
 
 .editor-panel .panel-title {
     flex-shrink: 0;
+    padding-top: 0.4rem;
 }
 
 #editorConsole {
