@@ -185,15 +185,24 @@ function updateCRDetail() {
     const parsedPerms = sim.parseGT(sim.cr[crIdx].word0).permissions;
     const hasX = parsedPerms.X;
     const hasL = parsedPerms.L;
-    const hasR = parsedPerms.R;
 
-    if (hasX) {
+    const codeRegs = [7];
+    const clistRegs = [6];
+    const threadRegs = [8];
+    const nsRegs = [15];
+    const showCode = hasX || codeRegs.includes(crIdx);
+    const showCList = hasL || clistRegs.includes(crIdx);
+    const showThread = threadRegs.includes(crIdx);
+    const showNS = nsRegs.includes(crIdx);
+
+    if (showCode) {
         html += '<div class="cr-detail-section">';
-        html += '<div class="cr-detail-heading">Code View — Executable Memory</div>';
+        const zeroPermsNote = !hasX ? ' <span style="color:var(--church-gold);font-size:0.75rem;">(inspector view — GT has no X permission)</span>' : '';
+        html += `<div class="cr-detail-heading">Code View — Executable Memory${zeroPermsNote}</div>`;
         const baseLoc = cr.word1_location >>> 0;
         const limitVal = cr.limit17;
         const wordCount = Math.min(limitVal + 1, 256);
-        let hasCode = false;
+        let hasCodeData = false;
         let codeHtml = '<table class="cr-table code-view-table"><thead><tr>';
         codeHtml += '<th>Addr</th><th>Hex</th><th>Instruction</th>';
         codeHtml += '</tr></thead><tbody>';
@@ -202,8 +211,8 @@ function updateCRDetail() {
             const addr = baseLoc + w;
             if (addr >= sim.memory.length) break;
             const word = sim.memory[addr];
-            if (word === 0 && !hasCode) continue;
-            hasCode = true;
+            if (word === 0 && !hasCodeData) continue;
+            hasCodeData = true;
             const isPC = (addr === sim.pc);
             const rowClass = isPC ? 'code-pc-row' : '';
             const decoded = word === 0 ? 'NOP / HALT' : asm.disassemble(word);
@@ -214,7 +223,7 @@ function updateCRDetail() {
             codeHtml += '</tr>';
         }
         codeHtml += '</tbody></table>';
-        if (!hasCode) {
+        if (!hasCodeData) {
             html += '<div style="color:var(--text-secondary);padding:0.5rem;">No code loaded in this memory range (0x' +
                 baseLoc.toString(16).toUpperCase().padStart(4,'0') + ' – 0x' +
                 (baseLoc + wordCount - 1).toString(16).toUpperCase().padStart(4,'0') + ').</div>';
@@ -224,9 +233,10 @@ function updateCRDetail() {
         html += '</div>';
     }
 
-    if (hasL) {
+    if (showCList) {
         html += '<div class="cr-detail-section">';
-        html += '<div class="cr-detail-heading">C-List View — Accessible Entries</div>';
+        const zeroPermsNote = !hasL ? ' <span style="color:var(--church-gold);font-size:0.75rem;">(inspector view — GT has no L permission)</span>' : '';
+        html += `<div class="cr-detail-heading">C-List View — Accessible Entries${zeroPermsNote}</div>`;
         const baseLoc = cr.word1_location >>> 0;
         const limitVal = cr.limit17;
         const clistEntries = [];
@@ -269,10 +279,57 @@ function updateCRDetail() {
         html += '</div>';
     }
 
-    if (!hasX && !hasL && !hasR) {
+    if (showThread) {
+        html += '<div class="cr-detail-section">';
+        html += '<div class="cr-detail-heading">Thread Identity</div>';
+        html += '<table class="cr-table"><tbody>';
+        html += `<tr><td style="color:var(--church-blue)">Thread Index</td><td>${cr.gtIndex}</td></tr>`;
+        html += `<tr><td style="color:var(--church-blue)">M bit</td><td class="${cr.mBit ? 'cr-m-set' : ''}">${cr.mBit}</td></tr>`;
+        html += `<tr><td style="color:var(--church-blue)">Boot Gift</td><td>${cr.mBit ? 'Written under M elevation' : 'Normal'}</td></tr>`;
+        const threadNS = cr.gtIndex < ns.length ? ns[cr.gtIndex] : null;
+        if (threadNS) {
+            html += `<tr><td style="color:var(--church-blue)">NS Label</td><td>${threadNS.label || '(unnamed)'}</td></tr>`;
+            html += `<tr><td style="color:var(--church-blue)">Chainable</td><td>${threadNS.chainable ? 'Yes' : 'No'}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        html += '</div>';
+    }
+
+    if (showNS) {
+        html += '<div class="cr-detail-section">';
+        html += '<div class="cr-detail-heading">Namespace Root — All Entries</div>';
+        if (ns.length === 0) {
+            html += '<div style="color:var(--text-secondary);padding:0.5rem;">Namespace table is empty.</div>';
+        } else {
+            html += '<table class="cr-table"><thead><tr>';
+            html += '<th>Idx</th><th>Label</th><th>Perms</th><th>Type</th><th>Location</th><th>B</th><th>G</th><th>Chainable</th>';
+            html += '</tr></thead><tbody>';
+            for (let i = 0; i < ns.length; i++) {
+                const e = ns[i];
+                const p = e.gtPerms || {};
+                const permStr = (p.R?'R':'-')+(p.W?'W':'-')+(p.X?'X':'-')+(p.L?'L':'-')+(p.S?'S':'-')+(p.E?'E':'-');
+                const loc = e.word0_location >>> 0;
+                const typeNames = ['NULL','Abstract','Outform','Reserved'];
+                html += '<tr class="cr-active">';
+                html += `<td class="cr-idx">${i}</td>`;
+                html += `<td class="cr-name">${e.label || ''}</td>`;
+                html += `<td class="cr-perms">[${permStr}]</td>`;
+                html += `<td>${typeNames[e.gtType] || '?'}</td>`;
+                html += `<td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td>`;
+                html += `<td class="cr-flag">${sim.parseLimitWord(e.word1_limit).b}</td>`;
+                html += `<td class="cr-flag">${e.gBit}</td>`;
+                html += `<td>${e.chainable ? 'Yes' : 'No'}</td>`;
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+        }
+        html += '</div>';
+    }
+
+    if (!showCode && !showCList && !showThread && !showNS) {
         html += '<div class="cr-detail-section">';
         html += '<div class="cr-detail-heading">Capability Info</div>';
-        html += '<div style="color:var(--text-secondary);padding:0.5rem;">This capability has no R, X, or L permissions. Content not directly viewable.</div>';
+        html += '<div style="color:var(--text-secondary);padding:0.5rem;">This register holds an active capability. No specialized view available for this register.</div>';
         html += '</div>';
     }
     html += '</div>';
