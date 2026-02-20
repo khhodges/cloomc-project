@@ -632,7 +632,11 @@ function runGC() {
         if (console) console.textContent += '\nGC Error: Boot must complete before running GC.\n';
         return;
     }
+    sim.output += '[I/O] GC button pressed — invoking GC safe abstraction\n';
+    sim.mElevation = true;
     const result = sim.runGC();
+    sim.mElevation = false;
+    sim.output += '[I/O] GC abstraction complete — RETURN\n';
     const console = document.getElementById('editorConsole');
     if (console) {
         console.textContent += '\n' + result.report + '\n';
@@ -768,19 +772,20 @@ RETURN CR0
 `,
         'gc_test': `; ============================================
 ; Church Machine GC Test (PP250)
-; Pure Church — zero Turing instructions
+; GC via safe Turing abstraction — CALL GC
 ; Run AFTER boot completes (6 steps)
 ; ============================================
 ;
-; Bidirectional G-bit: mLoad toggles G toward
-; "live" polarity on every access. Entries never
-; accessed retain garbage polarity. No mark pass.
+; GC is a SAFE ABSTRACTION — an atomic Turing
+; machine hidden behind a Church-callable entry.
+; CALL triggers the hidden implementation which
+; scans, sweeps, and flips polarity. No Turing
+; instructions visible to the calling program.
 ;
-; Expected: 17 entries freed, 7 survive.
+; Expected: 16 entries freed, 8 survive (+GC).
 ; ============================================
 
 ; --- Load subset into CRs (survivors) ---
-; Each LOAD calls mLoad, toggling G to "live"
 LOAD CR0, CR6, 2       ; CR0 = Lambda    (E)
 LOAD CR1, CR6, 7       ; CR1 = SUCC      (LE)
 LOAD CR2, CR6, 6       ; CR2 = Stack     (E)
@@ -798,9 +803,11 @@ TPERM CR4, E           ; Constants has E? PASS
 LAMBDA CR1             ; Church SUCC reduction
 LAMBDA CR3             ; Church ADD reduction
 
-; --- HALT — ready for GC ---
-; Press "Run GC" to trigger PP250 Scan-Sweep.
-; Polarity flips after each cycle.
+; --- CALL GC safe abstraction ---
+LOAD CR5, CR6, 24      ; CR5 = GC (E)
+TPERM CR5, E           ; Verify E permission
+CALL CR5               ; Trigger GC abstraction
+
 HALT
 `,
     };

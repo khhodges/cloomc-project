@@ -41,6 +41,7 @@ class ChurchSimulator {
         this.nsLabels = {};
         this.nsCount = 0;
         this.gcPolarity = 0;
+        this.nsHandlers = {};
 
         this.bootComplete = false;
         this.mElevation = false;
@@ -152,6 +153,7 @@ class ChurchSimulator {
             { label: 'PAIR',       perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
             { label: 'FST',        perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
             { label: 'SND',        perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
+            { label: 'GC',         perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false, handler: 'gc' },
         ];
         for (let i = 0; i < abstractions.length; i++) {
             const a = abstractions[i];
@@ -161,6 +163,9 @@ class ChurchSimulator {
             this.writeNSEntry(i, loc, lim17, 0, 0, 0, a.chainable ? 1 : 0, 0, 0);
             this.nsLabels[i] = a.label;
             this.memory[loc] = gtWord;
+            if (a.handler) {
+                this.nsHandlers[i] = a.handler;
+            }
         }
     }
 
@@ -245,7 +250,7 @@ class ChurchSimulator {
                 E: (permBits >>> 5) & 1,
             },
             type,
-            typeName: ['Inform','Outform','NULL','Abstract'][type & 3],
+            typeName: ['Inform','Outform','DATA','Abstract'][type & 3],
         };
     }
 
@@ -355,35 +360,41 @@ class ChurchSimulator {
         log.push(`Scan complete: ${liveSet.size} live entries confirmed.`);
         log.push('');
 
-        log.push(`--- Phase 2: SWEEP — free entries where G=${garbageValue} (not accessed since last GC) ---`);
-        let freedSlots = 0;
-        let freedWords = 0;
+        log.push(`--- Phase 2: IDENTIFY — find entries where G=${garbageValue} (garbage candidates) ---`);
+        const candidates = [];
         const priorCount = this.nsCount;
         for (let i = 0; i < priorCount; i++) {
             if (!this.isNSEntryValid(i)) continue;
             if (!this.isGarbage(i)) continue;
-
             const entry = this.readNSEntry(i);
             const label = this.nsLabels[i] || '(unnamed)';
             const loc = entry ? (entry.word0_location >>> 0) : 0;
+            candidates.push({ index: i, label, loc });
+            log.push(`  CANDIDATE NS[${i}] "${label}" @ 0x${loc.toString(16).toUpperCase().padStart(8,'0')} — G=${garbageValue} (garbage)`);
+        }
+        log.push(`Identified ${candidates.length} garbage candidates.`);
+        log.push('');
 
-            const base = this.NS_TABLE_BASE + i * this.NS_ENTRY_WORDS;
+        log.push(`--- Phase 3: CLEAR — zero NS entries + free object memory ---`);
+        let freedSlots = 0;
+        let freedWords = 0;
+        for (const c of candidates) {
+            const base = this.NS_TABLE_BASE + c.index * this.NS_ENTRY_WORDS;
             this.memory[base + 0] = 0;
             this.memory[base + 1] = 0;
             this.memory[base + 2] = 0;
 
-            const slotBase = loc;
             let wordsCleared = 0;
             for (let w = 0; w < this.SLOT_SIZE; w++) {
-                if (this.memory[slotBase + w] !== 0) {
-                    this.memory[slotBase + w] = 0;
+                if (this.memory[c.loc + w] !== 0) {
+                    this.memory[c.loc + w] = 0;
                     wordsCleared++;
                 }
             }
             freedWords += wordsCleared;
-            log.push(`  SWEEP NS[${i}] "${label}" @ 0x${loc.toString(16).toUpperCase().padStart(8,'0')} — 3 NS words + ${wordsCleared} object words zeroed`);
+            log.push(`  CLEAR NS[${c.index}] "${c.label}" @ 0x${c.loc.toString(16).toUpperCase().padStart(8,'0')} — 3 NS words + ${wordsCleared} object words zeroed`);
 
-            delete this.nsLabels[i];
+            delete this.nsLabels[c.index];
             freedSlots++;
         }
 
@@ -456,7 +467,7 @@ class ChurchSimulator {
     }
 
     opName(code) {
-        const names = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA'];
+        const names = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA','DREAD','DWRITE'];
         return names[code] || '???';
     }
 
@@ -536,6 +547,8 @@ class ChurchSimulator {
             case 7: result = this._execLambda(d); break;
             case 8: result = this._execEloadcall(d); break;
             case 9: result = this._execXloadlambda(d); break;
+            case 10: result = this._execDread(d); break;
+            case 11: result = this._execDwrite(d); break;
             default:
                 this.fault('INVALID_OP', `Unknown opcode ${d.opcode}`);
                 return null;
@@ -628,6 +641,11 @@ class ChurchSimulator {
             return null;
         }
 
+        const handler = this.nsHandlers[check.index];
+        if (handler) {
+            return this._dispatchHandler(d, check, handler);
+        }
+
         this.callStack.push({
             returnPC: this.pc + 1,
             savedCRs: this.cr.map(c => ({...c})),
@@ -640,6 +658,31 @@ class ChurchSimulator {
         this.output += desc + '\n';
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc, pipeline: this._callPipeline(d, label) };
+    }
+
+    _dispatchHandler(d, check, handler) {
+        const label = this.nsLabels[check.index] || 'handler';
+        switch (handler) {
+            case 'gc': {
+                const desc = `CALL CR${d.crDst} → ${label} [safe Turing abstraction: GC]`;
+                this.output += desc + '\n';
+                this.output += `[M] Entering atomic Turing abstraction: ${label}\n`;
+                this.mElevation = true;
+                const gcResult = this.runGC();
+                this.mElevation = false;
+                this.output += `[M] Exiting atomic Turing abstraction: ${label} — RETURN\n`;
+                this.pc++;
+                return { pc: this.pc - 1, instr: d, desc, pipeline: [
+                    { stage: 'CALL', desc: `Enter ${label} safe abstraction`, perm: 'E', status: 'pass' },
+                    { stage: 'GC-SCAN', desc: `Scan CRs, confirm ${gcResult.liveCount} live entries`, status: 'pass' },
+                    { stage: 'GC-SWEEP', desc: `Sweep ${gcResult.freedSlots} garbage entries`, status: 'pass' },
+                    { stage: 'RETURN', desc: `Exit ${label}, flip polarity`, status: 'pass' },
+                ]};
+            }
+            default:
+                this.fault('HANDLER', `Unknown handler: ${handler}`);
+                return null;
+        }
     }
 
     _execReturn(d) {
@@ -862,6 +905,78 @@ class ChurchSimulator {
         this.output += desc + '\n';
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc, pipeline: this._xloadlambdaPipeline(d, label) };
+    }
+
+    _execDread(d) {
+        const drIdx = d.crDst;
+        const dataGT = this.cr[d.crSrc].word0;
+        if (dataGT === 0) {
+            this.fault('NULL_CAP', `DREAD: CR${d.crSrc} is NULL`);
+            return null;
+        }
+        const check = this.mLoad(dataGT, 'R');
+        if (!check.ok) {
+            this.fault(check.fault, `DREAD: CR${d.crSrc}: ${check.message}`);
+            return null;
+        }
+        const parsed = this.parseGT(dataGT);
+        if (parsed.type !== 2) {
+            this.fault('TYPE', `DREAD: CR${d.crSrc} is not a DATA object (type=${parsed.typeName})`);
+            return null;
+        }
+        const entry = check.entry;
+        const loc = entry.word0_location;
+        const lim = this.parseNSWord1(entry.word1_limit);
+        const offset = d.imm;
+        if (offset > lim.limit) {
+            this.fault('BOUNDS', `DREAD: offset ${offset} exceeds DATA limit ${lim.limit}`);
+            return null;
+        }
+        const value = this.memory[loc + offset];
+        this.dr[drIdx] = value >>> 0;
+        const label = this.nsLabels[check.index] || 'data';
+        const desc = `DREAD DR${drIdx}, [CR${d.crSrc} + ${offset}] → 0x${(value >>> 0).toString(16).toUpperCase().padStart(8,'0')} (${label})`;
+        this.output += desc + '\n';
+        this.pc++;
+        return { pc: this.pc - 1, instr: d, desc, pipeline: [
+            { stage: 'DREAD', desc: `Read word ${offset} from ${label} into DR${drIdx}`, perm: 'R', status: 'pass' },
+        ]};
+    }
+
+    _execDwrite(d) {
+        const drIdx = d.crDst;
+        const dataGT = this.cr[d.crSrc].word0;
+        if (dataGT === 0) {
+            this.fault('NULL_CAP', `DWRITE: CR${d.crSrc} is NULL`);
+            return null;
+        }
+        const check = this.mLoad(dataGT, 'W');
+        if (!check.ok) {
+            this.fault(check.fault, `DWRITE: CR${d.crSrc}: ${check.message}`);
+            return null;
+        }
+        const parsed = this.parseGT(dataGT);
+        if (parsed.type !== 2) {
+            this.fault('TYPE', `DWRITE: CR${d.crSrc} is not a DATA object (type=${parsed.typeName})`);
+            return null;
+        }
+        const entry = check.entry;
+        const loc = entry.word0_location;
+        const lim = this.parseNSWord1(entry.word1_limit);
+        const offset = d.imm;
+        if (offset > lim.limit) {
+            this.fault('BOUNDS', `DWRITE: offset ${offset} exceeds DATA limit ${lim.limit}`);
+            return null;
+        }
+        const value = this.dr[drIdx] >>> 0;
+        this.memory[loc + offset] = value;
+        const label = this.nsLabels[check.index] || 'data';
+        const desc = `DWRITE DR${drIdx}, [CR${d.crSrc} + ${offset}] ← 0x${value.toString(16).toUpperCase().padStart(8,'0')} (${label})`;
+        this.output += desc + '\n';
+        this.pc++;
+        return { pc: this.pc - 1, instr: d, desc, pipeline: [
+            { stage: 'DWRITE', desc: `Write DR${drIdx} to word ${offset} of ${label}`, perm: 'W', status: 'pass' },
+        ]};
     }
 
     _eloadcallPipeline(d, label) {

@@ -4,6 +4,7 @@ class ChurchAssembler {
             'LOAD': 0, 'SAVE': 1, 'CALL': 2, 'RETURN': 3,
             'CHANGE': 4, 'SWITCH': 5, 'TPERM': 6, 'LAMBDA': 7,
             'ELOADCALL': 8, 'XLOADLAMBDA': 9,
+            'DREAD': 10, 'DWRITE': 11,
         };
         this.conditions = {
             'EQ': 0, 'NE': 1, 'CS': 2, 'CC': 3,
@@ -144,6 +145,18 @@ class ChurchAssembler {
                 imm = this._parseImm(parts[3], lineNum);
                 break;
             }
+            case 10: {
+                crDst = this._parseDR(parts[1], lineNum);
+                crSrc = this._parseCR(parts[2], lineNum);
+                imm = this._parseImm(parts[3], lineNum);
+                break;
+            }
+            case 11: {
+                crDst = this._parseDR(parts[1], lineNum);
+                crSrc = this._parseCR(parts[2], lineNum);
+                imm = this._parseImm(parts[3], lineNum);
+                break;
+            }
         }
 
         return (
@@ -166,6 +179,20 @@ class ChurchAssembler {
             return 0;
         }
         this.errors.push({ line: lineNum, message: `Expected CRn, got: ${token}` });
+        return 0;
+    }
+
+    _parseDR(token, lineNum) {
+        if (!token) return 0;
+        token = token.toUpperCase().replace(/,/g, '');
+        const m = token.match(/^DR(\d+)$/);
+        if (m) {
+            const idx = parseInt(m[1]);
+            if (idx >= 0 && idx <= 15) return idx;
+            this.errors.push({ line: lineNum, message: `DR index out of range: ${token}` });
+            return 0;
+        }
+        this.errors.push({ line: lineNum, message: `Expected DRn, got: ${token}` });
         return 0;
     }
 
@@ -205,10 +232,10 @@ class ChurchAssembler {
         const crSrc = (word >>> 16) & 0xF;
         const imm = word & 0xFFFF;
 
-        const opNames = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA'];
+        const opNames = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA','DREAD','DWRITE'];
         const condNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
 
-        if (opcode > 9) return `??? 0x${word.toString(16).padStart(8, '0')}`;
+        if (opcode > 11) return `??? 0x${word.toString(16).padStart(8, '0')}`;
 
         const op = opNames[opcode];
         const condStr = cond === 14 ? '' : condNames[cond];
@@ -228,6 +255,8 @@ class ChurchAssembler {
             case 7: return `${mnemonic} CR${crDst}`;
             case 8: return `${mnemonic} CR${crDst}, [CR${crSrc} + ${imm}]`;
             case 9: return `${mnemonic} CR${crDst}, [CR${crSrc} + ${imm}]`;
+            case 10: return `${mnemonic} DR${crDst}, [CR${crSrc} + ${imm}]`;
+            case 11: return `${mnemonic} DR${crDst}, [CR${crSrc} + ${imm}]`;
             default: return `??? 0x${word.toString(16)}`;
         }
     }

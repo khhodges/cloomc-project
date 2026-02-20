@@ -10,18 +10,21 @@
 ;   time a GT is successfully validated. Entries
 ;   never accessed retain the old polarity.
 ;
-;   GC cycle:
-;     1. SCAN — walk CRs, markLive on referenced NS
-;     2. SWEEP — free entries still at garbage polarity
-;     3. FLIP — polarity inverts for next cycle
+;   GC is a SAFE ABSTRACTION — an atomic Turing
+;   machine hidden inside a Church-callable entry.
+;   CALL GC enters the abstraction; the hidden
+;   Turing implementation scans, identifies garbage,
+;   clears NS entries, frees memory, and flips
+;   polarity. RETURN exits automatically.
 ;
 ;   No mark phase needed. Normal execution IS the mark.
 ;
 ; DESIGN:
 ;   Load 5 abstractions into CR0-CR4 via LOAD.
 ;   Each LOAD calls mLoad which marks them live.
-;   Everything else retains garbage polarity.
-;   After HALT, press "Run GC" to sweep.
+;   Then LOAD the GC abstraction and CALL it.
+;   GC runs as an atomic Turing abstraction —
+;   entered via CALL, exited via RETURN.
 ;
 ; EXPECTED GC RESULT:
 ;   Boot(0) = CR6,CR7  — LIVE (boot c-list + code)
@@ -34,25 +37,13 @@
 ;   SUCC(7) = CR1       — LIVE (loaded via mLoad)
 ;   PRED(8)             — GARBAGE
 ;   ADD(9) = CR3        — LIVE (loaded via mLoad)
-;   SUB(10)             — GARBAGE
-;   MUL(11)             — GARBAGE
-;   DIV(12)             — GARBAGE
-;   POW(13)             — GARBAGE
-;   SQRT(14)            — GARBAGE
-;   LOG(15)             — GARBAGE
-;   EXP(16)             — GARBAGE
-;   ISZERO(17)          — GARBAGE
-;   LEQ(18)             — GARBAGE
-;   TRUE(19)            — GARBAGE
-;   FALSE(20)           — GARBAGE
-;   PAIR(21)            — GARBAGE
-;   FST(22)             — GARBAGE
-;   SND(23)             — GARBAGE
+;   SUB(10)-SND(23)     — GARBAGE
+;   GC(24) = CR5        — LIVE (loaded to CALL it)
 ;
-;   Live: 7 entries (Boot, Threads, Lambda,
-;         Constants, Stack, SUCC, ADD)
+;   Live: 8 entries (Boot, Threads, Lambda,
+;         Constants, Stack, SUCC, ADD, GC)
 ;         + CR15 Namespace root (Boot/slot 0)
-;   Swept: 17 entries freed
+;   Swept: 16 entries freed
 ; ============================================
 
 ; --- Phase 1: Load subset into CRs (survivors) ---
@@ -74,8 +65,16 @@ TPERM CR4, E           ; Constants has E? PASS
 LAMBDA CR1             ; Church SUCC reduction
 LAMBDA CR3             ; Church ADD reduction
 
-; --- Phase 4: HALT — ready for GC ---
-; Press "Run GC" to trigger PP250 Scan-Sweep.
-; Namespace Browser will show 17 entries vanish.
-; Polarity flips — next cycle sweeps opposite G value.
+; --- Phase 4: CALL GC safe abstraction ---
+; Load GC abstraction GT (slot 24) and CALL it.
+; GC is an atomic Turing machine — entered via CALL,
+; hidden implementation scans/sweeps, exits via RETURN.
+LOAD CR5, CR6, 24      ; CR5 = GC abstraction (E)
+TPERM CR5, E           ; Verify E permission
+CALL CR5               ; Trigger GC — atomic Turing abstraction
+
+; --- Phase 5: HALT ---
+; GC has completed. Namespace Browser shows results.
+; 16 entries swept, 8 entries survived.
+; Polarity flipped for next cycle.
 HALT
