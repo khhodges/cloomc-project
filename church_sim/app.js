@@ -851,9 +851,66 @@ function showSaveToNamespace() {
         alert('Assemble code first before saving to namespace.');
         return;
     }
-    document.getElementById('saveNSDialog').style.display = '';
+    const slotSel = document.getElementById('saveNSSlot');
+    slotSel.innerHTML = '';
+    const newOpt = document.createElement('option');
+    newOpt.value = 'new';
+    newOpt.textContent = '— New Entry —';
+    slotSel.appendChild(newOpt);
+    for (let i = 0; i < sim.namespaceTable.length; i++) {
+        const e = sim.namespaceTable[i];
+        if (!e) continue;
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `[${i}] ${e.label}`;
+        slotSel.appendChild(opt);
+    }
+    slotSel.value = 'new';
     document.getElementById('saveNSLabel').value = '';
+    document.getElementById('saveNSLabel').disabled = false;
+    document.getElementById('saveNSType').value = '0';
+    document.getElementById('permR').checked = false;
+    document.getElementById('permW').checked = false;
+    document.getElementById('permX').checked = true;
+    document.getElementById('permL').checked = false;
+    document.getElementById('permS').checked = false;
+    document.getElementById('permE').checked = false;
+    const info = document.getElementById('saveNSInfo');
+    info.textContent = `Code size: ${lastAssembledWords.length} words (${lastAssembledWords.length * 4} bytes)`;
+    document.getElementById('saveNSDialog').style.display = '';
     document.getElementById('saveNSLabel').focus();
+}
+
+function onSlotChange() {
+    const slotSel = document.getElementById('saveNSSlot');
+    const labelInput = document.getElementById('saveNSLabel');
+    if (slotSel.value === 'new') {
+        labelInput.value = '';
+        labelInput.disabled = false;
+        document.getElementById('saveNSType').value = '0';
+        document.getElementById('permR').checked = false;
+        document.getElementById('permW').checked = false;
+        document.getElementById('permX').checked = true;
+        document.getElementById('permL').checked = false;
+        document.getElementById('permS').checked = false;
+        document.getElementById('permE').checked = false;
+    } else {
+        const idx = parseInt(slotSel.value);
+        const entry = sim.namespaceTable[idx];
+        if (entry) {
+            labelInput.value = entry.label;
+            labelInput.disabled = false;
+            document.getElementById('saveNSType').value = String(entry.gtType || 0);
+            const gt = sim.memory[entry.word0_location];
+            const permBits = (gt >>> 2) & 0x3F;
+            document.getElementById('permR').checked = !!(permBits & 0x20);
+            document.getElementById('permW').checked = !!(permBits & 0x10);
+            document.getElementById('permX').checked = !!(permBits & 0x08);
+            document.getElementById('permL').checked = !!(permBits & 0x04);
+            document.getElementById('permS').checked = !!(permBits & 0x02);
+            document.getElementById('permE').checked = !!(permBits & 0x01);
+        }
+    }
 }
 
 function closeSaveDialog() {
@@ -861,9 +918,10 @@ function closeSaveDialog() {
 }
 
 function confirmSaveToNamespace() {
+    const slotSel = document.getElementById('saveNSSlot');
     const label = document.getElementById('saveNSLabel').value.trim();
     if (!label) {
-        alert('Please enter a label for this code block.');
+        alert('Please enter a label for this namespace entry.');
         return;
     }
     const perms = {
@@ -875,12 +933,18 @@ function confirmSaveToNamespace() {
         E: document.getElementById('permE').checked ? 1 : 0,
     };
     const gtType = parseInt(document.getElementById('saveNSType').value) || 0;
-    const idx = sim.saveToNamespace(label, lastAssembledWords, perms, gtType);
+    let idx;
+    if (slotSel.value === 'new') {
+        idx = sim.saveToNamespace(label, lastAssembledWords, perms, gtType);
+    } else {
+        idx = parseInt(slotSel.value);
+        sim.saveToNamespaceAt(idx, label, lastAssembledWords, perms, gtType);
+    }
     closeSaveDialog();
     saveNamespaceState();
     const con = document.getElementById('editorConsole');
     if (con) {
-        con.textContent += `\nSaved ${lastAssembledWords.length} words to namespace[${idx}] "${label}"`;
+        con.textContent += `\nSaved ${lastAssembledWords.length} words to namespace[${idx}] "${label}" (${lastAssembledWords.length * 4} bytes)`;
         con.scrollTop = con.scrollHeight;
     }
     updateDashboard();

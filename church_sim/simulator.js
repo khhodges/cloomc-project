@@ -884,6 +884,35 @@ class ChurchSimulator {
         return idx;
     }
 
+    saveToNamespaceAt(idx, label, words, perms, gtType) {
+        perms = perms || {R:0,W:0,X:1,L:0,S:0,E:0};
+        gtType = gtType || 0;
+        const loc = idx * 0x100;
+        const codeLen = words.length;
+        const totalLen = 1 + codeLen;
+        const lim17 = Math.min(totalLen - 1, 0x1FFFF);
+        const gtWord = this.createGT(0, idx, perms, gtType);
+        for (let j = 0; j < 0x100; j++) {
+            if (loc + j < this.memory.length) this.memory[loc + j] = 0;
+        }
+        this.namespaceTable[idx] = {
+            word0_location: loc,
+            word1_limit: this.packLimitWord(lim17, 0, 0),
+            word2_seals: this.makeVersionSeals(0, loc, lim17),
+            gBit: 0,
+            label: label,
+            gtType: gtType,
+            chainable: false,
+            codeLength: codeLen,
+        };
+        this.memory[loc] = gtWord;
+        for (let i = 0; i < codeLen; i++) {
+            this.memory[loc + 1 + i] = words[i] >>> 0;
+        }
+        this.emit('stateChange', this.getState());
+        return idx;
+    }
+
     getEntryMemory(idx) {
         const entry = this.namespaceTable[idx];
         if (!entry) return null;

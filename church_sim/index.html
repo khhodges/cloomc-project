@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pure Church Machine Simulator</title>
-    <link rel="stylesheet" href="styles.css?v=20260220e">
+    <link rel="stylesheet" href="styles.css?v=20260220f">
 </head>
 <body>
     <div class="fixed-toolbar">
@@ -153,8 +153,18 @@
     <div id="saveNSDialog" class="modal-overlay" style="display:none;">
         <div class="modal-dialog">
             <div class="modal-title">Save to Namespace</div>
+            <label class="modal-label">Namespace Slot:
+                <select id="saveNSSlot" class="modal-input" onchange="onSlotChange()"></select>
+            </label>
             <label class="modal-label">Label:
                 <input type="text" id="saveNSLabel" class="modal-input" placeholder="MyCode">
+            </label>
+            <label class="modal-label">GT Type:
+                <select id="saveNSType" class="modal-input">
+                    <option value="0">Abstract</option>
+                    <option value="1">Outform</option>
+                    <option value="2">Inform</option>
+                </select>
             </label>
             <label class="modal-label">Permissions:
                 <div class="perm-checks">
@@ -166,12 +176,7 @@
                     <label><input type="checkbox" id="permE"> E</label>
                 </div>
             </label>
-            <label class="modal-label">GT Type:
-                <select id="saveNSType" class="modal-input">
-                    <option value="0">Abstract</option>
-                    <option value="1">Outform</option>
-                </select>
-            </label>
+            <div class="modal-label" id="saveNSInfo" style="font-family:'Courier New',monospace;color:var(--church-gold);"></div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" onclick="confirmSaveToNamespace()">Save</button>
                 <button class="btn btn-warning" onclick="closeSaveDialog()">Cancel</button>
@@ -179,11 +184,11 @@
         </div>
     </div>
 
-    <script src="simulator.js?v=20260220e"></script>
-    <script src="assembler.js?v=20260220e"></script>
-    <script src="pipeline.js?v=20260220e"></script>
-    <script src="repl.js?v=20260220e"></script>
-    <script src="tutorial.js?v=20260220e"></script>
-    <script src="app.js?v=20260220e"></script>
+    <script src="simulator.js?v=20260220f"></script>
+    <script src="assembler.js?v=20260220f"></script>
+    <script src="pipeline.js?v=20260220f"></script>
+    <script src="repl.js?v=20260220f"></script>
+    <script src="tutorial.js?v=20260220f"></script>
+    <script src="app.js?v=20260220f"></script>
 </body>
 </html>
