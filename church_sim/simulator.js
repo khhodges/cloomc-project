@@ -35,6 +35,7 @@ class ChurchSimulator {
         this.memory = new Uint32Array(4096);
         this.namespaceTable = [];
         this.bootComplete = false;
+        this.mElevation = false;
 
         this._initNamespaceTable();
         this._bootSequence();
@@ -106,21 +107,28 @@ class ChurchSimulator {
         }
         this.pc = 0;
 
+        this.mElevation = true;
+
         const bootEntry = this.namespaceTable[0];
         const threadEntry = this.namespaceTable[1];
 
         const gt15 = this.createGT(0, 0, {R:0,W:0,X:0,L:1,S:0,E:1}, 0);
         this._writeCR(15, gt15, bootEntry);
+        this.output += `[M] CR15 ← Boot namespace root [L,E]\n`;
 
         const gt8 = this.createGT(0, 1, {R:0,W:0,X:0,L:1,S:1,E:0}, 0);
         this._writeCR(8, gt8, threadEntry);
+        this.output += `[M] CR8 ← Thread identity [L,S]\n`;
 
         const gt7 = this.createGT(0, 0, {R:0,W:0,X:0,L:0,S:0,E:1}, 0);
         this._writeCR(7, gt7, bootEntry);
+        this.output += `[M] CR7 ← Boot CLOOMC [E]\n`;
 
         const gt6 = this.createGT(0, 1, {R:0,W:0,X:0,L:1,S:1,E:0}, 0);
         this._writeCR(6, gt6, threadEntry);
+        this.output += `[M] CR6 ← Thread C-List [L,S]\n`;
 
+        this.mElevation = false;
         this.bootComplete = true;
     }
 
@@ -208,10 +216,16 @@ class ChurchSimulator {
     }
 
     _writeCR(crIdx, gt32, entry) {
+        const existing = this.cr[crIdx].word0;
+        if (existing !== 0 && !this.mElevation) {
+            this.fault('CR_OCCUPIED', `CR${crIdx} holds active GT 0x${existing.toString(16).toUpperCase().padStart(8,'0')} — clear first`);
+            return false;
+        }
         this.cr[crIdx].word0 = gt32;
         this.cr[crIdx].word1 = entry.word0_location >>> 0;
         this.cr[crIdx].word2 = entry.word1_limit >>> 0;
         this.cr[crIdx].word3 = entry.word2_seals >>> 0;
+        return true;
     }
 
     _clearCR(crIdx) {
@@ -367,7 +381,7 @@ class ChurchSimulator {
         const version = (entry.word2_seals >>> 25) & 0x7F;
         const perms = entry.gtPerms || {R:0,W:0,X:0,L:0,S:0,E:0};
         const gt = this.createGT(version, targetIdx, perms, entry.gtType || 0);
-        this._writeCR(d.crDst, gt, entry);
+        if (!this._writeCR(d.crDst, gt, entry)) return null;
         const desc = `LOAD CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${entry.label || 'entry_'+targetIdx}`;
         this.output += desc + '\n';
         this.pc++;
@@ -476,7 +490,7 @@ class ChurchSimulator {
         const version = (entry.word2_seals >>> 25) & 0x7F;
         const perms = entry.gtPerms || {R:0,W:0,X:0,L:0,S:0,E:0};
         const gt = this.createGT(version, targetIdx, perms, entry.gtType || 0);
-        this._writeCR(d.crDst, gt, entry);
+        if (!this._writeCR(d.crDst, gt, entry)) return null;
         const desc = `CHANGE CR${d.crDst}, [CR${d.crSrc}] idx=${targetIdx}`;
         this.output += desc + '\n';
         this.pc++;
@@ -603,7 +617,7 @@ class ChurchSimulator {
         const version = (entry.word2_seals >>> 25) & 0x7F;
         const perms = entry.gtPerms || {R:0,W:0,X:0,L:0,S:0,E:0};
         const gt = this.createGT(version, targetIdx, perms, entry.gtType || 0);
-        this._writeCR(d.crDst, gt, entry);
+        if (!this._writeCR(d.crDst, gt, entry)) return null;
 
         const tpermCheck = this.mLoad(gt, 'E');
         if (!tpermCheck.ok) {
@@ -654,7 +668,7 @@ class ChurchSimulator {
         const version = (entry.word2_seals >>> 25) & 0x7F;
         const perms = entry.gtPerms || {R:0,W:0,X:0,L:0,S:0,E:0};
         const gt = this.createGT(version, slotIdx, perms, entry.gtType || 0);
-        this._writeCR(d.crDst, gt, entry);
+        if (!this._writeCR(d.crDst, gt, entry)) return null;
 
         const parsed = this.parseGT(gt);
         if (!parsed.permissions.X && !parsed.permissions.E) {
