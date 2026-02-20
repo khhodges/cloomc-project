@@ -340,12 +340,37 @@ header h1 {
     min-height: 0;
 }
 
+.code-editor-wrap {
+    flex: 1;
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+}
+
+.line-numbers {
+    width: 3.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    padding: 0.75rem 0.4rem 0.75rem 0;
+    text-align: right;
+    user-select: none;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
 #asmEditor {
     flex: 1;
     background: var(--bg-input);
     color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    border: none;
+    border-radius: 0;
     padding: 0.75rem;
     font-family: 'Courier New', monospace;
     font-size: 0.85rem;
@@ -356,14 +381,72 @@ header h1 {
     min-height: 0;
 }
 
-#asmEditor:focus { outline: 1px solid var(--accent); }
+#asmEditor:focus { outline: none; }
+.code-editor-wrap:focus-within { outline: 1px solid var(--accent); }
 
 .editor-toolbar {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     flex-wrap: wrap;
     flex-shrink: 0;
+}
+
+.example-tabs-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.35rem;
+    flex-shrink: 0;
+    gap: 0;
+}
+
+.example-arrow {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    font-size: 1.1rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    border-radius: 4px;
+    padding: 0;
+    line-height: 1;
+}
+.example-arrow:hover { background: var(--bg-hover); color: var(--text-primary); }
+.example-arrow-left { border-radius: 4px 0 0 4px; }
+.example-arrow-right { border-radius: 0 4px 4px 0; }
+
+.example-tabs-scroll {
+    display: flex;
+    overflow-x: hidden;
+    gap: 0;
+    flex: 1;
+    min-width: 0;
+    scroll-behavior: smooth;
+}
+
+.example-tab {
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+    border-left: none;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.example-tab:first-child { border-left: 1px solid var(--border); }
+.example-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+.example-tab.active {
+    background: var(--church-green);
+    color: #000;
+    border-color: var(--church-green);
+    font-weight: 600;
 }
 
 .btn {

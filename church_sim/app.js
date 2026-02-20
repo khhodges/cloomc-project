@@ -19,6 +19,21 @@ function init() {
     sim.on('halt', () => appendOutput('Machine halted.', 'info'));
 
     loadEditorState();
+    const asmEd = document.getElementById('asmEditor');
+    if (asmEd) {
+        asmEd.addEventListener('input', updateLineNumbers);
+        asmEd.addEventListener('scroll', syncLineScroll);
+        asmEd.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const s = this.selectionStart, end = this.selectionEnd;
+                this.value = this.value.substring(0, s) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = s + 4;
+                updateLineNumbers();
+            }
+        });
+    }
+    updateLineNumbers();
     switchView('dashboard');
     updateDashboard();
     pipelineViz.render();
@@ -642,6 +657,37 @@ RETURN CR0
     if (code) {
         editor.value = code;
         saveEditorState();
+        updateLineNumbers();
+        document.querySelectorAll('.example-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.example === name);
+        });
+    }
+}
+
+function updateLineNumbers() {
+    const editor = document.getElementById('asmEditor');
+    const gutter = document.getElementById('lineNumbers');
+    if (!editor || !gutter) return;
+    const lines = editor.value.split('\n');
+    let html = '';
+    for (let i = 1; i <= lines.length; i++) {
+        html += i + '\n';
+    }
+    gutter.textContent = html;
+}
+
+function syncLineScroll() {
+    const editor = document.getElementById('asmEditor');
+    const gutter = document.getElementById('lineNumbers');
+    if (editor && gutter) {
+        gutter.scrollTop = editor.scrollTop;
+    }
+}
+
+function scrollExamples(dir) {
+    const container = document.getElementById('exampleTabsScroll');
+    if (container) {
+        container.scrollBy({ left: dir * 120, behavior: 'smooth' });
     }
 }
 

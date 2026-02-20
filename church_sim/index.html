@@ -66,13 +66,21 @@
                     <button class="btn btn-success" onclick="stepSim()">Step</button>
                     <button class="btn btn-success" onclick="runSim()">Run</button>
                     <button class="btn btn-warning" onclick="resetSim()">Reset</button>
-                    <span style="flex:1"></span>
-                    <button class="btn" onclick="loadExample('selftest')" style="background:var(--church-green);color:#000;">Self-Test</button>
-                    <button class="btn" onclick="loadExample('load_save')">Load/Save</button>
-                    <button class="btn" onclick="loadExample('bernoulli')">Bernoulli</button>
-                    <button class="btn" onclick="loadExample('conditional')">Conditional</button>
                 </div>
-                <textarea id="asmEditor" spellcheck="false"></textarea>
+                <div class="example-tabs-row">
+                    <button class="example-arrow example-arrow-left" onclick="scrollExamples(-1)">&lsaquo;</button>
+                    <div class="example-tabs-scroll" id="exampleTabsScroll">
+                        <button class="example-tab active" onclick="loadExample('selftest')" data-example="selftest">Self-Test</button>
+                        <button class="example-tab" onclick="loadExample('load_save')" data-example="load_save">Load/Save</button>
+                        <button class="example-tab" onclick="loadExample('bernoulli')" data-example="bernoulli">Bernoulli</button>
+                        <button class="example-tab" onclick="loadExample('conditional')" data-example="conditional">Conditional</button>
+                    </div>
+                    <button class="example-arrow example-arrow-right" onclick="scrollExamples(1)">&rsaquo;</button>
+                </div>
+                <div class="code-editor-wrap">
+                    <div class="line-numbers" id="lineNumbers"></div>
+                    <textarea id="asmEditor" spellcheck="false"></textarea>
+                </div>
             </div>
             <div class="editor-panel">
                 <div class="panel-title">Console Output</div>
