@@ -181,11 +181,16 @@ function updateCRDetail() {
         const sealVer = (entry.word2_seals >>> 25) & 0x7F;
         const sealFNV = entry.word2_seals & 0x01FFFFFF;
         const p = entry.gtPerms || {};
-        const permStr = (p.R?'R':'-')+(p.W?'W':'-')+(p.X?'X':'-')+(p.L?'L':'-')+(p.S?'S':'-')+(p.E?'E':'-');
+        const nsPermStr = (p.R?'R':'-')+(p.W?'W':'-')+(p.X?'X':'-')+(p.L?'L':'-')+(p.S?'S':'-')+(p.E?'E':'-');
+        const gtPermStr = cr.perms;
+        const permMismatch = nsPermStr !== gtPermStr;
 
         html += '<table class="cr-table"><tbody>';
         html += `<tr><td>Location</td><td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td></tr>`;
-        html += `<tr><td>Permissions</td><td>[${permStr}]</td></tr>`;
+        html += `<tr><td>GT Permissions</td><td>[${gtPermStr}]</td></tr>`;
+        if (permMismatch) {
+            html += `<tr><td>NS Entry Perms</td><td style="color:var(--church-gold)">[${nsPermStr}] (differs from GT)</td></tr>`;
+        }
         html += `<tr><td>B (Bind)</td><td>${lim.b}</td></tr>`;
         html += `<tr><td>F (Frozen)</td><td>${lim.f}</td></tr>`;
         html += `<tr><td>Limit</td><td>0x${lim.limit.toString(16).toUpperCase().padStart(5,'0')}</td></tr>`;
