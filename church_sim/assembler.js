@@ -5,6 +5,9 @@ class ChurchAssembler {
             'CHANGE': 4, 'SWITCH': 5, 'TPERM': 6, 'LAMBDA': 7,
             'ELOADCALL': 8, 'XLOADLAMBDA': 9,
             'DREAD': 10, 'DWRITE': 11,
+            'BFEXT': 12, 'BFINS': 13,
+            'MCMP': 14, 'IADD': 15, 'ISUB': 16,
+            'BRANCH': 17,
         };
         this.conditions = {
             'EQ': 0, 'NE': 1, 'CS': 2, 'CC': 3,
@@ -157,14 +160,51 @@ class ChurchAssembler {
                 imm = this._parseImm(parts[3], lineNum);
                 break;
             }
+            case 12: {
+                crDst = this._parseDR(parts[1], lineNum);
+                crSrc = this._parseCR(parts[2], lineNum);
+                const pos12 = this._parseImm(parts[3], lineNum) & 0x1F;
+                const wid12 = this._parseImm(parts[4], lineNum) & 0x1F;
+                imm = (pos12 << 5) | wid12;
+                break;
+            }
+            case 13: {
+                crDst = this._parseDR(parts[1], lineNum);
+                crSrc = this._parseCR(parts[2], lineNum);
+                const pos13 = this._parseImm(parts[3], lineNum) & 0x1F;
+                const wid13 = this._parseImm(parts[4], lineNum) & 0x1F;
+                imm = (pos13 << 5) | wid13;
+                break;
+            }
+            case 14: {
+                crDst = this._parseDR(parts[1], lineNum);
+                crSrc = this._parseDR(parts[2], lineNum);
+                break;
+            }
+            case 15: {
+                crDst = this._parseDR(parts[1], lineNum);
+                crSrc = this._parseDR(parts[2], lineNum);
+                imm = this._parseDR(parts[3], lineNum);
+                break;
+            }
+            case 16: {
+                crDst = this._parseDR(parts[1], lineNum);
+                crSrc = this._parseDR(parts[2], lineNum);
+                imm = this._parseDR(parts[3], lineNum);
+                break;
+            }
+            case 17: {
+                imm = this._parseImm(parts[1], lineNum, addr);
+                break;
+            }
         }
 
         return (
-            ((opcode & 0xF) << 28) |
-            ((cond & 0xF) << 24) |
-            ((crDst & 0xF) << 20) |
-            ((crSrc & 0xF) << 16) |
-            (imm & 0xFFFF)
+            ((opcode & 0x1F) << 27) |
+            ((cond & 0xF) << 23) |
+            ((crDst & 0xF) << 19) |
+            ((crSrc & 0xF) << 15) |
+            (imm & 0x7FFF)
         ) >>> 0;
     }
 
@@ -226,16 +266,16 @@ class ChurchAssembler {
         word = word >>> 0;
         if (word === 0) return 'HALT';
 
-        const opcode = (word >>> 28) & 0xF;
-        const cond = (word >>> 24) & 0xF;
-        const crDst = (word >>> 20) & 0xF;
-        const crSrc = (word >>> 16) & 0xF;
-        const imm = word & 0xFFFF;
+        const opcode = (word >>> 27) & 0x1F;
+        const cond = (word >>> 23) & 0xF;
+        const crDst = (word >>> 19) & 0xF;
+        const crSrc = (word >>> 15) & 0xF;
+        const imm = word & 0x7FFF;
 
-        const opNames = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA','DREAD','DWRITE'];
+        const opNames = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA','DREAD','DWRITE','BFEXT','BFINS','MCMP','IADD','ISUB','BRANCH'];
         const condNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
 
-        if (opcode > 11) return `??? 0x${word.toString(16).padStart(8, '0')}`;
+        if (opcode > 17) return `??? 0x${word.toString(16).padStart(8, '0')}`;
 
         const op = opNames[opcode];
         const condStr = cond === 14 ? '' : condNames[cond];
@@ -257,6 +297,23 @@ class ChurchAssembler {
             case 9: return `${mnemonic} CR${crDst}, [CR${crSrc} + ${imm}]`;
             case 10: return `${mnemonic} DR${crDst}, [CR${crSrc} + ${imm}]`;
             case 11: return `${mnemonic} DR${crDst}, [CR${crSrc} + ${imm}]`;
+            case 12: {
+                const pos = (imm >>> 5) & 0x1F;
+                const width = imm & 0x1F;
+                return `${mnemonic} DR${crDst}, [CR${crSrc}], pos=${pos}, w=${width}`;
+            }
+            case 13: {
+                const pos = (imm >>> 5) & 0x1F;
+                const width = imm & 0x1F;
+                return `${mnemonic} DR${crDst}, [CR${crSrc}], pos=${pos}, w=${width}`;
+            }
+            case 14: return `${mnemonic} DR${crDst}, DR${crSrc}`;
+            case 15: return `${mnemonic} DR${crDst}, DR${crSrc}, DR${imm & 0xF}`;
+            case 16: return `${mnemonic} DR${crDst}, DR${crSrc}, DR${imm & 0xF}`;
+            case 17: {
+                const soff = (imm & 0x4000) ? (imm | 0xFFFF8000) : imm;
+                return `${mnemonic} ${soff >= 0 ? '+' : ''}${soff}`;
+            }
             default: return `??? 0x${word.toString(16)}`;
         }
     }

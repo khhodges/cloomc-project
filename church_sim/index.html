@@ -77,6 +77,7 @@
                         <button class="example-tab" onclick="loadExample('bernoulli')" data-example="bernoulli">Bernoulli</button>
                         <button class="example-tab" onclick="loadExample('conditional')" data-example="conditional">Conditional</button>
                         <button class="example-tab" onclick="loadExample('gc_test')" data-example="gc_test">GC Test</button>
+                        <button class="example-tab" onclick="loadExample('turing_test')" data-example="turing_test">Turing ISA</button>
                     </div>
                     <button class="example-arrow example-arrow-right" onclick="scrollExamples(1)">&rsaquo;</button>
                 </div>
@@ -140,10 +141,9 @@
                 <div class="panel">
                     <div class="panel-title">Architecture</div>
                     <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.6;">
-                        <strong style="color:var(--church-gold);">8 Opcodes:</strong> LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA<br><br>
-                        <strong style="color:var(--church-gold);">Zero</strong> Turing instructions<br><br>
-                        <strong style="color:var(--church-gold);">7-Step Pipeline:</strong><br>
-                        LOAD → TPERM → CALL → LOAD → TPERM → LAMBDA → RETURN<br><br>
+                        <strong style="color:var(--church-gold);">Church (10):</strong> LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA, ELOADCALL, XLOADLAMBDA<br><br>
+                        <strong style="color:var(--church-gold);">Turing (8):</strong> DREAD, DWRITE, BFEXT, BFINS, MCMP, IADD, ISUB, BRANCH + shared RETURN<br><br>
+                        <strong style="color:var(--church-gold);">Address Space:</strong> Memory (0x00-FD) | Devices (0xFE) | Registers (0xFF)<br><br>
                         <strong style="color:var(--church-gold);">Golden Token:</strong><br>
                         Version(7) | Index(17) | Perms(6) | Type(2)
                     </div>

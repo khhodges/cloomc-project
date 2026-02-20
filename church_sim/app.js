@@ -483,15 +483,15 @@ function updateInfoDisplay() {
     const container = document.getElementById('machineInfo');
     if (!container) return;
     container.innerHTML = `
-        <div class="info-item"><span class="info-label">Architecture</span><span class="info-value">Pure Church Machine</span></div>
-        <div class="info-item"><span class="info-label">Base Opcodes</span><span class="info-value">8 (LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA)</span></div>
-        <div class="info-item"><span class="info-label">Fused Opcodes</span><span class="info-value">2 (ELOADCALL, XLOADLAMBDA) \u2014 same security, 57% fewer cycles</span></div>
-        <div class="info-item"><span class="info-label">Instruction</span><span class="info-value">32-bit: opcode[4] | cond[4] | cr_dst[4] | cr_src[4] | imm[16]</span></div>
+        <div class="info-item"><span class="info-label">Architecture</span><span class="info-value">Church Machine (Church + Turing domains)</span></div>
+        <div class="info-item"><span class="info-label">Church Opcodes</span><span class="info-value">10 (LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA, ELOADCALL, XLOADLAMBDA)</span></div>
+        <div class="info-item"><span class="info-label">Turing Opcodes</span><span class="info-value">8 (DREAD, DWRITE, BFEXT, BFINS, MCMP, IADD, ISUB, BRANCH) + shared RETURN</span></div>
+        <div class="info-item"><span class="info-label">Instruction</span><span class="info-value">32-bit: opcode[5] | cond[4] | dst[4] | src[4] | imm[15]</span></div>
         <div class="info-item"><span class="info-label">Conditions</span><span class="info-value">16 ARM-style (EQ, NE, CS, CC, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE, AL, NV)</span></div>
-        <div class="info-item"><span class="info-label">Turing Instructions</span><span class="info-value">ZERO \u2014 Pure Church domain only</span></div>
+        <div class="info-item"><span class="info-label">Address Space</span><span class="info-value">Unified: Memory (0x00-FD) | Devices (0xFE) | Registers (0xFF) \u2014 all GT-protected</span></div>
         <div class="info-item"><span class="info-label">Golden Tokens</span><span class="info-value">32-bit: Version(7) | Index(17) | Perms(6) | Type(2)</span></div>
-        <div class="info-item"><span class="info-label">Security</span><span class="info-value">7-step \u2192 3-step fused \u2192 programmable chain</span></div>
-        <div class="info-item"><span class="info-label">Programmable</span><span class="info-value">Chainable abstractions accept method sequence programs</span></div>
+        <div class="info-item"><span class="info-label">Security Gate</span><span class="info-value">mLoad \u2014 single guard (R\u2192DREAD, W\u2192DWRITE, X\u2192LAMBDA, L\u2192LOAD, S\u2192SAVE, E\u2192CALL)</span></div>
+        <div class="info-item"><span class="info-label">Safe Abstractions</span><span class="info-value">Turing hidden inside Church-callable entries \u2014 CALL in, RETURN out, atomic</span></div>
     `;
 }
 
@@ -805,6 +805,51 @@ LAMBDA CR3             ; ADD reduction (X)
 LOAD CR5, CR6, 24      ; CR5 = GC (E)
 TPERM CR5, E           ; Verify E permission
 CALL CR5               ; Trigger GC abstraction
+
+HALT
+`,
+        'turing_test': `; ============================================
+; Turing ISA Test
+; Exercises IADD, ISUB, MCMP, BRANCH
+; ============================================
+;
+; Turing ISA (9 instructions):
+;   DREAD, DWRITE, BFEXT, BFINS  (R/W via GT)
+;   MCMP, IADD, ISUB, BRANCH, RETURN
+; ============================================
+
+; --- Boot: Load GTs ---
+LOAD CR0, CR6, 7       ; CR0 = SUCC (XLE)
+LOAD CR1, CR6, 9       ; CR1 = ADD (XLE)
+
+; --- Initialize DR1 = 0 ---
+IADD DR1, DR0, DR0     ; DR1 = 0 (Z=1)
+
+; --- Church reduction ---
+LAMBDA CR0             ; SUCC reduction
+
+; --- Integer arithmetic ---
+IADD DR3, DR1, DR2     ; DR3 = DR1 + DR2
+ISUB DR4, DR3, DR1     ; DR4 = DR3 - DR1
+
+; --- MCMP: compare DR4 vs DR2 ---
+MCMP DR4, DR2          ; Should be equal (Z=1)
+BRANCHEQ +2            ; Skip if equal
+IADD DR5, DR1, DR1     ; Skipped
+
+; --- MCMP: nonzero compare ---
+MCMP DR3, DR4          ; DR3 vs DR4
+BRANCHNE +2            ; Skip if not equal
+ISUB DR6, DR1, DR1     ; Skipped if equal
+
+; --- Zero flag test ---
+ISUB DR7, DR3, DR3     ; DR7 = 0 (Z=1)
+BRANCHEQ +2            ; Branch taken
+IADD DR8, DR1, DR1     ; Skipped
+
+; --- Overflow test ---
+IADD DR9, DR3, DR4     ; Sum
+ISUB DR10, DR0, DR1    ; 0 - DR1 (wraps, N=1)
 
 HALT
 `,

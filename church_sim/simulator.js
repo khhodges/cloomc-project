@@ -467,29 +467,29 @@ class ChurchSimulator {
     }
 
     opName(code) {
-        const names = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA','DREAD','DWRITE'];
+        const names = ['LOAD','SAVE','CALL','RETURN','CHANGE','SWITCH','TPERM','LAMBDA','ELOADCALL','XLOADLAMBDA','DREAD','DWRITE','BFEXT','BFINS','MCMP','IADD','ISUB','BRANCH'];
         return names[code] || '???';
     }
 
     decodeInstruction(instr) {
         instr = instr >>> 0;
         return {
-            opcode: (instr >>> 28) & 0xF,
-            cond:   (instr >>> 24) & 0xF,
-            crDst:  (instr >>> 20) & 0xF,
-            crSrc:  (instr >>> 16) & 0xF,
-            imm:    instr & 0xFFFF,
+            opcode: (instr >>> 27) & 0x1F,
+            cond:   (instr >>> 23) & 0xF,
+            crDst:  (instr >>> 19) & 0xF,
+            crSrc:  (instr >>> 15) & 0xF,
+            imm:    instr & 0x7FFF,
             raw:    instr,
         };
     }
 
     encodeInstruction(opcode, cond, crDst, crSrc, imm) {
         return (
-            ((opcode & 0xF) << 28) |
-            ((cond & 0xF) << 24) |
-            ((crDst & 0xF) << 20) |
-            ((crSrc & 0xF) << 16) |
-            (imm & 0xFFFF)
+            ((opcode & 0x1F) << 27) |
+            ((cond & 0xF) << 23) |
+            ((crDst & 0xF) << 19) |
+            ((crSrc & 0xF) << 15) |
+            (imm & 0x7FFF)
         ) >>> 0;
     }
 
@@ -549,6 +549,12 @@ class ChurchSimulator {
             case 9: result = this._execXloadlambda(d); break;
             case 10: result = this._execDread(d); break;
             case 11: result = this._execDwrite(d); break;
+            case 12: result = this._execBfext(d); break;
+            case 13: result = this._execBfins(d); break;
+            case 14: result = this._execMcmp(d); break;
+            case 15: result = this._execIadd(d); break;
+            case 16: result = this._execIsub(d); break;
+            case 17: result = this._execBranch(d); break;
             default:
                 this.fault('INVALID_OP', `Unknown opcode ${d.opcode}`);
                 return null;
@@ -965,6 +971,160 @@ class ChurchSimulator {
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc, pipeline: [
             { stage: 'DWRITE', desc: `Write DR${drIdx} to word ${offset} of ${label}`, perm: 'W', status: 'pass' },
+        ]};
+    }
+
+    _setFlags(result) {
+        result = result >>> 0;
+        this.flags.Z = (result === 0);
+        this.flags.N = ((result >>> 31) & 1) === 1;
+    }
+
+    _setAddFlags(a, b, result) {
+        const r = result >>> 0;
+        this.flags.Z = (r === 0);
+        this.flags.N = ((r >>> 31) & 1) === 1;
+        this.flags.C = (result > 0xFFFFFFFF);
+        const sa = (a >>> 31) & 1;
+        const sb = (b >>> 31) & 1;
+        const sr = (r >>> 31) & 1;
+        this.flags.V = ((sa === sb) && (sr !== sa));
+    }
+
+    _setSubFlags(a, b, result) {
+        const r = result >>> 0;
+        this.flags.Z = (r === 0);
+        this.flags.N = ((r >>> 31) & 1) === 1;
+        this.flags.C = (a >= b);
+        const sa = (a >>> 31) & 1;
+        const sb = (b >>> 31) & 1;
+        const sr = (r >>> 31) & 1;
+        this.flags.V = ((sa !== sb) && (sr !== sa));
+    }
+
+    _execBfext(d) {
+        const dataGT = this.cr[d.crSrc].word0;
+        if (dataGT === 0) {
+            this.fault('NULL_CAP', `BFEXT: CR${d.crSrc} is NULL`);
+            return null;
+        }
+        const check = this.mLoad(dataGT, 'R');
+        if (!check.ok) {
+            this.fault(check.fault, `BFEXT: CR${d.crSrc}: ${check.message}`);
+            return null;
+        }
+        const entry = check.entry;
+        const loc = entry.word0_location;
+        const pos = (d.imm >>> 5) & 0x1F;
+        const width = d.imm & 0x1F;
+        if (width === 0 || pos + width > 32) {
+            this.fault('BOUNDS', `BFEXT: invalid bitfield pos=${pos} width=${width}`);
+            return null;
+        }
+        const word = this.memory[loc] >>> 0;
+        const mask = ((1 << width) - 1) >>> 0;
+        const value = (word >>> pos) & mask;
+        const drIdx = d.crDst;
+        this.dr[drIdx] = value >>> 0;
+        const label = this.nsLabels[check.index] || 'data';
+        const desc = `BFEXT DR${drIdx}, [CR${d.crSrc}], pos=${pos}, w=${width} → 0x${value.toString(16).toUpperCase()} (${label})`;
+        this.output += desc + '\n';
+        this.pc++;
+        return { pc: this.pc - 1, instr: d, desc, pipeline: [
+            { stage: 'BFEXT', desc: `Extract bits [${pos}:${pos+width-1}] from ${label} into DR${drIdx}`, perm: 'R', status: 'pass' },
+        ]};
+    }
+
+    _execBfins(d) {
+        const dataGT = this.cr[d.crSrc].word0;
+        if (dataGT === 0) {
+            this.fault('NULL_CAP', `BFINS: CR${d.crSrc} is NULL`);
+            return null;
+        }
+        const check = this.mLoad(dataGT, 'W');
+        if (!check.ok) {
+            this.fault(check.fault, `BFINS: CR${d.crSrc}: ${check.message}`);
+            return null;
+        }
+        const entry = check.entry;
+        const loc = entry.word0_location;
+        const pos = (d.imm >>> 5) & 0x1F;
+        const width = d.imm & 0x1F;
+        if (width === 0 || pos + width > 32) {
+            this.fault('BOUNDS', `BFINS: invalid bitfield pos=${pos} width=${width}`);
+            return null;
+        }
+        const drIdx = d.crDst;
+        const insertVal = this.dr[drIdx] >>> 0;
+        const mask = (((1 << width) - 1) << pos) >>> 0;
+        const oldWord = this.memory[loc] >>> 0;
+        const newWord = ((oldWord & ~mask) | ((insertVal << pos) & mask)) >>> 0;
+        this.memory[loc] = newWord;
+        const label = this.nsLabels[check.index] || 'data';
+        const desc = `BFINS DR${drIdx}, [CR${d.crSrc}], pos=${pos}, w=${width} ← 0x${(insertVal & ((1 << width) - 1)).toString(16).toUpperCase()} (${label})`;
+        this.output += desc + '\n';
+        this.pc++;
+        return { pc: this.pc - 1, instr: d, desc, pipeline: [
+            { stage: 'BFINS', desc: `Insert bits [${pos}:${pos+width-1}] from DR${drIdx} into ${label}`, perm: 'W', status: 'pass' },
+        ]};
+    }
+
+    _execMcmp(d) {
+        const a = this.dr[d.crDst] >>> 0;
+        const b = this.dr[d.crSrc] >>> 0;
+        this._setSubFlags(a, b, a - b);
+        const desc = `MCMP DR${d.crDst}, DR${d.crSrc} → ${a} vs ${b} [Z=${this.flags.Z?1:0} N=${this.flags.N?1:0} C=${this.flags.C?1:0} V=${this.flags.V?1:0}]`;
+        this.output += desc + '\n';
+        this.pc++;
+        return { pc: this.pc - 1, instr: d, desc, pipeline: [
+            { stage: 'MCMP', desc: `Compare DR${d.crDst}(${a}) with DR${d.crSrc}(${b})`, status: 'pass' },
+        ]};
+    }
+
+    _execIadd(d) {
+        const drA = d.crSrc;
+        const drB = d.imm & 0xF;
+        const a = this.dr[drA] >>> 0;
+        const b = this.dr[drB] >>> 0;
+        const result = a + b;
+        this._setAddFlags(a, b, result);
+        this.dr[d.crDst] = result >>> 0;
+        const desc = `IADD DR${d.crDst}, DR${drA}, DR${drB} → ${a} + ${b} = ${result >>> 0} [Z=${this.flags.Z?1:0} N=${this.flags.N?1:0} C=${this.flags.C?1:0} V=${this.flags.V?1:0}]`;
+        this.output += desc + '\n';
+        this.pc++;
+        return { pc: this.pc - 1, instr: d, desc, pipeline: [
+            { stage: 'IADD', desc: `DR${d.crDst} = DR${drA} + DR${drB}`, status: 'pass' },
+        ]};
+    }
+
+    _execIsub(d) {
+        const drA = d.crSrc;
+        const drB = d.imm & 0xF;
+        const a = this.dr[drA] >>> 0;
+        const b = this.dr[drB] >>> 0;
+        const result = a - b;
+        this._setSubFlags(a, b, result);
+        this.dr[d.crDst] = result >>> 0;
+        const desc = `ISUB DR${d.crDst}, DR${drA}, DR${drB} → ${a} - ${b} = ${result >>> 0} [Z=${this.flags.Z?1:0} N=${this.flags.N?1:0} C=${this.flags.C?1:0} V=${this.flags.V?1:0}]`;
+        this.output += desc + '\n';
+        this.pc++;
+        return { pc: this.pc - 1, instr: d, desc, pipeline: [
+            { stage: 'ISUB', desc: `DR${d.crDst} = DR${drA} - DR${drB}`, status: 'pass' },
+        ]};
+    }
+
+    _execBranch(d) {
+        const soff = (d.imm & 0x4000) ? (d.imm | 0xFFFF8000) : d.imm;
+        const target = this.pc + soff;
+        if (target < 0 || target >= this.memory.length) {
+            this.fault('BOUNDS', `BRANCH: target PC=${target} out of range`);
+            return null;
+        }
+        const desc = `BRANCH ${soff >= 0 ? '+' : ''}${soff} → PC=${target}`;
+        this.output += desc + '\n';
+        this.pc = target;
+        return { pc: this.pc - soff, instr: d, desc, pipeline: [
+            { stage: 'BRANCH', desc: `Branch to PC=${target} (offset ${soff})`, status: 'pass' },
         ]};
     }
 
