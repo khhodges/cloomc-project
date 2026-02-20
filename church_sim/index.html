@@ -67,6 +67,7 @@
                     <button class="btn btn-success" onclick="stepSim()">Step</button>
                     <button class="btn btn-success" onclick="runSim()">Run</button>
                     <button class="btn btn-warning" onclick="resetSim()">Reset</button>
+                    <button class="btn" onclick="runGC()" style="background:#9b59b6;color:#fff;border:none;">Run GC</button>
                 </div>
                 <div class="example-tabs-row">
                     <button class="example-arrow example-arrow-left" onclick="scrollExamples(-1)">&lsaquo;</button>
@@ -75,6 +76,7 @@
                         <button class="example-tab" onclick="loadExample('load_save')" data-example="load_save">Load/Save</button>
                         <button class="example-tab" onclick="loadExample('bernoulli')" data-example="bernoulli">Bernoulli</button>
                         <button class="example-tab" onclick="loadExample('conditional')" data-example="conditional">Conditional</button>
+                        <button class="example-tab" onclick="loadExample('gc_test')" data-example="gc_test">GC Test</button>
                     </div>
                     <button class="example-arrow example-arrow-right" onclick="scrollExamples(1)">&rsaquo;</button>
                 </div>
@@ -184,11 +186,11 @@
         </div>
     </div>
 
-    <script src="simulator.js?v=20260220k"></script>
+    <script src="simulator.js?v=20260220m"></script>
     <script src="assembler.js?v=20260220f"></script>
     <script src="pipeline.js?v=20260220f"></script>
     <script src="repl.js?v=20260220f"></script>
     <script src="tutorial.js?v=20260220f"></script>
-    <script src="app.js?v=20260220k"></script>
+    <script src="app.js?v=20260220m"></script>
 </body>
 </html>

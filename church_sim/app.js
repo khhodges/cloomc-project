@@ -626,6 +626,21 @@ function resetSim() {
     updateDashboard();
 }
 
+function runGC() {
+    if (!sim.bootComplete) {
+        const console = document.getElementById('editorConsole');
+        if (console) console.textContent += '\nGC Error: Boot must complete before running GC.\n';
+        return;
+    }
+    const result = sim.runGC();
+    const console = document.getElementById('editorConsole');
+    if (console) {
+        console.textContent += '\n' + result.report + '\n';
+        console.scrollTop = console.scrollHeight;
+    }
+    updateDashboard();
+}
+
 function loadExample(name) {
     const editor = document.getElementById('asmEditor');
     if (!editor) return;
@@ -750,6 +765,42 @@ LAMBDAEQ CR1           ; Lambda only if equal
 LOADNE CR2, CR6, 10    ; Load SUB only if not-equal (Z=0)
 
 RETURN CR0
+`,
+        'gc_test': `; ============================================
+; Church Machine GC Test (PP250)
+; Pure Church — zero Turing instructions
+; Run AFTER boot completes (6 steps)
+; ============================================
+;
+; Load 5 abstractions into CR0-CR4 (survivors).
+; Everything else becomes garbage.
+; After HALT, press "Run GC" to sweep.
+;
+; Expected: 17 entries freed, 7 survive.
+; ============================================
+
+; --- Phase 1: Load subset into CRs (survivors) ---
+LOAD CR0, CR6, 2       ; CR0 = Lambda    (E)
+LOAD CR1, CR6, 7       ; CR1 = SUCC      (LE)
+LOAD CR2, CR6, 6       ; CR2 = Stack     (E)
+LOAD CR3, CR6, 9       ; CR3 = ADD       (LE)
+LOAD CR4, CR6, 5       ; CR4 = Constants (E)
+
+; --- Phase 2: Verify permissions ---
+TPERM CR0, E           ; Lambda has E? PASS
+TPERM CR1, LE          ; SUCC has L+E? PASS
+TPERM CR2, E           ; Stack has E? PASS
+TPERM CR3, LE          ; ADD has L+E? PASS
+TPERM CR4, E           ; Constants has E? PASS
+
+; --- Phase 3: Exercise live capabilities ---
+LAMBDA CR1             ; Church SUCC reduction
+LAMBDA CR3             ; Church ADD reduction
+
+; --- Phase 4: HALT — ready for GC ---
+; Press "Run GC" to trigger PP250 Mark-Scan-Sweep.
+; Namespace Browser will show 17 entries vanish.
+HALT
 `,
     };
 

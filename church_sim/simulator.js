@@ -322,6 +322,92 @@ class ChurchSimulator {
         this.memory[base + 1] = (w1 | (1 << 29)) >>> 0;
     }
 
+    runGC() {
+        const log = [];
+        log.push('=== PP250 Deterministic Garbage Collection ===');
+        log.push('');
+
+        log.push('--- Phase 1: MARK — set G-bit on all live NS entries ---');
+        let markCount = 0;
+        for (let i = 0; i < this.nsCount; i++) {
+            if (this.isNSEntryValid(i)) {
+                this.setGBit(i);
+                markCount++;
+            }
+        }
+        log.push(`Marked ${markCount} namespace entries as garbage candidates.`);
+        log.push('');
+
+        log.push('--- Phase 2: SCAN — walk all 16 CRs, clear G-bit on referenced entries ---');
+        const liveSet = new Set();
+        for (let cr = 0; cr < 16; cr++) {
+            const gt32 = this.cr[cr].word0;
+            if (gt32 === 0) continue;
+            const parsed = this.parseGT(gt32);
+            const idx = parsed.index;
+            if (idx < this.nsCount && this.isNSEntryValid(idx)) {
+                this.clearGBit(idx);
+                liveSet.add(idx);
+                const label = this.nsLabels[idx] || '(unnamed)';
+                log.push(`  CR${cr} → NS[${idx}] "${label}" — LIVE (G-bit cleared)`);
+            }
+        }
+        log.push(`Scan complete: ${liveSet.size} live entries protected.`);
+        log.push('');
+
+        log.push('--- Phase 3: SWEEP — free entries still marked G=1 ---');
+        let freedSlots = 0;
+        let freedWords = 0;
+        for (let i = 0; i < this.nsCount; i++) {
+            if (!this.isNSEntryValid(i)) continue;
+            const base = this.NS_TABLE_BASE + i * this.NS_ENTRY_WORDS;
+            const w1 = this.memory[base + 1];
+            const gBit = (w1 >>> 29) & 1;
+            if (gBit === 0) continue;
+
+            const entry = this.readNSEntry(i);
+            const label = this.nsLabels[i] || '(unnamed)';
+            const loc = entry ? (entry.word0_location >>> 0) : 0;
+
+            this.memory[base + 0] = 0;
+            this.memory[base + 1] = 0;
+            this.memory[base + 2] = 0;
+
+            const slotBase = loc;
+            let wordsCleared = 0;
+            for (let w = 0; w < this.SLOT_SIZE; w++) {
+                if (this.memory[slotBase + w] !== 0) {
+                    this.memory[slotBase + w] = 0;
+                    wordsCleared++;
+                }
+            }
+            freedWords += wordsCleared;
+            log.push(`  SWEEP NS[${i}] "${label}" @ 0x${loc.toString(16).toUpperCase().padStart(8,'0')} — 3 NS words + ${wordsCleared} object words zeroed`);
+
+            delete this.nsLabels[i];
+            freedSlots++;
+        }
+
+        let newCount = 0;
+        for (let i = this.nsCount - 1; i >= 0; i--) {
+            if (this.isNSEntryValid(i)) {
+                newCount = i + 1;
+                break;
+            }
+        }
+        this.nsCount = newCount;
+
+        log.push('');
+        log.push(`=== GC Complete: ${freedSlots} slots freed, ${freedWords} object memory words reclaimed ===`);
+        log.push(`Namespace entries: ${markCount} → ${this.nsCount} (${freedSlots} swept)`);
+        log.push(`Live entries: ${liveSet.size} (protected by CR references)`);
+
+        const report = log.join('\n');
+        this.output += report + '\n';
+        this.emit('stateChange', this.getState());
+        return { freedSlots, freedWords, liveCount: liveSet.size, report };
+    }
+
     _writeCR(crIdx, gt32, entry) {
         const existing = this.cr[crIdx].word0;
         if (existing !== 0 && !this.mElevation) {
