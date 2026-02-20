@@ -62,6 +62,8 @@ church_bp = Blueprint('church', __name__, url_prefix='/church')
 def church_index():
     resp = make_response(send_from_directory(CHURCH_DIR, 'index.html'))
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
     return resp
 
 @church_bp.route('/<path:path>')
@@ -69,6 +71,8 @@ def church_static(path):
     resp = make_response(send_from_directory(CHURCH_DIR, path))
     if path.endswith(('.js', '.css', '.html')):
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
     return resp
 
 app.register_blueprint(church_bp)
