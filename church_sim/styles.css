@@ -321,25 +321,18 @@ header h1 {
 .info-label { color: var(--text-secondary); }
 .info-value { color: var(--text-primary); font-family: 'Courier New', monospace; }
 
-#editor.active {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
 .editor-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    flex: 1;
-    min-height: 0;
+    height: 100%;
 }
 
 .editor-panel {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .code-editor-wrap {
@@ -468,7 +461,7 @@ header h1 {
 .btn:hover { border-color: var(--accent); }
 
 .btn:disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 

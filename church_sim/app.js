@@ -36,13 +36,17 @@ function init() {
     }
     updateLineNumbers();
     loadNamespaceState();
-    switchView('dashboard');
+    const views = ['dashboard','editor','namespace','pipeline','tutorial','repl'];
+    const hash = window.location.hash.replace('#', '');
+    const startView = views.includes(hash) ? hash : 'dashboard';
+    switchView(startView);
     updateDashboard();
     pipelineViz.render();
 }
 
 function switchView(viewId) {
     currentView = viewId;
+    window.location.hash = viewId;
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const el = document.getElementById(viewId);
     if (el) el.classList.add('active');
