@@ -385,6 +385,7 @@ header h1 {
 .editor-toolbar {
     display: flex;
     gap: 0.5rem;
+    padding: 0.4rem 0;
     margin-bottom: 0.25rem;
     flex-wrap: wrap;
     flex-shrink: 0;
