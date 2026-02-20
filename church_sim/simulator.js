@@ -1,6 +1,10 @@
 class ChurchSimulator {
     constructor() {
         this._listeners = {};
+        this.NS_TABLE_BASE = 0xFD00;
+        this.NS_ENTRY_WORDS = 3;
+        this.MAX_NS_ENTRIES = 256;
+        this.SLOT_SIZE = 0x100;
         this.reset();
     }
 
@@ -33,7 +37,10 @@ class ChurchSimulator {
         this.faultLog = [];
 
         this.memory = new Uint32Array(65536);
-        this.namespaceTable = [];
+
+        this.nsLabels = {};
+        this.nsCount = 0;
+
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
@@ -45,20 +52,80 @@ class ChurchSimulator {
         this.emit('stateChange', this.getState());
     }
 
-    packLimitWord(limit17, bFlag, fFlag) {
-        return (((bFlag & 1) << 31) | ((fFlag & 1) << 30) | (limit17 & 0x1FFFF)) >>> 0;
+    packNSWord1(limit17, bFlag, fFlag, gBit, chainable, gtType) {
+        return (
+            ((bFlag & 1) << 31) |
+            ((fFlag & 1) << 30) |
+            ((gBit & 1) << 29) |
+            ((chainable & 1) << 28) |
+            ((gtType & 3) << 26) |
+            (limit17 & 0x1FFFF)
+        ) >>> 0;
     }
 
-    parseLimitWord(word1) {
+    parseNSWord1(word1) {
         return {
             b: (word1 >>> 31) & 1,
             f: (word1 >>> 30) & 1,
+            g: (word1 >>> 29) & 1,
+            chainable: (word1 >>> 28) & 1,
+            gtType: (word1 >>> 26) & 3,
             limit: word1 & 0x1FFFF,
         };
     }
 
+    packLimitWord(limit17, bFlag, fFlag) {
+        return this.packNSWord1(limit17, bFlag, fFlag, 0, 0, 0);
+    }
+
+    parseLimitWord(word1) {
+        return this.parseNSWord1(word1);
+    }
+
+    writeNSEntry(idx, location, limit17, bFlag, fFlag, gBit, chainable, gtType, version) {
+        const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
+        this.memory[base + 0] = location >>> 0;
+        this.memory[base + 1] = this.packNSWord1(limit17, bFlag, fFlag, gBit, chainable, gtType);
+        this.memory[base + 2] = this.makeVersionSeals(version || 0, location, limit17);
+        if (idx >= this.nsCount) this.nsCount = idx + 1;
+    }
+
+    readNSEntry(idx) {
+        if (idx < 0 || idx >= this.MAX_NS_ENTRIES) return null;
+        const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
+        const w0 = this.memory[base + 0];
+        const w1 = this.memory[base + 1];
+        const w2 = this.memory[base + 2];
+        if (w0 === 0 && w1 === 0 && w2 === 0) return null;
+        const parsed = this.parseNSWord1(w1);
+        return {
+            word0_location: w0,
+            word1_limit: w1,
+            word2_seals: w2,
+            gBit: parsed.g,
+            gtType: parsed.gtType,
+            chainable: parsed.chainable ? true : false,
+            label: this.nsLabels[idx] || '',
+        };
+    }
+
+    isNSEntryValid(idx) {
+        if (idx < 0 || idx >= this.MAX_NS_ENTRIES) return false;
+        const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
+        return (this.memory[base] !== 0 || this.memory[base + 1] !== 0 || this.memory[base + 2] !== 0);
+    }
+
+    get namespaceTable() {
+        const entries = [];
+        for (let i = 0; i < this.nsCount; i++) {
+            entries.push(this.readNSEntry(i));
+        }
+        return entries;
+    }
+
     _initNamespaceTable() {
-        this.namespaceTable = [];
+        this.nsLabels = {};
+        this.nsCount = 0;
         const abstractions = [
             { label: 'Boot',       perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
             { label: 'Threads',    perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
@@ -87,27 +154,17 @@ class ChurchSimulator {
         ];
         for (let i = 0; i < abstractions.length; i++) {
             const a = abstractions[i];
-            const loc = i * 0x100;
+            const loc = i * this.SLOT_SIZE;
             const lim17 = 0xFF;
             const gtWord = this.createGT(0, i, a.perms, 0);
-            this.namespaceTable[i] = {
-                word0_location: loc,
-                word1_limit: this.packLimitWord(lim17, 0, 0),
-                word2_seals: this.makeVersionSeals(0, loc, lim17),
-                gBit: 0,
-                label: a.label,
-                gtType: 0,
-                chainable: a.chainable || false,
-            };
+            this.writeNSEntry(i, loc, lim17, 0, 0, 0, a.chainable ? 1 : 0, 0, 0);
+            this.nsLabels[i] = a.label;
             this.memory[loc] = gtWord;
         }
     }
 
     _bootStep() {
         if (this.bootComplete) return false;
-
-        const bootEntry = this.namespaceTable[0];
-        const threadEntry = this.namespaceTable[1];
 
         switch (this.bootStep) {
             case 0:
@@ -122,22 +179,25 @@ class ChurchSimulator {
                 this.bootStep++;
                 break;
             case 1: {
+                const entry = this.readNSEntry(0);
                 const gt15 = this.createGT(0, 0, {R:0,W:0,X:0,L:0,S:0,E:0}, 0);
-                this._writeCR(15, gt15, bootEntry);
+                this._writeCR(15, gt15, entry);
                 this.output += '[M] CR15 ← Namespace root (gift from heaven, no permissions)\n';
                 this.bootStep++;
                 break;
             }
             case 2: {
+                const entry = this.readNSEntry(1);
                 const gt8 = this.createGT(0, 1, {R:0,W:0,X:0,L:0,S:0,E:0}, 0);
-                this._writeCR(8, gt8, threadEntry);
+                this._writeCR(8, gt8, entry);
                 this.output += '[M] CR8 ← Boot thread (gift from heaven, no permissions)\n';
                 this.bootStep++;
                 break;
             }
             case 3: {
+                const entry = this.readNSEntry(0);
                 const gt6 = this.createGT(0, 0, {R:0,W:0,X:0,L:0,S:0,E:0}, 0);
-                this._writeCR(6, gt6, bootEntry);
+                this._writeCR(6, gt6, entry);
                 this.output += '[M] CR6 ← Boot C-List (gift from heaven, no permissions — M gate handles access)\n';
                 this.bootStep++;
                 break;
@@ -149,7 +209,7 @@ class ChurchSimulator {
                     this.fault('BOOT', `CR7 load via CR6+0 failed: ${check.message}`);
                     return false;
                 }
-                const entry = this.namespaceTable[0];
+                const entry = this.readNSEntry(0);
                 const storedGT = this.memory[entry.word0_location];
                 const gt7 = storedGT || 0;
                 this._writeCR(7, gt7, entry);
@@ -223,16 +283,16 @@ class ChurchSimulator {
     validateMAC(entry) {
         if (!entry) return false;
         const storedSeal = entry.word2_seals & 0x01FFFFFF;
-        const lim = this.parseLimitWord(entry.word1_limit);
+        const lim = this.parseNSWord1(entry.word1_limit);
         return storedSeal === this.computeSeal(entry.word0_location, lim.limit);
     }
 
     mLoad(gt32, requiredPerm) {
         const parsed = this.parseGT(gt32);
-        if (parsed.index >= this.namespaceTable.length) {
+        if (parsed.index >= this.nsCount) {
             return { ok: false, fault: 'BOUNDS', message: `namespace index ${parsed.index} out of bounds` };
         }
-        const entry = this.namespaceTable[parsed.index];
+        const entry = this.readNSEntry(parsed.index);
         if (!entry) {
             return { ok: false, fault: 'BOUNDS', message: `namespace entry ${parsed.index} is null` };
         }
@@ -246,8 +306,20 @@ class ChurchSimulator {
         if (requiredPerm !== null && !this.mElevation && !parsed.permissions[requiredPerm]) {
             return { ok: false, fault: 'PERMISSION', message: `lacks ${requiredPerm} permission` };
         }
-        entry.gBit = 0;
+        this.clearGBit(parsed.index);
         return { ok: true, parsed, entry, index: parsed.index };
+    }
+
+    clearGBit(idx) {
+        const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
+        const w1 = this.memory[base + 1];
+        this.memory[base + 1] = (w1 & ~(1 << 29)) >>> 0;
+    }
+
+    setGBit(idx) {
+        const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
+        const w1 = this.memory[base + 1];
+        this.memory[base + 1] = (w1 | (1 << 29)) >>> 0;
     }
 
     _writeCR(crIdx, gt32, entry) {
@@ -401,11 +473,11 @@ class ChurchSimulator {
             return null;
         }
         const targetIdx = d.imm;
-        if (targetIdx >= this.namespaceTable.length) {
+        if (targetIdx >= this.nsCount || !this.isNSEntryValid(targetIdx)) {
             this.fault('BOUNDS', `LOAD: namespace index ${targetIdx} out of bounds`);
             return null;
         }
-        const entry = this.namespaceTable[targetIdx];
+        const entry = this.readNSEntry(targetIdx);
         if (!entry) {
             this.fault('BOUNDS', `LOAD: entry ${targetIdx} is null`);
             return null;
@@ -416,10 +488,11 @@ class ChurchSimulator {
         }
         const gt = this.memory[entry.word0_location] || 0;
         if (!this._writeCR(d.crDst, gt, entry)) return null;
-        const desc = `LOAD CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${entry.label || 'entry_'+targetIdx}`;
+        const label = this.nsLabels[targetIdx] || 'entry_'+targetIdx;
+        const desc = `LOAD CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${label}`;
         this.output += desc + '\n';
         this.pc++;
-        return { pc: this.pc - 1, instr: d, desc, pipeline: this._loadPipeline(d, entry) };
+        return { pc: this.pc - 1, instr: d, desc, pipeline: this._loadPipeline(d, label) };
     }
 
     _execSave(d) {
@@ -439,25 +512,15 @@ class ChurchSimulator {
             return null;
         }
         const targetIdx = d.imm;
-        if (targetIdx >= this.namespaceTable.length) {
+        if (!this.isNSEntryValid(targetIdx)) {
             const parsed = this.parseGT(srcGT);
-            const loc = targetIdx * 0x100;
+            const loc = targetIdx * this.SLOT_SIZE;
             const lim17 = 0xFF;
-            const entry = {
-                word0_location: loc,
-                word1_limit: this.packLimitWord(lim17, 0, 0),
-                word2_seals: this.makeVersionSeals(0, loc, lim17),
-                gBit: 0,
-                label: `dyn_${targetIdx}`,
-                gtType: parsed.type,
-                chainable: false,
-            };
-            while (this.namespaceTable.length <= targetIdx) {
-                this.namespaceTable.push(null);
-            }
-            this.namespaceTable[targetIdx] = entry;
+            this.writeNSEntry(targetIdx, loc, lim17, 0, 0, 0, 0, parsed.type, 0);
+            this.nsLabels[targetIdx] = `dyn_${targetIdx}`;
         }
-        const saveLoc = this.namespaceTable[targetIdx].word0_location;
+        const entry = this.readNSEntry(targetIdx);
+        const saveLoc = entry.word0_location;
         this.memory[saveLoc] = srcGT;
         const desc = `SAVE CR${d.crDst} → [CR${d.crSrc} + ${targetIdx}]`;
         this.output += desc + '\n';
@@ -484,11 +547,11 @@ class ChurchSimulator {
             savedFlags: {...this.flags},
         });
 
-        const entry = check.entry;
-        const desc = `CALL CR${d.crDst} → ${entry.label || 'abstraction'}`;
+        const label = this.nsLabels[check.index] || 'abstraction';
+        const desc = `CALL CR${d.crDst} → ${label}`;
         this.output += desc + '\n';
         this.pc++;
-        return { pc: this.pc - 1, instr: d, desc, pipeline: this._callPipeline(d, entry) };
+        return { pc: this.pc - 1, instr: d, desc, pipeline: this._callPipeline(d, label) };
     }
 
     _execReturn(d) {
@@ -513,11 +576,11 @@ class ChurchSimulator {
             return null;
         }
         const targetIdx = d.imm;
-        if (targetIdx >= this.namespaceTable.length) {
+        if (targetIdx >= this.nsCount || !this.isNSEntryValid(targetIdx)) {
             this.fault('BOUNDS', `CHANGE: index ${targetIdx} out of bounds`);
             return null;
         }
-        const entry = this.namespaceTable[targetIdx];
+        const entry = this.readNSEntry(targetIdx);
         if (!entry) {
             this.fault('BOUNDS', `CHANGE: entry ${targetIdx} is null`);
             return null;
@@ -613,11 +676,11 @@ class ChurchSimulator {
             return null;
         }
 
-        const entry = check.entry;
-        const desc = `LAMBDA CR${crIdx} → ${entry.label || 'reduction'}`;
+        const label = this.nsLabels[check.index] || 'reduction';
+        const desc = `LAMBDA CR${crIdx} → ${label}`;
         this.output += desc + '\n';
         this.pc++;
-        return { pc: this.pc - 1, instr: d, desc, pipeline: this._lambdaPipeline(d, entry) };
+        return { pc: this.pc - 1, instr: d, desc, pipeline: this._lambdaPipeline(d, label) };
     }
 
     _execEloadcall(d) {
@@ -633,11 +696,11 @@ class ChurchSimulator {
         }
 
         const targetIdx = d.imm;
-        if (targetIdx >= this.namespaceTable.length) {
+        if (targetIdx >= this.nsCount || !this.isNSEntryValid(targetIdx)) {
             this.fault('BOUNDS', `ELOADCALL: namespace index ${targetIdx} out of bounds`);
             return null;
         }
-        const entry = this.namespaceTable[targetIdx];
+        const entry = this.readNSEntry(targetIdx);
         if (!entry) {
             this.fault('BOUNDS', `ELOADCALL: entry ${targetIdx} is null`);
             return null;
@@ -663,10 +726,11 @@ class ChurchSimulator {
             savedFlags: {...this.flags},
         });
 
-        const desc = `ELOADCALL CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${entry.label || 'abstraction'} (LOAD+TPERM+CALL)`;
+        const label = this.nsLabels[targetIdx] || 'abstraction';
+        const desc = `ELOADCALL CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${label} (LOAD+TPERM+CALL)`;
         this.output += desc + '\n';
         this.pc++;
-        return { pc: this.pc - 1, instr: d, desc, pipeline: this._eloadcallPipeline(d, entry) };
+        return { pc: this.pc - 1, instr: d, desc, pipeline: this._eloadcallPipeline(d, label) };
     }
 
     _execXloadlambda(d) {
@@ -682,11 +746,11 @@ class ChurchSimulator {
         }
 
         const slotIdx = d.imm;
-        if (slotIdx >= this.namespaceTable.length) {
+        if (slotIdx >= this.nsCount || !this.isNSEntryValid(slotIdx)) {
             this.fault('BOUNDS', `XLOADLAMBDA: slot ${slotIdx} out of bounds`);
             return null;
         }
-        const entry = this.namespaceTable[slotIdx];
+        const entry = this.readNSEntry(slotIdx);
         if (!entry) {
             this.fault('BOUNDS', `XLOADLAMBDA: slot ${slotIdx} is null`);
             return null;
@@ -705,42 +769,43 @@ class ChurchSimulator {
             return null;
         }
 
-        const desc = `XLOADLAMBDA CR${d.crDst}, [CR${d.crSrc} + ${slotIdx}] → ${entry.label || 'slot'} (LOAD+TPERM+LAMBDA)`;
+        const label = this.nsLabels[slotIdx] || 'slot';
+        const desc = `XLOADLAMBDA CR${d.crDst}, [CR${d.crSrc} + ${slotIdx}] → ${label} (LOAD+TPERM+LAMBDA)`;
         this.output += desc + '\n';
         this.pc++;
-        return { pc: this.pc - 1, instr: d, desc, pipeline: this._xloadlambdaPipeline(d, entry) };
+        return { pc: this.pc - 1, instr: d, desc, pipeline: this._xloadlambdaPipeline(d, label) };
     }
 
-    _eloadcallPipeline(d, entry) {
+    _eloadcallPipeline(d, label) {
         return [
             { stage: 'LOAD', desc: `Namespace lookup via CR${d.crSrc}, index ${d.imm}`, perm: 'L', status: 'pass' },
-            { stage: 'TPERM', desc: `Verify E permission on ${entry.label || 'target'}`, perm: 'E', status: 'pass' },
-            { stage: 'CALL', desc: `Enter ${entry.label || 'abstraction'}, save context`, status: 'pass' },
+            { stage: 'TPERM', desc: `Verify E permission on ${label}`, perm: 'E', status: 'pass' },
+            { stage: 'CALL', desc: `Enter ${label}, save context`, status: 'pass' },
         ];
     }
 
-    _xloadlambdaPipeline(d, entry) {
+    _xloadlambdaPipeline(d, label) {
         return [
             { stage: 'LOAD', desc: `C-List slot lookup [CR${d.crSrc} + ${d.imm}]`, perm: 'L', status: 'pass' },
-            { stage: 'TPERM', desc: `Verify X permission on ${entry.label || 'slot'}`, perm: 'X', status: 'pass' },
-            { stage: 'LAMBDA', desc: `Church reduction via ${entry.label || 'lambda'}`, status: 'pass' },
+            { stage: 'TPERM', desc: `Verify X permission on ${label}`, perm: 'X', status: 'pass' },
+            { stage: 'LAMBDA', desc: `Church reduction via ${label}`, status: 'pass' },
         ];
     }
 
-    _loadPipeline(d, entry) {
+    _loadPipeline(d, label) {
         return [
             { stage: 'LOAD', desc: `Namespace lookup via CR${d.crSrc}`, perm: 'L', status: 'pass' },
             { stage: 'TPERM', desc: `Verify L permission on CR${d.crSrc}`, perm: 'L', status: 'pass' },
             { stage: 'VALIDATE', desc: `FNV seal check on entry ${d.imm}`, status: 'pass' },
-            { stage: 'WRITE', desc: `Write ${entry.label || 'entry'} to CR${d.crDst}`, status: 'pass' },
+            { stage: 'WRITE', desc: `Write ${label} to CR${d.crDst}`, status: 'pass' },
         ];
     }
 
-    _callPipeline(d, entry) {
+    _callPipeline(d, label) {
         return [
             { stage: 'LOAD', desc: `Read target GT from CR${d.crDst}`, perm: 'L', status: 'pass' },
             { stage: 'TPERM', desc: `Verify E permission on target`, perm: 'E', status: 'pass' },
-            { stage: 'CALL', desc: `Enter ${entry.label || 'abstraction'}, save context`, status: 'pass' },
+            { stage: 'CALL', desc: `Enter ${label}, save context`, status: 'pass' },
         ];
     }
 
@@ -760,11 +825,11 @@ class ChurchSimulator {
         ];
     }
 
-    _lambdaPipeline(d, entry) {
+    _lambdaPipeline(d, label) {
         return [
             { stage: 'LOAD', desc: `Read CR${d.crDst} GT`, perm: 'L', status: 'pass' },
             { stage: 'TPERM', desc: `Verify E permission`, perm: 'E', status: 'pass' },
-            { stage: 'LAMBDA', desc: `Church reduction via ${entry.label || 'lambda'}`, status: 'pass' },
+            { stage: 'LAMBDA', desc: `Church reduction via ${label}`, status: 'pass' },
         ];
     }
 
@@ -826,7 +891,7 @@ class ChurchSimulator {
             };
         }
         const parsed = this.parseGT(cr.word0);
-        const lim = this.parseLimitWord(cr.word2);
+        const lim = this.parseNSWord1(cr.word2);
         const sealVer = (cr.word3 >>> 25) & 0x7F;
         const sealFNV = cr.word3 & 0x01FFFFFF;
         const permStr = (parsed.permissions.R ? 'R' : '-') +
@@ -857,25 +922,20 @@ class ChurchSimulator {
     saveToNamespace(label, words, perms, gtType) {
         perms = perms || {R:0,W:0,X:1,L:0,S:0,E:0};
         gtType = gtType || 0;
-        let idx = this.namespaceTable.findIndex(e => e && e.label === label);
-        if (idx === -1) {
-            idx = this.namespaceTable.length;
+        let idx = -1;
+        for (let i = 0; i < this.nsCount; i++) {
+            if (this.nsLabels[i] === label) { idx = i; break; }
         }
-        const loc = idx * 0x100;
+        if (idx === -1) {
+            idx = this.nsCount;
+        }
+        const loc = idx * this.SLOT_SIZE;
         const codeLen = words.length;
         const totalLen = 1 + codeLen;
         const lim17 = Math.min(totalLen - 1, 0x1FFFF);
         const gtWord = this.createGT(0, idx, perms, gtType);
-        this.namespaceTable[idx] = {
-            word0_location: loc,
-            word1_limit: this.packLimitWord(lim17, 0, 0),
-            word2_seals: this.makeVersionSeals(0, loc, lim17),
-            gBit: 0,
-            label: label,
-            gtType: gtType,
-            chainable: false,
-            codeLength: codeLen,
-        };
+        this.writeNSEntry(idx, loc, lim17, 0, 0, 0, 0, gtType, 0);
+        this.nsLabels[idx] = label;
         this.memory[loc] = gtWord;
         for (let i = 0; i < codeLen; i++) {
             this.memory[loc + 1 + i] = words[i] >>> 0;
@@ -887,24 +947,16 @@ class ChurchSimulator {
     saveToNamespaceAt(idx, label, words, perms, gtType) {
         perms = perms || {R:0,W:0,X:1,L:0,S:0,E:0};
         gtType = gtType || 0;
-        const loc = idx * 0x100;
+        const loc = idx * this.SLOT_SIZE;
         const codeLen = words.length;
         const totalLen = 1 + codeLen;
         const lim17 = Math.min(totalLen - 1, 0x1FFFF);
         const gtWord = this.createGT(0, idx, perms, gtType);
-        for (let j = 0; j < 0x100; j++) {
+        for (let j = 0; j < this.SLOT_SIZE; j++) {
             if (loc + j < this.memory.length) this.memory[loc + j] = 0;
         }
-        this.namespaceTable[idx] = {
-            word0_location: loc,
-            word1_limit: this.packLimitWord(lim17, 0, 0),
-            word2_seals: this.makeVersionSeals(0, loc, lim17),
-            gBit: 0,
-            label: label,
-            gtType: gtType,
-            chainable: false,
-            codeLength: codeLen,
-        };
+        this.writeNSEntry(idx, loc, lim17, 0, 0, 0, 0, gtType, 0);
+        this.nsLabels[idx] = label;
         this.memory[loc] = gtWord;
         for (let i = 0; i < codeLen; i++) {
             this.memory[loc + 1 + i] = words[i] >>> 0;
@@ -914,30 +966,43 @@ class ChurchSimulator {
     }
 
     getEntryMemory(idx) {
-        const entry = this.namespaceTable[idx];
+        const entry = this.readNSEntry(idx);
         if (!entry) return null;
         const loc = entry.word0_location;
-        const lim = this.parseLimitWord(entry.word1_limit);
+        const lim = this.parseNSWord1(entry.word1_limit);
         const gt = this.memory[loc];
         const codeWords = [];
         for (let i = 1; i <= lim.limit; i++) {
             codeWords.push(this.memory[loc + i]);
         }
-        return { label: entry.label, location: loc, limit: lim.limit, gt: gt, words: codeWords, codeLength: entry.codeLength || codeWords.length };
+        return { label: entry.label, location: loc, limit: lim.limit, gt: gt, words: codeWords, codeLength: codeWords.length };
     }
 
     setEntryMemory(idx, dataWords) {
-        const entry = this.namespaceTable[idx];
+        const entry = this.readNSEntry(idx);
         if (!entry) return false;
         const loc = entry.word0_location;
         const lim17 = Math.min(dataWords.length - 1, 0x1FFFF);
-        entry.word1_limit = this.packLimitWord(lim17, 0, 0);
-        entry.word2_seals = this.makeVersionSeals(0, loc, lim17);
+        const parsed = this.parseNSWord1(entry.word1_limit);
+        this.writeNSEntry(idx, loc, lim17, parsed.b, parsed.f, parsed.g, parsed.chainable, parsed.gtType, (entry.word2_seals >>> 25) & 0x7F);
         for (let i = 0; i < dataWords.length; i++) {
             this.memory[loc + i] = dataWords[i] >>> 0;
         }
         this.emit('stateChange', this.getState());
         return true;
+    }
+
+    getNSTableMemoryDump() {
+        const dump = [];
+        for (let i = 0; i < this.nsCount; i++) {
+            const base = this.NS_TABLE_BASE + i * this.NS_ENTRY_WORDS;
+            dump.push({
+                index: i,
+                label: this.nsLabels[i] || '',
+                raw: [this.memory[base], this.memory[base + 1], this.memory[base + 2]],
+            });
+        }
+        return dump;
     }
 }
 

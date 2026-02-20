@@ -176,7 +176,6 @@ function updateCRDetail() {
     const hasL = parsedPerms.L;
     const crMbit = sim.cr[crIdx].m;
     const nsIdx = cr.gtIndex;
-    const ns = sim.namespaceTable;
 
     const codeRegs = [7];
     const clistRegs = [6];
@@ -240,11 +239,12 @@ function updateCRDetail() {
         const baseLoc = cr.word1_location >>> 0;
         const limitVal = cr.limit17;
         const clistEntries = [];
-        for (let i = 0; i < ns.length; i++) {
-            const e = ns[i];
+        for (let i = 0; i < sim.nsCount; i++) {
+            const e = sim.readNSEntry(i);
+            if (!e) continue;
             const eLoc = e.word0_location >>> 0;
-            const eLim = sim.parseLimitWord(e.word1_limit);
-            if (eLoc >= baseLoc && eLoc <= baseLoc + limitVal * 0x100) {
+            const eLim = sim.parseNSWord1(e.word1_limit);
+            if (eLoc >= baseLoc && eLoc <= baseLoc + limitVal * sim.SLOT_SIZE) {
                 clistEntries.push({ idx: i, entry: e, loc: eLoc, lim: eLim });
             }
         }
@@ -288,7 +288,7 @@ function updateCRDetail() {
         html += `<tr><td style="color:var(--church-blue)">Thread Index</td><td>${cr.gtIndex}</td></tr>`;
         html += `<tr><td style="color:var(--church-blue)">M bit</td><td class="${cr.mBit ? 'cr-m-set' : ''}">${cr.mBit}</td></tr>`;
         html += `<tr><td style="color:var(--church-blue)">Boot Gift</td><td>${cr.mBit ? 'Written under M elevation' : 'Normal'}</td></tr>`;
-        const threadNS = cr.gtIndex < ns.length ? ns[cr.gtIndex] : null;
+        const threadNS = sim.readNSEntry(cr.gtIndex);
         if (threadNS) {
             html += `<tr><td style="color:var(--church-blue)">NS Label</td><td>${threadNS.label || '(unnamed)'}</td></tr>`;
             html += `<tr><td style="color:var(--church-blue)">Chainable</td><td>${threadNS.chainable ? 'Yes' : 'No'}</td></tr>`;
@@ -300,15 +300,16 @@ function updateCRDetail() {
     if (showNS) {
         html += '<div class="cr-detail-section">';
         html += '<div class="cr-detail-heading">Namespace Root — All Entries</div>';
-        if (ns.length === 0) {
+        if (sim.nsCount === 0) {
             html += '<div style="color:var(--text-secondary);padding:0.5rem;">Namespace table is empty.</div>';
         } else {
             html += '<table class="cr-table"><thead><tr>';
             html += '<th>Idx</th><th>Label</th><th>Perms</th><th>Type</th><th>Location</th><th>B</th><th>G</th><th>Chain</th>';
             html += '</tr></thead><tbody>';
             const typeNames = ['NULL','Abstract','Outform','Inform'];
-            for (let i = 0; i < ns.length; i++) {
-                const e = ns[i];
+            for (let i = 0; i < sim.nsCount; i++) {
+                const e = sim.readNSEntry(i);
+                if (!e) continue;
                 const storedGT = sim.memory[e.word0_location];
                 let permStr = '------';
                 if (storedGT) {
@@ -322,7 +323,7 @@ function updateCRDetail() {
                 html += `<td class="cr-perms">[${permStr}]</td>`;
                 html += `<td>${typeNames[e.gtType] || '?'}</td>`;
                 html += `<td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td>`;
-                html += `<td class="cr-flag">${sim.parseLimitWord(e.word1_limit).b}</td>`;
+                html += `<td class="cr-flag">${sim.parseNSWord1(e.word1_limit).b}</td>`;
                 html += `<td class="cr-flag">${e.gBit}</td>`;
                 html += `<td>${e.chainable ? 'Yes' : 'No'}</td>`;
                 html += '</tr>';
@@ -357,13 +358,14 @@ function updateCRDetail() {
     html += '</tbody></table>';
     html += '</div>';
 
-    if (nsIdx < ns.length) {
-        const entry = ns[nsIdx];
+    const nsEntry = sim.readNSEntry(nsIdx);
+    if (nsEntry) {
+        const entry = nsEntry;
         html += '<div class="cr-detail-section">';
         html += `<div class="cr-detail-heading">Namespace Entry [${nsIdx}] — ${entry.label || 'unnamed'}</div>`;
 
         const loc = entry.word0_location >>> 0;
-        const lim = sim.parseLimitWord(entry.word1_limit);
+        const lim = sim.parseNSWord1(entry.word1_limit);
         const sealVer = (entry.word2_seals >>> 25) & 0x7F;
         const sealFNV = entry.word2_seals & 0x01FFFFFF;
         const gtPermStr = cr.perms;
@@ -515,10 +517,10 @@ function updateNamespace() {
     html += '<th>G</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
 
-    for (let i = 0; i < sim.namespaceTable.length; i++) {
-        const e = sim.namespaceTable[i];
+    for (let i = 0; i < sim.nsCount; i++) {
+        const e = sim.readNSEntry(i);
         if (!e) continue;
-        const lim = sim.parseLimitWord(e.word1_limit);
+        const lim = sim.parseNSWord1(e.word1_limit);
         const ver = (e.word2_seals >>> 25) & 0x7F;
         const seal = e.word2_seals & 0x01FFFFFF;
         const storedGT = sim.memory[e.word0_location];
@@ -929,8 +931,8 @@ function showSaveToNamespace() {
     newOpt.value = 'new';
     newOpt.textContent = '— New Entry —';
     slotSel.appendChild(newOpt);
-    for (let i = 0; i < sim.namespaceTable.length; i++) {
-        const e = sim.namespaceTable[i];
+    for (let i = 0; i < sim.nsCount; i++) {
+        const e = sim.readNSEntry(i);
         if (!e) continue;
         const opt = document.createElement('option');
         opt.value = i;
@@ -968,19 +970,19 @@ function onSlotChange() {
         document.getElementById('permE').checked = false;
     } else {
         const idx = parseInt(slotSel.value);
-        const entry = sim.namespaceTable[idx];
+        const entry = sim.readNSEntry(idx);
         if (entry) {
             labelInput.value = entry.label;
             labelInput.disabled = false;
             document.getElementById('saveNSType').value = String(entry.gtType || 0);
             const gt = sim.memory[entry.word0_location];
-            const permBits = (gt >>> 2) & 0x3F;
-            document.getElementById('permR').checked = !!(permBits & 0x20);
-            document.getElementById('permW').checked = !!(permBits & 0x10);
-            document.getElementById('permX').checked = !!(permBits & 0x08);
-            document.getElementById('permL').checked = !!(permBits & 0x04);
-            document.getElementById('permS').checked = !!(permBits & 0x02);
-            document.getElementById('permE').checked = !!(permBits & 0x01);
+            const p = sim.parseGT(gt).permissions;
+            document.getElementById('permR').checked = !!p.R;
+            document.getElementById('permW').checked = !!p.W;
+            document.getElementById('permX').checked = !!p.X;
+            document.getElementById('permL').checked = !!p.L;
+            document.getElementById('permS').checked = !!p.S;
+            document.getElementById('permE').checked = !!p.E;
         }
     }
 }
@@ -1025,7 +1027,7 @@ function confirmSaveToNamespace() {
 function exportEntryMemory(idx) {
     const data = sim.getEntryMemory(idx);
     if (!data) return;
-    const entry = sim.namespaceTable[idx];
+    const entry = sim.readNSEntry(idx);
     const hexWords = data.words.map(w => '0x' + (w >>> 0).toString(16).padStart(8, '0'));
     let permObj = {};
     if (data.gt) {
@@ -1055,8 +1057,8 @@ function exportEntryMemory(idx) {
 
 function exportAllNamespace() {
     const entries = [];
-    for (let i = 0; i < sim.namespaceTable.length; i++) {
-        const e = sim.namespaceTable[i];
+    for (let i = 0; i < sim.nsCount; i++) {
+        const e = sim.readNSEntry(i);
         if (!e) continue;
         const mem = sim.getEntryMemory(i);
         const hexWords = mem ? mem.words.map(w => '0x' + (w >>> 0).toString(16).padStart(8, '0')) : [];
@@ -1109,33 +1111,38 @@ function handleNSImport(event) {
                 const words = parseCodeWords(data.code || data.words || []);
                 if (words.length > 0) {
                     sim.setEntryMemory(importTargetIdx, words);
-                    if (data.label && sim.namespaceTable[importTargetIdx]) {
-                        sim.namespaceTable[importTargetIdx].label = data.label;
-                    }
-                    if (data.codeLength !== undefined && sim.namespaceTable[importTargetIdx]) {
-                        sim.namespaceTable[importTargetIdx].codeLength = data.codeLength;
+                    if (data.label) {
+                        sim.nsLabels[importTargetIdx] = data.label;
                     }
                 }
                 importTargetIdx = null;
             } else if (data.namespace && Array.isArray(data.namespace)) {
                 for (const item of data.namespace) {
                     const words = parseCodeWords(item.code || item.words || []);
-                    if (item.entry && words.length > 0) {
-                        const idx = item.index !== undefined ? item.index : sim.namespaceTable.length;
-                        while (sim.namespaceTable.length <= idx) sim.namespaceTable.push(null);
-                        sim.namespaceTable[idx] = item.entry;
-                        sim.setEntryMemory(idx, words);
+                    if (words.length > 0) {
+                        const idx = item.index !== undefined ? item.index : sim.nsCount;
+                        const loc = idx * sim.SLOT_SIZE;
+                        const lim17 = Math.min(words.length - 1, 0x1FFFF);
+                        const gtType = (item.entry && item.entry.gtType) || 0;
+                        const chainable = (item.entry && item.entry.chainable) ? 1 : 0;
+                        sim.writeNSEntry(idx, loc, lim17, 0, 0, 0, chainable, gtType, 0);
+                        sim.nsLabels[idx] = item.label || (item.entry && item.entry.label) || `import_${idx}`;
+                        for (let j = 0; j < words.length; j++) {
+                            sim.memory[loc + j] = words[j] >>> 0;
+                        }
                     }
                 }
             } else if (data.label) {
                 const words = parseCodeWords(data.code || data.words || []);
-                const idx = sim.namespaceTable.length;
-                if (data.entry) {
-                    sim.namespaceTable[idx] = data.entry;
-                    sim.namespaceTable[idx].word0_location = idx * 0x100;
-                }
-                if (words.length > 0) {
-                    sim.setEntryMemory(idx, words);
+                const idx = sim.nsCount;
+                const loc = idx * sim.SLOT_SIZE;
+                const lim17 = Math.min(Math.max(words.length - 1, 0), 0x1FFFF);
+                const gtType = (data.entry && data.entry.gtType) || 0;
+                const chainable = (data.entry && data.entry.chainable) ? 1 : 0;
+                sim.writeNSEntry(idx, loc, lim17, 0, 0, 0, chainable, gtType, 0);
+                sim.nsLabels[idx] = data.label;
+                for (let j = 0; j < words.length; j++) {
+                    sim.memory[loc + j] = words[j] >>> 0;
                 }
             }
             saveNamespaceState();
@@ -1151,13 +1158,15 @@ function handleNSImport(event) {
 
 function saveNamespaceState() {
     const entries = [];
-    for (let i = 0; i < sim.namespaceTable.length; i++) {
-        const e = sim.namespaceTable[i];
+    for (let i = 0; i < sim.nsCount; i++) {
+        const e = sim.readNSEntry(i);
         if (!e) { entries.push(null); continue; }
         const mem = sim.getEntryMemory(i);
+        const base = sim.NS_TABLE_BASE + i * sim.NS_ENTRY_WORDS;
         entries.push({
-            entry: e,
-            words: mem ? mem.words : [],
+            nsWords: [sim.memory[base], sim.memory[base + 1], sim.memory[base + 2]],
+            label: e.label,
+            dataWords: mem ? [mem.gt, ...mem.words] : [],
         });
     }
     localStorage.setItem('church_namespace', JSON.stringify(entries));
@@ -1171,15 +1180,29 @@ function loadNamespaceState() {
         for (let i = 0; i < entries.length; i++) {
             const item = entries[i];
             if (!item) continue;
-            if (i < sim.namespaceTable.length && sim.namespaceTable[i]) {
-                continue;
-            }
-            while (sim.namespaceTable.length <= i) sim.namespaceTable.push(null);
-            sim.namespaceTable[i] = item.entry;
-            if (item.words && item.words.length > 0) {
-                const loc = item.entry.word0_location;
-                for (let j = 0; j < item.words.length; j++) {
-                    sim.memory[loc + j] = item.words[j] >>> 0;
+            if (sim.isNSEntryValid(i)) continue;
+            if (item.nsWords && item.nsWords.length === 3) {
+                const base = sim.NS_TABLE_BASE + i * sim.NS_ENTRY_WORDS;
+                sim.memory[base + 0] = item.nsWords[0] >>> 0;
+                sim.memory[base + 1] = item.nsWords[1] >>> 0;
+                sim.memory[base + 2] = item.nsWords[2] >>> 0;
+                if (i >= sim.nsCount) sim.nsCount = i + 1;
+                if (item.label) sim.nsLabels[i] = item.label;
+                if (item.dataWords && item.dataWords.length > 0) {
+                    const loc = item.nsWords[0] >>> 0;
+                    for (let j = 0; j < item.dataWords.length; j++) {
+                        sim.memory[loc + j] = item.dataWords[j] >>> 0;
+                    }
+                }
+            } else if (item.entry) {
+                const loc = item.entry.word0_location || (i * sim.SLOT_SIZE);
+                const lim = sim.parseNSWord1(item.entry.word1_limit || 0);
+                sim.writeNSEntry(i, loc, lim.limit, lim.b, lim.f, item.entry.gBit || 0, item.entry.chainable ? 1 : 0, item.entry.gtType || 0, 0);
+                sim.nsLabels[i] = item.entry.label || '';
+                if (item.words && item.words.length > 0) {
+                    for (let j = 0; j < item.words.length; j++) {
+                        sim.memory[loc + j] = item.words[j] >>> 0;
+                    }
                 }
             }
         }
