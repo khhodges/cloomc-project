@@ -505,6 +505,7 @@ header h1 {
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 0.75rem;
+    margin-top: 0.4rem;
     font-family: 'Courier New', monospace;
     font-size: 0.8rem;
     overflow-y: auto;
