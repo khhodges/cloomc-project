@@ -889,12 +889,19 @@ function confirmSaveToNamespace() {
 function exportEntryMemory(idx) {
     const data = sim.getEntryMemory(idx);
     if (!data) return;
+    const entry = sim.namespaceTable[idx];
+    const hexWords = data.words.map(w => '0x' + (w >>> 0).toString(16).padStart(8, '0'));
     const exportObj = {
         label: data.label,
-        location: data.location,
-        limit: data.limit,
-        words: data.words,
-        entry: sim.namespaceTable[idx],
+        index: idx,
+        location: '0x' + data.location.toString(16),
+        gt: '0x' + (data.gt >>> 0).toString(16).padStart(8, '0'),
+        codeLength: data.codeLength,
+        code: hexWords,
+        permissions: entry ? {
+            R: (entry.word0_location !== undefined) ? ((sim.createGT(0, idx, {R:1,W:0,X:0,L:0,S:0,E:0}, 0) >> 2) & 1) : 0
+        } : {},
+        entry: entry,
     };
     const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -911,11 +918,14 @@ function exportAllNamespace() {
         const e = sim.namespaceTable[i];
         if (!e) continue;
         const mem = sim.getEntryMemory(i);
+        const hexWords = mem ? mem.words.map(w => '0x' + (w >>> 0).toString(16).padStart(8, '0')) : [];
         entries.push({
             index: i,
             label: e.label,
+            gt: mem ? '0x' + (mem.gt >>> 0).toString(16).padStart(8, '0') : '0x00000000',
+            codeLength: mem ? mem.codeLength : 0,
+            code: hexWords,
             entry: e,
-            words: mem ? mem.words : [],
         });
     }
     const blob = new Blob([JSON.stringify({ namespace: entries }, null, 2)], { type: 'application/json' });

@@ -862,7 +862,9 @@ class ChurchSimulator {
             idx = this.namespaceTable.length;
         }
         const loc = idx * 0x100;
-        const lim17 = Math.min(words.length, 0xFF);
+        const codeLen = words.length;
+        const totalLen = 1 + codeLen;
+        const lim17 = Math.min(totalLen - 1, 0x1FFFF);
         const gtWord = this.createGT(0, idx, perms, gtType);
         this.namespaceTable[idx] = {
             word0_location: loc,
@@ -872,9 +874,10 @@ class ChurchSimulator {
             label: label,
             gtType: gtType,
             chainable: false,
+            codeLength: codeLen,
         };
         this.memory[loc] = gtWord;
-        for (let i = 0; i < words.length; i++) {
+        for (let i = 0; i < codeLen; i++) {
             this.memory[loc + 1 + i] = words[i] >>> 0;
         }
         this.emit('stateChange', this.getState());
@@ -886,11 +889,12 @@ class ChurchSimulator {
         if (!entry) return null;
         const loc = entry.word0_location;
         const lim = this.parseLimitWord(entry.word1_limit);
-        const words = [];
-        for (let i = 0; i <= lim.limit; i++) {
-            words.push(this.memory[loc + i] || 0);
+        const gt = this.memory[loc];
+        const codeWords = [];
+        for (let i = 1; i <= lim.limit; i++) {
+            codeWords.push(this.memory[loc + i]);
         }
-        return { label: entry.label, location: loc, limit: lim.limit, words };
+        return { label: entry.label, location: loc, limit: lim.limit, gt: gt, words: codeWords, codeLength: entry.codeLength || codeWords.length };
     }
 
     setEntryMemory(idx, dataWords) {
