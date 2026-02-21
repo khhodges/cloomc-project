@@ -1386,16 +1386,16 @@ const INSTRUCTION_DATA = [
     {
         opcode: 4, mnemonic: 'CHANGE', domain: 'church',
         syntax: 'CHANGE CRd, imm',
-        brief: 'Attenuate a capability — load a reduced-permission GT',
-        encoding: 'opcode[5]=00100 | cond[4] | CRd[4] | CRs[4] | idx[15]',
+        brief: 'Suspend/activate thread — save and load all machine registers',
+        encoding: 'opcode[5]=00100 | cond[4] | CRd[4] | 0[4] | idx[15]',
         fields: [
-            { name: 'CRd', desc: 'Destination context register' },
-            { name: 'imm', desc: 'Namespace entry index to change to' },
+            { name: 'CRd', desc: 'Thread GT — identifies the thread to change to' },
+            { name: 'imm', desc: 'Thread control flags' },
         ],
-        permission: 'Source GT must be non-NULL',
+        permission: 'Thread GT must be valid',
         flags: 'None',
-        details: 'Loads a GT from the namespace with potentially reduced permissions. Used to attenuate capabilities — you can narrow permissions but never widen them. The monotonic security principle ensures capabilities only shrink.',
-        example: 'CHANGE CR2, 5        ; Attenuate CR2 to entry 5',
+        details: 'The thread suspend/activate instruction. CHANGE saves the entire machine register set of the current thread (all CRs, DRs, PC, flags) and then loads the complete register set of the target thread. This is the fundamental context-switch mechanism — one atomic instruction that suspends the running thread and activates another. All register state is preserved so the suspended thread can resume exactly where it left off.',
+        example: 'CHANGE CR8, 0        ; Suspend current thread, activate thread in CR8',
     },
     {
         opcode: 5, mnemonic: 'SWITCH', domain: 'church',
