@@ -1423,7 +1423,7 @@ const INSTRUCTION_DATA = [
         permission: 'None — operates on cached register only',
         flags: 'Z=1 if resulting permissions are non-zero, N=!Z',
         details: 'Attenuates (reduces) the permission bits on the GT in CRd by ANDing with the given mask. Permissions can only be removed, never added — monotonic security. The attenuation is local to the cached context register and signals the M (modified) bit, just like any CR modification. The namespace slot is NOT updated until a legitimate SAVE commits the attenuated GT back to a c-list. This means you can safely attenuate a GT before a CALL to hand off reduced authority, without affecting the original namespace entry. Typical use: strip write permission before passing a GT, giving the callee read-only access.',
-        example: 'TPERM CR0, RX        ; Strip W,L,S,E — keep only R+X\nCALL CR0             ; Call with reduced authority',
+        example: '; Example 1: Strip write — hand off read-only\nTPERM CR0, RX        ; Keep only R+X, strip W,L,S,E,B\nCALL CR0             ; Callee can read+execute but not write\n\n; Example 2: NO BIND — prevent subroutine from saving the GT\nLOAD CR1, CR6, 3     ; Load GT from c-list slot 3\nTPERM CR1, RWX       ; Keep R+W+X but clear B (Bind)\nCALL CR2             ; Subroutine gets CR1 but cannot SAVE it\n                     ; (SAVE requires B=1 on the source GT)',
     },
     {
         opcode: 7, mnemonic: 'LAMBDA', domain: 'church',
