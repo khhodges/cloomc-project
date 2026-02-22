@@ -868,6 +868,201 @@ MCMP DR15, DR3         ; Should be equal (Z=1)
 
 HALT
 `,
+        'perm_attack': `; ============================================
+; ADVERSARIAL TEST: Permission Violations
+; Every operation here should FAULT cleanly.
+; mLoad is the single guard at the gate.
+; ============================================
+;
+; Namespace reference:
+;   Slot 0  Boot       (X only)
+;   Slot 19 TRUE       (L only — no X, no E)
+;   Slot 20 FALSE      (L only — no X, no E)
+;   Slot 24 GC         (E only)
+; ============================================
+
+; --- ATTACK 1: CALL without E permission ---
+; TRUE (slot 19) has only L — no E.
+; CALL requires E via mLoad. Should FAULT.
+LOAD CR0, CR6, 19      ; CR0 = TRUE (L only)
+CALL CR0               ; FAULT: lacks E permission
+
+; --- ATTACK 2: LAMBDA without X permission ---
+; Constants (slot 5) has only E — no X.
+; LAMBDA requires X via mLoad. Should FAULT.
+LOAD CR1, CR6, 5       ; CR1 = Constants (E only)
+LAMBDA CR1             ; FAULT: lacks X permission
+
+; --- ATTACK 3: CALL something with only X ---
+; Boot (slot 0) has only X — no E.
+; CALL requires E. Should FAULT.
+LOAD CR2, CR6, 0       ; CR2 = Boot (X only)
+CALL CR2               ; FAULT: lacks E permission
+
+; --- If we get here, something is broken ---
+HALT
+`,
+        'bind_attack': `; ============================================
+; ADVERSARIAL TEST: B-Bit Enforcement
+; Tests TWO security boundaries:
+;   1. SAVE requires B=1 (B defaults to 0)
+;   2. CALL auto-clears B on passed GTs
+; ============================================
+;
+; B-bit security model:
+;   B defaults to 0 on namespace entries.
+;   SAVE checks B=1 before committing.
+;   CALL auto-clears B on all preserved CRs.
+;   TPERM with B mask is the ONLY way to
+;   allow bind (delegation).
+; ============================================
+
+; --- ATTACK 1: SAVE with default B=0 ---
+; After boot, B defaults to 0 on all entries.
+; SAVE should FAULT because B=0.
+LOAD CR0, CR6, 7       ; CR0 = SUCC (XLE, B=0)
+SAVE CR0, CR6, 25      ; FAULT: B=0, cannot bind
+
+; --- If we get here, B-bit default failed ---
+HALT
+`,
+        'tperm_attack': `; ============================================
+; ADVERSARIAL TEST: TPERM Escalation
+; TPERM can only REMOVE permissions (AND gate).
+; Attempting to ADD permissions must fail.
+; ============================================
+;
+; Hardware guarantee: result = preset & existing
+; Even if FSM is bypassed, AND gate prevents
+; escalation. Two layers of defense.
+; ============================================
+
+; --- Setup: Load GTs with known permissions ---
+LOAD CR0, CR6, 5       ; CR0 = Constants (E only)
+LOAD CR1, CR6, 19      ; CR1 = TRUE (L only)
+LOAD CR2, CR6, 7       ; CR2 = SUCC (XLE)
+
+; --- ATTACK 1: Try to add X to Constants ---
+; Constants has E only. Request RWXLSE.
+; Result should be E only (AND gate).
+TPERM CR0, RWXLSE      ; Result: E (only bit in common)
+; Z=1 means non-zero result — E survived
+; But X,R,W,L,S were NOT added
+
+; --- ATTACK 2: Try to add E to TRUE ---
+; TRUE has L only. Request LE.
+; Result should be L only.
+TPERM CR1, LE          ; Result: L (only bit in common)
+
+; --- ATTACK 3: Strip everything from SUCC ---
+; SUCC has XLE. Request nothing (0).
+; Result should be 0 — all permissions gone.
+TPERM CR2, 0           ; Result: 0 (Z=0, no perms left)
+
+; --- ATTACK 4: Now try to restore SUCC perms ---
+; CR2 has 0 permissions. Request XLE back.
+; AND with 0 = 0. Cannot restore.
+TPERM CR2, XLE         ; Result: 0 (still empty, Z=0)
+
+; --- Verify: CR2 is now useless ---
+; LAMBDA needs X, but CR2 has 0.
+LAMBDA CR2             ; FAULT: lacks X permission
+
+; --- If we get here, monotonicity held ---
+HALT
+`,
+        'version_attack': `; ============================================
+; ADVERSARIAL TEST: CR-Occupied Protection
+; A context register holding an active GT
+; cannot be overwritten — prevents capability
+; leaks and use-after-free.
+; ============================================
+;
+; _writeCR checks: if CR holds non-zero GT
+; and M-elevation is not active, FAULT.
+; This prevents clobbering live capabilities.
+; ============================================
+
+; --- Setup: Load valid GTs ---
+LOAD CR0, CR6, 2       ; CR0 = Lambda (E)
+LOAD CR1, CR6, 7       ; CR1 = SUCC (XLE)
+
+; --- ATTACK 1: Overwrite occupied CR ---
+; CR0 already holds Lambda.
+; Loading into occupied CR should FAULT.
+LOAD CR0, CR6, 9       ; FAULT: CR0 already occupied
+
+; --- ATTACK 2: Reload same entry ---
+; Even reloading the same GT should FAULT.
+; The CR is occupied regardless of content.
+LOAD CR1, CR6, 7       ; FAULT: CR1 already occupied
+
+; --- If we get here, CR protection failed ---
+HALT
+`,
+        'gc_adversary': `; ============================================
+; ADVERSARIAL TEST: GC Safety
+; Verifies GC correctly distinguishes live
+; entries from garbage after mixed operations.
+; ============================================
+;
+; PP250 four-phase GC:
+;   1. SCAN — walk CRs, mark live (G=liveValue)
+;   2. IDENTIFY — G=garbageValue entries
+;   3. CLEAR — zero garbage NS + object memory
+;   4. FLIP — invert polarity for next cycle
+;
+; Attack vector: Load many entries, release some,
+; verify GC only sweeps the released ones.
+; ============================================
+
+; --- Phase A: Load 6 entries into CRs ---
+; These should ALL survive GC.
+LOAD CR0, CR6, 2       ; Lambda    (E)
+LOAD CR1, CR6, 7       ; SUCC      (XLE)
+LOAD CR2, CR6, 6       ; Stack     (E)
+LOAD CR3, CR6, 9       ; ADD       (XLE)
+LOAD CR4, CR6, 5       ; Constants (E)
+LOAD CR5, CR6, 3       ; SlideRule (E)
+
+; --- Phase B: Exercise some via LAMBDA ---
+; mLoad marks these entries as accessed (live).
+LAMBDA CR1             ; Touch SUCC via X
+LAMBDA CR3             ; Touch ADD via X
+
+; --- Phase C: Verify permissions on survivors ---
+TPERM CR0, E           ; Lambda still has E? PASS
+TPERM CR2, E           ; Stack still has E? PASS
+TPERM CR4, E           ; Constants still has E? PASS
+TPERM CR5, E           ; SlideRule still has E? PASS
+
+; --- Phase D: Run GC ---
+; Entries in CR0-CR5 + CR6 + CR15 survive.
+; All other namespace entries are garbage.
+LOAD CR5, CR6, 24      ; CR5 = GC (overwrite SlideRule)
+CALL CR5               ; Trigger GC abstraction
+
+; --- Phase E: Verify survivors still work ---
+; If GC incorrectly swept a live entry, these FAULT.
+TPERM CR0, E           ; Lambda survived? PASS
+TPERM CR1, LE          ; SUCC survived? PASS
+TPERM CR2, E           ; Stack survived? PASS
+TPERM CR3, LE          ; ADD survived? PASS
+TPERM CR4, E           ; Constants survived? PASS
+
+; --- Phase F: Second GC cycle (polarity flip) ---
+; Run GC again with flipped polarity.
+; Survivors should still survive.
+LOAD CR5, CR6, 24      ; Reload GC
+CALL CR5               ; Second GC pass
+
+; --- Phase G: Final verification ---
+TPERM CR0, E           ; Lambda after 2x GC? PASS
+TPERM CR1, LE          ; SUCC after 2x GC? PASS
+
+; --- All checks passed ---
+HALT
+`,
     };
 
     const code = examples[name];
