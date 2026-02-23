@@ -98,7 +98,7 @@ class ChurchSimulator {
         const w0 = this.memory[base + 0];
         const w1 = this.memory[base + 1];
         const w2 = this.memory[base + 2];
-        if (w0 === 0 && w1 === 0 && w2 === 0) return null;
+        if (w0 === 0 && w1 === 0) return null;
         const parsed = this.parseNSWord1(w1);
         return {
             word0_location: w0,
@@ -114,7 +114,7 @@ class ChurchSimulator {
     isNSEntryValid(idx) {
         if (idx < 0 || idx >= this.MAX_NS_ENTRIES) return false;
         const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
-        return (this.memory[base] !== 0 || this.memory[base + 1] !== 0 || this.memory[base + 2] !== 0);
+        return (this.memory[base] !== 0 || this.memory[base + 1] !== 0);
     }
 
     get namespaceTable() {
@@ -320,6 +320,16 @@ class ChurchSimulator {
         const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
         const w1 = this.memory[base + 1];
         if (this.gcPolarity === 0) {
+            this.memory[base + 1] = (w1 | (1 << 29)) >>> 0;
+        } else {
+            this.memory[base + 1] = (w1 & ~(1 << 29)) >>> 0;
+        }
+    }
+
+    markGarbage(idx) {
+        const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
+        const w1 = this.memory[base + 1];
+        if (this.gcPolarity === 0) {
             this.memory[base + 1] = (w1 & ~(1 << 29)) >>> 0;
         } else {
             this.memory[base + 1] = (w1 | (1 << 29)) >>> 0;
@@ -343,7 +353,18 @@ class ChurchSimulator {
         log.push(`GC polarity: G=${garbageValue} means GARBAGE, G=${liveValue} means LIVE`);
         log.push('');
 
-        log.push('--- Phase 1: SCAN — walk all 16 CRs, confirm live entries ---');
+        log.push('--- Phase 1: MARK — set G=garbage on all valid entries ---');
+        const priorCount = this.nsCount;
+        let markCount = 0;
+        for (let i = 0; i < priorCount; i++) {
+            if (!this.isNSEntryValid(i)) continue;
+            this.markGarbage(i);
+            markCount++;
+        }
+        log.push(`Marked ${markCount} entries as garbage suspects (G=${garbageValue}).`);
+        log.push('');
+
+        log.push('--- Phase 2: SCAN — walk CRs + call stack, confirm live entries ---');
         const liveSet = new Set();
         for (let cr = 0; cr < 16; cr++) {
             const gt32 = this.cr[cr].word0;
@@ -357,12 +378,29 @@ class ChurchSimulator {
                 log.push(`  CR${cr} → NS[${idx}] "${label}" — LIVE (G=${liveValue})`);
             }
         }
+        if (this.callStack) {
+            for (const frame of this.callStack) {
+                for (const crKey of ['cr5', 'cr6', 'cr7']) {
+                    if (frame[crKey]) {
+                        const gt32 = frame[crKey].word0;
+                        if (gt32 === 0) continue;
+                        const parsed = this.parseGT(gt32);
+                        const idx = parsed.index;
+                        if (idx < this.nsCount && this.isNSEntryValid(idx) && !liveSet.has(idx)) {
+                            this.markLive(idx);
+                            liveSet.add(idx);
+                            const label = this.nsLabels[idx] || '(unnamed)';
+                            log.push(`  CallStack ${crKey} → NS[${idx}] "${label}" — LIVE (G=${liveValue})`);
+                        }
+                    }
+                }
+            }
+        }
         log.push(`Scan complete: ${liveSet.size} live entries confirmed.`);
         log.push('');
 
-        log.push(`--- Phase 2: IDENTIFY — find entries where G=${garbageValue} (garbage candidates) ---`);
+        log.push(`--- Phase 3: SWEEP — find entries where G=${garbageValue} (garbage) ---`);
         const candidates = [];
-        const priorCount = this.nsCount;
         for (let i = 0; i < priorCount; i++) {
             if (!this.isNSEntryValid(i)) continue;
             if (!this.isGarbage(i)) continue;
@@ -370,19 +408,22 @@ class ChurchSimulator {
             const label = this.nsLabels[i] || '(unnamed)';
             const loc = entry ? (entry.word0_location >>> 0) : 0;
             candidates.push({ index: i, label, loc });
-            log.push(`  CANDIDATE NS[${i}] "${label}" @ 0x${loc.toString(16).toUpperCase().padStart(8,'0')} — G=${garbageValue} (garbage)`);
+            log.push(`  GARBAGE NS[${i}] "${label}" @ 0x${loc.toString(16).toUpperCase().padStart(8,'0')} — G=${garbageValue}`);
         }
-        log.push(`Identified ${candidates.length} garbage candidates.`);
+        log.push(`Identified ${candidates.length} garbage entries.`);
         log.push('');
 
-        log.push(`--- Phase 3: CLEAR — zero NS entries + free object memory ---`);
+        log.push(`--- Phase 4: CLEAR — zero NS entries + free object memory ---`);
         let freedSlots = 0;
         let freedWords = 0;
         for (const c of candidates) {
             const base = this.NS_TABLE_BASE + c.index * this.NS_ENTRY_WORDS;
+            const w2 = this.memory[base + 2];
+            const oldVersion = (w2 >>> 25) & 0x7F;
+            const newVersion = (oldVersion + 1) & 0x7F;
             this.memory[base + 0] = 0;
             this.memory[base + 1] = 0;
-            this.memory[base + 2] = 0;
+            this.memory[base + 2] = (newVersion << 25) >>> 0;
 
             let wordsCleared = 0;
             for (let w = 0; w < this.SLOT_SIZE; w++) {
@@ -392,7 +433,7 @@ class ChurchSimulator {
                 }
             }
             freedWords += wordsCleared;
-            log.push(`  CLEAR NS[${c.index}] "${c.label}" @ 0x${c.loc.toString(16).toUpperCase().padStart(8,'0')} — 3 NS words + ${wordsCleared} object words zeroed`);
+            log.push(`  CLEAR NS[${c.index}] "${c.label}" — version ${oldVersion}→${newVersion}, ${wordsCleared} object words zeroed`);
 
             delete this.nsLabels[c.index];
             freedSlots++;
