@@ -463,6 +463,26 @@ function updateFlagsDisplay() {
     const f = sim.flags;
     const bootLabel = !sim.bootComplete ? `BOOT ${sim.bootStep}/6` : '';
     const statusLabel = sim.halted ? 'HALTED' : (sim.bootComplete ? 'READY' : 'RESET');
+    const cap = sim.lastCapability;
+    let capHtml = '';
+    if (cap) {
+        const p = cap.perms;
+        capHtml = `
+        <span class="flags-sep"></span>
+        <span class="cap-group-label">${cap.op}</span>
+        <span class="cap-bit ${p.R ? 'cap-on' : ''}">R</span>
+        <span class="cap-bit ${p.W ? 'cap-on' : ''}">W</span>
+        <span class="cap-bit ${p.X ? 'cap-on' : ''}">X</span>
+        <span class="cap-sep">|</span>
+        <span class="cap-bit ${p.L ? 'cap-on' : ''}">L</span>
+        <span class="cap-bit ${p.S ? 'cap-on' : ''}">S</span>
+        <span class="cap-bit ${p.E ? 'cap-on' : ''}">E</span>
+        <span class="cap-sep">|</span>
+        <span class="cap-bit ${cap.b ? 'cap-on cap-b' : ''}">B</span>
+        <span class="cap-bit ${cap.f ? 'cap-on cap-f' : ''}">F</span>
+        <span class="cap-bit ${cap.versionMatch ? 'cap-on cap-v' : 'cap-fail'}">V✓</span>
+        <span class="cap-label">${cap.label}</span>`;
+    }
     container.innerHTML = `
         <button class="btn btn-success btn-sm" onclick="stepSim()">Step</button>
         <button class="btn btn-success btn-sm" onclick="runSim()">Run</button>
@@ -477,6 +497,7 @@ function updateFlagsDisplay() {
         <span class="flag-info">Stack: ${sim.callStack.length}</span>
         ${bootLabel ? `<span class="flag-info flag-boot">${bootLabel}</span>` : ''}
         <span class="flag-info">${statusLabel}</span>
+        ${capHtml}
     `;
 }
 

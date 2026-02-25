@@ -262,6 +262,72 @@ header h1 {
     margin: 0 0.3rem;
 }
 
+.cap-group-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--church-gold);
+    margin-right: 0.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.cap-bit {
+    display: inline-block;
+    padding: 0.1rem 0.3rem;
+    margin: 0 0.05rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    color: #555;
+    min-width: 1.1rem;
+    text-align: center;
+}
+
+.cap-bit.cap-on {
+    background: #2a6e2a;
+    border-color: #3a9a3a;
+    color: #b0ffb0;
+}
+
+.cap-bit.cap-b.cap-on {
+    background: #6e5a2a;
+    border-color: #9a8a3a;
+    color: #ffe0a0;
+}
+
+.cap-bit.cap-f.cap-on {
+    background: #5a2a6e;
+    border-color: #8a3a9a;
+    color: #e0a0ff;
+}
+
+.cap-bit.cap-v.cap-on {
+    background: #2a4e6e;
+    border-color: #3a7a9a;
+    color: #a0d0ff;
+}
+
+.cap-bit.cap-fail {
+    background: #6e2a2a;
+    border-color: #9a3a3a;
+    color: #ffb0b0;
+}
+
+.cap-sep {
+    color: #444;
+    font-size: 0.6rem;
+    margin: 0 0.1rem;
+}
+
+.cap-label {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    margin-left: 0.25rem;
+    font-style: italic;
+}
+
 .btn-sm {
     padding: 0.2rem 0.6rem;
     font-size: 0.7rem;
