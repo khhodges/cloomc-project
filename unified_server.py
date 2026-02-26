@@ -187,6 +187,12 @@ def figures_machine_status_fast_path():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
+@app.route('/figures/pp250-gc')
+def figures_pp250_gc():
+    resp = make_response(send_from_directory(FIGURES_DIR, 'pp250-gc.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
 @app.route('/figures/hello-mum-tunnel')
 def figures_hello_mum_tunnel():
     resp = make_response(send_from_directory(FIGURES_DIR, 'hello-mum-tunnel.html'))

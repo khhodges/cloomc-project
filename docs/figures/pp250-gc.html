@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Figure 7: PP250 Deterministic Garbage Collection</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #ffffff;
+    color: #1a1a1a;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+  }
+  h1 { font-size: 22px; color: #b8860b; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 13px; color: #555555; margin-bottom: 30px; text-align: center; max-width: 960px; }
+  .nav { position: fixed; top: 10px; left: 10px; z-index: 100; }
+  .nav a {
+    background: #f0f0f0; color: #333; text-decoration: none; padding: 6px 14px;
+    border-radius: 4px; font-size: 13px; border: 1px solid #ccc;
+  }
+  .nav a:hover { background: #e0e0e0; color: #000; }
+  .legend { margin-top: 20px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+  @media print { .nav { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="nav"><a href="/church/">&#8592; Church Machine</a></div>
+
+<h1>Figure 7 &mdash; PP250 Deterministic Garbage Collection</h1>
+<p class="subtitle">Four-phase Scan-Identify-Clear-Flip cycle with bidirectional G-bit. The G-bit is reset by both mLoad (read gate) and mSave (write gate) during normal operation, so reachable objects self-clear. GC is a safe Turing abstraction: atomic, hidden behind a Church-callable namespace entry, entered via CALL, exited via RETURN.</p>
+
+<svg viewBox="0 0 1100 1280" width="1100" height="1280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#27864a"/>
+    </marker>
+    <marker id="ah-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2a6db5"/>
+    </marker>
+    <marker id="ah-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#cc3333"/>
+    </marker>
+    <marker id="ah-o" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c07020"/>
+    </marker>
+    <marker id="ah-p" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7b2d8e"/>
+    </marker>
+    <marker id="ah-k" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title-lg { font-family:'Segoe UI',system-ui,sans-serif; font-size:17px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .title-sm { font-family:'Segoe UI',system-ui,sans-serif; font-size:14px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .title-xs { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; font-weight:600; text-anchor:middle; dominant-baseline:central; }
+    .label { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
+    .label-s { font-family:'Segoe UI',system-ui,sans-serif; font-size:10px; fill:#555555; text-anchor:middle; dominant-baseline:central; }
+    .mono { font-family:'Consolas','Courier New',monospace; font-size:11px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
+    .mono-b { font-family:'Consolas','Courier New',monospace; font-size:12px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .mono-s { font-family:'Consolas','Courier New',monospace; font-size:10px; fill:#555; text-anchor:middle; dominant-baseline:central; }
+    .step-num { font-family:'Segoe UI',system-ui,sans-serif; font-size:14px; font-weight:700; fill:#fff; text-anchor:middle; dominant-baseline:central; }
+    .phase-num { font-family:'Segoe UI',system-ui,sans-serif; font-size:20px; font-weight:700; fill:#fff; text-anchor:middle; dominant-baseline:central; }
+  </style>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- FOUR-PHASE CYCLE DIAGRAM (top)                              -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <text x="550" y="25" class="title-lg" fill="#333">Four-Phase GC Cycle</text>
+
+  <!-- Phase 1: SCAN -->
+  <rect x="80" y="50" width="460" height="150" rx="12" fill="#e8f4fd" stroke="#2a6db5" stroke-width="2"/>
+  <circle cx="120" cy="85" r="22" fill="#2a6db5"/>
+  <text x="120" y="85" class="phase-num">1</text>
+  <text x="310" y="75" class="title-sm" fill="#2a6db5">SCAN &mdash; Walk Roots, Set G=1</text>
+
+  <text x="310" y="100" class="label" fill="#333">Set G=1 on every namespace entry (mark all as garbage)</text>
+  <text x="310" y="120" class="label-s">Walk all root GTs (CR8 thread identity, CR15 namespace root)</text>
+  <text x="310" y="138" class="label-s">For each reachable entry: mLoad/mSave automatically clears G&#x2190;0</text>
+  <text x="310" y="156" class="mono-s" fill="#2a6db5">Deterministic: bounded by namespace size, no tracing required</text>
+
+  <!-- Curved arrow from Phase 1 to Phase 2 -->
+  <path d="M540,125 C580,125 580,125 580,170 L580,210" stroke="#2a6db5" stroke-width="2" fill="none" marker-end="url(#ah-r)"/>
+
+  <!-- Phase 2: IDENTIFY -->
+  <rect x="560" y="210" width="460" height="150" rx="12" fill="#fde8e8" stroke="#cc3333" stroke-width="2"/>
+  <circle cx="600" cy="245" r="22" fill="#cc3333"/>
+  <text x="600" y="245" class="phase-num">2</text>
+  <text x="790" y="235" class="title-sm" fill="#cc3333">IDENTIFY &mdash; G=1 Means Unreachable</text>
+
+  <text x="790" y="260" class="label" fill="#333">Scan namespace: any entry still G=1 was never accessed</text>
+  <text x="790" y="280" class="label-s">No reachable code path touched it since SCAN set G=1</text>
+  <text x="790" y="298" class="label-s">Therefore it is unreachable &#x2192; safe to reclaim</text>
+  <text x="790" y="316" class="mono-s" fill="#cc3333">Zero false positives: G-bit is cleared by actual access, not heuristics</text>
+
+  <!-- Arrow from Phase 2 to Phase 3 -->
+  <path d="M560,335 C520,335 520,335 520,370 L520,400" stroke="#cc3333" stroke-width="2" fill="none" marker-end="url(#ah-o)"/>
+
+  <!-- Phase 3: CLEAR -->
+  <rect x="80" y="400" width="460" height="150" rx="12" fill="#fff3e0" stroke="#c07020" stroke-width="2"/>
+  <circle cx="120" cy="435" r="22" fill="#c07020"/>
+  <text x="120" y="435" class="phase-num">3</text>
+  <text x="310" y="425" class="title-sm" fill="#c07020">CLEAR &mdash; Reclaim Unreachable</text>
+
+  <text x="310" y="450" class="label" fill="#333">For each entry where G=1: invalidate the namespace slot</text>
+  <text x="310" y="470" class="label-s">Bump version counter &#x2192; all outstanding GTs to this entry become stale</text>
+  <text x="310" y="488" class="label-s">Stale GTs fail mLoad validation (version mismatch) &#x2192; FAULT</text>
+  <text x="310" y="506" class="mono-s" fill="#c07020">Memory freed atomically; no dangling references possible</text>
+
+  <!-- Arrow from Phase 3 to Phase 4 -->
+  <path d="M540,475 C580,475 580,475 580,520 L580,560" stroke="#c07020" stroke-width="2" fill="none" marker-end="url(#ah-p)"/>
+
+  <!-- Phase 4: FLIP -->
+  <rect x="560" y="560" width="460" height="150" rx="12" fill="#f3ecff" stroke="#7b2d8e" stroke-width="2"/>
+  <circle cx="600" cy="595" r="22" fill="#7b2d8e"/>
+  <text x="600" y="595" class="phase-num">4</text>
+  <text x="790" y="585" class="title-sm" fill="#7b2d8e">FLIP &mdash; Bump Global Version</text>
+
+  <text x="790" y="610" class="label" fill="#333">Increment the global version counter</text>
+  <text x="790" y="630" class="label-s">All new GTs minted after FLIP carry the new version</text>
+  <text x="790" y="648" class="label-s">Old-version GTs that survived are still valid (version match succeeds)</text>
+  <text x="790" y="666" class="mono-s" fill="#7b2d8e">Cycle complete &#x2192; return to Phase 1 on next GC invocation</text>
+
+  <!-- Cycle-back arrow from Phase 4 to Phase 1 -->
+  <path d="M560,635 C50,635 50,635 50,85 L78,85" stroke="#7b2d8e" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#ah-b)"/>
+  <text x="35" y="360" class="mono-s" fill="#7b2d8e" text-anchor="middle" transform="rotate(-90,35,360)">next cycle</text>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- BIDIRECTIONAL G-BIT INTEGRATION                             -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <text x="550" y="750" class="title-lg" fill="#333">Bidirectional G-bit: mLoad + mSave</text>
+  <text x="550" y="770" class="label-s" fill="#555">Both gates reset G&#x2190;0 on every successful access, ensuring reachable entries self-clear during normal operation</text>
+
+  <!-- mLoad side -->
+  <rect x="80" y="790" width="460" height="210" rx="10" fill="#e8f4fd" stroke="#2a6db5" stroke-width="2"/>
+  <text x="310" y="815" class="title-sm" fill="#2a6db5">mLoad (Read Gate)</text>
+
+  <rect x="110" y="835" width="400" height="28" rx="5" fill="#dce9f5" stroke="#2a6db5" stroke-width="0.5"/>
+  <circle cx="135" cy="849" r="11" fill="#2a6db5"/>
+  <text x="135" y="849" class="step-num" style="font-size:10px">1</text>
+  <text x="320" y="849" class="label" fill="#2a6db5">Permission check (R/W/X/L/S/E)</text>
+
+  <rect x="110" y="870" width="400" height="28" rx="5" fill="#dce9f5" stroke="#2a6db5" stroke-width="0.5"/>
+  <circle cx="135" cy="884" r="11" fill="#2a6db5"/>
+  <text x="135" y="884" class="step-num" style="font-size:10px">2</text>
+  <text x="320" y="884" class="label" fill="#2a6db5">Bounds &#x2192; Version &#x2192; MAC/Seal validation</text>
+
+  <rect x="110" y="905" width="400" height="36" rx="5" fill="#d0f0d0" stroke="#27864a" stroke-width="1.5"/>
+  <circle cx="135" cy="923" r="11" fill="#27864a"/>
+  <text x="135" y="923" class="step-num" style="font-size:10px">G</text>
+  <text x="320" y="916" class="mono-b" fill="#27864a">G-bit Reset: entry.G &#x2190; 0</text>
+  <text x="320" y="932" class="label-s" fill="#27864a">"I accessed this entry &#x2192; it is reachable"</text>
+
+  <rect x="110" y="948" width="400" height="28" rx="5" fill="#dce9f5" stroke="#2a6db5" stroke-width="0.5"/>
+  <circle cx="135" cy="962" r="11" fill="#2a6db5"/>
+  <text x="135" y="962" class="step-num" style="font-size:10px">4</text>
+  <text x="320" y="962" class="label" fill="#2a6db5">CR Write &#x2192; Thread Shadow</text>
+
+  <!-- mSave side -->
+  <rect x="560" y="790" width="460" height="210" rx="10" fill="#fff3e0" stroke="#c07020" stroke-width="2"/>
+  <text x="790" y="815" class="title-sm" fill="#c07020">mSave (Write Gate)</text>
+
+  <rect x="590" y="835" width="400" height="28" rx="5" fill="#fde8d0" stroke="#c07020" stroke-width="0.5"/>
+  <circle cx="615" cy="849" r="11" fill="#c07020"/>
+  <text x="615" y="849" class="step-num" style="font-size:10px">1</text>
+  <text x="800" y="849" class="label" fill="#c07020">Version match &#x2192; Seal validation</text>
+
+  <rect x="590" y="870" width="400" height="28" rx="5" fill="#fde8d0" stroke="#c07020" stroke-width="0.5"/>
+  <circle cx="615" cy="884" r="11" fill="#c07020"/>
+  <text x="615" y="884" class="step-num" style="font-size:10px">2</text>
+  <text x="800" y="884" class="label" fill="#c07020">Target bounds &#x2192; B-bit &#x2192; F-bit check</text>
+
+  <rect x="590" y="905" width="400" height="36" rx="5" fill="#d0f0d0" stroke="#27864a" stroke-width="1.5"/>
+  <circle cx="615" cy="923" r="11" fill="#27864a"/>
+  <text x="615" y="923" class="step-num" style="font-size:10px">G</text>
+  <text x="800" y="916" class="mono-b" fill="#27864a">G-bit Reset: entry.G &#x2190; 0</text>
+  <text x="800" y="932" class="label-s" fill="#27864a">"I saved to this entry &#x2192; it is reachable"</text>
+
+  <rect x="590" y="948" width="400" height="28" rx="5" fill="#fde8d0" stroke="#c07020" stroke-width="0.5"/>
+  <circle cx="615" cy="962" r="11" fill="#c07020"/>
+  <text x="615" y="962" class="step-num" style="font-size:10px">4</text>
+  <text x="800" y="962" class="label" fill="#c07020">Seal recompute &#x2192; Commit</text>
+
+  <!-- Bidirectional arrow between them -->
+  <line x1="540" y1="920" x2="560" y2="920" stroke="#27864a" stroke-width="2"/>
+  <text x="550" y="908" class="mono-b" fill="#27864a" text-anchor="middle">G</text>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SAFE TURING ABSTRACTION                                     -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <rect x="80" y="1030" width="940" height="100" rx="10" fill="#f5f5f0" stroke="#999" stroke-width="1"/>
+  <text x="550" y="1055" class="title-sm" fill="#b8860b">GC as a Safe Turing Abstraction</text>
+
+  <rect x="120" y="1070" width="860" height="45" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="200" y="1086" class="mono-b" fill="#2a6db5" text-anchor="start">Church Interface</text>
+  <text x="200" y="1103" class="label-s" text-anchor="start" fill="#555">Namespace entry "GC" &#x2192; callable via CALL with E permission &#x2192; returns via RETURN</text>
+
+  <rect x="250" y="1072" width="4" height="40" rx="2" fill="#b8860b"/>
+
+  <text x="560" y="1086" class="mono-b" fill="#27864a" text-anchor="start">Turing Implementation (hidden)</text>
+  <text x="560" y="1103" class="label-s" text-anchor="start" fill="#555">Atomic: Scan &#x2192; Identify &#x2192; Clear &#x2192; Flip (no interleaving, no preemption)</text>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- G-BIT LIFECYCLE DETAIL                                      -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <text x="550" y="1170" class="title-lg" fill="#333">G-bit Lifecycle</text>
+
+  <!-- Timeline -->
+  <rect x="100" y="1190" width="180" height="70" rx="8" fill="#e8f4fd" stroke="#2a6db5" stroke-width="1.5"/>
+  <text x="190" y="1210" class="title-xs" fill="#2a6db5">SCAN sets G=1</text>
+  <text x="190" y="1230" class="mono-s" fill="#555">all entries marked</text>
+  <text x="190" y="1245" class="mono-s" fill="#555">as "garbage"</text>
+
+  <line x1="280" y1="1225" x2="330" y2="1225" stroke="#555" stroke-width="1.5" marker-end="url(#ah-k)"/>
+
+  <rect x="330" y="1190" width="200" height="70" rx="8" fill="#d0f0d0" stroke="#27864a" stroke-width="1.5"/>
+  <text x="430" y="1210" class="title-xs" fill="#27864a">Normal Operation</text>
+  <text x="430" y="1230" class="mono-s" fill="#27864a">mLoad/mSave clear</text>
+  <text x="430" y="1245" class="mono-s" fill="#27864a">G&#x2190;0 on access</text>
+
+  <line x1="530" y1="1225" x2="580" y2="1225" stroke="#555" stroke-width="1.5" marker-end="url(#ah-k)"/>
+
+  <rect x="580" y="1190" width="200" height="70" rx="8" fill="#fde8e8" stroke="#cc3333" stroke-width="1.5"/>
+  <text x="680" y="1210" class="title-xs" fill="#cc3333">IDENTIFY G=1</text>
+  <text x="680" y="1230" class="mono-s" fill="#cc3333">still G=1 &#x2192; never</text>
+  <text x="680" y="1245" class="mono-s" fill="#cc3333">accessed &#x2192; garbage</text>
+
+  <line x1="780" y1="1225" x2="830" y2="1225" stroke="#555" stroke-width="1.5" marker-end="url(#ah-k)"/>
+
+  <rect x="830" y="1190" width="170" height="70" rx="8" fill="#fff3e0" stroke="#c07020" stroke-width="1.5"/>
+  <text x="915" y="1210" class="title-xs" fill="#c07020">CLEAR + FLIP</text>
+  <text x="915" y="1230" class="mono-s" fill="#c07020">reclaim slot</text>
+  <text x="915" y="1245" class="mono-s" fill="#c07020">bump version</text>
+
+</svg>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#2a6db5;"></div> Phase 1: Scan (set G=1)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#cc3333;"></div> Phase 2: Identify (G=1 = unreachable)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#c07020;"></div> Phase 3: Clear (reclaim)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#7b2d8e;"></div> Phase 4: Flip (bump version)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#27864a;"></div> G-bit reset (bidirectional)</div>
+</div>
+
+</body>
+</html>
