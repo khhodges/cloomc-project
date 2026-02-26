@@ -241,6 +241,12 @@ def figures_five_phase_boot():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
+@app.route('/figures/church-numeral-dispatch')
+def figures_church_numeral_dispatch():
+    resp = make_response(send_from_directory(FIGURES_DIR, 'church-numeral-dispatch.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
 @app.route('/figures/hello-mum-tunnel')
 def figures_hello_mum_tunnel():
     resp = make_response(send_from_directory(FIGURES_DIR, 'hello-mum-tunnel.html'))

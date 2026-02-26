@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Figure 16: Church Numeral Method Dispatch</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #ffffff;
+    color: #1a1a1a;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+  }
+  h1 { font-size: 22px; color: #b8860b; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 13px; color: #555555; margin-bottom: 30px; text-align: center; max-width: 960px; }
+  .nav { position: fixed; top: 10px; left: 10px; z-index: 100; }
+  .nav a {
+    background: #f0f0f0; color: #333; text-decoration: none; padding: 6px 14px;
+    border-radius: 4px; font-size: 13px; border: 1px solid #ccc;
+  }
+  .nav a:hover { background: #e0e0e0; color: #000; }
+  .legend { margin-top: 24px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+  @media print { .nav { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="nav"><a href="/church/">&#8592; Church Machine</a></div>
+
+<h1>Figure 16 &mdash; Church Numeral Method Dispatch</h1>
+<p class="subtitle">Method dispatch via Church numeral encoding eliminates all branch instructions. A data register value is converted to a Church numeral (SUCC/ZERO), which naturally indexes into a c-list of method entries. TPERM sets permissions, then LAMBDA applies the selected method. The numeral itself is the dispatch &mdash; no comparisons, no jump tables, no branches.</p>
+
+<svg viewBox="0 0 1100 1260" width="1100" height="1260" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2a6db5"/>
+    </marker>
+    <marker id="ah-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#27864a"/>
+    </marker>
+    <marker id="ah-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#cc3333"/>
+    </marker>
+    <marker id="ah-o" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c07020"/>
+    </marker>
+    <marker id="ah-p" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7b2d8e"/>
+    </marker>
+    <marker id="ah-k" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <marker id="ah-t" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1a7a7a"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title-lg { font-family:'Segoe UI',system-ui,sans-serif; font-size:17px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .title-sm { font-family:'Segoe UI',system-ui,sans-serif; font-size:14px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .title-xs { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; font-weight:600; text-anchor:middle; dominant-baseline:central; }
+    .label { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
+    .label-s { font-family:'Segoe UI',system-ui,sans-serif; font-size:10px; fill:#555555; text-anchor:middle; dominant-baseline:central; }
+    .mono { font-family:'Consolas','Courier New',monospace; font-size:11px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
+    .mono-b { font-family:'Consolas','Courier New',monospace; font-size:12px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .mono-s { font-family:'Consolas','Courier New',monospace; font-size:10px; fill:#555; text-anchor:middle; dominant-baseline:central; }
+    .mono-xs { font-family:'Consolas','Courier New',monospace; font-size:9px; fill:#777; text-anchor:middle; dominant-baseline:central; }
+    .hdr { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; font-weight:700; fill:#fff; text-anchor:middle; dominant-baseline:central; }
+  </style>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MAIN FLOW (top to bottom)                                   -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <text x="550" y="25" class="title-lg" fill="#333">Church Numeral Dispatch Flow</text>
+  <text x="550" y="45" class="label-s">DR0 value becomes the dispatch mechanism itself &mdash; no branch instructions anywhere in the pipeline</text>
+
+  <!-- ─── STEP 1: DR0 (input) ─── -->
+  <rect x="370" y="65" width="360" height="70" rx="12" fill="#f0f0f0" stroke="#555" stroke-width="2"/>
+  <circle cx="405" cy="100" r="16" fill="#555"/>
+  <text x="405" y="100" class="hdr" style="font-size:11px">1</text>
+  <text x="570" y="88" class="title-sm" fill="#333">DR0 = method index</text>
+  <text x="570" y="108" class="mono" fill="#555">e.g. DR0 = 3 (select method #3)</text>
+  <text x="570" y="124" class="label-s" fill="#777">Integer in data register, from caller</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="135" x2="550" y2="175" stroke="#2a6db5" stroke-width="2.5" marker-end="url(#ah-b)"/>
+  <text x="580" y="155" class="mono-s" fill="#2a6db5">convert</text>
+
+  <!-- ─── STEP 2: Church numeral conversion ─── -->
+  <rect x="250" y="175" width="600" height="140" rx="14" fill="#e8f4fd" stroke="#2a6db5" stroke-width="2.5"/>
+  <rect x="252" y="177" width="596" height="30" rx="12" fill="#2a6db5"/>
+  <circle cx="285" cy="192" r="12" fill="#fff"/>
+  <text x="285" y="192" class="mono-b" fill="#2a6db5">2</text>
+  <text x="565" y="192" class="hdr" style="font-size:14px">Church Numeral Conversion (SUCC / ZERO)</text>
+
+  <text x="550" y="225" class="title-xs" fill="#2a6db5">DR0 = 3 becomes SUCC(SUCC(SUCC(ZERO)))</text>
+
+  <rect x="290" y="242" width="120" height="30" rx="6" fill="#dce9f5" stroke="#2a6db5" stroke-width="1"/>
+  <text x="350" y="257" class="mono-b" fill="#2a6db5">ZERO</text>
+
+  <line x1="410" y1="257" x2="430" y2="257" stroke="#2a6db5" stroke-width="1.5" marker-end="url(#ah-b)"/>
+
+  <rect x="430" y="242" width="100" height="30" rx="6" fill="#dce9f5" stroke="#2a6db5" stroke-width="1"/>
+  <text x="480" y="257" class="mono-b" fill="#2a6db5">SUCC</text>
+
+  <line x1="530" y1="257" x2="550" y2="257" stroke="#2a6db5" stroke-width="1.5" marker-end="url(#ah-b)"/>
+
+  <rect x="550" y="242" width="100" height="30" rx="6" fill="#dce9f5" stroke="#2a6db5" stroke-width="1"/>
+  <text x="600" y="257" class="mono-b" fill="#2a6db5">SUCC</text>
+
+  <line x1="650" y1="257" x2="670" y2="257" stroke="#2a6db5" stroke-width="1.5" marker-end="url(#ah-b)"/>
+
+  <rect x="670" y="242" width="100" height="30" rx="6" fill="#c8ddf0" stroke="#2a6db5" stroke-width="1.5"/>
+  <text x="720" y="257" class="mono-b" fill="#2a6db5">SUCC</text>
+
+  <text x="550" y="295" class="label-s" fill="#2a6db5">Each SUCC applies its argument once more &mdash; the numeral is a function that applies N times</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="315" x2="550" y2="355" stroke="#27864a" stroke-width="2.5" marker-end="url(#ah-g)"/>
+  <text x="580" y="335" class="mono-s" fill="#27864a">index</text>
+
+  <!-- ─── STEP 3: C-List indexing ─── -->
+  <rect x="200" y="355" width="700" height="160" rx="14" fill="#e8fde8" stroke="#27864a" stroke-width="2.5"/>
+  <rect x="202" y="357" width="696" height="30" rx="12" fill="#27864a"/>
+  <circle cx="235" cy="372" r="12" fill="#fff"/>
+  <text x="235" y="372" class="mono-b" fill="#27864a">3</text>
+  <text x="565" y="372" class="hdr" style="font-size:14px">C-List Indexing (Church numeral selects entry)</text>
+
+  <text x="550" y="404" class="title-xs" fill="#27864a">The numeral naturally walks the c-list N positions</text>
+
+  <!-- C-list slots -->
+  <rect x="240" y="420" width="100" height="55" rx="6" fill="#d5f0d5" stroke="#27864a" stroke-width="1"/>
+  <text x="290" y="438" class="mono-s" fill="#27864a">slot 0</text>
+  <text x="290" y="455" class="mono-xs" fill="#27864a">add()</text>
+  <text x="290" y="468" class="mono-xs" fill="#777">GT + seal</text>
+
+  <rect x="355" y="420" width="100" height="55" rx="6" fill="#d5f0d5" stroke="#27864a" stroke-width="1"/>
+  <text x="405" y="438" class="mono-s" fill="#27864a">slot 1</text>
+  <text x="405" y="455" class="mono-xs" fill="#27864a">sub()</text>
+  <text x="405" y="468" class="mono-xs" fill="#777">GT + seal</text>
+
+  <rect x="470" y="420" width="100" height="55" rx="6" fill="#d5f0d5" stroke="#27864a" stroke-width="1"/>
+  <text x="520" y="438" class="mono-s" fill="#27864a">slot 2</text>
+  <text x="520" y="455" class="mono-xs" fill="#27864a">mul()</text>
+  <text x="520" y="468" class="mono-xs" fill="#777">GT + seal</text>
+
+  <rect x="585" y="420" width="100" height="55" rx="6" fill="#d0f0d0" stroke="#27864a" stroke-width="2"/>
+  <text x="635" y="438" class="mono-b" fill="#27864a">slot 3</text>
+  <text x="635" y="455" class="mono-xs" fill="#27864a">div()</text>
+  <text x="635" y="468" class="mono-xs" fill="#27864a">&#x2190; SELECTED</text>
+
+  <rect x="700" y="420" width="100" height="55" rx="6" fill="#d5f0d5" stroke="#27864a" stroke-width="1"/>
+  <text x="750" y="438" class="mono-s" fill="#27864a">slot 4</text>
+  <text x="750" y="455" class="mono-xs" fill="#27864a">mod()</text>
+  <text x="750" y="468" class="mono-xs" fill="#777">GT + seal</text>
+
+  <!-- Selection arrow -->
+  <line x1="635" y1="410" x2="635" y2="418" stroke="#cc3333" stroke-width="2" marker-end="url(#ah-r)"/>
+  <text x="635" y="404" class="mono-b" fill="#cc3333">DR0=3</text>
+
+  <text x="550" y="497" class="label-s" fill="#27864a">SUCC(SUCC(SUCC(ZERO))) applies SUCC three times to the base &mdash; walks to slot 3 with zero comparisons</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="515" x2="550" y2="555" stroke="#c07020" stroke-width="2.5" marker-end="url(#ah-o)"/>
+  <text x="580" y="535" class="mono-s" fill="#c07020">GT loaded</text>
+
+  <!-- ─── STEP 4: TPERM ─── -->
+  <rect x="300" y="555" width="500" height="90" rx="14" fill="#fff3e0" stroke="#c07020" stroke-width="2.5"/>
+  <rect x="302" y="557" width="496" height="30" rx="12" fill="#c07020"/>
+  <circle cx="335" cy="572" r="12" fill="#fff"/>
+  <text x="335" y="572" class="mono-b" fill="#c07020">4</text>
+  <text x="565" y="572" class="hdr" style="font-size:14px">TPERM (Set Permissions)</text>
+
+  <text x="550" y="605" class="mono-b" fill="#c07020">TPERM CR0, X</text>
+  <text x="550" y="625" class="label-s" fill="#c07020">Grant eXecute permission on the selected GT for LAMBDA dispatch</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="645" x2="550" y2="685" stroke="#7b2d8e" stroke-width="2.5" marker-end="url(#ah-p)"/>
+  <text x="580" y="665" class="mono-s" fill="#7b2d8e">X perm set</text>
+
+  <!-- ─── STEP 5: LAMBDA ─── -->
+  <rect x="300" y="685" width="500" height="90" rx="14" fill="#f3ecff" stroke="#7b2d8e" stroke-width="2.5"/>
+  <rect x="302" y="687" width="496" height="30" rx="12" fill="#7b2d8e"/>
+  <circle cx="335" cy="702" r="12" fill="#fff"/>
+  <text x="335" y="702" class="mono-b" fill="#7b2d8e">5</text>
+  <text x="565" y="702" class="hdr" style="font-size:14px">LAMBDA (In-Scope Apply)</text>
+
+  <text x="550" y="735" class="mono-b" fill="#7b2d8e">LAMBDA CR0</text>
+  <text x="550" y="755" class="label-s" fill="#7b2d8e">Execute div() in caller's scope &mdash; ~3 cycles, no stack frame push, machine-status fast path</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="775" x2="550" y2="815" stroke="#1a7a7a" stroke-width="2.5" marker-end="url(#ah-t)"/>
+  <text x="580" y="795" class="mono-s" fill="#1a7a7a">RETURN</text>
+
+  <!-- ─── RESULT ─── -->
+  <rect x="370" y="815" width="360" height="50" rx="12" fill="#e0f7f7" stroke="#1a7a7a" stroke-width="2"/>
+  <text x="550" y="835" class="title-sm" fill="#1a7a7a">Result in DR0</text>
+  <text x="550" y="853" class="label-s" fill="#1a7a7a">Method executed and returned, zero branches used</text>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ZERO BRANCHES CALLOUT                                       -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <rect x="80" y="890" width="940" height="80" rx="10" fill="#fef5f5" stroke="#cc3333" stroke-width="2"/>
+  <text x="550" y="915" class="title-sm" fill="#cc3333">Zero Branch Instructions</text>
+  <text x="550" y="938" class="label" fill="#333">No CMP, no BEQ/BNE, no jump table, no switch/case, no indirect branch prediction.</text>
+  <text x="550" y="955" class="label" fill="#333">The Church numeral IS the dispatch. It applies its function argument exactly N times. Slot N is reached by construction.</text>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- CONVENTIONAL vs CHURCH COMPARISON                           -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <text x="550" y="1005" class="title-lg" fill="#333">Conventional vs. Church Numeral Dispatch</text>
+
+  <!-- Conventional -->
+  <rect x="80" y="1025" width="460" height="200" rx="10" fill="#fef5f5" stroke="#cc3333" stroke-width="1.5"/>
+  <text x="310" y="1048" class="title-sm" fill="#cc3333">Conventional: Branch-Based</text>
+
+  <rect x="110" y="1060" width="400" height="22" rx="4" fill="#fde8e8" stroke="#cc3333" stroke-width="0.5"/>
+  <text x="310" y="1071" class="mono-s" fill="#cc3333">CMP R0, #0 / BEQ handler_add</text>
+  <rect x="110" y="1086" width="400" height="22" rx="4" fill="#fde8e8" stroke="#cc3333" stroke-width="0.5"/>
+  <text x="310" y="1097" class="mono-s" fill="#cc3333">CMP R0, #1 / BEQ handler_sub</text>
+  <rect x="110" y="1112" width="400" height="22" rx="4" fill="#fde8e8" stroke="#cc3333" stroke-width="0.5"/>
+  <text x="310" y="1123" class="mono-s" fill="#cc3333">CMP R0, #2 / BEQ handler_mul</text>
+  <rect x="110" y="1138" width="400" height="22" rx="4" fill="#fde8e8" stroke="#cc3333" stroke-width="0.5"/>
+  <text x="310" y="1149" class="mono-s" fill="#cc3333">CMP R0, #3 / BEQ handler_div  &#x2190; 4 compares!</text>
+
+  <text x="310" y="1178" class="label-s" fill="#cc3333">N methods = N comparisons worst case</text>
+  <text x="310" y="1194" class="label-s" fill="#cc3333">Branch misprediction penalties, speculative execution risk</text>
+  <text x="310" y="1210" class="label-s" fill="#cc3333">Spectre/Meltdown attack surface via branch predictor</text>
+
+  <!-- Church -->
+  <rect x="560" y="1025" width="460" height="200" rx="10" fill="#e8fde8" stroke="#27864a" stroke-width="1.5"/>
+  <text x="790" y="1048" class="title-sm" fill="#27864a">Church: Numeral-Based</text>
+
+  <rect x="590" y="1060" width="400" height="22" rx="4" fill="#d5f0d5" stroke="#27864a" stroke-width="0.5"/>
+  <text x="790" y="1071" class="mono-s" fill="#27864a">SUCC(SUCC(SUCC(ZERO)))</text>
+  <rect x="590" y="1086" width="400" height="22" rx="4" fill="#d5f0d5" stroke="#27864a" stroke-width="0.5"/>
+  <text x="790" y="1097" class="mono-s" fill="#27864a">&#x2192; walks c-list to slot 3</text>
+  <rect x="590" y="1112" width="400" height="22" rx="4" fill="#d5f0d5" stroke="#27864a" stroke-width="0.5"/>
+  <text x="790" y="1123" class="mono-s" fill="#27864a">TPERM CR0, X</text>
+  <rect x="590" y="1138" width="400" height="22" rx="4" fill="#d5f0d5" stroke="#27864a" stroke-width="0.5"/>
+  <text x="790" y="1149" class="mono-s" fill="#27864a">LAMBDA CR0  &#x2192; 0 compares!</text>
+
+  <text x="790" y="1178" class="label-s" fill="#27864a">N methods = O(N) walk, zero comparisons</text>
+  <text x="790" y="1194" class="label-s" fill="#27864a">No branch predictor needed, no misprediction</text>
+  <text x="790" y="1210" class="label-s" fill="#27864a">Spectre/Meltdown impossible: no speculative execution</text>
+
+</svg>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#555;"></div> DR0 input (method index)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#2a6db5;"></div> Church numeral conversion</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#27864a;"></div> C-list indexing</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#c07020;"></div> TPERM (permission grant)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#7b2d8e;"></div> LAMBDA (in-scope apply)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#1a7a7a;"></div> Result / RETURN</div>
+</div>
+
+</body>
+</html>
