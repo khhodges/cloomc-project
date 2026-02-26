@@ -10,7 +10,8 @@ The CALL instruction invokes a protected abstraction (service or function) refer
 |------|---------------|-------------------|
 | **1. Permission Check** | L (Load) on source CR | E (Enter) on source CR |
 | **2. GT Validation** | Capability object integrity | Version match + MAC seal validation |
-| **3. Context Save** | Return NIA, CR6, CR7, bound GT list pushed to stack | PC, CR5, CR6, CR7 pushed to call stack |
+| **3. Context Save** | Return NIA, CR6, CR7, LAMBDA state, bound GT list pushed to stack | PC, CR5, CR6, CR7, LAMBDA-active pushed to call stack |
+| **3a. LAMBDA Clear** | Clears LAMBDA-active flag (callee gets clean LAMBDA state) | Clears LAMBDA-active flag |
 | **4. Stack Check** | Software-managed depth tracking | FAULT if stack full (256 frames) |
 | **5. Register Setup** | CR6 = target C-List, CR7 = Access Code (X permission) | CR6 = callee C-List (M-bit set), CR7 = callee code |
 | **6. Register Clearing** | 11-bit mask selects which DRs/CRs to clear; DR0 preserved, DR6-15 always cleared | CR5 cleared after push; software clears others |
@@ -22,17 +23,31 @@ The CALL instruction invokes a protected abstraction (service or function) refer
 
 ## RETURN Operation
 
-The RETURN instruction restores the context saved by a previous CALL and resumes execution at the caller.
+The RETURN instruction has two paths: a **LAMBDA fast path** and a **stack path**.
+
+### LAMBDA Fast Path
+
+When RETURN executes and the LAMBDA-active flag is set in machine status:
+1. Restore PC from LAMBDA_PC machine status register
+2. Clear LAMBDA-active flag
+3. Zero stack access — pure machine-status operation
+
+### Stack Path (CALL Frame)
+
+When RETURN executes and LAMBDA-active is NOT set, pop the top stack frame:
 
 | Aspect | Sim-64 (CTMM) | Sim-32 (RV32-Cap) |
 |--------|---------------|-------------------|
 | **Permission Check** | None | None |
 | **Restored Registers** | CR6, CR7, NIA | CR5, CR6 (M-bit set), CR7, PC (+4) |
+| **LAMBDA State Restore** | Restores LAMBDA-active and LAMBDA_PC from frame | Restores LAMBDA-active from frame |
 | **Bound GT Surrender** | CRs bound during CALL are cleared to NULL | Not implemented |
 | **Stack Underflow** | FAULT: "Stack underflow" | FAULT: "No saved context to restore" |
 | **Stack Indicators** | N/A | Updates stackFrames and stackSpace flags |
 
 RETURN requires no permission -- it is always permitted if a saved context exists on the call stack. If the stack is empty, a FAULT is triggered.
+
+When RETURN restores a CALL frame that was pushed while LAMBDA was active, the LAMBDA-active flag and LAMBDA_PC are restored from the frame. This means the next RETURN will use the LAMBDA fast path, correctly completing the interrupted LAMBDA return. This is how CALL-mediated LAMBDA nesting works: CALL saves the LAMBDA state, the callee runs freely, and RETURN restores the LAMBDA return path.
 
 In Sim-32, the M-bit is set on the restored CR6. This marks the C-List as having Machine permission, indicating that the caller's context has been properly restored through the hardware return mechanism.
 
@@ -104,8 +119,8 @@ The CHANGE instruction performs thread context switching by modifying the thread
 | **Mnemonic** | `CHANGE CRs` (I=0) or `CHANGE CRn, idx` (I=1) | `CAP.CHANGE CRs` |
 | **Required Permission** | None (I=0) / L (I=1 for C-List lookup) | E (Enter) on source CR |
 | **Operation** | Creates new thread GT with R/W permissions, writes to CR8 | Full atomic thread swap via thread table |
-| **Context Saved** | N/A (new thread created) | x0-x31, CR0-CR8, PC saved to thread table |
-| **Context Loaded** | N/A | Target thread's x0-x31, CR0-CR8, PC loaded from thread table |
+| **Context Saved** | N/A (new thread created) | x0-x31, CR0-CR8, PC, LAMBDA state saved to thread table |
+| **Context Loaded** | N/A | Target thread's x0-x31, CR0-CR8, PC, LAMBDA state loaded from thread table |
 | **CR9-CR15** | N/A | Unchanged (shared across threads) |
 | **I-bit Variant** | Yes (register or C-List lookup) | No (register only) |
 | **Exclusive Monitor** | Cleared for current thread | Not implemented |

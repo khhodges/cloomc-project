@@ -909,8 +909,11 @@ class CTMMSimulator {
                     returnNIA: this.nia,
                     cr6: this.contextRegs[6] ? { ...this.contextRegs[6] } : null,
                     cr7: this.contextRegs[7] ? { ...this.contextRegs[7] } : null,
-                    boundGTs: []
+                    boundGTs: [],
+                    lambdaActive: this.lambdaActive,
+                    lambdaReturnNIA: this.lambdaReturnNIA || 0,
                 });
+                this.lambdaActive = false;
                 
                 const mask = maskField || 0;
                 let clearedRegs = [];
@@ -999,9 +1002,12 @@ class CTMMSimulator {
                         }
                     }
                     
+                    this.lambdaActive = frame.lambdaActive || false;
+                    if (frame.lambdaReturnNIA) this.lambdaReturnNIA = frame.lambdaReturnNIA;
                     this.nia = frame.returnNIA + 1;
                     const surrenderMsg = surrendered.length > 0 ? `, surrendered bound GTs: ${surrendered.join(',')}` : '';
-                    return `RETURN: restored CR6/CR7 via mLoad (CR5 stable), stack depth: ${this.stackDepth}${surrenderMsg}`;
+                    const lambdaMsg = this.lambdaActive ? `, LAMBDA return path restored` : '';
+                    return `RETURN: restored CR6/CR7 via mLoad (CR5 stable), stack depth: ${this.stackDepth}${surrenderMsg}${lambdaMsg}`;
                 }
                 return `FAULT: Stack underflow - no procedure to return from`;
             }
@@ -1039,7 +1045,10 @@ class CTMMSimulator {
                     returnNIA: this.nia,
                     cr6: this.contextRegs[6] ? { ...this.contextRegs[6] } : null,
                     cr7: this.contextRegs[7] ? { ...this.contextRegs[7] } : null,
+                    lambdaActive: this.lambdaActive,
+                    lambdaReturnNIA: this.lambdaReturnNIA || 0,
                 });
+                this.lambdaActive = false;
 
                 if (!this.threadShadow) this.threadShadow = {};
                 const tid = this.currentThread;
@@ -1100,15 +1109,19 @@ class CTMMSimulator {
                             this._clearCR(7);
                         }
 
+                        this.lambdaActive = resumeFrame.lambdaActive || false;
+                        if (resumeFrame.lambdaReturnNIA) this.lambdaReturnNIA = resumeFrame.lambdaReturnNIA;
                         this.nia = resumeFrame.returnNIA + 1;
                     } else {
                         this.stackDepth = 0;
+                        this.lambdaActive = false;
                         this.nia = (sourceCap.location && sourceCap.location.offset) || 0;
                     }
                 } else {
                     for (let i = 0; i < 16; i++) this.dataRegs[i] = 0n;
                     this.callStack = [];
                     this.stackDepth = 0;
+                    this.lambdaActive = false;
                     this.flags = { N: false, Z: false, C: false, V: false };
                     this.nia = (sourceCap.location && sourceCap.location.offset) || 0;
                 }

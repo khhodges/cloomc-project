@@ -147,7 +147,7 @@ A dedicated hardware instruction for Church's function application: `LAMBDA CRn,
 
 ### 6. Machine-Status Fast Path
 
-In the common case (LAMBDA → body → RETURN), the return address and LAMBDA-active flag live in machine status registers, not the capability stack. RETURN checks the LAMBDA-active flag: if set, it restores PC from the machine status register with zero stack access.
+In the common case (LAMBDA → body → RETURN), the return address and LAMBDA-active flag live in machine status registers, not the capability stack. RETURN checks the LAMBDA-active flag: if set, it restores PC from the machine status register with zero stack access. When a CALL or CHANGE intervenes during a LAMBDA body, the LAMBDA state (LAMBDA_PC and LAMBDA-active flag) is saved to the CALL stack frame and the LAMBDA-active flag is cleared. When RETURN pops that CALL frame, it restores the saved LAMBDA state, so the next RETURN correctly uses the LAMBDA fast path.
 
 ### 7. Self-Describing Stack Frames
 

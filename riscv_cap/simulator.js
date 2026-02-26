@@ -678,7 +678,9 @@ class RiscVCapSimulator {
             cr5: { ...this.cr[5] },
             cr6: { ...this.cr[6] },
             cr7: { ...this.cr[7] },
+            lambdaActive: this.lambdaActive,
         });
+        this.lambdaActive = false;
         this.stackSpace = this.callStack.length < this.callStackMax;
         this.stackFrames = true;
         const nsResult = this.mLoadByIndex(parsed.index);
@@ -739,6 +741,7 @@ class RiscVCapSimulator {
                     this.fault(cr7Result.fault, `RETURN: CR7 restore: ${cr7Result.message}`);
                     return;
                 }
+                this.lambdaActive = saved.lambdaActive || false;
                 this.pc = (saved.pc + 4) >>> 0;
                 break;
             }
@@ -773,7 +776,9 @@ class RiscVCapSimulator {
                     cr5: { ...this.cr[5] },
                     cr6: { ...this.cr[6] },
                     cr7: { ...this.cr[7] },
+                    lambdaActive: this.lambdaActive,
                 });
+                this.lambdaActive = false;
 
                 this.threadTable[currentThreadId].x = [...this.x];
                 this.threadTable[currentThreadId].callStack = this.callStack.map(f => ({...f}));
@@ -798,6 +803,7 @@ class RiscVCapSimulator {
                         if (!cr6Result.ok) { this.fault(cr6Result.fault, `CHANGE restore CR6: ${cr6Result.message}`); return; }
                         const cr7Result = this.mLoad(resumeFrame.cr7.word0, null, 7);
                         if (!cr7Result.ok) { this.fault(cr7Result.fault, `CHANGE restore CR7: ${cr7Result.message}`); return; }
+                        this.lambdaActive = resumeFrame.lambdaActive || false;
                         this.pc = (resumeFrame.pc + 4) >>> 0;
                     } else {
                         this.stackFrames = false;
