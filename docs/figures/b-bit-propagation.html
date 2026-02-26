@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Figure 3: B-bit Capability Propagation Control</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #ffffff;
+    color: #1a1a1a;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+  }
+  h1 { font-size: 22px; color: #b8860b; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 13px; color: #555555; margin-bottom: 30px; text-align: center; max-width: 900px; }
+  .nav { position: fixed; top: 10px; left: 10px; z-index: 100; }
+  .nav a {
+    background: #f0f0f0; color: #333; text-decoration: none; padding: 6px 14px;
+    border-radius: 4px; font-size: 13px; border: 1px solid #ccc;
+  }
+  .nav a:hover { background: #e0e0e0; color: #000; }
+  .legend { margin-top: 20px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+  @media print { .nav { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="nav"><a href="/church/">&#8592; Church Machine</a></div>
+
+<h1>Figure 3 &mdash; B-bit Capability Propagation Control</h1>
+<p class="subtitle">The B (Bind) bit controls whether a Golden Token can be saved into a c-list. B defaults to 0 on all new capabilities. CALL auto-clears B on preserved CRs passed to the callee ("use it, don't keep it"). Only an explicit TPERM with B modifier sets B=1, enabling delegation. mSave enforces B=1 before committing any write.</p>
+
+<svg viewBox="0 0 1100 1200" width="1100" height="1200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2a6db5"/>
+    </marker>
+    <marker id="ah-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#27864a"/>
+    </marker>
+    <marker id="ah-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#cc3333"/>
+    </marker>
+    <marker id="ah-o" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b8860b"/>
+    </marker>
+    <marker id="ah-k" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title-sm { font-family:'Segoe UI',system-ui,sans-serif; font-size:15px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .title-xs { font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; font-weight:600; text-anchor:middle; dominant-baseline:central; }
+    .label { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
+    .label-s { font-family:'Segoe UI',system-ui,sans-serif; font-size:10px; fill:#555555; text-anchor:middle; dominant-baseline:central; }
+    .label-l { font-family:'Segoe UI',system-ui,sans-serif; font-size:11px; fill:#333; text-anchor:start; dominant-baseline:central; }
+    .mono { font-family:'Consolas','Courier New',monospace; font-size:11px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
+    .mono-b { font-family:'Consolas','Courier New',monospace; font-size:13px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+    .step-num { font-family:'Segoe UI',system-ui,sans-serif; font-size:14px; font-weight:700; fill:#fff; text-anchor:middle; dominant-baseline:central; }
+  </style>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- STEP 1: Default B=0 on new capabilities               -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="60" y="50" width="980" height="150" rx="10" fill="#f0f7ff" stroke="#2a6db5" stroke-width="1.5"/>
+  <circle cx="85" cy="72" r="16" fill="#2a6db5"/>
+  <text x="85" y="72" class="step-num">1</text>
+  <text x="110" y="72" class="title-sm" fill="#2a6db5" text-anchor="start">B=0 Default on New Capabilities</text>
+
+  <rect x="100" y="110" width="180" height="60" rx="8" fill="#e8f4fd" stroke="#2a6db5" stroke-width="1.5"/>
+  <text x="190" y="130" class="mono-b" fill="#2a6db5">Namespace Entry</text>
+  <text x="190" y="150" class="mono" fill="#2a6db5">word1 bit 31 = 0</text>
+
+  <line x1="280" y1="140" x2="340" y2="140" stroke="#333" stroke-width="1.5" marker-end="url(#ah-k)"/>
+
+  <rect x="340" y="110" width="200" height="60" rx="8" fill="#fff" stroke="#999" stroke-width="1"/>
+  <text x="440" y="130" class="label" fill="#333">Every new GT starts</text>
+  <text x="440" y="150" class="mono-b" fill="#cc3333">B = 0 (not bindable)</text>
+
+  <line x1="540" y1="140" x2="600" y2="140" stroke="#333" stroke-width="1.5" marker-end="url(#ah-k)"/>
+
+  <rect x="600" y="105" width="410" height="70" rx="8" fill="#fff8f0" stroke="#b8860b" stroke-width="1"/>
+  <text x="805" y="125" class="label-s" fill="#b8860b">This means a freshly LOADed capability cannot be SAVEd</text>
+  <text x="805" y="142" class="label-s" fill="#b8860b">into any c-list. The holder can USE the GT (read, execute,</text>
+  <text x="805" y="159" class="label-s" fill="#b8860b">call) but cannot propagate it to another domain.</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- STEP 2: CALL auto-clears B on preserved CRs           -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="60" y="220" width="980" height="240" rx="10" fill="#f0f7ff" stroke="#2a6db5" stroke-width="1.5"/>
+  <circle cx="85" cy="242" r="16" fill="#2a6db5"/>
+  <text x="85" y="242" class="step-num">2</text>
+  <text x="110" y="242" class="title-sm" fill="#2a6db5" text-anchor="start">CALL Auto-Clears B on Preserved CRs</text>
+
+  <!-- Caller side -->
+  <rect x="100" y="280" width="200" height="80" rx="8" fill="#e8f4fd" stroke="#2a6db5" stroke-width="1.5"/>
+  <text x="200" y="300" class="title-xs" fill="#2a6db5">Caller Context</text>
+  <text x="200" y="322" class="mono" fill="#333">CR0 [B=1] CR1 [B=1]</text>
+  <text x="200" y="340" class="mono" fill="#333">CR2 [B=0] CR3 [B=1]</text>
+
+  <line x1="300" y1="320" x2="390" y2="320" stroke="#2a6db5" stroke-width="2" marker-end="url(#ah-b)"/>
+  <text x="345" y="308" class="mono-b" fill="#2a6db5">CALL</text>
+
+  <!-- Arrow annotation -->
+  <rect x="330" y="330" width="120" height="20" rx="4" fill="#fde8e8" stroke="#cc3333" stroke-width="1"/>
+  <text x="390" y="340" class="label-s" fill="#cc3333">B auto-cleared</text>
+
+  <!-- Callee side -->
+  <rect x="390" y="280" width="220" height="80" rx="8" fill="#e8fde8" stroke="#27864a" stroke-width="1.5"/>
+  <text x="500" y="300" class="title-xs" fill="#27864a">Callee Receives</text>
+  <text x="500" y="322" class="mono" fill="#333">CR0 [<tspan fill="#cc3333" font-weight="700">B=0</tspan>] CR1 [<tspan fill="#cc3333" font-weight="700">B=0</tspan>]</text>
+  <text x="500" y="340" class="mono" fill="#333">CR2 [B=0] CR3 [<tspan fill="#cc3333" font-weight="700">B=0</tspan>]</text>
+
+  <line x1="610" y1="320" x2="660" y2="320" stroke="#333" stroke-width="1.5" marker-end="url(#ah-k)"/>
+
+  <rect x="660" y="280" width="350" height="80" rx="8" fill="#fff8f0" stroke="#b8860b" stroke-width="1"/>
+  <text x="835" y="302" class="label" fill="#b8860b">"Use it, don't keep it"</text>
+  <text x="835" y="322" class="label-s" fill="#555">Callee can read, execute, call with any GT</text>
+  <text x="835" y="340" class="label-s" fill="#555">but cannot SAVE any of them to a c-list</text>
+
+  <!-- Annotation -->
+  <text x="550" y="435" class="label-s" fill="#2a6db5">Hardware default: CALL clears B on all preserved context registers (CR0-CR4 in RV32, CR0-CR7 in CTMM). No exceptions.</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- STEP 3: TPERM sets B=1 for explicit delegation         -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="60" y="480" width="980" height="180" rx="10" fill="#f0fff0" stroke="#27864a" stroke-width="1.5"/>
+  <circle cx="85" cy="502" r="16" fill="#27864a"/>
+  <text x="85" y="502" class="step-num">3</text>
+  <text x="110" y="502" class="title-sm" fill="#27864a" text-anchor="start">TPERM Sets B=1 for Explicit Bind Permission</text>
+
+  <rect x="100" y="540" width="200" height="60" rx="8" fill="#e8fde8" stroke="#27864a" stroke-width="1.5"/>
+  <text x="200" y="560" class="title-xs" fill="#27864a">Before TPERM</text>
+  <text x="200" y="580" class="mono" fill="#333">CR0 [<tspan fill="#cc3333" font-weight="700">B=0</tspan>]</text>
+
+  <line x1="300" y1="570" x2="380" y2="570" stroke="#27864a" stroke-width="2" marker-end="url(#ah-g)"/>
+
+  <rect x="320" y="545" width="120" height="20" rx="4" fill="#e8fde8" stroke="#27864a" stroke-width="1"/>
+  <text x="380" y="555" class="mono" fill="#27864a">TPERM CR0, EB</text>
+
+  <!-- CTMM syntax -->
+  <rect x="380" y="540" width="200" height="60" rx="8" fill="#dff0d8" stroke="#27864a" stroke-width="2"/>
+  <text x="480" y="560" class="title-xs" fill="#27864a">After TPERM</text>
+  <text x="480" y="580" class="mono" fill="#333">CR0 [<tspan fill="#27864a" font-weight="700">B=1</tspan>]</text>
+
+  <line x1="580" y1="570" x2="640" y2="570" stroke="#333" stroke-width="1.5" marker-end="url(#ah-k)"/>
+
+  <rect x="640" y="540" width="370" height="60" rx="8" fill="#fff8f0" stroke="#b8860b" stroke-width="1"/>
+  <text x="825" y="558" class="label" fill="#b8860b">Explicit delegation grant</text>
+  <text x="825" y="576" class="label-s" fill="#555">Caller consciously permits callee to SAVE this GT</text>
+  <text x="825" y="592" class="label-s" fill="#555">RV32: CAP.TPERM x0, CRn (rd=0 sets B-bit)</text>
+
+  <text x="550" y="640" class="label-s" fill="#27864a">TPERM is the only instruction that can set B=1. This is the conscious, auditable act of granting bind permission.</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- STEP 4: mSave checks B=1 before commit                -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="60" y="680" width="980" height="190" rx="10" fill="#fffcf0" stroke="#b8860b" stroke-width="1.5"/>
+  <circle cx="85" cy="702" r="16" fill="#b8860b"/>
+  <text x="85" y="702" class="step-num">4</text>
+  <text x="110" y="702" class="title-sm" fill="#b8860b" text-anchor="start">mSave Checks B=1 Before Committing Write</text>
+
+  <rect x="100" y="745" width="160" height="55" rx="8" fill="#dff0d8" stroke="#27864a" stroke-width="1.5"/>
+  <text x="180" y="765" class="mono-b" fill="#27864a">CR0 [B=1]</text>
+  <text x="180" y="783" class="label-s" fill="#27864a">Source GT</text>
+
+  <line x1="260" y1="772" x2="320" y2="772" stroke="#b8860b" stroke-width="2" marker-end="url(#ah-o)"/>
+  <text x="290" y="758" class="mono" fill="#b8860b">SAVE</text>
+
+  <!-- mSave pipeline -->
+  <rect x="320" y="740" width="370" height="70" rx="8" fill="#fdf5eb" stroke="#b8860b" stroke-width="2"/>
+  <text x="505" y="758" class="title-xs" fill="#b8860b">mSave Pipeline</text>
+  <text x="505" y="778" class="mono" fill="#555">Version &#x2192; Seal &#x2192; Bounds &#x2192; <tspan fill="#27864a" font-weight="700">B=1? &#x2713;</tspan> &#x2192; F-bit &#x2192; Commit</text>
+  <text x="505" y="796" class="label-s" fill="#b8860b">B-bit check is stage 4 of 8 in mSave</text>
+
+  <line x1="690" y1="772" x2="750" y2="772" stroke="#27864a" stroke-width="2" marker-end="url(#ah-g)"/>
+
+  <rect x="750" y="745" width="260" height="55" rx="8" fill="#e8fde8" stroke="#27864a" stroke-width="2"/>
+  <text x="880" y="765" class="mono-b" fill="#27864a">&#10003; Committed to C-List</text>
+  <text x="880" y="783" class="label-s" fill="#27864a">Saved copy gets B=0 (default)</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- STEP 5: FAULT on B=0 save attempt                      -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="60" y="890" width="980" height="190" rx="10" fill="#fff5f5" stroke="#cc3333" stroke-width="1.5"/>
+  <circle cx="85" cy="912" r="16" fill="#cc3333"/>
+  <text x="85" y="912" class="step-num">5</text>
+  <text x="110" y="912" class="title-sm" fill="#cc3333" text-anchor="start">FAULT on Attempted Save with B=0</text>
+
+  <rect x="100" y="955" width="160" height="55" rx="8" fill="#fde8e8" stroke="#cc3333" stroke-width="1.5"/>
+  <text x="180" y="975" class="mono-b" fill="#cc3333">CR0 [B=0]</text>
+  <text x="180" y="993" class="label-s" fill="#cc3333">Source GT</text>
+
+  <line x1="260" y1="982" x2="320" y2="982" stroke="#cc3333" stroke-width="2" marker-end="url(#ah-r)"/>
+  <text x="290" y="968" class="mono" fill="#cc3333">SAVE</text>
+
+  <!-- mSave pipeline failing -->
+  <rect x="320" y="950" width="370" height="70" rx="8" fill="#fde8e8" stroke="#cc3333" stroke-width="2"/>
+  <text x="505" y="968" class="title-xs" fill="#cc3333">mSave Pipeline</text>
+  <text x="505" y="988" class="mono" fill="#555">Version &#x2192; Seal &#x2192; Bounds &#x2192; <tspan fill="#cc3333" font-weight="700">B=0? &#x2717;</tspan></text>
+  <text x="505" y="1006" class="label-s" fill="#cc3333">Pipeline halts at stage 4 &mdash; B-bit check fails</text>
+
+  <line x1="690" y1="982" x2="750" y2="982" stroke="#cc3333" stroke-width="2" marker-end="url(#ah-r)"/>
+
+  <rect x="750" y="950" width="260" height="70" rx="10" fill="#fde8e8" stroke="#cc3333" stroke-width="2.5"/>
+  <text x="880" y="972" class="title-sm" fill="#cc3333">FAULT</text>
+  <text x="880" y="992" class="label-s" fill="#cc3333">BIND violation</text>
+  <text x="880" y="1008" class="label-s" fill="#cc3333">No recovery. No fallback.</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- BOTTOM: Security invariant summary                     -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="100" y="1090" width="900" height="50" rx="8" fill="#f5f5f0" stroke="#999" stroke-width="1"/>
+  <text x="550" y="1108" class="label" fill="#b8860b">Security Invariant: No capability can be propagated without an explicit, auditable TPERM B grant by the delegating domain.</text>
+  <text x="550" y="1126" class="label-s">B-bit is the hardware-enforced "consent to delegate" mechanism. It prevents confused deputy and ambient authority attacks.</text>
+
+</svg>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#2a6db5;"></div> Default state / CALL behavior</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#27864a;"></div> TPERM grant / success path</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#b8860b;"></div> mSave pipeline / B-bit check</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#cc3333;"></div> B=0 / FAULT</div>
+</div>
+
+</body>
+</html>

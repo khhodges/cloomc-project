@@ -169,6 +169,12 @@ def figures_gt_format_type_field():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
+@app.route('/figures/b-bit-propagation')
+def figures_b_bit_propagation():
+    resp = make_response(send_from_directory(FIGURES_DIR, 'b-bit-propagation.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
 @app.route('/figures/hello-mum-tunnel')
 def figures_hello_mum_tunnel():
     resp = make_response(send_from_directory(FIGURES_DIR, 'hello-mum-tunnel.html'))
