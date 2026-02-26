@@ -24,7 +24,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = ".pythonlibs/bin/python unified_server.py"
+args = ".pythonlibs/bin/gunicorn --bind 0.0.0.0:5000 --workers 2 --threads 4 --timeout 120 'unified_server:app'"
 waitForPort = 5000
 
 [[ports]]
