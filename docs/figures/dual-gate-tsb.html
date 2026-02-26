@@ -7,8 +7,8 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #0a0e17;
-    color: #c8d6e5;
+    background: #ffffff;
+    color: #1a1a1a;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     min-height: 100vh;
     display: flex;
@@ -16,19 +16,18 @@
     align-items: center;
     padding: 30px 20px;
   }
-  h1 { font-size: 22px; color: #f5c842; margin-bottom: 6px; text-align: center; }
-  .subtitle { font-size: 13px; color: #8899aa; margin-bottom: 30px; text-align: center; max-width: 880px; }
+  h1 { font-size: 22px; color: #b8860b; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 13px; color: #555555; margin-bottom: 30px; text-align: center; max-width: 880px; }
   .nav { position: fixed; top: 10px; left: 10px; z-index: 100; }
   .nav a {
-    background: #222; color: #ccc; text-decoration: none; padding: 6px 14px;
-    border-radius: 4px; font-size: 13px; border: 1px solid #444;
+    background: #f0f0f0; color: #333; text-decoration: none; padding: 6px 14px;
+    border-radius: 4px; font-size: 13px; border: 1px solid #ccc;
   }
-  .nav a:hover { background: #333; color: #fff; }
+  .nav a:hover { background: #e0e0e0; color: #000; }
   .legend { margin-top: 20px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8899aa; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
   .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
   @media print {
-    body { background: #fff; color: #222; }
     .nav { display: none; }
   }
 </style>
@@ -52,7 +51,7 @@
       <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c"/>
     </marker>
     <marker id="ah-y" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#f5c842"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b8860b"/>
     </marker>
     <marker id="ah-w" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#ecf0f1"/>
@@ -64,33 +63,33 @@
 
   <style>
     .title-sm { font-family:'Segoe UI',system-ui,sans-serif; font-size:16px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
-    .label { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; fill:#c8d6e5; text-anchor:middle; dominant-baseline:central; }
-    .label-s { font-family:'Segoe UI',system-ui,sans-serif; font-size:10px; fill:#8899aa; text-anchor:middle; dominant-baseline:central; }
-    .label-l { font-family:'Segoe UI',system-ui,sans-serif; font-size:11px; fill:#a0b0c0; text-anchor:start; dominant-baseline:central; }
-    .label-r { font-family:'Segoe UI',system-ui,sans-serif; font-size:11px; fill:#a0b0c0; text-anchor:end; dominant-baseline:central; }
+    .label { font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
+    .label-s { font-family:'Segoe UI',system-ui,sans-serif; font-size:10px; fill:#555555; text-anchor:middle; dominant-baseline:central; }
+    .label-l { font-family:'Segoe UI',system-ui,sans-serif; font-size:11px; fill:#333333; text-anchor:start; dominant-baseline:central; }
+    .label-r { font-family:'Segoe UI',system-ui,sans-serif; font-size:11px; fill:#333333; text-anchor:end; dominant-baseline:central; }
     .mono { font-family:'Consolas','Courier New',monospace; }
-    .step-num { font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; font-weight:700; fill:#0a0e17; text-anchor:middle; dominant-baseline:central; }
-    .perm-label { font-family:'Consolas',monospace; font-size:10px; fill:#c8d6e5; text-anchor:middle; dominant-baseline:central; }
+    .step-num { font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; font-weight:700; fill:#ffffff; text-anchor:middle; dominant-baseline:central; }
+    .perm-label { font-family:'Consolas',monospace; font-size:10px; fill:#1a1a1a; text-anchor:middle; dominant-baseline:central; }
     .gate-label { font-family:'Consolas',monospace; font-size:11px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
   </style>
 
   <!-- ═══════ OUTER TSB BOUNDARY ═══════ -->
-  <rect x="30" y="100" width="1040" height="900" rx="12" fill="none" stroke="#2a3a4a" stroke-width="2" stroke-dasharray="8,4"/>
+  <rect x="30" y="100" width="1040" height="900" rx="12" fill="none" stroke="#999999" stroke-width="2" stroke-dasharray="8,4"/>
   <text x="550" y="86" class="title-sm" fill="#5dade2">TRUSTED SECURITY BASE (TSB)</text>
   <text x="550" y="1018" class="label-s">~329 lines Amaranth HDL &mdash; 5 orders of magnitude smaller than Linux, 2 orders smaller than seL4</text>
 
   <!-- ═══════ mLoad COLUMN (LEFT) ═══════ -->
   <!-- Header -->
-  <rect x="60" y="120" width="440" height="44" rx="8" fill="#1a2a3a" stroke="#5dade2" stroke-width="2"/>
+  <rect x="60" y="120" width="440" height="44" rx="8" fill="#e8f4fd" stroke="#5dade2" stroke-width="2"/>
   <text x="280" y="142" class="title-sm" fill="#5dade2">mLoad — Read Gate</text>
 
   <!-- Input: Read-side instructions -->
-  <rect x="130" y="180" width="300" height="34" rx="6" fill="#1a1a2a" stroke="#58a6ff" stroke-width="1"/>
+  <rect x="130" y="180" width="300" height="34" rx="6" fill="#eef4ff" stroke="#58a6ff" stroke-width="1"/>
   <text x="280" y="197" class="label" fill="#58a6ff">Read-Side Instructions</text>
 
   <!-- Permission gate table -->
-  <rect x="100" y="230" width="360" height="80" rx="6" fill="#111822" stroke="#30363d" stroke-width="1"/>
-  <text x="280" y="248" class="gate-label" fill="#f5c842">Permission Gate Table</text>
+  <rect x="100" y="230" width="360" height="80" rx="6" fill="#f5f5f0" stroke="#999999" stroke-width="1"/>
+  <text x="280" y="248" class="gate-label" fill="#b8860b">Permission Gate Table</text>
   <text x="140" y="270" class="perm-label" fill="#2ecc71">R&#x2192;DREAD</text>
   <text x="240" y="270" class="perm-label" fill="#2ecc71">W&#x2192;DWRITE</text>
   <text x="340" y="270" class="perm-label" fill="#2ecc71">X&#x2192;LAMBDA</text>
@@ -104,54 +103,54 @@
 
   <circle cx="110" cy="340" r="13" fill="#5dade2"/>
   <text x="110" y="340" class="step-num">1</text>
-  <rect x="130" y="324" width="300" height="32" rx="6" fill="#0d2137" stroke="#5dade2" stroke-width="1.5"/>
+  <rect x="130" y="324" width="300" height="32" rx="6" fill="#e8f4fd" stroke="#5dade2" stroke-width="1.5"/>
   <text x="280" y="340" class="label" fill="#5dade2">Permission Check</text>
   <line x1="280" y1="310" x2="280" y2="324" stroke="#5dade2" stroke-width="1.5" marker-end="url(#ah)"/>
 
   <!-- Step 2: Bounds -->
   <circle cx="110" cy="390" r="13" fill="#5dade2"/>
   <text x="110" y="390" class="step-num">2</text>
-  <rect x="130" y="374" width="300" height="32" rx="6" fill="#0d2137" stroke="#5dade2" stroke-width="1.5"/>
+  <rect x="130" y="374" width="300" height="32" rx="6" fill="#e8f4fd" stroke="#5dade2" stroke-width="1.5"/>
   <text x="280" y="390" class="label" fill="#5dade2">Bounds Check</text>
   <line x1="280" y1="356" x2="280" y2="374" stroke="#5dade2" stroke-width="1.5" marker-end="url(#ah)"/>
 
   <!-- Step 3: Version -->
   <circle cx="110" cy="440" r="13" fill="#5dade2"/>
   <text x="110" y="440" class="step-num">3</text>
-  <rect x="130" y="424" width="300" height="32" rx="6" fill="#0d2137" stroke="#5dade2" stroke-width="1.5"/>
+  <rect x="130" y="424" width="300" height="32" rx="6" fill="#e8f4fd" stroke="#5dade2" stroke-width="1.5"/>
   <text x="280" y="440" class="label" fill="#5dade2">Version Match</text>
   <line x1="280" y1="406" x2="280" y2="424" stroke="#5dade2" stroke-width="1.5" marker-end="url(#ah)"/>
 
   <!-- Step 4: MAC/Seal -->
   <circle cx="110" cy="490" r="13" fill="#5dade2"/>
   <text x="110" y="490" class="step-num">4</text>
-  <rect x="130" y="474" width="300" height="32" rx="6" fill="#0d2137" stroke="#5dade2" stroke-width="1.5"/>
+  <rect x="130" y="474" width="300" height="32" rx="6" fill="#e8f4fd" stroke="#5dade2" stroke-width="1.5"/>
   <text x="280" y="490" class="label" fill="#5dade2">MAC / Seal Validation</text>
   <line x1="280" y1="456" x2="280" y2="474" stroke="#5dade2" stroke-width="1.5" marker-end="url(#ah)"/>
 
   <!-- Step 5: G-bit -->
   <circle cx="110" cy="540" r="13" fill="#2ecc71"/>
   <text x="110" y="540" class="step-num">5</text>
-  <rect x="130" y="524" width="300" height="32" rx="6" fill="#0d2137" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="130" y="524" width="300" height="32" rx="6" fill="#e8f4fd" stroke="#2ecc71" stroke-width="1.5"/>
   <text x="280" y="540" class="label" fill="#2ecc71">G-bit Reset (GC liveness)</text>
   <line x1="280" y1="506" x2="280" y2="524" stroke="#5dade2" stroke-width="1.5" marker-end="url(#ah)"/>
 
   <!-- Step 6: CR Write -->
   <circle cx="110" cy="590" r="13" fill="#2ecc71"/>
   <text x="110" y="590" class="step-num">6</text>
-  <rect x="130" y="574" width="300" height="32" rx="6" fill="#0d2137" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="130" y="574" width="300" height="32" rx="6" fill="#e8f4fd" stroke="#2ecc71" stroke-width="1.5"/>
   <text x="280" y="590" class="label" fill="#2ecc71">CR Write (capability register update)</text>
   <line x1="280" y1="556" x2="280" y2="574" stroke="#2ecc71" stroke-width="1.5" marker-end="url(#ah-g)"/>
 
   <!-- Step 7: Thread Shadow -->
   <circle cx="110" cy="640" r="13" fill="#2ecc71"/>
   <text x="110" y="640" class="step-num">7</text>
-  <rect x="130" y="624" width="300" height="32" rx="6" fill="#0d2137" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="130" y="624" width="300" height="32" rx="6" fill="#e8f4fd" stroke="#2ecc71" stroke-width="1.5"/>
   <text x="280" y="640" class="label" fill="#2ecc71">Thread Shadow Update</text>
   <line x1="280" y1="606" x2="280" y2="624" stroke="#2ecc71" stroke-width="1.5" marker-end="url(#ah-g)"/>
 
   <!-- Success output -->
-  <rect x="170" y="680" width="220" height="30" rx="6" fill="#1a2a1a" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="170" y="680" width="220" height="30" rx="6" fill="#e8fde8" stroke="#2ecc71" stroke-width="1.5"/>
   <text x="280" y="695" class="gate-label" fill="#2ecc71">&#10003; Valid Read Complete</text>
   <line x1="280" y1="656" x2="280" y2="680" stroke="#2ecc71" stroke-width="1.5" marker-end="url(#ah-g)"/>
 
@@ -167,76 +166,76 @@
 
   <!-- ═══════ mSave COLUMN (RIGHT) ═══════ -->
   <!-- Header -->
-  <rect x="600" y="120" width="440" height="44" rx="8" fill="#2a1a1a" stroke="#f0883e" stroke-width="2"/>
+  <rect x="600" y="120" width="440" height="44" rx="8" fill="#fdf5eb" stroke="#f0883e" stroke-width="2"/>
   <text x="820" y="142" class="title-sm" fill="#f0883e">mSave — Write Gate</text>
 
   <!-- Input: Write-side instructions -->
-  <rect x="670" y="180" width="300" height="34" rx="6" fill="#1a1a1a" stroke="#f0883e" stroke-width="1"/>
+  <rect x="670" y="180" width="300" height="34" rx="6" fill="#fdf5eb" stroke="#f0883e" stroke-width="1"/>
   <text x="820" y="197" class="label" fill="#f0883e">Write to C-List (SAVE)</text>
 
   <!-- Step 1: Version -->
   <line x1="820" y1="214" x2="820" y2="274" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ah-o)"/>
   <circle cx="650" cy="290" r="13" fill="#f0883e"/>
   <text x="650" y="290" class="step-num">1</text>
-  <rect x="670" y="274" width="300" height="32" rx="6" fill="#1a1510" stroke="#f0883e" stroke-width="1.5"/>
+  <rect x="670" y="274" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#f0883e" stroke-width="1.5"/>
   <text x="820" y="290" class="label" fill="#f0883e">Source GT Version Match</text>
 
   <!-- Step 2: Seal -->
   <circle cx="650" cy="340" r="13" fill="#f0883e"/>
   <text x="650" y="340" class="step-num">2</text>
-  <rect x="670" y="324" width="300" height="32" rx="6" fill="#1a1510" stroke="#f0883e" stroke-width="1.5"/>
+  <rect x="670" y="324" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#f0883e" stroke-width="1.5"/>
   <text x="820" y="340" class="label" fill="#f0883e">Source GT Seal Validation</text>
   <line x1="820" y1="306" x2="820" y2="324" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ah-o)"/>
 
   <!-- Step 3: Target Bounds -->
   <circle cx="650" cy="390" r="13" fill="#5dade2"/>
   <text x="650" y="390" class="step-num">3</text>
-  <rect x="670" y="374" width="300" height="32" rx="6" fill="#1a1510" stroke="#5dade2" stroke-width="1.5"/>
+  <rect x="670" y="374" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#5dade2" stroke-width="1.5"/>
   <text x="820" y="390" class="label" fill="#5dade2">Target C-List Bounds Check</text>
   <line x1="820" y1="356" x2="820" y2="374" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ah-o)"/>
 
   <!-- Step 4: B-bit -->
-  <circle cx="650" cy="440" r="13" fill="#f5c842"/>
+  <circle cx="650" cy="440" r="13" fill="#b8860b"/>
   <text x="650" y="440" class="step-num">4</text>
-  <rect x="670" y="424" width="300" height="32" rx="6" fill="#1a1510" stroke="#f5c842" stroke-width="1.5"/>
-  <text x="820" y="440" class="label" fill="#f5c842">B-bit Check (B=1 required)</text>
+  <rect x="670" y="424" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="820" y="440" class="label" fill="#b8860b">B-bit Check (B=1 required)</text>
   <line x1="820" y1="406" x2="820" y2="424" stroke="#5dade2" stroke-width="1.5" marker-end="url(#ah)"/>
 
   <!-- Step 5: F-bit -->
-  <circle cx="650" cy="490" r="13" fill="#f5c842"/>
+  <circle cx="650" cy="490" r="13" fill="#b8860b"/>
   <text x="650" y="490" class="step-num">5</text>
-  <rect x="670" y="474" width="300" height="32" rx="6" fill="#1a1510" stroke="#f5c842" stroke-width="1.5"/>
-  <text x="820" y="490" class="label" fill="#f5c842">F-bit Detection on Target Slot</text>
-  <line x1="820" y1="456" x2="820" y2="474" stroke="#f5c842" stroke-width="1.5" marker-end="url(#ah-y)"/>
+  <rect x="670" y="474" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="820" y="490" class="label" fill="#b8860b">F-bit Detection on Target Slot</text>
+  <line x1="820" y1="456" x2="820" y2="474" stroke="#b8860b" stroke-width="1.5" marker-end="url(#ah-y)"/>
 
   <!-- F-bit branch annotation -->
-  <rect x="740" y="512" width="160" height="22" rx="4" fill="#111822" stroke="#da70d6" stroke-width="1"/>
+  <rect x="740" y="512" width="160" height="22" rx="4" fill="#f9f0fc" stroke="#da70d6" stroke-width="1"/>
   <text x="820" y="523" class="label-s" fill="#da70d6">F=1 &#x2192; HTTP/tunnel route</text>
   <line x1="820" y1="506" x2="820" y2="512" stroke="#da70d6" stroke-width="1" stroke-dasharray="3,2"/>
 
   <!-- Step 6: Seal Recompute -->
   <circle cx="650" cy="560" r="13" fill="#f0883e"/>
   <text x="650" y="560" class="step-num">6</text>
-  <rect x="670" y="544" width="300" height="32" rx="6" fill="#1a1510" stroke="#f0883e" stroke-width="1.5"/>
+  <rect x="670" y="544" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#f0883e" stroke-width="1.5"/>
   <text x="820" y="560" class="label" fill="#f0883e">Seal Recompute (FNV hash)</text>
   <line x1="820" y1="534" x2="820" y2="544" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ah-o)"/>
 
   <!-- Step 7: G-bit -->
   <circle cx="650" cy="610" r="13" fill="#2ecc71"/>
   <text x="650" y="610" class="step-num">7</text>
-  <rect x="670" y="594" width="300" height="32" rx="6" fill="#1a1510" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="670" y="594" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#2ecc71" stroke-width="1.5"/>
   <text x="820" y="610" class="label" fill="#2ecc71">G-bit Reset (GC liveness)</text>
   <line x1="820" y1="576" x2="820" y2="594" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ah-o)"/>
 
   <!-- Step 8: Commit -->
   <circle cx="650" cy="660" r="13" fill="#2ecc71"/>
   <text x="650" y="660" class="step-num">8</text>
-  <rect x="670" y="644" width="300" height="32" rx="6" fill="#1a1510" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="670" y="644" width="300" height="32" rx="6" fill="#fdf5eb" stroke="#2ecc71" stroke-width="1.5"/>
   <text x="820" y="660" class="label" fill="#2ecc71">Commit to C-List</text>
   <line x1="820" y1="626" x2="820" y2="644" stroke="#2ecc71" stroke-width="1.5" marker-end="url(#ah-g)"/>
 
   <!-- Success output -->
-  <rect x="710" y="700" width="220" height="30" rx="6" fill="#1a2a1a" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="710" y="700" width="220" height="30" rx="6" fill="#e8fde8" stroke="#2ecc71" stroke-width="1.5"/>
   <text x="820" y="715" class="gate-label" fill="#2ecc71">&#10003; Valid Write Complete</text>
   <line x1="820" y1="676" x2="820" y2="700" stroke="#2ecc71" stroke-width="1.5" marker-end="url(#ah-g)"/>
 
@@ -251,7 +250,7 @@
   <text x="638" y="432" class="label-s" fill="#e74c3c">FAIL</text>
 
   <!-- ═══════ CENTRAL FAULT HANDLER ═══════ -->
-  <rect x="490" y="790" width="120" height="100" rx="10" fill="#2a0a0a" stroke="#e74c3c" stroke-width="2.5"/>
+  <rect x="490" y="790" width="120" height="100" rx="10" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>
   <text x="550" y="825" class="title-sm" fill="#e74c3c">FAULT</text>
   <text x="550" y="848" class="label-s" fill="#e74c3c">Single handler</text>
   <text x="550" y="864" class="label-s" fill="#e74c3c">No recovery</text>
@@ -282,34 +281,34 @@
 
   <!-- ═══════ INSTRUCTION SOURCES (TOP) ═══════ -->
   <!-- mLoad sources -->
-  <rect x="60" y="20" width="200" height="60" rx="8" fill="#111822" stroke="#30363d" stroke-width="1"/>
+  <rect x="60" y="20" width="200" height="60" rx="8" fill="#f5f5f5" stroke="#999999" stroke-width="1"/>
   <text x="160" y="40" class="gate-label" fill="#2ecc71">Turing Domain</text>
-  <text x="160" y="58" class="perm-label" fill="#8899aa">DREAD(R) DWRITE(W)</text>
-  <text x="160" y="72" class="perm-label" fill="#8899aa">LAMBDA(X)</text>
+  <text x="160" y="58" class="perm-label" fill="#555555">DREAD(R) DWRITE(W)</text>
+  <text x="160" y="72" class="perm-label" fill="#555555">LAMBDA(X)</text>
   <line x1="200" y1="80" x2="240" y2="180" stroke="#58a6ff" stroke-width="1" marker-end="url(#ah)"/>
 
-  <rect x="290" y="20" width="210" height="60" rx="8" fill="#111822" stroke="#30363d" stroke-width="1"/>
+  <rect x="290" y="20" width="210" height="60" rx="8" fill="#f5f5f5" stroke="#999999" stroke-width="1"/>
   <text x="395" y="40" class="gate-label" fill="#da70d6">Church Domain</text>
-  <text x="395" y="58" class="perm-label" fill="#8899aa">LOAD(L) SAVE(S)</text>
-  <text x="395" y="72" class="perm-label" fill="#8899aa">CALL(E)</text>
+  <text x="395" y="58" class="perm-label" fill="#555555">LOAD(L) SAVE(S)</text>
+  <text x="395" y="72" class="perm-label" fill="#555555">CALL(E)</text>
   <line x1="360" y1="80" x2="320" y2="180" stroke="#58a6ff" stroke-width="1" marker-end="url(#ah)"/>
 
   <!-- mSave source -->
-  <rect x="710" y="20" width="220" height="60" rx="8" fill="#111822" stroke="#30363d" stroke-width="1"/>
+  <rect x="710" y="20" width="220" height="60" rx="8" fill="#f5f5f5" stroke="#999999" stroke-width="1"/>
   <text x="820" y="40" class="gate-label" fill="#f0883e">C-List Write</text>
-  <text x="820" y="58" class="perm-label" fill="#8899aa">SAVE instruction</text>
-  <text x="820" y="72" class="perm-label" fill="#8899aa">Namespace commit path</text>
+  <text x="820" y="58" class="perm-label" fill="#555555">SAVE instruction</text>
+  <text x="820" y="72" class="perm-label" fill="#555555">Namespace commit path</text>
   <line x1="820" y1="80" x2="820" y2="180" stroke="#f0883e" stroke-width="1" marker-end="url(#ah-o)"/>
 
   <!-- ═══════ M-ELEVATION BYPASS ═══════ -->
-  <rect x="60" y="780" width="170" height="50" rx="6" fill="#111822" stroke="#bc8cff" stroke-width="1.5"/>
+  <rect x="60" y="780" width="170" height="50" rx="6" fill="#f3ecff" stroke="#bc8cff" stroke-width="1.5"/>
   <text x="145" y="798" class="gate-label" fill="#bc8cff">M-Elevation</text>
   <text x="145" y="816" class="label-s" fill="#bc8cff">Bypasses permission check</text>
   <line x1="145" y1="710" x2="145" y2="780" stroke="#bc8cff" stroke-width="1" stroke-dasharray="5,3"/>
 
   <!-- ═══════ BOTTOM: SYMMETRY ANNOTATION ═══════ -->
-  <rect x="130" y="930" width="840" height="60" rx="8" fill="#111822" stroke="#30363d" stroke-width="1"/>
-  <text x="550" y="950" class="label" fill="#f5c842">Symmetric Design: mLoad guards every read (7 stages), mSave guards every write (8 stages)</text>
+  <rect x="130" y="930" width="840" height="60" rx="8" fill="#f5f5f0" stroke="#999999" stroke-width="1"/>
+  <text x="550" y="950" class="label" fill="#b8860b">Symmetric Design: mLoad guards every read (7 stages), mSave guards every write (8 stages)</text>
   <text x="550" y="970" class="label-s">Together they form the complete TSB. No capability operation bypasses both gates.</text>
   <text x="550" y="984" class="label-s">G-bit integrated into both paths &#x2014; every namespace access contributes to GC liveness tracking.</text>
 
@@ -318,7 +317,7 @@
 <div class="legend">
   <div class="legend-item"><div class="legend-swatch" style="background:#5dade2;"></div> mLoad validation stages</div>
   <div class="legend-item"><div class="legend-swatch" style="background:#f0883e;"></div> mSave validation stages</div>
-  <div class="legend-item"><div class="legend-swatch" style="background:#f5c842;"></div> B-bit / F-bit propagation control</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#b8860b;"></div> B-bit / F-bit propagation control</div>
   <div class="legend-item"><div class="legend-swatch" style="background:#2ecc71;"></div> GC integration / success path</div>
   <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c;"></div> Failure &#x2192; FAULT</div>
   <div class="legend-item"><div class="legend-swatch" style="background:#bc8cff;"></div> M-elevation (microcode bypass)</div>
