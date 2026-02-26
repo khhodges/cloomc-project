@@ -123,6 +123,10 @@ function renderPagesDirectory() {
         card('/figures/mint-abstraction-nesting', 'Fig 13: Mint Abstraction', 'figure', td, 'Abstraction nesting and domain purity.'),
         card('/figures/hello-mum-tunnel', 'Fig 14: Hello Mum Tunnel', 'figure', td, 'Encrypted capability tunnel example.'),
     ].join('');
+    const tp = 'background:#2a1a2a;border:1px solid #da70d6;color:#da70d6;';
+    el('pagesPatent').innerHTML = [
+        navCard('/docs/patent', 'Unified Patent Submission', 'patent', tp, 'Consolidated 28-claim patent: dual-gate TSB, B-bit propagation, LAMBDA, Pure Church, safe Turing abstractions.'),
+    ].join('');
     el('pagesBusiness').innerHTML = [
         card('/docs/business/plan.html', 'Business Plan', 'business', tt, 'Church Machine business plan.'),
         card('/docs/business/deck.html', 'Investor Deck', 'business', tt, 'Church Machine investor presentation.'),
