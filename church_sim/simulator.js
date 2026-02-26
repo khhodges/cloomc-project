@@ -785,6 +785,10 @@ class ChurchSimulator {
             savedFlags: {...this.flags},
         });
 
+        for (let i = 0; i < this.cr.length; i++) {
+            this.cr[i].word1_limit = (this.cr[i].word1_limit & ~(1 << 31)) >>> 0;
+        }
+
         const label = this.nsLabels[check.index] || 'abstraction';
         const desc = `CALL CR${d.crDst} → ${label}`;
         this.output += desc + '\n';
@@ -988,6 +992,10 @@ class ChurchSimulator {
             savedDRs: [...this.dr],
             savedFlags: {...this.flags},
         });
+
+        for (let i = 0; i < this.cr.length; i++) {
+            this.cr[i].word1_limit = (this.cr[i].word1_limit & ~(1 << 31)) >>> 0;
+        }
 
         const label = this.nsLabels[targetIdx] || 'abstraction';
         const desc = `ELOADCALL CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${label} (LOAD+TPERM+CALL)`;

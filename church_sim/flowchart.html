@@ -192,7 +192,8 @@
             <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(targetGT, 'E')</span> — require E (entry) perm</span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text">If handler registered (e.g., GC) → dispatch to safe Turing abstraction</span></div>
             <div class="step"><span class="step-num">4</span><span class="step-text">Push call frame: returnPC, all CRs, all DRs, flags</span></div>
-            <div class="step"><span class="step-num">5</span><span class="step-text"><span class="step-ok">PC++</span></span></div>
+            <div class="step"><span class="step-num">5</span><span class="step-text">Auto-clear B on all active CRs — callee cannot bind without explicit TPERM</span></div>
+            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="step-ok">PC++</span></span></div>
         </div>
 
         <div class="flow-card">
@@ -247,7 +248,8 @@
             <div class="step"><span class="step-num">4</span><span class="step-text">Load GT → CR[dst]</span></div>
             <div class="step"><span class="step-num">5</span><span class="step-text"><span class="step-gate">mLoad(loadedGT, 'E')</span> — TPERM+CALL phase: check E perm</span></div>
             <div class="step"><span class="step-num">6</span><span class="step-text">Push call frame (CRs, DRs, flags, returnPC)</span></div>
-            <div class="step"><span class="step-num">7</span><span class="step-text"><span class="step-ok">PC++</span> <span class="step-detail">(3 ops in 1 cycle: LOAD + TPERM(E) + CALL)</span></span></div>
+            <div class="step"><span class="step-num">7</span><span class="step-text">Auto-clear B on all active CRs</span></div>
+            <div class="step"><span class="step-num">8</span><span class="step-text"><span class="step-ok">PC++</span> <span class="step-detail">(3 ops in 1 cycle: LOAD + TPERM(E) + CALL)</span></span></div>
         </div>
 
         <div class="flow-card fused">
