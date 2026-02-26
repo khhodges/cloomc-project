@@ -69,6 +69,7 @@ class RiscVCapSimulator {
                 limit: d.limit,
                 versionSeals: this.makeVersionSeals(0, d.location, d.limit),
                 gBit: 0,
+                bBit: 0,
                 funcId: d.funcId || null,
                 entryPerms: d.entryPerms || null,
                 gtType: d.gtType || 0,
@@ -607,11 +608,20 @@ class RiscVCapSimulator {
             this.fault('BOUNDS', `SAVE: index ${index} out of bounds`);
             return;
         }
+        const srcCR = this.cr[crSrcCap];
+        const srcGT = srcCR.word0;
+        const srcParsed = this.parseGT(srcGT);
+        if (srcParsed.index < this.namespaceTable.length) {
+            const srcEntry = this.namespaceTable[srcParsed.index];
+            if (srcEntry && !srcEntry.bBit) {
+                this.fault('BIND', `SAVE: source CR${crSrcCap} B=0 (not bindable — use TPERM to set B)`);
+                return;
+            }
+        }
         while (this.namespaceTable.length <= index) {
             const emptySeal = this.makeVersionSeals(0, 0, 0);
-            this.namespaceTable.push({ location: 0, limit: 0, versionSeals: emptySeal, gBit: 0 });
+            this.namespaceTable.push({ location: 0, limit: 0, versionSeals: emptySeal, gBit: 0, bBit: 0 });
         }
-        const srcCR = this.cr[crSrcCap];
         const loc = srcCR.word1 >>> 0;
         const lim = srcCR.word2 >>> 0;
         const existingVersion = (this.namespaceTable[index].versionSeals >>> 25) & 0x7F;
@@ -705,6 +715,15 @@ class RiscVCapSimulator {
         this._writeCR(7, cr7GT, entry);
         this.pc = entry.location >>> 0;
         this._clearCR(5);
+        for (let i = 0; i <= 4; i++) {
+            const preservedGT = this.cr[i].word0;
+            if (preservedGT !== 0) {
+                const pParsed = this.parseGT(preservedGT);
+                if (pParsed.index < this.namespaceTable.length && this.namespaceTable[pParsed.index]) {
+                    this.namespaceTable[pParsed.index].bBit = 0;
+                }
+            }
+        }
         this.x[0] = 0;
     }
 
@@ -852,12 +871,22 @@ class RiscVCapSimulator {
                 const permBits = this.getPermBits(parsed.permissions) & 0x3F;
                 const valid = this.validateGT(gt) ? 1 : 0;
                 const typeBits = parsed.type & 0x3;
-                const result = ((typeBits & 0x3) << 9) |
-                               ((valid & 0x1) << 8) |
-                               ((this.stackSpace ? 1 : 0) << 7) |
-                               ((this.stackFrames ? 1 : 0) << 6) |
-                               (permBits & 0x3F);
-                if (rd !== 0) this.x[rd] = result >>> 0;
+                const bBit = (parsed.index < this.namespaceTable.length && this.namespaceTable[parsed.index]) ?
+                    (this.namespaceTable[parsed.index].bBit ? 1 : 0) : 0;
+                if (rd === 0) {
+                    if (parsed.index < this.namespaceTable.length && this.namespaceTable[parsed.index]) {
+                        this.namespaceTable[parsed.index].bBit = 1;
+                        this.output += `TPERM CR${crIdx}: B-bit SET to 1 (bindable)\n`;
+                    }
+                } else {
+                    const result = ((bBit & 0x1) << 11) |
+                                   ((typeBits & 0x3) << 9) |
+                                   ((valid & 0x1) << 8) |
+                                   ((this.stackSpace ? 1 : 0) << 7) |
+                                   ((this.stackFrames ? 1 : 0) << 6) |
+                                   (permBits & 0x3F);
+                    this.x[rd] = result >>> 0;
+                }
                 this.pc = (this.pc + 4) >>> 0;
                 break;
             }
@@ -1045,7 +1074,7 @@ class RiscVCapSimulator {
                         const st = (d.raw >>> 22) & 0x7;
                         return `CAP.SWITCH CR${crSrc}, CR${8 + st}`;
                     }
-                    case 3: return `CAP.TPERM ${x(rd)}, CR${crSrc}`;
+                    case 3: return rd === 0 ? `CAP.TPERM.B CR${crSrc}  # Set B-bit` : `CAP.TPERM ${x(rd)}, CR${crSrc}`;
                     case 4: return `CAP.LAMBDA CR${crSrc}, ${x(rd)}`;
                     default: return `C.??? funct3=${funct3}`;
                 }

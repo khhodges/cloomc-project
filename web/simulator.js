@@ -184,7 +184,8 @@ class CTMMSimulator {
                 goldenKey: entry.goldenKey || this.generateKey(),
                 version: entry.version,
                 seal: entry.seal,
-                clist: entry.clist || null
+                clist: entry.clist || null,
+                bBit: entry.bBit || false,
             };
             if (entry.type) loadedCap.type = entry.type;
             if (entry.remoteEndpoint) loadedCap.remoteEndpoint = entry.remoteEndpoint;
@@ -549,8 +550,12 @@ class CTMMSimulator {
                 }
                 
                 const validPerms = ['R', 'W', 'X', 'L', 'S', 'E'];
-                const maskString = String(maskStr);
-                const requiredPerms = maskString.toUpperCase().split('').filter(p => validPerms.includes(p));
+                const maskString = String(maskStr).toUpperCase();
+                const hasBModifier = maskString.includes('B');
+                if (hasBModifier) {
+                    cr.bBit = true;
+                }
+                const requiredPerms = maskString.split('').filter(p => validPerms.includes(p));
                 const actualPerms = cr.perms || [];
                 
                 const permsOK = requiredPerms.every(p => actualPerms.includes(p));
@@ -599,7 +604,8 @@ class CTMMSimulator {
                 const indexStr = indexArg !== undefined ? ` INDEX ${indexArg}` : "";
                 const failStr = details.length > 0 ? ` (${details.join(", ")})` : "";
                 const actualPermStr = actualPerms.length > 0 ? `[${actualPerms.join('')}]` : '[no perms]';
-                return `TPERM CR${crIdx} ${actualPermStr} "${cr.name}" need [${maskStr}]${indexStr} -> ${result}${failStr} (Z=${this.flags.Z ? 1 : 0}, size=${objectSize})`;
+                const bStr = hasBModifier ? ' B=1(set)' : (cr.bBit ? ' B=1' : ' B=0');
+                return `TPERM CR${crIdx} ${actualPermStr} "${cr.name}" need [${maskStr}]${indexStr} -> ${result}${failStr}${bStr} (Z=${this.flags.Z ? 1 : 0}, size=${objectSize})`;
             }
             
             case "B": {
@@ -645,6 +651,9 @@ class CTMMSimulator {
                 if (!hasMDest && !dest.perms.includes('S')) {
                     return `FAULT: PERMISSION: CR${destCR} - lacks S permission (destination C-List)`;
                 }
+                if (!src.bBit) {
+                    return `FAULT: BIND: CR${srcCR} B=0 (not bindable — use TPERM with B modifier to allow bind)`;
+                }
                 const saveIdx = idx || 0;
                 if (!dest.clist) {
                     dest.clist = [];
@@ -662,7 +671,8 @@ class CTMMSimulator {
                     perms: [...savedPerms],
                     locked: src.locked || false,
                     goldenKey: src.goldenKey || this.generateKey(),
-                    clist: src.clist || null
+                    clist: src.clist || null,
+                    bBit: false,
                 };
                 this.registerCapability(savedCap);
                 dest.clist[saveIdx] = savedCap;
@@ -931,11 +941,18 @@ class CTMMSimulator {
                 }
                 
                 let clearedCRs = [];
+                let bClearedCRs = [];
                 for (let i = 0; i <= 4; i++) {
                     const preserve = (mask >> (i + 5)) & 1;
                     if (!preserve) {
                         this._clearCR(i);
                         clearedCRs.push(`CR${i}`);
+                    } else {
+                        const preservedCR = this._getCR(i);
+                        if (preservedCR && preservedCR.bBit) {
+                            preservedCR.bBit = false;
+                            bClearedCRs.push(`CR${i}`);
+                        }
                     }
                 }
                 
@@ -961,7 +978,8 @@ class CTMMSimulator {
                 this.stackDepth++;
                 const drClearMsg = clearedRegs.length > 0 ? `, DRs cleared: ${clearedRegs.join(',')}` : '';
                 const crClearMsg = clearedCRs.length > 0 ? `, CRs cleared: ${clearedCRs.join(',')}` : '';
-                return `CALL CR${crIdx} (${cr.name}): pushed frame, loaded CR6 (nodal C-List), CR7 (Access Code)${drClearMsg}${crClearMsg}`;
+                const bClearMsg = bClearedCRs.length > 0 ? `, B-bit cleared: ${bClearedCRs.join(',')}` : '';
+                return `CALL CR${crIdx} (${cr.name}): pushed frame, loaded CR6 (nodal C-List), CR7 (Access Code)${drClearMsg}${crClearMsg}${bClearMsg}`;
             }
             
             case "RETURN": {
