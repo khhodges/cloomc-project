@@ -154,7 +154,7 @@ class ChurchSimulator {
             { label: 'Boot.Thread',   perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
             { label: 'Boot.CList',    perms: {R:0,W:0,X:0,L:1,S:1,E:0}, chainable: false },
             { label: 'Boot.Abstraction', perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'Boot.CLOOMC',   perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
+            { label: 'Boot.CLOOMC',   perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
             { label: 'Lambda',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'SlideRule',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
             { label: 'Abacus',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
@@ -197,7 +197,7 @@ class ChurchSimulator {
         this.nsClistMap[0] = clistChildren;
 
         const bootAbstrCListLoc = 3 * this.SLOT_SIZE;
-        const cr7GT = this.createGT(0, 4, {R:0,W:0,X:0,L:0,S:0,E:1}, 0);
+        const cr7GT = this.createGT(0, 4, {R:0,W:0,X:1,L:0,S:0,E:0}, 0);
         this.memory[bootAbstrCListLoc] = cr7GT;
         this.nsClistMap[3] = [4];
     }
@@ -268,7 +268,7 @@ class ChurchSimulator {
                     this.fault('BOOT', `Boot abstraction CR7 NS entry ${cr7Parsed.index} not found`);
                     return false;
                 }
-                const cr7Check = this.mLoad(cr7GT, 'E', undefined);
+                const cr7Check = this.mLoad(cr7GT, 'X', undefined);
                 if (!cr7Check.ok) {
                     this.fault('BOOT', `LOAD_NUC mLoad(CR7) failed: ${cr7Check.message}`);
                     return false;

@@ -330,7 +330,7 @@ class ChurchCore(Elaboratable):
                     cr7_gt_view.index.eq(4),
                     cr7_gt_view.version.eq(0),
                     cr7_gt_view.gt_type.eq(GT_TYPE_INFORM),
-                    cr7_gt_view.perms.eq(PERM_MASK_E),
+                    cr7_gt_view.perms.eq(PERM_MASK_X),
                 ]
                 m.d.comb += [boot_wr_en[7].eq(1), boot_wr_gt[7].eq(cr7_gt)]
 
