@@ -56,6 +56,25 @@ class ChurchSimulator {
         this.emit('stateChange', this.getState());
     }
 
+    _returnToBoot() {
+        for (let i = 0; i < 16; i++) {
+            this._clearCR(i);
+        }
+        this.dr.fill(0);
+        this.flags = { N: false, Z: false, C: false, V: false };
+        this.callStack = [];
+        this.lambdaActive = false;
+        this.lambdaReturnPC = 0;
+        this.pc = 0;
+        this.halted = false;
+        this.running = false;
+        this.bootComplete = false;
+        this.mElevation = false;
+        this.bootStep = 0;
+        this.output += '[PP250] Machine state cleared. Re-entering boot sequence.\n';
+        this.emit('stateChange', this.getState());
+    }
+
     packNSWord1(limit17, bFlag, fFlag, gBit, chainable, gtType) {
         return (
             ((bFlag & 1) << 31) |
@@ -672,11 +691,9 @@ class ChurchSimulator {
 
         const instrWord = this.memory[this.pc];
         if (instrWord === 0) {
-            this.halted = true;
-            this.running = false;
-            this.output += `[HALT] Zero instruction at PC=${this.pc}\n`;
-            this.emit('halt', { pc: this.pc });
-            return null;
+            this.output += `[PP250] Zero instruction at PC=${this.pc} — no HALT, returning to boot sequence\n`;
+            this._returnToBoot();
+            return { pc: this.pc, instr: null, desc: 'PP250: zero instruction → reboot' };
         }
 
         const d = this.decodeInstruction(instrWord);
@@ -872,11 +889,9 @@ class ChurchSimulator {
 
     _execReturn(d) {
         if (this.callStack.length === 0) {
-            this.halted = true;
-            this.running = false;
-            this.output += `RETURN: call stack empty — halt\n`;
-            this.emit('halt', { pc: this.pc });
-            return { pc: this.pc, instr: d, desc: 'RETURN (halt — empty stack)' };
+            this.output += `[PP250] RETURN with empty call stack — no HALT, returning to boot sequence\n`;
+            this._returnToBoot();
+            return { pc: this.pc, instr: d, desc: 'PP250: RETURN (empty stack) → reboot' };
         }
         const frame = this.callStack.pop();
         const desc = `RETURN CR${d.crDst} → PC=${frame.returnPC}`;
@@ -1433,9 +1448,9 @@ class ChurchSimulator {
         maxSteps = maxSteps || 10000;
         this.running = true;
         let steps = 0;
-        while (this.running && !this.halted && steps < maxSteps) {
+        while (this.running && !this.halted && this.bootComplete && steps < maxSteps) {
             const result = this.step();
-            if (!result) break;
+            if (!result || !this.bootComplete) break;
             steps++;
         }
         this.running = false;

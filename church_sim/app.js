@@ -723,7 +723,13 @@ function runSim() {
     const steps = sim.run(10000);
     const con = document.getElementById('editorConsole');
     if (con) {
-        con.textContent += `\nBoot complete. Ran ${steps} steps. ${sim.halted ? 'Halted.' : 'Stopped.'}`;
+        let status = 'Stopped.';
+        if (!sim.bootComplete) {
+            status = 'PP250: Returned to boot sequence.';
+        } else if (sim.halted) {
+            status = 'Faulted.';
+        }
+        con.textContent += `\nBoot complete. Ran ${steps} steps. ${status}`;
         con.scrollTop = con.scrollHeight;
     }
     updateDashboard();

@@ -143,7 +143,7 @@
     <div class="flow-card" style="max-width:550px;margin:0 auto 1.5rem;">
         <h3>Common Prefix (Every Instruction)</h3>
         <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Fetch instruction word at memory[PC]</span></div>
-        <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-none">---</span> If word = 0 → <span class="step-fault">HALT (zero instruction)</span></span></div>
+        <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-none">---</span> If word = 0 → <span class="step-fault">PP250: return to boot sequence (no HALT)</span></span></div>
         <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> Decode: opcode[5] | cond[4] | dst[4] | src[4] | imm[15]</span></div>
         <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-reg">REG</span> Evaluate ARM condition against flags (N,Z,C,V)</span></div>
         <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-none">---</span> If condition false → skip, PC++ <span class="step-detail">(conditional execution)</span></span></div>
@@ -243,7 +243,7 @@
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> Check LAMBDA-active flag in machine status <span class="step-detail">(Claim 5 — fast path)</span></span></div>
             <div class="step"><span class="step-num">2a</span><span class="step-text"><span class="bus bus-none">---</span> <b>If LAMBDA-active:</b> PC ← LAMBDA_PC (machine status register), clear LAMBDA-active flag. <span class="step-ok">Zero stack access.</span></span></div>
             <div class="sep"></div>
-            <div class="step"><span class="step-num">2b</span><span class="step-text"><span class="bus bus-none">---</span> <b>If not LAMBDA-active:</b> Call stack empty? → <span class="step-fault">HALT (stack empty)</span></span></div>
+            <div class="step"><span class="step-num">2b</span><span class="step-text"><span class="bus bus-none">---</span> <b>If not LAMBDA-active:</b> Call stack empty? → <span class="step-fault">PP250: return to boot sequence (no HALT)</span></span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-reg">REG</span> Pop frame, inspect 1-bit tag <span class="step-detail">(Claim 6 — self-describing frames)</span></span></div>
             <div class="step"><span class="step-num">4a</span><span class="step-text"><span class="bus bus-reg">REG</span> <b>Tag=0 (CALL frame):</b> Full domain restore — all CRs, DRs, flags. If saved LAMBDA state present, restore LAMBDA_PC + LAMBDA-active <span class="step-detail">(Claim 7)</span></span></div>
             <div class="step"><span class="step-num">4b</span><span class="step-text"><span class="bus bus-reg">REG</span> <b>Tag=1 (LAMBDA frame):</b> Simple PC restore from saved LAMBDA_PC</span></div>
