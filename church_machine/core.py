@@ -6,16 +6,19 @@ from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, COND_FLAGS_LAYOUT
 from .registers import ChurchRegisters
 from .decoder import ChurchDecoder
 from .perm_check import ChurchPermCheck
-from .gc_unit import ChurchGCUnit
+if ENABLE_GC:
+    from .gc_unit import ChurchGCUnit
 from .lambda_unit import ChurchLambda
 from .call import ChurchCall
 from .ret import ChurchReturn
 from .tperm import ChurchTperm
 from .save import ChurchSave
 from .load import ChurchLoad
-from .change import ChurchChange
-from .switch import ChurchSwitch
-from .fused_unit import ChurchELoadCall, ChurchXLoadLambda
+if ENABLE_CHANGE_SWITCH:
+    from .change import ChurchChange
+    from .switch import ChurchSwitch
+if ENABLE_FUSED_OPS:
+    from .fused_unit import ChurchELoadCall, ChurchXLoadLambda
 
 
 class ChurchCore(Elaboratable):
@@ -72,31 +75,37 @@ class ChurchCore(Elaboratable):
         u_regs = ChurchRegisters()
         u_decoder = ChurchDecoder()
         u_perm = ChurchPermCheck()
-        u_gc = ChurchGCUnit()
+        if ENABLE_GC:
+            u_gc = ChurchGCUnit()
         u_lambda = ChurchLambda()
         u_call = ChurchCall()
         u_return = ChurchReturn()
         u_tperm = ChurchTperm()
         u_save = ChurchSave()
         u_load = ChurchLoad()
-        u_change = ChurchChange()
-        u_switch = ChurchSwitch()
-        u_eloadcall = ChurchELoadCall()
-        u_xloadlambda = ChurchXLoadLambda()
+        if ENABLE_CHANGE_SWITCH:
+            u_change = ChurchChange()
+            u_switch = ChurchSwitch()
+        if ENABLE_FUSED_OPS:
+            u_eloadcall = ChurchELoadCall()
+            u_xloadlambda = ChurchXLoadLambda()
         m.submodules.u_registers = u_regs
         m.submodules.u_decoder = u_decoder
         m.submodules.u_perm_check = u_perm
-        m.submodules.u_gc_unit = u_gc
+        if ENABLE_GC:
+            m.submodules.u_gc_unit = u_gc
         m.submodules.u_lambda = u_lambda
         m.submodules.u_call = u_call
         m.submodules.u_return = u_return
         m.submodules.u_tperm = u_tperm
         m.submodules.u_save = u_save
         m.submodules.u_load = u_load
-        m.submodules.u_change = u_change
-        m.submodules.u_switch = u_switch
-        m.submodules.u_eloadcall = u_eloadcall
-        m.submodules.u_xloadlambda = u_xloadlambda
+        if ENABLE_CHANGE_SWITCH:
+            m.submodules.u_change = u_change
+            m.submodules.u_switch = u_switch
+        if ENABLE_FUSED_OPS:
+            m.submodules.u_eloadcall = u_eloadcall
+            m.submodules.u_xloadlambda = u_xloadlambda
 
         nia_reg = Signal(32)
 
@@ -147,12 +156,17 @@ class ChurchCore(Elaboratable):
         m.d.comb += cond_exec_enable.eq(self.boot_complete & exec_enable)
 
         any_unit_busy = Signal()
-        m.d.comb += any_unit_busy.eq(
+        busy_expr = (
             u_lambda.lambda_busy | u_tperm.tperm_busy | u_call.call_busy |
-            u_return.busy | u_save.save_busy | u_load.load_busy |
-            u_change.change_busy | u_switch.switch_busy | u_gc.gc_busy |
-            u_eloadcall.busy | u_xloadlambda.busy
+            u_return.busy | u_save.save_busy | u_load.load_busy
         )
+        if ENABLE_GC:
+            busy_expr = busy_expr | u_gc.gc_busy
+        if ENABLE_CHANGE_SWITCH:
+            busy_expr = busy_expr | u_change.change_busy | u_switch.switch_busy
+        if ENABLE_FUSED_OPS:
+            busy_expr = busy_expr | u_eloadcall.busy | u_xloadlambda.busy
+        m.d.comb += any_unit_busy.eq(busy_expr)
 
         lambda_start_sig = Signal()
         m.d.comb += lambda_start_sig.eq(
@@ -163,6 +177,15 @@ class ChurchCore(Elaboratable):
         call_start_sig = Signal()
         ret_start_sig = Signal()
 
+        cr_rd_addr_default = cr_src
+        if ENABLE_FUSED_OPS:
+            cr_rd_addr_default = Mux(u_eloadcall.busy, u_eloadcall.cr_rd_addr,
+                                     Mux(u_xloadlambda.busy, u_xloadlambda.cr_rd_addr, cr_src))
+        cr_rd_addr_inner = cr_rd_addr_default
+        if ENABLE_CHANGE_SWITCH:
+            cr_rd_addr_inner = Mux(u_change.change_busy, u_change.cr_rd_addr,
+                                   Mux(u_switch.switch_busy, u_switch.cr_rd_addr,
+                                       cr_rd_addr_default))
         m.d.comb += u_regs.cr_rd_addr.eq(
             Mux(lambda_start_sig | u_lambda.lambda_busy, u_lambda.cr_rd_addr,
                 Mux(u_tperm.tperm_busy, u_tperm.cr_rd_addr,
@@ -170,11 +193,7 @@ class ChurchCore(Elaboratable):
                         Mux(u_return.busy, u_return.cr_rd_addr,
                             Mux(u_save.save_busy, u_save.cr_rd_addr,
                                 Mux(u_load.load_busy, u_load.cr_rd_addr,
-                                    Mux(u_change.change_busy, u_change.cr_rd_addr,
-                                        Mux(u_switch.switch_busy, u_switch.cr_rd_addr,
-                                            Mux(u_eloadcall.busy, u_eloadcall.cr_rd_addr,
-                                                Mux(u_xloadlambda.busy, u_xloadlambda.cr_rd_addr,
-                                                    cr_src))))))))))
+                                    cr_rd_addr_inner))))))
         )
 
         perm_gt_sig = Signal(GT_LAYOUT)
@@ -212,19 +231,24 @@ class ChurchCore(Elaboratable):
 
         all_checks_pass = u_perm.all_checks_pass
 
-        m.d.comb += [
-            u_gc.gc_start.eq(self.gc_start),
-            u_gc.gc_mark_en.eq(1),
-            u_gc.gc_sweep_en.eq(1),
-            u_gc.ns_start_index.eq(1),
-            u_gc.ns_end_index.eq(0x1000),
-            u_gc.ns_rd_data.eq(self.ns_rd_data),
-        ]
-
-        m.d.comb += [
-            self.gc_busy.eq(u_gc.gc_busy),
-            self.gc_garbage_count.eq(u_gc.garbage_count),
-        ]
+        if ENABLE_GC:
+            m.d.comb += [
+                u_gc.gc_start.eq(self.gc_start),
+                u_gc.gc_mark_en.eq(1),
+                u_gc.gc_sweep_en.eq(1),
+                u_gc.ns_start_index.eq(1),
+                u_gc.ns_end_index.eq(0x1000),
+                u_gc.ns_rd_data.eq(self.ns_rd_data),
+            ]
+            m.d.comb += [
+                self.gc_busy.eq(u_gc.gc_busy),
+                self.gc_garbage_count.eq(u_gc.garbage_count),
+            ]
+        else:
+            m.d.comb += [
+                self.gc_busy.eq(0),
+                self.gc_garbage_count.eq(0),
+            ]
 
         cr_rd_data_gt = Signal(GT_LAYOUT)
         m.d.comb += cr_rd_data_gt.eq(View(CAP_REG_LAYOUT, u_regs.cr_rd_data).word0_gt)
@@ -245,31 +269,43 @@ class ChurchCore(Elaboratable):
             u_regs.dr_wr_en.eq(0),
         ]
 
+        cr_wr_addr_default = Const(0, 4)
+        cr_wr_data_default = Const(0, CR_WIDTH)
+        cr_wr_en_extra = Const(0)
+        if ENABLE_FUSED_OPS:
+            cr_wr_addr_default = Mux(u_eloadcall.busy, u_eloadcall.cr_wr_addr,
+                                     Mux(u_xloadlambda.busy, u_xloadlambda.cr_wr_addr, 0))
+            cr_wr_data_default = Mux(u_eloadcall.busy, u_eloadcall.cr_wr_data,
+                                     Mux(u_xloadlambda.busy, u_xloadlambda.cr_wr_data, 0))
+            cr_wr_en_extra = u_eloadcall.cr_wr_en | u_xloadlambda.cr_wr_en
+        cr_wr_addr_inner = cr_wr_addr_default
+        cr_wr_data_inner = cr_wr_data_default
+        if ENABLE_CHANGE_SWITCH:
+            cr_wr_addr_inner = Mux(u_change.change_busy, u_change.cr_wr_addr,
+                                   Mux(u_switch.switch_busy, u_switch.cr_wr_addr,
+                                       cr_wr_addr_default))
+            cr_wr_data_inner = Mux(u_change.change_busy, u_change.cr_wr_data,
+                                   Mux(u_switch.switch_busy, u_switch.cr_wr_data,
+                                       cr_wr_data_default))
+            cr_wr_en_extra = cr_wr_en_extra | u_change.cr_wr_en | u_switch.cr_wr_en
         m.d.comb += [
             u_regs.cr_wr_addr.eq(
                 Mux(u_tperm.tperm_busy, u_tperm.cr_wr_addr,
                     Mux(u_call.call_busy, u_call.cr_wr_addr,
                         Mux(u_return.busy, u_return.cr_wr_addr,
                             Mux(u_load.load_busy, u_load.cr_wr_addr,
-                                Mux(u_change.change_busy, u_change.cr_wr_addr,
-                                    Mux(u_switch.switch_busy, u_switch.cr_wr_addr,
-                                        Mux(u_eloadcall.busy, u_eloadcall.cr_wr_addr,
-                                            Mux(u_xloadlambda.busy, u_xloadlambda.cr_wr_addr, 0))))))))
+                                cr_wr_addr_inner))))
             ),
             u_regs.cr_wr_data.eq(
                 Mux(u_tperm.tperm_busy, u_tperm.cr_wr_data,
                     Mux(u_call.call_busy, u_call.cr_wr_data,
                         Mux(u_return.busy, u_return.cr_wr_data,
                             Mux(u_load.load_busy, u_load.cr_wr_data,
-                                Mux(u_change.change_busy, u_change.cr_wr_data,
-                                    Mux(u_switch.switch_busy, u_switch.cr_wr_data,
-                                        Mux(u_eloadcall.busy, u_eloadcall.cr_wr_data,
-                                            Mux(u_xloadlambda.busy, u_xloadlambda.cr_wr_data, 0))))))))
+                                cr_wr_data_inner))))
             ),
             u_regs.cr_wr_en.eq(
                 u_tperm.cr_wr_en | u_call.cr_wr_en | u_return.cr_wr_en |
-                u_load.cr_wr_en | u_change.cr_wr_en | u_switch.cr_wr_en |
-                u_eloadcall.cr_wr_en | u_xloadlambda.cr_wr_en
+                u_load.cr_wr_en | cr_wr_en_extra
             ),
         ]
 
@@ -279,14 +315,16 @@ class ChurchCore(Elaboratable):
             m.d.sync += nia_reg.eq(0)
         with m.Elif(u_lambda.nia_set):
             m.d.sync += nia_reg.eq(u_lambda.nia_value)
-        with m.Elif(u_xloadlambda.nia_set):
-            m.d.sync += nia_reg.eq(u_xloadlambda.nia_value)
+        if ENABLE_FUSED_OPS:
+            with m.Elif(u_xloadlambda.nia_set):
+                m.d.sync += nia_reg.eq(u_xloadlambda.nia_value)
         with m.Elif(u_return.nia_set):
             m.d.sync += nia_reg.eq(u_return.nia_value)
         with m.Elif(u_call.nia_set):
             m.d.sync += nia_reg.eq(u_call.nia_value)
-        with m.Elif(u_eloadcall.nia_set):
-            m.d.sync += nia_reg.eq(u_eloadcall.nia_value)
+        if ENABLE_FUSED_OPS:
+            with m.Elif(u_eloadcall.nia_set):
+                m.d.sync += nia_reg.eq(u_eloadcall.nia_value)
         with m.Elif(cond_exec_enable & ~any_unit_busy):
             m.d.sync += nia_reg.eq(nia_reg + 4)
 
@@ -459,72 +497,74 @@ class ChurchCore(Elaboratable):
             u_load.mem_rd_valid.eq(1),
         ]
 
-        change_start_sig = Signal()
-        m.d.comb += change_start_sig.eq(
-            cond_exec_enable & is_church_op & (church_op == ChurchOpcode.CHANGE) & ~any_unit_busy
-        )
-        m.d.comb += [
-            u_change.change_start.eq(change_start_sig),
-            u_change.cr_src.eq(cr_src),
-            u_change.index.eq(cap_index),
-            u_change.change_mask.eq(u_decoder.call_mask),
-            u_change.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_change.cr8_thread.eq(u_regs.cr8_thread),
-            u_change.cr15_namespace.eq(u_regs.cr15_namespace),
-            u_change.mem_rd_data.eq(self.dmem_rd_data),
-            u_change.mem_rd_valid.eq(1),
-            u_change.mem_wr_done.eq(1),
-            u_change.dr_rd_data.eq(u_regs.dr_rd_data1),
-            u_change.nia.eq(nia_reg),
-            u_change.flags.eq(u_regs.flags),
-        ]
+        if ENABLE_CHANGE_SWITCH:
+            change_start_sig = Signal()
+            m.d.comb += change_start_sig.eq(
+                cond_exec_enable & is_church_op & (church_op == ChurchOpcode.CHANGE) & ~any_unit_busy
+            )
+            m.d.comb += [
+                u_change.change_start.eq(change_start_sig),
+                u_change.cr_src.eq(cr_src),
+                u_change.index.eq(cap_index),
+                u_change.change_mask.eq(u_decoder.call_mask),
+                u_change.cr_rd_data.eq(u_regs.cr_rd_data),
+                u_change.cr8_thread.eq(u_regs.cr8_thread),
+                u_change.cr15_namespace.eq(u_regs.cr15_namespace),
+                u_change.mem_rd_data.eq(self.dmem_rd_data),
+                u_change.mem_rd_valid.eq(1),
+                u_change.mem_wr_done.eq(1),
+                u_change.dr_rd_data.eq(u_regs.dr_rd_data1),
+                u_change.nia.eq(nia_reg),
+                u_change.flags.eq(u_regs.flags),
+            ]
 
-        switch_start_sig = Signal()
-        m.d.comb += switch_start_sig.eq(
-            cond_exec_enable & is_church_op & (church_op == ChurchOpcode.SWITCH) & ~any_unit_busy
-        )
-        m.d.comb += [
-            u_switch.switch_start.eq(switch_start_sig),
-            u_switch.cr_src.eq(cr_src[:3]),
-            u_switch.target.eq(switch_target[:3]),
-            u_switch.index.eq(cap_index),
-            u_switch.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_switch.cr15_namespace.eq(u_regs.cr15_namespace),
-            u_switch.mem_rd_data.eq(self.dmem_rd_data),
-            u_switch.mem_rd_valid.eq(1),
-        ]
+            switch_start_sig = Signal()
+            m.d.comb += switch_start_sig.eq(
+                cond_exec_enable & is_church_op & (church_op == ChurchOpcode.SWITCH) & ~any_unit_busy
+            )
+            m.d.comb += [
+                u_switch.switch_start.eq(switch_start_sig),
+                u_switch.cr_src.eq(cr_src[:3]),
+                u_switch.target.eq(switch_target[:3]),
+                u_switch.index.eq(cap_index),
+                u_switch.cr_rd_data.eq(u_regs.cr_rd_data),
+                u_switch.cr15_namespace.eq(u_regs.cr15_namespace),
+                u_switch.mem_rd_data.eq(self.dmem_rd_data),
+                u_switch.mem_rd_valid.eq(1),
+            ]
 
-        eloadcall_start_sig = Signal()
-        m.d.comb += eloadcall_start_sig.eq(
-            cond_exec_enable & is_church_op & (church_op == ChurchOpcode.ELOADCALL) & ~any_unit_busy
-        )
-        m.d.comb += [
-            u_eloadcall.start.eq(eloadcall_start_sig),
-            u_eloadcall.cr_src.eq(cr_src),
-            u_eloadcall.cr_dst.eq(cr_dst),
-            u_eloadcall.index.eq(cap_index),
-            u_eloadcall.mask.eq(u_decoder.call_mask),
-            u_eloadcall.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_eloadcall.cr15_namespace.eq(u_regs.cr15_namespace),
-            u_eloadcall.mem_rd_data.eq(self.dmem_rd_data),
-            u_eloadcall.mem_rd_valid.eq(1),
-        ]
+        if ENABLE_FUSED_OPS:
+            eloadcall_start_sig = Signal()
+            m.d.comb += eloadcall_start_sig.eq(
+                cond_exec_enable & is_church_op & (church_op == ChurchOpcode.ELOADCALL) & ~any_unit_busy
+            )
+            m.d.comb += [
+                u_eloadcall.start.eq(eloadcall_start_sig),
+                u_eloadcall.cr_src.eq(cr_src),
+                u_eloadcall.cr_dst.eq(cr_dst),
+                u_eloadcall.index.eq(cap_index),
+                u_eloadcall.mask.eq(u_decoder.call_mask),
+                u_eloadcall.cr_rd_data.eq(u_regs.cr_rd_data),
+                u_eloadcall.cr15_namespace.eq(u_regs.cr15_namespace),
+                u_eloadcall.mem_rd_data.eq(self.dmem_rd_data),
+                u_eloadcall.mem_rd_valid.eq(1),
+            ]
 
-        xloadlambda_start_sig = Signal()
-        m.d.comb += xloadlambda_start_sig.eq(
-            cond_exec_enable & is_church_op & (church_op == ChurchOpcode.XLOADLAMBDA) & ~any_unit_busy
-        )
-        m.d.comb += [
-            u_xloadlambda.start.eq(xloadlambda_start_sig),
-            u_xloadlambda.cr_src.eq(cr_src),
-            u_xloadlambda.cr_dst.eq(cr_dst),
-            u_xloadlambda.index.eq(cap_index),
-            u_xloadlambda.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_xloadlambda.cr15_namespace.eq(u_regs.cr15_namespace),
-            u_xloadlambda.mem_rd_data.eq(self.dmem_rd_data),
-            u_xloadlambda.mem_rd_valid.eq(1),
-            u_xloadlambda.saved_nia.eq(nia_reg + 4),
-        ]
+            xloadlambda_start_sig = Signal()
+            m.d.comb += xloadlambda_start_sig.eq(
+                cond_exec_enable & is_church_op & (church_op == ChurchOpcode.XLOADLAMBDA) & ~any_unit_busy
+            )
+            m.d.comb += [
+                u_xloadlambda.start.eq(xloadlambda_start_sig),
+                u_xloadlambda.cr_src.eq(cr_src),
+                u_xloadlambda.cr_dst.eq(cr_dst),
+                u_xloadlambda.index.eq(cap_index),
+                u_xloadlambda.cr_rd_data.eq(u_regs.cr_rd_data),
+                u_xloadlambda.cr15_namespace.eq(u_regs.cr15_namespace),
+                u_xloadlambda.mem_rd_data.eq(self.dmem_rd_data),
+                u_xloadlambda.mem_rd_valid.eq(1),
+                u_xloadlambda.saved_nia.eq(nia_reg + 4),
+            ]
 
         CR5_STACK_DEPTH = 256
         cr5_stack = Memory(width=32, depth=CR5_STACK_DEPTH, init=[])
@@ -552,13 +592,14 @@ class ChurchCore(Elaboratable):
                 cr5_stack_wr.en.eq(1),
             ]
             m.d.sync += cr5_stack_ptr.eq(cr5_stack_ptr + 1)
-        with m.Elif(u_eloadcall.complete & ~u_eloadcall.fault & ~cr5_stack_full):
-            m.d.comb += [
-                cr5_stack_wr.addr.eq(cr5_stack_ptr),
-                cr5_stack_wr.data.eq(u_eloadcall.saved_cr5_gt),
-                cr5_stack_wr.en.eq(1),
-            ]
-            m.d.sync += cr5_stack_ptr.eq(cr5_stack_ptr + 1)
+        if ENABLE_FUSED_OPS:
+            with m.Elif(u_eloadcall.complete & ~u_eloadcall.fault & ~cr5_stack_full):
+                m.d.comb += [
+                    cr5_stack_wr.addr.eq(cr5_stack_ptr),
+                    cr5_stack_wr.data.eq(u_eloadcall.saved_cr5_gt),
+                    cr5_stack_wr.en.eq(1),
+                ]
+                m.d.sync += cr5_stack_ptr.eq(cr5_stack_ptr + 1)
         with m.Elif(u_return.complete & ~u_return.fault_valid & ~cr5_stack_empty):
             m.d.sync += cr5_stack_ptr.eq(cr5_stack_ptr - 1)
 
@@ -578,14 +619,16 @@ class ChurchCore(Elaboratable):
             m.d.comb += [self.fault.eq(u_save.fault_type), self.fault_valid.eq(1)]
         with m.Elif(u_load.load_fault):
             m.d.comb += [self.fault.eq(u_load.fault_type), self.fault_valid.eq(1)]
-        with m.Elif(u_change.change_fault):
-            m.d.comb += [self.fault.eq(u_change.fault_type), self.fault_valid.eq(1)]
-        with m.Elif(u_switch.switch_fault):
-            m.d.comb += [self.fault.eq(u_switch.fault_type), self.fault_valid.eq(1)]
-        with m.Elif(u_eloadcall.fault):
-            m.d.comb += [self.fault.eq(u_eloadcall.fault_type), self.fault_valid.eq(1)]
-        with m.Elif(u_xloadlambda.fault):
-            m.d.comb += [self.fault.eq(u_xloadlambda.fault_type), self.fault_valid.eq(1)]
+        if ENABLE_CHANGE_SWITCH:
+            with m.Elif(u_change.change_fault):
+                m.d.comb += [self.fault.eq(u_change.fault_type), self.fault_valid.eq(1)]
+            with m.Elif(u_switch.switch_fault):
+                m.d.comb += [self.fault.eq(u_switch.fault_type), self.fault_valid.eq(1)]
+        if ENABLE_FUSED_OPS:
+            with m.Elif(u_eloadcall.fault):
+                m.d.comb += [self.fault.eq(u_eloadcall.fault_type), self.fault_valid.eq(1)]
+            with m.Elif(u_xloadlambda.fault):
+                m.d.comb += [self.fault.eq(u_xloadlambda.fault_type), self.fault_valid.eq(1)]
         with m.Else():
             m.d.comb += [self.fault.eq(FaultType.NONE), self.fault_valid.eq(0)]
 
@@ -608,19 +651,27 @@ class ChurchCore(Elaboratable):
                 self.dmem_rd_en.eq(1),
             ]
 
-        m.d.comb += [
-            u_gc.valid_key_access.eq(u_load.gbit_reset_done),
-            u_gc.access_index.eq(0),
-        ]
-
-        with m.If(u_gc.gc_busy):
+        if ENABLE_GC:
             m.d.comb += [
-                self.ns_addr.eq(u_gc.ns_addr),
-                self.ns_rd_en.eq(u_gc.ns_rd_en),
-                self.ns_wr_data.eq(u_gc.ns_wr_data),
-                self.ns_wr_en.eq(u_gc.ns_wr_en),
+                u_gc.valid_key_access.eq(u_load.gbit_reset_done),
+                u_gc.access_index.eq(0),
             ]
-        with m.Else():
+
+            with m.If(u_gc.gc_busy):
+                m.d.comb += [
+                    self.ns_addr.eq(u_gc.ns_addr),
+                    self.ns_rd_en.eq(u_gc.ns_rd_en),
+                    self.ns_wr_data.eq(u_gc.ns_wr_data),
+                    self.ns_wr_en.eq(u_gc.ns_wr_en),
+                ]
+            with m.Else():
+                m.d.comb += [
+                    self.ns_addr.eq(0),
+                    self.ns_rd_en.eq(0),
+                    self.ns_wr_data.eq(0),
+                    self.ns_wr_en.eq(0),
+                ]
+        else:
             m.d.comb += [
                 self.ns_addr.eq(0),
                 self.ns_rd_en.eq(0),

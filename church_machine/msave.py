@@ -6,7 +6,9 @@ from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, NS_LIMIT_LAYOUT, SEALS_LAYOUT
 
 
 class ChurchMSave(Elaboratable):
-    def __init__(self):
+    def __init__(self, enable_seal_check=None):
+        self.enable_seal_check = enable_seal_check if enable_seal_check is not None else ENABLE_SEAL_CHECK
+
         self.sub_start = Signal()
         self.sub_dst_cap = Signal(CAP_REG_LAYOUT)
         self.sub_src_gt = Signal(32)
@@ -52,31 +54,39 @@ class ChurchMSave(Elaboratable):
         m.d.comb += write_addr.eq(dst_view.word1_location + (index_reg << 2))
 
         ns_entry_addr = Signal(32)
-        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (src_gt_view.index * 12))
+        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (src_gt_view.index << 3) + (src_gt_view.index << 2))
 
         ns_location_reg = Signal(32)
         ns_limit_reg = Signal(32)
-        ns_seals_reg = Signal(32)
-
         ns_limit_view = View(NS_LIMIT_LAYOUT, ns_limit_reg)
-        ns_seals_view = View(SEALS_LAYOUT, ns_seals_reg)
-
-        version_match = Signal()
-        m.d.comb += version_match.eq(src_gt_view.version == ns_seals_view.version)
-
-        fnv_hash = Signal(32)
-        fnv_masked = Signal(25)
-        m.d.comb += [
-            fnv_hash.eq(
-                ((FNV_OFFSET_32 ^ ns_location_reg) * FNV_PRIME_32) ^
-                ns_limit_reg
-            ),
-            fnv_masked.eq(fnv_hash[:25]),
-        ]
-        seal_ok = Signal()
-        m.d.comb += seal_ok.eq(fnv_masked == ns_seals_view.seal)
-
         target_f_bit = ns_limit_view.f_flag
+
+        if self.enable_seal_check:
+            ns_seals_reg = Signal(32)
+            ns_seals_view = View(SEALS_LAYOUT, ns_seals_reg)
+
+            version_match = Signal()
+            m.d.comb += version_match.eq(src_gt_view.version == ns_seals_view.version)
+
+            fnv_xor_input = Signal(32)
+            m.d.comb += fnv_xor_input.eq(FNV_OFFSET_32 ^ ns_location_reg)
+            fnv_mul = Signal(32)
+            m.d.comb += fnv_mul.eq(
+                fnv_xor_input
+                + (fnv_xor_input << 1)
+                + (fnv_xor_input << 4)
+                + (fnv_xor_input << 7)
+                + (fnv_xor_input << 8)
+                + (fnv_xor_input << 24)
+            )
+            fnv_hash = Signal(32)
+            fnv_masked = Signal(25)
+            m.d.comb += [
+                fnv_hash.eq(fnv_mul ^ ns_limit_reg),
+                fnv_masked.eq(fnv_hash[:25]),
+            ]
+            seal_ok = Signal()
+            m.d.comb += seal_ok.eq(fnv_masked == ns_seals_view.seal)
 
         with m.FSM(name="msave") as fsm:
             with m.State("IDLE"):
@@ -126,26 +136,30 @@ class ChurchMSave(Elaboratable):
                 ]
                 with m.If(self.mem_rd_valid):
                     m.d.sync += ns_limit_reg.eq(self.mem_rd_data)
-                    m.next = "FETCH_NS_SEALS"
+                    if self.enable_seal_check:
+                        m.next = "FETCH_NS_SEALS"
+                    else:
+                        m.next = "CHECK_F_BIT"
 
-            with m.State("FETCH_NS_SEALS"):
-                m.d.comb += [
-                    self.mem_rd_addr.eq(ns_entry_addr + 8),
-                    self.mem_rd_en.eq(1),
-                ]
-                with m.If(self.mem_rd_valid):
-                    m.d.sync += ns_seals_reg.eq(self.mem_rd_data)
-                    m.next = "CHECK_VERSION"
+            if self.enable_seal_check:
+                with m.State("FETCH_NS_SEALS"):
+                    m.d.comb += [
+                        self.mem_rd_addr.eq(ns_entry_addr + 8),
+                        self.mem_rd_en.eq(1),
+                    ]
+                    with m.If(self.mem_rd_valid):
+                        m.d.sync += ns_seals_reg.eq(self.mem_rd_data)
+                        m.next = "CHECK_VERSION"
 
-            with m.State("CHECK_VERSION"):
-                with m.If(~version_match):
-                    m.d.sync += fault_type_reg.eq(FaultType.VERSION)
-                    m.next = "FAULT"
-                with m.Elif(~seal_ok):
-                    m.d.sync += fault_type_reg.eq(FaultType.SEAL)
-                    m.next = "FAULT"
-                with m.Else():
-                    m.next = "CHECK_F_BIT"
+                with m.State("CHECK_VERSION"):
+                    with m.If(~version_match):
+                        m.d.sync += fault_type_reg.eq(FaultType.VERSION)
+                        m.next = "FAULT"
+                    with m.Elif(~seal_ok):
+                        m.d.sync += fault_type_reg.eq(FaultType.SEAL)
+                        m.next = "FAULT"
+                    with m.Else():
+                        m.next = "CHECK_F_BIT"
 
             with m.State("CHECK_F_BIT"):
                 with m.If(target_f_bit):

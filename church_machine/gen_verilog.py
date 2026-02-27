@@ -76,8 +76,6 @@ def generate_pico_ice_verilog(output_dir="build"):
     ports = [
         top.uart_tx, top.uart_rx, top.push_button,
         top.led_r, top.led_g, top.led_b,
-        top.dbg_nia, top.dbg_fault, top.dbg_fault_valid,
-        top.dbg_boot_complete,
     ]
 
     verilog_text = convert(top, ports=ports)

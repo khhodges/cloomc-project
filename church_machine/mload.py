@@ -6,7 +6,9 @@ from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, NS_ENTRY_LAYOUT, NS_LIMIT_LAYOUT
 
 
 class ChurchMLoad(Elaboratable):
-    def __init__(self):
+    def __init__(self, enable_seal_check=None):
+        self.enable_seal_check = enable_seal_check if enable_seal_check is not None else ENABLE_SEAL_CHECK
+
         self.sub_start = Signal()
         self.sub_cr_src = Signal(4)
         self.sub_cr_dst = Signal(4)
@@ -75,30 +77,39 @@ class ChurchMLoad(Elaboratable):
         m.d.comb += clist_gt_addr.eq(src_view.word1_location + (index_reg << 2))
 
         ns_entry_addr = Signal(32)
-        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (result_gt.index * 12))
-
-        result_seals = View(SEALS_LAYOUT, result_view.word3_seals)
-
-        version_match = Signal()
-        m.d.comb += version_match.eq(result_gt.version == result_seals.version)
-
-        fnv_hash = Signal(32)
-        fnv_masked = Signal(25)
-        m.d.comb += [
-            fnv_hash.eq(
-                ((FNV_OFFSET_32 ^ result_view.word1_location) * FNV_PRIME_32) ^
-                result_view.word2_limit
-            ),
-            fnv_masked.eq(fnv_hash[:25]),
-        ]
-        seal_ok = Signal()
-        m.d.comb += seal_ok.eq(fnv_masked == result_seals.seal)
+        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (result_gt.index << 3) + (result_gt.index << 2))
 
         ns_index_in_bounds = Signal()
         m.d.comb += ns_index_in_bounds.eq(result_gt.index < ns_view.word2_limit[:17])
 
         ns_w1_saved = Signal(32)
         ns_w1_view = View(NS_LIMIT_LAYOUT, ns_w1_saved)
+
+        if self.enable_seal_check:
+            result_seals = View(SEALS_LAYOUT, result_view.word3_seals)
+
+            version_match = Signal()
+            m.d.comb += version_match.eq(result_gt.version == result_seals.version)
+
+            fnv_xor_input = Signal(32)
+            m.d.comb += fnv_xor_input.eq(FNV_OFFSET_32 ^ result_view.word1_location)
+            fnv_mul = Signal(32)
+            m.d.comb += fnv_mul.eq(
+                fnv_xor_input
+                + (fnv_xor_input << 1)
+                + (fnv_xor_input << 4)
+                + (fnv_xor_input << 7)
+                + (fnv_xor_input << 8)
+                + (fnv_xor_input << 24)
+            )
+            fnv_hash = Signal(32)
+            fnv_masked = Signal(25)
+            m.d.comb += [
+                fnv_hash.eq(fnv_mul ^ result_view.word2_limit),
+                fnv_masked.eq(fnv_hash[:25]),
+            ]
+            seal_ok = Signal()
+            m.d.comb += seal_ok.eq(fnv_masked == result_seals.seal)
 
         with m.FSM(name="mload") as fsm:
             with m.State("IDLE"):
@@ -175,45 +186,49 @@ class ChurchMLoad(Elaboratable):
                         result_view.word2_limit.eq(self.mem_rd_data),
                         ns_w1_saved.eq(self.mem_rd_data),
                     ]
-                    m.next = "FETCH_SEALS"
+                    if self.enable_seal_check:
+                        m.next = "FETCH_SEALS"
+                    else:
+                        m.next = "UPDATE_THREAD"
 
-            with m.State("FETCH_SEALS"):
-                m.d.comb += [
-                    self.mem_addr.eq(ns_entry_addr + 8),
-                    self.mem_rd_en.eq(1),
-                ]
-                with m.If(self.mem_rd_valid):
-                    m.d.sync += result_view.word3_seals.eq(self.mem_rd_data)
-                    m.next = "CHECK_VERSION"
+            if self.enable_seal_check:
+                with m.State("FETCH_SEALS"):
+                    m.d.comb += [
+                        self.mem_addr.eq(ns_entry_addr + 8),
+                        self.mem_rd_en.eq(1),
+                    ]
+                    with m.If(self.mem_rd_valid):
+                        m.d.sync += result_view.word3_seals.eq(self.mem_rd_data)
+                        m.next = "CHECK_VERSION"
 
-            with m.State("CHECK_VERSION"):
-                with m.If(~version_match):
-                    m.d.sync += fault_type_reg.eq(FaultType.VERSION)
-                    m.next = "FAULT"
-                with m.Elif(~seal_ok):
-                    m.d.sync += fault_type_reg.eq(FaultType.SEAL)
-                    m.next = "FAULT"
-                with m.Else():
-                    m.next = "RESET_GBIT"
+                with m.State("CHECK_VERSION"):
+                    with m.If(~version_match):
+                        m.d.sync += fault_type_reg.eq(FaultType.VERSION)
+                        m.next = "FAULT"
+                    with m.Elif(~seal_ok):
+                        m.d.sync += fault_type_reg.eq(FaultType.SEAL)
+                        m.next = "FAULT"
+                    with m.Else():
+                        m.next = "RESET_GBIT"
 
-            with m.State("RESET_GBIT"):
-                gbit_cleared_w1 = Signal(32)
-                gbit_cleared_view = View(NS_LIMIT_LAYOUT, gbit_cleared_w1)
-                m.d.comb += [
-                    gbit_cleared_view.limit.eq(ns_w1_view.limit),
-                    gbit_cleared_view.reserved.eq(ns_w1_view.reserved),
-                    gbit_cleared_view.g_bit.eq(0),
-                    gbit_cleared_view.f_flag.eq(ns_w1_view.f_flag),
-                    gbit_cleared_view.b_flag.eq(ns_w1_view.b_flag),
-                ]
-                m.d.comb += [
-                    self.mem_addr.eq(ns_entry_addr + 4),
-                    self.mem_wr_en.eq(1),
-                    self.mem_wr_data.eq(gbit_cleared_w1),
-                    self.ns_entry_addr_out.eq(ns_entry_addr),
-                    self.gbit_reset_done.eq(1),
-                ]
-                m.next = "UPDATE_THREAD"
+                with m.State("RESET_GBIT"):
+                    gbit_cleared_w1 = Signal(32)
+                    gbit_cleared_view = View(NS_LIMIT_LAYOUT, gbit_cleared_w1)
+                    m.d.comb += [
+                        gbit_cleared_view.limit.eq(ns_w1_view.limit),
+                        gbit_cleared_view.reserved.eq(ns_w1_view.reserved),
+                        gbit_cleared_view.g_bit.eq(0),
+                        gbit_cleared_view.f_flag.eq(ns_w1_view.f_flag),
+                        gbit_cleared_view.b_flag.eq(ns_w1_view.b_flag),
+                    ]
+                    m.d.comb += [
+                        self.mem_addr.eq(ns_entry_addr + 4),
+                        self.mem_wr_en.eq(1),
+                        self.mem_wr_data.eq(gbit_cleared_w1),
+                        self.ns_entry_addr_out.eq(ns_entry_addr),
+                        self.gbit_reset_done.eq(1),
+                    ]
+                    m.next = "UPDATE_THREAD"
 
             with m.State("UPDATE_THREAD"):
                 with m.If(cr_dst_reg <= 7):

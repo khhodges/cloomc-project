@@ -21,17 +21,17 @@ BOOT_PROGRAM = [
 
     encode_church(ChurchOpcode.LAMBDA, CondCode.AL, cr_dst=2),
 
-    encode_church(ChurchOpcode.ELOADCALL, CondCode.AL, cr_dst=0, cr_src=6, imm=1),
+    encode_church(ChurchOpcode.LOAD, CondCode.AL, cr_dst=0, cr_src=6, imm=1),
+    encode_church(ChurchOpcode.TPERM, CondCode.AL, cr_dst=0, imm=TpermPreset.E),
+    encode_church(ChurchOpcode.CALL, CondCode.AL, cr_dst=0, cr_src=0),
 
-    encode_church(ChurchOpcode.XLOADLAMBDA, CondCode.AL, cr_dst=7, cr_src=6, imm=1),
+    encode_church(ChurchOpcode.LOAD, CondCode.AL, cr_dst=7, cr_src=6, imm=1),
+    encode_church(ChurchOpcode.TPERM, CondCode.AL, cr_dst=7, imm=TpermPreset.X),
+    encode_church(ChurchOpcode.LAMBDA, CondCode.AL, cr_dst=7),
 
     encode_church(ChurchOpcode.RETURN, CondCode.AL, cr_src=5),
 
     encode_church(ChurchOpcode.SAVE, CondCode.AL, cr_dst=6, cr_src=1, imm=2),
-
-    encode_church(ChurchOpcode.SWITCH, CondCode.AL, cr_dst=0, cr_src=0, imm=1),
-
-    encode_church(ChurchOpcode.CHANGE, CondCode.AL, cr_dst=0, cr_src=2, imm=0),
 ]
 
 while len(BOOT_PROGRAM) < 256:
