@@ -91,16 +91,17 @@
         <div style="margin-top:0.3rem;color:#8b949e;font-size:0.7rem;">31 ················ 27 │ 26 ····· 23 │ 22 ····· 19 │ 18 ····· 15 │ 14 ················ 0</div>
     </div>
 
-    <div class="section-title">Boot Microcode Sequence</div>
+    <div class="section-title">Boot Microcode Sequence (Patent Section 15)</div>
     <div class="flow-card boot" style="max-width:550px;margin:0 auto 1.5rem;">
-        <h3>Boot Microcode (6 Steps, M-Elevation Active)</h3>
-        <div class="step"><span class="step-num">0</span><span class="step-text"><span class="bus bus-reg">REG</span> Verify all CRs are zero (boot invariant) <span class="step-fault">→ FAULT if violated</span></span></div>
-        <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-none">---</span> M-Elevation ON — enable trusted setup</span></div>
-        <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read NS[0] → <span class="bus bus-reg">REG</span> Write CR15 (Namespace root, no perms)</span></div>
-        <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read NS[2] → <span class="bus bus-reg">REG</span> Write CR8 (Boot Thread identity)</span></div>
-        <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read NS[0] → <span class="bus bus-reg">REG</span> Write CR6 (Boot C-List, L+S via M gate)</span></div>
-        <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read NS[1] → <span class="bus bus-reg">REG</span> Write CR7 (Boot CLOOMC, executable)</span></div>
-        <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-none">---</span> M-Elevation OFF — boot complete → <span class="step-ok">READY</span></span></div>
+        <h3>Five-Phase Hardware Boot (M-Elevation Active)</h3>
+        <div class="step"><span class="step-num">0</span><span class="step-text"><span class="bus bus-none">---</span> <b>IDLE</b> — waiting for boot_start signal</span></div>
+        <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> <b>FAULT_RST</b> — Clear all CRs to NULL, all DRs to zero. M-Elevation ON.</span></div>
+        <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> <b>LOAD_NS</b> — Load namespace GT into CR15 (one hardwired bootstrap GT)</span></div>
+        <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> <b>INIT_THRD</b> — Initialize CR8 (Thread), CR5 (Services) via mLoad with M gate</span></div>
+        <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> <b>LOAD_NUC</b> — Load CR7 (Nucleus), CR6 (C-List) via mLoad with M gate</span></div>
+        <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-none">---</span> <b>COMPLETE</b> — M-Elevation OFF → begin instruction fetch → <span class="step-ok">READY</span></span></div>
+        <div class="sep"></div>
+        <div class="step"><span class="step-text"><span class="step-detail">Phase 1 sets all CRs to NULL for clean initialization. Phases 2-4 load valid GTs through mLoad (except CR15, the one hardwired bootstrap GT).</span></span></div>
     </div>
 
     <div class="section-title">Instruction Fetch &amp; Condition Check</div>
@@ -119,17 +120,18 @@
     <div class="section-title">Security Gates — Trusted Security Base (TSB)</div>
     <div class="grid">
         <div class="flow-card gate">
-            <h3>mLoad — Read Gate</h3>
+            <h3>mLoad — Read Gate (Patent Claim 9a)</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> Read GT from CR: parse Version(7) | Index(17) | Perms(6) | Type(2)</span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-none">---</span> Bounds check: index &lt; nsCount <span class="step-fault">→ BOUNDS fault</span></span></div>
-            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read NS entry (3 words: location, B|F|G|limit, version|seal)</span></div>
-            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-reg">REG</span> Read B, F from CR.word2 → update capability indicators</span></div>
+            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-reg">REG</span> Permission check: GT perms has required bit (unless M-elevated) <span class="step-fault">→ PERMISSION fault</span></span></div>
+            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> Bounds check: index &lt; nsCount <span class="step-fault">→ BOUNDS fault</span></span></div>
+            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Fetch NS entry (3 words: location, B|F|G|limit, version|seal)</span></div>
             <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-none">---</span> Version match: GT.ver == NS.ver <span class="step-fault">→ VERSION fault</span></span></div>
-            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-none">---</span> FNV seal validation (computed vs stored) <span class="step-fault">→ SEAL fault</span></span></div>
-            <div class="step"><span class="step-num">7</span><span class="step-text"><span class="bus bus-reg">REG</span> Permission check: GT perms from CR.word0 (unless M-elevated) <span class="step-fault">→ PERMISSION fault</span></span></div>
-            <div class="step"><span class="step-num">8</span><span class="step-text"><span class="bus bus-wr">MEM WR</span> <span class="step-ok">Mark entry LIVE — set G-bit in NS word1</span></span></div>
+            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-none">---</span> MAC/Seal validation: FNV-1a(location, limit) == stored seal <span class="step-fault">→ SEAL fault</span></span></div>
+            <div class="step"><span class="step-num">7</span><span class="step-text"><span class="bus bus-wr">MEM WR</span> <span class="step-ok">G-bit reset — mark entry LIVE in NS word1</span></span></div>
+            <div class="step"><span class="step-num">8</span><span class="step-text"><span class="bus bus-reg">REG</span> CR write — write validated capability to destination register</span></div>
+            <div class="step"><span class="step-num">9</span><span class="step-text"><span class="bus bus-wr">MEM WR</span> Thread shadow update — save loaded GT to Thread state (CR8 offset)</span></div>
             <div class="sep"></div>
-            <div class="step"><span class="step-text"><span class="step-detail">Bus total: 1 MEM RD (3 words) + 1 MEM WR (G-bit) + 3 REG reads. No CR re-read for B/F/perms.</span></span></div>
+            <div class="step"><span class="step-text"><span class="step-detail">Pipeline: Permission → Bounds → Version → MAC/Seal → G-bit Reset → CR Write → Thread Shadow. Permission checked FIRST for fail-fast security.</span></span></div>
             <div class="sep"></div>
             <table class="gate-table">
                 <tr><th>Required</th><th>Instruction</th><th>Domain</th></tr>
@@ -143,17 +145,19 @@
         </div>
 
         <div class="flow-card gate">
-            <h3>mSave — Write Gate</h3>
+            <h3>mSave — Write Gate (Patent Claim 9b)</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> Read source GT from CR: parse Version(7) | Index(17) | Perms(6) | Type(2)</span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read source NS entry (3 words: version + seal for validation) <span class="step-fault">→ BOUNDS fault if null</span></span></div>
-            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-reg">REG</span> Read B, F from source CR.word2 → update capability indicators</span></div>
-            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-none">---</span> Version match: source GT.ver == NS.ver <span class="step-fault">→ VERSION fault</span></span></div>
-            <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-none">---</span> FNV seal validation on source <span class="step-fault">→ SEAL fault</span></span></div>
-            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-reg">REG</span> B-bit check from CR.word2: B=1 required (unless M-elevated) <span class="step-fault">→ BIND fault</span></span></div>
-            <div class="step"><span class="step-num">7</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read target NS entry → F-bit check: F=1 → FAR object <span class="step-fault">→ FAR fault if local-only</span></span></div>
+            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-none">---</span> Version match: source GT.ver == NS.ver <span class="step-fault">→ VERSION fault</span></span></div>
+            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> Seal validation: FNV-1a(location, limit) == stored seal <span class="step-fault">→ SEAL fault</span></span></div>
+            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Target C-List bounds check: target index within limit <span class="step-fault">→ BOUNDS fault</span></span></div>
+            <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-reg">REG</span> B-bit check from CR.word2: B=1 required (unless M-elevated) <span class="step-fault">→ BIND fault</span></span></div>
+            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> F-bit detection: read target NS entry, F=1 → FAR/foreign object <span class="step-fault">→ FAR fault if local-only</span></span></div>
+            <div class="step"><span class="step-num">7</span><span class="step-text"><span class="bus bus-none">---</span> Seal recompute: recalculate FNV-1a for target entry integrity</span></div>
+            <div class="step"><span class="step-num">8</span><span class="step-text"><span class="bus bus-wr">MEM WR</span> <span class="step-ok">G-bit reset — mark source entry LIVE in NS word1</span></span></div>
+            <div class="step"><span class="step-num">9</span><span class="step-text"><span class="bus bus-wr">MEM WR</span> <span class="step-ok">Commit write — write source GT to target C-List slot in memory</span></span></div>
             <div class="sep"></div>
-            <div class="step"><span class="step-text"><span class="step-detail">Bus total: 2 MEM RD (source 3w + target 3w) + 3 REG reads. B checked from register, not memory.</span></span></div>
-            <div class="step"><span class="step-text"><span class="step-detail">Called by: SAVE instruction. Symmetric counterpart to mLoad — together they form the complete TSB.</span></span></div>
+            <div class="step"><span class="step-text"><span class="step-detail">Pipeline: Version → Seal → Target Bounds → B-bit → F-bit → Seal Recompute → G-bit Reset → Commit. Symmetric counterpart to mLoad.</span></span></div>
+            <div class="step"><span class="step-text"><span class="step-detail">Called by: SAVE instruction. Together mLoad + mSave form the complete dual-gate TSB (~329 lines HDL).</span></span></div>
         </div>
     </div>
 
@@ -187,24 +191,31 @@
         </div>
 
         <div class="flow-card">
-            <h3>2 — CALL CRd</h3>
+            <h3>2 — CALL CRd (Claims 7, 10)</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> CR[dst].word0 = target GT. Null? <span class="step-fault">→ NULL_CAP fault</span></span></div>
             <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(targetGT, 'E', crDst)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit</span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> If handler registered (e.g., GC) → dispatch to safe Turing abstraction</span></div>
-            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-reg">REG</span> Push call frame: save all CRs (16×4 words), all DRs (16), flags, returnPC</span></div>
-            <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-reg">REG</span> Auto-clear B on all active CRs: CR[0..15].word2 bit 31 ← 0</span></div>
-            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC++</span></span></div>
+            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-reg">REG</span> Push call frame (tag=0): save all CRs (16×4 words), all DRs (16), flags, returnPC</span></div>
+            <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-reg">REG</span> If LAMBDA-active: save LAMBDA_PC + LAMBDA-active flag into call frame, clear LAMBDA-active <span class="step-detail">(Claim 7)</span></span></div>
+            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-reg">REG</span> Auto-clear B on all preserved CRs: CR[0..15].word2 bit 31 ← 0 <span class="step-detail">(Claim 10)</span></span></div>
+            <div class="step"><span class="step-num">7</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC ← target entry point</span></span></div>
             <div class="sep"></div>
-            <div class="step"><span class="step-text"><span class="step-detail">Bus: 1 MEM RD (NS entry) + 1 MEM WR (G-bit) + 3 REG (GT + frame save + B-clear). Call stack is machine-internal.</span></span></div>
+            <div class="step"><span class="step-text"><span class="step-detail">Bus: 1 MEM RD (NS entry) + 1 MEM WR (G-bit) + 4 REG (GT + frame + LAMBDA state + B-clear). Call stack is machine-internal.</span></span></div>
         </div>
 
         <div class="flow-card">
-            <h3>3 — RETURN CRd</h3>
-            <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-none">---</span> Call stack empty? → <span class="step-fault">HALT (stack empty)</span></span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-reg">REG</span> Pop frame: restore all CRs, DRs, flags from saved frame</span></div>
-            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC ← returnPC</span></span></div>
+            <h3>3 — RETURN (Claims 5, 6, 7)</h3>
+            <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> Check LAMBDA-active flag in machine status <span class="step-detail">(Claim 5 — fast path)</span></span></div>
+            <div class="step"><span class="step-num">2a</span><span class="step-text"><span class="bus bus-none">---</span> <b>If LAMBDA-active:</b> PC ← LAMBDA_PC (machine status register), clear LAMBDA-active flag. <span class="step-ok">Zero stack access.</span></span></div>
             <div class="sep"></div>
-            <div class="step"><span class="step-text"><span class="step-detail">Bus: 0 MEM. 1 REG (frame restore). Call stack is machine-internal — no memory bus activity.</span></span></div>
+            <div class="step"><span class="step-num">2b</span><span class="step-text"><span class="bus bus-none">---</span> <b>If not LAMBDA-active:</b> Call stack empty? → <span class="step-fault">HALT (stack empty)</span></span></div>
+            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-reg">REG</span> Pop frame, inspect 1-bit tag <span class="step-detail">(Claim 6 — self-describing frames)</span></span></div>
+            <div class="step"><span class="step-num">4a</span><span class="step-text"><span class="bus bus-reg">REG</span> <b>Tag=0 (CALL frame):</b> Full domain restore — all CRs, DRs, flags. If saved LAMBDA state present, restore LAMBDA_PC + LAMBDA-active <span class="step-detail">(Claim 7)</span></span></div>
+            <div class="step"><span class="step-num">4b</span><span class="step-text"><span class="bus bus-reg">REG</span> <b>Tag=1 (LAMBDA frame):</b> Simple PC restore from saved LAMBDA_PC</span></div>
+            <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC ← returnPC</span></span></div>
+            <div class="sep"></div>
+            <div class="step"><span class="step-text"><span class="step-detail">Fast path (LAMBDA-active): 0 MEM, 1 REG (clear flag + restore PC from machine status). Zero stack access.</span></span></div>
+            <div class="step"><span class="step-text"><span class="step-detail">Slow path (CALL frame): 0 MEM, 1 REG (full frame restore). Call stack is machine-internal.</span></span></div>
         </div>
 
         <div class="flow-card">
@@ -243,13 +254,16 @@
         </div>
 
         <div class="flow-card">
-            <h3>7 — LAMBDA CRd</h3>
+            <h3>7 — LAMBDA CRd (Claims 3, 5, 7)</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> CR[dst].word0 = target GT. Null? <span class="step-fault">→ NULL_CAP fault</span></span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(targetGT, 'X', crDst)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit</span></div>
-            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> In-scope code application (no context save, lightweight)</span></div>
-            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC++</span></span></div>
+            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-none">---</span> If LAMBDA-active already set → <span class="step-fault">FAULT (non-nestable)</span> <span class="step-detail">(Claim 7)</span></span></div>
+            <div class="step"><span class="step-num">3</span><span class="step-text"><span class="step-gate">mLoad(targetGT, 'X', crDst)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit</span></div>
+            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-reg">REG</span> Set LAMBDA-active flag in machine status <span class="step-detail">(Claim 3c)</span></span></div>
+            <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-reg">REG</span> Store return address (PC+1) in LAMBDA_PC machine status register <span class="step-detail">(Claim 3d)</span></span></div>
+            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC ← target code entry point</span> <span class="step-detail">(in-scope, no context save)</span></span></div>
             <div class="sep"></div>
-            <div class="step"><span class="step-text"><span class="step-detail">Bus: 1 MEM RD (NS entry) + 1 MEM WR (G-bit) + 1 REG. Fast path — no context save.</span></span></div>
+            <div class="step"><span class="step-text"><span class="step-detail">Bus: 1 MEM RD (NS entry) + 1 MEM WR (G-bit) + 2 REG (flag + LAMBDA_PC). Machine-status fast path — zero stack access.</span></span></div>
+            <div class="step"><span class="step-text"><span class="step-detail">RETURN uses fast path: if LAMBDA-active, restore PC from LAMBDA_PC with zero stack access (Claim 5). Nesting only via CALL (Claim 7).</span></span></div>
         </div>
 
         <div class="flow-card fused">
