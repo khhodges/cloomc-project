@@ -98,7 +98,7 @@
             <tr><th>Slot</th><th>Address</th><th>Purpose</th><th>Boot Phase</th><th>CR Loaded</th></tr>
             <tr><td>0</td><td>0x0000–0x0002</td><td>Boot Namespace (self-ref)</td><td>LOAD_NS</td><td>CR15 (zero perms, Inform)</td></tr>
             <tr><td>1</td><td>0x0003–0x0005</td><td>Thread identity</td><td>INIT_THRD</td><td>CR8</td></tr>
-            <tr><td>2</td><td>0x0006–0x0008</td><td>C-List</td><td>INIT_THRD</td><td>CR6</td></tr>
+            <tr><td>2</td><td>0x0006–0x0008</td><td>C-List</td><td>INIT_CLIST</td><td>CR6 (E only)</td></tr>
             <tr><td>3</td><td>0x0009–0x000B</td><td>Boot Abstraction C-List</td><td>LOAD_NUC (CALL)</td><td>CR7 at offset 0</td></tr>
             <tr><td>4+</td><td>0x000C+</td><td>Additional NS entries</td><td>—</td><td>Remaining abstractions</td></tr>
         </table>

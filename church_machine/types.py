@@ -156,5 +156,6 @@ class BootState(IntEnum):
     FAULT_RST  = 1
     LOAD_NS    = 2
     INIT_THRD  = 3
-    LOAD_NUC   = 4
-    COMPLETE   = 5
+    INIT_CLIST = 4
+    LOAD_NUC   = 5
+    COMPLETE   = 6

@@ -118,6 +118,8 @@ class ChurchCore(Elaboratable):
             with m.Case(BootState.LOAD_NS):
                 m.d.sync += boot_state_reg.eq(BootState.INIT_THRD)
             with m.Case(BootState.INIT_THRD):
+                m.d.sync += boot_state_reg.eq(BootState.INIT_CLIST)
+            with m.Case(BootState.INIT_CLIST):
                 m.d.sync += boot_state_reg.eq(BootState.LOAD_NUC)
             with m.Case(BootState.LOAD_NUC):
                 m.d.sync += boot_state_reg.eq(BootState.COMPLETE)
@@ -313,7 +315,7 @@ class ChurchCore(Elaboratable):
                     thrd_gt_view.perms.eq(0),
                 ]
                 m.d.comb += [boot_wr_en[8].eq(1), boot_wr_gt[8].eq(thrd_gt)]
-
+            with m.Case(BootState.INIT_CLIST):
                 cr6_gt = Signal(GT_LAYOUT)
                 cr6_gt_view = View(GT_LAYOUT, cr6_gt)
                 m.d.comb += [

@@ -153,7 +153,7 @@ class ChurchSimulator {
             { label: 'Boot.NS',      perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
             { label: 'Boot.Thread',   perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
             { label: 'Boot.CList',    perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
-            { label: 'Boot.Abstraction', perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
+            { label: 'Boot.Abstraction', perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Boot.CLOOMC',   perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
             { label: 'Lambda',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'SlideRule',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
@@ -253,7 +253,7 @@ class ChurchSimulator {
                 break;
             }
             case 4: {
-                const gt3 = this.createGT(0, 3, {R:0,W:0,X:0,L:1,S:0,E:1}, 0);
+                const gt3 = this.createGT(0, 3, {R:0,W:0,X:0,L:0,S:0,E:1}, 0);
                 const check3 = this.mLoad(gt3, 'E', undefined);
                 if (!check3.ok) {
                     this.fault('BOOT', `LOAD_NUC mLoad(Boot.Abstraction) failed: ${check3.message}`);
