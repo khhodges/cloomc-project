@@ -233,7 +233,7 @@ function toggleCListEntry(nsIdx) {
     updateCRDetail();
 }
 
-function renderCListEntryDetail(nsIdx, entry, storedGT) {
+function renderCListEntryDetail(nsIdx, entry) {
     let h = '<div class="clist-detail">';
     const label = entry.label || `NS[${nsIdx}]`;
     h += `<div class="clist-detail-title">${label} — Namespace Entry ${nsIdx}</div>`;
@@ -254,19 +254,6 @@ function renderCListEntryDetail(nsIdx, entry, storedGT) {
     h += `<tr><td style="color:var(--church-blue)">Version</td><td>${ver}</td></tr>`;
     h += `<tr><td style="color:var(--church-blue)">FNV Seal</td><td>0x${seal.toString(16).toUpperCase().padStart(7,'0')}</td></tr>`;
     h += '</tbody></table>';
-
-    if (storedGT) {
-        const p = sim.parseGT(storedGT);
-        const permStr = (p.permissions.R?'R':'-')+(p.permissions.W?'W':'-')+(p.permissions.X?'X':'-')+(p.permissions.L?'L':'-')+(p.permissions.S?'S':'-')+(p.permissions.E?'E':'-');
-        h += '<div class="clist-detail-title" style="margin-top:0.4rem;">Stored GT (word0)</div>';
-        h += '<table class="cr-table" style="margin-bottom:0.5rem;"><tbody>';
-        h += `<tr><td style="color:var(--church-blue);width:120px;">Raw</td><td>0x${storedGT.toString(16).toUpperCase().padStart(8,'0')}</td></tr>`;
-        h += `<tr><td style="color:var(--church-blue)">Version</td><td>${p.version}</td></tr>`;
-        h += `<tr><td style="color:var(--church-blue)">Index</td><td>${p.index}</td></tr>`;
-        h += `<tr><td style="color:var(--church-blue)">Perms</td><td>[${permStr}]</td></tr>`;
-        h += `<tr><td style="color:var(--church-blue)">Type</td><td>${p.typeName} (${p.type})</td></tr>`;
-        h += '</tbody></table>';
-    }
 
     const wordCount = Math.min(lim.limit + 1, 64);
     let hasData = false;
@@ -403,24 +390,17 @@ function updateCRDetail() {
             html += '<div style="color:var(--text-secondary);padding:0.5rem;">No namespace entries within this capability\'s range.</div>';
         } else {
             html += '<table class="cr-table"><thead><tr>';
-            html += '<th>Idx</th><th>Label</th><th>Perms</th><th>Type</th><th>Location</th><th>B</th><th>Limit</th><th>FNV</th>';
+            html += '<th>Idx</th><th>Label</th><th>Type</th><th>Location</th><th>B</th><th>Limit</th><th>FNV</th>';
             html += '</tr></thead><tbody>';
             for (let j = 0; j < clistEntries.length; j++) {
                 const c = clistEntries[j];
                 const e = c.entry;
-                const storedGT = sim.memory[e.word0_location];
-                let permStr = '------';
-                if (storedGT) {
-                    const sp = sim.parseGT(storedGT).permissions;
-                    permStr = (sp.R?'R':'-')+(sp.W?'W':'-')+(sp.X?'X':'-')+(sp.L?'L':'-')+(sp.S?'S':'-')+(sp.E?'E':'-');
-                }
                 const typeNames = ['NULL','Abstract','Outform','Inform'];
                 const sealFNV = e.word2_seals & 0x01FFFFFF;
                 const isExpanded = (clistExpandedIdx === c.idx);
                 html += `<tr class="cr-active clist-clickable${isExpanded ? ' clist-selected' : ''}" onclick="toggleCListEntry(${c.idx})" title="Click to inspect NS[${c.idx}]">`;
                 html += `<td class="cr-idx">${c.idx}</td>`;
                 html += `<td class="cr-name">${e.label || ''}</td>`;
-                html += `<td class="cr-perms">[${permStr}]</td>`;
                 html += `<td>${typeNames[e.gtType] || '?'}</td>`;
                 html += `<td>0x${c.loc.toString(16).toUpperCase().padStart(8,'0')}</td>`;
                 html += `<td class="cr-flag">${c.lim.b}</td>`;
@@ -428,7 +408,7 @@ function updateCRDetail() {
                 html += `<td>0x${sealFNV.toString(16).toUpperCase().padStart(7,'0')}</td>`;
                 html += '</tr>';
                 if (isExpanded) {
-                    html += `<tr class="clist-detail-row"><td colspan="8">${renderCListEntryDetail(c.idx, e, storedGT)}</td></tr>`;
+                    html += `<tr class="clist-detail-row"><td colspan="7">${renderCListEntryDetail(c.idx, e)}</td></tr>`;
                 }
             }
             html += '</tbody></table>';
@@ -459,23 +439,16 @@ function updateCRDetail() {
             html += '<div style="color:var(--text-secondary);padding:0.5rem;">Namespace table is empty.</div>';
         } else {
             html += '<table class="cr-table"><thead><tr>';
-            html += '<th>Idx</th><th>Label</th><th>Perms</th><th>Type</th><th>Location</th><th>B</th><th>G</th><th>Chain</th>';
+            html += '<th>Idx</th><th>Label</th><th>Type</th><th>Location</th><th>B</th><th>G</th><th>Chain</th>';
             html += '</tr></thead><tbody>';
             const typeNames = ['NULL','Abstract','Outform','Inform'];
             for (let i = 0; i < sim.nsCount; i++) {
                 const e = sim.readNSEntry(i);
                 if (!e) continue;
-                const storedGT = sim.memory[e.word0_location];
-                let permStr = '------';
-                if (storedGT) {
-                    const sp = sim.parseGT(storedGT).permissions;
-                    permStr = (sp.R?'R':'-')+(sp.W?'W':'-')+(sp.X?'X':'-')+(sp.L?'L':'-')+(sp.S?'S':'-')+(sp.E?'E':'-');
-                }
                 const loc = e.word0_location >>> 0;
                 html += '<tr class="cr-active">';
                 html += `<td class="cr-idx">${i}</td>`;
                 html += `<td class="cr-name">${e.label || ''}</td>`;
-                html += `<td class="cr-perms">[${permStr}]</td>`;
                 html += `<td>${typeNames[e.gtType] || '?'}</td>`;
                 html += `<td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td>`;
                 html += `<td class="cr-flag">${sim.parseNSWord1(e.word1_limit).b}</td>`;
@@ -524,18 +497,11 @@ function updateCRDetail() {
         const sealVer = (entry.word2_seals >>> 25) & 0x7F;
         const sealFNV = entry.word2_seals & 0x01FFFFFF;
         const gtPermStr = cr.perms;
-        const storedGT = sim.memory[loc];
-        let storedPermStr = '------';
-        if (storedGT) {
-            const sp = sim.parseGT(storedGT).permissions;
-            storedPermStr = (sp.R?'R':'-')+(sp.W?'W':'-')+(sp.X?'X':'-')+(sp.L?'L':'-')+(sp.S?'S':'-')+(sp.E?'E':'-');
-        }
         const typeNames = ['NULL','Abstract','Outform','Inform'];
 
         html += '<table class="cr-table"><tbody>';
         html += `<tr><td>Location</td><td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td></tr>`;
         html += `<tr><td>GT Permissions</td><td>[${gtPermStr}]</td></tr>`;
-        html += `<tr><td>Stored GT Perms</td><td>[${storedPermStr}]</td></tr>`;
         html += `<tr><td>GT Type</td><td>${typeNames[entry.gtType] || '?'}</td></tr>`;
         html += `<tr><td>B (Bind)</td><td>${lim.b}</td></tr>`;
         html += `<tr><td>F (Far)</td><td>${lim.f}</td></tr>`;
@@ -692,7 +658,7 @@ function updateNamespace() {
     let html = '<div class="ns-layout-header">NS_ENTRY_LAYOUT: 3 words per entry (96 bits)</div>';
     html += '<table class="ns-table"><thead><tr>';
     html += '<th>Idx</th><th class="ns-label-col">Label</th>';
-    html += '<th>Perms</th><th>Type</th><th>Location</th>';
+    html += '<th>Type</th><th>Location</th>';
     html += '<th>B</th><th>F</th><th>Limit</th>';
     html += '<th>Ver</th><th>FNV Seal</th>';
     html += '<th>G</th><th>Actions</th>';
@@ -704,17 +670,10 @@ function updateNamespace() {
         const lim = sim.parseNSWord1(e.word1_limit);
         const ver = (e.word2_seals >>> 25) & 0x7F;
         const seal = e.word2_seals & 0x01FFFFFF;
-        const storedGT = sim.memory[e.word0_location];
-        let permStr = '------';
-        if (storedGT) {
-            const sp = sim.parseGT(storedGT).permissions;
-            permStr = (sp.R?'R':'-')+(sp.W?'W':'-')+(sp.X?'X':'-')+(sp.L?'L':'-')+(sp.S?'S':'-')+(sp.E?'E':'-');
-        }
         const typeNames = ['NULL','Abstract','Outform','Inform'];
         html += '<tr>';
         html += `<td>${i}</td>`;
         html += `<td class="ns-label">${e.label || '-'}</td>`;
-        html += `<td class="cr-perms">[${permStr}]</td>`;
         html += `<td>${typeNames[e.gtType] || '?'}</td>`;
         html += `<td>0x${e.word0_location.toString(16).toUpperCase().padStart(8, '0')}</td>`;
         html += `<td class="ns-flag">${lim.b}</td>`;
