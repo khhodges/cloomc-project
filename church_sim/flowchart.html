@@ -91,14 +91,14 @@
         <div style="margin-top:0.3rem;color:#8b949e;font-size:0.7rem;">31 ················ 27 │ 26 ····· 23 │ 22 ····· 19 │ 18 ····· 15 │ 14 ················ 0</div>
     </div>
 
-    <div class="section-title">Boot Memory Layout (Address 0x0000)</div>
+    <div class="section-title">Boot Memory Layout</div>
     <div class="flow-card boot" style="max-width:700px;margin:0 auto 1.5rem;">
         <h3>Canonical Boot Namespace Slot Map</h3>
         <table class="gate-table" style="width:100%;">
-            <tr><th>Slot</th><th>Address</th><th>Purpose</th><th>Boot Phase</th><th>CR Loaded</th></tr>
-            <tr><td>0</td><td>0x0000–0x0002</td><td>Boot Namespace (self-ref)</td><td>LOAD_NS</td><td>CR15 (zero perms, Inform)</td></tr>
+            <tr><th>Slot</th><th>Location</th><th>Purpose</th><th>Boot Phase</th><th>CR Loaded</th></tr>
+            <tr><td>0</td><td>0xFD00 (NS_TABLE_BASE)</td><td>Boot Namespace (self-ref — binary data IS the namespace table)</td><td>LOAD_NS</td><td>CR15 (zero perms, Inform)</td></tr>
             <tr><td>1</td><td>0x0003–0x0005</td><td>Thread identity</td><td>INIT_THRD</td><td>CR8</td></tr>
-            <tr><td>2</td><td>0x0006–0x0008</td><td>Boot Abstraction C-List</td><td>INIT_CLIST → CR6; then LOAD_NUC CALL → CR6 + CR7</td><td>CR6, CR7</td></tr>
+            <tr><td>2</td><td>0x0006–0x0008</td><td>Boot Abstraction C-List</td><td>INIT_CLIST → CR6; then LOAD_NUC CALL → CR6 + CR7</td><td>CR6 (E only), CR7</td></tr>
             <tr><td>3</td><td>0x0009–0x000B</td><td>Boot.CLOOMC</td><td>— (discovered at offset 0 of Slot 2)</td><td>—</td></tr>
             <tr><td>4+</td><td>0x000C+</td><td>Remaining abstractions (Lambda, SlideRule, …)</td><td>—</td><td>—</td></tr>
         </table>
@@ -115,15 +115,15 @@
         <h3>Boot CR Status</h3>
         <table class="gate-table" style="width:100%;">
             <tr><th>CR</th><th>Status</th><th>Source</th></tr>
-            <tr><td>CR15</td><td><span class="step-ok">Loaded</span></td><td>mLoad(Slot 0) — Namespace root, zero perms, Inform</td></tr>
+            <tr><td>CR15</td><td><span class="step-ok">Loaded</span></td><td>mLoad(Slot 0) — Namespace root, zero perms, Inform, location=0xFD00</td></tr>
             <tr><td>CR8</td><td><span class="step-ok">Loaded</span></td><td>mLoad(Slot 1) — Thread identity</td></tr>
-            <tr><td>CR6</td><td><span class="step-ok">Loaded</span></td><td>mLoad(Slot 2) — Boot Abstraction C-List (E perm, Inform type)</td></tr>
+            <tr><td>CR6</td><td><span class="step-ok">Loaded</span></td><td>mLoad(Slot 2) — Boot Abstraction C-List (E only, Inform type). CR6-specific: LOAD from CR6 skips L permission check (CALL validated E)</td></tr>
             <tr><td>CR7</td><td><span class="step-ok">Discovered</span></td><td>CALL into Slot 2 → CR6+0 yields X-GT pointing to Slot 3 (Boot.CLOOMC)</td></tr>
             <tr><td>CR5</td><td><span class="step-fault">NULL</span></td><td>Not loaded — unavailable, missing from stack frame</td></tr>
             <tr><td>Others</td><td><span class="step-fault">NULL</span></td><td>Cleared in FAULT_RST</td></tr>
         </table>
         <div class="sep"></div>
-        <div class="step"><span class="step-text"><span class="step-detail"><b>Security Invariant:</b> Every boot CR passes through mLoad. M-elevation bypasses the permission gate but NOT bounds, version, or seal validation. CR5 is NULL — the secure default.</span></span></div>
+        <div class="step"><span class="step-text"><span class="step-detail"><b>Security Invariant:</b> Every boot CR passes through mLoad. M-elevation bypasses the permission gate but NOT bounds, version, or seal validation. CR6-specific: LOAD from CR6 skips L permission check (CALL already validated E). S is NOT bypassed — SAVE to CR6 still requires S. CR5 is NULL — the secure default.</span></span></div>
     </div>
 
     <div class="section-title">Boot Microcode Sequence (Patent Section 15)</div>
@@ -158,7 +158,7 @@
         <div class="flow-card gate">
             <h3>mLoad — Read Gate (Patent Claim 9a)</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> Read GT from CR: parse Version(7) | Index(17) | Perms(6) | Type(2)</span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-reg">REG</span> Permission check: GT perms has required bit (unless M-elevated) <span class="step-fault">→ PERMISSION fault</span></span></div>
+            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-reg">REG</span> Permission check: GT perms has required bit (unless M-elevated; CR6-specific: LOAD from CR6 skips L check) <span class="step-fault">→ PERMISSION fault</span></span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> Bounds check: index &lt; nsCount <span class="step-fault">→ BOUNDS fault</span></span></div>
             <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Fetch NS entry (3 words: location, B|F|G|limit, version|seal)</span></div>
             <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-none">---</span> Version match: GT.ver == NS.ver <span class="step-fault">→ VERSION fault</span></span></div>
@@ -202,11 +202,11 @@
         <div class="flow-card">
             <h3>0 — LOAD CRd, CRs, imm</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> CR[src].word0 = c-list GT. Null? <span class="step-fault">→ NULL_CAP fault</span></span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(clistGT, 'L', crSrc)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit</span></div>
+            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(clistGT, crSrc===6 ? null : 'L', crSrc)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit <span class="step-detail">(CR6 skips L check — CALL validated E)</span></span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-none">---</span> Bounds check: imm &lt; nsCount, entry valid <span class="step-fault">→ BOUNDS fault</span></span></div>
             <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read target NS entry (3 words) → FNV seal check <span class="step-fault">→ SEAL fault</span></span></div>
             <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read GT word from entry's memory location</span></div>
-            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-reg">REG</span> Write CR[dst] ← GT + location + limit + seals <span class="step-fault">→ CR_OCCUPIED fault</span></span></div>
+            <div class="step"><span class="step-num">6</span><span class="step-text"><span class="bus bus-reg">REG</span> Write CR[dst] ← GT + location + limit + seals</span></div>
             <div class="step"><span class="step-num">7</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC++</span></span></div>
             <div class="sep"></div>
             <div class="step"><span class="step-text"><span class="step-detail">Bus: 3 MEM RD (mLoad NS + target NS + GT word) + 1 MEM WR (G-bit) + 2 REG</span></span></div>
@@ -264,7 +264,7 @@
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> CR[src].word0 = source GT. Null? <span class="step-fault">→ NULL_CAP fault</span></span></div>
             <div class="step"><span class="step-num">2</span><span class="step-text"><span class="bus bus-none">---</span> Bounds check: imm &lt; nsCount <span class="step-fault">→ BOUNDS fault</span></span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read NS entry at index imm (3 words) <span class="step-fault">→ BOUNDS fault if null</span></span></div>
-            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read GT word from entry location → <span class="bus bus-reg">REG</span> Write CR[dst] <span class="step-fault">→ CR_OCCUPIED fault</span></span></div>
+            <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read GT word from entry location → <span class="bus bus-reg">REG</span> Write CR[dst]</span></div>
             <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-none">---</span> <span class="step-ok">PC++</span> <span class="step-detail">(re-aims register without mLoad — no permission check)</span></span></div>
             <div class="sep"></div>
             <div class="step"><span class="step-text"><span class="step-detail">Bus: 2 MEM RD (NS entry + GT word) + 0 MEM WR + 2 REG. No mLoad gate — index-based shortcut.</span></span></div>
@@ -310,7 +310,7 @@
         <div class="flow-card fused">
             <h3>8 — ELOADCALL CRd, CRs, imm (Fused)</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> CR[src].word0 = c-list GT. Null? <span class="step-fault">→ NULL_CAP fault</span></span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(clistGT, 'L', crSrc)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit</span></div>
+            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(clistGT, crSrc===6 ? null : 'L', crSrc)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit <span class="step-detail">(CR6 skips L)</span></span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read target NS entry (3 words) → bounds + seal check</span></div>
             <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read GT word from entry location → <span class="bus bus-reg">REG</span> Write CR[dst]</span></div>
             <div class="step"><span class="step-num">5</span><span class="step-text"><span class="step-gate">mLoad(loadedGT, 'E', crDst)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit</span></div>
@@ -324,7 +324,7 @@
         <div class="flow-card fused">
             <h3>9 — XLOADLAMBDA CRd, CRs, imm (Fused)</h3>
             <div class="step"><span class="step-num">1</span><span class="step-text"><span class="bus bus-reg">REG</span> CR[src].word0 = c-list GT. Null? <span class="step-fault">→ NULL_CAP fault</span></span></div>
-            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(clistGT, 'L', crSrc)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit</span></div>
+            <div class="step"><span class="step-num">2</span><span class="step-text"><span class="step-gate">mLoad(clistGT, crSrc===6 ? null : 'L', crSrc)</span> — <span class="bus bus-rd">MEM RD</span> NS entry + <span class="bus bus-wr">MEM WR</span> G-bit <span class="step-detail">(CR6 skips L)</span></span></div>
             <div class="step"><span class="step-num">3</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read target NS entry (3 words) → bounds + seal check</span></div>
             <div class="step"><span class="step-num">4</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> Read GT word from entry location → <span class="bus bus-reg">REG</span> Write CR[dst]</span></div>
             <div class="step"><span class="step-num">5</span><span class="step-text"><span class="bus bus-reg">REG</span> Check X permission from loaded GT (CR[dst].word0) <span class="step-fault">→ PERMISSION fault</span></span></div>
@@ -458,7 +458,7 @@
         <div class="sep"></div>
         <div class="step"><span class="step-num">S</span><span class="step-text"><span class="bus bus-rd">MEM RD</span> <b>Scan</b> — walk all NS entries, read G-bits (word1 bit 29). <span class="bus bus-reg">REG</span> Check CRs for live references</span></div>
         <div class="step"><span class="step-num">I</span><span class="step-text"><span class="bus bus-none">---</span> <b>Identify</b> — entries where G-bit ≠ polarity are unreachable (dead)</span></div>
-        <div class="step"><span class="step-num">C</span><span class="step-text"><span class="bus bus-wr">MEM WR</span> <b>Clear</b> — zero dead entries (3 words each) + zero backing memory. Increment version in word2.</span></div>
+        <div class="step"><span class="step-num">C</span><span class="step-text"><span class="bus bus-wr">MEM WR</span> <b>Clear</b> — zero dead entries (3 words each) + zero backing memory. Increment version in word2. <span class="step-detail">Slot 0 (Boot.NS) is protected — always skipped.</span></span></div>
         <div class="step"><span class="step-num">F</span><span class="step-text"><span class="bus bus-none">---</span> <b>Flip</b> — toggle GC polarity (0↔1) for next cycle</span></div>
         <div class="sep"></div>
         <div class="step"><span class="step-text"><span class="step-detail">Bus: N MEM RD (scan all entries) + M MEM WR (clear dead entries + backing). Bidirectional G-bit.</span></span></div>
@@ -475,7 +475,6 @@
         <div class="step"><span class="step-text"><span class="step-fault">PERMISSION</span> — GT lacks required permission bit</span></div>
         <div class="step"><span class="step-text"><span class="step-fault">BIND</span> — B=0 on source GT in CR (mSave reads from register)</span></div>
         <div class="step"><span class="step-text"><span class="step-fault">FAR</span> — F=1 on target (foreign/remote object, needs HTTP/tunnel)</span></div>
-        <div class="step"><span class="step-text"><span class="step-fault">CR_OCCUPIED</span> — writing to non-empty CR</span></div>
         <div class="step"><span class="step-text"><span class="step-fault">TPERM_RSV</span> — reserved TPERM preset code</span></div>
         <div class="step"><span class="step-text"><span class="step-fault">INVALID_OP</span> — unknown opcode</span></div>
         <div class="sep"></div>
