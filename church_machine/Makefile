@@ -46,15 +46,15 @@ $(JSON): $(VERILOG) $(PCF)
 pnr: $(ASC)
 $(ASC): $(JSON)
 	nextpnr-ice40 \
-		--$(DEVICE) \
-		--package $(PACKAGE) \
-		--pcf $(PCF) \
-		--pcf-allow-unconstrained \
-		--json $(JSON) \
-		--asc $(ASC) \
-		--freq $(FREQ_MHZ) \
-		--report $(BUILD)/$(PROJ)_report.json \
-		2>&1 | tee $(BUILD)/pnr.log
+	        --$(DEVICE) \
+	        --package $(PACKAGE) \
+	        --pcf $(PCF) \
+	        --pcf-allow-unconstrained \
+	        --json $(JSON) \
+	        --asc $(ASC) \
+	        --freq $(FREQ_MHZ) \
+	        --report $(BUILD)/$(PROJ)_report.json \
+	        2>&1 | tee $(BUILD)/pnr.log
 	@echo "=== Timing ==="
 	@grep -i "max frequency\|critical path\|slack" $(BUILD)/pnr.log || true
 
@@ -69,21 +69,7 @@ timing: $(ASC)
 
 uf2: $(UF2)
 $(UF2): $(BIT)
-	python3 -c "\
-	import struct, sys; \
-	data = open('$(BIT)','rb').read(); \
-	out = open('$(UF2)','wb'); \
-	bs = 256; \
-	nb = (len(data)+bs-1)//bs; \
-	for i in range(nb): \
-	    chunk = data[i*bs:(i+1)*bs]; \
-	    chunk += b'\\x00'*(bs-len(chunk)); \
-	    hdr = struct.pack('<IIIIIIII', \
-	        0x0A324655, 0x9E5D5157, 0x00002000, \
-	        i*bs, bs, i, nb, 0x00); \
-	    out.write(hdr + chunk + b'\\x00'*(512-32-bs-4) + struct.pack('<I',0x0AB16F30)); \
-	out.close(); \
-	print(f'UF2: $(UF2) ({nb} blocks)')"
+	python3 church_machine_uf2.py $(BIT) $(UF2)
 
 prog: $(BIT)
 	@echo "=== Upload to pico-ice ==="

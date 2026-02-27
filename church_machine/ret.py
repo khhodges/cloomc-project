@@ -3,7 +3,6 @@ from amaranth.lib.data import View
 
 from .types import *
 from .layouts import GT_LAYOUT, CAP_REG_LAYOUT
-from .mload import ChurchMLoad
 
 
 class ChurchReturn(Elaboratable):
@@ -25,16 +24,17 @@ class ChurchReturn(Elaboratable):
         self.nia_set = Signal()
         self.nia_value = Signal(32)
 
-        self.cr15_namespace = Signal(CAP_REG_LAYOUT)
+        self.mload_start = Signal()
+        self.mload_cr_src = Signal(4)
+        self.mload_cr_dst = Signal(4)
+        self.mload_index = Signal(17)
+        self.mload_direct = Signal()
+        self.mload_direct_gt = Signal(32)
+        self.mload_m_elevated = Signal()
 
-        self.mem_addr = Signal(32)
-        self.mem_rd_en = Signal()
-        self.mem_rd_data = Signal(32)
-        self.mem_rd_valid = Signal()
-
-        self.thread_wr_en = Signal()
-        self.thread_wr_idx = Signal(4)
-        self.thread_wr_data = Signal(32)
+        self.mload_done = Signal()
+        self.mload_fault = Signal()
+        self.mload_fault_type = Signal(4)
 
         self.saved_cr5_gt = Signal(32)
 
@@ -49,9 +49,6 @@ class ChurchReturn(Elaboratable):
         CR6_CLIST = 6
         CR7_NUCLEUS = 7
 
-        u_mload = ChurchMLoad()
-        m.submodules.u_mload = u_mload
-
         return_cap = Signal(CAP_REG_LAYOUT)
         ret_view = View(CAP_REG_LAYOUT, return_cap)
         ret_gt = View(GT_LAYOUT, ret_view.word0_gt)
@@ -65,7 +62,6 @@ class ChurchReturn(Elaboratable):
         saved_cr7_gt = ret_view.word3_seals
 
         saved_cr6_gt_view = View(GT_LAYOUT, saved_cr6_gt)
-        saved_cr7_gt_view = View(GT_LAYOUT, saved_cr7_gt)
 
         saved_cr6_has_e = saved_cr6_gt_view.perms[PERM_E]
 
@@ -80,8 +76,6 @@ class ChurchReturn(Elaboratable):
         local_cr_wr_en = Signal()
         local_cr_wr_addr = Signal(4)
         local_cr_wr_data = Signal(CAP_REG_LAYOUT)
-
-        cr6_latched = Signal(CAP_REG_LAYOUT)
 
         mload_dst = Signal(4)
         mload_direct_gt = Signal(32)
@@ -103,32 +97,23 @@ class ChurchReturn(Elaboratable):
                 ]
 
         m.d.comb += [
-            u_mload.sub_start.eq(sub_start_reg),
-            u_mload.sub_cr_src.eq(0),
-            u_mload.sub_cr_dst.eq(mload_dst),
-            u_mload.sub_index.eq(0),
-            u_mload.sub_direct.eq(1),
-            u_mload.sub_m_elevated.eq(1),
-            u_mload.sub_direct_gt.eq(mload_direct_gt),
-            u_mload.cr_rd_data.eq(self.cr_rd_data),
-            u_mload.cr15_namespace.eq(self.cr15_namespace),
-            u_mload.mem_rd_data.eq(self.mem_rd_data),
-            u_mload.mem_rd_valid.eq(self.mem_rd_valid),
+            self.mload_start.eq(sub_start_reg),
+            self.mload_cr_src.eq(0),
+            self.mload_cr_dst.eq(mload_dst),
+            self.mload_index.eq(0),
+            self.mload_direct.eq(1),
+            self.mload_m_elevated.eq(1),
+            self.mload_direct_gt.eq(mload_direct_gt),
         ]
 
         m.d.comb += [
-            self.cr_wr_addr.eq(Mux(local_cr_wr_en, local_cr_wr_addr, u_mload.cr_wr_addr)),
-            self.cr_wr_data.eq(Mux(local_cr_wr_en, local_cr_wr_data, u_mload.cr_wr_data)),
-            self.cr_wr_en.eq(u_mload.cr_wr_en | local_cr_wr_en),
-            self.mem_addr.eq(u_mload.mem_addr),
-            self.mem_rd_en.eq(u_mload.mem_rd_en),
-            self.thread_wr_en.eq(u_mload.thread_wr_en),
-            self.thread_wr_idx.eq(u_mload.thread_wr_idx),
-            self.thread_wr_data.eq(u_mload.thread_wr_data),
+            self.cr_wr_addr.eq(local_cr_wr_addr),
+            self.cr_wr_data.eq(local_cr_wr_data),
+            self.cr_wr_en.eq(local_cr_wr_en),
         ]
 
         m.d.comb += self.cr_rd_addr.eq(
-            Mux(local_cr_rd_en, Cat(self.cr_src, Const(0, 1)), u_mload.cr_rd_addr)
+            Mux(local_cr_rd_en, Cat(self.cr_src, Const(0, 1)), 0)
         )
 
         with m.FSM(name="ret") as fsm:
@@ -166,9 +151,9 @@ class ChurchReturn(Elaboratable):
 
             with m.State("PHASE0"):
                 m.d.sync += sub_start_reg.eq(0)
-                with m.If(u_mload.sub_done):
+                with m.If(self.mload_done):
                     m.d.sync += sub_done_latched.eq(1)
-                with m.If(u_mload.sub_fault):
+                with m.If(self.mload_fault):
                     m.d.sync += sub_fault_latched.eq(1)
                 with m.If(sub_fault_latched):
                     m.next = "PHASE0_FAULT"
@@ -200,33 +185,28 @@ class ChurchReturn(Elaboratable):
 
             with m.State("PHASE1"):
                 m.d.sync += sub_start_reg.eq(0)
-                with m.If(u_mload.sub_done):
-                    m.d.sync += [sub_done_latched.eq(1), cr6_latched.eq(u_mload.cr_wr_data)]
-                with m.If(u_mload.sub_fault):
+                with m.If(self.mload_done):
+                    m.d.sync += sub_done_latched.eq(1)
+                with m.If(self.mload_fault):
                     m.d.sync += sub_fault_latched.eq(1)
-                    m.d.sync += [fault_flag.eq(1), fault_latched.eq(u_mload.sub_fault_type)]
+                    m.d.sync += [fault_flag.eq(1), fault_latched.eq(self.mload_fault_type)]
                 with m.If(sub_fault_latched):
                     m.next = "FAULT"
                 with m.Elif(sub_done_latched):
                     m.next = "PHASE1_DONE"
 
             with m.State("PHASE1_DONE"):
-                m.d.comb += [
-                    local_cr_wr_en.eq(1),
-                    local_cr_wr_addr.eq(CR6_CLIST),
-                    local_cr_wr_data.eq(cr6_latched),
-                ]
                 m.d.sync += [phase.eq(2), sub_done_latched.eq(0), sub_fault_latched.eq(0)]
                 m.d.sync += sub_start_reg.eq(1)
                 m.next = "PHASE2"
 
             with m.State("PHASE2"):
                 m.d.sync += sub_start_reg.eq(0)
-                with m.If(u_mload.sub_done):
+                with m.If(self.mload_done):
                     m.d.sync += sub_done_latched.eq(1)
-                with m.If(u_mload.sub_fault):
+                with m.If(self.mload_fault):
                     m.d.sync += sub_fault_latched.eq(1)
-                    m.d.sync += [fault_flag.eq(1), fault_latched.eq(u_mload.sub_fault_type)]
+                    m.d.sync += [fault_flag.eq(1), fault_latched.eq(self.mload_fault_type)]
                 with m.If(sub_fault_latched):
                     m.next = "FAULT"
                 with m.Elif(sub_done_latched):

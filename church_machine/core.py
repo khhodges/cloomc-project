@@ -14,6 +14,7 @@ from .ret import ChurchReturn
 from .tperm import ChurchTperm
 from .save import ChurchSave
 from .load import ChurchLoad
+from .mload import ChurchMLoad
 if ENABLE_CHANGE_SWITCH:
     from .change import ChurchChange
     from .switch import ChurchSwitch
@@ -100,6 +101,8 @@ class ChurchCore(Elaboratable):
         m.submodules.u_tperm = u_tperm
         m.submodules.u_save = u_save
         m.submodules.u_load = u_load
+        u_shared_mload = ChurchMLoad()
+        m.submodules.u_shared_mload = u_shared_mload
         if ENABLE_CHANGE_SWITCH:
             m.submodules.u_change = u_change
             m.submodules.u_switch = u_switch
@@ -187,12 +190,12 @@ class ChurchCore(Elaboratable):
                                    Mux(u_switch.switch_busy, u_switch.cr_rd_addr,
                                        cr_rd_addr_default))
         m.d.comb += u_regs.cr_rd_addr.eq(
-            Mux(lambda_start_sig | u_lambda.lambda_busy, u_lambda.cr_rd_addr,
-                Mux(u_tperm.tperm_busy, u_tperm.cr_rd_addr,
-                    Mux(u_call.call_busy, u_call.cr_rd_addr,
-                        Mux(u_return.busy, u_return.cr_rd_addr,
-                            Mux(u_save.save_busy, u_save.cr_rd_addr,
-                                Mux(u_load.load_busy, u_load.cr_rd_addr,
+            Mux(u_shared_mload.sub_busy, u_shared_mload.cr_rd_addr,
+                Mux(lambda_start_sig | u_lambda.lambda_busy, u_lambda.cr_rd_addr,
+                    Mux(u_tperm.tperm_busy, u_tperm.cr_rd_addr,
+                        Mux(u_call.call_busy, u_call.cr_rd_addr,
+                            Mux(u_return.busy, u_return.cr_rd_addr,
+                                Mux(u_save.save_busy, u_save.cr_rd_addr,
                                     cr_rd_addr_inner))))))
         )
 
@@ -290,22 +293,22 @@ class ChurchCore(Elaboratable):
             cr_wr_en_extra = cr_wr_en_extra | u_change.cr_wr_en | u_switch.cr_wr_en
         m.d.comb += [
             u_regs.cr_wr_addr.eq(
-                Mux(u_tperm.tperm_busy, u_tperm.cr_wr_addr,
-                    Mux(u_call.call_busy, u_call.cr_wr_addr,
-                        Mux(u_return.busy, u_return.cr_wr_addr,
-                            Mux(u_load.load_busy, u_load.cr_wr_addr,
+                Mux(u_shared_mload.cr_wr_en, u_shared_mload.cr_wr_addr,
+                    Mux(u_tperm.cr_wr_en, u_tperm.cr_wr_addr,
+                        Mux(u_call.cr_wr_en, u_call.cr_wr_addr,
+                            Mux(u_return.cr_wr_en, u_return.cr_wr_addr,
                                 cr_wr_addr_inner))))
             ),
             u_regs.cr_wr_data.eq(
-                Mux(u_tperm.tperm_busy, u_tperm.cr_wr_data,
-                    Mux(u_call.call_busy, u_call.cr_wr_data,
-                        Mux(u_return.busy, u_return.cr_wr_data,
-                            Mux(u_load.load_busy, u_load.cr_wr_data,
+                Mux(u_shared_mload.cr_wr_en, u_shared_mload.cr_wr_data,
+                    Mux(u_tperm.cr_wr_en, u_tperm.cr_wr_data,
+                        Mux(u_call.cr_wr_en, u_call.cr_wr_data,
+                            Mux(u_return.cr_wr_en, u_return.cr_wr_data,
                                 cr_wr_data_inner))))
             ),
             u_regs.cr_wr_en.eq(
-                u_tperm.cr_wr_en | u_call.cr_wr_en | u_return.cr_wr_en |
-                u_load.cr_wr_en | cr_wr_en_extra
+                u_shared_mload.cr_wr_en | u_tperm.cr_wr_en | u_call.cr_wr_en |
+                u_return.cr_wr_en | cr_wr_en_extra
             ),
         ]
 
@@ -423,9 +426,6 @@ class ChurchCore(Elaboratable):
             u_call.index.eq(cap_index),
             u_call.mask.eq(u_decoder.call_mask),
             u_call.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_call.cr15_namespace.eq(u_regs.cr15_namespace),
-            u_call.mem_rd_data.eq(self.dmem_rd_data),
-            u_call.mem_rd_valid.eq(1),
         ]
 
         m.d.comb += ret_start_sig.eq(
@@ -435,9 +435,6 @@ class ChurchCore(Elaboratable):
             u_return.return_start.eq(ret_start_sig),
             u_return.cr_src.eq(cr_src[:3]),
             u_return.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_return.cr15_namespace.eq(u_regs.cr15_namespace),
-            u_return.mem_rd_data.eq(self.dmem_rd_data),
-            u_return.mem_rd_valid.eq(1),
             u_return.lambda_active.eq(lambda_active_reg),
             u_return.lambda_pc.eq(lambda_pc_reg),
         ]
@@ -491,10 +488,6 @@ class ChurchCore(Elaboratable):
             u_load.cr_src.eq(cr_src),
             u_load.cr_dst.eq(cr_dst),
             u_load.index.eq(cap_index),
-            u_load.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_load.cr15_namespace.eq(u_regs.cr15_namespace),
-            u_load.mem_rd_data.eq(self.dmem_rd_data),
-            u_load.mem_rd_valid.eq(1),
         ]
 
         if ENABLE_CHANGE_SWITCH:
@@ -633,16 +626,76 @@ class ChurchCore(Elaboratable):
             m.d.comb += [self.fault.eq(FaultType.NONE), self.fault_valid.eq(0)]
 
         m.d.comb += [
+            u_shared_mload.cr_rd_data.eq(u_regs.cr_rd_data),
+            u_shared_mload.cr15_namespace.eq(u_regs.cr15_namespace),
+            u_shared_mload.mem_rd_data.eq(self.dmem_rd_data),
+            u_shared_mload.mem_rd_valid.eq(1),
+        ]
+
+        with m.If(u_call.call_busy):
+            m.d.comb += [
+                u_shared_mload.sub_start.eq(u_call.mload_start),
+                u_shared_mload.sub_cr_src.eq(u_call.mload_cr_src),
+                u_shared_mload.sub_cr_dst.eq(u_call.mload_cr_dst),
+                u_shared_mload.sub_index.eq(u_call.mload_index),
+                u_shared_mload.sub_direct.eq(u_call.mload_direct),
+                u_shared_mload.sub_direct_gt.eq(u_call.mload_direct_gt),
+                u_shared_mload.sub_m_elevated.eq(u_call.mload_m_elevated),
+            ]
+        with m.Elif(u_return.busy):
+            m.d.comb += [
+                u_shared_mload.sub_start.eq(u_return.mload_start),
+                u_shared_mload.sub_cr_src.eq(u_return.mload_cr_src),
+                u_shared_mload.sub_cr_dst.eq(u_return.mload_cr_dst),
+                u_shared_mload.sub_index.eq(u_return.mload_index),
+                u_shared_mload.sub_direct.eq(u_return.mload_direct),
+                u_shared_mload.sub_direct_gt.eq(u_return.mload_direct_gt),
+                u_shared_mload.sub_m_elevated.eq(u_return.mload_m_elevated),
+            ]
+        with m.Elif(u_load.load_busy):
+            m.d.comb += [
+                u_shared_mload.sub_start.eq(u_load.mload_start),
+                u_shared_mload.sub_cr_src.eq(u_load.mload_cr_src),
+                u_shared_mload.sub_cr_dst.eq(u_load.mload_cr_dst),
+                u_shared_mload.sub_index.eq(u_load.mload_index),
+                u_shared_mload.sub_direct.eq(u_load.mload_direct),
+                u_shared_mload.sub_direct_gt.eq(u_load.mload_direct_gt),
+                u_shared_mload.sub_m_elevated.eq(u_load.mload_m_elevated),
+            ]
+
+        m.d.comb += [
+            u_call.mload_done.eq(u_shared_mload.sub_done),
+            u_call.mload_fault.eq(u_shared_mload.sub_fault),
+            u_call.mload_fault_type.eq(u_shared_mload.sub_fault_type),
+
+            u_return.mload_done.eq(u_shared_mload.sub_done),
+            u_return.mload_fault.eq(u_shared_mload.sub_fault),
+            u_return.mload_fault_type.eq(u_shared_mload.sub_fault_type),
+
+            u_load.mload_busy.eq(u_shared_mload.sub_busy),
+            u_load.mload_done.eq(u_shared_mload.sub_done),
+            u_load.mload_fault.eq(u_shared_mload.sub_fault),
+            u_load.mload_fault_type.eq(u_shared_mload.sub_fault_type),
+        ]
+
+        m.d.comb += [
             self.dmem_addr.eq(0),
             self.dmem_rd_en.eq(0),
             self.dmem_wr_data.eq(0),
             self.dmem_wr_en.eq(0),
         ]
 
-        with m.If(u_load.mem_wr_en):
+        with m.If(u_shared_mload.mem_rd_en | u_shared_mload.mem_wr_en):
             m.d.comb += [
-                self.dmem_addr.eq(u_load.mem_addr),
-                self.dmem_wr_data.eq(u_load.mem_wr_data),
+                self.dmem_addr.eq(u_shared_mload.mem_addr),
+                self.dmem_rd_en.eq(u_shared_mload.mem_rd_en),
+                self.dmem_wr_data.eq(u_shared_mload.mem_wr_data),
+                self.dmem_wr_en.eq(u_shared_mload.mem_wr_en),
+            ]
+        with m.Elif(u_save.mem_wr_en):
+            m.d.comb += [
+                self.dmem_addr.eq(u_save.mem_wr_addr),
+                self.dmem_wr_data.eq(u_save.mem_wr_data),
                 self.dmem_wr_en.eq(1),
             ]
         with m.Elif(u_save.mem_rd_en):
@@ -653,7 +706,7 @@ class ChurchCore(Elaboratable):
 
         if ENABLE_GC:
             m.d.comb += [
-                u_gc.valid_key_access.eq(u_load.gbit_reset_done),
+                u_gc.valid_key_access.eq(u_shared_mload.gbit_reset_done),
                 u_gc.access_index.eq(0),
             ]
 

@@ -1,8 +1,6 @@
 from amaranth import *
 
 from .types import *
-from .layouts import CAP_REG_LAYOUT
-from .mload import ChurchMLoad
 
 
 class ChurchLoad(Elaboratable):
@@ -16,62 +14,29 @@ class ChurchLoad(Elaboratable):
         self.load_fault = Signal()
         self.fault_type = Signal(4)
 
-        self.cr_rd_addr = Signal(4)
-        self.cr_rd_data = Signal(CAP_REG_LAYOUT)
-        self.cr_wr_addr = Signal(4)
-        self.cr_wr_data = Signal(CAP_REG_LAYOUT)
-        self.cr_wr_en = Signal()
+        self.mload_start = Signal()
+        self.mload_cr_src = Signal(4)
+        self.mload_cr_dst = Signal(4)
+        self.mload_index = Signal(17)
+        self.mload_direct = Signal()
+        self.mload_direct_gt = Signal(32)
+        self.mload_m_elevated = Signal()
 
-        self.cr15_namespace = Signal(CAP_REG_LAYOUT)
-
-        self.mem_addr = Signal(32)
-        self.mem_rd_en = Signal()
-        self.mem_rd_data = Signal(32)
-        self.mem_rd_valid = Signal()
-        self.mem_wr_en = Signal()
-        self.mem_wr_data = Signal(32)
-
-        self.gbit_reset_done = Signal()
-
-        self.thread_wr_en = Signal()
-        self.thread_wr_idx = Signal(4)
-        self.thread_wr_data = Signal(32)
+        self.mload_busy = Signal()
+        self.mload_done = Signal()
+        self.mload_fault = Signal()
+        self.mload_fault_type = Signal(4)
 
     def elaborate(self, platform):
         m = Module()
 
-        u_mload = ChurchMLoad()
-        m.submodules.u_mload = u_mload
-
-        sub_start = Signal()
-
         m.d.comb += [
-            u_mload.sub_cr_src.eq(self.cr_src),
-            u_mload.sub_cr_dst.eq(self.cr_dst),
-            u_mload.sub_index.eq(self.index),
-            u_mload.sub_direct.eq(0),
-            u_mload.sub_direct_gt.eq(0),
-            u_mload.sub_m_elevated.eq(self.cr_src == CR_CLIST),
-            u_mload.sub_start.eq(sub_start),
-            u_mload.cr_rd_data.eq(self.cr_rd_data),
-            u_mload.cr15_namespace.eq(self.cr15_namespace),
-            u_mload.mem_rd_data.eq(self.mem_rd_data),
-            u_mload.mem_rd_valid.eq(self.mem_rd_valid),
-        ]
-
-        m.d.comb += [
-            self.cr_rd_addr.eq(u_mload.cr_rd_addr),
-            self.cr_wr_addr.eq(u_mload.cr_wr_addr),
-            self.cr_wr_data.eq(u_mload.cr_wr_data),
-            self.cr_wr_en.eq(u_mload.cr_wr_en),
-            self.mem_addr.eq(u_mload.mem_addr),
-            self.mem_rd_en.eq(u_mload.mem_rd_en),
-            self.mem_wr_en.eq(u_mload.mem_wr_en),
-            self.mem_wr_data.eq(u_mload.mem_wr_data),
-            self.gbit_reset_done.eq(u_mload.gbit_reset_done),
-            self.thread_wr_en.eq(u_mload.thread_wr_en),
-            self.thread_wr_idx.eq(u_mload.thread_wr_idx),
-            self.thread_wr_data.eq(u_mload.thread_wr_data),
+            self.mload_cr_src.eq(self.cr_src),
+            self.mload_cr_dst.eq(self.cr_dst),
+            self.mload_index.eq(self.index),
+            self.mload_direct.eq(0),
+            self.mload_direct_gt.eq(0),
+            self.mload_m_elevated.eq(self.cr_src == CR_CLIST),
         ]
 
         with m.FSM(name="load_wrapper") as fsm:
@@ -79,21 +44,21 @@ class ChurchLoad(Elaboratable):
                 with m.If(self.load_start):
                     m.next = "START_SUB"
             with m.State("START_SUB"):
-                m.d.comb += sub_start.eq(1)
+                m.d.comb += self.mload_start.eq(1)
                 m.next = "WAIT_ACK"
             with m.State("WAIT_ACK"):
-                m.d.comb += sub_start.eq(1)
-                with m.If(u_mload.sub_busy):
+                m.d.comb += self.mload_start.eq(1)
+                with m.If(self.mload_busy):
                     m.next = "CALL_SUB"
             with m.State("CALL_SUB"):
-                with m.If(u_mload.sub_done | u_mload.sub_fault):
+                with m.If(self.mload_done | self.mload_fault):
                     m.next = "IDLE"
 
         m.d.comb += [
             self.load_busy.eq(~fsm.ongoing("IDLE")),
-            self.load_complete.eq(fsm.ongoing("CALL_SUB") & u_mload.sub_done),
-            self.load_fault.eq(fsm.ongoing("CALL_SUB") & u_mload.sub_fault),
-            self.fault_type.eq(u_mload.sub_fault_type),
+            self.load_complete.eq(fsm.ongoing("CALL_SUB") & self.mload_done),
+            self.load_fault.eq(fsm.ongoing("CALL_SUB") & self.mload_fault),
+            self.fault_type.eq(self.mload_fault_type),
         ]
 
         return m
