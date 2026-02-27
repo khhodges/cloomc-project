@@ -246,7 +246,7 @@ class ChurchSimulator {
                     return false;
                 }
                 this._writeCR(6, gt6, check6.entry);
-                this.output += '[BOOT] INIT_CLIST — CR6 ← mLoad(Slot 2) Boot Abstraction C-List (E, L+S bypassed via CR6 M-elevation)\n';
+                this.output += '[BOOT] INIT_CLIST — CR6 ← mLoad(Slot 2) Boot Abstraction C-List (E, L bypassed via CR6 M-elevation)\n';
                 this.bootStep++;
                 break;
             }
@@ -816,7 +816,7 @@ class ChurchSimulator {
             this.fault('NULL_CAP', `SAVE: CR${d.crSrc} C-List is NULL`);
             return null;
         }
-        const clistCheck = this.mLoad(clistGT, d.crSrc === 6 ? null : 'S', d.crSrc);
+        const clistCheck = this.mLoad(clistGT, 'S', d.crSrc);
         if (!clistCheck.ok) {
             this.fault(clistCheck.fault, `SAVE: CR${d.crSrc}: ${clistCheck.message}`);
             return null;

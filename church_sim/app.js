@@ -940,24 +940,19 @@ LAMBDA CR4             ; Church MUL reduction
 CHANGE CR0, 5          ; CR0 now -> SlideRule
 TPERM CR0, E           ; SlideRule has E? PASS
 
-; --- TEST 8: SAVE - write to namespace ---
-LOAD CR0, CR6, 4       ; Reload Lambda
-TPERM CR0, EB          ; Verify E + set B=1 (allow bind)
-SAVE CR0, CR6, 27      ; Save Lambda copy to slot 27
-
-; --- TEST 9: CALL/RETURN ---
+; --- TEST 8: CALL/RETURN ---
 LOAD CR0, CR6, 4       ; CR0 = Lambda
 CALL CR0               ; Push frame, enter Lambda
 RETURN CR0             ; Pop frame, return to next
 
-; --- TEST 10: ELOADCALL - fused Load+TPERM+Call ---
+; --- TEST 9: ELOADCALL - fused Load+TPERM+Call ---
 ELOADCALL CR0, CR6, 4  ; Load Lambda + check E + call
 RETURN CR0             ; Return from fused call
 
-; --- TEST 11: XLOADLAMBDA - fused Load+TPERM+Lambda ---
+; --- TEST 10: XLOADLAMBDA - fused Load+TPERM+Lambda ---
 XLOADLAMBDA CR1, CR6, 10 ; Load SUCC + check + lambda
 
-; --- TEST 12: Conditional LAMBDA ---
+; --- TEST 11: Conditional LAMBDA ---
 TPERM CR1, LE          ; Z=1 (SUCC has LE)
 LAMBDAEQ CR2           ; Lambda ADD only if Z=1
 TPERM CR0, L           ; Z=0 (Lambda lacks L)
@@ -1117,7 +1112,7 @@ HALT
 ; ============================================
 ;
 ; Namespace reference:
-;   Slot 2  Boot.Abstraction (E only, L+S bypassed via CR6 M-elevation)
+;   Slot 2  Boot.Abstraction (E only, L bypassed via CR6 M-elevation)
 ;   Slot 3  Boot.CLOOMC (X only)
 ;   Slot 22 TRUE       (L only — no X, no E)
 ;   Slot 23 FALSE      (L only — no X, no E)
