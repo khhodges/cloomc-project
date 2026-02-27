@@ -4,8 +4,8 @@ from .types import *
 
 
 def encode_church(opcode, cond=CondCode.AL, cr_dst=0, cr_src=0, imm=0):
-    return ((opcode & 0xF) << 28) | ((cond & 0xF) << 24) | \
-           ((cr_dst & 0xF) << 20) | ((cr_src & 0xF) << 16) | (imm & 0xFFFF)
+    return ((opcode & 0x1F) << 27) | ((cond & 0xF) << 23) | \
+           ((cr_dst & 0xF) << 19) | ((cr_src & 0xF) << 15) | (imm & 0x7FFF)
 
 
 def make_gt(gt_type=GT_TYPE_NULL, perms=0, index=0, version=0):

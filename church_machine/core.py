@@ -21,7 +21,8 @@ from .fused_unit import ChurchELoadCall, ChurchXLoadLambda
 class ChurchCore(Elaboratable):
     """Pure Church Machine core — zero Turing-domain instructions.
 
-    Clean 32-bit instruction format with ARM-style conditional execution.
+    Clean 32-bit instruction format matching patent Section 14:
+    opcode[5] | cond[4] | dst[4] | src[4] | imm[15].
     10 Church opcodes: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA,
     ELOADCALL (fused LOAD+TPERM(E)+CALL), XLOADLAMBDA (fused LOAD+TPERM(X)+LAMBDA).
     Any invalid opcode faults immediately.

@@ -8,12 +8,12 @@ from .layouts import COND_FLAGS_LAYOUT
 class ChurchDecoder(Elaboratable):
     """Pure Church Machine decoder — clean 32-bit instruction format.
 
-    Instruction format (32 bits):
-        [31:28]  opcode    — 4 bits (8 Church opcodes + 8 reserved)
-        [27:24]  condition — 4 bits (ARM-style conditional execution)
-        [23:20]  cr_dst    — 4 bits (destination capability register)
-        [19:16]  cr_src    — 4 bits (source capability register)
-        [15:0]   immediate — 16 bits (index / preset / mask / target)
+    Instruction format (32 bits) — matches patent Section 14:
+        [31:27]  opcode    — 5 bits (10 Church opcodes + 22 reserved)
+        [26:23]  condition — 4 bits (ARM-style conditional execution)
+        [22:19]  cr_dst    — 4 bits (destination capability register)
+        [18:15]  cr_src    — 4 bits (source capability register)
+        [14:0]   immediate — 15 bits (index / preset / mask / target)
 
     No RISC-V encoding. No wasted bits. Every field at a fixed position.
     """
@@ -26,14 +26,14 @@ class ChurchDecoder(Elaboratable):
         self.exec_enable = Signal()
         self.is_church_op = Signal()
 
-        self.church_op = Signal(4)
+        self.church_op = Signal(5)
         self.cr_dst = Signal(4)
         self.cr_src = Signal(4)
-        self.immediate = Signal(16)
+        self.immediate = Signal(15)
 
         self.tperm_preset = Signal(4)
-        self.cap_index = Signal(16)
-        self.call_mask = Signal(16)
+        self.cap_index = Signal(15)
+        self.call_mask = Signal(15)
         self.switch_target = Signal(4)
 
         self.fault = Signal(4)
@@ -42,11 +42,11 @@ class ChurchDecoder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        opcode_field = self.instruction[28:32]
-        cond_field = self.instruction[24:28]
-        cr_dst_field = self.instruction[20:24]
-        cr_src_field = self.instruction[16:20]
-        imm_field = self.instruction[0:16]
+        opcode_field = self.instruction[27:32]
+        cond_field = self.instruction[23:27]
+        cr_dst_field = self.instruction[19:23]
+        cr_src_field = self.instruction[15:19]
+        imm_field = self.instruction[0:15]
 
         m.d.comb += [
             self.church_op.eq(opcode_field),

@@ -101,7 +101,7 @@ function renderPagesDirectory() {
     const el = id => document.getElementById(id);
     el('pagesSimulators').innerHTML = [
         navCard('/', 'Home', 'landing', ts, 'Landing page with links to all simulators.'),
-        navCard('/church/', 'Church Machine', 'Pure Church', tc, '8 opcodes, zero Turing instructions, REPL, pipeline, Bernoulli tutorial.'),
+        navCard('/church/', 'Church Machine', 'Pure Church', tc, '10 opcodes, zero Turing instructions, REPL, pipeline, Bernoulli tutorial.'),
         navCard('/ctmm/', 'CTMM Simulator', 'Sim-64', ts, 'Custom ISA, 64-bit Golden Tokens, namespace browser, assembly editor.'),
         navCard('/rv32/', 'RV32-Cap Simulator', 'RISC-V', tr, 'RISC-V RV32I with capability security extensions, 32-bit GTs.'),
     ].join('');
@@ -1331,7 +1331,7 @@ function loadEditorState() {
             editor.value = saved;
         } else {
             editor.value = `; Pure Church Machine — Assembly Editor
-; 8 opcodes: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA
+; 10 opcodes: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA, ELOADCALL, XLOADLAMBDA
 ; All instructions support ARM-style condition suffixes
 ;
 ; Load an abstraction and verify its permissions

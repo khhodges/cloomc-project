@@ -11,10 +11,10 @@ from .core import ChurchCore
 def encode_church(opcode, cond=CondCode.AL, cr_dst=0, cr_src=0, imm=0):
     """Encode a Church Machine instruction.
 
-    Format: opcode[31:28] | cond[27:24] | cr_dst[23:20] | cr_src[19:16] | imm[15:0]
+    Format: opcode[31:27] | cond[26:23] | cr_dst[22:19] | cr_src[18:15] | imm[14:0]
     """
-    return ((opcode & 0xF) << 28) | ((cond & 0xF) << 24) | \
-           ((cr_dst & 0xF) << 20) | ((cr_src & 0xF) << 16) | (imm & 0xFFFF)
+    return ((opcode & 0x1F) << 27) | ((cond & 0xF) << 23) | \
+           ((cr_dst & 0xF) << 19) | ((cr_src & 0xF) << 15) | (imm & 0x7FFF)
 
 
 def make_gt(gt_type=GT_TYPE_NULL, perms=0, index=0, version=0):
@@ -38,11 +38,11 @@ def run_testbench():
 
         print("\n--- Testing instruction encoding (8 base + 2 fused) ---")
         load_instr = encode_church(ChurchOpcode.LOAD, CondCode.AL, cr_dst=1, cr_src=6, imm=5)
-        assert (load_instr >> 28) == ChurchOpcode.LOAD
-        assert ((load_instr >> 24) & 0xF) == CondCode.AL
-        assert ((load_instr >> 20) & 0xF) == 1
-        assert ((load_instr >> 16) & 0xF) == 6
-        assert (load_instr & 0xFFFF) == 5
+        assert (load_instr >> 27) == ChurchOpcode.LOAD
+        assert ((load_instr >> 23) & 0xF) == CondCode.AL
+        assert ((load_instr >> 19) & 0xF) == 1
+        assert ((load_instr >> 15) & 0xF) == 6
+        assert (load_instr & 0x7FFF) == 5
         print(f"  LOAD CR1, [CR6 + 5] = 0x{load_instr:08X}")
 
         save_instr = encode_church(ChurchOpcode.SAVE, CondCode.AL, cr_dst=6, cr_src=1, imm=3)
@@ -68,39 +68,39 @@ def run_testbench():
 
         print("\n--- Testing fused instruction encoding ---")
         eloadcall_instr = encode_church(ChurchOpcode.ELOADCALL, CondCode.AL, cr_dst=0, cr_src=3, imm=1)
-        assert (eloadcall_instr >> 28) == ChurchOpcode.ELOADCALL
-        assert ((eloadcall_instr >> 24) & 0xF) == CondCode.AL
-        assert ((eloadcall_instr >> 20) & 0xF) == 0
-        assert ((eloadcall_instr >> 16) & 0xF) == 3
-        assert (eloadcall_instr & 0xFFFF) == 1
+        assert (eloadcall_instr >> 27) == ChurchOpcode.ELOADCALL
+        assert ((eloadcall_instr >> 23) & 0xF) == CondCode.AL
+        assert ((eloadcall_instr >> 19) & 0xF) == 0
+        assert ((eloadcall_instr >> 15) & 0xF) == 3
+        assert (eloadcall_instr & 0x7FFF) == 1
         print(f"  ELOADCALL CR0, [CR3 + 1] = 0x{eloadcall_instr:08X}")
         print(f"    Fuses: LOAD + TPERM(E) + CALL in single instruction")
 
         xloadlambda_instr = encode_church(ChurchOpcode.XLOADLAMBDA, CondCode.AL, cr_dst=7, cr_src=6, imm=2)
-        assert (xloadlambda_instr >> 28) == ChurchOpcode.XLOADLAMBDA
-        assert ((xloadlambda_instr >> 24) & 0xF) == CondCode.AL
-        assert ((xloadlambda_instr >> 20) & 0xF) == 7
-        assert ((xloadlambda_instr >> 16) & 0xF) == 6
-        assert (xloadlambda_instr & 0xFFFF) == 2
+        assert (xloadlambda_instr >> 27) == ChurchOpcode.XLOADLAMBDA
+        assert ((xloadlambda_instr >> 23) & 0xF) == CondCode.AL
+        assert ((xloadlambda_instr >> 19) & 0xF) == 7
+        assert ((xloadlambda_instr >> 15) & 0xF) == 6
+        assert (xloadlambda_instr & 0x7FFF) == 2
         print(f"  XLOADLAMBDA CR7, [CR6 + 2] = 0x{xloadlambda_instr:08X}")
         print(f"    Fuses: LOAD + TPERM(X) + LAMBDA in single instruction")
 
         cond_eloadcall = encode_church(ChurchOpcode.ELOADCALL, CondCode.EQ, cr_dst=0, cr_src=3, imm=1)
-        assert ((cond_eloadcall >> 24) & 0xF) == CondCode.EQ
+        assert ((cond_eloadcall >> 23) & 0xF) == CondCode.EQ
         print(f"  ELOADCALLEQ CR0, [CR3 + 1] = 0x{cond_eloadcall:08X}")
 
         cond_xloadlambda = encode_church(ChurchOpcode.XLOADLAMBDA, CondCode.NE, cr_dst=7, cr_src=6, imm=2)
-        assert ((cond_xloadlambda >> 24) & 0xF) == CondCode.NE
+        assert ((cond_xloadlambda >> 23) & 0xF) == CondCode.NE
         print(f"  XLOADLAMBDANE CR7, [CR6 + 2] = 0x{cond_xloadlambda:08X}")
 
         print("\n--- Testing conditional encoding ---")
         cond_load_eq = encode_church(ChurchOpcode.LOAD, CondCode.EQ, cr_dst=1, cr_src=6, imm=5)
         print(f"  LOADEQ CR1, [CR6 + 5] = 0x{cond_load_eq:08X}")
-        assert ((cond_load_eq >> 24) & 0xF) == CondCode.EQ
+        assert ((cond_load_eq >> 23) & 0xF) == CondCode.EQ
 
         cond_load_ne = encode_church(ChurchOpcode.LOAD, CondCode.NE, cr_dst=1, cr_src=6, imm=5)
         print(f"  LOADNE CR1, [CR6 + 5] = 0x{cond_load_ne:08X}")
-        assert ((cond_load_ne >> 24) & 0xF) == CondCode.NE
+        assert ((cond_load_ne >> 23) & 0xF) == CondCode.NE
 
         cond_lambda_gt = encode_church(ChurchOpcode.LAMBDA, CondCode.GT, cr_dst=3, imm=0)
         print(f"  LAMBDAGT CR3 = 0x{cond_lambda_gt:08X}")
@@ -147,7 +147,7 @@ def run_testbench():
         print("  Base (8):  LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA")
         print("  Fused (2): ELOADCALL (LOAD+TPERM(E)+CALL), XLOADLAMBDA (LOAD+TPERM(X)+LAMBDA)")
         print("16 condition codes: EQ, NE, CS, CC, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE, AL, NV")
-        print("Clean 32-bit format: opcode[4] | cond[4] | cr_dst[4] | cr_src[4] | imm[16]")
+        print("Clean 32-bit format: opcode[5] | cond[4] | cr_dst[4] | cr_src[4] | imm[15]")
         print("Fused instructions: 57% cycle reduction (7-step -> 3-step pipeline)")
         print("Zero Turing-domain instructions. Pure Church Machine.")
         print("\nAll tests passed!")
