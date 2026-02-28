@@ -187,9 +187,6 @@ class ChurchSimulator {
             const gtWord = this.createGT(0, i, a.perms, 0);
             this.writeNSEntry(i, loc, lim17, 0, 0, 0, a.chainable ? 1 : 0, 0, 0);
             this.nsLabels[i] = a.label;
-            if (i > 0) {
-                this.memory[loc] = gtWord;
-            }
             if (a.handler) {
                 this.nsHandlers[i] = a.handler;
             }
@@ -198,6 +195,10 @@ class ChurchSimulator {
         this.nsClistMap[2] = clistChildren;
 
         const bootAbstrLoc = 2 * this.SLOT_SIZE;
+        for (let i = 0; i < abstractions.length; i++) {
+            const gtWord = this.createGT(0, i, abstractions[i].perms, 0);
+            this.memory[bootAbstrLoc + i] = gtWord;
+        }
         const clooomcGT = this.createGT(0, 3, {R:0,W:0,X:1,L:0,S:0,E:0}, 0);
         this.memory[bootAbstrLoc] = clooomcGT;
     }
@@ -781,7 +782,14 @@ class ChurchSimulator {
             this.fault(check.fault, `LOAD: CR${d.crSrc}: ${check.message}`);
             return null;
         }
-        const targetIdx = d.imm;
+        const clistLoc = check.entry.word0_location;
+        const slotGT = this.memory[clistLoc + d.imm] || 0;
+        if (slotGT === 0) {
+            this.fault('NULL_CAP', `LOAD: c-list offset ${d.imm} is empty (NULL GT)`);
+            return null;
+        }
+        const slotParsed = this.parseGT(slotGT);
+        const targetIdx = slotParsed.index;
         if (targetIdx >= this.nsCount || !this.isNSEntryValid(targetIdx)) {
             this.fault('BOUNDS', `LOAD: namespace index ${targetIdx} out of bounds`);
             return null;
@@ -795,10 +803,9 @@ class ChurchSimulator {
             this.fault('SEAL', `LOAD: entry ${targetIdx} seal failed`);
             return null;
         }
-        const gt = this.memory[entry.word0_location] || 0;
-        if (!this._writeCR(d.crDst, gt, entry)) return null;
+        if (!this._writeCR(d.crDst, slotGT, entry)) return null;
         const label = this.nsLabels[targetIdx] || 'entry_'+targetIdx;
-        const desc = `LOAD CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${label}`;
+        const desc = `LOAD CR${d.crDst}, [CR${d.crSrc} + ${d.imm}] → ${label}`;
         this.output += desc + '\n';
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc, pipeline: this._loadPipeline(d, label) };
@@ -810,8 +817,7 @@ class ChurchSimulator {
             this.fault('NULL_CAP', `SAVE: CR${d.crDst} is NULL`);
             return null;
         }
-        const targetIdx = d.imm;
-        const saveCheck = this.mSave(srcGT, targetIdx, d.crDst);
+        const saveCheck = this.mSave(srcGT, null, d.crDst);
         if (!saveCheck.ok) {
             this.fault(saveCheck.fault, `SAVE: CR${d.crDst}: ${saveCheck.message}`);
             return null;
@@ -828,23 +834,18 @@ class ChurchSimulator {
             return null;
         }
         this.lastCapability = savedCap;
-        if (!this.isNSEntryValid(targetIdx)) {
-            const loc = (targetIdx === 0) ? this.NS_TABLE_BASE : targetIdx * this.SLOT_SIZE;
-            const lim17 = 0xFF;
-            this.writeNSEntry(targetIdx, loc, lim17, 0, 0, 0, 0, saveCheck.parsed.type, 0);
-            this.nsLabels[targetIdx] = `dyn_${targetIdx}`;
-        }
+        const clistLoc = clistCheck.entry.word0_location;
+        this.memory[clistLoc + d.imm] = srcGT;
+        const srcParsed = saveCheck.parsed;
         const clistIdx = clistCheck.parsed.index;
         if (!this.nsClistMap[clistIdx]) {
             this.nsClistMap[clistIdx] = [];
         }
-        if (!this.nsClistMap[clistIdx].includes(targetIdx)) {
-            this.nsClistMap[clistIdx].push(targetIdx);
+        if (!this.nsClistMap[clistIdx].includes(srcParsed.index)) {
+            this.nsClistMap[clistIdx].push(srcParsed.index);
         }
-        const entry = this.readNSEntry(targetIdx);
-        const saveLoc = entry.word0_location;
-        this.memory[saveLoc] = srcGT;
-        const desc = `SAVE CR${d.crDst} → [CR${d.crSrc} + ${targetIdx}]`;
+        const label = this.nsLabels[srcParsed.index] || 'entry_'+srcParsed.index;
+        const desc = `SAVE CR${d.crDst} → [CR${d.crSrc} + ${d.imm}] (${label})`;
         this.output += desc + '\n';
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc };
@@ -1081,7 +1082,14 @@ class ChurchSimulator {
             return null;
         }
 
-        const targetIdx = d.imm;
+        const srcLoc = loadCheck.entry.word0_location;
+        const slotGT = this.memory[srcLoc + d.imm] || 0;
+        if (slotGT === 0) {
+            this.fault('NULL_CAP', `ELOADCALL: c-list offset ${d.imm} is empty`);
+            return null;
+        }
+        const slotParsed = this.parseGT(slotGT);
+        const targetIdx = slotParsed.index;
         if (targetIdx >= this.nsCount || !this.isNSEntryValid(targetIdx)) {
             this.fault('BOUNDS', `ELOADCALL: namespace index ${targetIdx} out of bounds`);
             return null;
@@ -1096,10 +1104,9 @@ class ChurchSimulator {
             return null;
         }
 
-        const gt = this.memory[entry.word0_location] || 0;
-        if (!this._writeCR(d.crDst, gt, entry)) return null;
+        if (!this._writeCR(d.crDst, slotGT, entry)) return null;
 
-        const tpermCheck = this.mLoad(gt, 'E', d.crDst);
+        const tpermCheck = this.mLoad(slotGT, 'E', d.crDst);
         if (!tpermCheck.ok) {
             this.fault(tpermCheck.fault, `ELOADCALL TPERM: CR${d.crDst}: ${tpermCheck.message}`);
             return null;
@@ -1115,7 +1122,7 @@ class ChurchSimulator {
                 if (cr7Entry) {
                     const cr7Check = this.mLoad(cr7GT, 'X', undefined);
                     if (cr7Check.ok) {
-                        this._writeCR(6, gt, clistEntry);
+                        this._writeCR(6, slotGT, clistEntry);
                         this._writeCR(7, cr7GT, cr7Check.entry);
                     }
                 }
@@ -1134,7 +1141,7 @@ class ChurchSimulator {
         }
 
         const label = this.nsLabels[targetIdx] || 'abstraction';
-        const desc = `ELOADCALL CR${d.crDst}, [CR${d.crSrc} + ${targetIdx}] → ${label} (LOAD+TPERM+CALL)`;
+        const desc = `ELOADCALL CR${d.crDst}, [CR${d.crSrc} + ${d.imm}] → ${label} (LOAD+TPERM+CALL)`;
         this.output += desc + '\n';
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc, pipeline: this._eloadcallPipeline(d, label) };
@@ -1152,32 +1159,37 @@ class ChurchSimulator {
             return null;
         }
 
-        const slotIdx = d.imm;
-        if (slotIdx >= this.nsCount || !this.isNSEntryValid(slotIdx)) {
-            this.fault('BOUNDS', `XLOADLAMBDA: slot ${slotIdx} out of bounds`);
+        const srcLoc = loadCheck.entry.word0_location;
+        const slotGT = this.memory[srcLoc + d.imm] || 0;
+        if (slotGT === 0) {
+            this.fault('NULL_CAP', `XLOADLAMBDA: c-list offset ${d.imm} is empty`);
             return null;
         }
-        const entry = this.readNSEntry(slotIdx);
+        const slotParsed = this.parseGT(slotGT);
+        const targetIdx = slotParsed.index;
+        if (targetIdx >= this.nsCount || !this.isNSEntryValid(targetIdx)) {
+            this.fault('BOUNDS', `XLOADLAMBDA: slot ${targetIdx} out of bounds`);
+            return null;
+        }
+        const entry = this.readNSEntry(targetIdx);
         if (!entry) {
-            this.fault('BOUNDS', `XLOADLAMBDA: slot ${slotIdx} is null`);
+            this.fault('BOUNDS', `XLOADLAMBDA: slot ${targetIdx} is null`);
             return null;
         }
         if (!this.validateMAC(entry)) {
-            this.fault('SEAL', `XLOADLAMBDA: slot ${slotIdx} seal failed`);
+            this.fault('SEAL', `XLOADLAMBDA: slot ${targetIdx} seal failed`);
             return null;
         }
 
-        const gt = this.memory[entry.word0_location] || 0;
-        if (!this._writeCR(d.crDst, gt, entry)) return null;
+        if (!this._writeCR(d.crDst, slotGT, entry)) return null;
 
-        const parsed = this.parseGT(gt);
-        if (!parsed.permissions.X) {
+        if (!slotParsed.permissions.X) {
             this.fault('PERMISSION', `XLOADLAMBDA TPERM: CR${d.crDst} lacks X permission`);
             return null;
         }
 
-        const label = this.nsLabels[slotIdx] || 'slot';
-        const desc = `XLOADLAMBDA CR${d.crDst}, [CR${d.crSrc} + ${slotIdx}] → ${label} (LOAD+TPERM+LAMBDA)`;
+        const label = this.nsLabels[targetIdx] || 'slot';
+        const desc = `XLOADLAMBDA CR${d.crDst}, [CR${d.crSrc} + ${d.imm}] → ${label} (LOAD+TPERM+LAMBDA)`;
         this.output += desc + '\n';
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc, pipeline: this._xloadlambdaPipeline(d, label) };
