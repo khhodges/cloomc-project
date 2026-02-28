@@ -1518,6 +1518,88 @@ class ChurchSimulator {
         this.emit('stateChange', this.getState());
     }
 
+    loadHardwareBinary(hwProgram, hwNamespace, hwClist, hwLabels) {
+        this.reset();
+
+        this.memory = new Uint32Array(65536);
+        this.nsLabels = {};
+        this.nsCount = 0;
+        this.nsClistMap = {};
+
+        const nsEntryCount = hwNamespace.length / 3;
+        for (let i = 0; i < nsEntryCount; i++) {
+            const loc  = hwNamespace[i * 3 + 0];
+            const w1   = hwNamespace[i * 3 + 1];
+            const parsed1 = this.parseNSWord1(w1);
+            const base = this.NS_TABLE_BASE + i * this.NS_ENTRY_WORDS;
+            this.memory[base + 0] = loc >>> 0;
+            this.memory[base + 1] = w1 >>> 0;
+            this.memory[base + 2] = this.makeVersionSeals(0, loc, parsed1.limit);
+            if (hwLabels && hwLabels[i]) {
+                this.nsLabels[i] = hwLabels[i];
+            } else {
+                this.nsLabels[i] = `HW Slot ${i}`;
+            }
+            this.nsCount = i + 1;
+        }
+
+        const clistBase = 0x0200;
+        for (let i = 0; i < hwClist.length; i++) {
+            this.memory[clistBase + i] = hwClist[i] >>> 0;
+        }
+
+        const clistChildren = [];
+        for (let i = 0; i < nsEntryCount; i++) clistChildren.push(i);
+        this.nsClistMap[2] = clistChildren;
+
+        for (let i = 0; i < hwProgram.length; i++) {
+            this.memory[i] = hwProgram[i] >>> 0;
+        }
+
+        this.output = '';
+        this.output += '=== HARDWARE BINARY LOADED ===\n';
+        this.output += `Namespace: ${nsEntryCount} entries written to NS_TABLE_BASE (0x${this.NS_TABLE_BASE.toString(16).toUpperCase()})\n`;
+        this.output += `C-List: ${hwClist.length} GTs written at 0x${clistBase.toString(16).padStart(4,'0').toUpperCase()}\n`;
+        this.output += `Boot ROM: ${hwProgram.length} instructions at 0x0000\n`;
+        this.output += '\n--- Namespace Entries ---\n';
+        for (let i = 0; i < nsEntryCount; i++) {
+            const base = this.NS_TABLE_BASE + i * this.NS_ENTRY_WORDS;
+            const loc = this.memory[base];
+            const w1 = this.memory[base + 1];
+            const parsed = this.parseNSWord1(w1);
+            const label = this.nsLabels[i] || '';
+            this.output += `  [${i.toString().padStart(2)}] ${label.padEnd(20)} loc=0x${loc.toString(16).padStart(4,'0')} lim=${parsed.limit} B=${parsed.b} F=${parsed.f} G=${parsed.g}\n`;
+        }
+        this.output += '\n--- C-List GTs ---\n';
+        for (let i = 0; i < hwClist.length; i++) {
+            const gt = hwClist[i] >>> 0;
+            const p = this.parseGT(gt);
+            const permStr = (p.permissions.R ? 'R':'') + (p.permissions.W ? 'W':'') +
+                           (p.permissions.X ? 'X':'') + (p.permissions.L ? 'L':'') +
+                           (p.permissions.S ? 'S':'') + (p.permissions.E ? 'E':'');
+            this.output += `  [${i}] 0x${gt.toString(16).padStart(8,'0')} ${p.typeName.padEnd(8)} ${(permStr||'------').padEnd(6)} → idx ${p.index}\n`;
+        }
+        this.output += '\n--- Boot Program ---\n';
+        for (let i = 0; i < hwProgram.length; i++) {
+            const w = hwProgram[i] >>> 0;
+            this.output += `  0x${(i*4).toString(16).padStart(4,'0')}: 0x${w.toString(16).padStart(8,'0')}\n`;
+        }
+        this.output += '\nStep or Run to begin boot sequence with hardware data.\n';
+
+        this.pc = 0;
+        this.halted = false;
+        this.running = false;
+        this.bootComplete = false;
+        this.mElevation = false;
+        this.bootStep = 0;
+        this.faultLog = [];
+        this.stepCount = 0;
+        this.callStack = [];
+
+        this.emit('programLoaded', { addr: 0, length: hwProgram.length });
+        this.emit('stateChange', this.getState());
+    }
+
     run(maxSteps) {
         maxSteps = maxSteps || 10000;
         this.running = true;

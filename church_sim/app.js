@@ -745,6 +745,43 @@ function stepSim() {
     updateDashboard();
 }
 
+function loadHardwareBinary() {
+    if (typeof HW_BOOT_PROGRAM === 'undefined' || typeof HW_NAMESPACE === 'undefined' || typeof HW_CLIST === 'undefined') {
+        const con = document.getElementById('editorConsole');
+        if (con) con.textContent = 'Error: Hardware binary data not loaded (hw_binary.js missing)';
+        return;
+    }
+    sim.loadHardwareBinary(HW_BOOT_PROGRAM, HW_NAMESPACE, HW_CLIST, HW_NS_LABELS);
+
+    const editor = document.getElementById('asmEditor');
+    if (editor) {
+        editor.value = '; === pico-ice FPGA Hardware Binary ===\n' +
+            '; Exact boot ROM loaded from church_machine/boot_rom.py\n' +
+            '; Namespace: 16 entries, C-List: 8 GTs\n' +
+            '; Memory layout matches iCE40UP5K SPRAM init\n' +
+            ';\n' +
+            '; 0x0000  LOAD   CR1, [CR6 + 0]     ; GT from c-list slot 0\n' +
+            '; 0x0004  LOAD   CR2, [CR6 + 1]     ; GT from c-list slot 1\n' +
+            '; 0x0008  TPERM  CR2, X             ; Set X permission\n' +
+            '; 0x000C  LAMBDA CR2                ; Execute via LAMBDA\n' +
+            '; 0x0010  LOAD   CR0, [CR6 + 1]     ; GT from c-list slot 1\n' +
+            '; 0x0014  TPERM  CR0, E             ; Set E permission\n' +
+            '; 0x0018  CALL   CR0                ; Call via Golden Token\n' +
+            '; 0x001C  LOAD   CR7, [CR6 + 1]     ; GT from c-list slot 1\n' +
+            '; 0x0020  TPERM  CR7, X             ; Set X permission\n' +
+            '; 0x0024  LAMBDA CR7                ; Execute via LAMBDA\n' +
+            '; 0x0028  RETURN CR5                ; CR5=NULL -> PP250 reboot\n' +
+            '; 0x002C  SAVE   [CR6 + 2], CR1     ; Save GT to c-list\n';
+        updateLineNumbers();
+    }
+
+    const con = document.getElementById('editorConsole');
+    if (con) con.textContent = sim.output;
+
+    switchView('dashboard');
+    updateDashboard();
+}
+
 let walkRunning = false;
 let walkTimer = null;
 
