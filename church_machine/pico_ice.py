@@ -347,6 +347,9 @@ class ChurchPicoIce(Elaboratable):
         fault_just_fired = Signal()
         m.d.comb += fault_just_fired.eq(core.fault_valid & ~prev_fault_valid)
 
+        heartbeat_limit = self.clk_freq // 2
+        heartbeat_ctr = Signal(range(heartbeat_limit + 1))
+
         with m.FSM(name="debug_fsm"):
             with m.State("WAIT_BOOT"):
                 with m.If(boot_just_done):
@@ -394,9 +397,23 @@ class ChurchPicoIce(Elaboratable):
                         debug.data.eq(core.nia),
                         debug.send.eq(1),
                     ]
-                    m.next = "HALTED"
+                    m.d.sync += heartbeat_ctr.eq(0)
+                    m.next = "HEARTBEAT"
 
-            with m.State("HALTED"):
-                pass
+            with m.State("HEARTBEAT"):
+                m.d.sync += heartbeat_ctr.eq(heartbeat_ctr + 1)
+                with m.If(heartbeat_ctr == heartbeat_limit):
+                    m.d.sync += heartbeat_ctr.eq(0)
+                    m.next = "SEND_HEARTBEAT"
+                with m.If(fault_just_fired):
+                    m.next = "DUMP_FAULT"
+
+            with m.State("SEND_HEARTBEAT"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        debug.data.eq(core.nia),
+                        debug.send.eq(1),
+                    ]
+                    m.next = "HEARTBEAT"
 
         return m
