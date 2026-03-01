@@ -1,13 +1,11 @@
-"""Diagnostic UART test for pico-ice — full Church Machine hardware
-with simple counter UART output. The core is fully wired and boots
-normally, but UART is driven by a simple counter instead of the
-debug FSM, preventing Yosys from optimizing away the core logic.
+"""Diagnostic UART test for pico-ice — SPRAM isolation test.
+Uses DebugPrinter + SPRAM init (writes data to SPRAM, reads it back)
+but NO ChurchCore. Tests whether SPRAM usage crashes the RP2040.
 """
 
 from amaranth import *
 from .uart_tx import UartTx, DebugPrinter
-from .core import ChurchCore
-from .boot_rom import BootRom, BOOT_PROGRAM, DEMO_NAMESPACE, DEMO_CLIST
+from .boot_rom import DEMO_NAMESPACE, DEMO_CLIST
 from .pico_ice import ICE40SPRAM, ICE40RGBLED
 
 
@@ -32,55 +30,8 @@ class UartTestTop(Elaboratable):
         rgb = ICE40RGBLED()
         m.submodules.rgb = rgb
 
-        core = ChurchCore()
-        m.submodules.core = core
-
-        boot_rom = BootRom(BOOT_PROGRAM)
-        m.submodules.boot_rom = boot_rom
-
         spram = ICE40SPRAM()
         m.submodules.spram = spram
-
-        m.d.comb += [
-            boot_rom.addr.eq(core.imem_addr[2:11]),
-            core.imem_data.eq(boot_rom.data),
-        ]
-
-        mem_addr = Signal(14)
-        any_ns_access = Signal()
-        any_clist_access = Signal()
-        m.d.comb += [
-            any_ns_access.eq(core.ns_rd_en | core.ns_wr_en),
-            any_clist_access.eq(core.clist_rd_en | core.clist_wr_en),
-        ]
-
-        with m.If(any_ns_access):
-            m.d.comb += mem_addr.eq(core.ns_addr[2:16])
-        with m.Elif(any_clist_access):
-            m.d.comb += mem_addr.eq(core.clist_addr[2:16])
-        with m.Else():
-            m.d.comb += mem_addr.eq(core.dmem_addr[2:16])
-
-        m.d.comb += spram.addr.eq(mem_addr)
-        m.d.comb += core.dmem_rd_data.eq(spram.rd_data)
-        m.d.comb += [
-            core.ns_rd_data.eq(Cat(spram.rd_data, C(0, 64))),
-            core.clist_rd_data.eq(spram.rd_data),
-        ]
-
-        wr_data = Signal(32)
-        wr_en = Signal()
-        with m.If(core.ns_wr_en):
-            m.d.comb += [wr_data.eq(core.ns_wr_data[:32]), wr_en.eq(1)]
-        with m.Elif(core.clist_wr_en):
-            m.d.comb += [wr_data.eq(core.clist_wr_data), wr_en.eq(1)]
-        with m.Else():
-            m.d.comb += [wr_data.eq(core.dmem_wr_data), wr_en.eq(core.dmem_wr_en)]
-
-        m.d.comb += [
-            spram.wr_data.eq(wr_data),
-            spram.wr_en.eq(wr_en),
-        ]
 
         ns_flat = []
         for i in range(0, len(DEMO_NAMESPACE), 3):
@@ -115,53 +66,79 @@ class UartTestTop(Elaboratable):
             with m.Else():
                 m.d.sync += init_done.eq(1)
 
-        boot_delay = Signal(4)
-        boot_gate = Signal()
-        m.d.comb += boot_gate.eq(init_done)
-        boot_triggered = Signal()
-        with m.If(~boot_triggered & boot_gate):
-            with m.If(boot_delay < 0xF):
-                m.d.sync += boot_delay.eq(boot_delay + 1)
-            with m.Else():
-                m.d.comb += core.boot_start.eq(1)
-                m.d.sync += boot_triggered.eq(1)
+        rd_addr = Signal(14)
+        rd_data_latched = Signal(32)
+        rd_phase = Signal()
 
-        m.d.comb += core.imem_valid.eq(core.boot_complete)
-        m.d.comb += core.gc_start.eq(0)
-
-        counter = Signal(32, init=0)
+        counter = Signal(8, init=0)
         delay_ctr = Signal(24)
         heartbeat = Signal()
 
         with m.FSM(name="diag_fsm"):
-            with m.State("DELAY"):
-                m.d.sync += delay_ctr.eq(delay_ctr + 1)
-                with m.If(delay_ctr == (self.clk_freq // 4) - 1):
-                    m.d.sync += [delay_ctr.eq(0), heartbeat.eq(~heartbeat)]
-                    m.next = "SEND_HEX"
+            with m.State("WAIT_INIT"):
+                with m.If(init_done):
+                    m.d.sync += rd_addr.eq(0)
+                    m.next = "READ_SETUP"
+
+            with m.State("READ_SETUP"):
+                m.d.comb += [
+                    spram.addr.eq(rd_addr),
+                    spram.wr_en.eq(0),
+                ]
+                m.next = "READ_LATCH"
+
+            with m.State("READ_LATCH"):
+                m.d.comb += [
+                    spram.addr.eq(rd_addr),
+                    spram.wr_en.eq(0),
+                ]
+                m.d.sync += rd_data_latched.eq(spram.rd_data)
+                m.next = "SEND_HEX"
 
             with m.State("SEND_HEX"):
                 with m.If(~debug.busy):
                     m.d.comb += [
-                        debug.data.eq(counter ^ core.nia),
+                        debug.data.eq(rd_data_latched),
                         debug.send.eq(1),
                     ]
-                    m.d.sync += counter.eq(counter + 1)
+                    m.d.sync += rd_addr.eq(rd_addr + 1)
                     m.next = "WAIT_DONE"
 
             with m.State("WAIT_DONE"):
                 with m.If(~debug.busy):
-                    m.next = "DELAY"
+                    with m.If(rd_addr < 10):
+                        m.next = "READ_SETUP"
+                    with m.Else():
+                        m.next = "COUNTER_LOOP"
+
+            with m.State("COUNTER_LOOP"):
+                m.d.sync += delay_ctr.eq(delay_ctr + 1)
+                with m.If(delay_ctr == (self.clk_freq // 4) - 1):
+                    m.d.sync += [delay_ctr.eq(0), heartbeat.eq(~heartbeat)]
+                    m.next = "SEND_COUNTER"
+
+            with m.State("SEND_COUNTER"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        debug.data.eq(counter),
+                        debug.send.eq(1),
+                    ]
+                    m.d.sync += counter.eq(counter + 1)
+                    m.next = "WAIT_COUNTER"
+
+            with m.State("WAIT_COUNTER"):
+                with m.If(~debug.busy):
+                    m.next = "COUNTER_LOOP"
 
         m.d.comb += [
-            rgb.r.eq(core.fault_valid),
-            rgb.g.eq(heartbeat ^ core.boot_complete),
+            rgb.r.eq(0),
+            rgb.g.eq(heartbeat),
             rgb.b.eq(~init_done),
         ]
 
         m.d.comb += [
-            self.led_r.eq(core.fault_valid),
-            self.led_g.eq(heartbeat ^ core.boot_complete),
+            self.led_r.eq(0),
+            self.led_g.eq(heartbeat),
             self.led_b.eq(~init_done),
         ]
 
