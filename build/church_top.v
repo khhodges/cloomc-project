@@ -41,7 +41,7 @@ module top(rst, uart_tx, led_boot, led_run, led_fault, dbg_nia, dbg_fault, dbg_f
   wire \$7 ;
   wire \$8 ;
   wire \$9 ;
-  (* src = "/home/runner/workspace/church_machine/boot_rom.py:77" *)
+  (* src = "/home/runner/workspace/church_machine/boot_rom.py:79" *)
   wire [8:0] addr;
   (* src = "/home/runner/workspace/church_machine/top.py:91" *)
   wire any_clist_access;
@@ -98,7 +98,7 @@ module top(rst, uart_tx, led_boot, led_run, led_fault, dbg_nia, dbg_fault, dbg_f
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input clk;
   wire clk;
-  (* src = "/home/runner/workspace/church_machine/boot_rom.py:78" *)
+  (* src = "/home/runner/workspace/church_machine/boot_rom.py:80" *)
   wire [31:0] data;
   (* src = "/home/runner/workspace/church_machine/uart_tx.py:89" *)
   reg [31:0] \data$63 ;
@@ -1328,9 +1328,9 @@ module top(rst, uart_tx, led_boot, led_run, led_fault, dbg_nia, dbg_fault, dbg_f
     halted <= \$34 ;
   (* src = "/home/runner/workspace/church_machine/top.py:54" *)
   \top.boot_rom  boot_rom (
+    .addr(dbg_nia[10:2]),
     .clk(clk),
     .data(imem_data),
-    .rom_r_addr(dbg_nia[10:2]),
     .rst(rst)
   );
   (* src = "/home/runner/workspace/church_machine/top.py:51" *)
@@ -1667,554 +1667,73 @@ module top(rst, uart_tx, led_boot, led_run, led_fault, dbg_nia, dbg_fault, dbg_f
   assign any_clist_access = 1'h0;
 endmodule
 
-(* src = "/home/runner/workspace/church_machine/boot_rom.py:81" *)
+(* src = "/home/runner/workspace/church_machine/boot_rom.py:83" *)
 (* generator = "Amaranth" *)
-module \top.boot_rom (rst, data, rom_r_addr, clk);
-  (* src = "/home/runner/workspace/church_machine/boot_rom.py:77" *)
+module \top.boot_rom (rst, addr, data, clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$2  = 0;
+  reg [31:0] \$1 ;
+  (* src = "/home/runner/workspace/church_machine/boot_rom.py:79" *)
+  input [8:0] addr;
   wire [8:0] addr;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input clk;
   wire clk;
-  (* src = "/home/runner/workspace/church_machine/boot_rom.py:85" *)
+  (* src = "/home/runner/workspace/church_machine/boot_rom.py:80" *)
   output [31:0] data;
-  wire [31:0] data;
-  (* src = "/home/runner/workspace/church_machine/boot_rom.py:77" *)
-  input [8:0] rom_r_addr;
-  wire [8:0] rom_r_addr;
+  reg [31:0] data = 32'd0;
   (* src = "/home/runner/workspace/church_machine/boot_rom.py:85" *)
-  wire [31:0] rom_r_data;
+  reg [31:0] rom_comb;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
-  (* src = "/home/runner/workspace/church_machine/boot_rom.py:83" *)
-  reg [31:0] rom [511:0];
-  initial begin
-    rom[0] = 32'd118161408;
-    rom[1] = 32'd118685697;
-    rom[2] = 32'd923795459;
-    rom[3] = 32'd1058013184;
-    rom[4] = 32'd117637121;
-    rom[5] = 32'd922746888;
-    rom[6] = 32'd385875968;
-    rom[7] = 32'd121307137;
-    rom[8] = 32'd926416899;
-    rom[9] = 32'd1060634624;
-    rom[10] = 32'd520257536;
-    rom[11] = 32'd254836738;
-    rom[12] = 32'd0;
-    rom[13] = 32'd0;
-    rom[14] = 32'd0;
-    rom[15] = 32'd0;
-    rom[16] = 32'd0;
-    rom[17] = 32'd0;
-    rom[18] = 32'd0;
-    rom[19] = 32'd0;
-    rom[20] = 32'd0;
-    rom[21] = 32'd0;
-    rom[22] = 32'd0;
-    rom[23] = 32'd0;
-    rom[24] = 32'd0;
-    rom[25] = 32'd0;
-    rom[26] = 32'd0;
-    rom[27] = 32'd0;
-    rom[28] = 32'd0;
-    rom[29] = 32'd0;
-    rom[30] = 32'd0;
-    rom[31] = 32'd0;
-    rom[32] = 32'd0;
-    rom[33] = 32'd0;
-    rom[34] = 32'd0;
-    rom[35] = 32'd0;
-    rom[36] = 32'd0;
-    rom[37] = 32'd0;
-    rom[38] = 32'd0;
-    rom[39] = 32'd0;
-    rom[40] = 32'd0;
-    rom[41] = 32'd0;
-    rom[42] = 32'd0;
-    rom[43] = 32'd0;
-    rom[44] = 32'd0;
-    rom[45] = 32'd0;
-    rom[46] = 32'd0;
-    rom[47] = 32'd0;
-    rom[48] = 32'd0;
-    rom[49] = 32'd0;
-    rom[50] = 32'd0;
-    rom[51] = 32'd0;
-    rom[52] = 32'd0;
-    rom[53] = 32'd0;
-    rom[54] = 32'd0;
-    rom[55] = 32'd0;
-    rom[56] = 32'd0;
-    rom[57] = 32'd0;
-    rom[58] = 32'd0;
-    rom[59] = 32'd0;
-    rom[60] = 32'd0;
-    rom[61] = 32'd0;
-    rom[62] = 32'd0;
-    rom[63] = 32'd0;
-    rom[64] = 32'd0;
-    rom[65] = 32'd0;
-    rom[66] = 32'd0;
-    rom[67] = 32'd0;
-    rom[68] = 32'd0;
-    rom[69] = 32'd0;
-    rom[70] = 32'd0;
-    rom[71] = 32'd0;
-    rom[72] = 32'd0;
-    rom[73] = 32'd0;
-    rom[74] = 32'd0;
-    rom[75] = 32'd0;
-    rom[76] = 32'd0;
-    rom[77] = 32'd0;
-    rom[78] = 32'd0;
-    rom[79] = 32'd0;
-    rom[80] = 32'd0;
-    rom[81] = 32'd0;
-    rom[82] = 32'd0;
-    rom[83] = 32'd0;
-    rom[84] = 32'd0;
-    rom[85] = 32'd0;
-    rom[86] = 32'd0;
-    rom[87] = 32'd0;
-    rom[88] = 32'd0;
-    rom[89] = 32'd0;
-    rom[90] = 32'd0;
-    rom[91] = 32'd0;
-    rom[92] = 32'd0;
-    rom[93] = 32'd0;
-    rom[94] = 32'd0;
-    rom[95] = 32'd0;
-    rom[96] = 32'd0;
-    rom[97] = 32'd0;
-    rom[98] = 32'd0;
-    rom[99] = 32'd0;
-    rom[100] = 32'd0;
-    rom[101] = 32'd0;
-    rom[102] = 32'd0;
-    rom[103] = 32'd0;
-    rom[104] = 32'd0;
-    rom[105] = 32'd0;
-    rom[106] = 32'd0;
-    rom[107] = 32'd0;
-    rom[108] = 32'd0;
-    rom[109] = 32'd0;
-    rom[110] = 32'd0;
-    rom[111] = 32'd0;
-    rom[112] = 32'd0;
-    rom[113] = 32'd0;
-    rom[114] = 32'd0;
-    rom[115] = 32'd0;
-    rom[116] = 32'd0;
-    rom[117] = 32'd0;
-    rom[118] = 32'd0;
-    rom[119] = 32'd0;
-    rom[120] = 32'd0;
-    rom[121] = 32'd0;
-    rom[122] = 32'd0;
-    rom[123] = 32'd0;
-    rom[124] = 32'd0;
-    rom[125] = 32'd0;
-    rom[126] = 32'd0;
-    rom[127] = 32'd0;
-    rom[128] = 32'd0;
-    rom[129] = 32'd0;
-    rom[130] = 32'd0;
-    rom[131] = 32'd0;
-    rom[132] = 32'd0;
-    rom[133] = 32'd0;
-    rom[134] = 32'd0;
-    rom[135] = 32'd0;
-    rom[136] = 32'd0;
-    rom[137] = 32'd0;
-    rom[138] = 32'd0;
-    rom[139] = 32'd0;
-    rom[140] = 32'd0;
-    rom[141] = 32'd0;
-    rom[142] = 32'd0;
-    rom[143] = 32'd0;
-    rom[144] = 32'd0;
-    rom[145] = 32'd0;
-    rom[146] = 32'd0;
-    rom[147] = 32'd0;
-    rom[148] = 32'd0;
-    rom[149] = 32'd0;
-    rom[150] = 32'd0;
-    rom[151] = 32'd0;
-    rom[152] = 32'd0;
-    rom[153] = 32'd0;
-    rom[154] = 32'd0;
-    rom[155] = 32'd0;
-    rom[156] = 32'd0;
-    rom[157] = 32'd0;
-    rom[158] = 32'd0;
-    rom[159] = 32'd0;
-    rom[160] = 32'd0;
-    rom[161] = 32'd0;
-    rom[162] = 32'd0;
-    rom[163] = 32'd0;
-    rom[164] = 32'd0;
-    rom[165] = 32'd0;
-    rom[166] = 32'd0;
-    rom[167] = 32'd0;
-    rom[168] = 32'd0;
-    rom[169] = 32'd0;
-    rom[170] = 32'd0;
-    rom[171] = 32'd0;
-    rom[172] = 32'd0;
-    rom[173] = 32'd0;
-    rom[174] = 32'd0;
-    rom[175] = 32'd0;
-    rom[176] = 32'd0;
-    rom[177] = 32'd0;
-    rom[178] = 32'd0;
-    rom[179] = 32'd0;
-    rom[180] = 32'd0;
-    rom[181] = 32'd0;
-    rom[182] = 32'd0;
-    rom[183] = 32'd0;
-    rom[184] = 32'd0;
-    rom[185] = 32'd0;
-    rom[186] = 32'd0;
-    rom[187] = 32'd0;
-    rom[188] = 32'd0;
-    rom[189] = 32'd0;
-    rom[190] = 32'd0;
-    rom[191] = 32'd0;
-    rom[192] = 32'd0;
-    rom[193] = 32'd0;
-    rom[194] = 32'd0;
-    rom[195] = 32'd0;
-    rom[196] = 32'd0;
-    rom[197] = 32'd0;
-    rom[198] = 32'd0;
-    rom[199] = 32'd0;
-    rom[200] = 32'd0;
-    rom[201] = 32'd0;
-    rom[202] = 32'd0;
-    rom[203] = 32'd0;
-    rom[204] = 32'd0;
-    rom[205] = 32'd0;
-    rom[206] = 32'd0;
-    rom[207] = 32'd0;
-    rom[208] = 32'd0;
-    rom[209] = 32'd0;
-    rom[210] = 32'd0;
-    rom[211] = 32'd0;
-    rom[212] = 32'd0;
-    rom[213] = 32'd0;
-    rom[214] = 32'd0;
-    rom[215] = 32'd0;
-    rom[216] = 32'd0;
-    rom[217] = 32'd0;
-    rom[218] = 32'd0;
-    rom[219] = 32'd0;
-    rom[220] = 32'd0;
-    rom[221] = 32'd0;
-    rom[222] = 32'd0;
-    rom[223] = 32'd0;
-    rom[224] = 32'd0;
-    rom[225] = 32'd0;
-    rom[226] = 32'd0;
-    rom[227] = 32'd0;
-    rom[228] = 32'd0;
-    rom[229] = 32'd0;
-    rom[230] = 32'd0;
-    rom[231] = 32'd0;
-    rom[232] = 32'd0;
-    rom[233] = 32'd0;
-    rom[234] = 32'd0;
-    rom[235] = 32'd0;
-    rom[236] = 32'd0;
-    rom[237] = 32'd0;
-    rom[238] = 32'd0;
-    rom[239] = 32'd0;
-    rom[240] = 32'd0;
-    rom[241] = 32'd0;
-    rom[242] = 32'd0;
-    rom[243] = 32'd0;
-    rom[244] = 32'd0;
-    rom[245] = 32'd0;
-    rom[246] = 32'd0;
-    rom[247] = 32'd0;
-    rom[248] = 32'd0;
-    rom[249] = 32'd0;
-    rom[250] = 32'd0;
-    rom[251] = 32'd0;
-    rom[252] = 32'd0;
-    rom[253] = 32'd0;
-    rom[254] = 32'd0;
-    rom[255] = 32'd0;
-    rom[256] = 32'd0;
-    rom[257] = 32'd0;
-    rom[258] = 32'd0;
-    rom[259] = 32'd0;
-    rom[260] = 32'd0;
-    rom[261] = 32'd0;
-    rom[262] = 32'd0;
-    rom[263] = 32'd0;
-    rom[264] = 32'd0;
-    rom[265] = 32'd0;
-    rom[266] = 32'd0;
-    rom[267] = 32'd0;
-    rom[268] = 32'd0;
-    rom[269] = 32'd0;
-    rom[270] = 32'd0;
-    rom[271] = 32'd0;
-    rom[272] = 32'd0;
-    rom[273] = 32'd0;
-    rom[274] = 32'd0;
-    rom[275] = 32'd0;
-    rom[276] = 32'd0;
-    rom[277] = 32'd0;
-    rom[278] = 32'd0;
-    rom[279] = 32'd0;
-    rom[280] = 32'd0;
-    rom[281] = 32'd0;
-    rom[282] = 32'd0;
-    rom[283] = 32'd0;
-    rom[284] = 32'd0;
-    rom[285] = 32'd0;
-    rom[286] = 32'd0;
-    rom[287] = 32'd0;
-    rom[288] = 32'd0;
-    rom[289] = 32'd0;
-    rom[290] = 32'd0;
-    rom[291] = 32'd0;
-    rom[292] = 32'd0;
-    rom[293] = 32'd0;
-    rom[294] = 32'd0;
-    rom[295] = 32'd0;
-    rom[296] = 32'd0;
-    rom[297] = 32'd0;
-    rom[298] = 32'd0;
-    rom[299] = 32'd0;
-    rom[300] = 32'd0;
-    rom[301] = 32'd0;
-    rom[302] = 32'd0;
-    rom[303] = 32'd0;
-    rom[304] = 32'd0;
-    rom[305] = 32'd0;
-    rom[306] = 32'd0;
-    rom[307] = 32'd0;
-    rom[308] = 32'd0;
-    rom[309] = 32'd0;
-    rom[310] = 32'd0;
-    rom[311] = 32'd0;
-    rom[312] = 32'd0;
-    rom[313] = 32'd0;
-    rom[314] = 32'd0;
-    rom[315] = 32'd0;
-    rom[316] = 32'd0;
-    rom[317] = 32'd0;
-    rom[318] = 32'd0;
-    rom[319] = 32'd0;
-    rom[320] = 32'd0;
-    rom[321] = 32'd0;
-    rom[322] = 32'd0;
-    rom[323] = 32'd0;
-    rom[324] = 32'd0;
-    rom[325] = 32'd0;
-    rom[326] = 32'd0;
-    rom[327] = 32'd0;
-    rom[328] = 32'd0;
-    rom[329] = 32'd0;
-    rom[330] = 32'd0;
-    rom[331] = 32'd0;
-    rom[332] = 32'd0;
-    rom[333] = 32'd0;
-    rom[334] = 32'd0;
-    rom[335] = 32'd0;
-    rom[336] = 32'd0;
-    rom[337] = 32'd0;
-    rom[338] = 32'd0;
-    rom[339] = 32'd0;
-    rom[340] = 32'd0;
-    rom[341] = 32'd0;
-    rom[342] = 32'd0;
-    rom[343] = 32'd0;
-    rom[344] = 32'd0;
-    rom[345] = 32'd0;
-    rom[346] = 32'd0;
-    rom[347] = 32'd0;
-    rom[348] = 32'd0;
-    rom[349] = 32'd0;
-    rom[350] = 32'd0;
-    rom[351] = 32'd0;
-    rom[352] = 32'd0;
-    rom[353] = 32'd0;
-    rom[354] = 32'd0;
-    rom[355] = 32'd0;
-    rom[356] = 32'd0;
-    rom[357] = 32'd0;
-    rom[358] = 32'd0;
-    rom[359] = 32'd0;
-    rom[360] = 32'd0;
-    rom[361] = 32'd0;
-    rom[362] = 32'd0;
-    rom[363] = 32'd0;
-    rom[364] = 32'd0;
-    rom[365] = 32'd0;
-    rom[366] = 32'd0;
-    rom[367] = 32'd0;
-    rom[368] = 32'd0;
-    rom[369] = 32'd0;
-    rom[370] = 32'd0;
-    rom[371] = 32'd0;
-    rom[372] = 32'd0;
-    rom[373] = 32'd0;
-    rom[374] = 32'd0;
-    rom[375] = 32'd0;
-    rom[376] = 32'd0;
-    rom[377] = 32'd0;
-    rom[378] = 32'd0;
-    rom[379] = 32'd0;
-    rom[380] = 32'd0;
-    rom[381] = 32'd0;
-    rom[382] = 32'd0;
-    rom[383] = 32'd0;
-    rom[384] = 32'd0;
-    rom[385] = 32'd0;
-    rom[386] = 32'd0;
-    rom[387] = 32'd0;
-    rom[388] = 32'd0;
-    rom[389] = 32'd0;
-    rom[390] = 32'd0;
-    rom[391] = 32'd0;
-    rom[392] = 32'd0;
-    rom[393] = 32'd0;
-    rom[394] = 32'd0;
-    rom[395] = 32'd0;
-    rom[396] = 32'd0;
-    rom[397] = 32'd0;
-    rom[398] = 32'd0;
-    rom[399] = 32'd0;
-    rom[400] = 32'd0;
-    rom[401] = 32'd0;
-    rom[402] = 32'd0;
-    rom[403] = 32'd0;
-    rom[404] = 32'd0;
-    rom[405] = 32'd0;
-    rom[406] = 32'd0;
-    rom[407] = 32'd0;
-    rom[408] = 32'd0;
-    rom[409] = 32'd0;
-    rom[410] = 32'd0;
-    rom[411] = 32'd0;
-    rom[412] = 32'd0;
-    rom[413] = 32'd0;
-    rom[414] = 32'd0;
-    rom[415] = 32'd0;
-    rom[416] = 32'd0;
-    rom[417] = 32'd0;
-    rom[418] = 32'd0;
-    rom[419] = 32'd0;
-    rom[420] = 32'd0;
-    rom[421] = 32'd0;
-    rom[422] = 32'd0;
-    rom[423] = 32'd0;
-    rom[424] = 32'd0;
-    rom[425] = 32'd0;
-    rom[426] = 32'd0;
-    rom[427] = 32'd0;
-    rom[428] = 32'd0;
-    rom[429] = 32'd0;
-    rom[430] = 32'd0;
-    rom[431] = 32'd0;
-    rom[432] = 32'd0;
-    rom[433] = 32'd0;
-    rom[434] = 32'd0;
-    rom[435] = 32'd0;
-    rom[436] = 32'd0;
-    rom[437] = 32'd0;
-    rom[438] = 32'd0;
-    rom[439] = 32'd0;
-    rom[440] = 32'd0;
-    rom[441] = 32'd0;
-    rom[442] = 32'd0;
-    rom[443] = 32'd0;
-    rom[444] = 32'd0;
-    rom[445] = 32'd0;
-    rom[446] = 32'd0;
-    rom[447] = 32'd0;
-    rom[448] = 32'd0;
-    rom[449] = 32'd0;
-    rom[450] = 32'd0;
-    rom[451] = 32'd0;
-    rom[452] = 32'd0;
-    rom[453] = 32'd0;
-    rom[454] = 32'd0;
-    rom[455] = 32'd0;
-    rom[456] = 32'd0;
-    rom[457] = 32'd0;
-    rom[458] = 32'd0;
-    rom[459] = 32'd0;
-    rom[460] = 32'd0;
-    rom[461] = 32'd0;
-    rom[462] = 32'd0;
-    rom[463] = 32'd0;
-    rom[464] = 32'd0;
-    rom[465] = 32'd0;
-    rom[466] = 32'd0;
-    rom[467] = 32'd0;
-    rom[468] = 32'd0;
-    rom[469] = 32'd0;
-    rom[470] = 32'd0;
-    rom[471] = 32'd0;
-    rom[472] = 32'd0;
-    rom[473] = 32'd0;
-    rom[474] = 32'd0;
-    rom[475] = 32'd0;
-    rom[476] = 32'd0;
-    rom[477] = 32'd0;
-    rom[478] = 32'd0;
-    rom[479] = 32'd0;
-    rom[480] = 32'd0;
-    rom[481] = 32'd0;
-    rom[482] = 32'd0;
-    rom[483] = 32'd0;
-    rom[484] = 32'd0;
-    rom[485] = 32'd0;
-    rom[486] = 32'd0;
-    rom[487] = 32'd0;
-    rom[488] = 32'd0;
-    rom[489] = 32'd0;
-    rom[490] = 32'd0;
-    rom[491] = 32'd0;
-    rom[492] = 32'd0;
-    rom[493] = 32'd0;
-    rom[494] = 32'd0;
-    rom[495] = 32'd0;
-    rom[496] = 32'd0;
-    rom[497] = 32'd0;
-    rom[498] = 32'd0;
-    rom[499] = 32'd0;
-    rom[500] = 32'd0;
-    rom[501] = 32'd0;
-    rom[502] = 32'd0;
-    rom[503] = 32'd0;
-    rom[504] = 32'd0;
-    rom[505] = 32'd0;
-    rom[506] = 32'd0;
-    rom[507] = 32'd0;
-    rom[508] = 32'd0;
-    rom[509] = 32'd0;
-    rom[510] = 32'd0;
-    rom[511] = 32'd0;
+  (* src = "/home/runner/workspace/church_machine/boot_rom.py:80" *)
+  always @(posedge clk)
+    data <= \$1 ;
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    (* full_case = 32'd1 *)
+    casez (addr)
+      9'h000:
+          rom_comb = 32'd118161408;
+      9'h001:
+          rom_comb = 32'd118685697;
+      9'h002:
+          rom_comb = 32'd923795459;
+      9'h003:
+          rom_comb = 32'd1058013184;
+      9'h004:
+          rom_comb = 32'd117637121;
+      9'h005:
+          rom_comb = 32'd922746888;
+      9'h006:
+          rom_comb = 32'd385875968;
+      9'h007:
+          rom_comb = 32'd121307137;
+      9'h008:
+          rom_comb = 32'd926416899;
+      9'h009:
+          rom_comb = 32'd1060634624;
+      9'h00a:
+          rom_comb = 32'd520257536;
+      9'h00b:
+          rom_comb = 32'd254836738;
+      default:
+          rom_comb = 32'd0;
+    endcase
   end
-  reg [31:0] _0_;
-  always @(posedge clk) begin
-    _0_ <= rom[rom_r_addr];
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    \$1  = rom_comb;
+    if (rst) begin
+      \$1  = 32'd0;
+    end
   end
-  assign data = _0_;
-  assign addr = rom_r_addr;
-  assign rom_r_data = data;
 endmodule
 
 (* src = "/home/runner/workspace/church_machine/core.py:74" *)
 (* generator = "Amaranth" *)
-module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_rd_data, boot_start, fault, \fault_valid$241 , dmem_addr, dmem_wr_data, dmem_wr_en, boot_state, imem_addr, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$2  = 0;
+module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, mem_rd_data, boot_start, fault, \fault_valid$241 , dmem_addr, dmem_wr_data, dmem_wr_en, boot_state, imem_addr, instruction, clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$3  = 0;
   wire \$1 ;
   wire [3:0] \$10 ;
   wire [3:0] \$11 ;
@@ -4129,8 +3648,8 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     .mload_index(mload_index),
     .mload_src(mload_cr_src),
     .mload_start(mload_start),
+    .\port$1385$0 (instruction[18:0]),
     .\port$652$0 (\$97 ),
-    .\port$991$0 (instruction[18:0]),
     .rst(rst),
     .saved_cr5_gt(\saved_cr5_gt$232 )
   );
@@ -4171,7 +3690,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     .mload_fault(mload_fault),
     .mload_m_elevated(\mload_m_elevated$280 ),
     .mload_start(\mload_start$274 ),
-    .\port$991$0 (instruction[22:0]),
+    .\port$1385$0 (instruction[22:0]),
     .rst(rst)
   );
   (* src = "/home/runner/workspace/church_machine/core.py:95" *)
@@ -4270,7 +3789,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     .mem_wr_addr(mem_wr_addr),
     .mem_wr_data(\mem_wr_data$305 ),
     .mem_wr_en(\mem_wr_en$300 ),
-    .\port$991$0 (instruction[22:0]),
+    .\port$1385$0 (instruction[22:0]),
     .rst(rst),
     .save_busy(save_busy),
     .save_fault(save_fault),
@@ -4318,7 +3837,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     .tperm_start(tperm_start_sig)
   );
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     (* full_case = 32'd1 *)
     casez (instruction[31:27])
       5'h00:
@@ -4342,7 +3861,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     ns_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4355,7 +3874,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr15_wr_en = 1'h0;
     casez (boot_state)
       3'h2:
@@ -4363,7 +3882,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr15_wr_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4371,7 +3890,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     thrd_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4386,7 +3905,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr8_wr_en = 1'h0;
     casez (boot_state)
       3'h2:
@@ -4396,7 +3915,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr8_wr_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4406,7 +3925,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     cr6_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4423,7 +3942,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr6_wr_en = 1'h0;
     casez (boot_state)
       3'h2:
@@ -4435,7 +3954,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr6_wr_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4447,7 +3966,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     slot3_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4466,7 +3985,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     cr7_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4485,7 +4004,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr7_wr_en = 1'h0;
     casez (boot_state)
       3'h2:
@@ -4499,7 +4018,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     boot_cr7_wr_gt = 32'd0;
     casez (boot_state)
       3'h2:
@@ -4513,7 +4032,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr8_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$36 ) begin
@@ -4522,7 +4041,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr8_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$36 ) begin
@@ -4531,7 +4050,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr9_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$37 ) begin
@@ -4540,7 +4059,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr9_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$37 ) begin
@@ -4549,7 +4068,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr10_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$38 ) begin
@@ -4558,7 +4077,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr10_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$38 ) begin
@@ -4567,7 +4086,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr11_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$39 ) begin
@@ -4576,7 +4095,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr11_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$39 ) begin
@@ -4585,7 +4104,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr12_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$40 ) begin
@@ -4594,7 +4113,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr12_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$40 ) begin
@@ -4603,7 +4122,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr13_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$41 ) begin
@@ -4612,7 +4131,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr13_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$41 ) begin
@@ -4621,7 +4140,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr14_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$42 ) begin
@@ -4630,7 +4149,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr14_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$42 ) begin
@@ -4639,7 +4158,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr15_wr_en = 1'h0;
     if (switch_change_active) begin
       if (\$43 ) begin
@@ -4648,7 +4167,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     rt_cr15_wr_gt = 32'd0;
     if (switch_change_active) begin
       if (\$43 ) begin
@@ -4657,28 +4176,28 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     cr5_stack_w_addr = 8'h00;
     if (\$71 ) begin
       cr5_stack_w_addr = cr5_stack_ptr;
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     cr5_stack_w_data = 32'd0;
     if (\$71 ) begin
       cr5_stack_w_data = \saved_cr5_gt$232 ;
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     cr5_stack_w_en = 1'h0;
     if (\$71 ) begin
       cr5_stack_w_en = 1'h1;
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     (* full_case = 32'd1 *)
     if (\fault_valid$233 ) begin
       fault = \fault$240 ;
@@ -4701,7 +4220,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     (* full_case = 32'd1 *)
     if (\fault_valid$233 ) begin
       \fault_valid$241  = 1'h1;
@@ -4724,7 +4243,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     sub_start = 1'h0;
     if (call_busy) begin
       sub_start = mload_start;
@@ -4735,7 +4254,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     sub_cr_src = 4'h0;
     if (call_busy) begin
       sub_cr_src = mload_cr_src;
@@ -4746,7 +4265,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     sub_cr_dst = 4'h0;
     if (call_busy) begin
       sub_cr_dst = { 1'h0, \$97  };
@@ -4757,7 +4276,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     sub_index = 17'h00000;
     if (call_busy) begin
       sub_index = mload_index;
@@ -4768,7 +4287,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     sub_direct = 1'h0;
     if (call_busy) begin
       sub_direct = 1'h0;
@@ -4779,7 +4298,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     sub_direct_gt = 32'd0;
     if (call_busy) begin
       sub_direct_gt = 32'd0;
@@ -4790,7 +4309,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     sub_m_elevated = 1'h0;
     if (call_busy) begin
       sub_m_elevated = 1'h1;
@@ -4801,7 +4320,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     dmem_addr = 32'd0;
     if (\$76 ) begin
       dmem_addr = mem_addr;
@@ -4812,7 +4331,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     dmem_rd_en = 1'h0;
     if (\$76 ) begin
       dmem_rd_en = mem_rd_en;
@@ -4822,7 +4341,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     dmem_wr_data = 32'd0;
     if (\$76 ) begin
       dmem_wr_data = 32'd0;
@@ -4831,7 +4350,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     dmem_wr_en = 1'h0;
     if (\$76 ) begin
       dmem_wr_en = 1'h0;
@@ -4840,7 +4359,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     \$92  = boot_state;
     casez (boot_state)
       3'h0:
@@ -4868,7 +4387,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     \$93  = imem_addr;
     if (reboot_request) begin
       \$93  = 32'd0;
@@ -4888,7 +4407,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     \$94  = lambda_active;
     if (clear_all) begin
       \$94  = 1'h0;
@@ -4902,7 +4421,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     \$95  = lambda_pc;
     if (clear_all) begin
       \$95  = 32'd0;
@@ -4915,7 +4434,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, instruction, mem_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$2 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
     \$96  = cr5_stack_ptr;
     if (\$85 ) begin
       \$96  = \$90 [7:0];
@@ -5469,9 +4988,9 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/call.py:45" *)
 (* generator = "Amaranth" *)
-module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , mload_index, call_busy, call_complete, mload_fault, mload_done, \port$991$0 , cr_rd_addr, cr_wr_data, cr_wr_en, cr_wr_addr, call_fault, fault_type, saved_cr5_gt, mload_start, mload_fault_type, clk
+module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , mload_index, call_busy, call_complete, mload_fault, mload_done, cr_rd_addr, cr_wr_data, cr_wr_en, cr_wr_addr, call_fault, fault_type, saved_cr5_gt, mload_start, mload_fault_type, \port$1385$0 , clk
 );
-  reg \$auto$verilog_backend.cc:2355:dump_module$3  = 0;
+  reg \$auto$verilog_backend.cc:2355:dump_module$4  = 0;
   wire [2:0] \$1 ;
   wire \$10 ;
   wire \$11 ;
@@ -5683,10 +5202,10 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
   wire [31:0] nia_value;
   (* src = "/home/runner/workspace/church_machine/call.py:53" *)
   reg phase = 1'h0;
+  input [18:0] \port$1385$0 ;
+  wire [18:0] \port$1385$0 ;
   output [2:0] \port$652$0 ;
   wire [2:0] \port$652$0 ;
-  input [18:0] \port$991$0 ;
-  wire [18:0] \port$991$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -5723,10 +5242,10 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
   (* src = "/home/runner/workspace/church_machine/call.py:65" *)
   always @(posedge clk)
     b_cr_data <= \$38 ;
-  assign src_in_range = \port$991$0 [18:15] <= (* src = "/home/runner/workspace/church_machine/call.py:71" *) 3'h5;
-  assign mload_src = phase ? (* src = "/home/runner/workspace/church_machine/call.py:81" *) 4'h6 : \port$991$0 [18:15];
+  assign src_in_range = \port$1385$0 [18:15] <= (* src = "/home/runner/workspace/church_machine/call.py:71" *) 3'h5;
+  assign mload_src = phase ? (* src = "/home/runner/workspace/church_machine/call.py:81" *) 4'h6 : \port$1385$0 [18:15];
   assign \$1  = phase ? (* src = "/home/runner/workspace/church_machine/call.py:82" *) 3'h7 : 3'h6;
-  assign mload_index = phase ? (* src = "/home/runner/workspace/church_machine/call.py:83" *) 17'h00000 : { 2'h0, \port$991$0 [14:0] };
+  assign mload_index = phase ? (* src = "/home/runner/workspace/church_machine/call.py:83" *) 17'h00000 : { 2'h0, \port$1385$0 [14:0] };
   assign \$2  = ~ (* src = "/home/runner/workspace/church_machine/call.py:110" *) mask_latched[4:0];
   assign \$3  = ~ (* src = "/home/runner/workspace/church_machine/call.py:111" *) mask_latched[10:5];
   assign \$4  = ~ (* src = "/home/runner/workspace/church_machine/call.py:136" *) src_reg_latched[5];
@@ -5789,15 +5308,15 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
   always @(posedge clk)
     b_idx <= \$37 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     cr_rd_addr = 4'h0;
     casez (call_state)
       4'h0:
           /* empty */;
       4'h1:
-          cr_rd_addr = \port$991$0 [18:15];
+          cr_rd_addr = \port$1385$0 [18:15];
       4'h3:
-          cr_rd_addr = \port$991$0 [18:15];
+          cr_rd_addr = \port$1385$0 [18:15];
       4'h4:
           (* full_case = 32'd1 *)
           if (\$4 ) begin
@@ -5824,7 +5343,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     cleared_limit = 32'd0;
     casez (call_state)
       4'h0:
@@ -5854,7 +5373,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     cr_wr_data = 128'h00000000000000000000000000000000;
     casez (call_state)
       4'h0:
@@ -5889,7 +5408,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     cr_wr_en = 1'h0;
     casez (call_state)
       4'h0:
@@ -5919,7 +5438,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     cr_wr_addr = 4'h0;
     casez (call_state)
       4'h0:
@@ -5949,7 +5468,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$27  = phase;
     casez (call_state)
       4'h0:
@@ -5972,7 +5491,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$28  = call_fault;
     casez (call_state)
       4'h0:
@@ -6005,7 +5524,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$29  = fault_type;
     casez (call_state)
       4'h0:
@@ -6038,7 +5557,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$30  = sub_done_latched;
     casez (call_state)
       4'h0:
@@ -6067,7 +5586,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$31  = sub_fault_latched;
     casez (call_state)
       4'h0:
@@ -6096,12 +5615,12 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$32  = mask_latched;
     casez (call_state)
       4'h0:
           if (call_start) begin
-            \$32  = { 1'h0, \port$991$0 [14:0] };
+            \$32  = { 1'h0, \port$1385$0 [14:0] };
           end
     endcase
     if (rst) begin
@@ -6109,7 +5628,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$33  = call_state;
     casez (call_state)
       4'h0:
@@ -6170,7 +5689,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$34  = src_reg_latched;
     casez (call_state)
       4'h0:
@@ -6185,7 +5704,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$35  = saved_cr5_gt;
     casez (call_state)
       4'h0:
@@ -6204,7 +5723,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$36  = mload_start;
     casez (call_state)
       4'h0:
@@ -6229,7 +5748,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$37  = b_idx;
     casez (call_state)
       4'h0:
@@ -6267,7 +5786,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$3 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
     \$38  = b_cr_data;
     casez (call_state)
       4'h0:
@@ -6297,9 +5816,9 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
       \$38  = 128'h00000000000000000000000000000000;
     end
   end
-  assign cr_src = \port$991$0 [18:15];
+  assign cr_src = \port$1385$0 [18:15];
   assign mload_dst = { 1'h0, \$1  };
-  assign index = { 2'h0, \port$991$0 [14:0] };
+  assign index = { 2'h0, \port$1385$0 [14:0] };
   assign sub_start_reg = mload_start;
   assign mload_cr_src = mload_src;
   assign mload_cr_dst = { 1'h0, \$1  };
@@ -6317,7 +5836,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$652$0 , m
   assign fault_type_latched = fault_type;
   assign nia_set = call_complete;
   assign nia_value = 32'd0;
-  assign mask = { 1'h0, \port$991$0 [14:0] };
+  assign mask = { 1'h0, \port$1385$0 [14:0] };
   assign \port$652$0  = \$1 ;
   assign \cr_wr_data.word0_gt  = cr_wr_data[31:0];
   assign \cr_wr_data.word0_gt.gt_type  = cr_wr_data[1:0];
@@ -6365,8 +5884,8 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/decoder.py:43" *)
 (* generator = "Amaranth" *)
-module \top.core.u_decoder (exec_enable, is_church_op, instruction, flags, fault_valid, fault, instr_valid);
-  reg \$auto$verilog_backend.cc:2355:dump_module$4  = 0;
+module \top.core.u_decoder (exec_enable, is_church_op, flags, fault_valid, fault, instruction, instr_valid);
+  reg \$auto$verilog_backend.cc:2355:dump_module$5  = 0;
   wire \$1 ;
   wire \$10 ;
   wire \$11 ;
@@ -6462,7 +5981,7 @@ module \top.core.u_decoder (exec_enable, is_church_op, instruction, flags, fault
   assign \$20  = \$18  | (* src = "/home/runner/workspace/church_machine/decoder.py:120" *) \$19 ;
   assign \$21  = \$17  & (* src = "/home/runner/workspace/church_machine/decoder.py:119" *) \$20 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
     (* full_case = 32'd1 *)
     casez (instruction[26:23])
       4'h0:
@@ -6500,7 +6019,7 @@ module \top.core.u_decoder (exec_enable, is_church_op, instruction, flags, fault
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
     fault_valid = 1'h0;
     if (instr_valid) begin
       if (\$16 ) begin
@@ -6511,7 +6030,7 @@ module \top.core.u_decoder (exec_enable, is_church_op, instruction, flags, fault
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$4 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
     fault = 4'h0;
     if (instr_valid) begin
       if (\$16 ) begin
@@ -6537,8 +6056,8 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/lambda_unit.py:25" *)
 (* generator = "Amaranth" *)
-module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_complete, cr_target, cr_rd_addr, nia_set, nia_value, lambda_fault, fault_type, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$5  = 0;
+module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_complete, cr_rd_addr, nia_set, nia_value, lambda_fault, fault_type, cr_target, clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$6  = 0;
   wire \$1 ;
   reg [127:0] \$10 ;
   wire \$2 ;
@@ -6651,7 +6170,7 @@ module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_co
   always @(posedge clk)
     target_cap <= \$10 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
     cr_rd_addr = 4'h0;
     casez (lambda_state)
       3'h0:
@@ -6663,7 +6182,7 @@ module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_co
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
     nia_set = 1'h0;
     casez (lambda_state)
       3'h0:
@@ -6677,7 +6196,7 @@ module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_co
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
     nia_value = 32'd0;
     casez (lambda_state)
       3'h0:
@@ -6691,7 +6210,7 @@ module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_co
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
     \$7  = lambda_fault;
     casez (lambda_state)
       3'h0:
@@ -6710,7 +6229,7 @@ module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_co
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
     \$8  = fault_type;
     casez (lambda_state)
       3'h0:
@@ -6729,7 +6248,7 @@ module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_co
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
     \$9  = lambda_state;
     casez (lambda_state)
       3'h0:
@@ -6759,7 +6278,7 @@ module \top.core.u_lambda (rst, lambda_start, cr_rd_data, lambda_busy, lambda_co
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$5 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
     \$10  = target_cap;
     casez (lambda_state)
       3'h0:
@@ -6793,8 +6312,8 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/load.py:31" *)
 (* generator = "Amaranth" *)
-module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_fault, mload_busy, mload_fault, mload_done, \port$991$0 , mload_start, fault_type, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$6  = 0;
+module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_fault, mload_busy, mload_fault, mload_done, mload_start, fault_type, \port$1385$0 , clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$7  = 0;
   wire \$1 ;
   wire \$2 ;
   wire \$3 ;
@@ -6853,8 +6372,8 @@ module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_faul
   (* src = "/home/runner/workspace/church_machine/load.py:17" *)
   output mload_start;
   reg mload_start;
-  input [22:0] \port$991$0 ;
-  wire [22:0] \port$991$0 ;
+  input [22:0] \port$1385$0 ;
+  wire [22:0] \port$1385$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -6867,11 +6386,11 @@ module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_faul
   (* src = "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144" *)
   always @(posedge clk)
     load_wrapper_state <= \$6 ;
-  assign mload_m_elevated = \port$991$0 [18:15] == (* src = "/home/runner/workspace/church_machine/load.py:39" *) 3'h6;
+  assign mload_m_elevated = \port$1385$0 [18:15] == (* src = "/home/runner/workspace/church_machine/load.py:39" *) 3'h6;
   assign load_busy = ~ (* src = "/home/runner/workspace/church_machine/load.py:58" *) \$1 ;
   assign load_complete = \$4  & (* src = "/home/runner/workspace/church_machine/load.py:59" *) mload_done;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$7 ) begin end
     mload_start = 1'h0;
     casez (load_wrapper_state)
       2'h0:
@@ -6883,7 +6402,7 @@ module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_faul
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$6 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$7 ) begin end
     \$6  = load_wrapper_state;
     (* full_case = 32'd1 *)
     casez (load_wrapper_state)
@@ -6906,12 +6425,12 @@ module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_faul
       \$6  = 2'h0;
     end
   end
-  assign mload_cr_src = \port$991$0 [18:15];
-  assign cr_src = \port$991$0 [18:15];
-  assign mload_cr_dst = \port$991$0 [22:19];
-  assign cr_dst = \port$991$0 [22:19];
-  assign mload_index = { 2'h0, \port$991$0 [14:0] };
-  assign index = { 2'h0, \port$991$0 [14:0] };
+  assign mload_cr_src = \port$1385$0 [18:15];
+  assign cr_src = \port$1385$0 [18:15];
+  assign mload_cr_dst = \port$1385$0 [22:19];
+  assign cr_dst = \port$1385$0 [22:19];
+  assign mload_index = { 2'h0, \port$1385$0 [14:0] };
+  assign index = { 2'h0, \port$1385$0 [14:0] };
   assign mload_direct = 1'h0;
   assign mload_direct_gt = 32'd0;
   assign mload_fault_type = fault_type;
@@ -6920,7 +6439,7 @@ endmodule
 (* src = "/home/runner/workspace/church_machine/perm_check.py:38" *)
 (* generator = "Amaranth" *)
 module \top.core.u_perm_check (check_domain_purity, gt_in, required_perms, fault_valid, fault_type, check_valid);
-  reg \$auto$verilog_backend.cc:2355:dump_module$7  = 0;
+  reg \$auto$verilog_backend.cc:2355:dump_module$8  = 0;
   wire [5:0] \$1 ;
   wire \$10 ;
   wire \$11 ;
@@ -7067,7 +6586,7 @@ module \top.core.u_perm_check (check_domain_purity, gt_in, required_perms, fault
   assign \$36  = \$33  & (* src = "/home/runner/workspace/church_machine/perm_check.py:85" *) \$35 ;
   assign \$37  = | (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:551" *) \$36 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$7 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
     fault_valid = 1'h0;
     if (check_valid) begin
       if (is_null_gt) begin
@@ -7086,7 +6605,7 @@ module \top.core.u_perm_check (check_domain_purity, gt_in, required_perms, fault
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$7 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
     fault_type = 4'h0;
     if (check_valid) begin
       if (is_null_gt) begin
@@ -7186,7 +6705,7 @@ endmodule
 module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data, cr_wr_en, cr0_gt_wr_en, cr0_gt_wr_data, cr1_gt_wr_en, cr1_gt_wr_data, cr2_gt_wr_en, cr2_gt_wr_data, cr3_gt_wr_en, cr3_gt_wr_data, cr4_gt_wr_en, cr4_gt_wr_data, cr5_gt_wr_en, cr5_gt_wr_data, cr6_gt_wr_en, cr6_gt_wr_data, cr7_gt_wr_en
 , cr7_gt_wr_data, cr8_gt_wr_en, cr8_gt_wr_data, cr9_gt_wr_en, cr9_gt_wr_data, cr10_gt_wr_en, cr10_gt_wr_data, cr11_gt_wr_en, cr11_gt_wr_data, cr12_gt_wr_en, cr12_gt_wr_data, cr13_gt_wr_en, cr13_gt_wr_data, cr14_gt_wr_en, cr14_gt_wr_data, cr15_gt_wr_en, cr15_gt_wr_data, cr_rd_data, cr15, flags, clk
 );
-  reg \$auto$verilog_backend.cc:2355:dump_module$8  = 0;
+  reg \$auto$verilog_backend.cc:2355:dump_module$9  = 0;
   wire [127:0] \$1 ;
   wire \$10 ;
   reg [127:0] \$11 ;
@@ -7997,7 +7516,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
   always @(posedge clk)
     flags <= \$31 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     (* full_case = 32'd1 *)
     casez (cr_rd_addr)
       4'h0:
@@ -8035,7 +7554,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$11  = cr0;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8056,7 +7575,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$12  = cr1;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8079,7 +7598,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$13  = cr2;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8104,7 +7623,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$14  = cr3;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8131,7 +7650,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$15  = cr4;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8160,7 +7679,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$16  = cr5;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8191,7 +7710,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$17  = cr6;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8224,7 +7743,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$18  = cr7;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8259,7 +7778,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$19  = cr8;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8296,7 +7815,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$20  = cr9;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8335,7 +7854,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$21  = cr10;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8376,7 +7895,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$22  = cr11;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8419,7 +7938,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$23  = cr12;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8464,7 +7983,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$24  = cr13;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8511,7 +8030,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$25  = cr14;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8560,7 +8079,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$26  = cr15;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8612,7 +8131,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$27  = dr0;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8627,7 +8146,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$28  = dr1;
     if (clear_all) begin
       \$28  = 32'd0;
@@ -8637,7 +8156,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$29  = dr2;
     if (clear_all) begin
       \$29  = 32'd0;
@@ -8647,7 +8166,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$30  = dr3;
     if (clear_all) begin
       \$30  = 32'd0;
@@ -8657,7 +8176,7 @@ module \top.core.u_registers (rst, clear_all, cr_rd_addr, cr_wr_addr, cr_wr_data
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$8 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
     \$31  = flags;
     (* full_case = 32'd1 *)
     if (clear_all) begin
@@ -8955,9 +8474,9 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/ret.py:46" *)
 (* generator = "Amaranth" *)
-module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_addr, busy, complete, reboot_request, mload_fault, mload_done, cr_src, lambda_active, lambda_pc, mload_dst, mload_direct_gt, nia_set, nia_value, lambda_clear, cr_wr_en, cr_wr_addr, cr_wr_data
-, fault_valid, fault_type, mload_start, mload_fault_type, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$9  = 0;
+module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_addr, busy, complete, reboot_request, mload_fault, mload_done, lambda_active, lambda_pc, mload_dst, mload_direct_gt, nia_set, nia_value, lambda_clear, cr_wr_en, cr_wr_addr, cr_wr_data, fault_valid
+, fault_type, mload_start, mload_fault_type, cr_src, clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$10  = 0;
   wire [32:0] \$1 ;
   wire \$10 ;
   wire \$11 ;
@@ -9211,7 +8730,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
   always @(posedge clk)
     mload_start <= \$24 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     (* full_case = 32'd1 *)
     casez (phase)
       2'h0:
@@ -9223,7 +8742,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     (* full_case = 32'd1 *)
     casez (phase)
       2'h0:
@@ -9235,7 +8754,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     nia_set = 1'h0;
     casez (ret_state)
       4'h0:
@@ -9265,7 +8784,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     nia_value = 32'd0;
     casez (ret_state)
       4'h0:
@@ -9295,7 +8814,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     lambda_clear = 1'h0;
     casez (ret_state)
       4'h0:
@@ -9305,7 +8824,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     local_cr_rd_en = 1'h0;
     casez (ret_state)
       4'h0:
@@ -9317,7 +8836,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     cr_wr_en = 1'h0;
     casez (ret_state)
       4'h0:
@@ -9335,7 +8854,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     cr_wr_addr = 4'h0;
     casez (ret_state)
       4'h0:
@@ -9353,7 +8872,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     cr_wr_data = 128'h00000000000000000000000000000000;
     casez (ret_state)
       4'h0:
@@ -9371,7 +8890,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$17  = fault_valid;
     casez (ret_state)
       4'h0:
@@ -9411,7 +8930,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$18  = fault_type;
     casez (ret_state)
       4'h0:
@@ -9451,7 +8970,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$19  = phase;
     casez (ret_state)
       4'h0:
@@ -9480,7 +8999,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$20  = sub_done_latched;
     casez (ret_state)
       4'h0:
@@ -9521,7 +9040,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$21  = sub_fault_latched;
     casez (ret_state)
       4'h0:
@@ -9562,7 +9081,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$22  = ret_state;
     casez (ret_state)
       4'h0:
@@ -9632,7 +9151,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$23  = return_cap;
     casez (ret_state)
       4'h0:
@@ -9647,7 +9166,7 @@ module \top.core.u_return (rst, return_start, saved_cr5_gt, cr_rd_data, cr_rd_ad
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$9 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
     \$24  = mload_start;
     casez (ret_state)
       4'h0:
@@ -9734,8 +9253,8 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/save.py:36" *)
 (* generator = "Amaranth" *)
-module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , mem_rd_data, cr15_namespace, cr_rd_addr, save_fault, fault_type, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$10  = 0;
+module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, mem_rd_data, cr15_namespace, cr_rd_addr, save_fault, fault_type, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, \port$1385$0 , clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$11  = 0;
   wire \$1 ;
   reg \$10 ;
   reg [2:0] \$11 ;
@@ -9886,8 +9405,8 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
   wire mem_wr_en;
   (* src = "/home/runner/workspace/church_machine/msave.py:23" *)
   wire \mem_wr_en$23 ;
-  input [22:0] \port$991$0 ;
-  wire [22:0] \port$991$0 ;
+  input [22:0] \port$1385$0 ;
+  wire [22:0] \port$1385$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -9962,7 +9481,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
   (* init = 1'h0 *)
   (* src = "/home/runner/workspace/church_machine/save.py:48" *)
   wire sub_start_reg;
-  assign dst_in_range = \port$991$0 [22:19] <= (* src = "/home/runner/workspace/church_machine/save.py:53" *) 3'h6;
+  assign dst_in_range = \port$1385$0 [22:19] <= (* src = "/home/runner/workspace/church_machine/save.py:53" *) 3'h6;
   assign save_busy = ~ (* src = "/home/runner/workspace/church_machine/save.py:115" *) \$1 ;
   assign save_complete = \$5  & (* src = "/home/runner/workspace/church_machine/save.py:116" *) sub_done_latched;
   assign \$1  = ! (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) save_wrapper_state;
@@ -10005,7 +9524,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     .mem_wr_addr(mem_wr_addr),
     .mem_wr_data(mem_wr_data),
     .mem_wr_en(mem_wr_en),
-    .\port$991$0 (\port$991$0 [14:0]),
+    .\port$1385$0 (\port$1385$0 [14:0]),
     .rst(rst),
     .sub_done(sub_done),
     .sub_dst_cap(sub_dst_cap),
@@ -10015,21 +9534,21 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     .sub_start(sub_start)
   );
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     cr_rd_addr = 4'h0;
     casez (save_wrapper_state)
       3'h0:
           /* empty */;
       3'h1:
-          cr_rd_addr = \port$991$0 [22:19];
+          cr_rd_addr = \port$1385$0 [22:19];
       3'h2:
-          cr_rd_addr = \port$991$0 [18:15];
+          cr_rd_addr = \port$1385$0 [18:15];
       3'h3:
-          cr_rd_addr = \port$991$0 [18:15];
+          cr_rd_addr = \port$1385$0 [18:15];
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$7  = save_fault;
     casez (save_wrapper_state)
       3'h0:
@@ -10052,7 +9571,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$8  = fault_type;
     casez (save_wrapper_state)
       3'h0:
@@ -10075,7 +9594,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$9  = sub_done_latched;
     casez (save_wrapper_state)
       3'h0:
@@ -10096,7 +9615,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$10  = sub_fault_latched;
     casez (save_wrapper_state)
       3'h0:
@@ -10117,7 +9636,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$11  = save_wrapper_state;
     casez (save_wrapper_state)
       3'h0:
@@ -10147,7 +9666,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$12  = sub_dst_cap;
     casez (save_wrapper_state)
       3'h0:
@@ -10162,7 +9681,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$13  = src_reg_latched;
     casez (save_wrapper_state)
       3'h0:
@@ -10179,7 +9698,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$10 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
     \$14  = sub_start;
     casez (save_wrapper_state)
       3'h0:
@@ -10197,12 +9716,12 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
       \$14  = 1'h0;
     end
   end
-  assign cr_dst = \port$991$0 [22:19];
+  assign cr_dst = \port$1385$0 [22:19];
   assign \sub_start$3  = sub_start;
   assign dst_reg_latched = sub_dst_cap;
   assign sub_src_gt = src_reg_latched[31:0];
-  assign sub_index = { 2'h0, \port$991$0 [14:0] };
-  assign index = { 2'h0, \port$991$0 [14:0] };
+  assign sub_index = { 2'h0, \port$1385$0 [14:0] };
+  assign index = { 2'h0, \port$1385$0 [14:0] };
   assign mem_wr_done = 1'h1;
   assign \mem_wr_done$11  = 1'h1;
   assign \cr15_namespace$13  = cr15_namespace;
@@ -10215,7 +9734,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$991$0 , m
   assign \mem_rd_addr$25  = mem_rd_addr;
   assign \mem_rd_en$27  = mem_rd_en;
   assign sub_start_reg = sub_start;
-  assign cr_src = \port$991$0 [18:15];
+  assign cr_src = \port$1385$0 [18:15];
   assign fault_latched = save_fault;
   assign fault_type_latched = fault_type;
   assign \sub_dst_cap.word0_gt  = sub_dst_cap[31:0];
@@ -10270,8 +9789,8 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/msave.py:34" *)
 (* generator = "Amaranth" *)
-module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_data, cr15_namespace, sub_dst_cap, sub_src_gt, sub_start, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, sub_fault_type, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$11  = 0;
+module \top.core.u_save.u_msave (rst, sub_fault, sub_done, mem_rd_data, cr15_namespace, sub_dst_cap, sub_src_gt, sub_start, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, sub_fault_type, \port$1385$0 , clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$12  = 0;
   wire [19:0] \$1 ;
   wire \$10 ;
   wire \$11 ;
@@ -10374,8 +9893,8 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
   reg [31:0] ns_limit_reg = 32'd0;
   (* src = "/home/runner/workspace/church_machine/msave.py:59" *)
   reg [31:0] ns_location_reg = 32'd0;
-  input [14:0] \port$991$0 ;
-  wire [14:0] \port$991$0 ;
+  input [14:0] \port$1385$0 ;
+  wire [14:0] \port$1385$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -10462,7 +9981,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
   always @(posedge clk)
     ns_limit_reg <= \$25 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     mem_rd_addr = 32'd0;
     casez (msave_state)
       4'h0:
@@ -10480,7 +9999,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     mem_rd_en = 1'h0;
     casez (msave_state)
       4'h0:
@@ -10498,7 +10017,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     mem_wr_en = 1'h0;
     casez (msave_state)
       4'h0:
@@ -10520,7 +10039,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     mem_wr_addr = 32'd0;
     casez (msave_state)
       4'h0:
@@ -10542,7 +10061,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     mem_wr_data = 32'd0;
     casez (msave_state)
       4'h0:
@@ -10564,7 +10083,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     \$19  = dst_cap_reg;
     casez (msave_state)
       4'h0:
@@ -10577,7 +10096,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     \$20  = src_gt_reg;
     casez (msave_state)
       4'h0:
@@ -10590,12 +10109,12 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     \$21  = index_reg;
     casez (msave_state)
       4'h0:
           if (sub_start) begin
-            \$21  = { 2'h0, \port$991$0  };
+            \$21  = { 2'h0, \port$1385$0  };
           end
     endcase
     if (rst) begin
@@ -10603,7 +10122,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     \$22  = sub_fault_type;
     casez (msave_state)
       4'h0:
@@ -10636,7 +10155,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     \$23  = msave_state;
     casez (msave_state)
       4'h0:
@@ -10687,7 +10206,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     \$24  = ns_location_reg;
     casez (msave_state)
       4'h0:
@@ -10706,7 +10225,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$11 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
     \$25  = ns_limit_reg;
     casez (msave_state)
       4'h0:
@@ -10729,7 +10248,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$991$0 , mem_rd_
   assign write_addr = \$2 [31:0];
   assign ns_entry_addr = \$6 [31:0];
   assign fault_type_reg = sub_fault_type;
-  assign sub_index = { 2'h0, \port$991$0  };
+  assign sub_index = { 2'h0, \port$1385$0  };
   assign mem_rd_valid = 1'h1;
   assign mem_wr_done = 1'h1;
   assign \dst_cap_reg.word0_gt  = dst_cap_reg[31:0];
@@ -10765,7 +10284,7 @@ endmodule
 (* generator = "Amaranth" *)
 module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done, mem_rd_data, sub_start, sub_cr_src, sub_cr_dst, sub_index, sub_direct, sub_direct_gt, sub_m_elevated, cr15_namespace, cr_rd_addr, mem_addr, mem_rd_en, cr_wr_addr, cr_wr_data, cr_wr_en, sub_fault_type
 , clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$12  = 0;
+  reg \$auto$verilog_backend.cc:2355:dump_module$13  = 0;
   wire [19:0] \$1 ;
   wire \$10 ;
   wire \$11 ;
@@ -11039,7 +10558,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
   always @(posedge clk)
     ns_w1_saved <= \$32 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     cr_rd_addr = 4'h0;
     casez (mload_state)
       4'h0:
@@ -11053,7 +10572,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     mem_addr = 32'd0;
     casez (mload_state)
       4'h0:
@@ -11075,7 +10594,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     mem_rd_en = 1'h0;
     casez (mload_state)
       4'h0:
@@ -11097,7 +10616,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     thread_wr_en = 1'h0;
     casez (mload_state)
       4'h0:
@@ -11123,7 +10642,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     thread_wr_idx = 4'h0;
     casez (mload_state)
       4'h0:
@@ -11149,7 +10668,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     thread_wr_data = 32'd0;
     casez (mload_state)
       4'h0:
@@ -11175,7 +10694,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     cr_wr_addr = 4'h0;
     casez (mload_state)
       4'h0:
@@ -11201,7 +10720,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     cr_wr_data = 128'h00000000000000000000000000000000;
     casez (mload_state)
       4'h0:
@@ -11227,7 +10746,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     cr_wr_en = 1'h0;
     casez (mload_state)
       4'h0:
@@ -11253,7 +10772,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$23  = cr_src_reg;
     casez (mload_state)
       4'h0:
@@ -11266,7 +10785,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$24  = cr_dst_reg;
     casez (mload_state)
       4'h0:
@@ -11279,7 +10798,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$25  = index_reg;
     casez (mload_state)
       4'h0:
@@ -11292,7 +10811,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$26  = direct_mode;
     casez (mload_state)
       4'h0:
@@ -11305,7 +10824,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$27  = direct_gt_reg;
     casez (mload_state)
       4'h0:
@@ -11318,7 +10837,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$28  = result_cap;
     casez (mload_state)
       4'h0:
@@ -11347,7 +10866,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$29  = sub_fault_type;
     casez (mload_state)
       4'h0:
@@ -11378,7 +10897,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$30  = mload_state;
     casez (mload_state)
       4'h0:
@@ -11433,7 +10952,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$31  = src_cap;
     casez (mload_state)
       4'h0:
@@ -11450,7 +10969,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$12 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
     \$32  = ns_w1_saved;
     casez (mload_state)
       4'h0:
@@ -11525,8 +11044,8 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/tperm.py:27" *)
 (* generator = "Amaranth" *)
-module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_target, cr_rd_addr, cr_wr_addr, cr_wr_data, cr_wr_en, tperm_fault, fault_type, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$13  = 0;
+module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, cr_rd_addr, cr_wr_addr, cr_wr_data, cr_wr_en, tperm_fault, fault_type, preset, cr_target, clk);
+  reg \$auto$verilog_backend.cc:2355:dump_module$14  = 0;
   wire [5:0] \$1 ;
   reg [3:0] \$10 ;
   reg [3:0] \$11 ;
@@ -11692,7 +11211,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
   always @(posedge clk)
     target_cap <= \$13 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     (* full_case = 32'd1 *)
     casez (preset_reg)
       4'h0:
@@ -11726,7 +11245,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     is_reserved = 1'h0;
     (* full_case = 32'd1 *)
     casez (preset_reg)
@@ -11761,7 +11280,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     cr_rd_addr = 4'h0;
     casez (tperm_state)
       3'h0:
@@ -11771,7 +11290,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     result_cap = 128'h00000000000000000000000000000000;
     casez (tperm_state)
       3'h0:
@@ -11788,7 +11307,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     cr_wr_addr = 4'h0;
     casez (tperm_state)
       3'h0:
@@ -11802,7 +11321,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     cr_wr_data = 128'h00000000000000000000000000000000;
     casez (tperm_state)
       3'h0:
@@ -11816,7 +11335,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     cr_wr_en = 1'h0;
     casez (tperm_state)
       3'h0:
@@ -11830,7 +11349,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     \$9  = tperm_fault;
     casez (tperm_state)
       3'h0:
@@ -11849,7 +11368,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     \$10  = fault_type;
     casez (tperm_state)
       3'h0:
@@ -11868,7 +11387,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     \$11  = preset_reg;
     casez (tperm_state)
       3'h0:
@@ -11881,7 +11400,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     \$12  = tperm_state;
     casez (tperm_state)
       3'h0:
@@ -11911,7 +11430,7 @@ module \top.core.u_tperm (rst, tperm_start, cr_rd_data, tperm_busy, preset, cr_t
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$13 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
     \$13  = target_cap;
     casez (tperm_state)
       3'h0:
@@ -11962,7 +11481,7 @@ endmodule
 (* src = "/home/runner/workspace/church_machine/uart_tx.py:97" *)
 (* generator = "Amaranth" *)
 module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$14  = 0;
+  reg \$auto$verilog_backend.cc:2355:dump_module$15  = 0;
   wire [6:0] \$1 ;
   wire \$10 ;
   wire \$11 ;
@@ -12098,7 +11617,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     .tx(tx)
   );
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     (* full_case = 32'd1 *)
     casez (debug_printer_state)
       3'h0:
@@ -12120,7 +11639,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     hex_lut_r_addr = 4'h0;
     casez (debug_printer_state)
       3'h0:
@@ -12130,7 +11649,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     data = 8'h00;
     casez (debug_printer_state)
       3'h0:
@@ -12156,7 +11675,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     start = 1'h0;
     casez (debug_printer_state)
       3'h0:
@@ -12182,7 +11701,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     \$20  = data_reg;
     casez (debug_printer_state)
       3'h0:
@@ -12195,7 +11714,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     \$21  = nibble_idx;
     casez (debug_printer_state)
       3'h0:
@@ -12220,7 +11739,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     \$22  = debug_printer_state;
     (* full_case = 32'd1 *)
     casez (debug_printer_state)
@@ -12267,7 +11786,7 @@ module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$14 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
     \$23  = byte_reg;
     casez (debug_printer_state)
       3'h0:
@@ -12288,7 +11807,7 @@ endmodule
 (* src = "/home/runner/workspace/church_machine/uart_tx.py:26" *)
 (* generator = "Amaranth" *)
 module \top.debug.uart (rst, data, start, tx, busy, done, clk);
-  reg \$auto$verilog_backend.cc:2355:dump_module$15  = 0;
+  reg \$auto$verilog_backend.cc:2355:dump_module$16  = 0;
   wire \$1 ;
   reg [6:0] \$10 ;
   reg [3:0] \$11 ;
@@ -12350,7 +11869,7 @@ module \top.debug.uart (rst, data, start, tx, busy, done, clk);
   always @(posedge clk)
     uart_tx_state <= \$12 ;
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$16 ) begin end
     tx = 1'h1;
     casez (uart_tx_state)
       2'h0:
@@ -12362,7 +11881,7 @@ module \top.debug.uart (rst, data, start, tx, busy, done, clk);
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$16 ) begin end
     busy = 1'h0;
     casez (uart_tx_state)
       2'h0:
@@ -12374,7 +11893,7 @@ module \top.debug.uart (rst, data, start, tx, busy, done, clk);
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$16 ) begin end
     done = 1'h0;
     casez (uart_tx_state)
       2'h0:
@@ -12386,7 +11905,7 @@ module \top.debug.uart (rst, data, start, tx, busy, done, clk);
     endcase
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$16 ) begin end
     \$9  = shift_reg;
     casez (uart_tx_state)
       2'h0:
@@ -12403,7 +11922,7 @@ module \top.debug.uart (rst, data, start, tx, busy, done, clk);
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$16 ) begin end
     \$10  = counter;
     casez (uart_tx_state)
       2'h0:
@@ -12423,7 +11942,7 @@ module \top.debug.uart (rst, data, start, tx, busy, done, clk);
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$16 ) begin end
     \$11  = bit_pos;
     casez (uart_tx_state)
       2'h0:
@@ -12440,7 +11959,7 @@ module \top.debug.uart (rst, data, start, tx, busy, done, clk);
     end
   end
   always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$15 ) begin end
+    if (\$auto$verilog_backend.cc:2355:dump_module$16 ) begin end
     \$12  = uart_tx_state;
     casez (uart_tx_state)
       2'h0:

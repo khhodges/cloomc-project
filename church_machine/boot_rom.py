@@ -64,7 +64,9 @@ while len(DEMO_CLIST) < 64:
 class BootRom(Elaboratable):
     """Instruction ROM for Church Machine boot and demo program.
 
-    512 x 32-bit words = 2KB. Fits in a single iCE40 EBR block.
+    Uses Array constants for reliable iCE40 initialization.
+    Only non-zero entries are stored; default is 0.
+    Registered output maintains 1-cycle read latency matching original BRAM behavior.
     """
 
     def __init__(self, program=None):
@@ -80,13 +82,15 @@ class BootRom(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        rom = Memory(width=32, depth=512, init=self.program)
-        m.submodules.rom = rom
-        rd = rom.read_port()
+        rom_comb = Signal(32)
+        with m.Switch(self.addr):
+            for i, word in enumerate(self.program):
+                if word != 0:
+                    with m.Case(i):
+                        m.d.comb += rom_comb.eq(word)
+            with m.Default():
+                m.d.comb += rom_comb.eq(0)
 
-        m.d.comb += [
-            rd.addr.eq(self.addr),
-            self.data.eq(rd.data),
-        ]
+        m.d.sync += self.data.eq(rom_comb)
 
         return m

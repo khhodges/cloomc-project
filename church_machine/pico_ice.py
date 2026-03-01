@@ -259,21 +259,27 @@ class ChurchPicoIce(Elaboratable):
             clist_flat = list(DEMO_CLIST[:64])
 
             init_data = ns_flat + [0] * (192 - len(ns_flat)) + clist_flat + [0] * (64 - len(clist_flat))
+            init_total = len(init_data)
 
-            init_idx = Signal(range(len(init_data) + 1))
+            init_idx = Signal(range(init_total + 1))
             init_done = Signal()
-            init_rom = Memory(width=32, depth=len(init_data), init=init_data)
-            m.submodules.init_rom = init_rom
-            init_rd = init_rom.read_port(transparent=True)
+            init_word = Signal(32)
+
+            with m.Switch(init_idx):
+                for i, word in enumerate(init_data):
+                    if word != 0:
+                        with m.Case(i):
+                            m.d.comb += init_word.eq(word)
+                with m.Default():
+                    m.d.comb += init_word.eq(0)
 
             with m.If(~init_done):
                 m.d.comb += [
-                    init_rd.addr.eq(init_idx),
                     spram.addr.eq(init_idx),
-                    spram.wr_data.eq(init_rd.data),
+                    spram.wr_data.eq(init_word),
                     spram.wr_en.eq(1),
                 ]
-                with m.If(init_idx < len(init_data)):
+                with m.If(init_idx < init_total):
                     m.d.sync += init_idx.eq(init_idx + 1)
                 with m.Else():
                     m.d.sync += init_done.eq(1)
