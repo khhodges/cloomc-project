@@ -289,7 +289,7 @@ class ChurchPicoIce(Elaboratable):
             core.imem_data.eq(boot_rom.data),
         ]
 
-        halted = Signal()
+        halted = Signal(init=1)
         stepping = Signal()
 
         prev_nia = Signal(32)
@@ -300,7 +300,7 @@ class ChurchPicoIce(Elaboratable):
         step_complete = Signal()
         m.d.comb += step_complete.eq(stepping & nia_changed)
 
-        m.d.comb += core.imem_valid.eq(stepping & ~step_complete)
+        m.d.comb += core.imem_valid.eq(~halted | (stepping & ~step_complete))
 
         btn_sync = Signal(3)
         btn_prev = Signal()
@@ -394,26 +394,13 @@ class ChurchPicoIce(Elaboratable):
         step_fault = Signal(4)
         step_had_fault = Signal()
 
-        ST_WAIT_BOOT     = 0
-        ST_SEND_BANNER   = 1
-        ST_DUMP_NIA      = 2
-        ST_SEND_HALT     = 3
-        ST_HALTED        = 4
-        ST_STEP_WAIT     = 5
-        ST_STEP_LABEL    = 6
-        ST_STEP_DUMP_NIA = 7
-        ST_STEP_FAULT_LBL = 8
-        ST_STEP_DUMP_FLT = 9
-
-        dstate = Signal(4)
-
-        with m.Switch(dstate):
-            with m.Case(ST_WAIT_BOOT):
+        with m.FSM(name="debug_fsm"):
+            with m.State("WAIT_BOOT"):
                 with m.If(boot_just_done):
                     m.d.sync += [banner_idx.eq(0), halted.eq(1)]
-                    m.d.sync += dstate.eq(ST_SEND_BANNER)
+                    m.next = "SEND_BANNER"
 
-            with m.Case(ST_SEND_BANNER):
+            with m.State("SEND_BANNER"):
                 with m.If(~debug.busy):
                     with m.If(banner_idx < len(BANNER)):
                         m.d.comb += [
@@ -422,17 +409,17 @@ class ChurchPicoIce(Elaboratable):
                         ]
                         m.d.sync += banner_idx.eq(banner_idx + 1)
                     with m.Else():
-                        m.d.sync += dstate.eq(ST_DUMP_NIA)
+                        m.next = "DUMP_NIA"
 
-            with m.Case(ST_DUMP_NIA):
+            with m.State("DUMP_NIA"):
                 with m.If(~debug.busy):
                     m.d.comb += [
                         debug.data.eq(core.nia),
                         debug.send.eq(1),
                     ]
-                    m.d.sync += dstate.eq(ST_SEND_HALT)
+                    m.next = "SEND_HALT"
 
-            with m.Case(ST_SEND_HALT):
+            with m.State("SEND_HALT"):
                 with m.If(~debug.busy):
                     with m.If(halt_idx < len(HALT_MSG)):
                         m.d.comb += [
@@ -441,13 +428,15 @@ class ChurchPicoIce(Elaboratable):
                         ]
                         m.d.sync += halt_idx.eq(halt_idx + 1)
                     with m.Else():
-                        m.d.sync += [halt_idx.eq(0), dstate.eq(ST_HALTED)]
+                        m.d.sync += halt_idx.eq(0)
+                        m.next = "HALTED"
 
-            with m.Case(ST_HALTED):
+            with m.State("HALTED"):
                 with m.If(btn_press):
-                    m.d.sync += [stepping.eq(1), dstate.eq(ST_STEP_WAIT)]
+                    m.d.sync += stepping.eq(1)
+                    m.next = "STEP_WAIT"
 
-            with m.Case(ST_STEP_WAIT):
+            with m.State("STEP_WAIT"):
                 with m.If(step_complete):
                     m.d.sync += [
                         stepping.eq(0),
@@ -455,10 +444,10 @@ class ChurchPicoIce(Elaboratable):
                         step_fault.eq(core.fault),
                         step_had_fault.eq(core.fault_valid),
                         step_idx.eq(0),
-                        dstate.eq(ST_STEP_LABEL),
                     ]
+                    m.next = "STEP_LABEL"
 
-            with m.Case(ST_STEP_LABEL):
+            with m.State("STEP_LABEL"):
                 with m.If(~debug.busy):
                     with m.If(step_idx < len(STEP_MSG)):
                         m.d.comb += [
@@ -467,20 +456,23 @@ class ChurchPicoIce(Elaboratable):
                         ]
                         m.d.sync += step_idx.eq(step_idx + 1)
                     with m.Else():
-                        m.d.sync += [step_idx.eq(0), dstate.eq(ST_STEP_DUMP_NIA)]
+                        m.d.sync += step_idx.eq(0)
+                        m.next = "STEP_DUMP_NIA"
 
-            with m.Case(ST_STEP_DUMP_NIA):
+            with m.State("STEP_DUMP_NIA"):
                 with m.If(~debug.busy):
                     m.d.comb += [
                         debug.data.eq(step_nia),
                         debug.send.eq(1),
                     ]
                     with m.If(step_had_fault):
-                        m.d.sync += [fault_msg_idx.eq(0), dstate.eq(ST_STEP_FAULT_LBL)]
+                        m.d.sync += fault_msg_idx.eq(0)
+                        m.next = "STEP_FAULT_LABEL"
                     with m.Else():
-                        m.d.sync += [halt_idx.eq(0), dstate.eq(ST_SEND_HALT)]
+                        m.d.sync += halt_idx.eq(0)
+                        m.next = "SEND_HALT"
 
-            with m.Case(ST_STEP_FAULT_LBL):
+            with m.State("STEP_FAULT_LABEL"):
                 with m.If(~debug.busy):
                     with m.If(fault_msg_idx < len(FAULT_MSG)):
                         m.d.comb += [
@@ -489,9 +481,10 @@ class ChurchPicoIce(Elaboratable):
                         ]
                         m.d.sync += fault_msg_idx.eq(fault_msg_idx + 1)
                     with m.Else():
-                        m.d.sync += [fault_msg_idx.eq(0), dstate.eq(ST_STEP_DUMP_FLT)]
+                        m.d.sync += fault_msg_idx.eq(0)
+                        m.next = "STEP_DUMP_FAULT"
 
-            with m.Case(ST_STEP_DUMP_FLT):
+            with m.State("STEP_DUMP_FAULT"):
                 with m.If(~debug.busy):
                     fault_word = Signal(32)
                     m.d.comb += [
@@ -499,6 +492,7 @@ class ChurchPicoIce(Elaboratable):
                         debug.data.eq(fault_word),
                         debug.send.eq(1),
                     ]
-                    m.d.sync += [halt_idx.eq(0), dstate.eq(ST_SEND_HALT)]
+                    m.d.sync += halt_idx.eq(0)
+                    m.next = "SEND_HALT"
 
         return m
