@@ -7,6 +7,11 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   reg \$auto$verilog_backend.cc:2355:dump_module$1  = 0;
   wire \$1 ;
   wire \$10 ;
+  reg \$100 ;
+  reg [1:0] \$101 ;
+  reg [1:0] \$102 ;
+  wire [15:0] \$103 ;
+  wire [15:0] \$104 ;
   wire \$11 ;
   wire \$12 ;
   wire \$13 ;
@@ -47,59 +52,69 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   wire \$45 ;
   wire \$46 ;
   wire \$47 ;
-  wire [9:0] \$48 ;
-  wire [24:0] \$49 ;
+  wire \$48 ;
+  wire \$49 ;
   wire \$5 ;
   wire \$50 ;
   wire \$51 ;
   wire \$52 ;
   wire \$53 ;
-  wire [4:0] \$54 ;
-  wire \$55 ;
+  wire [9:0] \$54 ;
+  wire [24:0] \$55 ;
   wire \$56 ;
   wire \$57 ;
-  wire [4:0] \$58 ;
+  wire \$58 ;
   wire \$59 ;
   wire \$6 ;
-  wire \$60 ;
+  wire [4:0] \$60 ;
   wire \$61 ;
-  wire [3:0] \$62 ;
+  wire \$62 ;
   wire \$63 ;
-  wire \$64 ;
-  wire [2:0] \$65 ;
+  wire [32:0] \$64 ;
+  wire \$65 ;
   wire \$66 ;
   wire \$67 ;
   wire \$68 ;
-  wire [2:0] \$69 ;
+  wire \$69 ;
   wire \$7 ;
-  wire \$70 ;
-  reg [8:0] \$71 ;
-  reg \$72 ;
-  reg [31:0] \$73 ;
-  reg [2:0] \$74 ;
-  reg \$75 ;
-  reg [23:0] \$76 ;
-  reg \$77 ;
-  reg [3:0] \$78 ;
-  reg \$79 ;
+  wire [4:0] \$70 ;
+  wire \$71 ;
+  wire \$72 ;
+  wire \$73 ;
+  wire [3:0] \$74 ;
+  wire \$75 ;
+  wire \$76 ;
+  wire [2:0] \$77 ;
+  wire \$78 ;
+  wire \$79 ;
   wire \$8 ;
-  reg [3:0] \$80 ;
-  reg \$81 ;
-  reg [3:0] \$82 ;
-  reg [2:0] \$83 ;
+  wire \$80 ;
+  wire [2:0] \$81 ;
+  wire \$82 ;
+  reg [8:0] \$83 ;
   reg \$84 ;
   reg [31:0] \$85 ;
-  reg [3:0] \$86 ;
+  reg [2:0] \$86 ;
   reg \$87 ;
-  reg [1:0] \$88 ;
-  reg [1:0] \$89 ;
+  reg [23:0] \$88 ;
+  reg \$89 ;
   wire \$9 ;
-  wire [15:0] \$90 ;
-  wire [15:0] \$91 ;
+  reg [3:0] \$90 ;
+  reg \$91 ;
+  reg [3:0] \$92 ;
+  reg [31:0] \$93 ;
+  reg [3:0] \$94 ;
+  reg \$95 ;
+  reg [2:0] \$96 ;
+  reg \$97 ;
+  reg [31:0] \$98 ;
+  reg [3:0] \$99 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:20" *)
   reg [13:0] addr;
   (* src = "/home/runner/workspace/church_machine/boot_rom.py:79" *)
   wire [8:0] \addr$34 ;
+  (* src = "/home/runner/workspace/church_machine/pico_ice.py:392" *)
+  reg [31:0] alive_counter = 32'd0;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:219" *)
   wire any_clist_access;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:218" *)
@@ -119,6 +134,8 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   wire boot_gate;
   (* src = "/home/runner/workspace/church_machine/core.py:59" *)
   reg boot_start;
+  (* src = "/home/runner/workspace/church_machine/core.py:60" *)
+  wire [2:0] boot_state;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:356" *)
   reg boot_triggered = 1'h0;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:313" *)
@@ -163,7 +180,7 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   (* src = "/home/runner/workspace/church_machine/boot_rom.py:80" *)
   wire [31:0] data;
   (* src = "/home/runner/workspace/church_machine/uart_tx.py:89" *)
-  reg [31:0] \data$77 ;
+  reg [31:0] \data$75 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:132" *)
   wire dbg_boot_complete;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:130" *)
@@ -190,7 +207,7 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   reg [1:0] fault_msg_idx = 2'h0;
   (* src = "/home/runner/workspace/church_machine/core.py:68" *)
   wire fault_valid;
-  (* src = "/home/runner/workspace/church_machine/pico_ice.py:484" *)
+  (* src = "/home/runner/workspace/church_machine/pico_ice.py:524" *)
   reg [31:0] fault_word;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:73" *)
   wire g;
@@ -288,6 +305,12 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   reg wr_en;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:23" *)
   reg \wr_en$30 ;
+  assign \$1  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:276" *) init_done;
+  assign nia_changed = imem_addr != (* src = "/home/runner/workspace/church_machine/pico_ice.py:298" *) prev_nia;
+  assign step_complete = stepping & (* src = "/home/runner/workspace/church_machine/pico_ice.py:301" *) nia_changed;
+  assign \$2  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:303" *) halted;
+  assign \$3  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:303" *) step_complete;
+  assign \$4  = stepping & (* src = "/home/runner/workspace/church_machine/pico_ice.py:303" *) \$3 ;
   assign imem_valid = \$2  | (* src = "/home/runner/workspace/church_machine/pico_ice.py:303" *) \$4 ;
   assign \$5  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:314" *) btn_sync[2];
   assign btn_press = btn_prev & (* src = "/home/runner/workspace/church_machine/pico_ice.py:314" *) \$5 ;
@@ -314,115 +337,124 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   assign \$22  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:358" *) boot_triggered;
   assign \$23  = \$22  & (* src = "/home/runner/workspace/church_machine/pico_ice.py:358" *) init_done;
   assign \$24  = boot_delay == (* src = "/home/runner/workspace/church_machine/pico_ice.py:360" *) 4'hf;
-  assign \$25  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:399" *) busy;
-  assign \$26  = banner_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:400" *) 4'hd;
-  assign \$27  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:410" *) busy;
-  assign \$28  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:418" *) busy;
-  assign \$29  = halt_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:419" *) 3'h6;
-  assign \$30  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:446" *) busy;
-  assign \$31  = step_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:447" *) 2'h2;
-  assign \$32  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:458" *) busy;
-  assign \$33  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:471" *) busy;
-  assign \$34  = fault_msg_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:472" *) 2'h2;
-  assign \$35  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:483" *) busy;
-  assign \$36  = ! (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) debug_fsm_state;
-  assign \$37  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 1'h1;
-  assign \$38  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 2'h2;
-  assign \$39  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 2'h3;
-  assign \$40  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h4;
-  assign \$41  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h5;
-  assign \$42  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h6;
-  assign \$43  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h7;
-  assign \$44  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'h8;
-  assign \$45  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'h9;
-  assign \$46  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:276" *) init_done;
-  assign \$47  = init_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:282" *) 9'h100;
-  assign \$48  = init_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:283" *) 1'h1;
-  assign \$49  = heartbeat_ctr + (* src = "/home/runner/workspace/church_machine/pico_ice.py:327" *) 1'h1;
-  assign \$50  = heartbeat_ctr == (* src = "/home/runner/workspace/church_machine/pico_ice.py:328" *) 24'hb71aff;
-  assign \$51  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:329" *) heartbeat_blink;
-  assign \$52  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:358" *) boot_triggered;
-  assign \$53  = \$52  & (* src = "/home/runner/workspace/church_machine/pico_ice.py:358" *) init_done;
-  assign \$54  = boot_delay + (* src = "/home/runner/workspace/church_machine/pico_ice.py:359" *) 1'h1;
-  assign \$55  = boot_delay == (* src = "/home/runner/workspace/church_machine/pico_ice.py:360" *) 4'hf;
-  assign \$56  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:399" *) busy;
-  assign \$57  = banner_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:400" *) 4'hd;
-  assign \$58  = banner_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:405" *) 1'h1;
-  assign \$59  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:410" *) busy;
-  assign \$60  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:418" *) busy;
-  assign \$61  = halt_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:419" *) 3'h6;
-  assign \$62  = halt_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:424" *) 1'h1;
-  assign \$63  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:446" *) busy;
-  assign \$64  = step_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:447" *) 2'h2;
-  assign \$65  = step_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:452" *) 1'h1;
-  assign \$66  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:458" *) busy;
-  assign \$67  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:471" *) busy;
-  assign \$68  = fault_msg_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:472" *) 2'h2;
-  assign \$69  = fault_msg_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:477" *) 1'h1;
-  assign \$70  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:483" *) busy;
+  assign \$25  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:396" *) busy;
+  assign \$26  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:417" *) busy;
+  assign \$27  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:439" *) busy;
+  assign \$28  = banner_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:440" *) 4'hd;
+  assign \$29  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:450" *) busy;
+  assign \$30  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:458" *) busy;
+  assign \$31  = halt_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:459" *) 3'h6;
+  assign \$32  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:486" *) busy;
+  assign \$33  = step_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:487" *) 2'h2;
+  assign \$34  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:498" *) busy;
+  assign \$35  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:511" *) busy;
+  assign \$36  = fault_msg_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:512" *) 2'h2;
+  assign \$37  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:523" *) busy;
+  assign \$38  = ! (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) debug_fsm_state;
+  assign \$39  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 1'h1;
+  assign \$40  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 2'h2;
+  assign \$41  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 2'h3;
+  assign \$42  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h4;
+  assign \$43  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h5;
+  assign \$44  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h6;
+  assign \$45  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 3'h7;
+  assign \$46  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'h8;
+  assign \$47  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'h9;
+  assign \$48  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'ha;
+  assign \$49  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'hb;
+  assign \$50  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'hc;
+  assign \$51  = debug_fsm_state == (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) 4'hd;
+  assign \$52  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:276" *) init_done;
+  assign \$53  = init_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:282" *) 9'h100;
+  assign \$54  = init_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:283" *) 1'h1;
+  assign \$55  = heartbeat_ctr + (* src = "/home/runner/workspace/church_machine/pico_ice.py:327" *) 1'h1;
+  assign \$56  = heartbeat_ctr == (* src = "/home/runner/workspace/church_machine/pico_ice.py:328" *) 24'hb71aff;
+  assign \$57  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:329" *) heartbeat_blink;
+  assign \$58  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:358" *) boot_triggered;
+  assign \$59  = \$58  & (* src = "/home/runner/workspace/church_machine/pico_ice.py:358" *) init_done;
+  assign \$60  = boot_delay + (* src = "/home/runner/workspace/church_machine/pico_ice.py:359" *) 1'h1;
+  assign \$61  = boot_delay == (* src = "/home/runner/workspace/church_machine/pico_ice.py:360" *) 4'hf;
+  assign \$62  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:396" *) busy;
+  assign \$63  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:404" *) busy;
+  assign \$64  = alive_counter + (* src = "/home/runner/workspace/church_machine/pico_ice.py:408" *) 1'h1;
+  assign \$65  = alive_counter == (* src = "/home/runner/workspace/church_machine/pico_ice.py:412" *) 24'hb71aff;
+  assign \$66  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:417" *) busy;
+  assign \$67  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:435" *) busy;
+  assign \$68  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:439" *) busy;
+  assign \$69  = banner_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:440" *) 4'hd;
+  assign \$70  = banner_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:445" *) 1'h1;
+  assign \$71  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:450" *) busy;
+  assign \$72  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:458" *) busy;
+  assign \$73  = halt_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:459" *) 3'h6;
+  assign \$74  = halt_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:464" *) 1'h1;
+  assign \$75  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:486" *) busy;
+  assign \$76  = step_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:487" *) 2'h2;
+  assign \$77  = step_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:492" *) 1'h1;
+  assign \$78  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:498" *) busy;
+  assign \$79  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:511" *) busy;
+  assign \$80  = fault_msg_idx < (* src = "/home/runner/workspace/church_machine/pico_ice.py:512" *) 2'h2;
+  assign \$81  = fault_msg_idx + (* src = "/home/runner/workspace/church_machine/pico_ice.py:517" *) 1'h1;
+  assign \$82  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:523" *) busy;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:264" *)
   always @(posedge clk)
-    init_idx <= \$71 ;
+    init_idx <= \$83 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:265" *)
   always @(posedge clk)
-    init_done <= \$72 ;
+    init_done <= \$84 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:295" *)
   always @(posedge clk)
-    prev_nia <= \$73 ;
+    prev_nia <= \$85 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:305" *)
   always @(posedge clk)
-    btn_sync <= \$74 ;
+    btn_sync <= \$86 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:306" *)
   always @(posedge clk)
-    btn_prev <= \$75 ;
+    btn_prev <= \$87 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:325" *)
   always @(posedge clk)
-    heartbeat_ctr <= \$76 ;
+    heartbeat_ctr <= \$88 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:326" *)
   always @(posedge clk)
-    heartbeat_blink <= \$77 ;
+    heartbeat_blink <= \$89 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:355" *)
   always @(posedge clk)
-    boot_delay <= \$78 ;
+    boot_delay <= \$90 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:356" *)
   always @(posedge clk)
-    boot_triggered <= \$79 ;
-  (* src = "/home/runner/workspace/church_machine/pico_ice.py:369" *)
-  always @(posedge clk)
-    banner_idx <= \$80 ;
-  (* src = "/home/runner/workspace/church_machine/pico_ice.py:292" *)
-  always @(posedge clk)
-    halted <= \$81 ;
+    boot_triggered <= \$91 ;
   (* src = "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144" *)
   always @(posedge clk)
-    debug_fsm_state <= \$82 ;
+    debug_fsm_state <= \$92 ;
+  (* src = "/home/runner/workspace/church_machine/pico_ice.py:392" *)
+  always @(posedge clk)
+    alive_counter <= \$93 ;
+  (* src = "/home/runner/workspace/church_machine/pico_ice.py:369" *)
+  always @(posedge clk)
+    banner_idx <= \$94 ;
+  (* src = "/home/runner/workspace/church_machine/pico_ice.py:292" *)
+  always @(posedge clk)
+    halted <= \$95 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:374" *)
   always @(posedge clk)
-    halt_idx <= \$83 ;
+    halt_idx <= \$96 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:293" *)
   always @(posedge clk)
-    stepping <= \$84 ;
+    stepping <= \$97 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:388" *)
   always @(posedge clk)
-    step_nia <= \$85 ;
+    step_nia <= \$98 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:389" *)
   always @(posedge clk)
-    step_fault <= \$86 ;
+    step_fault <= \$99 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:390" *)
   always @(posedge clk)
-    step_had_fault <= \$87 ;
+    step_had_fault <= \$100 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:379" *)
   always @(posedge clk)
-    step_idx <= \$88 ;
+    step_idx <= \$101 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:384" *)
   always @(posedge clk)
-    fault_msg_idx <= \$89 ;
-  assign \$1  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:276" *) init_done;
-  assign nia_changed = imem_addr != (* src = "/home/runner/workspace/church_machine/pico_ice.py:298" *) prev_nia;
-  assign step_complete = stepping & (* src = "/home/runner/workspace/church_machine/pico_ice.py:301" *) nia_changed;
-  assign \$2  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:303" *) halted;
-  assign \$3  = ~ (* src = "/home/runner/workspace/church_machine/pico_ice.py:303" *) step_complete;
-  assign \$4  = stepping & (* src = "/home/runner/workspace/church_machine/pico_ice.py:303" *) \$3 ;
+    fault_msg_idx <= \$102 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:141" *)
   \top.boot_rom  boot_rom (
     .addr(imem_addr[10:2]),
@@ -434,6 +466,7 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   \top.core  core (
     .boot_complete(dbg_boot_complete),
     .boot_start(boot_start),
+    .boot_state(boot_state),
     .clk(clk),
     .dmem_addr(dmem_addr),
     .dmem_wr_data(dmem_wr_data),
@@ -444,8 +477,8 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
     .imem_valid(imem_valid),
     .instruction(imem_data),
     .perm_gt_sig(clist_wr_data),
-    .\port$1247$0 (\$90 ),
-    .\port$1248$0 (\$91 ),
+    .\port$1276$0 (\$103 ),
+    .\port$1277$0 (\$104 ),
     .rst(rst)
   );
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:144" *)
@@ -453,7 +486,7 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
     .busy(busy),
     .byte_data(byte_data),
     .clk(clk),
-    .\data$16 (\data$77 ),
+    .\data$16 (\data$75 ),
     .rst(rst),
     .send(send),
     .send_byte(send_byte),
@@ -469,8 +502,8 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   \top.spram  spram (
     .addr(addr),
     .clk(clk),
-    .\port$1247$0 (\$90 ),
-    .\port$1248$0 (\$91 ),
+    .\port$1276$0 (\$103 ),
+    .\port$1277$0 (\$104 ),
     .wr_data(\wr_data$29 ),
     .wr_en(\wr_en$30 )
   );
@@ -686,39 +719,135 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \data$75  = 32'd0;
+    casez (debug_fsm_state)
+      4'h0:
+          if (\$25 ) begin
+            \data$75  = 32'd3390155550;
+          end
+      4'h1:
+          /* empty */;
+      4'h2:
+          /* empty */;
+      4'h4:
+          if (\$26 ) begin
+            \data$75  = { 21'h000000, dbg_fault, led_r, boot_state, dbg_boot_complete, boot_triggered, init_done };
+          end
+      4'h5:
+          /* empty */;
+      4'h3:
+          /* empty */;
+      4'h6:
+          if (\$29 ) begin
+            \data$75  = imem_addr;
+          end
+      4'h7:
+          /* empty */;
+      4'h8:
+          /* empty */;
+      4'h9:
+          /* empty */;
+      4'ha:
+          /* empty */;
+      4'hb:
+          if (\$34 ) begin
+            \data$75  = step_nia;
+          end
+      4'hc:
+          /* empty */;
+      4'hd:
+          if (\$37 ) begin
+            \data$75  = fault_word;
+          end
+    endcase
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    send = 1'h0;
+    casez (debug_fsm_state)
+      4'h0:
+          if (\$25 ) begin
+            send = 1'h1;
+          end
+      4'h1:
+          /* empty */;
+      4'h2:
+          /* empty */;
+      4'h4:
+          if (\$26 ) begin
+            send = 1'h1;
+          end
+      4'h5:
+          /* empty */;
+      4'h3:
+          /* empty */;
+      4'h6:
+          if (\$29 ) begin
+            send = 1'h1;
+          end
+      4'h7:
+          /* empty */;
+      4'h8:
+          /* empty */;
+      4'h9:
+          /* empty */;
+      4'ha:
+          /* empty */;
+      4'hb:
+          if (\$34 ) begin
+            send = 1'h1;
+          end
+      4'hc:
+          /* empty */;
+      4'hd:
+          if (\$37 ) begin
+            send = 1'h1;
+          end
+    endcase
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
     byte_data = 8'h00;
     casez (debug_fsm_state)
       4'h0:
           /* empty */;
       4'h1:
-          if (\$25 ) begin
-            if (\$26 ) begin
-              byte_data = banner_byte;
-            end
-          end
+          /* empty */;
       4'h2:
           /* empty */;
-      4'h3:
-          if (\$28 ) begin
-            if (\$29 ) begin
-              byte_data = halt_byte;
-            end
-          end
       4'h4:
           /* empty */;
       4'h5:
           /* empty */;
+      4'h3:
+          if (\$27 ) begin
+            if (\$28 ) begin
+              byte_data = banner_byte;
+            end
+          end
       4'h6:
+          /* empty */;
+      4'h7:
           if (\$30 ) begin
             if (\$31 ) begin
+              byte_data = halt_byte;
+            end
+          end
+      4'h8:
+          /* empty */;
+      4'h9:
+          /* empty */;
+      4'ha:
+          if (\$32 ) begin
+            if (\$33 ) begin
               byte_data = step_byte;
             end
           end
-      4'h7:
+      4'hb:
           /* empty */;
-      4'h8:
-          if (\$33 ) begin
-            if (\$34 ) begin
+      4'hc:
+          if (\$35 ) begin
+            if (\$36 ) begin
               byte_data = fault_byte;
             end
           end
@@ -731,100 +860,44 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
       4'h0:
           /* empty */;
       4'h1:
-          if (\$25 ) begin
-            if (\$26 ) begin
-              send_byte = 1'h1;
-            end
-          end
+          /* empty */;
       4'h2:
           /* empty */;
-      4'h3:
-          if (\$28 ) begin
-            if (\$29 ) begin
-              send_byte = 1'h1;
-            end
-          end
       4'h4:
           /* empty */;
       4'h5:
           /* empty */;
+      4'h3:
+          if (\$27 ) begin
+            if (\$28 ) begin
+              send_byte = 1'h1;
+            end
+          end
       4'h6:
+          /* empty */;
+      4'h7:
           if (\$30 ) begin
             if (\$31 ) begin
               send_byte = 1'h1;
             end
           end
-      4'h7:
-          /* empty */;
       4'h8:
-          if (\$33 ) begin
-            if (\$34 ) begin
+          /* empty */;
+      4'h9:
+          /* empty */;
+      4'ha:
+          if (\$32 ) begin
+            if (\$33 ) begin
               send_byte = 1'h1;
             end
           end
-    endcase
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \data$77  = 32'd0;
-    casez (debug_fsm_state)
-      4'h0:
+      4'hb:
           /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          if (\$27 ) begin
-            \data$77  = imem_addr;
-          end
-      4'h3:
-          /* empty */;
-      4'h4:
-          /* empty */;
-      4'h5:
-          /* empty */;
-      4'h6:
-          /* empty */;
-      4'h7:
-          if (\$32 ) begin
-            \data$77  = step_nia;
-          end
-      4'h8:
-          /* empty */;
-      4'h9:
+      4'hc:
           if (\$35 ) begin
-            \data$77  = fault_word;
-          end
-    endcase
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    send = 1'h0;
-    casez (debug_fsm_state)
-      4'h0:
-          /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          if (\$27 ) begin
-            send = 1'h1;
-          end
-      4'h3:
-          /* empty */;
-      4'h4:
-          /* empty */;
-      4'h5:
-          /* empty */;
-      4'h6:
-          /* empty */;
-      4'h7:
-          if (\$32 ) begin
-            send = 1'h1;
-          end
-      4'h8:
-          /* empty */;
-      4'h9:
-          if (\$35 ) begin
-            send = 1'h1;
+            if (\$36 ) begin
+              send_byte = 1'h1;
+            end
           end
     endcase
   end
@@ -838,11 +911,11 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
           /* empty */;
       4'h2:
           /* empty */;
-      4'h3:
-          /* empty */;
       4'h4:
           /* empty */;
       4'h5:
+          /* empty */;
+      4'h3:
           /* empty */;
       4'h6:
           /* empty */;
@@ -851,377 +924,266 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
       4'h8:
           /* empty */;
       4'h9:
-          if (\$35 ) begin
+          /* empty */;
+      4'ha:
+          /* empty */;
+      4'hb:
+          /* empty */;
+      4'hc:
+          /* empty */;
+      4'hd:
+          if (\$37 ) begin
             fault_word = { 28'h0000000, step_fault };
           end
     endcase
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$71  = init_idx;
-    if (\$46 ) begin
-      if (\$47 ) begin
-        \$71  = \$48 [8:0];
+    \$83  = init_idx;
+    if (\$52 ) begin
+      if (\$53 ) begin
+        \$83  = \$54 [8:0];
       end
     end
     if (rst) begin
-      \$71  = 9'h000;
+      \$83  = 9'h000;
     end
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$72  = init_done;
-    if (\$46 ) begin
+    \$84  = init_done;
+    if (\$52 ) begin
       (* full_case = 32'd1 *)
-      if (\$47 ) begin
+      if (\$53 ) begin
       end else begin
-        \$72  = 1'h1;
+        \$84  = 1'h1;
       end
     end
-    if (rst) begin
-      \$72  = 1'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$73  = imem_addr;
-    if (rst) begin
-      \$73  = 32'd0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$74 [0] = push_button;
-    \$74 [1] = btn_sync[0];
-    \$74 [2] = btn_sync[1];
-    if (rst) begin
-      \$74  = 3'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$75  = btn_sync[2];
-    if (rst) begin
-      \$75  = 1'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$76  = \$49 [23:0];
-    if (\$50 ) begin
-      \$76  = 24'h000000;
-    end
-    if (rst) begin
-      \$76  = 24'h000000;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$77  = heartbeat_blink;
-    if (\$50 ) begin
-      \$77  = \$51 ;
-    end
-    if (rst) begin
-      \$77  = 1'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$78  = boot_delay;
-    if (\$53 ) begin
-      \$78  = \$54 [3:0];
-    end
-    if (rst) begin
-      \$78  = 4'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$79  = boot_triggered;
-    if (\$53 ) begin
-      if (\$55 ) begin
-        \$79  = 1'h1;
-      end
-    end
-    if (rst) begin
-      \$79  = 1'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$80  = banner_idx;
-    casez (debug_fsm_state)
-      4'h0:
-          if (dbg_boot_complete) begin
-            \$80  = 4'h0;
-          end
-      4'h1:
-          if (\$56 ) begin
-            if (\$57 ) begin
-              \$80  = \$58 [3:0];
-            end
-          end
-    endcase
-    if (rst) begin
-      \$80  = 4'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$81  = halted;
-    casez (debug_fsm_state)
-      4'h0:
-          if (dbg_boot_complete) begin
-            \$81  = 1'h1;
-          end
-    endcase
-    if (rst) begin
-      \$81  = 1'h1;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$82  = debug_fsm_state;
-    casez (debug_fsm_state)
-      4'h0:
-          if (dbg_boot_complete) begin
-            \$82  = 4'h1;
-          end
-      4'h1:
-          if (\$56 ) begin
-            (* full_case = 32'd1 *)
-            if (\$57 ) begin
-            end else begin
-              \$82  = 4'h2;
-            end
-          end
-      4'h2:
-          if (\$59 ) begin
-            \$82  = 4'h3;
-          end
-      4'h3:
-          if (\$60 ) begin
-            (* full_case = 32'd1 *)
-            if (\$61 ) begin
-            end else begin
-              \$82  = 4'h4;
-            end
-          end
-      4'h4:
-          if (btn_press) begin
-            \$82  = 4'h5;
-          end
-      4'h5:
-          if (step_complete) begin
-            \$82  = 4'h6;
-          end
-      4'h6:
-          if (\$63 ) begin
-            (* full_case = 32'd1 *)
-            if (\$64 ) begin
-            end else begin
-              \$82  = 4'h7;
-            end
-          end
-      4'h7:
-          if (\$66 ) begin
-            (* full_case = 32'd1 *)
-            if (step_had_fault) begin
-              \$82  = 4'h8;
-            end else begin
-              \$82  = 4'h3;
-            end
-          end
-      4'h8:
-          if (\$67 ) begin
-            (* full_case = 32'd1 *)
-            if (\$68 ) begin
-            end else begin
-              \$82  = 4'h9;
-            end
-          end
-      4'h9:
-          if (\$70 ) begin
-            \$82  = 4'h3;
-          end
-    endcase
-    if (rst) begin
-      \$82  = 4'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$83  = halt_idx;
-    casez (debug_fsm_state)
-      4'h0:
-          /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          /* empty */;
-      4'h3:
-          if (\$60 ) begin
-            (* full_case = 32'd1 *)
-            if (\$61 ) begin
-              \$83  = \$62 [2:0];
-            end else begin
-              \$83  = 3'h0;
-            end
-          end
-      4'h4:
-          /* empty */;
-      4'h5:
-          /* empty */;
-      4'h6:
-          /* empty */;
-      4'h7:
-          if (\$66 ) begin
-            (* full_case = 32'd1 *)
-            if (step_had_fault) begin
-            end else begin
-              \$83  = 3'h0;
-            end
-          end
-      4'h8:
-          /* empty */;
-      4'h9:
-          if (\$70 ) begin
-            \$83  = 3'h0;
-          end
-    endcase
-    if (rst) begin
-      \$83  = 3'h0;
-    end
-  end
-  always @* begin
-    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$84  = stepping;
-    casez (debug_fsm_state)
-      4'h0:
-          /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          /* empty */;
-      4'h3:
-          /* empty */;
-      4'h4:
-          if (btn_press) begin
-            \$84  = 1'h1;
-          end
-      4'h5:
-          if (step_complete) begin
-            \$84  = 1'h0;
-          end
-    endcase
     if (rst) begin
       \$84  = 1'h0;
     end
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$85  = step_nia;
-    casez (debug_fsm_state)
-      4'h0:
-          /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          /* empty */;
-      4'h3:
-          /* empty */;
-      4'h4:
-          /* empty */;
-      4'h5:
-          if (step_complete) begin
-            \$85  = imem_addr;
-          end
-    endcase
+    \$85  = imem_addr;
     if (rst) begin
       \$85  = 32'd0;
     end
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$86  = step_fault;
-    casez (debug_fsm_state)
-      4'h0:
-          /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          /* empty */;
-      4'h3:
-          /* empty */;
-      4'h4:
-          /* empty */;
-      4'h5:
-          if (step_complete) begin
-            \$86  = dbg_fault;
-          end
-    endcase
+    \$86 [0] = push_button;
+    \$86 [1] = btn_sync[0];
+    \$86 [2] = btn_sync[1];
     if (rst) begin
-      \$86  = 4'h0;
+      \$86  = 3'h0;
     end
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$87  = step_had_fault;
-    casez (debug_fsm_state)
-      4'h0:
-          /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          /* empty */;
-      4'h3:
-          /* empty */;
-      4'h4:
-          /* empty */;
-      4'h5:
-          if (step_complete) begin
-            \$87  = led_r;
-          end
-    endcase
+    \$87  = btn_sync[2];
     if (rst) begin
       \$87  = 1'h0;
     end
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$88  = step_idx;
-    casez (debug_fsm_state)
-      4'h0:
-          /* empty */;
-      4'h1:
-          /* empty */;
-      4'h2:
-          /* empty */;
-      4'h3:
-          /* empty */;
-      4'h4:
-          /* empty */;
-      4'h5:
-          if (step_complete) begin
-            \$88  = 2'h0;
-          end
-      4'h6:
-          if (\$63 ) begin
-            (* full_case = 32'd1 *)
-            if (\$64 ) begin
-              \$88  = \$65 [1:0];
-            end else begin
-              \$88  = 2'h0;
-            end
-          end
-    endcase
+    \$88  = \$55 [23:0];
+    if (\$56 ) begin
+      \$88  = 24'h000000;
+    end
     if (rst) begin
-      \$88  = 2'h0;
+      \$88  = 24'h000000;
     end
   end
   always @* begin
     if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
-    \$89  = fault_msg_idx;
+    \$89  = heartbeat_blink;
+    if (\$56 ) begin
+      \$89  = \$57 ;
+    end
+    if (rst) begin
+      \$89  = 1'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$90  = boot_delay;
+    if (\$59 ) begin
+      \$90  = \$60 [3:0];
+    end
+    if (rst) begin
+      \$90  = 4'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$91  = boot_triggered;
+    if (\$59 ) begin
+      if (\$61 ) begin
+        \$91  = 1'h1;
+      end
+    end
+    if (rst) begin
+      \$91  = 1'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$92  = debug_fsm_state;
+    casez (debug_fsm_state)
+      4'h0:
+          if (\$62 ) begin
+            \$92  = 4'h1;
+          end
+      4'h1:
+          if (\$63 ) begin
+            \$92  = 4'h2;
+          end
+      4'h2:
+          if (dbg_boot_complete) begin
+            \$92  = 4'h3;
+          end else if (\$65 ) begin
+            \$92  = 4'h4;
+          end
+      4'h4:
+          if (\$66 ) begin
+            \$92  = 4'h5;
+          end
+      4'h5:
+          if (\$67 ) begin
+            \$92  = 4'h2;
+          end
+      4'h3:
+          if (\$68 ) begin
+            (* full_case = 32'd1 *)
+            if (\$69 ) begin
+            end else begin
+              \$92  = 4'h6;
+            end
+          end
+      4'h6:
+          if (\$71 ) begin
+            \$92  = 4'h7;
+          end
+      4'h7:
+          if (\$72 ) begin
+            (* full_case = 32'd1 *)
+            if (\$73 ) begin
+            end else begin
+              \$92  = 4'h8;
+            end
+          end
+      4'h8:
+          if (btn_press) begin
+            \$92  = 4'h9;
+          end
+      4'h9:
+          if (step_complete) begin
+            \$92  = 4'ha;
+          end
+      4'ha:
+          if (\$75 ) begin
+            (* full_case = 32'd1 *)
+            if (\$76 ) begin
+            end else begin
+              \$92  = 4'hb;
+            end
+          end
+      4'hb:
+          if (\$78 ) begin
+            (* full_case = 32'd1 *)
+            if (step_had_fault) begin
+              \$92  = 4'hc;
+            end else begin
+              \$92  = 4'h7;
+            end
+          end
+      4'hc:
+          if (\$79 ) begin
+            (* full_case = 32'd1 *)
+            if (\$80 ) begin
+            end else begin
+              \$92  = 4'hd;
+            end
+          end
+      4'hd:
+          if (\$82 ) begin
+            \$92  = 4'h7;
+          end
+    endcase
+    if (rst) begin
+      \$92  = 4'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$93  = alive_counter;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+        begin
+          \$93  = \$64 [31:0];
+          if (dbg_boot_complete) begin
+          end else if (\$65 ) begin
+            \$93  = 32'd0;
+          end
+        end
+    endcase
+    if (rst) begin
+      \$93  = 32'd0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$94  = banner_idx;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+          if (dbg_boot_complete) begin
+            \$94  = 4'h0;
+          end
+      4'h4:
+          /* empty */;
+      4'h5:
+          /* empty */;
+      4'h3:
+          if (\$68 ) begin
+            if (\$69 ) begin
+              \$94  = \$70 [3:0];
+            end
+          end
+    endcase
+    if (rst) begin
+      \$94  = 4'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$95  = halted;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+          if (dbg_boot_complete) begin
+            \$95  = 1'h1;
+          end
+    endcase
+    if (rst) begin
+      \$95  = 1'h1;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$96  = halt_idx;
     casez (debug_fsm_state)
       4'h0:
           /* empty */;
@@ -1229,32 +1191,258 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
           /* empty */;
       4'h2:
           /* empty */;
+      4'h4:
+          /* empty */;
+      4'h5:
+          /* empty */;
       4'h3:
+          /* empty */;
+      4'h6:
+          /* empty */;
+      4'h7:
+          if (\$72 ) begin
+            (* full_case = 32'd1 *)
+            if (\$73 ) begin
+              \$96  = \$74 [2:0];
+            end else begin
+              \$96  = 3'h0;
+            end
+          end
+      4'h8:
+          /* empty */;
+      4'h9:
+          /* empty */;
+      4'ha:
+          /* empty */;
+      4'hb:
+          if (\$78 ) begin
+            (* full_case = 32'd1 *)
+            if (step_had_fault) begin
+            end else begin
+              \$96  = 3'h0;
+            end
+          end
+      4'hc:
+          /* empty */;
+      4'hd:
+          if (\$82 ) begin
+            \$96  = 3'h0;
+          end
+    endcase
+    if (rst) begin
+      \$96  = 3'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$97  = stepping;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
           /* empty */;
       4'h4:
           /* empty */;
       4'h5:
           /* empty */;
+      4'h3:
+          /* empty */;
       4'h6:
           /* empty */;
       4'h7:
-          if (\$66 ) begin
-            if (step_had_fault) begin
-              \$89  = 2'h0;
-            end
-          end
+          /* empty */;
       4'h8:
-          if (\$67 ) begin
+          if (btn_press) begin
+            \$97  = 1'h1;
+          end
+      4'h9:
+          if (step_complete) begin
+            \$97  = 1'h0;
+          end
+    endcase
+    if (rst) begin
+      \$97  = 1'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$98  = step_nia;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+          /* empty */;
+      4'h4:
+          /* empty */;
+      4'h5:
+          /* empty */;
+      4'h3:
+          /* empty */;
+      4'h6:
+          /* empty */;
+      4'h7:
+          /* empty */;
+      4'h8:
+          /* empty */;
+      4'h9:
+          if (step_complete) begin
+            \$98  = imem_addr;
+          end
+    endcase
+    if (rst) begin
+      \$98  = 32'd0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$99  = step_fault;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+          /* empty */;
+      4'h4:
+          /* empty */;
+      4'h5:
+          /* empty */;
+      4'h3:
+          /* empty */;
+      4'h6:
+          /* empty */;
+      4'h7:
+          /* empty */;
+      4'h8:
+          /* empty */;
+      4'h9:
+          if (step_complete) begin
+            \$99  = dbg_fault;
+          end
+    endcase
+    if (rst) begin
+      \$99  = 4'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$100  = step_had_fault;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+          /* empty */;
+      4'h4:
+          /* empty */;
+      4'h5:
+          /* empty */;
+      4'h3:
+          /* empty */;
+      4'h6:
+          /* empty */;
+      4'h7:
+          /* empty */;
+      4'h8:
+          /* empty */;
+      4'h9:
+          if (step_complete) begin
+            \$100  = led_r;
+          end
+    endcase
+    if (rst) begin
+      \$100  = 1'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$101  = step_idx;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+          /* empty */;
+      4'h4:
+          /* empty */;
+      4'h5:
+          /* empty */;
+      4'h3:
+          /* empty */;
+      4'h6:
+          /* empty */;
+      4'h7:
+          /* empty */;
+      4'h8:
+          /* empty */;
+      4'h9:
+          if (step_complete) begin
+            \$101  = 2'h0;
+          end
+      4'ha:
+          if (\$75 ) begin
             (* full_case = 32'd1 *)
-            if (\$68 ) begin
-              \$89  = \$69 [1:0];
+            if (\$76 ) begin
+              \$101  = \$77 [1:0];
             end else begin
-              \$89  = 2'h0;
+              \$101  = 2'h0;
             end
           end
     endcase
     if (rst) begin
-      \$89  = 2'h0;
+      \$101  = 2'h0;
+    end
+  end
+  always @* begin
+    if (\$auto$verilog_backend.cc:2355:dump_module$1 ) begin end
+    \$102  = fault_msg_idx;
+    casez (debug_fsm_state)
+      4'h0:
+          /* empty */;
+      4'h1:
+          /* empty */;
+      4'h2:
+          /* empty */;
+      4'h4:
+          /* empty */;
+      4'h5:
+          /* empty */;
+      4'h3:
+          /* empty */;
+      4'h6:
+          /* empty */;
+      4'h7:
+          /* empty */;
+      4'h8:
+          /* empty */;
+      4'h9:
+          /* empty */;
+      4'ha:
+          /* empty */;
+      4'hb:
+          if (\$78 ) begin
+            if (step_had_fault) begin
+              \$102  = 2'h0;
+            end
+          end
+      4'hc:
+          if (\$79 ) begin
+            (* full_case = 32'd1 *)
+            if (\$80 ) begin
+              \$102  = \$81 [1:0];
+            end else begin
+              \$102  = 2'h0;
+            end
+          end
+    endcase
+    if (rst) begin
+      \$102  = 2'h0;
     end
   end
   assign ns_rd_en = 1'h0;
@@ -1263,10 +1451,10 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   assign clist_wr_en = 1'h0;
   assign ns_addr = 32'd0;
   assign clist_addr = 32'd0;
-  assign dmem_rd_data = { \$91 , \$90  };
-  assign rd_data = { \$91 , \$90  };
-  assign ns_rd_data = { 64'h0000000000000000, \$91 , \$90  };
-  assign clist_rd_data = { \$91 , \$90  };
+  assign dmem_rd_data = { \$104 , \$103  };
+  assign rd_data = { \$104 , \$103  };
+  assign ns_rd_data = { 64'h0000000000000000, \$104 , \$103  };
+  assign clist_rd_data = { \$104 , \$103  };
   assign ns_wr_data = 96'h000000000000000000000000;
   assign \addr$34  = imem_addr[10:2];
   assign data = imem_data;
@@ -1280,10 +1468,10 @@ module top(push_button, clk, uart_tx, led_r, led_g, led_b, uart_rx);
   assign r = led_r;
   assign boot_gate = init_done;
   assign gc_start = 1'h0;
-  assign \clist_rd_data.gt_type  = \$90 [1:0];
-  assign \clist_rd_data.perms  = \$90 [7:2];
-  assign \clist_rd_data.index  = { \$91 [8:0], \$90 [15:8] };
-  assign \clist_rd_data.version  = \$91 [15:9];
+  assign \clist_rd_data.gt_type  = \$103 [1:0];
+  assign \clist_rd_data.perms  = \$103 [7:2];
+  assign \clist_rd_data.index  = { \$104 [8:0], \$103 [15:8] };
+  assign \clist_rd_data.version  = \$104 [15:9];
   assign \clist_wr_data.gt_type  = clist_wr_data[1:0];
   assign \clist_wr_data.perms  = clist_wr_data[7:2];
   assign \clist_wr_data.index  = clist_wr_data[24:8];
@@ -1357,7 +1545,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/core.py:74" *)
 (* generator = "Amaranth" *)
-module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \port$1248$0 , boot_start, fault, \fault_valid$241 , dmem_addr, dmem_wr_data, dmem_wr_en, imem_addr, instruction, clk);
+module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1276$0 , \port$1277$0 , boot_start, fault, \fault_valid$241 , dmem_addr, dmem_wr_data, dmem_wr_en, boot_state, imem_addr, instruction, clk);
   reg \$auto$verilog_backend.cc:2355:dump_module$3  = 0;
   wire \$1 ;
   wire [3:0] \$10 ;
@@ -1656,7 +1844,8 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
   (* src = "/home/runner/workspace/church_machine/core.py:59" *)
   input boot_start;
   wire boot_start;
-  (* src = "/home/runner/workspace/church_machine/core.py:60" *)
+  (* src = "/home/runner/workspace/church_machine/core.py:118" *)
+  output [2:0] boot_state;
   reg [2:0] boot_state = 3'h0;
   (* init = 3'h0 *)
   (* src = "/home/runner/workspace/church_machine/core.py:118" *)
@@ -2569,10 +2758,10 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
   wire [5:0] \perm_gt_sig.perms ;
   (* src = "/home/runner/workspace/church_machine/core.py:202" *)
   wire [6:0] \perm_gt_sig.version ;
-  input [15:0] \port$1247$0 ;
-  wire [15:0] \port$1247$0 ;
-  input [15:0] \port$1248$0 ;
-  wire [15:0] \port$1248$0 ;
+  input [15:0] \port$1276$0 ;
+  wire [15:0] \port$1276$0 ;
+  input [15:0] \port$1277$0 ;
+  wire [15:0] \port$1277$0 ;
   (* src = "/home/runner/workspace/church_machine/tperm.py:12" *)
   wire [3:0] preset;
   (* src = "/home/runner/workspace/church_machine/ret.py:16" *)
@@ -3275,8 +3464,8 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
     .mload_index(mload_index),
     .mload_src(mload_cr_src),
     .mload_start(mload_start),
-    .\port$1580$0 (instruction[18:0]),
-    .\port$808$0 (\$97 ),
+    .\port$1611$0 (instruction[18:0]),
+    .\port$837$0 (\$97 ),
     .rst(rst),
     .saved_cr5_gt(\saved_cr5_gt$232 )
   );
@@ -3317,7 +3506,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
     .mload_fault(mload_fault),
     .mload_m_elevated(\mload_m_elevated$280 ),
     .mload_start(\mload_start$274 ),
-    .\port$1580$0 (instruction[22:0]),
+    .\port$1611$0 (instruction[22:0]),
     .rst(rst)
   );
   (* src = "/home/runner/workspace/church_machine/core.py:95" *)
@@ -3415,9 +3604,9 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
     .mem_wr_addr(mem_wr_addr),
     .mem_wr_data(\mem_wr_data$305 ),
     .mem_wr_en(\mem_wr_en$300 ),
-    .\port$1247$0 (\port$1247$0 ),
-    .\port$1248$0 (\port$1248$0 ),
-    .\port$1580$0 (instruction[22:0]),
+    .\port$1276$0 (\port$1276$0 ),
+    .\port$1277$0 (\port$1277$0 ),
+    .\port$1611$0 (instruction[22:0]),
     .rst(rst),
     .save_busy(save_busy),
     .save_fault(save_fault),
@@ -3434,8 +3623,8 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
     .cr_wr_en(cr_wr_en),
     .mem_addr(mem_addr),
     .mem_rd_en(mem_rd_en),
-    .\port$1247$0 (\port$1247$0 ),
-    .\port$1248$0 (\port$1248$0 ),
+    .\port$1276$0 (\port$1276$0 ),
+    .\port$1277$0 (\port$1277$0 ),
     .rst(rst),
     .sub_busy(sub_busy),
     .sub_cr_dst(sub_cr_dst),
@@ -4168,8 +4357,8 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
   assign \cr_rd_data$207  = cr_rd_data;
   assign \cr15_namespace$209  = cr15_namespace;
   assign mem_wr_done = 1'h1;
-  assign mem_rd_data = { \port$1248$0 , \port$1247$0  };
-  assign dmem_rd_data = { \port$1248$0 , \port$1247$0  };
+  assign mem_rd_data = { \port$1277$0 , \port$1276$0  };
+  assign dmem_rd_data = { \port$1277$0 , \port$1276$0  };
   assign mem_rd_valid = 1'h1;
   assign load_start = load_start_sig;
   assign \cr_src$216  = instruction[18:15];
@@ -4178,7 +4367,7 @@ module \top.core (rst, imem_valid, boot_complete, perm_gt_sig, \port$1247$0 , \p
   assign cr5_stack_r_addr = \$67 [7:0];
   assign \cr_rd_data$249  = cr_rd_data;
   assign \cr15_namespace$250  = cr15_namespace;
-  assign \mem_rd_data$251  = { \port$1248$0 , \port$1247$0  };
+  assign \mem_rd_data$251  = { \port$1277$0 , \port$1276$0  };
   assign \mem_rd_valid$252  = 1'h1;
   assign mload_cr_dst = { 1'h0, \$97  };
   assign mload_direct = 1'h0;
@@ -4618,7 +4807,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/call.py:45" *)
 (* generator = "Amaranth" *)
-module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$808$0 , mload_index, call_busy, call_complete, mload_fault, mload_done, cr_rd_addr, cr_wr_data, cr_wr_en, cr_wr_addr, call_fault, fault_type, saved_cr5_gt, mload_start, mload_fault_type, \port$1580$0 , clk
+module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$837$0 , mload_index, call_busy, call_complete, mload_fault, mload_done, cr_rd_addr, cr_wr_data, cr_wr_en, cr_wr_addr, call_fault, fault_type, saved_cr5_gt, mload_start, mload_fault_type, \port$1611$0 , clk
 );
   reg \$auto$verilog_backend.cc:2355:dump_module$4  = 0;
   wire [2:0] \$1 ;
@@ -4832,10 +5021,10 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$808$0 , m
   wire [31:0] nia_value;
   (* src = "/home/runner/workspace/church_machine/call.py:53" *)
   reg phase = 1'h0;
-  input [18:0] \port$1580$0 ;
-  wire [18:0] \port$1580$0 ;
-  output [2:0] \port$808$0 ;
-  wire [2:0] \port$808$0 ;
+  input [18:0] \port$1611$0 ;
+  wire [18:0] \port$1611$0 ;
+  output [2:0] \port$837$0 ;
+  wire [2:0] \port$837$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -4872,10 +5061,10 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$808$0 , m
   (* src = "/home/runner/workspace/church_machine/call.py:65" *)
   always @(posedge clk)
     b_cr_data <= \$38 ;
-  assign src_in_range = \port$1580$0 [18:15] <= (* src = "/home/runner/workspace/church_machine/call.py:71" *) 3'h5;
-  assign mload_src = phase ? (* src = "/home/runner/workspace/church_machine/call.py:81" *) 4'h6 : \port$1580$0 [18:15];
+  assign src_in_range = \port$1611$0 [18:15] <= (* src = "/home/runner/workspace/church_machine/call.py:71" *) 3'h5;
+  assign mload_src = phase ? (* src = "/home/runner/workspace/church_machine/call.py:81" *) 4'h6 : \port$1611$0 [18:15];
   assign \$1  = phase ? (* src = "/home/runner/workspace/church_machine/call.py:82" *) 3'h7 : 3'h6;
-  assign mload_index = phase ? (* src = "/home/runner/workspace/church_machine/call.py:83" *) 17'h00000 : { 2'h0, \port$1580$0 [14:0] };
+  assign mload_index = phase ? (* src = "/home/runner/workspace/church_machine/call.py:83" *) 17'h00000 : { 2'h0, \port$1611$0 [14:0] };
   assign \$2  = ~ (* src = "/home/runner/workspace/church_machine/call.py:110" *) mask_latched[4:0];
   assign \$3  = ~ (* src = "/home/runner/workspace/church_machine/call.py:111" *) mask_latched[10:5];
   assign \$4  = ~ (* src = "/home/runner/workspace/church_machine/call.py:136" *) src_reg_latched[5];
@@ -4944,9 +5133,9 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$808$0 , m
       4'h0:
           /* empty */;
       4'h1:
-          cr_rd_addr = \port$1580$0 [18:15];
+          cr_rd_addr = \port$1611$0 [18:15];
       4'h3:
-          cr_rd_addr = \port$1580$0 [18:15];
+          cr_rd_addr = \port$1611$0 [18:15];
       4'h4:
           (* full_case = 32'd1 *)
           if (\$4 ) begin
@@ -5250,7 +5439,7 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$808$0 , m
     casez (call_state)
       4'h0:
           if (call_start) begin
-            \$32  = { 1'h0, \port$1580$0 [14:0] };
+            \$32  = { 1'h0, \port$1611$0 [14:0] };
           end
     endcase
     if (rst) begin
@@ -5446,9 +5635,9 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$808$0 , m
       \$38  = 128'h00000000000000000000000000000000;
     end
   end
-  assign cr_src = \port$1580$0 [18:15];
+  assign cr_src = \port$1611$0 [18:15];
   assign mload_dst = { 1'h0, \$1  };
-  assign index = { 2'h0, \port$1580$0 [14:0] };
+  assign index = { 2'h0, \port$1611$0 [14:0] };
   assign sub_start_reg = mload_start;
   assign mload_cr_src = mload_src;
   assign mload_cr_dst = { 1'h0, \$1  };
@@ -5466,8 +5655,8 @@ module \top.core.u_call (rst, call_start, cr_rd_data, mload_src, \port$808$0 , m
   assign fault_type_latched = fault_type;
   assign nia_set = call_complete;
   assign nia_value = 32'd0;
-  assign mask = { 1'h0, \port$1580$0 [14:0] };
-  assign \port$808$0  = \$1 ;
+  assign mask = { 1'h0, \port$1611$0 [14:0] };
+  assign \port$837$0  = \$1 ;
   assign \cr_wr_data.word0_gt  = cr_wr_data[31:0];
   assign \cr_wr_data.word0_gt.gt_type  = cr_wr_data[1:0];
   assign \cr_wr_data.word0_gt.perms  = cr_wr_data[7:2];
@@ -5942,7 +6131,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/load.py:31" *)
 (* generator = "Amaranth" *)
-module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_fault, mload_busy, mload_fault, mload_done, mload_start, fault_type, \port$1580$0 , clk);
+module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_fault, mload_busy, mload_fault, mload_done, mload_start, fault_type, \port$1611$0 , clk);
   reg \$auto$verilog_backend.cc:2355:dump_module$7  = 0;
   wire \$1 ;
   wire \$2 ;
@@ -6002,8 +6191,8 @@ module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_faul
   (* src = "/home/runner/workspace/church_machine/load.py:17" *)
   output mload_start;
   reg mload_start;
-  input [22:0] \port$1580$0 ;
-  wire [22:0] \port$1580$0 ;
+  input [22:0] \port$1611$0 ;
+  wire [22:0] \port$1611$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -6016,7 +6205,7 @@ module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_faul
   (* src = "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144" *)
   always @(posedge clk)
     load_wrapper_state <= \$6 ;
-  assign mload_m_elevated = \port$1580$0 [18:15] == (* src = "/home/runner/workspace/church_machine/load.py:39" *) 3'h6;
+  assign mload_m_elevated = \port$1611$0 [18:15] == (* src = "/home/runner/workspace/church_machine/load.py:39" *) 3'h6;
   assign load_busy = ~ (* src = "/home/runner/workspace/church_machine/load.py:58" *) \$1 ;
   assign load_complete = \$4  & (* src = "/home/runner/workspace/church_machine/load.py:59" *) mload_done;
   always @* begin
@@ -6055,12 +6244,12 @@ module \top.core.u_load (rst, load_start, mload_m_elevated, load_busy, load_faul
       \$6  = 2'h0;
     end
   end
-  assign mload_cr_src = \port$1580$0 [18:15];
-  assign cr_src = \port$1580$0 [18:15];
-  assign mload_cr_dst = \port$1580$0 [22:19];
-  assign cr_dst = \port$1580$0 [22:19];
-  assign mload_index = { 2'h0, \port$1580$0 [14:0] };
-  assign index = { 2'h0, \port$1580$0 [14:0] };
+  assign mload_cr_src = \port$1611$0 [18:15];
+  assign cr_src = \port$1611$0 [18:15];
+  assign mload_cr_dst = \port$1611$0 [22:19];
+  assign cr_dst = \port$1611$0 [22:19];
+  assign mload_index = { 2'h0, \port$1611$0 [14:0] };
+  assign index = { 2'h0, \port$1611$0 [14:0] };
   assign mload_direct = 1'h0;
   assign mload_direct_gt = 32'd0;
   assign mload_fault_type = fault_type;
@@ -8883,7 +9072,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/save.py:36" *)
 (* generator = "Amaranth" *)
-module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1247$0 , \port$1248$0 , cr15_namespace, cr_rd_addr, save_fault, fault_type, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, \port$1580$0 , clk);
+module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1276$0 , \port$1277$0 , cr15_namespace, cr_rd_addr, save_fault, fault_type, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, \port$1611$0 , clk);
   reg \$auto$verilog_backend.cc:2355:dump_module$11  = 0;
   wire \$1 ;
   reg \$10 ;
@@ -9034,12 +9223,12 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1247$0 , 
   wire mem_wr_en;
   (* src = "/home/runner/workspace/church_machine/msave.py:23" *)
   wire \mem_wr_en$23 ;
-  input [15:0] \port$1247$0 ;
-  wire [15:0] \port$1247$0 ;
-  input [15:0] \port$1248$0 ;
-  wire [15:0] \port$1248$0 ;
-  input [22:0] \port$1580$0 ;
-  wire [22:0] \port$1580$0 ;
+  input [15:0] \port$1276$0 ;
+  wire [15:0] \port$1276$0 ;
+  input [15:0] \port$1277$0 ;
+  wire [15:0] \port$1277$0 ;
+  input [22:0] \port$1611$0 ;
+  wire [22:0] \port$1611$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -9114,7 +9303,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1247$0 , 
   (* init = 1'h0 *)
   (* src = "/home/runner/workspace/church_machine/save.py:48" *)
   wire sub_start_reg;
-  assign dst_in_range = \port$1580$0 [22:19] <= (* src = "/home/runner/workspace/church_machine/save.py:53" *) 3'h6;
+  assign dst_in_range = \port$1611$0 [22:19] <= (* src = "/home/runner/workspace/church_machine/save.py:53" *) 3'h6;
   assign save_busy = ~ (* src = "/home/runner/workspace/church_machine/save.py:115" *) \$1 ;
   assign save_complete = \$5  & (* src = "/home/runner/workspace/church_machine/save.py:116" *) sub_done_latched;
   assign \$1  = ! (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486" *) save_wrapper_state;
@@ -9156,9 +9345,9 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1247$0 , 
     .mem_wr_addr(mem_wr_addr),
     .mem_wr_data(mem_wr_data),
     .mem_wr_en(mem_wr_en),
-    .\port$1247$0 (\port$1247$0 ),
-    .\port$1248$0 (\port$1248$0 ),
-    .\port$1580$0 (\port$1580$0 [14:0]),
+    .\port$1276$0 (\port$1276$0 ),
+    .\port$1277$0 (\port$1277$0 ),
+    .\port$1611$0 (\port$1611$0 [14:0]),
     .rst(rst),
     .sub_done(sub_done),
     .sub_dst_cap(sub_dst_cap),
@@ -9174,11 +9363,11 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1247$0 , 
       3'h0:
           /* empty */;
       3'h1:
-          cr_rd_addr = \port$1580$0 [22:19];
+          cr_rd_addr = \port$1611$0 [22:19];
       3'h2:
-          cr_rd_addr = \port$1580$0 [18:15];
+          cr_rd_addr = \port$1611$0 [18:15];
       3'h3:
-          cr_rd_addr = \port$1580$0 [18:15];
+          cr_rd_addr = \port$1611$0 [18:15];
     endcase
   end
   always @* begin
@@ -9350,17 +9539,17 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1247$0 , 
       \$14  = 1'h0;
     end
   end
-  assign cr_dst = \port$1580$0 [22:19];
+  assign cr_dst = \port$1611$0 [22:19];
   assign \sub_start$3  = sub_start;
   assign dst_reg_latched = sub_dst_cap;
   assign sub_src_gt = src_reg_latched[31:0];
-  assign sub_index = { 2'h0, \port$1580$0 [14:0] };
-  assign index = { 2'h0, \port$1580$0 [14:0] };
+  assign sub_index = { 2'h0, \port$1611$0 [14:0] };
+  assign index = { 2'h0, \port$1611$0 [14:0] };
   assign mem_wr_done = 1'h1;
   assign \mem_wr_done$11  = 1'h1;
   assign \cr15_namespace$13  = cr15_namespace;
-  assign mem_rd_data = { \port$1248$0 , \port$1247$0  };
-  assign \mem_rd_data$15  = { \port$1248$0 , \port$1247$0  };
+  assign mem_rd_data = { \port$1277$0 , \port$1276$0  };
+  assign \mem_rd_data$15  = { \port$1277$0 , \port$1276$0  };
   assign mem_rd_valid = 1'h1;
   assign \mem_rd_valid$17  = 1'h1;
   assign \mem_wr_addr$19  = mem_wr_addr;
@@ -9369,7 +9558,7 @@ module \top.core.u_save (rst, save_start, cr_rd_data, save_busy, \port$1247$0 , 
   assign \mem_rd_addr$25  = mem_rd_addr;
   assign \mem_rd_en$27  = mem_rd_en;
   assign sub_start_reg = sub_start;
-  assign cr_src = \port$1580$0 [18:15];
+  assign cr_src = \port$1611$0 [18:15];
   assign fault_latched = save_fault;
   assign fault_type_latched = fault_type;
   assign \sub_dst_cap.word0_gt  = sub_dst_cap[31:0];
@@ -9424,7 +9613,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/msave.py:34" *)
 (* generator = "Amaranth" *)
-module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$1247$0 , \port$1248$0 , cr15_namespace, sub_dst_cap, sub_src_gt, sub_start, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, sub_fault_type, \port$1580$0 , clk);
+module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$1276$0 , \port$1277$0 , cr15_namespace, sub_dst_cap, sub_src_gt, sub_start, mem_rd_addr, mem_rd_en, mem_wr_en, mem_wr_addr, mem_wr_data, sub_fault_type, \port$1611$0 , clk);
   reg \$auto$verilog_backend.cc:2355:dump_module$12  = 0;
   wire [19:0] \$1 ;
   wire \$10 ;
@@ -9527,12 +9716,12 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$1247$0 , \port$
   reg [31:0] ns_limit_reg = 32'd0;
   (* src = "/home/runner/workspace/church_machine/msave.py:59" *)
   reg [31:0] ns_location_reg = 32'd0;
-  input [15:0] \port$1247$0 ;
-  wire [15:0] \port$1247$0 ;
-  input [15:0] \port$1248$0 ;
-  wire [15:0] \port$1248$0 ;
-  input [14:0] \port$1580$0 ;
-  wire [14:0] \port$1580$0 ;
+  input [15:0] \port$1276$0 ;
+  wire [15:0] \port$1276$0 ;
+  input [15:0] \port$1277$0 ;
+  wire [15:0] \port$1277$0 ;
+  input [14:0] \port$1611$0 ;
+  wire [14:0] \port$1611$0 ;
   (* src = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283" *)
   input rst;
   wire rst;
@@ -9752,7 +9941,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$1247$0 , \port$
     casez (msave_state)
       4'h0:
           if (sub_start) begin
-            \$21  = { 2'h0, \port$1580$0  };
+            \$21  = { 2'h0, \port$1611$0  };
           end
     endcase
     if (rst) begin
@@ -9856,7 +10045,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$1247$0 , \port$
       4'h4:
           /* empty */;
       4'h5:
-          \$24  = { \port$1248$0 , \port$1247$0  };
+          \$24  = { \port$1277$0 , \port$1276$0  };
     endcase
     if (rst) begin
       \$24  = 32'd0;
@@ -9877,7 +10066,7 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$1247$0 , \port$
       4'h5:
           /* empty */;
       4'h6:
-          \$25  = { \port$1248$0 , \port$1247$0  };
+          \$25  = { \port$1277$0 , \port$1276$0  };
     endcase
     if (rst) begin
       \$25  = 32'd0;
@@ -9886,9 +10075,9 @@ module \top.core.u_save.u_msave (rst, sub_fault, sub_done, \port$1247$0 , \port$
   assign write_addr = \$2 [31:0];
   assign ns_entry_addr = \$6 [31:0];
   assign fault_type_reg = sub_fault_type;
-  assign sub_index = { 2'h0, \port$1580$0  };
+  assign sub_index = { 2'h0, \port$1611$0  };
   assign mem_rd_valid = 1'h1;
-  assign mem_rd_data = { \port$1248$0 , \port$1247$0  };
+  assign mem_rd_data = { \port$1277$0 , \port$1276$0  };
   assign mem_wr_done = 1'h1;
   assign \dst_cap_reg.word0_gt  = dst_cap_reg[31:0];
   assign \dst_cap_reg.word0_gt.gt_type  = dst_cap_reg[1:0];
@@ -9921,7 +10110,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/mload.py:51" *)
 (* generator = "Amaranth" *)
-module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done, \port$1247$0 , \port$1248$0 , sub_start, sub_cr_src, sub_cr_dst, sub_index, sub_direct, sub_direct_gt, sub_m_elevated, cr15_namespace, cr_rd_addr, mem_addr, mem_rd_en, cr_wr_addr, cr_wr_data, cr_wr_en
+module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done, \port$1276$0 , \port$1277$0 , sub_start, sub_cr_src, sub_cr_dst, sub_index, sub_direct, sub_direct_gt, sub_m_elevated, cr15_namespace, cr_rd_addr, mem_addr, mem_rd_en, cr_wr_addr, cr_wr_data, cr_wr_en
 , sub_fault_type, clk);
   reg \$auto$verilog_backend.cc:2355:dump_module$13  = 0;
   wire [19:0] \$1 ;
@@ -10060,10 +10249,10 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
   wire ns_index_in_bounds;
   (* src = "/home/runner/workspace/church_machine/mload.py:85" *)
   reg [31:0] ns_w1_saved = 32'd0;
-  input [15:0] \port$1247$0 ;
-  wire [15:0] \port$1247$0 ;
-  input [15:0] \port$1248$0 ;
-  wire [15:0] \port$1248$0 ;
+  input [15:0] \port$1276$0 ;
+  wire [15:0] \port$1276$0 ;
+  input [15:0] \port$1277$0 ;
+  wire [15:0] \port$1277$0 ;
   (* src = "/home/runner/workspace/church_machine/mload.py:59" *)
   reg [127:0] result_cap = 128'h00000000000000000000000000000000;
   (* src = "/home/runner/workspace/church_machine/mload.py:59" *)
@@ -10495,13 +10684,13 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
       4'h5:
           /* empty */;
       4'h6:
-          \$28 [31:0] = { \port$1248$0 , \port$1247$0  };
+          \$28 [31:0] = { \port$1277$0 , \port$1276$0  };
       4'h2:
           /* empty */;
       4'h7:
-          \$28 [63:32] = { \port$1248$0 , \port$1247$0  };
+          \$28 [63:32] = { \port$1277$0 , \port$1276$0  };
       4'h8:
-          \$28 [95:64] = { \port$1248$0 , \port$1247$0  };
+          \$28 [95:64] = { \port$1277$0 , \port$1276$0  };
     endcase
     if (rst) begin
       \$28  = 128'h00000000000000000000000000000000;
@@ -10629,7 +10818,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
       4'h7:
           /* empty */;
       4'h8:
-          \$32  = { \port$1248$0 , \port$1247$0  };
+          \$32  = { \port$1277$0 , \port$1276$0  };
     endcase
     if (rst) begin
       \$32  = 32'd0;
@@ -10639,7 +10828,7 @@ module \top.core.u_shared_mload (rst, cr_rd_data, sub_busy, sub_fault, sub_done,
   assign ns_entry_addr = \$6 [31:0];
   assign fault_type_reg = sub_fault_type;
   assign mem_rd_valid = 1'h1;
-  assign mem_rd_data = { \port$1248$0 , \port$1247$0  };
+  assign mem_rd_data = { \port$1277$0 , \port$1276$0  };
   assign \src_cap.word0_gt  = src_cap[31:0];
   assign \src_cap.word0_gt.gt_type  = src_cap[1:0];
   assign \src_cap.word0_gt.perms  = src_cap[7:2];
@@ -11123,7 +11312,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/uart_tx.py:97" *)
 (* generator = "Amaranth" *)
-module \top.debug (rst, byte_data, send_byte, \data$16 , send, busy, tx, clk);
+module \top.debug (rst, \data$16 , send, byte_data, send_byte, busy, tx, clk);
   reg \$auto$verilog_backend.cc:2355:dump_module$15  = 0;
   wire [6:0] \$1 ;
   wire \$10 ;
@@ -11651,7 +11840,7 @@ endmodule
 
 (* src = "/home/runner/workspace/church_machine/pico_ice.py:27" *)
 (* generator = "Amaranth" *)
-module \top.spram (\port$1247$0 , \port$1248$0 , addr, wr_data, wr_en, clk);
+module \top.spram (\port$1276$0 , \port$1277$0 , addr, wr_data, wr_en, clk);
   wire [15:0] \$1 ;
   wire [15:0] \$2 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:20" *)
@@ -11666,10 +11855,10 @@ module \top.spram (\port$1247$0 , \port$1248$0 , addr, wr_data, wr_en, clk);
   wire [3:0] maskwren;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:32" *)
   wire [3:0] maskwren_hi;
-  output [15:0] \port$1247$0 ;
-  wire [15:0] \port$1247$0 ;
-  output [15:0] \port$1248$0 ;
-  wire [15:0] \port$1248$0 ;
+  output [15:0] \port$1276$0 ;
+  wire [15:0] \port$1276$0 ;
+  output [15:0] \port$1277$0 ;
+  wire [15:0] \port$1277$0 ;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:22" *)
   wire [31:0] rd_data;
   (* src = "/home/runner/workspace/church_machine/pico_ice.py:21" *)
@@ -11708,6 +11897,6 @@ module \top.spram (\port$1247$0 , \port$1248$0 , addr, wr_data, wr_en, clk);
   );
   assign rd_data = { \$2 , \$1  };
   assign cs = 1'h1;
-  assign \port$1247$0  = \$1 ;
-  assign \port$1248$0  = \$2 ;
+  assign \port$1276$0  = \$1 ;
+  assign \port$1277$0  = \$2 ;
 endmodule
