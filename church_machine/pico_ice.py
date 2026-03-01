@@ -316,20 +316,27 @@ class ChurchPicoIce(Elaboratable):
             self.dbg_boot_complete.eq(core.boot_complete),
         ]
 
+        heartbeat_ctr = Signal(range(self.clk_freq))
+        heartbeat_blink = Signal()
+        m.d.sync += heartbeat_ctr.eq(heartbeat_ctr + 1)
+        with m.If(heartbeat_ctr == self.clk_freq - 1):
+            m.d.sync += [heartbeat_ctr.eq(0), heartbeat_blink.eq(~heartbeat_blink)]
+
         led_boot = ~core.boot_complete
         led_run = core.boot_complete & ~core.fault_valid & ~halted
+        led_halted_blink = core.boot_complete & halted & ~core.fault_valid & heartbeat_blink
         led_fault = core.fault_valid
 
         m.d.comb += [
             self.led_b.eq(led_boot),
-            self.led_g.eq(led_run),
+            self.led_g.eq(led_run | led_halted_blink),
             self.led_r.eq(led_fault),
         ]
 
         if not self.sim_mode:
             m.d.comb += [
                 rgb.r.eq(led_fault),
-                rgb.g.eq(led_run),
+                rgb.g.eq(led_run | led_halted_blink),
                 rgb.b.eq(led_boot),
             ]
 
