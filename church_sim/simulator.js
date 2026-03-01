@@ -1522,10 +1522,6 @@ class ChurchSimulator {
         this.pc = startAddr;
         this.halted = false;
         this.running = false;
-        this.output = '';
-        this.faultLog = [];
-        this.stepCount = 0;
-        this.callStack = [];
         this.emit('programLoaded', { addr: startAddr, length: words.length });
         this.emit('stateChange', this.getState());
     }

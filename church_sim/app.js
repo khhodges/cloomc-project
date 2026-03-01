@@ -704,7 +704,6 @@ function assembleAndLoad() {
         return;
     }
 
-    sim.reset();
     sim.loadProgram(result.words, 0);
     lastAssembledWords = result.words.slice();
 
