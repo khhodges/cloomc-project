@@ -1541,6 +1541,14 @@ HALT
 `,
     };
 
+    if (name === 'pico_ice') {
+        loadHardwareBinary();
+        document.querySelectorAll('.example-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.example === name);
+        });
+        return;
+    }
+
     const code = examples[name];
     if (code) {
         editor.value = code;

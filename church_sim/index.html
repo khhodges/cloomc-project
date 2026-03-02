@@ -70,7 +70,6 @@
                     <button class="btn btn-success" onclick="runSim()" title="Run the entire boot sequence and program until it halts or faults">Run</button>
                     <button class="btn btn-warning" onclick="resetSim()" title="Reset the machine to its initial state (clears registers, PC, and call stack)">Reset</button>
                     <button class="btn" onclick="runGC()" style="background:#9b59b6;color:#fff;border:none;" title="Run PP250 deterministic garbage collection (scan, identify, clear, flip)">Run GC</button>
-                    <button class="btn" onclick="loadHardwareBinary()" style="background:#1a6b3a;color:#0f0;border:1px solid #0f0;" title="Load the exact pico-ice FPGA boot ROM, namespace, and c-list into the simulator (matches the hardware bitstream)">Load FPGA</button>
                     <button class="btn" onclick="downloadHardwareImage()" style="background:#1a4a6b;color:#4fc3f7;border:1px solid #4fc3f7;" title="Download the simulator's current namespace + c-list as a .bin file for uploading to the pico-ice via pico_upload.py">Download Image</button>
                     <button class="btn" onclick="document.getElementById('imageFileInput').click()" style="background:#1a4a6b;color:#4fc3f7;border:1px solid #4fc3f7;" title="Load a .bin image file into the simulator to inspect its namespace entries and c-list GTs">Upload Image</button>
                     <input type="file" id="imageFileInput" accept=".bin" style="display:none" onchange="loadImageFile(this)">
@@ -91,6 +90,7 @@
                         <button class="example-tab" onclick="loadExample('tperm_attack')" data-example="tperm_attack" style="color:#f55">TPERM Attack</button>
                         <button class="example-tab" onclick="loadExample('version_attack')" data-example="version_attack" style="color:#f55">CR Attack</button>
                         <button class="example-tab" onclick="loadExample('gc_adversary')" data-example="gc_adversary" style="color:#f55">GC Adversary</button>
+                        <button class="example-tab" onclick="loadExample('pico_ice')" data-example="pico_ice" style="color:#0f0">pico-ice</button>
                     </div>
                     <button class="example-arrow example-arrow-right" onclick="scrollExamples(1)">&rsaquo;</button>
                 </div>
