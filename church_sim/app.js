@@ -1549,6 +1549,18 @@ HALT
         return;
     }
 
+    if (name === 'pico_ice_current') {
+        const image = sim.exportHardwareImage();
+        sim.loadImageFromBinary(image.namespace, image.clist);
+        const con = document.getElementById('editorConsole');
+        if (con) con.textContent = sim.output;
+        updateDashboard();
+        document.querySelectorAll('.example-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.example === name);
+        });
+        return;
+    }
+
     const code = examples[name];
     if (code) {
         editor.value = code;
