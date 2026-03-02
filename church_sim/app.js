@@ -831,7 +831,6 @@ function loadHardwareBinary() {
     const con = document.getElementById('editorConsole');
     if (con) con.textContent = sim.output;
 
-    switchView('dashboard');
     updateDashboard();
 }
 
