@@ -850,25 +850,13 @@ async function uploadToPicoIce() {
     }
 
     try {
-        if (!PicoSerial.isConnected()) {
-            con.textContent = 'Select the FPGA UART port (usually the second pico-ice port).\n\n';
-        } else {
-            con.textContent = '';
-        }
-
         const image = sim.exportHardwareImage();
+        con.textContent = `Ready: ${image.namespace.length} NS words + ${image.clist.length} C-list words\n\n`;
 
+        con.textContent += 'Selecting serial port...\n';
         await PicoSerial.connect();
-        con.textContent += 'Connected. Ready to upload.\n';
-        con.textContent += `Namespace: ${image.namespace.length} words, C-list: ${image.clist.length} words\n\n`;
-        con.textContent += '>>> Press the RESET button on the pico-ice now, then click OK <<<\n';
-
-        await new Promise(resolve => {
-            const ok = confirm('Press the RESET button on the pico-ice board, then click OK to send data.\n\nThe upload must start within ~1 second of reset.');
-            resolve();
-        });
-
-        con.textContent += 'Sending...\n';
+        con.textContent += 'Port connected.\n\n';
+        con.textContent += 'Sending data...\n';
 
         const result = await PicoSerial.uploadToFPGA(
             image.namespace,
@@ -881,8 +869,13 @@ async function uploadToPicoIce() {
         if (result.success) {
             con.textContent += '\nUpload successful! pico-ice booted with simulator data.\n';
         } else {
-            con.textContent += '\nData sent but no banner received.\n';
-            con.textContent += 'Try again: reset pico-ice, click OK quickly.\n';
+            con.textContent += '\nData was sent but no boot banner received.\n';
+            con.textContent += 'The pico-ice may have already booted past the upload window.\n\n';
+            con.textContent += 'To retry with correct timing:\n';
+            con.textContent += '  1. Press the RP2040 reset button on the pico-ice\n';
+            con.textContent += '     (the button that does NOT turn off the green LED)\n';
+            con.textContent += '  2. Immediately click "Upload to pico-ice" again\n';
+            con.textContent += '     (data must arrive within ~1 second of reset)\n';
         }
     } catch(e) {
         if (e.name === 'NotFoundError') {
