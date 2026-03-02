@@ -1,7 +1,7 @@
-"""Upload a full memory image to the Church Machine over serial.
+"""Upload namespace + c-list data to the Church Machine over serial.
 
-All memory (instructions, namespace, c-list) is uploaded via UART.
-No Boot ROM — the FPGA waits for the upload before booting.
+The boot program is baked into the bitstream (Boot ROM). Only namespace
+and c-list data are reprogrammable via UART without rebuilding.
 
 Usage:
     python -m church_machine.upload [--port /dev/ttyACM1] [--dump file.bin]
@@ -9,9 +9,8 @@ Usage:
 Protocol:
     1. Send 4-byte header: total word count (little-endian u32)
     2. Send N x 4-byte words (little-endian u32):
-       - Words 0..255:   Instruction memory (boot program)
-       - Words 256..447:  Namespace (16 entries x 3 words each)
-       - Words 448..511:  C-list (64 words)
+       - Words 0..191:  Namespace (16 entries x 3 words each = 192 words)
+       - Words 192..255: C-list (64 words)
     3. Wait for "CHURCH v1.0" banner confirming successful boot
 """
 
@@ -20,21 +19,15 @@ import struct
 import time
 import argparse
 
-from .boot_rom import BOOT_PROGRAM, DEMO_NAMESPACE, DEMO_CLIST
+from .boot_rom import DEMO_NAMESPACE, DEMO_CLIST
 
 
-IMEM_WORDS = 256
 NS_WORDS = 192
 CLIST_WORDS = 64
-DMEM_WORDS = NS_WORDS + CLIST_WORDS
-TOTAL_WORDS = IMEM_WORDS + DMEM_WORDS
+TOTAL_WORDS = NS_WORDS + CLIST_WORDS
 
 
 def build_default_image():
-    imem = list(BOOT_PROGRAM[:IMEM_WORDS])
-    while len(imem) < IMEM_WORDS:
-        imem.append(0)
-
     ns_flat = []
     for i in range(0, len(DEMO_NAMESPACE), 3):
         if i + 2 < len(DEMO_NAMESPACE):
@@ -46,7 +39,7 @@ def build_default_image():
     while len(clist) < CLIST_WORDS:
         clist.append(0)
 
-    return imem + ns_flat + clist
+    return ns_flat + clist
 
 
 def image_to_bytes(image):
@@ -104,7 +97,7 @@ def upload_image(port, image, timeout_s=10):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Upload memory image to Church Machine")
+    parser = argparse.ArgumentParser(description="Upload data to Church Machine")
     parser.add_argument('--port', default='/dev/ttyACM1', help='Serial port (default: /dev/ttyACM1)')
     parser.add_argument('--image', help='Binary image file to upload (default: built-in demo)')
     parser.add_argument('--dump', help='Dump image to file instead of uploading')
@@ -128,9 +121,8 @@ def main():
         image = build_default_image()
 
     print(f"Image: {len(image)} words ({len(image)*4} bytes)")
-    print(f"  Instructions: words 0..{IMEM_WORDS-1}")
-    print(f"  Namespace:    words {IMEM_WORDS}..{IMEM_WORDS+NS_WORDS-1}")
-    print(f"  C-list:       words {IMEM_WORDS+NS_WORDS}..{TOTAL_WORDS-1}")
+    print(f"  Namespace: words 0..{NS_WORDS-1}")
+    print(f"  C-list:    words {NS_WORDS}..{TOTAL_WORDS-1}")
 
     if args.dump:
         dump_image(args.dump, image)
