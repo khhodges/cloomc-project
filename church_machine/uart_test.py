@@ -1,18 +1,17 @@
-"""Pico-ice design with UART program loader.
+"""Pico-ice design with UART full-image loader.
 
-All memory is reprogrammable via serial upload:
-- Instruction memory in EBR (Block RAM, 2 x SB_RAM40_4K = 256 x 32-bit)
-- Data memory (namespace, c-list) in SPRAM (blocks 1+2, 64KB)
-- Host sends binary image via upload.py, FPGA writes to both memories, then boots
+All memory (instructions, namespace, c-list) is uploaded over serial.
+No Boot ROM — instructions live in a second SPRAM pair.
 
 Protocol:
-  1. FPGA waits for sync byte (0xAA)
-  2. Host sends 4-byte header: word count (little-endian u32)
-  3. Host sends N x 4-byte words:
-     - Words 0..255:   Instruction memory (EBR)
-     - Words 256..447:  Namespace (SPRAM)
-     - Words 448..511:  C-list (SPRAM)
-  4. FPGA boots and sends "CHURCH v1.0" banner
+  1. Host sends 4-byte header: total word count (little-endian u32)
+  2. Host sends N x 4-byte words (little-endian u32):
+     - Words 0..255:   Instruction memory (256 words = 1KB boot program)
+     - Words 256..447:  Namespace (192 words = 16 entries x 3 words)
+     - Words 448..511:  C-list (64 words)
+  3. FPGA boots and sends "CHURCH v1.0" banner
+
+LED blue while waiting for upload.
 """
 
 from amaranth import *
@@ -22,7 +21,10 @@ from .core import ChurchCore
 from .pico_ice import ICE40SPRAM, ICE40RGBLED
 
 IMEM_WORDS = 256
-SYNC_BYTE = 0xAA
+NS_WORDS = 192
+CLIST_WORDS = 64
+DMEM_WORDS = NS_WORDS + CLIST_WORDS
+TOTAL_WORDS = IMEM_WORDS + DMEM_WORDS
 
 
 class UartTestTop(Elaboratable):
@@ -53,22 +55,21 @@ class UartTestTop(Elaboratable):
         core = ChurchCore()
         m.submodules.core = core
 
-        imem = Memory(width=32, depth=IMEM_WORDS, init=[0] * IMEM_WORDS)
-        m.submodules.imem = imem
-        imem_rd = imem.read_port()
-        imem_wr = imem.write_port()
+        imem_spram = ICE40SPRAM()
+        m.submodules.imem_spram = imem_spram
 
         dmem_spram = ICE40SPRAM()
         m.submodules.dmem_spram = dmem_spram
 
-        load_complete = Signal()
+        load_done = Signal()
 
-        m.d.comb += [
-            imem_rd.addr.eq(core.imem_addr[2:10]),
-            core.imem_data.eq(imem_rd.data),
-        ]
+        imem_core_addr = Signal(14)
+        m.d.comb += imem_core_addr.eq(core.imem_addr[2:16])
 
-        mem_addr = Signal(14)
+        dmem_core_addr = Signal(14)
+        dmem_core_wr_data = Signal(32)
+        dmem_core_wr_en = Signal()
+
         any_ns_access = Signal()
         any_clist_access = Signal()
         m.d.comb += [
@@ -76,47 +77,66 @@ class UartTestTop(Elaboratable):
             any_clist_access.eq(core.clist_rd_en | core.clist_wr_en),
         ]
         with m.If(any_ns_access):
-            m.d.comb += mem_addr.eq(core.ns_addr[2:16])
+            m.d.comb += dmem_core_addr.eq(core.ns_addr[2:16])
         with m.Elif(any_clist_access):
-            m.d.comb += mem_addr.eq(core.clist_addr[2:16])
+            m.d.comb += dmem_core_addr.eq(core.clist_addr[2:16])
         with m.Else():
-            m.d.comb += mem_addr.eq(core.dmem_addr[2:16])
+            m.d.comb += dmem_core_addr.eq(core.dmem_addr[2:16])
 
-        wr_data = Signal(32)
-        wr_en = Signal()
         with m.If(core.ns_wr_en):
-            m.d.comb += [wr_data.eq(core.ns_wr_data[:32]), wr_en.eq(1)]
+            m.d.comb += [dmem_core_wr_data.eq(core.ns_wr_data[:32]), dmem_core_wr_en.eq(1)]
         with m.Elif(core.clist_wr_en):
-            m.d.comb += [wr_data.eq(core.clist_wr_data), wr_en.eq(1)]
+            m.d.comb += [dmem_core_wr_data.eq(core.clist_wr_data), dmem_core_wr_en.eq(1)]
         with m.Else():
-            m.d.comb += [wr_data.eq(core.dmem_wr_data), wr_en.eq(core.dmem_wr_en)]
-
-        with m.If(load_complete):
-            m.d.comb += [
-                dmem_spram.addr.eq(mem_addr),
-                dmem_spram.wr_data.eq(wr_data),
-                dmem_spram.wr_en.eq(wr_en),
-            ]
+            m.d.comb += [dmem_core_wr_data.eq(core.dmem_wr_data), dmem_core_wr_en.eq(core.dmem_wr_en)]
 
         m.d.comb += core.dmem_rd_data.eq(dmem_spram.rd_data)
         m.d.comb += [
             core.ns_rd_data.eq(Cat(dmem_spram.rd_data, C(0, 64))),
             core.clist_rd_data.eq(dmem_spram.rd_data),
         ]
+        m.d.comb += core.imem_data.eq(imem_spram.rd_data)
 
         load_word = Signal(32)
         load_byte_idx = Signal(2)
-        load_word_count = Signal(16)
-        load_words_received = Signal(16)
-        load_is_imem = Signal()
+        load_word_count = Signal(range(TOTAL_WORDS + 1))
+        load_words_received = Signal(range(TOTAL_WORDS + 1))
+
+        loader_imem_addr = Signal(14)
+        loader_imem_data = Signal(32)
+        loader_imem_wr = Signal()
+
+        loader_dmem_addr = Signal(14)
+        loader_dmem_data = Signal(32)
+        loader_dmem_wr = Signal()
+
+        with m.If(load_done):
+            m.d.comb += [
+                imem_spram.addr.eq(imem_core_addr),
+                imem_spram.wr_data.eq(0),
+                imem_spram.wr_en.eq(0),
+                dmem_spram.addr.eq(dmem_core_addr),
+                dmem_spram.wr_data.eq(dmem_core_wr_data),
+                dmem_spram.wr_en.eq(dmem_core_wr_en),
+            ]
+        with m.Else():
+            m.d.comb += [
+                imem_spram.addr.eq(loader_imem_addr),
+                imem_spram.wr_data.eq(loader_imem_data),
+                imem_spram.wr_en.eq(loader_imem_wr),
+                dmem_spram.addr.eq(loader_dmem_addr),
+                dmem_spram.wr_data.eq(loader_dmem_data),
+                dmem_spram.wr_en.eq(loader_dmem_wr),
+            ]
+
+        is_imem_word = Signal()
+        dmem_offset = Signal(range(DMEM_WORDS + 1))
+        m.d.comb += [
+            is_imem_word.eq(load_words_received < IMEM_WORDS),
+            dmem_offset.eq(load_words_received - IMEM_WORDS),
+        ]
 
         with m.FSM(name="loader_fsm"):
-            with m.State("WAIT_SYNC"):
-                with m.If(uart_rx.valid):
-                    with m.If(uart_rx.data == SYNC_BYTE):
-                        m.d.sync += [load_byte_idx.eq(0), load_word.eq(0)]
-                        m.next = "RECV_HEADER"
-
             with m.State("RECV_HEADER"):
                 with m.If(uart_rx.valid):
                     with m.If(load_byte_idx == 0):
@@ -138,10 +158,11 @@ class UartTestTop(Elaboratable):
                         m.d.sync += load_byte_idx.eq(load_byte_idx + 1)
 
             with m.State("HEADER_LATCH"):
-                m.d.sync += [
-                    load_word_count.eq(load_word[:16]),
-                    load_word.eq(0),
-                ]
+                with m.If(load_word[:10] <= TOTAL_WORDS):
+                    m.d.sync += load_word_count.eq(load_word[:10])
+                with m.Else():
+                    m.d.sync += load_word_count.eq(TOTAL_WORDS)
+                m.d.sync += load_word.eq(0)
                 m.next = "RECV_DATA"
 
             with m.State("RECV_DATA"):
@@ -156,23 +177,22 @@ class UartTestTop(Elaboratable):
                         m.d.sync += load_word[24:32].eq(uart_rx.data)
 
                     with m.If(load_byte_idx == 3):
-                        m.d.sync += load_is_imem.eq(load_words_received < IMEM_WORDS)
                         m.next = "WRITE_WORD"
                     with m.Else():
                         m.d.sync += load_byte_idx.eq(load_byte_idx + 1)
 
             with m.State("WRITE_WORD"):
-                with m.If(load_is_imem):
+                with m.If(is_imem_word):
                     m.d.comb += [
-                        imem_wr.addr.eq(load_words_received[:8]),
-                        imem_wr.data.eq(load_word),
-                        imem_wr.en.eq(1),
+                        loader_imem_addr.eq(load_words_received[:14]),
+                        loader_imem_data.eq(load_word),
+                        loader_imem_wr.eq(1),
                     ]
                 with m.Else():
                     m.d.comb += [
-                        dmem_spram.addr.eq((load_words_received - IMEM_WORDS)[:14]),
-                        dmem_spram.wr_data.eq(load_word),
-                        dmem_spram.wr_en.eq(1),
+                        loader_dmem_addr.eq(dmem_offset[:14]),
+                        loader_dmem_data.eq(load_word),
+                        loader_dmem_wr.eq(1),
                     ]
                 m.d.sync += [
                     load_words_received.eq(load_words_received + 1),
@@ -180,20 +200,17 @@ class UartTestTop(Elaboratable):
                     load_word.eq(0),
                 ]
                 with m.If(load_words_received + 1 >= load_word_count):
-                    m.next = "LOAD_DONE"
+                    m.d.sync += load_done.eq(1)
+                    m.next = "IDLE"
                 with m.Else():
                     m.next = "RECV_DATA"
-
-            with m.State("LOAD_DONE"):
-                m.d.sync += load_complete.eq(1)
-                m.next = "IDLE"
 
             with m.State("IDLE"):
                 pass
 
         boot_delay = Signal(4)
         boot_triggered = Signal()
-        with m.If(~boot_triggered & load_complete):
+        with m.If(~boot_triggered & load_done):
             with m.If(boot_delay < 0xF):
                 m.d.sync += boot_delay.eq(boot_delay + 1)
             with m.Else():
@@ -235,8 +252,8 @@ class UartTestTop(Elaboratable):
         led_fault = Signal()
         led_halted_blink = Signal()
         m.d.comb += [
-            led_loading.eq(~load_complete),
-            led_boot.eq(load_complete & ~core.boot_complete),
+            led_loading.eq(~load_done),
+            led_boot.eq(load_done & ~core.boot_complete),
             led_run.eq(core.boot_complete & ~core.fault_valid & ~halted),
             led_fault.eq(core.fault_valid),
             led_halted_blink.eq(core.boot_complete & halted & ~core.fault_valid & heartbeat_blink),
@@ -266,7 +283,15 @@ class UartTestTop(Elaboratable):
         step_fault = Signal(4)
         step_had_fault = Signal()
 
+        startup_target = (self.clk_freq * 3) - 1
+        startup_ctr = Signal(26)
+
         with m.FSM(name="debug_fsm"):
+            with m.State("STARTUP_DELAY"):
+                m.d.sync += startup_ctr.eq(startup_ctr + 1)
+                with m.If(startup_ctr == startup_target):
+                    m.next = "WAIT_BOOT"
+
             with m.State("WAIT_BOOT"):
                 with m.If(core.boot_complete):
                     m.d.sync += [banner_idx.eq(0), halted.eq(1)]

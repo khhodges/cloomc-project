@@ -1,10 +1,7 @@
 attribute \generator "Amaranth"
-attribute \src "/home/runner/workspace/church_machine/uart_test.py:40"
+attribute \src "/home/runner/workspace/church_machine/uart_test.py:42"
 attribute \top 1
 module \top
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:56"
-  memory width 32 size 256 \imem
 
   attribute \src "/home/runner/workspace/church_machine/uart_tx.py:94"
   wire width 1 \tx
@@ -12,8 +9,8 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/uart_rx.py:19"
   wire width 1 \rx
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:58"
-  wire width 8 \imem_r_addr
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:79"
+  wire width 9 \addr
 
   attribute \src "/home/runner/workspace/church_machine/core.py:37"
   wire width 32 \imem_addr
@@ -21,10 +18,10 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/core.py:38"
   wire width 32 \imem_data
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:58"
-  wire width 32 \imem_r_data
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:80"
+  wire width 32 \data
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:72"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:70"
   wire width 1 \any_ns_access
 
   attribute \src "/home/runner/workspace/church_machine/core.py:48"
@@ -33,7 +30,7 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/core.py:51"
   wire width 1 \ns_wr_en
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:73"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:71"
   wire width 1 \any_clist_access
 
   attribute \src "/home/runner/workspace/church_machine/core.py:54"
@@ -42,7 +39,7 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/core.py:57"
   wire width 1 \clist_wr_en
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:71"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:69"
   wire width 14 \mem_addr
 
   attribute \src "/home/runner/workspace/church_machine/core.py:47"
@@ -54,13 +51,13 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/core.py:41"
   wire width 32 \dmem_addr
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:85"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:83"
   wire width 32 \wr_data
 
   attribute \src "/home/runner/workspace/church_machine/core.py:50"
   wire width 96 \ns_wr_data
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:86"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:84"
   wire width 1 \wr_en
 
   attribute \src "/home/runner/workspace/church_machine/core.py:56"
@@ -72,12 +69,12 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/core.py:45"
   wire width 1 \dmem_wr_en
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:64"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:92"
   attribute \init 1'0
-  wire width 1 \load_complete
+  wire width 1 \load_done
 
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:20"
-  wire width 14 \addr
+  wire width 14 \addr$31
 
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:21"
   wire width 32 \wr_data$32
@@ -97,133 +94,131 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/core.py:55"
   wire width 32 \clist_rd_data
 
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:115"
+  attribute \init 9'000000000
+  wire width 9 \default_idx
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:117"
+  wire width 32 \default_word
+
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
   attribute \init 3'000
   wire width 3 \loader_fsm_state
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:111"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:116"
   attribute \init 1'0
-  wire width 1 \load_is_imem
+  wire width 1 \default_done
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
-  wire width 8 \imem_w_addr
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:110"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:130"
   attribute \init 16'0000000000000000
   wire width 16 \load_words_received
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
-  wire width 32 \imem_w_data
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:107"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:127"
   attribute \init 32'00000000000000000000000000000000
   wire width 32 \load_word
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
-  wire width 1 \imem_w_en
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:195"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:223"
   attribute \init 1'0
   wire width 1 \boot_triggered
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:194"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:222"
   attribute \init 4'0000
   wire width 4 \boot_delay
 
   attribute \src "/home/runner/workspace/church_machine/core.py:59"
   wire width 1 \boot_start
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:208"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:236"
   wire width 1 \nia_changed
 
   attribute \src "/home/runner/workspace/church_machine/core.py:70"
   wire width 32 \nia
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:206"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:234"
   attribute \init 32'00000000000000000000000000000000
   wire width 32 \prev_nia
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:210"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:238"
   wire width 1 \step_complete
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:204"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:232"
   attribute \init 1'0
   wire width 1 \stepping
 
   attribute \src "/home/runner/workspace/church_machine/core.py:39"
   wire width 1 \imem_valid
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:203"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:231"
   attribute \init 1'1
   wire width 1 \halted
 
   attribute \src "/home/runner/workspace/church_machine/core.py:63"
   wire width 1 \gc_start
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:224"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:252"
   wire width 1 \btn_press
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:217"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:245"
   attribute \init 1'0
   wire width 1 \btn_prev
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:216"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:244"
   attribute \init 3'000
   wire width 3 \btn_sync
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:229"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:257"
   wire width 1 \heartbeat_blink
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:227"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:255"
   attribute \init 23'00000000000000000000000
   wire width 23 \heartbeat_ctr
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:232"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:260"
   wire width 1 \led_loading
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:233"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:261"
   wire width 1 \led_boot
 
   attribute \src "/home/runner/workspace/church_machine/core.py:61"
   wire width 1 \boot_complete
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:234"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:262"
   wire width 1 \led_run
 
   attribute \src "/home/runner/workspace/church_machine/core.py:68"
   wire width 1 \fault_valid
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:235"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:263"
   wire width 1 \led_fault
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:236"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:264"
   wire width 1 \led_halted_blink
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:247"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:275"
   wire width 8 \banner_byte
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:246"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:274"
   attribute \init 4'0000
   wire width 4 \banner_idx
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:252"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:280"
   wire width 8 \halt_byte
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:251"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:279"
   attribute \init 3'000
   wire width 3 \halt_idx
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:257"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:285"
   wire width 8 \step_byte
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:256"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:284"
   attribute \init 2'00
   wire width 2 \step_idx
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:262"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:290"
   wire width 8 \fault_byte
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:261"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:289"
   attribute \init 2'00
   wire width 2 \fault_msg_idx
 
@@ -241,19 +236,19 @@ module \top
   wire width 1 \send_byte
 
   attribute \src "/home/runner/workspace/church_machine/uart_tx.py:89"
-  wire width 32 \data
+  wire width 32 \data$79
 
   attribute \src "/home/runner/workspace/church_machine/uart_tx.py:90"
   wire width 1 \send
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:265"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:293"
   attribute \init 32'00000000000000000000000000000000
   wire width 32 \step_nia
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:361"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:397"
   wire width 32 \fault_word
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:266"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:294"
   attribute \init 4'0000
   wire width 4 \step_fault
 
@@ -266,28 +261,36 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:74"
   wire width 1 \b
 
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:132"
+  attribute \init 24'000000000000000000000000
+  wire width 24 \auto_boot_ctr
+
   attribute \src "/home/runner/workspace/church_machine/uart_rx.py:21"
   wire width 1 \valid
 
   attribute \src "/home/runner/workspace/church_machine/uart_rx.py:20"
   wire width 8 \data$89
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:108"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:128"
   attribute \init 2'00
   wire width 2 \load_byte_idx
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:109"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:129"
   attribute \init 16'0000000000000000
   wire width 16 \load_word_count
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:298"
+  attribute \init 26'00000000000000000000000000
+  wire width 26 \startup_ctr
 
   attribute \src "/home/runner/workspace/church_machine/core.py:67"
   wire width 4 \fault
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:267"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:295"
   attribute \init 1'0
   wire width 1 \step_had_fault
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:36"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:38"
   wire width 1 input 0  \push_button
 
   attribute \src "/home/runner/workspace/church_machine/uart_rx.py:19"
@@ -305,13 +308,13 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:72"
   wire width 1 output 5  \led_r
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:34"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:36"
   wire width 1 output 6  \led_g
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:35"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:37"
   wire width 1 output 7  \led_b
 
-  wire width 17 $1
+  wire width 1 $1
 
   wire width 1 $2
 
@@ -399,7 +402,7 @@ module \top
 
   wire width 1 $44
 
-  wire width 1 $45
+  wire width 25 $45
 
   wire width 1 $46
 
@@ -407,11 +410,11 @@ module \top
 
   wire width 1 $48
 
-  wire width 3 $49
+  wire width 1 $49
 
   wire width 1 $50
 
-  wire width 1 $51
+  wire width 10 $51
 
   wire width 1 $52
 
@@ -419,11 +422,11 @@ module \top
 
   wire width 1 $54
 
-  wire width 3 $55
+  wire width 1 $55
 
-  wire width 17 $56
+  wire width 3 $56
 
-  wire width 17 $57
+  wire width 1 $57
 
   wire width 1 $58
 
@@ -431,91 +434,113 @@ module \top
 
   wire width 1 $60
 
-  wire width 1 $61
+  wire width 3 $61
 
-  wire width 5 $62
+  wire width 17 $62
 
-  wire width 24 $63
+  wire width 17 $63
 
   wire width 1 $64
 
   wire width 1 $65
 
-  wire width 5 $66
+  wire width 1 $66
 
   wire width 1 $67
 
-  wire width 1 $68
+  wire width 5 $68
 
-  wire width 1 $69
+  wire width 24 $69
 
-  wire width 4 $70
+  wire width 27 $70
 
   wire width 1 $71
 
   wire width 1 $72
 
-  wire width 3 $73
+  wire width 1 $73
 
-  wire width 1 $74
+  wire width 5 $74
 
   wire width 1 $75
 
   wire width 1 $76
 
-  wire width 3 $77
+  wire width 1 $77
 
-  wire width 1 $78
+  wire width 4 $78
 
-  wire width 2 $79
+  wire width 1 $79
 
-  wire width 32 $80
+  wire width 1 $80
 
   wire width 3 $81
 
-  wire width 16 $82
+  wire width 1 $82
 
-  wire width 16 $83
+  wire width 1 $83
 
   wire width 1 $84
 
-  wire width 1 $85
+  wire width 3 $85
 
-  wire width 4 $86
+  wire width 1 $86
 
-  wire width 1 $87
+  wire width 24 $87
 
-  wire width 32 $88
+  wire width 2 $88
 
-  wire width 3 $89
+  wire width 32 $89
 
-  wire width 1 $90
+  wire width 3 $90
 
-  wire width 23 $91
+  wire width 9 $91
 
-  wire width 4 $92
+  wire width 1 $92
 
   wire width 1 $93
 
-  wire width 4 $94
+  wire width 16 $94
 
-  wire width 3 $95
+  wire width 16 $95
 
-  wire width 1 $96
+  wire width 4 $96
 
-  wire width 32 $97
+  wire width 1 $97
 
-  wire width 4 $98
+  wire width 32 $98
 
-  wire width 1 $99
+  wire width 3 $99
 
-  wire width 2 $100
+  wire width 1 $100
 
-  wire width 2 $101
+  wire width 23 $101
 
-  wire width 16 $102
+  wire width 26 $102
 
-  wire width 16 $103
+  wire width 4 $103
+
+  wire width 4 $104
+
+  wire width 1 $105
+
+  wire width 3 $106
+
+  wire width 1 $107
+
+  wire width 32 $108
+
+  wire width 4 $109
+
+  wire width 1 $110
+
+  wire width 2 $111
+
+  wire width 2 $112
+
+  wire width 16 $113
+
+  wire width 16 $114
 
   attribute \src "/home/runner/workspace/church_machine/core.py:56"
   wire width 2 \clist_wr_data.gt_type
@@ -541,20 +566,20 @@ module \top
   attribute \src "/home/runner/workspace/church_machine/core.py:55"
   wire width 7 \clist_rd_data.version
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:43"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:45"
   cell \top.debug \debug
     connect \clk \clk [0]
     connect \rst \rst [0]
     connect \byte_data \byte_data [7:0]
     connect \send_byte \send_byte [0]
-    connect \data$16 \data [31:0]
+    connect \data$16 \data$79 [31:0]
     connect \send \send [0]
     connect \busy \busy [0]
     connect \tx \uart_tx [0]
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:47"
-  cell \top.uart_rx$95 \uart_rx$95
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:49"
+  cell \top.uart_rx$96 \uart_rx$96
     connect \rx \uart_rx [0]
     connect \clk \clk [0]
     connect \rst \rst [0]
@@ -562,23 +587,22 @@ module \top
     connect \valid \valid [0]
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:51"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:53"
   cell \top.rgb \rgb
     connect \g \g [0]
     connect \b \b [0]
     connect \r \led_r [0]
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:54"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:56"
   cell \top.core \core
     connect \clk \clk [0]
     connect \rst \rst [0]
     connect \imem_valid \imem_valid [0]
     connect \boot_complete \boot_complete [0]
     connect \perm_gt_sig \clist_wr_data [31:0]
-    connect \instruction \imem_data [31:0]
-    connect \port$1271$0 $102 [15:0]
-    connect \port$1272$0 $103 [15:0]
+    connect \port$1336$0 $113 [15:0]
+    connect \port$1337$0 $114 [15:0]
     connect \boot_start \boot_start [0]
     connect \fault \fault [3:0]
     connect \fault_valid$241 \led_r [0]
@@ -586,20 +610,29 @@ module \top
     connect \dmem_wr_data \dmem_wr_data [31:0]
     connect \dmem_wr_en \dmem_wr_en [0]
     connect \imem_addr \imem_addr [31:0]
+    connect \instruction \imem_data [31:0]
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
+  cell \top.boot_rom \boot_rom
+    connect \clk \clk [0]
+    connect \rst \rst [0]
+    connect \addr \imem_addr [10:2]
+    connect \data \imem_data [31:0]
   end
 
   attribute \src "/home/runner/workspace/church_machine/uart_test.py:62"
-  cell \top.dmem_spram \dmem_spram
+  cell \top.spram \spram
     connect \clk \clk [0]
-    connect \port$1271$0 $102 [15:0]
-    connect \port$1272$0 $103 [15:0]
-    connect \addr \addr [13:0]
+    connect \port$1336$0 $113 [15:0]
+    connect \port$1337$0 $114 [15:0]
+    connect \addr \addr$31 [13:0]
     connect \wr_data \wr_data$32 [31:0]
     connect \wr_en \wr_en$33 [0]
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:75"
-  cell $or $104
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:73"
+  cell $or $115
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -610,8 +643,8 @@ module \top
     connect \Y \any_ns_access
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:76"
-  cell $or $105
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:74"
+  cell $or $116
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -622,20 +655,17 @@ module \top
     connect \Y \any_clist_access
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:173"
-  cell $sub $106
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:145"
+  cell $not $117
     parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 16
-    parameter \B_WIDTH 9
-    parameter \Y_WIDTH 17
-    connect \A \load_words_received [15:0]
-    connect \B 9'100000000
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \default_done [0]
     connect \Y $1
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:196"
-  cell $not $107
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:224"
+  cell $not $118
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -643,20 +673,20 @@ module \top
     connect \Y $2
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:196"
-  cell $and $108
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:224"
+  cell $and $119
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A $2 [0]
-    connect \B \load_complete [0]
+    connect \B \load_done [0]
     connect \Y $3
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:197"
-  cell $lt $109
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:225"
+  cell $lt $120
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -667,8 +697,8 @@ module \top
     connect \Y $4
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:209"
-  cell $ne $110
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:237"
+  cell $ne $121
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 32
@@ -679,8 +709,8 @@ module \top
     connect \Y \nia_changed
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:211"
-  cell $and $111
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:239"
+  cell $and $122
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -691,8 +721,8 @@ module \top
     connect \Y \step_complete
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:213"
-  cell $not $112
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:241"
+  cell $not $123
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -700,8 +730,8 @@ module \top
     connect \Y $5
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:213"
-  cell $not $113
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:241"
+  cell $not $124
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -709,8 +739,8 @@ module \top
     connect \Y $6
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:213"
-  cell $and $114
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:241"
+  cell $and $125
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -721,8 +751,8 @@ module \top
     connect \Y $7
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:213"
-  cell $or $115
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:241"
+  cell $or $126
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -733,8 +763,8 @@ module \top
     connect \Y \imem_valid
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:225"
-  cell $not $116
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:253"
+  cell $not $127
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -742,8 +772,8 @@ module \top
     connect \Y $8
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:225"
-  cell $and $117
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:253"
+  cell $and $128
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -754,17 +784,17 @@ module \top
     connect \Y \btn_press
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:238"
-  cell $not $118
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:266"
+  cell $not $129
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \load_complete [0]
+    connect \A \load_done [0]
     connect \Y \led_loading
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:239"
-  cell $not $119
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:267"
+  cell $not $130
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -772,20 +802,20 @@ module \top
     connect \Y $9
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:239"
-  cell $and $120
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:267"
+  cell $and $131
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \load_complete [0]
+    connect \A \load_done [0]
     connect \B $9 [0]
     connect \Y \led_boot
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:240"
-  cell $not $121
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:268"
+  cell $not $132
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -793,8 +823,8 @@ module \top
     connect \Y $10
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:240"
-  cell $and $122
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:268"
+  cell $and $133
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -805,8 +835,8 @@ module \top
     connect \Y $11
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:240"
-  cell $not $123
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:268"
+  cell $not $134
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -814,8 +844,8 @@ module \top
     connect \Y $12
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:240"
-  cell $and $124
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:268"
+  cell $and $135
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -826,8 +856,8 @@ module \top
     connect \Y \led_run
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:242"
-  cell $and $125
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:270"
+  cell $and $136
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -838,8 +868,8 @@ module \top
     connect \Y $13
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:242"
-  cell $not $126
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:270"
+  cell $not $137
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -847,8 +877,8 @@ module \top
     connect \Y $14
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:242"
-  cell $and $127
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:270"
+  cell $and $138
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -859,8 +889,8 @@ module \top
     connect \Y $15
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:242"
-  cell $and $128
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:270"
+  cell $and $139
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -871,8 +901,8 @@ module \top
     connect \Y \led_halted_blink
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:248"
-  process $129
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:276"
+  process $140
     assign \banner_byte [7:0] 8'00000000
     switch \banner_idx [3:0]
       case 4'0000
@@ -904,8 +934,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:253"
-  process $130
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:281"
+  process $141
     assign \halt_byte [7:0] 8'00000000
     switch \halt_idx [2:0]
       case 3'000
@@ -923,8 +953,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:258"
-  process $131
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:286"
+  process $142
     assign \step_byte [7:0] 8'00000000
     switch \step_idx [1:0]
       case 2'00
@@ -934,8 +964,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:263"
-  process $132
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:291"
+  process $143
     assign \fault_byte [7:0] 8'00000000
     switch \fault_msg_idx [1:0]
       case 2'00
@@ -945,8 +975,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:276"
-  cell $not $133
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:312"
+  cell $not $144
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -954,8 +984,8 @@ module \top
     connect \Y $16
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:277"
-  cell $lt $134
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:313"
+  cell $lt $145
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -966,8 +996,8 @@ module \top
     connect \Y $17
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:287"
-  cell $not $135
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:323"
+  cell $not $146
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -975,8 +1005,8 @@ module \top
     connect \Y $18
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:295"
-  cell $not $136
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:331"
+  cell $not $147
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -984,8 +1014,8 @@ module \top
     connect \Y $19
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:296"
-  cell $lt $137
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:332"
+  cell $lt $148
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -996,8 +1026,8 @@ module \top
     connect \Y $20
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:323"
-  cell $not $138
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:359"
+  cell $not $149
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1005,8 +1035,8 @@ module \top
     connect \Y $21
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:324"
-  cell $lt $139
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:360"
+  cell $lt $150
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1017,8 +1047,8 @@ module \top
     connect \Y $22
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:335"
-  cell $not $140
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:371"
+  cell $not $151
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1026,8 +1056,8 @@ module \top
     connect \Y $23
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:348"
-  cell $not $141
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:384"
+  cell $not $152
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1035,8 +1065,8 @@ module \top
     connect \Y $24
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:349"
-  cell $lt $142
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:385"
+  cell $lt $153
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1047,8 +1077,8 @@ module \top
     connect \Y $25
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:360"
-  cell $not $143
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:396"
+  cell $not $154
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1056,8 +1086,8 @@ module \top
     connect \Y $26
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:372"
-  cell $or $144
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:408"
+  cell $or $155
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -1068,8 +1098,8 @@ module \top
     connect \Y \g
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:373"
-  cell $or $145
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:409"
+  cell $or $156
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -1080,8 +1110,8 @@ module \top
     connect \Y \b
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:377"
-  cell $or $146
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:413"
+  cell $or $157
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -1092,8 +1122,8 @@ module \top
     connect \Y \led_g
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:378"
-  cell $or $147
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:414"
+  cell $or $158
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -1105,7 +1135,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $148
+  cell $eq $159
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1117,7 +1147,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $149
+  cell $eq $160
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1129,7 +1159,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $150
+  cell $eq $161
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1141,7 +1171,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $151
+  cell $eq $162
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1153,7 +1183,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $152
+  cell $eq $163
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1165,7 +1195,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $153
+  cell $eq $164
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1177,7 +1207,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $154
+  cell $eq $165
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1189,7 +1219,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $155
+  cell $eq $166
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1201,7 +1231,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $156
+  cell $eq $167
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1213,7 +1243,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $157
+  cell $eq $168
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1225,7 +1255,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $158
+  cell $eq $169
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1237,7 +1267,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $159
+  cell $eq $170
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1249,7 +1279,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $160
+  cell $eq $171
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1261,7 +1291,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $161
+  cell $eq $172
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1273,7 +1303,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $162
+  cell $eq $173
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1285,7 +1315,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $163
+  cell $eq $174
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1297,7 +1327,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $164
+  cell $eq $175
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1308,8 +1338,32 @@ module \top
     connect \Y $43
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:116"
-  cell $eq $165
+  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
+  cell $eq $176
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 4
+    parameter \B_WIDTH 4
+    parameter \Y_WIDTH 1
+    connect \A \debug_fsm_state [3:0]
+    connect \B 4'1010
+    connect \Y $44
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:137"
+  cell $add $177
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 24
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 25
+    connect \A \auto_boot_ctr [23:0]
+    connect \B 1'1
+    connect \Y $45
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:138"
+  cell $eq $178
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 8
@@ -1317,95 +1371,92 @@ module \top
     parameter \Y_WIDTH 1
     connect \A \data$89 [7:0]
     connect \B 8'10101010
-    connect \Y $44
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:122"
-  cell $eq $166
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 0
-    parameter \Y_WIDTH 1
-    connect \A \load_byte_idx [1:0]
-    connect \B {  }
-    connect \Y $45
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:124"
-  cell $eq $167
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \load_byte_idx [1:0]
-    connect \B 1'1
     connect \Y $46
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:126"
-  cell $eq $168
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:138"
+  cell $and $179
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 2
+    parameter \A_WIDTH 1
+    parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \load_byte_idx [1:0]
-    connect \B 2'10
+    connect \A \valid [0]
+    connect \B $46 [0]
     connect \Y $47
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:131"
-  cell $eq $169
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:141"
+  cell $ge $180
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 2
+    parameter \A_WIDTH 24
+    parameter \B_WIDTH 23
     parameter \Y_WIDTH 1
-    connect \A \load_byte_idx [1:0]
-    connect \B 2'11
+    connect \A \auto_boot_ctr [23:0]
+    connect \B 23'10110111000110110000000
     connect \Y $48
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:138"
-  cell $add $170
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:145"
+  cell $not $181
     parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 3
-    connect \A \load_byte_idx [1:0]
-    connect \B 1'1
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \default_done [0]
     connect \Y $49
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:149"
-  cell $eq $171
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:151"
+  cell $lt $182
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 0
+    parameter \A_WIDTH 9
+    parameter \B_WIDTH 9
     parameter \Y_WIDTH 1
-    connect \A \load_byte_idx [1:0]
-    connect \B {  }
+    connect \A \default_idx [8:0]
+    connect \B 9'100000000
     connect \Y $50
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:151"
-  cell $eq $172
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:152"
+  cell $add $183
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
+    parameter \A_WIDTH 9
     parameter \B_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \load_byte_idx [1:0]
+    parameter \Y_WIDTH 10
+    connect \A \default_idx [8:0]
     connect \B 1'1
     connect \Y $51
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:153"
-  cell $eq $173
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:161"
+  cell $eq $184
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 0
+    parameter \Y_WIDTH 1
+    connect \A \load_byte_idx [1:0]
+    connect \B {  }
+    connect \Y $52
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:163"
+  cell $eq $185
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \load_byte_idx [1:0]
+    connect \B 1'1
+    connect \Y $53
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:165"
+  cell $eq $186
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1413,11 +1464,11 @@ module \top
     parameter \Y_WIDTH 1
     connect \A \load_byte_idx [1:0]
     connect \B 2'10
-    connect \Y $52
+    connect \Y $54
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:158"
-  cell $eq $174
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:170"
+  cell $eq $187
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1425,23 +1476,11 @@ module \top
     parameter \Y_WIDTH 1
     connect \A \load_byte_idx [1:0]
     connect \B 2'11
-    connect \Y $53
+    connect \Y $55
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:159"
-  cell $lt $175
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 16
-    parameter \B_WIDTH 9
-    parameter \Y_WIDTH 1
-    connect \A \load_words_received [15:0]
-    connect \B 9'100000000
-    connect \Y $54
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:162"
-  cell $add $176
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:177"
+  cell $add $188
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1449,23 +1488,71 @@ module \top
     parameter \Y_WIDTH 3
     connect \A \load_byte_idx [1:0]
     connect \B 1'1
-    connect \Y $55
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:178"
-  cell $add $177
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 16
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 17
-    connect \A \load_words_received [15:0]
-    connect \B 1'1
     connect \Y $56
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:182"
-  cell $add $178
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:188"
+  cell $eq $189
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 0
+    parameter \Y_WIDTH 1
+    connect \A \load_byte_idx [1:0]
+    connect \B {  }
+    connect \Y $57
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:190"
+  cell $eq $190
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \load_byte_idx [1:0]
+    connect \B 1'1
+    connect \Y $58
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:192"
+  cell $eq $191
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 2
+    parameter \Y_WIDTH 1
+    connect \A \load_byte_idx [1:0]
+    connect \B 2'10
+    connect \Y $59
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:197"
+  cell $eq $192
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 2
+    parameter \Y_WIDTH 1
+    connect \A \load_byte_idx [1:0]
+    connect \B 2'11
+    connect \Y $60
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:200"
+  cell $add $193
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 3
+    connect \A \load_byte_idx [1:0]
+    connect \B 1'1
+    connect \Y $61
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:209"
+  cell $add $194
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 16
@@ -1473,44 +1560,56 @@ module \top
     parameter \Y_WIDTH 17
     connect \A \load_words_received [15:0]
     connect \B 1'1
-    connect \Y $57
+    connect \Y $62
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:182"
-  cell $ge $179
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:213"
+  cell $add $195
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 16
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 17
+    connect \A \load_words_received [15:0]
+    connect \B 1'1
+    connect \Y $63
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:213"
+  cell $ge $196
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 17
     parameter \B_WIDTH 16
     parameter \Y_WIDTH 1
-    connect \A $57 [16:0]
+    connect \A $63 [16:0]
     connect \B \load_word_count [15:0]
-    connect \Y $58
+    connect \Y $64
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:196"
-  cell $not $180
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:224"
+  cell $not $197
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A \boot_triggered [0]
-    connect \Y $59
+    connect \Y $65
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:196"
-  cell $and $181
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:224"
+  cell $and $198
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A $59 [0]
-    connect \B \load_complete [0]
-    connect \Y $60
+    connect \A $65 [0]
+    connect \B \load_done [0]
+    connect \Y $66
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:197"
-  cell $lt $182
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:225"
+  cell $lt $199
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1518,11 +1617,11 @@ module \top
     parameter \Y_WIDTH 1
     connect \A \boot_delay [3:0]
     connect \B 4'1111
-    connect \Y $61
+    connect \Y $67
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:198"
-  cell $add $183
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:226"
+  cell $add $200
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1530,11 +1629,11 @@ module \top
     parameter \Y_WIDTH 5
     connect \A \boot_delay [3:0]
     connect \B 1'1
-    connect \Y $62
+    connect \Y $68
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:228"
-  cell $add $184
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:256"
+  cell $add $201
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 23
@@ -1542,20 +1641,44 @@ module \top
     parameter \Y_WIDTH 24
     connect \A \heartbeat_ctr [22:0]
     connect \B 1'1
-    connect \Y $63
+    connect \Y $69
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:276"
-  cell $not $185
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:302"
+  cell $add $202
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 26
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 27
+    connect \A \startup_ctr [25:0]
+    connect \B 1'1
+    connect \Y $70
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:303"
+  cell $eq $203
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 26
+    parameter \B_WIDTH 26
+    parameter \Y_WIDTH 1
+    connect \A \startup_ctr [25:0]
+    connect \B 26'10001001010101000011111111
+    connect \Y $71
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:312"
+  cell $not $204
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A \busy [0]
-    connect \Y $64
+    connect \Y $72
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:277"
-  cell $lt $186
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:313"
+  cell $lt $205
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1563,11 +1686,11 @@ module \top
     parameter \Y_WIDTH 1
     connect \A \banner_idx [3:0]
     connect \B 4'1101
-    connect \Y $65
+    connect \Y $73
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:282"
-  cell $add $187
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:318"
+  cell $add $206
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1575,95 +1698,11 @@ module \top
     parameter \Y_WIDTH 5
     connect \A \banner_idx [3:0]
     connect \B 1'1
-    connect \Y $66
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:287"
-  cell $not $188
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \busy [0]
-    connect \Y $67
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:295"
-  cell $not $189
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \busy [0]
-    connect \Y $68
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:296"
-  cell $lt $190
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 3
-    parameter \B_WIDTH 3
-    parameter \Y_WIDTH 1
-    connect \A \halt_idx [2:0]
-    connect \B 3'110
-    connect \Y $69
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:301"
-  cell $add $191
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 3
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 4
-    connect \A \halt_idx [2:0]
-    connect \B 1'1
-    connect \Y $70
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:323"
-  cell $not $192
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \busy [0]
-    connect \Y $71
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:324"
-  cell $lt $193
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 2
-    parameter \Y_WIDTH 1
-    connect \A \step_idx [1:0]
-    connect \B 2'10
-    connect \Y $72
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:329"
-  cell $add $194
-    parameter \A_SIGNED 0
-    parameter \B_SIGNED 0
-    parameter \A_WIDTH 2
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 3
-    connect \A \step_idx [1:0]
-    connect \B 1'1
-    connect \Y $73
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:335"
-  cell $not $195
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \busy [0]
     connect \Y $74
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:348"
-  cell $not $196
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:323"
+  cell $not $207
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1671,8 +1710,92 @@ module \top
     connect \Y $75
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:349"
-  cell $lt $197
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:331"
+  cell $not $208
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \busy [0]
+    connect \Y $76
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:332"
+  cell $lt $209
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 3
+    parameter \B_WIDTH 3
+    parameter \Y_WIDTH 1
+    connect \A \halt_idx [2:0]
+    connect \B 3'110
+    connect \Y $77
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:337"
+  cell $add $210
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 3
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 4
+    connect \A \halt_idx [2:0]
+    connect \B 1'1
+    connect \Y $78
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:359"
+  cell $not $211
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \busy [0]
+    connect \Y $79
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:360"
+  cell $lt $212
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 2
+    parameter \Y_WIDTH 1
+    connect \A \step_idx [1:0]
+    connect \B 2'10
+    connect \Y $80
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:365"
+  cell $add $213
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 2
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 3
+    connect \A \step_idx [1:0]
+    connect \B 1'1
+    connect \Y $81
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:371"
+  cell $not $214
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \busy [0]
+    connect \Y $82
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:384"
+  cell $not $215
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \busy [0]
+    connect \Y $83
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:385"
+  cell $lt $216
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1680,11 +1803,11 @@ module \top
     parameter \Y_WIDTH 1
     connect \A \fault_msg_idx [1:0]
     connect \B 2'10
-    connect \Y $76
+    connect \Y $84
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:354"
-  cell $add $198
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:390"
+  cell $add $217
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1692,68 +1815,20 @@ module \top
     parameter \Y_WIDTH 3
     connect \A \fault_msg_idx [1:0]
     connect \B 1'1
-    connect \Y $77
+    connect \Y $85
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:360"
-  cell $not $199
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:396"
+  cell $not $218
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A \busy [0]
-    connect \Y $78
+    connect \Y $86
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:56"
-  cell $meminit_v2 $200
-    parameter \MEMID "\\imem"
-    parameter \ABITS 0
-    parameter \WIDTH 32
-    parameter \WORDS 256
-    parameter \PRIORITY 0
-    connect \ADDR {  }
-    connect \DATA 8192'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    connect \EN 32'11111111111111111111111111111111
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
-  cell $memwr_v2 $201
-    parameter \MEMID "\\imem"
-    parameter \ABITS 8
-    parameter \WIDTH 32
-    parameter \CLK_ENABLE 1
-    parameter \CLK_POLARITY 1
-    parameter \PORTID 0
-    parameter \PRIORITY_MASK 0
-    connect \ADDR \imem_w_addr [7:0]
-    connect \DATA \imem_w_data [31:0]
-    connect \EN { \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] \imem_w_en [0] }
-    connect \CLK \clk [0]
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:58"
-  cell $memrd_v2 $202
-    parameter \MEMID "\\imem"
-    parameter \ABITS 8
-    parameter \WIDTH 32
-    parameter \TRANSPARENCY_MASK 1'1
-    parameter \COLLISION_X_MASK 1'0
-    parameter \ARST_VALUE 32'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    parameter \SRST_VALUE 32'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    parameter \INIT_VALUE 32'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    parameter \CE_OVER_SRST 0
-    parameter \CLK_ENABLE 1
-    parameter \CLK_POLARITY 1
-    connect \ADDR \imem_addr [9:2]
-    connect \DATA \imem_data
-    connect \ARST 1'0
-    connect \SRST 1'0
-    connect \EN 1'1
-    connect \CLK \clk [0]
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:71"
-  process $203
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:69"
+  process $219
     assign \mem_addr [13:0] 14'00000000000000
     switch { \any_clist_access [0] \any_ns_access [0] }
       case 2'-1
@@ -1765,8 +1840,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:85"
-  process $204
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:83"
+  process $220
     assign \wr_data [31:0] 32'00000000000000000000000000000000
     switch 2'00
       case 2'-1
@@ -1778,8 +1853,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:86"
-  process $205
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:84"
+  process $221
     assign \wr_en [0] 1'0
     switch 2'00
       case 2'-1
@@ -1792,133 +1867,168 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:20"
-  process $206
-    assign \addr [13:0] 14'00000000000000
-    switch \load_complete [0]
+  process $222
+    assign \addr$31 [13:0] 14'00000000000000
+    switch \load_done [0]
       case 1'1
-        assign \addr [13:0] \mem_addr [13:0]
+        assign \addr$31 [13:0] \mem_addr [13:0]
     end
     switch \loader_fsm_state [2:0]
       case 3'000
-      case 3'001
       case 3'010
-      case 3'011
-      case 3'100
-        switch \load_is_imem [0]
+        switch $1 [0]
           case 1'1
+            assign \addr$31 [13:0] { 5'00000 \default_idx [8:0] }
           case
-            assign \addr [13:0] $1 [13:0]
         end
+      case 3'001
+      case 3'100
       case 3'101
       case 3'110
+        assign \addr$31 [13:0] \load_words_received [13:0]
+      case 3'011
     end
   end
 
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:21"
-  process $207
+  process $223
     assign \wr_data$32 [31:0] 32'00000000000000000000000000000000
-    switch \load_complete [0]
+    switch \load_done [0]
       case 1'1
         assign \wr_data$32 [31:0] \wr_data [31:0]
     end
     switch \loader_fsm_state [2:0]
       case 3'000
-      case 3'001
       case 3'010
-      case 3'011
-      case 3'100
-        switch \load_is_imem [0]
+        switch $1 [0]
           case 1'1
+            assign \wr_data$32 [31:0] \default_word [31:0]
           case
-            assign \wr_data$32 [31:0] \load_word [31:0]
         end
+      case 3'001
+      case 3'100
       case 3'101
       case 3'110
+        assign \wr_data$32 [31:0] \load_word [31:0]
+      case 3'011
     end
   end
 
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:23"
-  process $208
+  process $224
     assign \wr_en$33 [0] 1'0
-    switch \load_complete [0]
+    switch \load_done [0]
       case 1'1
         assign \wr_en$33 [0] \wr_en [0]
     end
     switch \loader_fsm_state [2:0]
       case 3'000
-      case 3'001
       case 3'010
-      case 3'011
-      case 3'100
-        switch \load_is_imem [0]
+        switch $1 [0]
           case 1'1
-          case
             assign \wr_en$33 [0] 1'1
+          case
         end
+      case 3'001
+      case 3'100
       case 3'101
       case 3'110
+        assign \wr_en$33 [0] 1'1
+      case 3'011
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
-  process $209
-    assign \imem_w_addr [7:0] 8'00000000
-    switch \loader_fsm_state [2:0]
-      case 3'000
-      case 3'001
-      case 3'010
-      case 3'011
-      case 3'100
-        switch \load_is_imem [0]
-          case 1'1
-            assign \imem_w_addr [7:0] \load_words_received [7:0]
-          case
-        end
-      case 3'101
-      case 3'110
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
-  process $210
-    assign \imem_w_data [31:0] 32'00000000000000000000000000000000
-    switch \loader_fsm_state [2:0]
-      case 3'000
-      case 3'001
-      case 3'010
-      case 3'011
-      case 3'100
-        switch \load_is_imem [0]
-          case 1'1
-            assign \imem_w_data [31:0] \load_word [31:0]
-          case
-        end
-      case 3'101
-      case 3'110
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:59"
-  process $211
-    assign \imem_w_en [0] 1'0
-    switch \loader_fsm_state [2:0]
-      case 3'000
-      case 3'001
-      case 3'010
-      case 3'011
-      case 3'100
-        switch \load_is_imem [0]
-          case 1'1
-            assign \imem_w_en [0] 1'1
-          case
-        end
-      case 3'101
-      case 3'110
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:117"
+  process $225
+    assign \default_word [31:0] 32'00000000000000000000000000000000
+    switch \default_idx [8:0]
+      case 9'000000000
+        assign \default_word [31:0] 32'00000000000000001111110100000000
+      case 9'000000001
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000000011
+        assign \default_word [31:0] 32'00000000000000000000000100000000
+      case 9'000000100
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000000110
+        assign \default_word [31:0] 32'00000000000000000000001000000000
+      case 9'000000111
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000001001
+        assign \default_word [31:0] 32'00000000000000000000001100000000
+      case 9'000001010
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000001100
+        assign \default_word [31:0] 32'00000000000000000000010000000000
+      case 9'000001101
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000001111
+        assign \default_word [31:0] 32'00000000000000000000010100000000
+      case 9'000010000
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000010010
+        assign \default_word [31:0] 32'00000000000000000000011000000000
+      case 9'000010011
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000010101
+        assign \default_word [31:0] 32'00000000000000000000011100000000
+      case 9'000010110
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000011000
+        assign \default_word [31:0] 32'00000000000000000000100000000000
+      case 9'000011001
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000011011
+        assign \default_word [31:0] 32'00000000000000000000100100000000
+      case 9'000011100
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000011110
+        assign \default_word [31:0] 32'00000000000000000000101000000000
+      case 9'000011111
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000100001
+        assign \default_word [31:0] 32'00000000000000000000101100000000
+      case 9'000100010
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000100100
+        assign \default_word [31:0] 32'00000000000000000000110000000000
+      case 9'000100101
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000100111
+        assign \default_word [31:0] 32'00000000000000000000110100000000
+      case 9'000101000
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000101010
+        assign \default_word [31:0] 32'00000000000000000000111000000000
+      case 9'000101011
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'000101101
+        assign \default_word [31:0] 32'00000000000000000000111100000000
+      case 9'000101110
+        assign \default_word [31:0] 32'10000000000000000000000000001000
+      case 9'011000000
+        assign \default_word [31:0] 32'00000000000000000000001100010100
+      case 9'011000001
+        assign \default_word [31:0] 32'00000000000000000000010010010000
+      case 9'011000010
+        assign \default_word [31:0] 32'00000000000000000000000000000010
+      case 9'011000011
+        assign \default_word [31:0] 32'00000000000000000000001010000000
+      case 9'011000100
+        assign \default_word [31:0] 32'00000000000000000000010110000000
+      case 9'011000101
+        assign \default_word [31:0] 32'00000000000000000000011000100000
+      case 9'011000110
+        assign \default_word [31:0] 32'00000000000000000000000000000010
+      case 9'011000111
+        assign \default_word [31:0] 32'00000000000000000000000000000010
+      case
+        assign \default_word [31:0] 32'00000000000000000000000000000000
     end
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:59"
-  process $212
+  process $226
     assign \boot_start [0] 1'0
     switch $3 [0]
       case 1'1
@@ -1931,11 +2041,12 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/church_machine/uart_tx.py:92"
-  process $213
+  process $227
     assign \byte_data [7:0] 8'00000000
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
+      case 4'0010
         switch $16 [0]
           case 1'1
             switch $17 [0]
@@ -1944,8 +2055,8 @@ module \top
               case
             end
         end
-      case 4'0010
       case 4'0011
+      case 4'0100
         switch $19 [0]
           case 1'1
             switch $20 [0]
@@ -1954,9 +2065,9 @@ module \top
               case
             end
         end
-      case 4'0100
       case 4'0101
       case 4'0110
+      case 4'0111
         switch $21 [0]
           case 1'1
             switch $22 [0]
@@ -1965,8 +2076,8 @@ module \top
               case
             end
         end
-      case 4'0111
       case 4'1000
+      case 4'1001
         switch $24 [0]
           case 1'1
             switch $25 [0]
@@ -1975,16 +2086,17 @@ module \top
               case
             end
         end
-      case 4'1001
+      case 4'1010
     end
   end
 
   attribute \src "/home/runner/workspace/church_machine/uart_tx.py:91"
-  process $214
+  process $228
     assign \send_byte [0] 1'0
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
+      case 4'0010
         switch $16 [0]
           case 1'1
             switch $17 [0]
@@ -1993,8 +2105,8 @@ module \top
               case
             end
         end
-      case 4'0010
       case 4'0011
+      case 4'0100
         switch $19 [0]
           case 1'1
             switch $20 [0]
@@ -2003,9 +2115,9 @@ module \top
               case
             end
         end
-      case 4'0100
       case 4'0101
       case 4'0110
+      case 4'0111
         switch $21 [0]
           case 1'1
             switch $22 [0]
@@ -2014,8 +2126,8 @@ module \top
               case
             end
         end
-      case 4'0111
       case 4'1000
+      case 4'1001
         switch $24 [0]
           case 1'1
             switch $25 [0]
@@ -2024,61 +2136,63 @@ module \top
               case
             end
         end
-      case 4'1001
+      case 4'1010
     end
   end
 
   attribute \src "/home/runner/workspace/church_machine/uart_tx.py:89"
-  process $215
-    assign \data [31:0] 32'00000000000000000000000000000000
+  process $229
+    assign \data$79 [31:0] 32'00000000000000000000000000000000
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
       case 4'0010
+      case 4'0011
         switch $18 [0]
           case 1'1
-            assign \data [31:0] \imem_addr [31:0]
+            assign \data$79 [31:0] \imem_addr [31:0]
         end
-      case 4'0011
       case 4'0100
       case 4'0101
       case 4'0110
       case 4'0111
+      case 4'1000
         switch $23 [0]
           case 1'1
-            assign \data [31:0] \step_nia [31:0]
+            assign \data$79 [31:0] \step_nia [31:0]
         end
-      case 4'1000
       case 4'1001
+      case 4'1010
         switch $26 [0]
           case 1'1
-            assign \data [31:0] \fault_word [31:0]
+            assign \data$79 [31:0] \fault_word [31:0]
         end
     end
   end
 
   attribute \src "/home/runner/workspace/church_machine/uart_tx.py:90"
-  process $216
+  process $230
     assign \send [0] 1'0
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
       case 4'0010
+      case 4'0011
         switch $18 [0]
           case 1'1
             assign \send [0] 1'1
         end
-      case 4'0011
       case 4'0100
       case 4'0101
       case 4'0110
       case 4'0111
+      case 4'1000
         switch $23 [0]
           case 1'1
             assign \send [0] 1'1
         end
-      case 4'1000
       case 4'1001
+      case 4'1010
         switch $26 [0]
           case 1'1
             assign \send [0] 1'1
@@ -2086,8 +2200,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:361"
-  process $217
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:397"
+  process $231
     assign \fault_word [31:0] 32'00000000000000000000000000000000
     switch \debug_fsm_state [3:0]
       case 4'0000
@@ -2100,6 +2214,7 @@ module \top
       case 4'0111
       case 4'1000
       case 4'1001
+      case 4'1010
         switch $26 [0]
           case 1'1
             assign \fault_word [31:0] { 28'0000000000000000000000000000 \step_fault [3:0] }
@@ -2107,691 +2222,805 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:108"
-  process $218
-    assign $79 [1:0] \load_byte_idx [1:0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:132"
+  process $232
+    assign $87 [23:0] \auto_boot_ctr [23:0]
     switch \loader_fsm_state [2:0]
       case 3'000
-        switch \valid [0]
-          case 1'1
-            switch $44 [0]
-              case 1'1
-                assign $79 [1:0] 2'00
-            end
-        end
-      case 3'001
-        switch \valid [0]
-          case 1'1
-            switch $48 [0]
-              case 1'1
-                assign $79 [1:0] 2'00
-              case
-                assign $79 [1:0] $49 [1:0]
-            end
-        end
+        assign $87 [23:0] $45 [23:0]
       case 3'010
-      case 3'011
-        switch \valid [0]
-          case 1'1
-            switch $53 [0]
-              case 1'1
-              case
-                assign $79 [1:0] $55 [1:0]
-            end
-        end
+      case 3'001
       case 3'100
-        assign $79 [1:0] 2'00
       case 3'101
       case 3'110
+      case 3'011
     end
     switch \rst [0]
       case 1'1
-        assign $79 [1:0] 2'00
+        assign $87 [23:0] 24'000000000000000000000000
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:108"
-  cell $dff $219
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:132"
+  cell $dff $233
+    parameter \WIDTH 24
+    parameter \CLK_POLARITY 1
+    connect \D $87 [23:0]
+    connect \CLK \clk [0]
+    connect \Q \auto_boot_ctr
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:128"
+  process $234
+    assign $88 [1:0] \load_byte_idx [1:0]
+    switch \loader_fsm_state [2:0]
+      case 3'000
+        switch { $48 [0] $47 [0] }
+          case 2'-1
+            assign $88 [1:0] 2'00
+          case 2'1-
+        end
+      case 3'010
+      case 3'001
+        switch \valid [0]
+          case 1'1
+            switch $55 [0]
+              case 1'1
+                assign $88 [1:0] 2'00
+              case
+                assign $88 [1:0] $56 [1:0]
+            end
+        end
+      case 3'100
+      case 3'101
+        switch \valid [0]
+          case 1'1
+            switch $60 [0]
+              case 1'1
+              case
+                assign $88 [1:0] $61 [1:0]
+            end
+        end
+      case 3'110
+        assign $88 [1:0] 2'00
+      case 3'011
+    end
+    switch \rst [0]
+      case 1'1
+        assign $88 [1:0] 2'00
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:128"
+  cell $dff $235
     parameter \WIDTH 2
     parameter \CLK_POLARITY 1
-    connect \D $79 [1:0]
+    connect \D $88 [1:0]
     connect \CLK \clk [0]
     connect \Q \load_byte_idx
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:107"
-  process $220
-    assign $80 [31:0] \load_word [31:0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:127"
+  process $236
+    assign $89 [31:0] \load_word [31:0]
     switch \loader_fsm_state [2:0]
       case 3'000
-        switch \valid [0]
-          case 1'1
-            switch $44 [0]
-              case 1'1
-                assign $80 [31:0] 32'00000000000000000000000000000000
-            end
+        switch { $48 [0] $47 [0] }
+          case 2'-1
+            assign $89 [31:0] 32'00000000000000000000000000000000
+          case 2'1-
         end
+      case 3'010
       case 3'001
         switch \valid [0]
           case 1'1
-            switch { $47 [0] $46 [0] $45 [0] }
+            switch { $54 [0] $53 [0] $52 [0] }
               case 3'--1
-                assign $80 [7:0] \data$89 [7:0]
+                assign $89 [7:0] \data$89 [7:0]
               case 3'-1-
-                assign $80 [15:8] \data$89 [7:0]
+                assign $89 [15:8] \data$89 [7:0]
               case 3'1--
-                assign $80 [23:16] \data$89 [7:0]
+                assign $89 [23:16] \data$89 [7:0]
               case
-                assign $80 [31:24] \data$89 [7:0]
-            end
-        end
-      case 3'010
-        assign $80 [31:0] 32'00000000000000000000000000000000
-      case 3'011
-        switch \valid [0]
-          case 1'1
-            switch { $52 [0] $51 [0] $50 [0] }
-              case 3'--1
-                assign $80 [7:0] \data$89 [7:0]
-              case 3'-1-
-                assign $80 [15:8] \data$89 [7:0]
-              case 3'1--
-                assign $80 [23:16] \data$89 [7:0]
-              case
-                assign $80 [31:24] \data$89 [7:0]
+                assign $89 [31:24] \data$89 [7:0]
             end
         end
       case 3'100
-        assign $80 [31:0] 32'00000000000000000000000000000000
+        assign $89 [31:0] 32'00000000000000000000000000000000
       case 3'101
+        switch \valid [0]
+          case 1'1
+            switch { $59 [0] $58 [0] $57 [0] }
+              case 3'--1
+                assign $89 [7:0] \data$89 [7:0]
+              case 3'-1-
+                assign $89 [15:8] \data$89 [7:0]
+              case 3'1--
+                assign $89 [23:16] \data$89 [7:0]
+              case
+                assign $89 [31:24] \data$89 [7:0]
+            end
+        end
       case 3'110
+        assign $89 [31:0] 32'00000000000000000000000000000000
+      case 3'011
     end
     switch \rst [0]
       case 1'1
-        assign $80 [31:0] 32'00000000000000000000000000000000
+        assign $89 [31:0] 32'00000000000000000000000000000000
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:107"
-  cell $dff $221
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:127"
+  cell $dff $237
     parameter \WIDTH 32
     parameter \CLK_POLARITY 1
-    connect \D $80 [31:0]
+    connect \D $89 [31:0]
     connect \CLK \clk [0]
     connect \Q \load_word
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
-  process $222
-    assign $81 [2:0] \loader_fsm_state [2:0]
+  process $238
+    assign $90 [2:0] \loader_fsm_state [2:0]
     switch \loader_fsm_state [2:0]
       case 3'000
-        switch \valid [0]
+        switch { $48 [0] $47 [0] }
+          case 2'-1
+            assign $90 [2:0] 3'001
+          case 2'1-
+            assign $90 [2:0] 3'010
+        end
+      case 3'010
+        switch $49 [0]
           case 1'1
-            switch $44 [0]
-              case 1'1
-                assign $81 [2:0] 3'001
-            end
+          case
+            assign $90 [2:0] 3'011
         end
       case 3'001
         switch \valid [0]
           case 1'1
-            switch $48 [0]
+            switch $55 [0]
               case 1'1
-                assign $81 [2:0] 3'010
-              case
-            end
-        end
-      case 3'010
-        assign $81 [2:0] 3'011
-      case 3'011
-        switch \valid [0]
-          case 1'1
-            switch $53 [0]
-              case 1'1
-                assign $81 [2:0] 3'100
+                assign $90 [2:0] 3'100
               case
             end
         end
       case 3'100
-        switch $58 [0]
-          case 1'1
-            assign $81 [2:0] 3'101
-          case
-            assign $81 [2:0] 3'011
-        end
+        assign $90 [2:0] 3'101
       case 3'101
-        assign $81 [2:0] 3'110
+        switch \valid [0]
+          case 1'1
+            switch $60 [0]
+              case 1'1
+                assign $90 [2:0] 3'110
+              case
+            end
+        end
       case 3'110
+        switch $64 [0]
+          case 1'1
+            assign $90 [2:0] 3'011
+          case
+            assign $90 [2:0] 3'101
+        end
+      case 3'011
     end
     switch \rst [0]
       case 1'1
-        assign $81 [2:0] 3'000
+        assign $90 [2:0] 3'000
     end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
-  cell $dff $223
+  cell $dff $239
     parameter \WIDTH 3
     parameter \CLK_POLARITY 1
-    connect \D $81 [2:0]
+    connect \D $90 [2:0]
     connect \CLK \clk [0]
     connect \Q \loader_fsm_state
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:110"
-  process $224
-    assign $82 [15:0] \load_words_received [15:0]
-    switch \loader_fsm_state [2:0]
-      case 3'000
-      case 3'001
-        switch \valid [0]
-          case 1'1
-            switch $48 [0]
-              case 1'1
-                assign $82 [15:0] 16'0000000000000000
-              case
-            end
-        end
-      case 3'010
-      case 3'011
-      case 3'100
-        assign $82 [15:0] $56 [15:0]
-      case 3'101
-      case 3'110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $82 [15:0] 16'0000000000000000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:110"
-  cell $dff $225
-    parameter \WIDTH 16
-    parameter \CLK_POLARITY 1
-    connect \D $82 [15:0]
-    connect \CLK \clk [0]
-    connect \Q \load_words_received
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:109"
-  process $226
-    assign $83 [15:0] \load_word_count [15:0]
-    switch \loader_fsm_state [2:0]
-      case 3'000
-      case 3'001
-      case 3'010
-        assign $83 [15:0] \load_word [15:0]
-      case 3'011
-      case 3'100
-      case 3'101
-      case 3'110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $83 [15:0] 16'0000000000000000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:109"
-  cell $dff $227
-    parameter \WIDTH 16
-    parameter \CLK_POLARITY 1
-    connect \D $83 [15:0]
-    connect \CLK \clk [0]
-    connect \Q \load_word_count
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:111"
-  process $228
-    assign $84 [0] \load_is_imem [0]
-    switch \loader_fsm_state [2:0]
-      case 3'000
-      case 3'001
-      case 3'010
-      case 3'011
-        switch \valid [0]
-          case 1'1
-            switch $53 [0]
-              case 1'1
-                assign $84 [0] $54 [0]
-              case
-            end
-        end
-      case 3'100
-      case 3'101
-      case 3'110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $84 [0] 1'0
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:111"
-  cell $dff $229
-    parameter \WIDTH 1
-    parameter \CLK_POLARITY 1
-    connect \D $84 [0]
-    connect \CLK \clk [0]
-    connect \Q \load_is_imem
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:64"
-  process $230
-    assign $85 [0] \load_complete [0]
-    switch \loader_fsm_state [2:0]
-      case 3'000
-      case 3'001
-      case 3'010
-      case 3'011
-      case 3'100
-      case 3'101
-        assign $85 [0] 1'1
-      case 3'110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $85 [0] 1'0
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:64"
-  cell $dff $231
-    parameter \WIDTH 1
-    parameter \CLK_POLARITY 1
-    connect \D $85 [0]
-    connect \CLK \clk [0]
-    connect \Q \load_complete
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:194"
-  process $232
-    assign $86 [3:0] \boot_delay [3:0]
-    switch $60 [0]
-      case 1'1
-        switch $61 [0]
-          case 1'1
-            assign $86 [3:0] $62 [3:0]
-          case
-        end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $86 [3:0] 4'0000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:194"
-  cell $dff $233
-    parameter \WIDTH 4
-    parameter \CLK_POLARITY 1
-    connect \D $86 [3:0]
-    connect \CLK \clk [0]
-    connect \Q \boot_delay
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:195"
-  process $234
-    assign $87 [0] \boot_triggered [0]
-    switch $60 [0]
-      case 1'1
-        switch $61 [0]
-          case 1'1
-          case
-            assign $87 [0] 1'1
-        end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $87 [0] 1'0
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:195"
-  cell $dff $235
-    parameter \WIDTH 1
-    parameter \CLK_POLARITY 1
-    connect \D $87 [0]
-    connect \CLK \clk [0]
-    connect \Q \boot_triggered
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:206"
-  process $236
-    assign $88 [31:0] \imem_addr [31:0]
-    switch \rst [0]
-      case 1'1
-        assign $88 [31:0] 32'00000000000000000000000000000000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:206"
-  cell $dff $237
-    parameter \WIDTH 32
-    parameter \CLK_POLARITY 1
-    connect \D $88 [31:0]
-    connect \CLK \clk [0]
-    connect \Q \prev_nia
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:216"
-  process $238
-    assign $89 [2:0] \btn_sync [2:0]
-    assign $89 [0] \push_button [0]
-    assign $89 [1] \btn_sync [0]
-    assign $89 [2] \btn_sync [1]
-    switch \rst [0]
-      case 1'1
-        assign $89 [2:0] 3'000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:216"
-  cell $dff $239
-    parameter \WIDTH 3
-    parameter \CLK_POLARITY 1
-    connect \D $89 [2:0]
-    connect \CLK \clk [0]
-    connect \Q \btn_sync
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:217"
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:115"
   process $240
-    assign $90 [0] \btn_sync [2]
-    switch \rst [0]
-      case 1'1
-        assign $90 [0] 1'0
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:217"
-  cell $dff $241
-    parameter \WIDTH 1
-    parameter \CLK_POLARITY 1
-    connect \D $90 [0]
-    connect \CLK \clk [0]
-    connect \Q \btn_prev
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:227"
-  process $242
-    assign $91 [22:0] $63 [22:0]
-    switch \rst [0]
-      case 1'1
-        assign $91 [22:0] 23'00000000000000000000000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:227"
-  cell $dff $243
-    parameter \WIDTH 23
-    parameter \CLK_POLARITY 1
-    connect \D $91 [22:0]
-    connect \CLK \clk [0]
-    connect \Q \heartbeat_ctr
-  end
-
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:246"
-  process $244
-    assign $92 [3:0] \banner_idx [3:0]
-    switch \debug_fsm_state [3:0]
-      case 4'0000
-        switch \boot_complete [0]
+    assign $91 [8:0] \default_idx [8:0]
+    switch \loader_fsm_state [2:0]
+      case 3'000
+      case 3'010
+        switch $49 [0]
           case 1'1
-            assign $92 [3:0] 4'0000
-        end
-      case 4'0001
-        switch $64 [0]
-          case 1'1
-            switch $65 [0]
+            switch $50 [0]
               case 1'1
-                assign $92 [3:0] $66 [3:0]
+                assign $91 [8:0] $51 [8:0]
               case
             end
+          case
         end
-      case 4'0010
-      case 4'0011
-      case 4'0100
-      case 4'0101
-      case 4'0110
-      case 4'0111
-      case 4'1000
-      case 4'1001
+      case 3'001
+      case 3'100
+      case 3'101
+      case 3'110
+      case 3'011
     end
     switch \rst [0]
       case 1'1
-        assign $92 [3:0] 4'0000
+        assign $91 [8:0] 9'000000000
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:246"
-  cell $dff $245
-    parameter \WIDTH 4
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:115"
+  cell $dff $241
+    parameter \WIDTH 9
     parameter \CLK_POLARITY 1
-    connect \D $92 [3:0]
+    connect \D $91 [8:0]
     connect \CLK \clk [0]
-    connect \Q \banner_idx
+    connect \Q \default_idx
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:203"
-  process $246
-    assign $93 [0] \halted [0]
-    switch \debug_fsm_state [3:0]
-      case 4'0000
-        switch \boot_complete [0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:116"
+  process $242
+    assign $92 [0] \default_done [0]
+    switch \loader_fsm_state [2:0]
+      case 3'000
+      case 3'010
+        switch $49 [0]
           case 1'1
+            switch $50 [0]
+              case 1'1
+              case
+                assign $92 [0] 1'1
+            end
+          case
+        end
+      case 3'001
+      case 3'100
+      case 3'101
+      case 3'110
+      case 3'011
+    end
+    switch \rst [0]
+      case 1'1
+        assign $92 [0] 1'0
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:116"
+  cell $dff $243
+    parameter \WIDTH 1
+    parameter \CLK_POLARITY 1
+    connect \D $92 [0]
+    connect \CLK \clk [0]
+    connect \Q \default_done
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:92"
+  process $244
+    assign $93 [0] \load_done [0]
+    switch \loader_fsm_state [2:0]
+      case 3'000
+      case 3'010
+        switch $49 [0]
+          case 1'1
+          case
             assign $93 [0] 1'1
         end
-      case 4'0001
-      case 4'0010
-      case 4'0011
-      case 4'0100
-      case 4'0101
-      case 4'0110
-      case 4'0111
-      case 4'1000
-      case 4'1001
+      case 3'001
+      case 3'100
+      case 3'101
+      case 3'110
+        switch $64 [0]
+          case 1'1
+            assign $93 [0] 1'1
+          case
+        end
+      case 3'011
     end
     switch \rst [0]
       case 1'1
-        assign $93 [0] 1'1
+        assign $93 [0] 1'0
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:203"
-  cell $dff $247
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:92"
+  cell $dff $245
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
     connect \D $93 [0]
     connect \CLK \clk [0]
-    connect \Q \halted
+    connect \Q \load_done
   end
 
-  attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
-  process $248
-    assign $94 [3:0] \debug_fsm_state [3:0]
-    switch \debug_fsm_state [3:0]
-      case 4'0000
-        switch \boot_complete [0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:130"
+  process $246
+    assign $94 [15:0] \load_words_received [15:0]
+    switch \loader_fsm_state [2:0]
+      case 3'000
+      case 3'010
+      case 3'001
+        switch \valid [0]
           case 1'1
-            assign $94 [3:0] 4'0001
-        end
-      case 4'0001
-        switch $64 [0]
-          case 1'1
-            switch $65 [0]
+            switch $55 [0]
               case 1'1
+                assign $94 [15:0] 16'0000000000000000
               case
-                assign $94 [3:0] 4'0010
             end
         end
-      case 4'0010
+      case 3'100
+      case 3'101
+      case 3'110
+        assign $94 [15:0] $62 [15:0]
+      case 3'011
+    end
+    switch \rst [0]
+      case 1'1
+        assign $94 [15:0] 16'0000000000000000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:130"
+  cell $dff $247
+    parameter \WIDTH 16
+    parameter \CLK_POLARITY 1
+    connect \D $94 [15:0]
+    connect \CLK \clk [0]
+    connect \Q \load_words_received
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:129"
+  process $248
+    assign $95 [15:0] \load_word_count [15:0]
+    switch \loader_fsm_state [2:0]
+      case 3'000
+      case 3'010
+      case 3'001
+      case 3'100
+        assign $95 [15:0] \load_word [15:0]
+      case 3'101
+      case 3'110
+      case 3'011
+    end
+    switch \rst [0]
+      case 1'1
+        assign $95 [15:0] 16'0000000000000000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:129"
+  cell $dff $249
+    parameter \WIDTH 16
+    parameter \CLK_POLARITY 1
+    connect \D $95 [15:0]
+    connect \CLK \clk [0]
+    connect \Q \load_word_count
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:222"
+  process $250
+    assign $96 [3:0] \boot_delay [3:0]
+    switch $66 [0]
+      case 1'1
         switch $67 [0]
           case 1'1
-            assign $94 [3:0] 4'0011
-        end
-      case 4'0011
-        switch $68 [0]
-          case 1'1
-            switch $69 [0]
-              case 1'1
-              case
-                assign $94 [3:0] 4'0100
-            end
-        end
-      case 4'0100
-        switch \btn_press [0]
-          case 1'1
-            assign $94 [3:0] 4'0101
-        end
-      case 4'0101
-        switch \step_complete [0]
-          case 1'1
-            assign $94 [3:0] 4'0110
-        end
-      case 4'0110
-        switch $71 [0]
-          case 1'1
-            switch $72 [0]
-              case 1'1
-              case
-                assign $94 [3:0] 4'0111
-            end
-        end
-      case 4'0111
-        switch $74 [0]
-          case 1'1
-            switch \step_had_fault [0]
-              case 1'1
-                assign $94 [3:0] 4'1000
-              case
-                assign $94 [3:0] 4'0011
-            end
-        end
-      case 4'1000
-        switch $75 [0]
-          case 1'1
-            switch $76 [0]
-              case 1'1
-              case
-                assign $94 [3:0] 4'1001
-            end
-        end
-      case 4'1001
-        switch $78 [0]
-          case 1'1
-            assign $94 [3:0] 4'0011
+            assign $96 [3:0] $68 [3:0]
+          case
         end
     end
     switch \rst [0]
       case 1'1
-        assign $94 [3:0] 4'0000
+        assign $96 [3:0] 4'0000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:222"
+  cell $dff $251
+    parameter \WIDTH 4
+    parameter \CLK_POLARITY 1
+    connect \D $96 [3:0]
+    connect \CLK \clk [0]
+    connect \Q \boot_delay
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:223"
+  process $252
+    assign $97 [0] \boot_triggered [0]
+    switch $66 [0]
+      case 1'1
+        switch $67 [0]
+          case 1'1
+          case
+            assign $97 [0] 1'1
+        end
+    end
+    switch \rst [0]
+      case 1'1
+        assign $97 [0] 1'0
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:223"
+  cell $dff $253
+    parameter \WIDTH 1
+    parameter \CLK_POLARITY 1
+    connect \D $97 [0]
+    connect \CLK \clk [0]
+    connect \Q \boot_triggered
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:234"
+  process $254
+    assign $98 [31:0] \imem_addr [31:0]
+    switch \rst [0]
+      case 1'1
+        assign $98 [31:0] 32'00000000000000000000000000000000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:234"
+  cell $dff $255
+    parameter \WIDTH 32
+    parameter \CLK_POLARITY 1
+    connect \D $98 [31:0]
+    connect \CLK \clk [0]
+    connect \Q \prev_nia
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:244"
+  process $256
+    assign $99 [2:0] \btn_sync [2:0]
+    assign $99 [0] \push_button [0]
+    assign $99 [1] \btn_sync [0]
+    assign $99 [2] \btn_sync [1]
+    switch \rst [0]
+      case 1'1
+        assign $99 [2:0] 3'000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:244"
+  cell $dff $257
+    parameter \WIDTH 3
+    parameter \CLK_POLARITY 1
+    connect \D $99 [2:0]
+    connect \CLK \clk [0]
+    connect \Q \btn_sync
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:245"
+  process $258
+    assign $100 [0] \btn_sync [2]
+    switch \rst [0]
+      case 1'1
+        assign $100 [0] 1'0
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:245"
+  cell $dff $259
+    parameter \WIDTH 1
+    parameter \CLK_POLARITY 1
+    connect \D $100 [0]
+    connect \CLK \clk [0]
+    connect \Q \btn_prev
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:255"
+  process $260
+    assign $101 [22:0] $69 [22:0]
+    switch \rst [0]
+      case 1'1
+        assign $101 [22:0] 23'00000000000000000000000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:255"
+  cell $dff $261
+    parameter \WIDTH 23
+    parameter \CLK_POLARITY 1
+    connect \D $101 [22:0]
+    connect \CLK \clk [0]
+    connect \Q \heartbeat_ctr
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:298"
+  process $262
+    assign $102 [25:0] \startup_ctr [25:0]
+    switch \debug_fsm_state [3:0]
+      case 4'0000
+        assign $102 [25:0] $70 [25:0]
+      case 4'0001
+      case 4'0010
+      case 4'0011
+      case 4'0100
+      case 4'0101
+      case 4'0110
+      case 4'0111
+      case 4'1000
+      case 4'1001
+      case 4'1010
+    end
+    switch \rst [0]
+      case 1'1
+        assign $102 [25:0] 26'00000000000000000000000000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:298"
+  cell $dff $263
+    parameter \WIDTH 26
+    parameter \CLK_POLARITY 1
+    connect \D $102 [25:0]
+    connect \CLK \clk [0]
+    connect \Q \startup_ctr
+  end
+
+  attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
+  process $264
+    assign $103 [3:0] \debug_fsm_state [3:0]
+    switch \debug_fsm_state [3:0]
+      case 4'0000
+        switch $71 [0]
+          case 1'1
+            assign $103 [3:0] 4'0001
+        end
+      case 4'0001
+        switch \boot_complete [0]
+          case 1'1
+            assign $103 [3:0] 4'0010
+        end
+      case 4'0010
+        switch $72 [0]
+          case 1'1
+            switch $73 [0]
+              case 1'1
+              case
+                assign $103 [3:0] 4'0011
+            end
+        end
+      case 4'0011
+        switch $75 [0]
+          case 1'1
+            assign $103 [3:0] 4'0100
+        end
+      case 4'0100
+        switch $76 [0]
+          case 1'1
+            switch $77 [0]
+              case 1'1
+              case
+                assign $103 [3:0] 4'0101
+            end
+        end
+      case 4'0101
+        switch \btn_press [0]
+          case 1'1
+            assign $103 [3:0] 4'0110
+        end
+      case 4'0110
+        switch \step_complete [0]
+          case 1'1
+            assign $103 [3:0] 4'0111
+        end
+      case 4'0111
+        switch $79 [0]
+          case 1'1
+            switch $80 [0]
+              case 1'1
+              case
+                assign $103 [3:0] 4'1000
+            end
+        end
+      case 4'1000
+        switch $82 [0]
+          case 1'1
+            switch \step_had_fault [0]
+              case 1'1
+                assign $103 [3:0] 4'1001
+              case
+                assign $103 [3:0] 4'0100
+            end
+        end
+      case 4'1001
+        switch $83 [0]
+          case 1'1
+            switch $84 [0]
+              case 1'1
+              case
+                assign $103 [3:0] 4'1010
+            end
+        end
+      case 4'1010
+        switch $86 [0]
+          case 1'1
+            assign $103 [3:0] 4'0100
+        end
+    end
+    switch \rst [0]
+      case 1'1
+        assign $103 [3:0] 4'0000
     end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
-  cell $dff $249
+  cell $dff $265
     parameter \WIDTH 4
     parameter \CLK_POLARITY 1
-    connect \D $94 [3:0]
+    connect \D $103 [3:0]
     connect \CLK \clk [0]
     connect \Q \debug_fsm_state
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:251"
-  process $250
-    assign $95 [2:0] \halt_idx [2:0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:274"
+  process $266
+    assign $104 [3:0] \banner_idx [3:0]
+    switch \debug_fsm_state [3:0]
+      case 4'0000
+      case 4'0001
+        switch \boot_complete [0]
+          case 1'1
+            assign $104 [3:0] 4'0000
+        end
+      case 4'0010
+        switch $72 [0]
+          case 1'1
+            switch $73 [0]
+              case 1'1
+                assign $104 [3:0] $74 [3:0]
+              case
+            end
+        end
+      case 4'0011
+      case 4'0100
+      case 4'0101
+      case 4'0110
+      case 4'0111
+      case 4'1000
+      case 4'1001
+      case 4'1010
+    end
+    switch \rst [0]
+      case 1'1
+        assign $104 [3:0] 4'0000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:274"
+  cell $dff $267
+    parameter \WIDTH 4
+    parameter \CLK_POLARITY 1
+    connect \D $104 [3:0]
+    connect \CLK \clk [0]
+    connect \Q \banner_idx
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:231"
+  process $268
+    assign $105 [0] \halted [0]
+    switch \debug_fsm_state [3:0]
+      case 4'0000
+      case 4'0001
+        switch \boot_complete [0]
+          case 1'1
+            assign $105 [0] 1'1
+        end
+      case 4'0010
+      case 4'0011
+      case 4'0100
+      case 4'0101
+      case 4'0110
+      case 4'0111
+      case 4'1000
+      case 4'1001
+      case 4'1010
+    end
+    switch \rst [0]
+      case 1'1
+        assign $105 [0] 1'1
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:231"
+  cell $dff $269
+    parameter \WIDTH 1
+    parameter \CLK_POLARITY 1
+    connect \D $105 [0]
+    connect \CLK \clk [0]
+    connect \Q \halted
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:279"
+  process $270
+    assign $106 [2:0] \halt_idx [2:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
       case 4'0010
       case 4'0011
-        switch $68 [0]
+      case 4'0100
+        switch $76 [0]
           case 1'1
-            switch $69 [0]
+            switch $77 [0]
               case 1'1
-                assign $95 [2:0] $70 [2:0]
+                assign $106 [2:0] $78 [2:0]
               case
-                assign $95 [2:0] 3'000
+                assign $106 [2:0] 3'000
             end
         end
-      case 4'0100
       case 4'0101
       case 4'0110
       case 4'0111
-        switch $74 [0]
+      case 4'1000
+        switch $82 [0]
           case 1'1
             switch \step_had_fault [0]
               case 1'1
               case
-                assign $95 [2:0] 3'000
+                assign $106 [2:0] 3'000
             end
         end
-      case 4'1000
       case 4'1001
-        switch $78 [0]
+      case 4'1010
+        switch $86 [0]
           case 1'1
-            assign $95 [2:0] 3'000
+            assign $106 [2:0] 3'000
         end
     end
     switch \rst [0]
       case 1'1
-        assign $95 [2:0] 3'000
+        assign $106 [2:0] 3'000
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:251"
-  cell $dff $251
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:279"
+  cell $dff $271
     parameter \WIDTH 3
     parameter \CLK_POLARITY 1
-    connect \D $95 [2:0]
+    connect \D $106 [2:0]
     connect \CLK \clk [0]
     connect \Q \halt_idx
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:204"
-  process $252
-    assign $96 [0] \stepping [0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:232"
+  process $272
+    assign $107 [0] \stepping [0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
       case 4'0010
       case 4'0011
       case 4'0100
+      case 4'0101
         switch \btn_press [0]
           case 1'1
-            assign $96 [0] 1'1
-        end
-      case 4'0101
-        switch \step_complete [0]
-          case 1'1
-            assign $96 [0] 1'0
+            assign $107 [0] 1'1
         end
       case 4'0110
+        switch \step_complete [0]
+          case 1'1
+            assign $107 [0] 1'0
+        end
       case 4'0111
       case 4'1000
       case 4'1001
+      case 4'1010
     end
     switch \rst [0]
       case 1'1
-        assign $96 [0] 1'0
+        assign $107 [0] 1'0
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:204"
-  cell $dff $253
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:232"
+  cell $dff $273
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
-    connect \D $96 [0]
+    connect \D $107 [0]
     connect \CLK \clk [0]
     connect \Q \stepping
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:265"
-  process $254
-    assign $97 [31:0] \step_nia [31:0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:293"
+  process $274
+    assign $108 [31:0] \step_nia [31:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2799,33 +3028,34 @@ module \top
       case 4'0011
       case 4'0100
       case 4'0101
+      case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $97 [31:0] \imem_addr [31:0]
+            assign $108 [31:0] \imem_addr [31:0]
         end
-      case 4'0110
       case 4'0111
       case 4'1000
       case 4'1001
+      case 4'1010
     end
     switch \rst [0]
       case 1'1
-        assign $97 [31:0] 32'00000000000000000000000000000000
+        assign $108 [31:0] 32'00000000000000000000000000000000
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:265"
-  cell $dff $255
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:293"
+  cell $dff $275
     parameter \WIDTH 32
     parameter \CLK_POLARITY 1
-    connect \D $97 [31:0]
+    connect \D $108 [31:0]
     connect \CLK \clk [0]
     connect \Q \step_nia
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:266"
-  process $256
-    assign $98 [3:0] \step_fault [3:0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:294"
+  process $276
+    assign $109 [3:0] \step_fault [3:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2833,33 +3063,34 @@ module \top
       case 4'0011
       case 4'0100
       case 4'0101
+      case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $98 [3:0] \fault [3:0]
+            assign $109 [3:0] \fault [3:0]
         end
-      case 4'0110
       case 4'0111
       case 4'1000
       case 4'1001
+      case 4'1010
     end
     switch \rst [0]
       case 1'1
-        assign $98 [3:0] 4'0000
+        assign $109 [3:0] 4'0000
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:266"
-  cell $dff $257
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:294"
+  cell $dff $277
     parameter \WIDTH 4
     parameter \CLK_POLARITY 1
-    connect \D $98 [3:0]
+    connect \D $109 [3:0]
     connect \CLK \clk [0]
     connect \Q \step_fault
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:267"
-  process $258
-    assign $99 [0] \step_had_fault [0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:295"
+  process $278
+    assign $110 [0] \step_had_fault [0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2867,33 +3098,34 @@ module \top
       case 4'0011
       case 4'0100
       case 4'0101
+      case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $99 [0] \led_r [0]
+            assign $110 [0] \led_r [0]
         end
-      case 4'0110
       case 4'0111
       case 4'1000
       case 4'1001
+      case 4'1010
     end
     switch \rst [0]
       case 1'1
-        assign $99 [0] 1'0
+        assign $110 [0] 1'0
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:267"
-  cell $dff $259
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:295"
+  cell $dff $279
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
-    connect \D $99 [0]
+    connect \D $110 [0]
     connect \CLK \clk [0]
     connect \Q \step_had_fault
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:256"
-  process $260
-    assign $100 [1:0] \step_idx [1:0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:284"
+  process $280
+    assign $111 [1:0] \step_idx [1:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2901,42 +3133,43 @@ module \top
       case 4'0011
       case 4'0100
       case 4'0101
+      case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $100 [1:0] 2'00
-        end
-      case 4'0110
-        switch $71 [0]
-          case 1'1
-            switch $72 [0]
-              case 1'1
-                assign $100 [1:0] $73 [1:0]
-              case
-                assign $100 [1:0] 2'00
-            end
+            assign $111 [1:0] 2'00
         end
       case 4'0111
+        switch $79 [0]
+          case 1'1
+            switch $80 [0]
+              case 1'1
+                assign $111 [1:0] $81 [1:0]
+              case
+                assign $111 [1:0] 2'00
+            end
+        end
       case 4'1000
       case 4'1001
+      case 4'1010
     end
     switch \rst [0]
       case 1'1
-        assign $100 [1:0] 2'00
+        assign $111 [1:0] 2'00
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:256"
-  cell $dff $261
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:284"
+  cell $dff $281
     parameter \WIDTH 2
     parameter \CLK_POLARITY 1
-    connect \D $100 [1:0]
+    connect \D $111 [1:0]
     connect \CLK \clk [0]
     connect \Q \step_idx
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:261"
-  process $262
-    assign $101 [1:0] \fault_msg_idx [1:0]
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:289"
+  process $282
+    assign $112 [1:0] \fault_msg_idx [1:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2946,45 +3179,46 @@ module \top
       case 4'0101
       case 4'0110
       case 4'0111
-        switch $74 [0]
+      case 4'1000
+        switch $82 [0]
           case 1'1
             switch \step_had_fault [0]
               case 1'1
-                assign $101 [1:0] 2'00
+                assign $112 [1:0] 2'00
               case
-            end
-        end
-      case 4'1000
-        switch $75 [0]
-          case 1'1
-            switch $76 [0]
-              case 1'1
-                assign $101 [1:0] $77 [1:0]
-              case
-                assign $101 [1:0] 2'00
             end
         end
       case 4'1001
+        switch $83 [0]
+          case 1'1
+            switch $84 [0]
+              case 1'1
+                assign $112 [1:0] $85 [1:0]
+              case
+                assign $112 [1:0] 2'00
+            end
+        end
+      case 4'1010
     end
     switch \rst [0]
       case 1'1
-        assign $101 [1:0] 2'00
+        assign $112 [1:0] 2'00
     end
   end
 
-  attribute \src "/home/runner/workspace/church_machine/uart_test.py:261"
-  cell $dff $263
+  attribute \src "/home/runner/workspace/church_machine/uart_test.py:289"
+  cell $dff $283
     parameter \WIDTH 2
     parameter \CLK_POLARITY 1
-    connect \D $101 [1:0]
+    connect \D $112 [1:0]
     connect \CLK \clk [0]
     connect \Q \fault_msg_idx
   end
 
 connect \tx \uart_tx [0]
 connect \rx \uart_rx [0]
-connect \imem_r_addr \imem_addr [9:2]
-connect \imem_r_data \imem_data [31:0]
+connect \addr \imem_addr [10:2]
+connect \data \imem_data [31:0]
 connect \ns_rd_en 1'0
 connect \ns_wr_en 1'0
 connect \clist_rd_en 1'0
@@ -2992,10 +3226,10 @@ connect \clist_wr_en 1'0
 connect \ns_addr 32'00000000000000000000000000000000
 connect \clist_addr 32'00000000000000000000000000000000
 connect \ns_wr_data 96'000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-connect \dmem_rd_data { $103 [15:0] $102 [15:0] }
-connect \rd_data { $103 [15:0] $102 [15:0] }
-connect \ns_rd_data { 64'0000000000000000000000000000000000000000000000000000000000000000 $103 [15:0] $102 [15:0] }
-connect \clist_rd_data { $103 [15:0] $102 [15:0] }
+connect \dmem_rd_data { $114 [15:0] $113 [15:0] }
+connect \rd_data { $114 [15:0] $113 [15:0] }
+connect \ns_rd_data { 64'0000000000000000000000000000000000000000000000000000000000000000 $114 [15:0] $113 [15:0] }
+connect \clist_rd_data { $114 [15:0] $113 [15:0] }
 connect \nia \imem_addr [31:0]
 connect \gc_start 1'0
 connect \heartbeat_blink \heartbeat_ctr [22]
@@ -3006,10 +3240,10 @@ connect \clist_wr_data.gt_type \clist_wr_data [1:0]
 connect \clist_wr_data.perms \clist_wr_data [7:2]
 connect \clist_wr_data.index \clist_wr_data [24:8]
 connect \clist_wr_data.version \clist_wr_data [31:25]
-connect \clist_rd_data.gt_type $102 [1:0]
-connect \clist_rd_data.perms $102 [7:2]
-connect \clist_rd_data.index { $103 [8:0] $102 [15:8] }
-connect \clist_rd_data.version $103 [15:9]
+connect \clist_rd_data.gt_type $113 [1:0]
+connect \clist_rd_data.perms $113 [7:2]
+connect \clist_rd_data.index { $114 [8:0] $113 [15:8] }
+connect \clist_rd_data.version $114 [15:9]
 
 end
 
@@ -3951,7 +4185,7 @@ end
 
 attribute \generator "Amaranth"
 attribute \src "/home/runner/workspace/church_machine/uart_rx.py:25"
-module \top.uart_rx$95
+module \top.uart_rx$96
 
   attribute \src "/home/runner/workspace/church_machine/uart_rx.py:34"
   attribute \init 2'11
@@ -5497,34 +5731,34 @@ module \top.core
   attribute \src "/home/runner/workspace/church_machine/core.py:403"
   wire width 32 output 4  \perm_gt_sig
 
-  attribute \src "/home/runner/workspace/church_machine/core.py:38"
-  wire width 32 input 5  \instruction
+  wire width 16 input 5  \port$1336$0
 
-  wire width 16 input 6  \port$1271$0
-
-  wire width 16 input 7  \port$1272$0
+  wire width 16 input 6  \port$1337$0
 
   attribute \src "/home/runner/workspace/church_machine/core.py:59"
-  wire width 1 input 8  \boot_start
+  wire width 1 input 7  \boot_start
 
   attribute \src "/home/runner/workspace/church_machine/core.py:67"
-  wire width 4 output 9  \fault
+  wire width 4 output 8  \fault
 
   attribute \src "/home/runner/workspace/church_machine/core.py:68"
-  wire width 1 output 10  \fault_valid$241
+  wire width 1 output 9  \fault_valid$241
 
   attribute \src "/home/runner/workspace/church_machine/core.py:41"
-  wire width 32 output 11  \dmem_addr
+  wire width 32 output 10  \dmem_addr
 
   attribute \src "/home/runner/workspace/church_machine/core.py:44"
-  wire width 32 output 12  \dmem_wr_data
+  wire width 32 output 11  \dmem_wr_data
 
   attribute \src "/home/runner/workspace/church_machine/core.py:45"
-  wire width 1 output 13  \dmem_wr_en
+  wire width 1 output 12  \dmem_wr_en
 
   attribute \src "/home/runner/workspace/church_machine/core.py:70"
   attribute \init 32'00000000000000000000000000000000
-  wire width 32 output 14  \imem_addr
+  wire width 32 output 13  \imem_addr
+
+  attribute \src "/home/runner/workspace/church_machine/core.py:38"
+  wire width 32 input 14  \instruction
 
   wire width 1 $1
 
@@ -6875,10 +7109,10 @@ module \top.core
     connect \instr_valid \instr_valid [0]
     connect \exec_enable \exec_enable [0]
     connect \is_church_op \is_church_op [0]
-    connect \instruction \instruction [31:0]
     connect \flags \flags [3:0]
     connect \fault_valid \fault_valid$233 [0]
     connect \fault \fault$240 [3:0]
+    connect \instruction \instruction [31:0]
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:95"
@@ -6899,12 +7133,12 @@ module \top.core
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \lambda_busy \lambda_busy [0]
     connect \lambda_complete \lambda_complete [0]
-    connect \cr_target \instruction [22:19]
     connect \cr_rd_addr \cr_rd_addr$29 [3:0]
     connect \nia_set \nia_set [0]
     connect \nia_value \nia_value [31:0]
     connect \lambda_fault \lambda_fault [0]
     connect \fault_type \fault_type$243 [3:0]
+    connect \cr_target \instruction [22:19]
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:99"
@@ -6914,13 +7148,12 @@ module \top.core
     connect \call_start \call_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \mload_src \mload_cr_src [3:0]
-    connect \port$928$0 $97 [2:0]
+    connect \port$983$0 $97 [2:0]
     connect \mload_index \mload_index [16:0]
     connect \call_busy \call_busy [0]
     connect \call_complete \call_complete [0]
     connect \mload_fault \mload_fault [0]
     connect \mload_done \mload_done [0]
-    connect \port$1268$0 \instruction [18:0]
     connect \cr_rd_addr \cr_rd_addr$27 [3:0]
     connect \cr_wr_data \cr_wr_data$62 [127:0]
     connect \cr_wr_en \cr_wr_en$54 [0]
@@ -6930,6 +7163,7 @@ module \top.core
     connect \saved_cr5_gt \saved_cr5_gt$232 [31:0]
     connect \mload_start \mload_start [0]
     connect \mload_fault_type \fault_type$248 [3:0]
+    connect \port$1725$0 \instruction [18:0]
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:100"
@@ -6945,7 +7179,6 @@ module \top.core
     connect \reboot_request \reboot_request [0]
     connect \mload_fault \mload_fault [0]
     connect \mload_done \mload_done [0]
-    connect \cr_src \instruction [17:15]
     connect \lambda_active \lambda_active [0]
     connect \lambda_pc \lambda_pc [31:0]
     connect \mload_dst \mload_cr_dst$269 [3:0]
@@ -6960,6 +7193,7 @@ module \top.core
     connect \fault_type \fault_type$246 [3:0]
     connect \mload_start \mload_start$267 [0]
     connect \mload_fault_type \fault_type$248 [3:0]
+    connect \cr_src \instruction [17:15]
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:101"
@@ -6969,14 +7203,14 @@ module \top.core
     connect \tperm_start \tperm_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \tperm_busy \tperm_busy [0]
-    connect \preset \instruction [3:0]
-    connect \cr_target \instruction [22:19]
     connect \cr_rd_addr \cr_rd_addr$28 [3:0]
     connect \cr_wr_addr \cr_wr_addr$58 [3:0]
     connect \cr_wr_data \cr_wr_data$63 [127:0]
     connect \cr_wr_en \cr_wr_en$53 [0]
     connect \tperm_fault \tperm_fault [0]
     connect \fault_type \fault_type$244 [3:0]
+    connect \preset \instruction [3:0]
+    connect \cr_target \instruction [22:19]
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:102"
@@ -6986,9 +7220,8 @@ module \top.core
     connect \save_start \save_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \save_busy \save_busy [0]
-    connect \port$1268$0 \instruction [22:0]
-    connect \port$1271$0 \port$1271$0 [15:0]
-    connect \port$1272$0 \port$1272$0 [15:0]
+    connect \port$1336$0 \port$1336$0 [15:0]
+    connect \port$1337$0 \port$1337$0 [15:0]
     connect \cr15_namespace \cr15_namespace [127:0]
     connect \cr_rd_addr \cr_rd_addr$25 [3:0]
     connect \save_fault \save_fault [0]
@@ -6998,6 +7231,7 @@ module \top.core
     connect \mem_wr_en \mem_wr_en$300 [0]
     connect \mem_wr_addr \mem_wr_addr [31:0]
     connect \mem_wr_data \mem_wr_data$305 [31:0]
+    connect \port$1725$0 \instruction [22:0]
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:103"
@@ -7011,9 +7245,9 @@ module \top.core
     connect \mload_busy \sub_busy [0]
     connect \mload_fault \mload_fault [0]
     connect \mload_done \mload_done [0]
-    connect \port$1268$0 \instruction [22:0]
     connect \mload_start \mload_start$274 [0]
     connect \fault_type \fault_type$248 [3:0]
+    connect \port$1725$0 \instruction [22:0]
   end
 
   attribute \src "/home/runner/workspace/church_machine/core.py:105"
@@ -7024,8 +7258,8 @@ module \top.core
     connect \sub_busy \sub_busy [0]
     connect \sub_fault \mload_fault [0]
     connect \sub_done \mload_done [0]
-    connect \port$1271$0 \port$1271$0 [15:0]
-    connect \port$1272$0 \port$1272$0 [15:0]
+    connect \port$1336$0 \port$1336$0 [15:0]
+    connect \port$1337$0 \port$1337$0 [15:0]
     connect \sub_start \sub_start [0]
     connect \sub_cr_src \sub_cr_src [3:0]
     connect \sub_cr_dst \sub_cr_dst [3:0]
@@ -9533,8 +9767,8 @@ connect \index$206 { 2'00 \instruction [14:0] }
 connect \cr_rd_data$207 \cr_rd_data [127:0]
 connect \cr15_namespace$209 \cr15_namespace [127:0]
 connect \mem_wr_done 1'1
-connect \mem_rd_data { \port$1272$0 [15:0] \port$1271$0 [15:0] }
-connect \dmem_rd_data { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+connect \mem_rd_data { \port$1337$0 [15:0] \port$1336$0 [15:0] }
+connect \dmem_rd_data { \port$1337$0 [15:0] \port$1336$0 [15:0] }
 connect \mem_rd_valid 1'1
 connect \load_start \load_start_sig [0]
 connect \cr_src$216 \instruction [18:15]
@@ -9543,7 +9777,7 @@ connect \index$218 { 2'00 \instruction [14:0] }
 connect \cr5_stack_r_addr $67 [7:0]
 connect \cr_rd_data$249 \cr_rd_data [127:0]
 connect \cr15_namespace$250 \cr15_namespace [127:0]
-connect \mem_rd_data$251 { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+connect \mem_rd_data$251 { \port$1337$0 [15:0] \port$1336$0 [15:0] }
 connect \mem_rd_valid$252 1'1
 connect \mload_cr_dst { 1'0 $97 [2:0] }
 connect \mload_direct 1'0
@@ -13968,17 +14202,17 @@ module \top.core.u_decoder
   attribute \src "/home/runner/workspace/church_machine/decoder.py:27"
   wire width 1 output 2  \is_church_op
 
-  attribute \src "/home/runner/workspace/church_machine/decoder.py:22"
-  wire width 32 input 3  \instruction
-
   attribute \src "/home/runner/workspace/church_machine/decoder.py:24"
-  wire width 4 input 4  \flags
+  wire width 4 input 3  \flags
 
   attribute \src "/home/runner/workspace/church_machine/decoder.py:40"
-  wire width 1 output 5  \fault_valid
+  wire width 1 output 4  \fault_valid
 
   attribute \src "/home/runner/workspace/church_machine/decoder.py:39"
-  wire width 4 output 6  \fault
+  wire width 4 output 5  \fault
+
+  attribute \src "/home/runner/workspace/church_machine/decoder.py:22"
+  wire width 32 input 6  \instruction
 
   wire width 1 $1
 
@@ -15369,25 +15603,25 @@ module \top.core.u_lambda
   attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:13"
   wire width 1 output 5  \lambda_complete
 
-  attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:11"
-  wire width 4 input 6  \cr_target
-
   attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:17"
-  wire width 4 output 7  \cr_rd_addr
+  wire width 4 output 6  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:20"
-  wire width 1 output 8  \nia_set
+  wire width 1 output 7  \nia_set
 
   attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:21"
-  wire width 32 output 9  \nia_value
+  wire width 32 output 8  \nia_value
 
   attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:35"
   attribute \init 1'0
-  wire width 1 output 10  \lambda_fault
+  wire width 1 output 9  \lambda_fault
 
   attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:36"
   attribute \init 4'0000
-  wire width 4 output 11  \fault_type
+  wire width 4 output 10  \fault_type
+
+  attribute \src "/home/runner/workspace/church_machine/lambda_unit.py:11"
+  wire width 4 input 11  \cr_target
 
   wire width 1 $1
 
@@ -15892,7 +16126,7 @@ module \top.core.u_call
   attribute \src "/home/runner/workspace/church_machine/call.py:26"
   wire width 4 output 4  \mload_src
 
-  wire width 3 output 5  \port$928$0
+  wire width 3 output 5  \port$983$0
 
   attribute \src "/home/runner/workspace/church_machine/call.py:28"
   wire width 17 output 6  \mload_index
@@ -15909,38 +16143,38 @@ module \top.core.u_call
   attribute \src "/home/runner/workspace/church_machine/call.py:33"
   wire width 1 input 10  \mload_done
 
-  wire width 19 input 11  \port$1268$0
-
   attribute \src "/home/runner/workspace/church_machine/call.py:62"
-  wire width 4 output 12  \cr_rd_addr
+  wire width 4 output 11  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/church_machine/call.py:68"
-  wire width 128 output 13  \cr_wr_data
+  wire width 128 output 12  \cr_wr_data
 
   attribute \src "/home/runner/workspace/church_machine/call.py:66"
-  wire width 1 output 14  \cr_wr_en
+  wire width 1 output 13  \cr_wr_en
 
   attribute \src "/home/runner/workspace/church_machine/call.py:67"
-  wire width 4 output 15  \cr_wr_addr
+  wire width 4 output 14  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/church_machine/call.py:56"
   attribute \init 1'0
-  wire width 1 output 16  \call_fault
+  wire width 1 output 15  \call_fault
 
   attribute \src "/home/runner/workspace/church_machine/call.py:57"
   attribute \init 4'0000
-  wire width 4 output 17  \fault_type
+  wire width 4 output 16  \fault_type
 
   attribute \src "/home/runner/workspace/church_machine/call.py:37"
   attribute \init 32'00000000000000000000000000000000
-  wire width 32 output 18  \saved_cr5_gt
+  wire width 32 output 17  \saved_cr5_gt
 
   attribute \src "/home/runner/workspace/church_machine/call.py:58"
   attribute \init 1'0
-  wire width 1 output 19  \mload_start
+  wire width 1 output 18  \mload_start
 
   attribute \src "/home/runner/workspace/church_machine/call.py:35"
-  wire width 4 input 20  \mload_fault_type
+  wire width 4 input 19  \mload_fault_type
+
+  wire width 19 input 20  \port$1725$0
 
   wire width 3 $1
 
@@ -16145,7 +16379,7 @@ module \top.core.u_call
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$1268$0 [18:15]
+    connect \A \port$1725$0 [18:15]
     connect \B 3'101
     connect \Y \src_in_range
   end
@@ -16154,7 +16388,7 @@ module \top.core.u_call
   cell $mux $40
     parameter \WIDTH 4
     connect \S \phase [0]
-    connect \A \port$1268$0 [18:15]
+    connect \A \port$1725$0 [18:15]
     connect \B 4'0110
     connect \Y \mload_src
   end
@@ -16172,7 +16406,7 @@ module \top.core.u_call
   cell $mux $42
     parameter \WIDTH 17
     connect \S \phase [0]
-    connect \A { 2'00 \port$1268$0 [14:0] }
+    connect \A { 2'00 \port$1725$0 [14:0] }
     connect \B 17'00000000000000000
     connect \Y \mload_index
   end
@@ -16507,9 +16741,9 @@ module \top.core.u_call
     switch \call_state [3:0]
       case 4'0000
       case 4'0001
-        assign \cr_rd_addr [3:0] \port$1268$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$1725$0 [18:15]
       case 4'0011
-        assign \cr_rd_addr [3:0] \port$1268$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$1725$0 [18:15]
       case 4'0100
         switch $4 [0]
           case 1'1
@@ -16865,7 +17099,7 @@ module \top.core.u_call
       case 4'0000
         switch \call_start [0]
           case 1'1
-            assign $32 [15:0] { 1'0 \port$1268$0 [14:0] }
+            assign $32 [15:0] { 1'0 \port$1725$0 [14:0] }
         end
       case 4'0001
       case 4'0011
@@ -17158,9 +17392,9 @@ module \top.core.u_call
     connect \Q \b_cr_data
   end
 
-connect \cr_src \port$1268$0 [18:15]
+connect \cr_src \port$1725$0 [18:15]
 connect \mload_dst { 1'0 $1 [2:0] }
-connect \index { 2'00 \port$1268$0 [14:0] }
+connect \index { 2'00 \port$1725$0 [14:0] }
 connect \sub_start_reg \mload_start [0]
 connect \mload_cr_src \mload_src [3:0]
 connect \mload_cr_dst { 1'0 $1 [2:0] }
@@ -17178,8 +17412,8 @@ connect \fault_latched \call_fault [0]
 connect \fault_type_latched \fault_type [3:0]
 connect \nia_set \call_complete [0]
 connect \nia_value 32'00000000000000000000000000000000
-connect \mask { 1'0 \port$1268$0 [14:0] }
-connect \port$928$0 $1 [2:0]
+connect \mask { 1'0 \port$1725$0 [14:0] }
+connect \port$983$0 $1 [2:0]
 connect \cr_wr_data.word0_gt \cr_wr_data [31:0]
 connect \cr_wr_data.word0_gt.gt_type \cr_wr_data [1:0]
 connect \cr_wr_data.word0_gt.perms \cr_wr_data [7:2]
@@ -17325,53 +17559,53 @@ module \top.core.u_return
   attribute \src "/home/runner/workspace/church_machine/ret.py:35"
   wire width 1 input 10  \mload_done
 
-  attribute \src "/home/runner/workspace/church_machine/ret.py:11"
-  wire width 3 input 11  \cr_src
-
   attribute \src "/home/runner/workspace/church_machine/ret.py:41"
-  wire width 1 input 12  \lambda_active
+  wire width 1 input 11  \lambda_active
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:42"
-  wire width 32 input 13  \lambda_pc
+  wire width 32 input 12  \lambda_pc
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:29"
-  wire width 4 output 14  \mload_dst
+  wire width 4 output 13  \mload_dst
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:32"
-  wire width 32 output 15  \mload_direct_gt
+  wire width 32 output 14  \mload_direct_gt
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:24"
-  wire width 1 output 16  \nia_set
+  wire width 1 output 15  \nia_set
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:25"
-  wire width 32 output 17  \nia_value
+  wire width 32 output 16  \nia_value
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:43"
-  wire width 1 output 18  \lambda_clear
+  wire width 1 output 17  \lambda_clear
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:76"
-  wire width 1 output 19  \cr_wr_en
+  wire width 1 output 18  \cr_wr_en
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:77"
-  wire width 4 output 20  \cr_wr_addr
+  wire width 4 output 19  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:78"
-  wire width 128 output 21  \cr_wr_data
+  wire width 128 output 20  \cr_wr_data
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:69"
   attribute \init 1'0
-  wire width 1 output 22  \fault_valid
+  wire width 1 output 21  \fault_valid
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:70"
   attribute \init 4'0000
-  wire width 4 output 23  \fault_type
+  wire width 4 output 22  \fault_type
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:71"
   attribute \init 1'0
-  wire width 1 output 24  \mload_start
+  wire width 1 output 23  \mload_start
 
   attribute \src "/home/runner/workspace/church_machine/ret.py:37"
-  wire width 4 input 25  \mload_fault_type
+  wire width 4 input 24  \mload_fault_type
+
+  attribute \src "/home/runner/workspace/church_machine/ret.py:11"
+  wire width 3 input 25  \cr_src
 
   wire width 33 $1
 
@@ -18479,31 +18713,31 @@ module \top.core.u_tperm
   attribute \src "/home/runner/workspace/church_machine/tperm.py:14"
   wire width 1 output 4  \tperm_busy
 
-  attribute \src "/home/runner/workspace/church_machine/tperm.py:12"
-  wire width 4 input 5  \preset
-
-  attribute \src "/home/runner/workspace/church_machine/tperm.py:11"
-  wire width 4 input 6  \cr_target
-
   attribute \src "/home/runner/workspace/church_machine/tperm.py:19"
-  wire width 4 output 7  \cr_rd_addr
+  wire width 4 output 5  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/church_machine/tperm.py:22"
-  wire width 4 output 8  \cr_wr_addr
+  wire width 4 output 6  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/church_machine/tperm.py:23"
-  wire width 128 output 9  \cr_wr_data
+  wire width 128 output 7  \cr_wr_data
 
   attribute \src "/home/runner/workspace/church_machine/tperm.py:24"
-  wire width 1 output 10  \cr_wr_en
+  wire width 1 output 8  \cr_wr_en
 
   attribute \src "/home/runner/workspace/church_machine/tperm.py:33"
   attribute \init 1'0
-  wire width 1 output 11  \tperm_fault
+  wire width 1 output 9  \tperm_fault
 
   attribute \src "/home/runner/workspace/church_machine/tperm.py:34"
   attribute \init 4'0000
-  wire width 4 output 12  \fault_type
+  wire width 4 output 10  \fault_type
+
+  attribute \src "/home/runner/workspace/church_machine/tperm.py:12"
+  wire width 4 input 11  \preset
+
+  attribute \src "/home/runner/workspace/church_machine/tperm.py:11"
+  wire width 4 input 12  \cr_target
 
   wire width 6 $1
 
@@ -19214,40 +19448,40 @@ module \top.core.u_save
   attribute \src "/home/runner/workspace/church_machine/save.py:15"
   wire width 1 output 4  \save_busy
 
-  wire width 23 input 5  \port$1268$0
+  wire width 16 input 5  \port$1336$0
 
-  wire width 16 input 6  \port$1271$0
-
-  wire width 16 input 7  \port$1272$0
+  wire width 16 input 6  \port$1337$0
 
   attribute \src "/home/runner/workspace/church_machine/save.py:33"
-  wire width 128 input 8  \cr15_namespace
+  wire width 128 input 7  \cr15_namespace
 
   attribute \src "/home/runner/workspace/church_machine/save.py:20"
-  wire width 4 output 9  \cr_rd_addr
+  wire width 4 output 8  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/church_machine/save.py:45"
   attribute \init 1'0
-  wire width 1 output 10  \save_fault
+  wire width 1 output 9  \save_fault
 
   attribute \src "/home/runner/workspace/church_machine/save.py:46"
   attribute \init 4'0000
-  wire width 4 output 11  \fault_type
+  wire width 4 output 10  \fault_type
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:26"
-  wire width 32 output 12  \mem_rd_addr
+  wire width 32 output 11  \mem_rd_addr
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:27"
-  wire width 1 output 13  \mem_rd_en
+  wire width 1 output 12  \mem_rd_en
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:23"
-  wire width 1 output 14  \mem_wr_en
+  wire width 1 output 13  \mem_wr_en
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:21"
-  wire width 32 output 15  \mem_wr_addr
+  wire width 32 output 14  \mem_wr_addr
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:22"
-  wire width 32 output 16  \mem_wr_data
+  wire width 32 output 15  \mem_wr_data
+
+  wire width 23 input 16  \port$1725$0
 
   wire width 1 $1
 
@@ -19427,9 +19661,8 @@ module \top.core.u_save
     connect \rst \rst [0]
     connect \sub_fault \sub_fault [0]
     connect \sub_done \sub_done [0]
-    connect \port$1268$0 \port$1268$0 [14:0]
-    connect \port$1271$0 \port$1271$0 [15:0]
-    connect \port$1272$0 \port$1272$0 [15:0]
+    connect \port$1336$0 \port$1336$0 [15:0]
+    connect \port$1337$0 \port$1337$0 [15:0]
     connect \cr15_namespace \cr15_namespace [127:0]
     connect \sub_dst_cap \sub_dst_cap [127:0]
     connect \sub_src_gt \src_reg_latched [31:0]
@@ -19440,6 +19673,7 @@ module \top.core.u_save
     connect \mem_wr_addr \mem_wr_addr [31:0]
     connect \mem_wr_data \mem_wr_data [31:0]
     connect \sub_fault_type \sub_fault_type [3:0]
+    connect \port$1725$0 \port$1725$0 [14:0]
   end
 
   attribute \src "/home/runner/workspace/church_machine/save.py:53"
@@ -19449,7 +19683,7 @@ module \top.core.u_save
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$1268$0 [22:19]
+    connect \A \port$1725$0 [22:19]
     connect \B 3'110
     connect \Y \dst_in_range
   end
@@ -19550,11 +19784,11 @@ module \top.core.u_save
     switch \save_wrapper_state [2:0]
       case 3'000
       case 3'001
-        assign \cr_rd_addr [3:0] \port$1268$0 [22:19]
+        assign \cr_rd_addr [3:0] \port$1725$0 [22:19]
       case 3'010
-        assign \cr_rd_addr [3:0] \port$1268$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$1725$0 [18:15]
       case 3'011
-        assign \cr_rd_addr [3:0] \port$1268$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$1725$0 [18:15]
       case 3'100
     end
   end
@@ -19811,17 +20045,17 @@ module \top.core.u_save
     connect \Q \sub_start
   end
 
-connect \cr_dst \port$1268$0 [22:19]
+connect \cr_dst \port$1725$0 [22:19]
 connect \sub_start$3 \sub_start [0]
 connect \dst_reg_latched \sub_dst_cap [127:0]
 connect \sub_src_gt \src_reg_latched [31:0]
-connect \sub_index { 2'00 \port$1268$0 [14:0] }
-connect \index { 2'00 \port$1268$0 [14:0] }
+connect \sub_index { 2'00 \port$1725$0 [14:0] }
+connect \index { 2'00 \port$1725$0 [14:0] }
 connect \mem_wr_done 1'1
 connect \mem_wr_done$11 1'1
 connect \cr15_namespace$13 \cr15_namespace [127:0]
-connect \mem_rd_data { \port$1272$0 [15:0] \port$1271$0 [15:0] }
-connect \mem_rd_data$15 { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+connect \mem_rd_data { \port$1337$0 [15:0] \port$1336$0 [15:0] }
+connect \mem_rd_data$15 { \port$1337$0 [15:0] \port$1336$0 [15:0] }
 connect \mem_rd_valid 1'1
 connect \mem_rd_valid$17 1'1
 connect \mem_wr_addr$19 \mem_wr_addr [31:0]
@@ -19830,7 +20064,7 @@ connect \mem_wr_en$23 \mem_wr_en [0]
 connect \mem_rd_addr$25 \mem_rd_addr [31:0]
 connect \mem_rd_en$27 \mem_rd_en [0]
 connect \sub_start_reg \sub_start [0]
-connect \cr_src \port$1268$0 [18:15]
+connect \cr_src \port$1725$0 [18:15]
 connect \fault_latched \save_fault [0]
 connect \fault_type_latched \fault_type [3:0]
 connect \sub_dst_cap.word0_gt \sub_dst_cap [31:0]
@@ -19952,42 +20186,42 @@ module \top.core.u_save.u_msave
   attribute \src "/home/runner/workspace/church_machine/msave.py:17"
   wire width 1 output 3  \sub_done
 
-  wire width 15 input 4  \port$1268$0
+  wire width 16 input 4  \port$1336$0
 
-  wire width 16 input 5  \port$1271$0
-
-  wire width 16 input 6  \port$1272$0
+  wire width 16 input 5  \port$1337$0
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:31"
-  wire width 128 input 7  \cr15_namespace
+  wire width 128 input 6  \cr15_namespace
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:13"
-  wire width 128 input 8  \sub_dst_cap
+  wire width 128 input 7  \sub_dst_cap
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:14"
-  wire width 32 input 9  \sub_src_gt
+  wire width 32 input 8  \sub_src_gt
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:12"
-  wire width 1 input 10  \sub_start
+  wire width 1 input 9  \sub_start
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:26"
-  wire width 32 output 11  \mem_rd_addr
+  wire width 32 output 10  \mem_rd_addr
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:27"
-  wire width 1 output 12  \mem_rd_en
+  wire width 1 output 11  \mem_rd_en
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:23"
-  wire width 1 output 13  \mem_wr_en
+  wire width 1 output 12  \mem_wr_en
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:21"
-  wire width 32 output 14  \mem_wr_addr
+  wire width 32 output 13  \mem_wr_addr
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:22"
-  wire width 32 output 15  \mem_wr_data
+  wire width 32 output 14  \mem_wr_data
 
   attribute \src "/home/runner/workspace/church_machine/msave.py:39"
   attribute \init 4'0000
-  wire width 4 output 16  \sub_fault_type
+  wire width 4 output 15  \sub_fault_type
+
+  wire width 15 input 16  \port$1725$0
 
   wire width 20 $1
 
@@ -20530,7 +20764,7 @@ module \top.core.u_save.u_msave
       case 4'0000
         switch \sub_start [0]
           case 1'1
-            assign $21 [16:0] { 2'00 \port$1268$0 [14:0] }
+            assign $21 [16:0] { 2'00 \port$1725$0 [14:0] }
         end
       case 4'0001
       case 4'0011
@@ -20694,7 +20928,7 @@ module \top.core.u_save.u_msave
       case 4'0101
         switch 1'1
           case 1'1
-            assign $24 [31:0] { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+            assign $24 [31:0] { \port$1337$0 [15:0] \port$1336$0 [15:0] }
         end
       case 4'0110
       case 4'0111
@@ -20729,7 +20963,7 @@ module \top.core.u_save.u_msave
       case 4'0110
         switch 1'1
           case 1'1
-            assign $25 [31:0] { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+            assign $25 [31:0] { \port$1337$0 [15:0] \port$1336$0 [15:0] }
         end
       case 4'0111
       case 4'1000
@@ -20754,9 +20988,9 @@ module \top.core.u_save.u_msave
 connect \write_addr $2 [31:0]
 connect \ns_entry_addr $6 [31:0]
 connect \fault_type_reg \sub_fault_type [3:0]
-connect \sub_index { 2'00 \port$1268$0 [14:0] }
+connect \sub_index { 2'00 \port$1725$0 [14:0] }
 connect \mem_rd_valid 1'1
-connect \mem_rd_data { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+connect \mem_rd_data { \port$1337$0 [15:0] \port$1336$0 [15:0] }
 connect \mem_wr_done 1'1
 connect \dst_cap_reg.word0_gt \dst_cap_reg [31:0]
 connect \dst_cap_reg.word0_gt.gt_type \dst_cap_reg [1:0]
@@ -20850,13 +21084,13 @@ module \top.core.u_load
   attribute \src "/home/runner/workspace/church_machine/load.py:26"
   wire width 1 input 8  \mload_done
 
-  wire width 23 input 9  \port$1268$0
-
   attribute \src "/home/runner/workspace/church_machine/load.py:17"
-  wire width 1 output 10  \mload_start
+  wire width 1 output 9  \mload_start
 
   attribute \src "/home/runner/workspace/church_machine/load.py:28"
-  wire width 4 input 11  \fault_type
+  wire width 4 input 10  \fault_type
+
+  wire width 23 input 11  \port$1725$0
 
   wire width 1 $1
 
@@ -20877,7 +21111,7 @@ module \top.core.u_load
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$1268$0 [18:15]
+    connect \A \port$1725$0 [18:15]
     connect \B 3'110
     connect \Y \mload_m_elevated
   end
@@ -21025,12 +21259,12 @@ module \top.core.u_load
     connect \Q \load_wrapper_state
   end
 
-connect \mload_cr_src \port$1268$0 [18:15]
-connect \cr_src \port$1268$0 [18:15]
-connect \mload_cr_dst \port$1268$0 [22:19]
-connect \cr_dst \port$1268$0 [22:19]
-connect \mload_index { 2'00 \port$1268$0 [14:0] }
-connect \index { 2'00 \port$1268$0 [14:0] }
+connect \mload_cr_src \port$1725$0 [18:15]
+connect \cr_src \port$1725$0 [18:15]
+connect \mload_cr_dst \port$1725$0 [22:19]
+connect \cr_dst \port$1725$0 [22:19]
+connect \mload_index { 2'00 \port$1725$0 [14:0] }
+connect \index { 2'00 \port$1725$0 [14:0] }
 connect \mload_direct 1'0
 connect \mload_direct_gt 32'00000000000000000000000000000000
 connect \mload_fault_type \fault_type [3:0]
@@ -21129,9 +21363,9 @@ module \top.core.u_shared_mload
   attribute \src "/home/runner/workspace/church_machine/mload.py:20"
   wire width 1 output 5  \sub_done
 
-  wire width 16 input 6  \port$1271$0
+  wire width 16 input 6  \port$1336$0
 
-  wire width 16 input 7  \port$1272$0
+  wire width 16 input 7  \port$1337$0
 
   attribute \src "/home/runner/workspace/church_machine/mload.py:12"
   wire width 1 input 8  \sub_start
@@ -22067,18 +22301,18 @@ module \top.core.u_shared_mload
       case 4'0110
         switch 1'1
           case 1'1
-            assign $28 [31:0] { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+            assign $28 [31:0] { \port$1337$0 [15:0] \port$1336$0 [15:0] }
         end
       case 4'0010
       case 4'0111
         switch 1'1
           case 1'1
-            assign $28 [63:32] { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+            assign $28 [63:32] { \port$1337$0 [15:0] \port$1336$0 [15:0] }
         end
       case 4'1000
         switch 1'1
           case 1'1
-            assign $28 [95:64] { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+            assign $28 [95:64] { \port$1337$0 [15:0] \port$1336$0 [15:0] }
         end
       case 4'1001
       case 4'1010
@@ -22277,7 +22511,7 @@ module \top.core.u_shared_mload
       case 4'1000
         switch 1'1
           case 1'1
-            assign $32 [31:0] { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+            assign $32 [31:0] { \port$1337$0 [15:0] \port$1336$0 [15:0] }
         end
       case 4'1001
       case 4'1010
@@ -22302,7 +22536,7 @@ connect \clist_gt_addr $2 [31:0]
 connect \ns_entry_addr $6 [31:0]
 connect \fault_type_reg \sub_fault_type [3:0]
 connect \mem_rd_valid 1'1
-connect \mem_rd_data { \port$1272$0 [15:0] \port$1271$0 [15:0] }
+connect \mem_rd_data { \port$1337$0 [15:0] \port$1336$0 [15:0] }
 connect \src_cap.word0_gt \src_cap [31:0]
 connect \src_cap.word0_gt.gt_type \src_cap [1:0]
 connect \src_cap.word0_gt.perms \src_cap [7:2]
@@ -22347,8 +22581,83 @@ connect \cr_rd_data.word3_seals \cr_rd_data [127:96]
 end
 
 attribute \generator "Amaranth"
+attribute \src "/home/runner/workspace/church_machine/boot_rom.py:83"
+module \top.boot_rom
+
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:85"
+  wire width 32 \rom_comb
+
+  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  wire width 1 input 0  \clk
+
+  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  wire width 1 input 1  \rst
+
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:79"
+  wire width 9 input 2  \addr
+
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:80"
+  attribute \init 32'00000000000000000000000000000000
+  wire width 32 output 3  \data
+
+  wire width 32 $1
+
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:85"
+  process $2
+    assign \rom_comb [31:0] 32'00000000000000000000000000000000
+    switch \addr [8:0]
+      case 9'000000000
+        assign \rom_comb [31:0] 32'00000111000010110000000000000000
+      case 9'000000001
+        assign \rom_comb [31:0] 32'00000111000100110000000000000001
+      case 9'000000010
+        assign \rom_comb [31:0] 32'00110111000100000000000000000011
+      case 9'000000011
+        assign \rom_comb [31:0] 32'00111111000100000000000000000000
+      case 9'000000100
+        assign \rom_comb [31:0] 32'00000111000000110000000000000001
+      case 9'000000101
+        assign \rom_comb [31:0] 32'00110111000000000000000000001000
+      case 9'000000110
+        assign \rom_comb [31:0] 32'00010111000000000000000000000000
+      case 9'000000111
+        assign \rom_comb [31:0] 32'00000111001110110000000000000001
+      case 9'000001000
+        assign \rom_comb [31:0] 32'00110111001110000000000000000011
+      case 9'000001001
+        assign \rom_comb [31:0] 32'00111111001110000000000000000000
+      case 9'000001010
+        assign \rom_comb [31:0] 32'00011111000000101000000000000000
+      case 9'000001011
+        assign \rom_comb [31:0] 32'00001111001100001000000000000010
+      case
+        assign \rom_comb [31:0] 32'00000000000000000000000000000000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:80"
+  process $3
+    assign $1 [31:0] \rom_comb [31:0]
+    switch \rst [0]
+      case 1'1
+        assign $1 [31:0] 32'00000000000000000000000000000000
+    end
+  end
+
+  attribute \src "/home/runner/workspace/church_machine/boot_rom.py:80"
+  cell $dff $4
+    parameter \WIDTH 32
+    parameter \CLK_POLARITY 1
+    connect \D $1 [31:0]
+    connect \CLK \clk [0]
+    connect \Q \data
+  end
+
+end
+
+attribute \generator "Amaranth"
 attribute \src "/home/runner/workspace/church_machine/pico_ice.py:27"
-module \top.dmem_spram
+module \top.spram
 
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:29"
   wire width 4 \maskwren
@@ -22365,9 +22674,9 @@ module \top.dmem_spram
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
   wire width 1 input 0  \clk
 
-  wire width 16 output 1  \port$1271$0
+  wire width 16 output 1  \port$1336$0
 
-  wire width 16 output 2  \port$1272$0
+  wire width 16 output 2  \port$1337$0
 
   attribute \src "/home/runner/workspace/church_machine/pico_ice.py:20"
   wire width 14 input 3  \addr
@@ -22430,8 +22739,8 @@ module \top.dmem_spram
 
 connect \rd_data { $2 [15:0] $1 [15:0] }
 connect \cs 1'1
-connect \port$1271$0 $1 [15:0]
-connect \port$1272$0 $2 [15:0]
+connect \port$1336$0 $1 [15:0]
+connect \port$1337$0 $2 [15:0]
 
 end
 

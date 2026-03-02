@@ -1,16 +1,18 @@
-"""Upload a memory image to the Church Machine over serial.
+"""Upload a full memory image to the Church Machine over serial.
+
+All memory (instructions, namespace, c-list) is uploaded via UART.
+No Boot ROM — the FPGA waits for the upload before booting.
 
 Usage:
-    python -m church_machine.upload [--port /dev/ttyACM1] [--image file.bin] [--dump file.bin]
+    python -m church_machine.upload [--port /dev/ttyACM1] [--dump file.bin]
 
 Protocol:
-    1. Send sync byte: 0xAA
-    2. Send 4-byte header: total word count (little-endian u32)
-    3. Send N x 4-byte words (little-endian u32):
-       - Words 0..255: Instruction memory (boot program)
-       - Words 256..447: Namespace (192 words)
-       - Words 448..511: C-list (64 words)
-    4. Wait for "CHURCH v1.0" banner confirming successful boot
+    1. Send 4-byte header: total word count (little-endian u32)
+    2. Send N x 4-byte words (little-endian u32):
+       - Words 0..255:   Instruction memory (boot program)
+       - Words 256..447:  Namespace (16 entries x 3 words each)
+       - Words 448..511:  C-list (64 words)
+    3. Wait for "CHURCH v1.0" banner confirming successful boot
 """
 
 import sys
@@ -24,8 +26,8 @@ from .boot_rom import BOOT_PROGRAM, DEMO_NAMESPACE, DEMO_CLIST
 IMEM_WORDS = 256
 NS_WORDS = 192
 CLIST_WORDS = 64
-TOTAL_WORDS = IMEM_WORDS + NS_WORDS + CLIST_WORDS
-SYNC_BYTE = 0xAA
+DMEM_WORDS = NS_WORDS + CLIST_WORDS
+TOTAL_WORDS = IMEM_WORDS + DMEM_WORDS
 
 
 def build_default_image():
@@ -51,7 +53,7 @@ def image_to_bytes(image):
     data = struct.pack('<I', len(image))
     for word in image:
         data += struct.pack('<I', word)
-    return bytes([SYNC_BYTE]) + data
+    return data
 
 
 def dump_image(filename, image):
@@ -114,8 +116,6 @@ def main():
         if len(raw) < 4:
             print("Error: Image file too small")
             sys.exit(1)
-        if raw[0] == SYNC_BYTE:
-            raw = raw[1:]
         word_count = struct.unpack('<I', raw[:4])[0]
         raw = raw[4:]
         image = []
