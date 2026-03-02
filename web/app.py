@@ -20,6 +20,7 @@ def add_cache_control(response):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
+    response.headers['Permissions-Policy'] = 'serial=(self)'
     return response
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
