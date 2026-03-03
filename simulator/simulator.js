@@ -225,8 +225,8 @@ class ChurchSimulator {
             const a = abstractions[i];
             const loc = (i === 0) ? this.NS_TABLE_BASE : i * this.SLOT_SIZE;
             const lim17 = (i === 0) ? (abstractions.length * this.NS_ENTRY_WORDS) : 0xFF;
-            const gtWord = this.createGT(0, i, a.perms, 0);
-            this.writeNSEntry(i, loc, lim17, 0, 0, 0, a.chainable ? 1 : 0, 0, 0);
+            const gtWord = this.createGT(0, i, a.perms, 1);
+            this.writeNSEntry(i, loc, lim17, 0, 0, 0, a.chainable ? 1 : 0, 1, 0);
             this.nsLabels[i] = a.label;
             if (a.handler) {
                 this.nsHandlers[i] = a.handler;
@@ -237,10 +237,10 @@ class ChurchSimulator {
 
         const bootAbstrLoc = 2 * this.SLOT_SIZE;
         for (let i = 0; i < abstractions.length; i++) {
-            const gtWord = this.createGT(0, i, abstractions[i].perms, 0);
+            const gtWord = this.createGT(0, i, abstractions[i].perms, 1);
             this.memory[bootAbstrLoc + i] = gtWord;
         }
-        const clooomcGT = this.createGT(0, 3, {R:0,W:0,X:1,L:0,S:0,E:0}, 0);
+        const clooomcGT = this.createGT(0, 3, {R:0,W:0,X:1,L:0,S:0,E:0}, 1);
         this.memory[bootAbstrLoc] = clooomcGT;
     }
 
@@ -259,7 +259,7 @@ class ChurchSimulator {
                 break;
             }
             case 1: {
-                const gt15 = this.createGT(0, 0, {R:0,W:0,X:0,L:0,S:0,E:0}, 0);
+                const gt15 = this.createGT(0, 0, {R:0,W:0,X:0,L:0,S:0,E:0}, 1);
                 const check = this.mLoad(gt15, null, undefined);
                 if (!check.ok) {
                     this.fault('BOOT', `LOAD_NS mLoad failed: ${check.message}`);
@@ -271,7 +271,7 @@ class ChurchSimulator {
                 break;
             }
             case 2: {
-                const gt8 = this.createGT(0, 1, {R:0,W:0,X:0,L:0,S:0,E:0}, 0);
+                const gt8 = this.createGT(0, 1, {R:0,W:0,X:0,L:0,S:0,E:0}, 1);
                 const check8 = this.mLoad(gt8, null, undefined);
                 if (!check8.ok) {
                     this.fault('BOOT', `INIT_THRD mLoad(Thread) failed: ${check8.message}`);
@@ -283,7 +283,7 @@ class ChurchSimulator {
                 break;
             }
             case 3: {
-                const gt6 = this.createGT(0, 2, {R:0,W:0,X:0,L:0,S:0,E:1}, 0);
+                const gt6 = this.createGT(0, 2, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
                 const check6 = this.mLoad(gt6, null, undefined);
                 if (!check6.ok) {
                     this.fault('BOOT', `INIT_CLIST mLoad(Boot.CList) failed: ${check6.message}`);
@@ -295,7 +295,7 @@ class ChurchSimulator {
                 break;
             }
             case 4: {
-                const gt2 = this.createGT(0, 2, {R:0,W:0,X:0,L:0,S:0,E:1}, 0);
+                const gt2 = this.createGT(0, 2, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
                 const check2 = this.mLoad(gt2, 'E', undefined);
                 if (!check2.ok) {
                     this.fault('BOOT', `LOAD_NUC mLoad(Slot 2) failed: ${check2.message}`);
@@ -307,7 +307,7 @@ class ChurchSimulator {
                     this.fault('BOOT', 'LOAD_NUC: Slot 2 GT has F-bit set (Far) — FAULT');
                     return false;
                 }
-                if (check2.parsed.type !== 0) {
+                if (check2.parsed.type !== 1) {
                     this.fault('BOOT', `LOAD_NUC: Slot 2 GT type is ${check2.parsed.typeName}, must be Inform`);
                     return false;
                 }
@@ -324,7 +324,7 @@ class ChurchSimulator {
                     this.fault('BOOT', `LOAD_NUC: ${bootSlot0Check.message}`);
                     return false;
                 }
-                if (cr7Parsed.type !== 0) {
+                if (cr7Parsed.type !== 1) {
                     this.fault('BOOT', `LOAD_NUC: CR7 GT type is ${cr7Parsed.typeName}, must be Inform`);
                     return false;
                 }
@@ -376,7 +376,7 @@ class ChurchSimulator {
                 E: (permBits >>> 5) & 1,
             },
             type,
-            typeName: ['Inform','Outform','NULL','Abstract'][type & 3],
+            typeName: ['NULL','Inform','Outform','Abstract'][type & 3],
         };
     }
 
@@ -980,8 +980,12 @@ class ChurchSimulator {
             return null;
         }
         const srcParsed = this.parseGT(sourceGT);
-        if (srcParsed.type !== 0) {
-            this.fault('TYPE', `CALL: CR${d.crDst} GT type is ${srcParsed.typeName}, must be Inform`);
+        if (srcParsed.type === 0) {
+            this.fault('TYPE', `CALL: CR${d.crDst} GT type is NULL — cannot CALL a NULL GT`);
+            return;
+        }
+        if (srcParsed.type !== 1 && srcParsed.type !== 3) {
+            this.fault('TYPE', `CALL: CR${d.crDst} GT type is ${srcParsed.typeName}, must be Inform or Abstract`);
             return null;
         }
         const check = this.mLoad(sourceGT, 'E', d.crDst);
@@ -1025,7 +1029,7 @@ class ChurchSimulator {
         let cr7Desc = '';
         if (cr7GT !== 0) {
             const cr7Parsed = this.parseGT(cr7GT);
-            if (cr7Parsed.type === 0 && cr7Parsed.permissions.X) {
+            if (cr7Parsed.type === 1 && cr7Parsed.permissions.X) {
                 const cr7Entry = this.readNSEntry(cr7Parsed.index);
                 if (cr7Entry) {
                     const cr7Word1 = this.parseNSWord1(cr7Entry.word1_limit);
@@ -1277,7 +1281,7 @@ class ChurchSimulator {
         const cr7GT = this.memory[clistLoc];
         if (cr7GT !== 0) {
             const cr7Parsed = this.parseGT(cr7GT);
-            if (cr7Parsed.type === 0) {
+            if (cr7Parsed.type === 1 || cr7Parsed.type === 3) {
                 const cr7Entry = this.readNSEntry(cr7Parsed.index);
                 if (cr7Entry) {
                     const cr7Check = this.mLoad(cr7GT, 'X', undefined);
@@ -2018,7 +2022,7 @@ class ChurchSimulator {
 
     saveToNamespace(label, words, perms, gtType) {
         perms = perms || {R:0,W:0,X:1,L:0,S:0,E:0};
-        gtType = gtType || 0;
+        gtType = (gtType !== undefined && gtType !== null) ? gtType : 1;
         let idx = -1;
         for (let i = 0; i < this.nsCount; i++) {
             if (this.nsLabels[i] === label) { idx = i; break; }
@@ -2043,7 +2047,7 @@ class ChurchSimulator {
 
     saveToNamespaceAt(idx, label, words, perms, gtType) {
         perms = perms || {R:0,W:0,X:1,L:0,S:0,E:0};
-        gtType = gtType || 0;
+        gtType = (gtType !== undefined && gtType !== null) ? gtType : 1;
         const loc = idx * this.SLOT_SIZE;
         const codeLen = words.length;
         const totalLen = 1 + codeLen;

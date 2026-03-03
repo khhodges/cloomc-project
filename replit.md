@@ -55,9 +55,10 @@ MTBF tracking: Every fault against a security block is counted; MTBF = uptime / 
 - mLoad 7-step pipeline: type check → version match → seal verify → bounds → perms → F-bit → deliver
 - Domain purity: Church domain = capabilities (GTs, c-lists); DATA domain = code objects + data; code is NEVER Church domain
 - L/S Church domain controls capability grants — the c-list IS the parental approval
-- Mint.Create(type, size, perms): type=Inform(00)/Outform(01), size=words, perms=pure domain (Church OR Turing, never mixed)
-- Mint.Create enforces domain purity: Turing(R,W,X) or Church(L,S,E) — FAULT on mixed
-- Version-based revocation: Mint.Revoke increments NS entry version, kills all GT copies instantly
+- GT types: 00=NULL (zero value), 01=Inform (local), 10=Outform (remote, F-bit auto), 11=Abstract
+- Mint.Create(type, size, perms, [bind], [far]): CALLs Memory.Allocate, increments version, returns ready-to-use GT
+- Perms: any valid RWX combo (Turing) or any valid LSE combo (Church) — FAULT on mixed domains
+- Version never reset — Mint.Create increments; Mint.Revoke increments to kill all GT copies instantly
 - Negotiate abstraction: dual-approval (parent+teacher) for special grants
 - Each sibling has their own isolated namespace
 

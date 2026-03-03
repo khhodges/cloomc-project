@@ -172,7 +172,7 @@ function renderCListEntryDetail(nsIdx, entry) {
     h += `<tr><td style="color:var(--church-blue)">F (Far)</td><td>${lim.f}</td></tr>`;
     h += `<tr><td style="color:var(--church-blue)">G (GC)</td><td>${entry.gBit}</td></tr>`;
     h += `<tr><td style="color:var(--church-blue)">Chainable</td><td>${lim.chainable ? 'Yes' : 'No'}</td></tr>`;
-    const typeNames = ['Inform','Outform','NULL','Abstract'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
     h += `<tr><td style="color:var(--church-blue)">GT Type</td><td>${typeNames[entry.gtType] || '?'} (${entry.gtType})</td></tr>`;
     h += `<tr><td style="color:var(--church-blue)">Version</td><td>${ver}</td></tr>`;
     h += `<tr><td style="color:var(--church-blue)">FNV Seal</td><td>0x${seal.toString(16).toUpperCase().padStart(7,'0')}</td></tr>`;
@@ -318,7 +318,7 @@ function updateCRDetail() {
             for (let j = 0; j < clistEntries.length; j++) {
                 const c = clistEntries[j];
                 const e = c.entry;
-                const typeNames = ['NULL','Abstract','Outform','Inform'];
+                const typeNames = ['NULL','Inform','Outform','Abstract'];
                 const sealFNV = e.word2_seals & 0x01FFFFFF;
                 const isExpanded = (clistExpandedIdx === c.idx);
                 html += `<tr class="cr-active clist-clickable${isExpanded ? ' clist-selected' : ''}" onclick="toggleCListEntry(${c.idx})" title="Click to inspect NS[${c.idx}]">`;
@@ -364,7 +364,7 @@ function updateCRDetail() {
             html += '<table class="cr-table"><thead><tr>';
             html += '<th>Idx</th><th>Label</th><th>Type</th><th>Location</th><th>B</th><th>G</th><th>Chain</th>';
             html += '</tr></thead><tbody>';
-            const typeNames = ['NULL','Abstract','Outform','Inform'];
+            const typeNames = ['NULL','Inform','Outform','Abstract'];
             for (let i = 0; i < sim.nsCount; i++) {
                 const e = sim.readNSEntry(i);
                 if (!e) continue;
@@ -420,7 +420,7 @@ function updateCRDetail() {
         const sealVer = (entry.word2_seals >>> 25) & 0x7F;
         const sealFNV = entry.word2_seals & 0x01FFFFFF;
         const gtPermStr = cr.perms;
-        const typeNames = ['NULL','Abstract','Outform','Inform'];
+        const typeNames = ['NULL','Inform','Outform','Abstract'];
 
         html += '<table class="cr-table"><tbody>';
         html += `<tr><td>Location</td><td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td></tr>`;
@@ -590,7 +590,7 @@ function renderMemoryDump(location, limit) {
     html += '<th>Offset</th><th>Address</th><th>Hex</th><th>Decoded</th>';
     html += '</tr></thead><tbody>';
     const permNames = ['R','W','X','L','S','E'];
-    const typeNames = {0:'Inform', 1:'Outform', 2:'NULL', 3:'Abstract'};
+    const typeNames = {0:'NULL', 1:'Inform', 2:'Outform', 3:'Abstract'};
     for (let i = 0; i < wordCount; i++) {
         const addr = location + i;
         const word = sim.memory[addr] || 0;
@@ -634,7 +634,7 @@ function updateNamespace() {
     html += '<th>G</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
 
-    const typeNames = ['NULL','Abstract','Outform','Inform'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
     for (let i = 0; i < sim.nsCount; i++) {
         const e = sim.readNSEntry(i);
         if (!e) continue;
@@ -844,7 +844,7 @@ function getMethodPurposes(abs) {
     const knownPurposes = {
         'Salvation': { 'LOAD': 'Proves namespace lookup', 'TPERM': 'Proves permission check', 'LAMBDA': 'Proves Church reduction', 'TransitionToNavana': 'Transitions to Navana (does not RETURN)' },
         'Navana': { 'Init': 'Initialize all abstractions', 'Manage': 'Abstraction lifecycle management', 'Monitor': 'System health monitoring', 'IDS': 'Intrusion Detection via GT anomalies' },
-        'Mint': { 'Create': 'Mint.Create(type, size, perms) — allocate slot, reserve memory, pack NS entry, forge GT', 'Revoke': 'Mint.Revoke(nsIndex) — increment version, kill all GT copies instantly', 'Transfer': 'Mint.Transfer(gt, target_clist, slot) — move GT between c-lists' },
+        'Mint': { 'Create': 'Mint.Create(type, size, perms, [bind], [far]) — CALL Memory.Allocate, increment version, pack NS entry, forge ready-to-use GT', 'Revoke': 'Mint.Revoke(nsIndex) — increment version, kill all GT copies instantly', 'Transfer': 'Mint.Transfer(gt, target_clist, slot) — move GT between c-lists' },
         'Memory': { 'Allocate': 'Memory.Allocate(size) — find free NS slot, reserve memory, pack 3-word entry', 'Free': 'Memory.Free(nsIndex) — zero word0+word1, release slot for reuse', 'Resize': 'Memory.Resize(nsIndex, newSize) — repack word1 limit, recompute FNV seal' },
         'Scheduler': { 'Yield': 'Scheduler.Yield() — save thread state, switch to next ready thread', 'Spawn': 'Scheduler.Spawn(code_GT, entry) — create thread with isolated CR set', 'Wait': 'Scheduler.Wait(flag_GT) — block thread on DijkstraFlag', 'Stop': 'Scheduler.Stop(threadID) — terminate thread, release CRs' },
         'Stack': { 'Push': 'Stack.Push(value) — DWRITE to stack location, increment depth', 'Pop': 'Stack.Pop() — decrement depth, DREAD from stack location', 'Peek': 'Stack.Peek() — DREAD top without decrementing', 'Depth': 'Stack.Depth() — return current entry count' },
@@ -891,7 +891,7 @@ function getMethodExamples(abs) {
 ; mLoad 7-step: type check -> version match -> seal verify
 ;   -> bounds check -> perm check -> F-bit -> deliver
 LOAD   CR1, NS[4]       ; mLoad pipeline validates GT:
-                         ;   1. Type != NULL (type=00 Inform)
+                         ;   1. Type != NULL (00=NULL, 01=Inform)
                          ;   2. GT.version == NS[4].word2[31:25]
                          ;   3. FNV seal(word0,word1) == word2[24:0]
                          ;   4. Index 4 within NS bounds
@@ -988,119 +988,143 @@ CALL   CR1              ; Navana.IDS scans:
         },
         'Mint': {
             'Create': `; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-; Mint.Create(type, size, perms)
+; Mint.Create(type, size, perms, [bind], [far])
 ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;   type:  00=Inform (local)  01=Outform (remote)
-;   size:  words to allocate for the object
-;   perms: EXACTLY one domain — never mixed:
-;     Turing domain:  R, W     (data objects)
-;     Turing domain:  R, X     (code objects / CLOOMC)
-;     Church domain:  L, S, E  (c-lists, devices)
-;     Church domain:  E        (abstractions)
+;   type:  00=NULL  01=Inform  10=Outform  11=Abstract
+;          NULL cannot be created (it IS the zero value)
+;   size:  words to allocate via Memory.Allocate
+;   perms: any valid combo within ONE domain:
+;     Turing domain:  R, W, X  (any combo: R, RW, RX, RWX, W, X, WX)
+;     Church domain:  L, S, E  (any combo: L, LS, LE, LSE, S, E, SE)
+;   bind:  B-bit (default 0, auto-cleared by CALL)
+;   far:   F-bit (default 0, auto-set for Outform)
+;
+; Process:
+;   1. Domain purity check (Turing OR Church, never mixed)
+;   2. CALL Memory.Allocate(size) to find free slot
+;      (for Outform+URL: resolve remote object instead)
+;   3. Increment version (never reset — monotonic)
+;   4. Pack 3-word NS entry with B/F flags
+;   5. Pack GT, return ready to use
 ;
 ; Returns: GT packed as Version(7)|Index(17)|Perms(6)|Type(2)
-; Faults:  PERMISSION_ESCALATION, OOM, DOMAIN_PURITY
+; Faults:  DOMAIN_PURITY, OOM, TYPE (NULL not creatable)
 ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ; ── EXAMPLE A: Inform + Turing R,W (data buffer) ──────────
 LOAD   CR1, NS[6]       ; Load Mint E-GT (mLoad validates)
-DWRITE DR0, #0          ; type = 00 (Inform, local)
+DWRITE DR0, #1          ; type = 01 (Inform)
 DWRITE DR1, #128        ; size = 128 words
-DWRITE DR2, #0b000110   ; perms = R+W (Turing DATA domain)
-                         ;   bit0=R, bit1=W -> 0x06
+DWRITE DR2, #0b000011   ; perms = R+W (Turing domain)
+                         ;   bit0=R, bit1=W
 CALL   CR1              ; Mint.Create internally:
-;   1. Domain purity check:
-;      R+W = Turing only — OK (no Church bits mixed)
-;   2. Monotonic check:
-;      caller.perms >= target.perms (can't escalate)
-;   3. Memory.Allocate(128):
-;      scan NS for free slot (word0=0 AND word1=0)
-;      skip reserved 0..44, find slot e.g. 50
-;      location = 50 * SLOT_SIZE
-;   4. Pack 3-word NS entry at NS_TABLE_BASE + 50*3:
-;      word0 = location (base address)
-;      word1 = B(0)|F(0)|G(0)|...|limit(127)
-;             limit = (size-1) & 0x1FFFF
-;      word2 = (ver<<25) | FNV_seal(word0, limit)
-;             seal = FNV-1a: h=0x5A5A5A5A
-;               h=(h^loc)*0x01000193
-;               h=(h^lim)*0x01000193
-;               h=h^(h>>16); seal=h&0x1FFFFFF
+;   1. Domain purity: R+W = Turing only — OK
+;   2. CALL Memory.Allocate(128):
+;      Memory scans NS for free slot (word0=0 AND word1=0)
+;      skips reserved 0..44, finds e.g. slot 50
+;      returns { nsIndex: 50, location: 0x3200 }
+;   3. Version increment:
+;      read NS[50].word2, extract ver = (word2>>25)&0x7F
+;      newVer = (ver + 1) & 0x7F  (never reset to 0)
+;   4. Pack NS entry at NS_TABLE_BASE + 50*3:
+;      word0 = location (0x3200)
+;      word1 = B(0)|F(0)|G(0)|type(01)|...|limit(127)
+;      word2 = (newVer<<25) | FNV_seal(loc, limit)
 ;   5. Pack GT:
-;      GT = (0<<25)|(50<<8)|(0b000110<<2)|(0b00)
-;         = 0x00003218 (ver=0, idx=50, R+W, Inform)
-; Result: CR1 <- GT for NS[50], R+W, Inform
-; Use: DREAD/DWRITE to this object via Turing instructions
+;      GT = (1<<25)|(50<<8)|(0b000011<<2)|(0b01)
+;         = ver=1, idx=50, R+W, Inform
+; Result: CR1 <- ready-to-use GT for NS[50]
 
-; ── EXAMPLE B: Inform + Turing R,X (code / CLOOMC) ───────
+; ── EXAMPLE B: Inform + Turing R,W,X (full data+code) ────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #0          ; type = 00 (Inform)
-DWRITE DR1, #64         ; size = 64 words for code
-DWRITE DR2, #0b000101   ; perms = R+X (Turing CODE domain)
-                         ;   bit0=R, bit2=X -> 0x05
-                         ;   Code is a DATA-domain object,
-                         ;   never Church domain
+DWRITE DR0, #1          ; type = 01 (Inform)
+DWRITE DR1, #64         ; size = 64 words
+DWRITE DR2, #0b000111   ; perms = R+W+X (full Turing)
+                         ;   bit0=R, bit1=W, bit2=X
 CALL   CR1              ; Mint.Create:
-;   Domain purity: R+X = Turing only — OK
-;   Pack GT = (0<<25)|(51<<8)|(0b000101<<2)|(0b00)
-;           = 0x00003314 (ver=0, idx=51, R+X, Inform)
-; Result: CR1 <- GT for code object (CLOOMC)
-;   CR7 loads this via X perm at c-list[0]
-;   LAMBDA uses X perm to execute the code
-;   The code itself is DATA, never Church domain
+;   Domain purity: R+W+X = Turing only — OK
+;   CALL Memory.Allocate(64) -> slot 51
+;   version incremented, GT packed and returned
+; Result: CR1 <- GT with full Turing access
+;   DREAD/DWRITE for data, LAMBDA for execution
 
-; ── EXAMPLE C: Inform + Church L,S,E (c-list) ────────────
+; ── EXAMPLE C: Inform + Turing X only (execute-only code) ─
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #0          ; type = 00 (Inform)
-DWRITE DR1, #16         ; size = 16 slots in c-list
-DWRITE DR2, #0b101001   ; perms = L+S+E (Church domain)
-                         ;   bit3=L, bit4=S, bit5=E -> 0x29
+DWRITE DR0, #1          ; type = 01 (Inform)
+DWRITE DR1, #32         ; size = 32 words
+DWRITE DR2, #0b000100   ; perms = X only (Turing)
+                         ;   bit2=X — execute but no read
+CALL   CR1              ; Mint.Create:
+;   Code object you can run but not inspect
+;   CR7 loads via X perm at c-list[0]
+
+; ── EXAMPLE D: Inform + Church L,S,E (c-list) ────────────
+LOAD   CR1, NS[6]       ; Load Mint E-GT
+DWRITE DR0, #1          ; type = 01 (Inform)
+DWRITE DR1, #16         ; size = 16 slots
+DWRITE DR2, #0b111000   ; perms = L+S+E (full Church)
+                         ;   bit3=L, bit4=S, bit5=E
 CALL   CR1              ; Mint.Create:
 ;   Domain purity: L+S+E = Church only — OK
-;     FAULT if any Turing bit (R,W) also set
-;   Pack GT = (0<<25)|(52<<8)|(0b101001<<2)|(0b00)
-;           = 0x000034A4 (ver=0, idx=52, L+S+E, Inform)
+;   CALL Memory.Allocate(16) -> slot 52
+;   version incremented
 ; Result: CR1 <- GT for c-list
-;   L perm: LOAD GTs from this c-list
-;   S perm: SAVE GTs into this c-list
-;   E perm: CALL/enter through this c-list
-;   CR6 receives this on CALL (c-list ref)
+;   L: LOAD GTs from this c-list
+;   S: SAVE GTs into this c-list
+;   E: CALL/enter through this c-list
 
-; ── EXAMPLE D: Inform + Church E only (abstraction) ──────
+; ── EXAMPLE E: Inform + Church E only (abstraction) ──────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #0          ; type = 00 (Inform)
-DWRITE DR1, #8          ; size = 8 words (minimal)
-DWRITE DR2, #0b100000   ; perms = E only (Church domain)
-                         ;   bit5=E -> 0x20
+DWRITE DR0, #1          ; type = 01 (Inform)
+DWRITE DR1, #8          ; size = 8 words
+DWRITE DR2, #0b100000   ; perms = E only (Church)
+                         ;   bit5=E
 CALL   CR1              ; Mint.Create:
-;   Domain purity: E = Church only — OK
-;   Pack GT = (0<<25)|(53<<8)|(0b100000<<2)|(0b00)
-;           = 0x00003580 (ver=0, idx=53, E, Inform)
-; Result: CR1 <- GT for an abstraction entry point
-;   E perm only: can CALL but not LOAD/SAVE
-;   This is the typical abstraction permission
+;   Standard abstraction entry point — E only
+;   Can CALL but cannot LOAD/SAVE
 
-; ── EXAMPLE E: Outform + Church L,E (remote resource) ────
+; ── EXAMPLE F: Inform + Bind flag ─────────────────────────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #1          ; type = 01 (Outform, remote)
-DWRITE DR1, #32         ; size = 32 words (proxy)
-DWRITE DR2, #0b001001   ; perms = L+E (Church domain)
-                         ;   bit3=L, bit0=E -> 0x09
+DWRITE DR0, #1          ; type = 01 (Inform)
+DWRITE DR1, #64         ; size = 64 words
+DWRITE DR2, #0b000011   ; perms = R+W (Turing)
+DWRITE DR3, #1          ; bind = 1 (B-bit set)
 CALL   CR1              ; Mint.Create:
-;   Domain purity: L+E = Church only — OK
-;   Outform type: NS entry gets F-bit=1 (Far)
-;     word1[30] = 1 (remote resource)
-;   Pack GT = (0<<25)|(54<<8)|(0b001001<<2)|(0b01)
-;           = 0x00003625 (ver=0, idx=54, L+E, Outform)
-; Result: CR1 <- GT for remote capability
-;   F-bit routes all access through Tunnel
-;   mLoad step 6 detects F-bit, redirects
+;   B-bit=1 in word1[31] — GT bound to a thread
+;   B-bit auto-cleared by CALL (hardware enforced)
+;   Prevents GT from being used before binding
+
+; ── EXAMPLE G: Outform + Far + Church L,E (remote) ───────
+LOAD   CR1, NS[6]       ; Load Mint E-GT
+DWRITE DR0, #2          ; type = 10 (Outform)
+DWRITE DR1, #32         ; size = 32 words (local proxy)
+DWRITE DR2, #0b101000   ; perms = L+E (Church)
+                         ;   bit3=L, bit5=E
+CALL   CR1              ; Mint.Create:
+;   Outform: F-bit auto-set (Far = remote resource)
+;   CALL Memory.Allocate for URL proxy object
+;   mLoad step 6 detects F-bit, routes through Tunnel
+;   All access mediated by encrypted capability tunnel
+
+; ── EXAMPLE H: Abstract type (new abstraction) ───────────
+LOAD   CR1, NS[6]       ; Load Mint E-GT
+DWRITE DR0, #3          ; type = 11 (Abstract)
+DWRITE DR1, #256        ; size = 256 words
+DWRITE DR2, #0b100000   ; perms = E only (Church)
+CALL   CR1              ; Mint.Create:
+;   Abstract type: this GT represents a new abstraction
+;   Responds to polymorphic interface: create/destroy/call/inspect
+;   Navana manages its lifecycle
+
+; ── ILLEGAL: NULL type (FAULT) ────────────────────────────
+; DWRITE DR0, #0          ; type = 00 (NULL) — ILLEGAL!
+;   -> FAULT: TYPE
+;   NULL is the zero/absent value, not creatable
 
 ; ── ILLEGAL: Mixed domain (FAULT) ─────────────────────────
 ; DWRITE DR2, #0b001011 ; R+W+L — ILLEGAL!
 ;   Turing(R,W) mixed with Church(L)
-;   -> FAULT: DOMAIN_PURITY
-;   A GT must be pure Turing OR pure Church, never both`,
+;   -> FAULT: DOMAIN_PURITY`,
             'Revoke': `; Mint.Revoke — instant revocation via version increment
 ; Incrementing the version in the NS entry kills ALL
 ; outstanding copies of the GT — they will fail mLoad
@@ -1164,7 +1188,7 @@ CALL   CR1              ; Memory.Allocate:
 ; DR0 <- allocated slot index
 ; DR1 <- base location address
 ; CR2 <- R+W GT for the new DATA object
-; Type is Inform(00), domain is Turing(R+W) — DATA only`,
+; Type is Inform(01), domain is Turing(R+W) — DATA only`,
             'Free': `; Memory.Free — deallocate NS slot + zero memory
 LOAD   CR1, NS[7]       ; Load Memory E-GT
 DWRITE DR0, #50         ; NS slot to free
@@ -1822,7 +1846,7 @@ LOAD   CR2, NS[55]      ; Remote endpoint GT
 CALL   CR1              ; Tunnel.Connect:
 ;   1. Verify remote GT has F-bit set
 ;   2. Establish encrypted channel to remote namespace
-;   3. GT type becomes Outform (type=01) for remote
+;   3. GT type becomes Outform (type=10) for remote
 ;   4. All future LOAD/SAVE on this GT route through tunnel
 ;   5. mLoad step 6 detects F-bit, redirects to tunnel`,
             'Send': `; Tunnel.Send — send data via encrypted tunnel
@@ -3107,7 +3131,7 @@ function exportEntryMemory(idx) {
         const sp = sim.parseGT(data.gt).permissions;
         permObj = { R: sp.R?1:0, W: sp.W?1:0, X: sp.X?1:0, L: sp.L?1:0, S: sp.S?1:0, E: sp.E?1:0 };
     }
-    const typeNames = ['NULL','Abstract','Outform','Inform'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
     const exportObj = {
         label: data.label,
         index: idx,

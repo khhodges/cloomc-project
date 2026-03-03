@@ -77,10 +77,10 @@ R, W are data permissions (Turing domain access). X, L, S, E are capability perm
 
 | Value | Type | Meaning |
 |-------|------|---------|
-| 00 | Inform | Inbound capability reference |
-| 01 | Outform | Outbound/remote capability (F-bit networking) |
-| 10 | NULL | Empty slot — access FAULTs |
-| 11 | Abstract | Standard local capability |
+| 00 | NULL | Empty/absent — a zeroed GT is naturally NULL. Cannot be created. |
+| 01 | Inform | Local capability reference |
+| 10 | Outform | Remote capability (F-bit auto-set, tunneled access) |
+| 11 | Abstract | Abstraction entry point (responds to create/destroy/call/inspect) |
 
 ## Register Architecture
 
@@ -221,7 +221,7 @@ Revocation is instant, global, and unforgeable:
 
 ## Network Transparency
 
-Outform GTs (type=01) with F-bit=1 represent remote resources:
+Outform GTs (type=10) with F-bit=1 represent remote resources:
 
 - Access triggers tunnel protocol (HTTPS/RPC)
 - Same GT format, same permission model

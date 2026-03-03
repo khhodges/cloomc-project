@@ -135,61 +135,77 @@ class SystemAbstractions {
     _bindMint() {
         this.registry.bindMethod(6, 'Create', function(sim, args) {
             const targetPerms = args.perms || { R: 0, W: 0, X: 0, L: 0, S: 0, E: 0 };
-            const sourcePerms = args.sourcePerms || { R: 1, W: 1, X: 1, L: 1, S: 1, E: 1 };
 
-            for (const p of ['R', 'W', 'X', 'L', 'S', 'E']) {
-                if (targetPerms[p] && !sourcePerms[p]) {
-                    return {
-                        ok: false,
-                        fault: 'PERMISSION_ESCALATION',
-                        message: `Mint.Create: cannot grant ${p} permission not held by source`
-                    };
-                }
-            }
-
-            const hasTuring = targetPerms.R || targetPerms.W;
+            const hasTuring = targetPerms.R || targetPerms.W || targetPerms.X;
             const hasChurch = targetPerms.L || targetPerms.S || targetPerms.E;
             if (hasTuring && hasChurch) {
                 return {
                     ok: false,
                     fault: 'DOMAIN_PURITY',
-                    message: `Mint.Create: cannot mix Turing (R,W) and Church (L,S,E) perms in one GT`
+                    message: `Mint.Create: cannot mix Turing (R,W,X) and Church (L,S,E) perms in one GT`
                 };
             }
 
-            const gtType = args.gtType || args.type || 0;
-            const size = args.size || 16;
-
-            let nsIndex = args.nsIndex;
-            if (nsIndex === undefined || nsIndex === null) {
-                let freeIdx = -1;
-                for (let i = sim.nsCount; i < sim.MAX_NS_ENTRIES; i++) {
-                    if (!sim.isNSEntryValid(i)) { freeIdx = i; break; }
-                }
-                if (freeIdx === -1) {
-                    for (let i = 45; i < sim.nsCount; i++) {
-                        if (!sim.isNSEntryValid(i)) { freeIdx = i; break; }
-                    }
-                }
-                if (freeIdx === -1) {
-                    return { ok: false, fault: 'OOM', message: 'Mint.Create: no free NS entries' };
-                }
-                nsIndex = freeIdx;
+            const gtType = (args.gtType !== undefined) ? args.gtType : (args.type !== undefined ? args.type : 1);
+            const typeNames = ['NULL','Inform','Outform','Abstract'];
+            if (gtType < 0 || gtType > 3) {
+                return { ok: false, fault: 'TYPE', message: `Mint.Create: invalid type ${gtType}` };
+            }
+            if (gtType === 0) {
+                return { ok: false, fault: 'TYPE', message: 'Mint.Create: cannot create NULL type GT — NULL is the zero/absent type' };
             }
 
-            const location = nsIndex * sim.SLOT_SIZE;
+            const size = args.size || 16;
+            const bFlag = args.bind ? 1 : 0;
+            const fFlag = args.far ? 1 : (gtType === 2 ? 1 : 0);
+            const url = args.url || null;
+
+            let nsIndex = args.nsIndex;
+            let location;
+
+            if (gtType === 2 && url) {
+                if (nsIndex === undefined || nsIndex === null) {
+                    let freeIdx = -1;
+                    for (let i = sim.nsCount; i < sim.MAX_NS_ENTRIES; i++) {
+                        if (!sim.isNSEntryValid(i)) { freeIdx = i; break; }
+                    }
+                    if (freeIdx === -1) {
+                        for (let i = 45; i < sim.nsCount; i++) {
+                            if (!sim.isNSEntryValid(i)) { freeIdx = i; break; }
+                        }
+                    }
+                    if (freeIdx === -1) {
+                        return { ok: false, fault: 'OOM', message: 'Mint.Create: no free NS entries for remote proxy' };
+                    }
+                    nsIndex = freeIdx;
+                }
+                location = nsIndex * sim.SLOT_SIZE;
+            } else {
+                const memResult = sim.abstractionRegistry.dispatchMethod(7, 'Allocate', sim, { size: size });
+                if (!memResult || !memResult.ok) {
+                    return { ok: false, fault: 'OOM', message: `Mint.Create: Memory.Allocate(${size}) failed — ${memResult ? memResult.message : 'no response'}` };
+                }
+                nsIndex = memResult.result.nsIndex;
+                location = memResult.result.location;
+            }
+
+            const entry = sim.readNSEntry(nsIndex);
+            const currentVersion = entry ? ((entry.word2_seals >>> 25) & 0x7F) : 0;
+            const newVersion = (currentVersion + 1) & 0x7F;
+
             const limit17 = (size - 1) & 0x1FFFF;
-            const fFlag = (gtType === 1) ? 1 : 0;
-            sim.writeNSEntry(nsIndex, location, limit17, 0, fFlag, 0, 0, 0, 0);
-            sim.nsLabels[nsIndex] = hasTuring ? `DATA[${nsIndex}]` : `CAP[${nsIndex}]`;
+            sim.writeNSEntry(nsIndex, location, limit17, bFlag, fFlag, 0, 0, gtType, newVersion);
 
-            const version = args.version || 0;
-            const gt = sim.createGT(version, nsIndex, targetPerms, gtType);
+            const labelPrefix = gtType === 3 ? 'ABS' : (gtType === 2 ? 'OUT' : (hasTuring ? 'DATA' : 'CAP'));
+            sim.nsLabels[nsIndex] = `${labelPrefix}[${nsIndex}]`;
 
+            const gt = sim.createGT(newVersion, nsIndex, targetPerms, gtType);
+
+            const permBits = sim.getPermBits(targetPerms);
             return {
                 ok: true,
-                result: { gt: gt, nsIndex: nsIndex, location: location, size: size },
-                message: `Mint.Create: GT(type=${gtType},size=${size},perms=${sim.getPermBits(targetPerms).toString(2).padStart(6,'0')}) -> NS[${nsIndex}]`
+                result: { gt: gt, nsIndex: nsIndex, location: location, size: size, version: newVersion, type: gtType, typeName: typeNames[gtType] },
+                message: `Mint.Create: ${typeNames[gtType]} GT v${newVersion} -> NS[${nsIndex}] perms=${permBits.toString(2).padStart(6,'0')} B=${bFlag} F=${fFlag}`
             };
         });
 
@@ -259,16 +275,12 @@ class SystemAbstractions {
 
             const location = freeIdx * sim.SLOT_SIZE;
             const limit17 = (size - 1) & 0x1FFFF;
-            sim.writeNSEntry(freeIdx, location, limit17, 0, 0, 0, 0, 0, 0);
-            sim.nsLabels[freeIdx] = `DATA[${freeIdx}]`;
-
-            const perms = { R: 1, W: 1, X: 0, L: 0, S: 0, E: 0 };
-            const gt = sim.createGT(0, freeIdx, perms, 0);
+            sim.writeNSEntry(freeIdx, location, limit17, 0, 0, 0, 0, 1, 0);
 
             return {
                 ok: true,
-                result: { gt: gt, nsIndex: freeIdx, location: location, size: size },
-                message: `Memory.Allocate: NS[${freeIdx}] allocated ${size} words at 0x${location.toString(16)}`
+                result: { nsIndex: freeIdx, location: location, size: size },
+                message: `Memory.Allocate: NS[${freeIdx}] reserved ${size} words at 0x${location.toString(16)}`
             };
         });
 

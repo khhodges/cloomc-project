@@ -120,7 +120,7 @@ PC  Instruction              Description
 
 ### Salvation Abstraction Code (NS 5, at 0x0500)
 
-The CALL at PC=7 enters the Salvation abstraction — the first user-level code object invoked after boot. It demonstrates the full CALL→execute→RETURN cycle through the GT gate.
+The CALL at PC=7 enters the Salvation abstraction — the first user-level code object invoked after boot. Salvation proves the security pipeline works, then transitions to Navana (does not RETURN).
 
 ```
 PC  Instruction              Description
