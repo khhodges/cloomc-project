@@ -27,6 +27,20 @@ System services are not OS calls — they are namespace entries accessed via Gol
 - Code (CR7 target at c-list[0]) implementing its methods
 - Entry via CALL (E-GT) or application via LAMBDA (X-GT)
 
+### Polymorphic Abstraction Interface
+
+Every abstraction — regardless of type or layer — shares the same four structural operations: create, destroy, call, inspect. This uniformity is intentional. The polymorphic interface ensures that creating a math library works the same as creating a hardware driver or a social networking tool. The pattern is repetitive by design.
+
+### Hardware Device Access (L/S Domain)
+
+All hardware devices (UART, LED, Button, Timer, Display) are accessed through Church domain permissions (L/S/E) — NOT Turing domain (R/W). This enforces capability-gated device access:
+
+- **L (Load)**: Read data from device (receive bytes, read button state, read timer)
+- **S (Save)**: Write data to device (send bytes, set LEDs, start timer, write display)
+- **E (Enter)**: Call the device abstraction via CALL instruction
+
+R, W, and X permissions are NOT permitted on hardware devices.
+
 ## Golden Token Format
 
 ```
@@ -54,7 +68,7 @@ Points to a namespace entry. Supports up to 131,072 entries.
 | 4 | S | SAVE | Church |
 | 5 | E | CALL | Church |
 
-R, W, X are data permissions (Turing domain access). L, S, E are capability permissions (Church domain access).
+R, W are data permissions (Turing domain access). X, L, S, E are capability permissions (Church domain access).
 
 ### Type (2 bits)
 
@@ -99,7 +113,7 @@ ARM-style condition flags: N (negative), Z (zero), C (carry), V (overflow). Set 
 ```
 0x0000 – 0xFCFF    General memory (code + data objects)
 0xFD00 – 0xFDFF    Namespace table (NS entries)
-0xFE00 – 0xFEFF    Device I/O (UART, LED, Button, Timer, Display)
+0xFE00 – 0xFEFF    Device I/O (UART, LED, Button, Timer, Display) — L/S access only
 0xFF00 – 0xFFFF    Machine registers (read-only inspection)
 ```
 
@@ -112,6 +126,19 @@ Each namespace entry is 3 words (96 bits):
 - **Word 0**: Flags (B-bit, F-bit) + version (7 bits) + location
 - **Word 1**: Limit (bounds for the object)
 - **Word 2**: Seal (FNV-1a integrity hash)
+
+## Boot Sequence
+
+The boot sequence follows a deterministic flow:
+
+1. **FAULT_RST**: All CRs cleared to NULL, all DRs zeroed. M-Elevation ON.
+2. **LOAD_NS**: CR15 initialized with GT to Namespace Root (Slot 0).
+3. **INIT_THRD**: CR8 initialized with Thread Identity (Slot 1).
+4. **INIT_CLIST**: CR6 loaded with Boot C-List (Slot 2).
+5. **LOAD_NUC**: CR7 loaded with Boot Code (CLOOMC from Slot 3). PC = 0.
+6. **COMPLETE**: M-Elevation OFF. Machine begins executing boot code.
+
+After boot, the code CALLs Salvation (NS[4]) to verify the security pipeline. Salvation proves LOAD, TPERM, and LAMBDA work correctly, then transitions to Navana (NS[5]). Navana does not RETURN — it becomes the permanent namespace controller, managing all abstractions, intrusion detection (IDS), and system lifecycle indefinitely.
 
 ## Security Pipeline (mLoad)
 

@@ -19,7 +19,7 @@ church_sim/        — Original simulator (reference, ported to simulator/)
 
 - [README.md](../README.md) — Project overview and quick start
 - [docs/architecture.md](../docs/architecture.md) — System design, GT format, security pipeline, memory map
-- [docs/abstractions.md](../docs/abstractions.md) — Complete catalog of all 44 abstractions across 9 layers
+- [docs/abstractions.md](../docs/abstractions.md) — Complete catalog of all 46 abstractions across 9 layers
 - [docs/instruction-set.md](../docs/instruction-set.md) — All 20 instructions with encoding, syntax, and examples
 - [docs/tang-nano-20k.md](../docs/tang-nano-20k.md) — FPGA target, pin assignments, build toolchain
 - [docs/getting-started.md](../docs/getting-started.md) — Tutorial for educators, students, parents, and developers
@@ -33,16 +33,19 @@ Every abstraction follows the canonical CR6/CR7 form:
 - CR7 → code at c-list[0] (CLOOMC)
 - Entered via CALL (E-GT) or LAMBDA (X-GT)
 
-44 abstractions across 9 layers:
+46 abstractions across 9 layers:
 - Layer 0: Boot (NS, Thread, CList, CLOOMC)
-- Layer 1: System Services (Salvation, Mint, Memory, Scheduler, Stack)
-- Layer 2: Hardware Attachments (UART, LED, Button, Timer, Display)
-- Layer 3: Mathematics (SlideRule, Abacus, Constants, Circle)
+- Layer 1: System Services (Salvation, Navana, Mint, Memory, Scheduler, Stack, DijkstraFlag)
+- Layer 2: Hardware Attachments (UART, LED, Button, Timer, Display) — L/S/E only, NO R/W
+- Layer 3: Mathematics (SlideRule [incl. trig/angles], Abacus, Constants, Circle)
 - Layer 4: Lambda Calculus (Lambda, Church Numerals, PAIR)
-- Layer 5: Social (Family, Schoolroom, Friends, Tunnel, Negotiate)
+- Layer 5: Social (Family [Hello(GT)], Schoolroom, Friends, Tunnel, Negotiate)
 - Layer 6: IDE (Editor, Assembler, Debugger, Deployer)
 - Layer 7: Internet (Browser, Messenger, Photos, Social, Video, Email)
 - Layer 8: Garbage Collection (PP250 GC)
+
+Boot flow: Boot → CALL Salvation → Salvation transitions to Navana → Navana runs forever (no RETURN)
+Polymorphic interface: Every abstraction responds to create/destroy/call/inspect
 
 ### Security Model
 

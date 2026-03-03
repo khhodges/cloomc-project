@@ -562,7 +562,7 @@ function updateInfoDisplay() {
         <div class="info-item"><span class="info-label">Golden Tokens</span><span class="info-value">32-bit: Version(7) | Index(17) | Perms(6) | Type(2)</span></div>
         <div class="info-item"><span class="info-label">Security Gates</span><span class="info-value">mLoad (R\u2192DREAD, W\u2192DWRITE, X\u2192LAMBDA, L\u2192LOAD, S\u2192SAVE, E\u2192CALL) + mSave (Version, Seal, Bounds, B-bit, F-bit)</span></div>
         <div class="info-item"><span class="info-label">Safe Abstractions</span><span class="info-value">Turing hidden inside Church-callable entries \u2014 CALL in, RETURN out, atomic</span></div>
-        <div class="info-item"><span class="info-label">Abstraction Layers</span><span class="info-value">9 layers, ${abstractionRegistry ? abstractionRegistry.count() : 44} abstractions (Boot, System, Hardware, Math, Lambda, Social, IDE, Internet, GC)</span></div>
+        <div class="info-item"><span class="info-label">Abstraction Layers</span><span class="info-value">9 layers, ${abstractionRegistry ? abstractionRegistry.count() : 46} abstractions (Boot, System, Hardware, Math, Lambda, Social, IDE, Internet, GC)</span></div>
     `;
 }
 
@@ -803,7 +803,7 @@ function showAbstractionDetail(index) {
         html += '<div class="abs-note-text">Layer 5 social abstractions operate within isolated namespaces. ';
         html += 'Each child\'s social interactions are mediated through CALL/RETURN \u2014 the abstraction ';
         html += 'receives only the capabilities explicitly passed by the caller. Parent oversight is ';
-        html += 'enforced via the Family abstraction (NS[27]) which must approve all social connections. ';
+        html += 'enforced via the Family abstraction (NS[29]) which must approve all social connections. ';
         html += 'SWITCH instruction can move between namespace domains atomically.</div>';
         html += '</div>';
     }
@@ -814,22 +814,24 @@ function showAbstractionDetail(index) {
 function getMethodPurposes(abs) {
     const purposes = {};
     const knownPurposes = {
-        'Salvation': { 'LOAD': 'Proves namespace lookup', 'TPERM': 'Proves permission check', 'LAMBDA': 'Proves Church reduction', 'RETURN': 'Proves CALL\u2192RETURN cycle' },
+        'Salvation': { 'LOAD': 'Proves namespace lookup', 'TPERM': 'Proves permission check', 'LAMBDA': 'Proves Church reduction', 'TransitionToNavana': 'Transitions to Navana (does not RETURN)' },
+        'Navana': { 'Init': 'Initialize all abstractions', 'Manage': 'Abstraction lifecycle management', 'Monitor': 'System health monitoring', 'IDS': 'Intrusion Detection via GT anomalies' },
         'Mint': { 'Create': 'Create new GT with bounded permissions', 'Revoke': 'Increment version to invalidate all outstanding GTs', 'Transfer': 'Transfer GT to another c-list' },
         'Memory': { 'Allocate': 'Allocate NS entry for DATA object', 'Free': 'Deallocate NS entry', 'Resize': 'Resize allocated region' },
         'Scheduler': { 'Yield': 'Voluntarily yield time slice', 'Spawn': 'Create new thread', 'Wait': 'Block until event', 'Stop': 'Terminate thread' },
         'Stack': { 'Push': 'Push value onto managed stack', 'Pop': 'Pop value from stack', 'Peek': 'Read top without removing', 'Depth': 'Query current depth' },
-        'UART': { 'Send': 'Queue bytes for transmission', 'Receive': 'Read received byte', 'SetBaud': 'Configure baud rate' },
-        'LED': { 'Set': 'Turn LED on', 'Clear': 'Turn LED off', 'Toggle': 'Toggle LED state', 'Pattern': 'Set all LEDs at once' },
-        'Button': { 'Read': 'Read current button state', 'WaitPress': 'Wait for button press', 'OnEvent': 'Dequeue button event' },
-        'Timer': { 'Start': 'Start timer counting', 'Stop': 'Stop timer', 'Read': 'Read elapsed time', 'SetAlarm': 'Set alarm threshold' },
-        'Display': { 'Write': 'Write text to display', 'Clear': 'Clear display', 'Scroll': 'Scroll display' },
-        'SlideRule': { 'Add': 'Float add', 'Sub': 'Float subtract', 'Mul': 'Float multiply', 'Div': 'Float divide', 'Sqrt': 'Square root', 'Log': 'Natural logarithm', 'Pow': 'Power' },
+        'DijkstraFlag': { 'Wait': 'Block thread until flag signaled', 'Signal': 'Signal flag, wake one waiter', 'Reset': 'Clear flag state', 'Test': 'Non-blocking check if signaled' },
+        'UART': { 'Send': 'Queue bytes for transmission (S perm)', 'Receive': 'Read received byte (L perm)', 'SetBaud': 'Configure baud rate' },
+        'LED': { 'Set': 'Turn LED on (S perm)', 'Clear': 'Turn LED off (S perm)', 'Toggle': 'Toggle LED state (S perm)', 'Pattern': 'Set all LEDs at once (S perm)' },
+        'Button': { 'Read': 'Read current button state (L perm)', 'WaitPress': 'Wait for button press (L perm)', 'OnEvent': 'Dequeue button event (L perm)' },
+        'Timer': { 'Start': 'Start timer counting (S perm)', 'Stop': 'Stop timer (S perm)', 'Read': 'Read elapsed time (L perm)', 'SetAlarm': 'Set alarm threshold (S perm)' },
+        'Display': { 'Write': 'Write text to display (S perm)', 'Clear': 'Clear display (S perm)', 'Scroll': 'Scroll display (S perm)' },
+        'SlideRule': { 'Add': 'Float add', 'Sub': 'Float subtract', 'Mul': 'Float multiply', 'Div': 'Float divide', 'Sqrt': 'Square root', 'Log': 'Natural logarithm', 'Pow': 'Power', 'Sin': 'Sine (radians)', 'Cos': 'Cosine (radians)', 'Tan': 'Tangent (radians)', 'Asin': 'Inverse sine', 'Acos': 'Inverse cosine', 'Atan': 'Inverse tangent', 'ToDegrees': 'Radians to degrees', 'ToRadians': 'Degrees to radians' },
         'Abacus': { 'Add': 'Integer add', 'Sub': 'Integer subtract', 'Mul': 'Integer multiply', 'Div': 'Integer divide', 'Mod': 'Modulo', 'Abs': 'Absolute value' },
         'Constants': { 'Pi': 'Return \u03c0', 'E': 'Return e', 'Phi': 'Return \u03c6', 'Zero': 'Return 0', 'One': 'Return 1' },
-        'Circle': { 'Sin': 'Sine via CORDIC', 'Cos': 'Cosine via CORDIC', 'Tan': 'Tangent', 'Area': 'Circle area', 'Circumference': 'Circle circumference' },
+        'Circle': { 'Area': 'Circle area (delegates trig to SlideRule)', 'Circumference': 'Circle circumference' },
         'Lambda': { 'Apply': 'Apply function', 'Compose': 'Compose functions', 'Curry': 'Curry function' },
-        'Family': { 'Register': 'Register parent-child bond', 'HelloMum': 'Child\u2192parent capability tunnel', 'Oversight': 'Query child activity' },
+        'Family': { 'Register': 'Register parent-child bond', 'Hello': 'Hello(target_GT) \u2014 send greeting/request to any family member via their GT', 'Oversight': 'Query child activity' },
         'Schoolroom': { 'Join': 'Student joins class', 'Lesson': 'Teacher posts lesson', 'Submit': 'Student submits work', 'Grade': 'Teacher grades work' },
         'Friends': { 'Request': 'Send friend request', 'Accept': 'Accept friend request', 'Share': 'Share capability with friend', 'Revoke': 'Revoke shared capability' },
         'Tunnel': { 'Connect': 'Establish encrypted tunnel', 'Send': 'Send via tunnel', 'Receive': 'Receive via tunnel', 'Close': 'Close tunnel' },
@@ -1102,7 +1104,7 @@ LAMBDA CR3             ; Church SUB reduction
 LAMBDA CR4             ; Church MUL reduction
 
 ; --- TEST 7: CHANGE - re-aim register ---
-CHANGE CR0, 5          ; CR0 now -> SlideRule
+CHANGE CR0, 16         ; CR0 now -> SlideRule
 TPERM CR0, E           ; SlideRule has E? PASS
 
 ; --- TEST 8: CALL/RETURN ---
@@ -1272,7 +1274,7 @@ HALT
 `,
         'salvation': `; ============================================
 ; Salvation \u2014 First Callable Abstraction
-; Proves the CALL\u2192RETURN security cycle
+; Proves CALL works, transitions to Navana
 ; ============================================
 ;
 ; Salvation is NS[4] \u2014 the first abstraction
@@ -1280,7 +1282,8 @@ HALT
 ;   1. LOAD works (namespace lookup)
 ;   2. TPERM works (permission check)
 ;   3. LAMBDA works (Church reduction)
-;   4. RETURN works (exit abstraction)
+; Then transitions to Navana (does not RETURN).
+; Navana runs indefinitely as namespace controller.
 ; ============================================
 
 ; --- Load Salvation abstraction ---
@@ -1289,12 +1292,12 @@ TPERM CR0, E           ; Verify E permission
 
 ; --- CALL Salvation ---
 CALL CR0               ; Enter Salvation abstraction
-; After RETURN, execution continues here
+; Salvation transitions to Navana (no RETURN)
+; Navana runs indefinitely managing all abstractions
 
-; --- Verify we survived ---
-LOAD CR1, CR6, 10      ; CR1 = SUCC (XLE)
-TPERM CR1, LE          ; Verify permissions intact
-LAMBDA CR1             ; Church reduction works
+; --- Navana is now in control ---
+; Navana manages: IDS, abstraction lifecycle,
+; system health monitoring. It does not RETURN.
 
 HALT
 `,

@@ -5,11 +5,14 @@ class SystemAbstractions {
     }
 
     _bindAll() {
+        this._bindSalvation();
+        this._bindNavana();
         this._bindMint();
         this._bindMemory();
         this._bindScheduler();
         this._bindStack();
-        this._bindSalvation();
+        this._bindDijkstraFlag();
+        this._bindSlideRuleTrig();
     }
 
     _bindSalvation() {
@@ -22,13 +25,115 @@ class SystemAbstractions {
         this.registry.bindMethod(4, 'LAMBDA', function(sim, args) {
             return { ok: true, result: 'Salvation.LAMBDA: proved Church reduction' };
         });
-        this.registry.bindMethod(4, 'RETURN', function(sim, args) {
-            return { ok: true, result: 'Salvation.RETURN: proved CALL→RETURN cycle' };
+        this.registry.bindMethod(4, 'TRANSITIONTONAVANA', function(sim, args) {
+            return {
+                ok: true,
+                result: 'Salvation.TransitionToNavana: security pipeline verified, transitioning to Navana',
+                message: 'Salvation complete — handing control to Navana (Namespace controller). Navana runs indefinitely.'
+            };
+        });
+    }
+
+    _bindNavana() {
+        const navanaState = {
+            initialized: false,
+            managedAbstractions: [],
+            idsLog: [],
+            monitorLog: []
+        };
+
+        this.registry.bindMethod(5, 'Init', function(sim, args) {
+            navanaState.initialized = true;
+            const registry = sim.abstractionRegistry;
+            if (registry) {
+                const all = registry.getAllAbstractions();
+                navanaState.managedAbstractions = all.map(a => ({ index: a.index, name: a.name, layer: a.layer }));
+            }
+            return {
+                ok: true,
+                result: {
+                    initialized: true,
+                    abstractionCount: navanaState.managedAbstractions.length
+                },
+                message: `Navana.Init: initialized ${navanaState.managedAbstractions.length} abstractions. Running indefinitely.`
+            };
+        });
+
+        this.registry.bindMethod(5, 'Manage', function(sim, args) {
+            const action = args.action || 'status';
+            if (action === 'status') {
+                return {
+                    ok: true,
+                    result: {
+                        initialized: navanaState.initialized,
+                        managed: navanaState.managedAbstractions.length,
+                        idsAlerts: navanaState.idsLog.length
+                    },
+                    message: `Navana.Manage: ${navanaState.managedAbstractions.length} abstractions under management`
+                };
+            }
+            if (action === 'lifecycle') {
+                const target = args.target;
+                return {
+                    ok: true,
+                    result: { action: 'lifecycle', target: target },
+                    message: `Navana.Manage: lifecycle action on abstraction ${target}`
+                };
+            }
+            return { ok: true, result: { action: action }, message: `Navana.Manage: ${action}` };
+        });
+
+        this.registry.bindMethod(5, 'Monitor', function(sim, args) {
+            const entry = {
+                timestamp: Date.now(),
+                stepCount: sim.stepCount,
+                nsCount: sim.nsCount,
+                faults: sim.faultLog.length
+            };
+            navanaState.monitorLog.push(entry);
+            if (navanaState.monitorLog.length > 100) navanaState.monitorLog.shift();
+
+            return {
+                ok: true,
+                result: entry,
+                message: `Navana.Monitor: step=${sim.stepCount}, ns=${sim.nsCount}, faults=${sim.faultLog.length}`
+            };
+        });
+
+        this.registry.bindMethod(5, 'IDS', function(sim, args) {
+            const alerts = [];
+
+            for (let i = 0; i < sim.nsCount; i++) {
+                const entry = sim.readNSEntry(i);
+                if (!entry) continue;
+                const version = (entry.word2_seals >>> 25) & 0x7F;
+                if (version > 10) {
+                    alerts.push({
+                        type: 'VERSION_ANOMALY',
+                        nsIndex: i,
+                        version: version,
+                        label: sim.nsLabels[i] || `NS[${i}]`
+                    });
+                }
+            }
+
+            for (const alert of alerts) {
+                navanaState.idsLog.push({ ...alert, timestamp: Date.now() });
+            }
+            if (navanaState.idsLog.length > 1000) {
+                navanaState.idsLog = navanaState.idsLog.slice(-500);
+            }
+
+            return {
+                ok: true,
+                result: { alerts: alerts, totalAlerts: navanaState.idsLog.length },
+                message: `Navana.IDS: ${alerts.length} new alerts, ${navanaState.idsLog.length} total`
+            };
         });
     }
 
     _bindMint() {
-        this.registry.bindMethod(5, 'Create', function(sim, args) {
+        this.registry.bindMethod(6, 'Create', function(sim, args) {
             const targetPerms = args.perms || { R: 0, W: 0, X: 0, L: 0, S: 0, E: 0 };
             const sourcePerms = args.sourcePerms || { R: 1, W: 1, X: 1, L: 1, S: 1, E: 1 };
 
@@ -58,7 +163,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(5, 'Revoke', function(sim, args) {
+        this.registry.bindMethod(6, 'Revoke', function(sim, args) {
             const nsIndex = args.nsIndex;
             if (nsIndex === undefined || nsIndex === null) {
                 return { ok: false, fault: 'ARGS', message: 'Mint.Revoke: nsIndex required' };
@@ -82,7 +187,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(5, 'Transfer', function(sim, args) {
+        this.registry.bindMethod(6, 'Transfer', function(sim, args) {
             const gt = args.gt;
             const targetCList = args.targetCList;
             const targetSlot = args.targetSlot;
@@ -100,7 +205,7 @@ class SystemAbstractions {
     }
 
     _bindMemory() {
-        this.registry.bindMethod(6, 'Allocate', function(sim, args) {
+        this.registry.bindMethod(7, 'Allocate', function(sim, args) {
             const size = args.size || 16;
 
             let freeIdx = -1;
@@ -112,7 +217,7 @@ class SystemAbstractions {
             }
             if (freeIdx === -1) {
                 for (let i = 0; i < sim.nsCount; i++) {
-                    if (!sim.isNSEntryValid(i) && i >= 44) {
+                    if (!sim.isNSEntryValid(i) && i >= 46) {
                         freeIdx = i;
                         break;
                     }
@@ -137,7 +242,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(6, 'Free', function(sim, args) {
+        this.registry.bindMethod(7, 'Free', function(sim, args) {
             const nsIndex = args.nsIndex;
             if (nsIndex === undefined || nsIndex === null) {
                 return { ok: false, fault: 'ARGS', message: 'Memory.Free: nsIndex required' };
@@ -156,7 +261,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(6, 'Resize', function(sim, args) {
+        this.registry.bindMethod(7, 'Resize', function(sim, args) {
             const nsIndex = args.nsIndex;
             const newSize = args.size || 32;
             if (nsIndex === undefined || nsIndex === null) {
@@ -197,7 +302,7 @@ class SystemAbstractions {
         }
         const state = this._schedulerState;
 
-        this.registry.bindMethod(7, 'Yield', function(sim, args) {
+        this.registry.bindMethod(8, 'Yield', function(sim, args) {
             const current = state.threads[state.currentThread];
             if (current) current.state = 'ready';
 
@@ -225,7 +330,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(7, 'Spawn', function(sim, args) {
+        this.registry.bindMethod(8, 'Spawn', function(sim, args) {
             const name = args.name || `thread_${state.nextId}`;
             const newThread = { id: state.nextId, state: 'ready', name: name };
             state.threads.push(newThread);
@@ -238,7 +343,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(7, 'Wait', function(sim, args) {
+        this.registry.bindMethod(8, 'Wait', function(sim, args) {
             const current = state.threads[state.currentThread];
             if (current) current.state = 'waiting';
 
@@ -249,7 +354,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(7, 'Stop', function(sim, args) {
+        this.registry.bindMethod(8, 'Stop', function(sim, args) {
             const threadId = args.threadId !== undefined ? args.threadId : state.currentThread;
             const thread = state.threads.find(t => t.id === threadId);
             if (!thread) {
@@ -274,7 +379,7 @@ class SystemAbstractions {
         }
         const stack = this._stackState;
 
-        this.registry.bindMethod(8, 'Push', function(sim, args) {
+        this.registry.bindMethod(9, 'Push', function(sim, args) {
             if (stack.data.length >= stack.maxDepth) {
                 return { ok: false, fault: 'STACK_OVERFLOW', message: `Stack.Push: overflow at depth ${stack.maxDepth}` };
             }
@@ -287,7 +392,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(8, 'Pop', function(sim, args) {
+        this.registry.bindMethod(9, 'Pop', function(sim, args) {
             if (stack.data.length === 0) {
                 return { ok: false, fault: 'STACK_UNDERFLOW', message: 'Stack.Pop: stack is empty' };
             }
@@ -299,7 +404,7 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(8, 'Peek', function(sim, args) {
+        this.registry.bindMethod(9, 'Peek', function(sim, args) {
             if (stack.data.length === 0) {
                 return { ok: false, fault: 'STACK_UNDERFLOW', message: 'Stack.Peek: stack is empty' };
             }
@@ -311,12 +416,154 @@ class SystemAbstractions {
             };
         });
 
-        this.registry.bindMethod(8, 'Depth', function(sim, args) {
+        this.registry.bindMethod(9, 'Depth', function(sim, args) {
             return {
                 ok: true,
                 result: { depth: stack.data.length },
                 message: `Stack.Depth: ${stack.data.length}`
             };
+        });
+    }
+
+    _bindDijkstraFlag() {
+        if (!this._flagState) {
+            this._flagState = {
+                flags: {},
+                nextId: 0
+            };
+        }
+        const flagState = this._flagState;
+        const schedulerState = this._schedulerState;
+
+        this.registry.bindMethod(10, 'Wait', function(sim, args) {
+            const flagId = args.flagId !== undefined ? args.flagId : 0;
+            if (!flagState.flags[flagId]) {
+                flagState.flags[flagId] = { signaled: false, waitQueue: [] };
+            }
+            const flag = flagState.flags[flagId];
+
+            if (flag.signaled) {
+                flag.signaled = false;
+                return {
+                    ok: true,
+                    result: { flagId: flagId, waited: false },
+                    message: `DijkstraFlag.Wait: flag ${flagId} was signaled, consumed immediately`
+                };
+            }
+
+            if (schedulerState) {
+                const current = schedulerState.threads[schedulerState.currentThread];
+                if (current) {
+                    current.state = 'blocked';
+                    flag.waitQueue.push(current.id);
+                }
+            }
+
+            return {
+                ok: true,
+                result: { flagId: flagId, waited: true, blocked: true },
+                message: `DijkstraFlag.Wait: thread blocked on flag ${flagId}`
+            };
+        });
+
+        this.registry.bindMethod(10, 'Signal', function(sim, args) {
+            const flagId = args.flagId !== undefined ? args.flagId : 0;
+            if (!flagState.flags[flagId]) {
+                flagState.flags[flagId] = { signaled: false, waitQueue: [] };
+            }
+            const flag = flagState.flags[flagId];
+
+            if (flag.waitQueue.length > 0) {
+                const wokenId = flag.waitQueue.shift();
+                if (schedulerState) {
+                    const thread = schedulerState.threads.find(t => t.id === wokenId);
+                    if (thread) thread.state = 'ready';
+                }
+                return {
+                    ok: true,
+                    result: { flagId: flagId, wokenThread: wokenId },
+                    message: `DijkstraFlag.Signal: flag ${flagId} woke thread ${wokenId}`
+                };
+            }
+
+            flag.signaled = true;
+            return {
+                ok: true,
+                result: { flagId: flagId, signaled: true },
+                message: `DijkstraFlag.Signal: flag ${flagId} signaled (no waiters)`
+            };
+        });
+
+        this.registry.bindMethod(10, 'Reset', function(sim, args) {
+            const flagId = args.flagId !== undefined ? args.flagId : 0;
+            flagState.flags[flagId] = { signaled: false, waitQueue: [] };
+            return {
+                ok: true,
+                result: { flagId: flagId },
+                message: `DijkstraFlag.Reset: flag ${flagId} cleared`
+            };
+        });
+
+        this.registry.bindMethod(10, 'Test', function(sim, args) {
+            const flagId = args.flagId !== undefined ? args.flagId : 0;
+            const flag = flagState.flags[flagId];
+            const signaled = flag ? flag.signaled : false;
+            const waiters = flag ? flag.waitQueue.length : 0;
+            return {
+                ok: true,
+                result: { flagId: flagId, signaled: signaled, waiters: waiters },
+                message: `DijkstraFlag.Test: flag ${flagId} signaled=${signaled}, waiters=${waiters}`
+            };
+        });
+    }
+
+    _bindSlideRuleTrig() {
+        this.registry.bindMethod(16, 'Sin', function(sim, args) {
+            const angle = args.angle !== undefined ? args.angle : 0;
+            const result = Math.sin(angle);
+            return { ok: true, result: result, message: `SlideRule.Sin(${angle}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Cos', function(sim, args) {
+            const angle = args.angle !== undefined ? args.angle : 0;
+            const result = Math.cos(angle);
+            return { ok: true, result: result, message: `SlideRule.Cos(${angle}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Tan', function(sim, args) {
+            const angle = args.angle !== undefined ? args.angle : 0;
+            const result = Math.tan(angle);
+            return { ok: true, result: result, message: `SlideRule.Tan(${angle}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Asin', function(sim, args) {
+            const value = args.value !== undefined ? args.value : 0;
+            const result = Math.asin(value);
+            return { ok: true, result: result, message: `SlideRule.Asin(${value}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Acos', function(sim, args) {
+            const value = args.value !== undefined ? args.value : 0;
+            const result = Math.acos(value);
+            return { ok: true, result: result, message: `SlideRule.Acos(${value}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Atan', function(sim, args) {
+            const value = args.value !== undefined ? args.value : 0;
+            const result = Math.atan(value);
+            return { ok: true, result: result, message: `SlideRule.Atan(${value}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'ToDegrees', function(sim, args) {
+            const radians = args.radians !== undefined ? args.radians : 0;
+            const result = radians * (180 / Math.PI);
+            return { ok: true, result: result, message: `SlideRule.ToDegrees(${radians}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'ToRadians', function(sim, args) {
+            const degrees = args.degrees !== undefined ? args.degrees : 0;
+            const result = degrees * (Math.PI / 180);
+            return { ok: true, result: result, message: `SlideRule.ToRadians(${degrees}) = ${result}` };
         });
     }
 }

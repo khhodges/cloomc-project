@@ -32,8 +32,8 @@ class DeviceAbstractions {
         const dev = this._deviceState.uart;
         const self = this;
 
-        this.registry.bindMethod(9, 'Send', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x00, 'W');
+        this.registry.bindMethod(11, 'Send', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x00, 'S');
             if (!check.ok) return check;
 
             const data = args.data;
@@ -56,8 +56,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(9, 'Receive', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x00, 'R');
+        this.registry.bindMethod(11, 'Receive', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x00, 'L');
             if (!check.ok) return check;
 
             if (dev.rxBuffer.length === 0) {
@@ -72,7 +72,7 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(9, 'SetBaud', function(sim, args) {
+        this.registry.bindMethod(11, 'SetBaud', function(sim, args) {
             const baud = args.baud || 115200;
             const validRates = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600];
             if (!validRates.includes(baud)) {
@@ -87,8 +87,8 @@ class DeviceAbstractions {
         const dev = this._deviceState.led;
         const self = this;
 
-        this.registry.bindMethod(10, 'Set', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'W');
+        this.registry.bindMethod(12, 'Set', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'S');
             if (!check.ok) return check;
 
             const led = args.led;
@@ -104,8 +104,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(10, 'Clear', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'W');
+        this.registry.bindMethod(12, 'Clear', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'S');
             if (!check.ok) return check;
 
             const led = args.led;
@@ -121,8 +121,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(10, 'Toggle', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'W');
+        this.registry.bindMethod(12, 'Toggle', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'S');
             if (!check.ok) return check;
 
             const led = args.led;
@@ -139,8 +139,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(10, 'Pattern', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'W');
+        this.registry.bindMethod(12, 'Pattern', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x10, 'S');
             if (!check.ok) return check;
 
             const pattern = args.pattern & ((1 << dev.count) - 1);
@@ -158,8 +158,8 @@ class DeviceAbstractions {
         const dev = this._deviceState.button;
         const self = this;
 
-        this.registry.bindMethod(11, 'Read', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x20, 'R');
+        this.registry.bindMethod(13, 'Read', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x20, 'L');
             if (!check.ok) return check;
 
             return {
@@ -169,8 +169,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(11, 'WaitPress', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x20, 'R');
+        this.registry.bindMethod(13, 'WaitPress', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x20, 'L');
             if (!check.ok) return check;
 
             return {
@@ -180,8 +180,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(11, 'OnEvent', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x20, 'R');
+        this.registry.bindMethod(13, 'OnEvent', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x20, 'L');
             if (!check.ok) return check;
 
             if (dev.eventQueue.length === 0) {
@@ -201,8 +201,8 @@ class DeviceAbstractions {
         const dev = this._deviceState.timer;
         const self = this;
 
-        this.registry.bindMethod(12, 'Start', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'W');
+        this.registry.bindMethod(14, 'Start', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'S');
             if (!check.ok) return check;
 
             dev.running = true;
@@ -212,8 +212,8 @@ class DeviceAbstractions {
             return { ok: true, result: { running: true }, message: 'Timer.Start: timer started' };
         });
 
-        this.registry.bindMethod(12, 'Stop', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'W');
+        this.registry.bindMethod(14, 'Stop', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'S');
             if (!check.ok) return check;
 
             dev.running = false;
@@ -228,8 +228,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(12, 'Read', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'R');
+        this.registry.bindMethod(14, 'Read', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'L');
             if (!check.ok) return check;
 
             let elapsed = dev.count;
@@ -244,8 +244,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(12, 'SetAlarm', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'W');
+        this.registry.bindMethod(14, 'SetAlarm', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x30, 'S');
             if (!check.ok) return check;
 
             const ms = args.ms || 1000;
@@ -259,8 +259,8 @@ class DeviceAbstractions {
         const dev = this._deviceState.display;
         const self = this;
 
-        this.registry.bindMethod(13, 'Write', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x40, 'W');
+        this.registry.bindMethod(15, 'Write', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x40, 'S');
             if (!check.ok) return check;
 
             const text = args.text || '';
@@ -295,8 +295,8 @@ class DeviceAbstractions {
             };
         });
 
-        this.registry.bindMethod(13, 'Clear', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x40, 'W');
+        this.registry.bindMethod(15, 'Clear', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x40, 'S');
             if (!check.ok) return check;
 
             dev.buffer = [];
@@ -306,8 +306,8 @@ class DeviceAbstractions {
             return { ok: true, result: {}, message: 'Display.Clear: screen cleared' };
         });
 
-        this.registry.bindMethod(13, 'Scroll', function(sim, args) {
-            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x40, 'W');
+        this.registry.bindMethod(15, 'Scroll', function(sim, args) {
+            const check = self._validateDeviceAccess(sim, self.IO_SEGMENT | 0x40, 'S');
             if (!check.ok) return check;
 
             const lines = args.lines || 1;

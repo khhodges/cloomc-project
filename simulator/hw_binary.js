@@ -20,17 +20,19 @@ const HW_NAMESPACE = [
     0x00000200, 0x80000008, 0x00000000, // Slot 2: Boot.CList
     0x00000300, 0x80000008, 0x00000000, // Slot 3: Boot.CLOOMC
     0x00000400, 0x80000008, 0x00000000, // Slot 4: Salvation
-    0x00000500, 0x80000008, 0x00000000, // Slot 5: Mint
-    0x00000600, 0x80000008, 0x00000000, // Slot 6: Memory
-    0x00000700, 0x80000008, 0x00000000, // Slot 7: Scheduler
-    0x00000800, 0x80000008, 0x00000000, // Slot 8: Stack
-    0x00000900, 0x80000008, 0x00000000, // Slot 9: UART
-    0x00000A00, 0x80000008, 0x00000000, // Slot 10: LED
-    0x00000B00, 0x80000008, 0x00000000, // Slot 11: Button
-    0x00000C00, 0x80000008, 0x00000000, // Slot 12: Timer
-    0x00000D00, 0x80000008, 0x00000000, // Slot 13: Display
-    0x00000E00, 0x80000008, 0x00000000, // Slot 14: SlideRule
-    0x00000F00, 0x80000008, 0x00000000, // Slot 15: Abacus
+    0x00000500, 0x80000008, 0x00000000, // Slot 5: Navana
+    0x00000600, 0x80000008, 0x00000000, // Slot 6: Mint
+    0x00000700, 0x80000008, 0x00000000, // Slot 7: Memory
+    0x00000800, 0x80000008, 0x00000000, // Slot 8: Scheduler
+    0x00000900, 0x80000008, 0x00000000, // Slot 9: Stack
+    0x00000A00, 0x80000008, 0x00000000, // Slot 10: DijkstraFlag
+    0x00000B00, 0x80000008, 0x00000000, // Slot 11: UART
+    0x00000C00, 0x80000008, 0x00000000, // Slot 12: LED
+    0x00000D00, 0x80000008, 0x00000000, // Slot 13: Button
+    0x00000E00, 0x80000008, 0x00000000, // Slot 14: Timer
+    0x00000F00, 0x80000008, 0x00000000, // Slot 15: Display
+    0x00001000, 0x80000008, 0x00000000, // Slot 16: SlideRule
+    0x00001100, 0x80000008, 0x00000000, // Slot 17: Abacus
 ];
 
 const HW_CLIST = [
@@ -38,14 +40,14 @@ const HW_CLIST = [
     0x00000410, // CList[1] Inform X   -> NS idx 4 (Salvation)
     0x00000002, // CList[2] NULL       (SAVE target)
     0x00000280, // CList[3] Inform E   -> NS idx 2 (Boot.CList)
-    0x00000580, // CList[4] Inform E   -> NS idx 5 (Mint)
-    0x00000620, // CList[5] Inform L   -> NS idx 6 (Memory)
+    0x00000680, // CList[4] Inform E   -> NS idx 6 (Mint)
+    0x00000720, // CList[5] Inform L   -> NS idx 7 (Memory)
     0x00000480, // CList[6] Inform E   -> NS idx 4 (Salvation CALL target)
     0x00000002, // CList[7] NULL
 ];
 
 const HW_SALVATION_CLIST = [
-    0x00000510, // Slot 0: Inform X -> NS idx 5 (Salvation.CLOOMC)
+    0x00000510, // Slot 0: Inform X -> NS idx 5 (Navana CLOOMC)
     0x00000680, // Slot 1: Inform E -> NS idx 6 (reference)
 ];
 
@@ -54,7 +56,6 @@ const HW_SALVATION_CODE = [
     0x07130001, // PC=1  LOAD CR2, [CR6 + 1]
     0x37080003, // PC=2  TPERM CR1, X
     0x3F080000, // PC=3  LAMBDA CR1
-    0x1F028000, // PC=4  RETURN CR5
 ];
 
 const HW_NS_LABELS = {
@@ -63,17 +64,19 @@ const HW_NS_LABELS = {
     2: 'Boot.CList',
     3: 'Boot.CLOOMC',
     4: 'Salvation',
-    5: 'Mint',
-    6: 'Memory',
-    7: 'Scheduler',
-    8: 'Stack',
-    9: 'UART',
-    10: 'LED',
-    11: 'Button',
-    12: 'Timer',
-    13: 'Display',
-    14: 'SlideRule',
-    15: 'Abacus',
+    5: 'Navana',
+    6: 'Mint',
+    7: 'Memory',
+    8: 'Scheduler',
+    9: 'Stack',
+    10: 'DijkstraFlag',
+    11: 'UART',
+    12: 'LED',
+    13: 'Button',
+    14: 'Timer',
+    15: 'Display',
+    16: 'SlideRule',
+    17: 'Abacus',
 };
 
 const TANG_NANO_20K = {

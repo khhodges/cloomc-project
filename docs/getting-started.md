@@ -15,7 +15,7 @@ The Church Machine teaches computer security through direct experience. Students
 ### Lesson Progression
 
 1. Start with the **Self-Test** example — shows basic register operations
-2. Move to **Salvation** — demonstrates CALL→RETURN (the security pipeline in action)
+2. Move to **Salvation** — demonstrates CALL and security pipeline verification, transitions to Navana
 3. Try **Load/Save** — capability manipulation
 4. Explore **Bernoulli** — lambda calculus and Church numerals
 5. Run **Perm Attack** and **Bind Attack** — see the security system block unauthorized access
@@ -31,7 +31,7 @@ The IDE has eight views, accessible via the toolbar:
 | **Dashboard** | Register inspection (CR0–CR15, DR0–DR15), machine state, flags |
 | **Code** | Assembly editor with syntax highlighting, examples, assemble/deploy |
 | **Namespace** | Browse all namespace entries with their GTs, versions, and permissions |
-| **Abstractions** | Catalog of all 44 abstractions across 9 layers |
+| **Abstractions** | Catalog of all 46 abstractions across 9 layers |
 | **Pipeline** | Visual 7-step security pipeline (mLoad validation) |
 | **Tutorial** | Guided lessons with explanations |
 | **REPL** | Lambda calculus interactive interpreter |
@@ -47,8 +47,9 @@ The IDE has eight views, accessible via the toolbar:
 ; Load the Salvation abstraction and call it
 
 LOAD CR0, CR6, #4     ; Load Salvation GT from c-list slot 4
-CALL CR0              ; Enter Salvation — proves CALL→RETURN works
-RETURN                ; Return to caller
+CALL CR0              ; Enter Salvation — proves CALL works
+; Salvation transitions to Navana (does not RETURN)
+; Navana runs indefinitely as namespace controller
 ```
 
 3. Click **Assemble** — the console shows success or error messages
