@@ -158,35 +158,28 @@ class SystemAbstractions {
             const size = args.size || 16;
             const bFlag = args.bind ? 1 : 0;
             const fFlag = args.far ? 1 : (gtType === 2 ? 1 : 0);
-            const url = args.url || null;
+
+            const memResult = sim.abstractionRegistry.dispatchMethod(7, 'Allocate', sim, { size: size });
+            if (!memResult || !memResult.ok) {
+                return { ok: false, fault: 'OOM', message: `Mint.Create: Memory.Allocate(${size}) failed — ${memResult ? memResult.message : 'no response'}` };
+            }
+            const location = memResult.result.location;
 
             let nsIndex = args.nsIndex;
-            let location;
-
-            if (gtType === 2 && url) {
-                if (nsIndex === undefined || nsIndex === null) {
-                    let freeIdx = -1;
-                    for (let i = sim.nsCount; i < sim.MAX_NS_ENTRIES; i++) {
+            if (nsIndex === undefined || nsIndex === null) {
+                let freeIdx = -1;
+                for (let i = sim.nsCount; i < sim.MAX_NS_ENTRIES; i++) {
+                    if (!sim.isNSEntryValid(i)) { freeIdx = i; break; }
+                }
+                if (freeIdx === -1) {
+                    for (let i = 45; i < sim.nsCount; i++) {
                         if (!sim.isNSEntryValid(i)) { freeIdx = i; break; }
                     }
-                    if (freeIdx === -1) {
-                        for (let i = 45; i < sim.nsCount; i++) {
-                            if (!sim.isNSEntryValid(i)) { freeIdx = i; break; }
-                        }
-                    }
-                    if (freeIdx === -1) {
-                        return { ok: false, fault: 'OOM', message: 'Mint.Create: no free NS entries for remote proxy' };
-                    }
-                    nsIndex = freeIdx;
                 }
-                location = nsIndex * sim.SLOT_SIZE;
-            } else {
-                const memResult = sim.abstractionRegistry.dispatchMethod(7, 'Allocate', sim, { size: size });
-                if (!memResult || !memResult.ok) {
-                    return { ok: false, fault: 'OOM', message: `Mint.Create: Memory.Allocate(${size}) failed — ${memResult ? memResult.message : 'no response'}` };
+                if (freeIdx === -1) {
+                    return { ok: false, fault: 'NS_FULL', message: 'Mint.Create: no free NS entries' };
                 }
-                nsIndex = memResult.result.nsIndex;
-                location = memResult.result.location;
+                nsIndex = freeIdx;
             }
 
             const entry = sim.readNSEntry(nsIndex);
@@ -251,85 +244,75 @@ class SystemAbstractions {
     }
 
     _bindMemory() {
+        if (!this._memoryState) {
+            this._memoryState = {
+                allocations: {},
+                nextFreeAddr: 45 * 0x100,
+            };
+        }
+        const memState = this._memoryState;
+
         this.registry.bindMethod(7, 'Allocate', function(sim, args) {
             const size = args.size || 16;
 
-            let freeIdx = -1;
-            for (let i = sim.nsCount; i < sim.MAX_NS_ENTRIES; i++) {
-                if (!sim.isNSEntryValid(i)) {
-                    freeIdx = i;
-                    break;
-                }
-            }
-            if (freeIdx === -1) {
-                for (let i = 0; i < sim.nsCount; i++) {
-                    if (!sim.isNSEntryValid(i) && i >= 45) {
-                        freeIdx = i;
-                        break;
-                    }
-                }
-            }
-            if (freeIdx === -1) {
-                return { ok: false, fault: 'OOM', message: 'Memory.Allocate: no free NS entries' };
+            const location = memState.nextFreeAddr;
+            if (location + size > sim.NS_TABLE_BASE) {
+                return { ok: false, fault: 'OOM', message: `Memory.Allocate(${size}): out of memory — next=0x${location.toString(16)}, limit=0x${sim.NS_TABLE_BASE.toString(16)}` };
             }
 
-            const location = freeIdx * sim.SLOT_SIZE;
-            const limit17 = (size - 1) & 0x1FFFF;
-            sim.writeNSEntry(freeIdx, location, limit17, 0, 0, 0, 0, 1, 0);
+            memState.allocations[location] = { location: location, size: size };
+            memState.nextFreeAddr = location + size;
 
             return {
                 ok: true,
-                result: { nsIndex: freeIdx, location: location, size: size },
-                message: `Memory.Allocate: NS[${freeIdx}] reserved ${size} words at 0x${location.toString(16)}`
+                result: { location: location, size: size },
+                message: `Memory.Allocate: ${size} words at 0x${location.toString(16)}`
             };
         });
 
         this.registry.bindMethod(7, 'Free', function(sim, args) {
-            const nsIndex = args.nsIndex;
-            if (nsIndex === undefined || nsIndex === null) {
-                return { ok: false, fault: 'ARGS', message: 'Memory.Free: nsIndex required' };
+            const location = args.location;
+            if (location === undefined || location === null) {
+                return { ok: false, fault: 'ARGS', message: 'Memory.Free: location required' };
             }
 
-            const base = sim.NS_TABLE_BASE + nsIndex * sim.NS_ENTRY_WORDS;
-            sim.memory[base + 0] = 0;
-            sim.memory[base + 1] = 0;
-            sim.memory[base + 2] = 0;
-            delete sim.nsLabels[nsIndex];
+            const alloc = memState.allocations[location];
+            if (!alloc) {
+                return { ok: false, fault: 'BOUNDS', message: `Memory.Free: no allocation at 0x${location.toString(16)}` };
+            }
+
+            for (let i = 0; i < alloc.size; i++) {
+                if (location + i < sim.memory.length) {
+                    sim.memory[location + i] = 0;
+                }
+            }
+            delete memState.allocations[location];
 
             return {
                 ok: true,
-                result: nsIndex,
-                message: `Memory.Free: NS[${nsIndex}] deallocated`
+                result: { location: location, size: alloc.size },
+                message: `Memory.Free: ${alloc.size} words at 0x${location.toString(16)} released`
             };
         });
 
         this.registry.bindMethod(7, 'Resize', function(sim, args) {
-            const nsIndex = args.nsIndex;
+            const location = args.location;
             const newSize = args.size || 32;
-            if (nsIndex === undefined || nsIndex === null) {
-                return { ok: false, fault: 'ARGS', message: 'Memory.Resize: nsIndex required' };
+            if (location === undefined || location === null) {
+                return { ok: false, fault: 'ARGS', message: 'Memory.Resize: location required' };
             }
 
-            const entry = sim.readNSEntry(nsIndex);
-            if (!entry) {
-                return { ok: false, fault: 'BOUNDS', message: `Memory.Resize: NS[${nsIndex}] not found` };
+            const alloc = memState.allocations[location];
+            if (!alloc) {
+                return { ok: false, fault: 'BOUNDS', message: `Memory.Resize: no allocation at 0x${location.toString(16)}` };
             }
 
-            const base = sim.NS_TABLE_BASE + nsIndex * sim.NS_ENTRY_WORDS;
-            const newLimit = (newSize - 1) & 0x1FFFF;
-            const w1 = sim.memory[base + 1];
-            const flags = w1 & 0xFFFE0000;
-            sim.memory[base + 1] = (flags | newLimit) >>> 0;
-
-            const loc = sim.memory[base + 0];
-            sim.memory[base + 2] = sim.makeVersionSeals(
-                (sim.memory[base + 2] >>> 25) & 0x7F, loc, newLimit
-            );
+            alloc.size = newSize;
 
             return {
                 ok: true,
-                result: { nsIndex: nsIndex, newSize: newSize },
-                message: `Memory.Resize: NS[${nsIndex}] resized to ${newSize} words`
+                result: { location: location, size: newSize },
+                message: `Memory.Resize: allocation at 0x${location.toString(16)} resized to ${newSize} words`
             };
         });
     }

@@ -16,7 +16,7 @@ There is no operating system. Every system service, hardware driver, and user-fa
 Every abstraction — regardless of layer — responds to the same four operations:
 
 1. **create(index, params)** — Instantiate an abstraction in a namespace slot
-2. **destroy(index)** — Remove an abstraction (via Mint.Revoke + Memory.Free)
+2. **destroy(index)** — Remove an abstraction (Mint.Revoke invalidates GT, Memory.Free releases memory)
 3. **call(methodName, args)** — Dispatch a method (same entry point for all abstractions)
 4. **inspect()** — Return abstraction metadata (name, layer, methods, permissions)
 
@@ -82,9 +82,9 @@ GT lifecycle management. Mint creates new Golden Tokens with permissions that ar
 
 **Methods**: Allocate, Free, Resize
 
-Namespace entry allocation for DATA objects. Allocate claims unused namespace slots. Free releases them. Resize adjusts object bounds.
+Memory allocation for DATA objects. Allocate reserves a memory region of the requested size and returns its location. Free releases the region. Resize adjusts the allocation size. Memory does not manage the namespace table — that is Navana's responsibility. Mint.Create calls Memory.Allocate for the backing storage, then writes the NS entry itself.
 
-**Rationale**: Memory management is a system service, not an implicit runtime feature. Programs must hold a GT to the Memory abstraction to allocate storage.
+**Rationale**: Memory management is a system service, not an implicit runtime feature. Programs must hold a GT to the Memory abstraction to allocate storage. The separation between Memory (storage) and the NS table (namespace) keeps responsibilities clean — Memory knows about address space, Navana knows about namespace structure.
 
 ### 8 — Scheduler
 

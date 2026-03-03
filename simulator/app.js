@@ -844,8 +844,8 @@ function getMethodPurposes(abs) {
     const knownPurposes = {
         'Salvation': { 'LOAD': 'Proves namespace lookup', 'TPERM': 'Proves permission check', 'LAMBDA': 'Proves Church reduction', 'TransitionToNavana': 'Transitions to Navana (does not RETURN)' },
         'Navana': { 'Init': 'Initialize all abstractions', 'Manage': 'Abstraction lifecycle management', 'Monitor': 'System health monitoring', 'IDS': 'Intrusion Detection via GT anomalies' },
-        'Mint': { 'Create': 'Mint.Create(type, size, perms, [bind], [far]) — CALL Memory.Allocate, increment version, pack NS entry, forge ready-to-use GT', 'Revoke': 'Mint.Revoke(nsIndex) — increment version, kill all GT copies instantly', 'Transfer': 'Mint.Transfer(gt, target_clist, slot) — move GT between c-lists' },
-        'Memory': { 'Allocate': 'Memory.Allocate(size) — find free NS slot, reserve memory, pack 3-word entry', 'Free': 'Memory.Free(nsIndex) — zero word0+word1, release slot for reuse', 'Resize': 'Memory.Resize(nsIndex, newSize) — repack word1 limit, recompute FNV seal' },
+        'Mint': { 'Create': 'Mint.Create(type, size, perms, [bind], [far]) — CALL Memory.Allocate for backing storage, find free NS entry, increment version, write NS entry, forge ready-to-use GT', 'Revoke': 'Mint.Revoke(nsIndex) — increment version, kill all GT copies instantly', 'Transfer': 'Mint.Transfer(gt, target_clist, slot) — move GT between c-lists' },
+        'Memory': { 'Allocate': 'Memory.Allocate(size) — reserve a memory region, return location and size', 'Free': 'Memory.Free(location) — release a memory region, zero its contents', 'Resize': 'Memory.Resize(location, newSize) — adjust the size of an existing allocation' },
         'Scheduler': { 'Yield': 'Scheduler.Yield() — save thread state, switch to next ready thread', 'Spawn': 'Scheduler.Spawn(code_GT, entry) — create thread with isolated CR set', 'Wait': 'Scheduler.Wait(flag_GT) — block thread on DijkstraFlag', 'Stop': 'Scheduler.Stop(threadID) — terminate thread, release CRs' },
         'Stack': { 'Push': 'Stack.Push(value) — DWRITE to stack location, increment depth', 'Pop': 'Stack.Pop() — decrement depth, DREAD from stack location', 'Peek': 'Stack.Peek() — DREAD top without decrementing', 'Depth': 'Stack.Depth() — return current entry count' },
         'DijkstraFlag': { 'Wait': 'DijkstraFlag.Wait() — P() operation: block if unsignaled', 'Signal': 'DijkstraFlag.Signal() — V() operation: wake one waiter or set flag', 'Reset': 'DijkstraFlag.Reset() — clear flag to unsignaled state', 'Test': 'DijkstraFlag.Test() — non-blocking read of flag state' },
@@ -946,9 +946,9 @@ CALL   CR1              ; Enter Navana
 ; Inside Navana.Init:
 ;   for each abstraction index 6..44:
 ;     LOAD  CR3, NS[7]  ; Load Memory GT
-;     CALL  CR3          ; Memory.Allocate -> free slot + mem
+;     CALL  CR3          ; Memory.Allocate -> backing storage
 ;     LOAD  CR4, NS[6]  ; Load Mint GT
-;     CALL  CR4          ; Mint.Create -> GT for new slot
+;     CALL  CR4          ; Mint.Create -> NS entry + GT
 ;   Navana.Init never returns — enters event loop`,
             'Manage': `; Navana.Manage — abstraction lifecycle
 ; Navana dispatches create/destroy/call/inspect uniformly
@@ -957,12 +957,12 @@ LOAD   CR1, NS[5]       ; Load Navana E-GT
 DWRITE DR0, #33         ; Target: Editor abstraction (NS[33])
 DWRITE DR1, #0          ; Operation: 0=create
 CALL   CR1              ; Navana.Manage dispatches:
-;   1. Memory.Allocate(size) -> slot, location
-;   2. Write NS entry: word0=loc, word1=limit|flags
-;   3. computeSeal(word0, word1) -> FNV-1a hash
-;   4. word2 = (version << 25) | seal
-;   5. Mint.Create(slot, perms, type) -> GT
-;   6. Return GT to caller via CR`,
+;   1. Mint.Create(type, size, perms):
+;      a. Memory.Allocate(size) -> location
+;      b. Find free NS entry
+;      c. Write NS entry + compute seal
+;      d. Forge GT with version/perms
+;   2. Return GT to caller via CR`,
             'Monitor': `; Navana.Monitor — system health / MTBF tracking
 ; Every abstraction is a security block with MTBF
 ; MTBF = uptime / faultCount for that block
@@ -1001,11 +1001,11 @@ CALL   CR1              ; Navana.IDS scans:
 ;
 ; Process:
 ;   1. Domain purity check (Turing OR Church, never mixed)
-;   2. CALL Memory.Allocate(size) to find free slot
-;      (for Outform+URL: resolve remote object instead)
-;   3. Increment version (never reset — monotonic)
-;   4. Pack 3-word NS entry with B/F flags
-;   5. Pack GT, return ready to use
+;   2. CALL Memory.Allocate(size) for backing storage (returns location)
+;   3. Find free NS entry (Mint manages NS table)
+;   4. Increment version (never reset — monotonic)
+;   5. Write 3-word NS entry with B/F flags + seal
+;   6. Pack GT, return ready to use
 ;
 ; Returns: GT packed as Version(7)|Index(17)|Perms(6)|Type(2)
 ; Faults:  DOMAIN_PURITY, OOM, TYPE (NULL not creatable)
@@ -1043,8 +1043,8 @@ DWRITE DR2, #0b000111   ; perms = R+W+X (full Turing)
                          ;   bit0=R, bit1=W, bit2=X
 CALL   CR1              ; Mint.Create:
 ;   Domain purity: R+W+X = Turing only — OK
-;   CALL Memory.Allocate(64) -> slot 51
-;   version incremented, GT packed and returned
+;   Memory.Allocate(64) -> location for backing storage
+;   Mint finds free NS entry, increments version, packs GT
 ; Result: CR1 <- GT with full Turing access
 ;   DREAD/DWRITE for data, LAMBDA for execution
 
@@ -1066,8 +1066,8 @@ DWRITE DR2, #0b111000   ; perms = L+S+E (full Church)
                          ;   bit3=L, bit4=S, bit5=E
 CALL   CR1              ; Mint.Create:
 ;   Domain purity: L+S+E = Church only — OK
-;   CALL Memory.Allocate(16) -> slot 52
-;   version incremented
+;   Memory.Allocate(16) -> location for c-list storage
+;   Mint finds free NS entry, increments version
 ; Result: CR1 <- GT for c-list
 ;   L: LOAD GTs from this c-list
 ;   S: SAVE GTs into this c-list
@@ -1165,61 +1165,46 @@ CALL   CR1              ; Mint.Transfer:
 ; The child now has the GT in their c-list`,
         },
         'Memory': {
-            'Allocate': `; Memory.Allocate — find free NS slot + reserve memory
-; Memory manages the namespace table as a pool of 3-word
-; entries. Each slot has: word0=loc, word1=lim|flags, word2=ver|seal
+            'Allocate': `; Memory.Allocate — reserve a memory region
+; Memory manages address space as a pool of allocations.
+; It does NOT manage the NS table — that is Mint/Navana's job.
 LOAD   CR1, NS[7]       ; Load Memory E-GT via mLoad
 DWRITE DR0, #128        ; Request 128 words of storage
 
 CALL   CR1              ; Memory.Allocate:
-;   1. Scan NS table for free entry (word0=0 AND word1=0)
-;      start at nsCount, wrap to slot 45 (skip boot 0-44)
-;      if no free slot: FAULT OOM
-;   2. Compute location = freeIdx * SLOT_SIZE
-;   3. Pack limit = (size-1) & 0x1FFFF = 127
-;   4. Write 3-word NS entry:
-;      word0 = location
-;      word1 = packWord1(limit=127, B=0, F=0, G=0)
-;      word2 = (ver=0 << 25) | FNV_seal(loc, lim)
-;   5. Create GT with R+W perms (Turing DATA domain)
-;      GT = (0<<25)|(idx<<8)|(0b000110<<2)|(0)
-;   6. Label slot as DATA[idx]
+;   1. Check if requested size fits in available memory
+;      (next free address + size must not exceed NS_TABLE_BASE)
+;      if no room: FAULT OOM
+;   2. Record allocation at current free address
+;   3. Advance free address pointer by size
 ;
-; DR0 <- allocated slot index
-; DR1 <- base location address
-; CR2 <- R+W GT for the new DATA object
-; Type is Inform(01), domain is Turing(R+W) — DATA only`,
-            'Free': `; Memory.Free — deallocate NS slot + zero memory
+; DR0 <- base location address
+; DR1 <- allocation size (128)
+; Memory only returns a location — Mint.Create handles
+; the NS entry, GT creation, and version management`,
+            'Free': `; Memory.Free — release a memory region
 LOAD   CR1, NS[7]       ; Load Memory E-GT
-DWRITE DR0, #50         ; NS slot to free
+DWRITE DR0, #0x2D00     ; Location to free (from original Allocate)
 
 CALL   CR1              ; Memory.Free:
-;   base = NS_TABLE_BASE + 50 * 3
-;   1. Verify slot is allocated (word0|word1 != 0)
-;   2. Zero word0 (location = 0)
-;   3. Zero word1 (limit/flags = 0)
-;   4. word2 version preserved for stale GT detection
-;      (any GT still pointing here fails seal check)
-;   5. Clear label
-; Slot 50 now free for reuse by Memory.Allocate
-; Outstanding GTs for slot 50 are NOT revoked here
-; — use Mint.Revoke first to invalidate them`,
-            'Resize': `; Memory.Resize — change allocation size
+;   1. Look up allocation at given location
+;      if not found: FAULT BOUNDS
+;   2. Zero the memory contents
+;   3. Remove allocation record
+; The NS entry is NOT touched — use Mint.Revoke to
+; invalidate GTs, then free the backing memory here`,
+            'Resize': `; Memory.Resize — adjust allocation size
 LOAD   CR1, NS[7]       ; Load Memory E-GT
-DWRITE DR0, #50         ; NS slot to resize
+DWRITE DR0, #0x2D00     ; Location to resize (from original Allocate)
 DWRITE DR1, #256        ; New size (words)
 
 CALL   CR1              ; Memory.Resize:
-;   base = NS_TABLE_BASE + 50 * 3
-;   1. Read current word0 (location), word1 (limit)
-;   2. Compute new limit = (newSize-1) & 0x1FFFF
-;   3. Repack word1 with new limit, preserve B/F/G flags
-;   4. Recompute FNV seal for new (location, limit) pair
-;      seal = FNV-1a(word0, newLimit)
-;   5. Write word2 = (version << 25) | newSeal
-;   NOTE: seal must be recomputed whenever word0 or
-;   word1 changes — otherwise mLoad step 3 fails
-; Existing GTs remain valid (version unchanged)`,
+;   1. Look up allocation at given location
+;      if not found: FAULT BOUNDS
+;   2. Update the allocation record with new size
+; NOTE: if an NS entry references this location,
+; Mint must also update the NS entry's limit field
+; and recompute the FNV seal separately`,
         },
         'Scheduler': {
             'Yield': `; Scheduler.Yield — voluntarily yield time slice

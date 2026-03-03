@@ -42,7 +42,7 @@ class AbstractionRegistry {
     destroy(index) {
         const a = this.abstractions[index];
         if (!a) return { ok: false, fault: 'ABSTRACTION', message: `Abstraction ${index} not found` };
-        return { ok: true, result: { index: index, name: a.name }, message: `Destroy ${a.name}: use Mint.Revoke + Memory.Free` };
+        return { ok: true, result: { index: index, name: a.name }, message: `Destroy ${a.name}: Mint.Revoke invalidates GT, Memory.Free releases memory` };
     }
 
     call(index, methodName, sim, args) {
@@ -180,7 +180,7 @@ class AbstractionRegistry {
 
         this.createAbstraction(7, 'Memory', 1,
             ['Allocate', 'Free', 'Resize'],
-            'Memory management — allocates NS entries for DATA objects',
+            'Memory allocation — reserves memory regions for DATA objects (does not manage the NS table)',
             { perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(8, 'Scheduler', 1,
