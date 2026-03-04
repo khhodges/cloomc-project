@@ -26,6 +26,7 @@ church_sim/        — Original simulator (reference, ported to simulator/)
 - [docs/tang-nano-20k.md](../docs/tang-nano-20k.md) — FPGA target, pin assignments, build toolchain
 - [docs/getting-started.md](../docs/getting-started.md) — Tutorial for educators, students, parents, and developers
 - [docs/risks.md](../docs/risks.md) — Security risk register: R001-R009 with severity, fixes, status
+- [docs/patent-cloomc-universal-target.md](../docs/patent-cloomc-universal-target.md) — CIP patent: universal target ISA, multi-language compiler, Claims 24-31
 
 ## Architecture
 
