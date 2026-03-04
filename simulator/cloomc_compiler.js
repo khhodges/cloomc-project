@@ -128,15 +128,24 @@ class CLOOMCCompiler {
 
             const capMatch = line.match(/^capabilities\s*\{/);
             if (capMatch) {
-                i++;
-                while (i < lines.length) {
-                    const capLine = lines[i].trim();
-                    if (capLine === '}') { i++; break; }
-                    if (capLine && !capLine.startsWith('//')) {
-                        const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+                const inlineMatch = line.match(/^capabilities\s*\{\s*(.*?)\s*\}$/);
+                if (inlineMatch) {
+                    if (inlineMatch[1]) {
+                        const names = inlineMatch[1].replace(/,/g, ' ').split(/\s+/).filter(Boolean);
                         result.capabilities.push(...names);
                     }
                     i++;
+                } else {
+                    i++;
+                    while (i < lines.length) {
+                        const capLine = lines[i].trim();
+                        if (capLine === '}') { i++; break; }
+                        if (capLine && !capLine.startsWith('//')) {
+                            const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+                            result.capabilities.push(...names);
+                        }
+                        i++;
+                    }
                 }
                 continue;
             }
@@ -150,13 +159,20 @@ class CLOOMCCompiler {
                 i++;
                 let braceDepth = 1;
                 while (i < lines.length && braceDepth > 0) {
-                    const bodyLine = lines[i];
-                    if (bodyLine.trim() === '{') braceDepth++;
-                    else if (bodyLine.trim() === '}') {
+                    const trimmed = lines[i].trim();
+                    if (trimmed === '}') {
                         braceDepth--;
                         if (braceDepth === 0) { i++; break; }
+                        method.body.push({ text: trimmed, lineNum: i });
+                        i++;
+                        continue;
                     }
-                    const trimmed = bodyLine.trim();
+                    if (trimmed === '{') {
+                        braceDepth++;
+                        method.body.push({ text: trimmed, lineNum: i });
+                        i++;
+                        continue;
+                    }
                     for (const ch of trimmed) {
                         if (ch === '{') braceDepth++;
                         else if (ch === '}') braceDepth--;
@@ -594,15 +610,24 @@ class CLOOMCCompiler {
 
             const capMatch = line.match(/^capabilities\s*\{/);
             if (capMatch) {
-                i++;
-                while (i < lines.length) {
-                    const capLine = lines[i].trim();
-                    if (capLine === '}') { i++; break; }
-                    if (capLine && !capLine.startsWith('--')) {
-                        const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+                const inlineMatch = line.match(/^capabilities\s*\{\s*(.*?)\s*\}$/);
+                if (inlineMatch) {
+                    if (inlineMatch[1]) {
+                        const names = inlineMatch[1].replace(/,/g, ' ').split(/\s+/).filter(Boolean);
                         result.capabilities.push(...names);
                     }
                     i++;
+                } else {
+                    i++;
+                    while (i < lines.length) {
+                        const capLine = lines[i].trim();
+                        if (capLine === '}') { i++; break; }
+                        if (capLine && !capLine.startsWith('--')) {
+                            const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+                            result.capabilities.push(...names);
+                        }
+                        i++;
+                    }
                 }
                 continue;
             }
