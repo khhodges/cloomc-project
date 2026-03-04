@@ -702,7 +702,7 @@ The Church Machine's answer to "who can access my data?" is not a policy, not a 
 
 8. Halton, D. (1972). "Hardware of the System 250 for Communication Control." *International Switching Symposium*, MIT, Cambridge, Massachusetts, June 1972.
 
-9. Hamer-Hodges, K.J. (2020). *Civilizing Cyberspace: The Fight for Digital Democracy*. Studio of Books LLC. ISBN 978-1951630447.
+9. Hamer-Hodges, K.J. (2025). *Civilizing Cyberspace: The Fight for Digital Democracy*. Studio of Books LLC. ISBN 978-1964864983.
 
 10. Hamer-Hodges, K.J. (2023). *The Fate of AI Society: Civilizing Superhuman Cyberspace*. Studio of Books LLC. ISBN 978-1964148540.
 
