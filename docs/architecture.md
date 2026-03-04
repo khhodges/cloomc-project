@@ -287,7 +287,9 @@ Navana.Abstraction.Add validates: codeSize + clistCount <= allocSize, each capab
 Multi-language compiler targeting Church Machine 20-instruction set:
 
 - **JavaScript front-end** (Phase 1): JS subset → 32-bit code words
-- **Haskell front-end** (Phase 1b, planned): Lambda calculus → Church Machine instructions
+- **Haskell front-end** (Phase 1b): Lambda calculus, case expressions, pairs, let bindings → Church Machine instructions
+
+Auto-detection: the compiler identifies the language from source syntax (Haskell uses `method name(args) = expr`, JavaScript uses `method name(args) { ... }`). Both front-ends share the same Resident Object Model and encode back-end.
 
 ### Resident Object Model
 
@@ -312,3 +314,20 @@ JavaScript constructs map to Church Machine instructions:
 - `return(val)` → RETURN
 - `x << n` → SHL, `x >> n` → SHR
 - `bitfield(x, pos, width)` → BFEXT / BFINS
+
+Haskell constructs map to Church Machine instructions:
+- `\x -> body` → LAMBDA (Church numeral encoding, code region refs)
+- `f x` → CALL / XLOADLAMBDA (function application)
+- `let x = expr in body` → IADD (register binding) + scope management
+- `case x of ...` → MCMP + BRANCH chains (pattern matching)
+- `if c then a else b` → MCMP + conditional BRANCH
+- `(a, b)` → SHL + BFINS (pair packing into 32-bit word, 16-bit halves)
+- `fst p` → SHR (extract upper 16 bits)
+- `snd p` → BFEXT (extract lower 16 bits)
+- `succ n` → IADD (Church successor)
+- `pred n` → ISUB (Church predecessor)
+- `isZero n` → MCMP + conditional IADD
+- `x + y`, `x - y`, `x * y` → IADD, ISUB, iterative multiply loop
+- `pure x` → RETURN (monadic return)
+
+Both languages prove the Church Machine is a universal computation target — the same 20 instructions serve as a substrate for imperative and functional paradigms.

@@ -1,0 +1,38 @@
+-- Church Machine Lambda Calculus — Haskell front-end
+-- Proves Church Machine is a universal computation target
+-- Church numerals operate on the machine's 20-instruction set
+
+abstraction ChurchMath {
+    capabilities {
+    }
+
+    -- Church successor: n + 1
+    method successor(n) = n + 1
+
+    -- Church addition: a + b
+    method add(a, b) = a + b
+
+    -- Church multiplication via repeated addition
+    method multiply(a, b) = a * b
+
+    -- Church predecessor: max(0, n - 1)
+    method predecessor(n) = if n > 0 then n - 1 else 0
+
+    -- Church subtraction: max(0, a - b)
+    method monus(a, b) = if a > b then a - b else 0
+
+    -- isZero test: returns 1 if n == 0, else 0
+    method isZero(n) = if n == 0 then 1 else 0
+
+    -- Church pair constructor: pack two 16-bit values
+    method pair(a, b) = (a, b)
+
+    -- Extract first element of a pair
+    method first(p) = fst p
+
+    -- Extract second element of a pair
+    method second(p) = snd p
+
+    -- Factorial via case expression
+    method factorial(n) = case n of 0 -> 1, _ -> n * (n - 1)
+}

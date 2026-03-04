@@ -34,6 +34,13 @@ class CLOOMCCompiler {
     }
 
     compile(source, capabilities) {
+        if (this._detectHaskell(source)) {
+            return this.compileHaskell(source, capabilities);
+        }
+        return this.compileJS(source, capabilities);
+    }
+
+    compileJS(source, capabilities) {
         const errors = [];
         const parsed = this._parseAbstraction(source, errors);
         if (errors.length > 0) {
@@ -54,7 +61,21 @@ class CLOOMCCompiler {
             }
         }
 
-        return { methods, errors, manifest, abstractionName: parsed.name, capabilities: parsed.capabilities || [] };
+        return { methods, errors, manifest, abstractionName: parsed.name, capabilities: parsed.capabilities || [], language: 'javascript' };
+    }
+
+    _detectHaskell(source) {
+        const lines = source.split('\n');
+        for (const line of lines) {
+            const t = line.trim();
+            if (t.startsWith('--')) continue;
+            if (t.match(/^method\s+\w+\s*\([^)]*\)\s*=\s*/)) return true;
+            if (t.includes('\\') && t.includes('->')) return true;
+            if (t.match(/\bcase\b.*\bof\b/)) return true;
+            if (t.match(/\blet\b.*\bin\b/)) return true;
+            if (t.match(/\bpure\b\s/)) return true;
+        }
+        return false;
     }
 
     _buildROM(declaredCaps, uploadCaps) {
@@ -514,5 +535,754 @@ class CLOOMCCompiler {
         }
 
         errors.push({ line: stmt.lineNum, message: `Cannot compile statement: ${text}` });
+    }
+
+    compileHaskell(source, capabilities) {
+        const errors = [];
+        const parsed = this._parseHaskellAbstraction(source, errors);
+        if (errors.length > 0) {
+            return { methods: [], errors, manifest: [] };
+        }
+
+        const rom = this._buildROM(parsed.capabilities, capabilities || []);
+        const methods = [];
+        const manifest = [];
+
+        for (const method of parsed.methods) {
+            const result = this._compileHaskellMethod(method, rom, parsed.capabilities, errors);
+            if (result.errors.length > 0) {
+                errors.push(...result.errors);
+            } else {
+                methods.push({ name: method.name, code: result.code });
+                manifest.push({ name: method.name, mapping: result.manifest });
+            }
+        }
+
+        return { methods, errors, manifest, abstractionName: parsed.name, capabilities: parsed.capabilities || [], language: 'haskell' };
+    }
+
+    _parseHaskellAbstraction(source, errors) {
+        const result = { name: '', capabilities: [], methods: [] };
+        const lines = source.split('\n');
+        let i = 0;
+
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (!line || line.startsWith('--')) { i++; continue; }
+
+            const absMatch = line.match(/^abstraction\s+(\w+)\s*\{/);
+            if (absMatch) {
+                result.name = absMatch[1];
+                i++;
+                i = this._parseHaskellBody(lines, i, result, errors);
+                break;
+            }
+            i++;
+        }
+
+        if (!result.name) {
+            errors.push({ line: 0, message: 'No abstraction declaration found. Expected: abstraction Name { ... }' });
+        }
+        return result;
+    }
+
+    _parseHaskellBody(lines, i, result, errors) {
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (!line || line.startsWith('--')) { i++; continue; }
+            if (line === '}') return i + 1;
+
+            const capMatch = line.match(/^capabilities\s*\{/);
+            if (capMatch) {
+                i++;
+                while (i < lines.length) {
+                    const capLine = lines[i].trim();
+                    if (capLine === '}') { i++; break; }
+                    if (capLine && !capLine.startsWith('--')) {
+                        const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+                        result.capabilities.push(...names);
+                    }
+                    i++;
+                }
+                continue;
+            }
+
+            const methodMatch = line.match(/^method\s+(\w+)\s*\(([^)]*)\)\s*=\s*(.+)$/);
+            if (methodMatch) {
+                const method = {
+                    name: methodMatch[1],
+                    params: methodMatch[2] ? methodMatch[2].split(',').map(p => p.trim()).filter(Boolean) : [],
+                    expr: methodMatch[3].trim(),
+                    startLine: i,
+                    isLambda: true
+                };
+                i++;
+                while (i < lines.length) {
+                    const contLine = lines[i].trim();
+                    if (!contLine || contLine.startsWith('--') || contLine.startsWith('method ') || contLine === '}') break;
+                    method.expr += ' ' + contLine;
+                    i++;
+                }
+                result.methods.push(method);
+                continue;
+            }
+
+            const blockMethodMatch = line.match(/^method\s+(\w+)\s*\(([^)]*)\)\s*=\s*$/);
+            if (blockMethodMatch) {
+                const method = {
+                    name: blockMethodMatch[1],
+                    params: blockMethodMatch[2] ? blockMethodMatch[2].split(',').map(p => p.trim()).filter(Boolean) : [],
+                    expr: '',
+                    startLine: i,
+                    isLambda: true
+                };
+                i++;
+                while (i < lines.length) {
+                    const contLine = lines[i].trim();
+                    if (!contLine || contLine.startsWith('--')) { i++; continue; }
+                    if (contLine.startsWith('method ') || contLine === '}') break;
+                    method.expr += (method.expr ? ' ' : '') + contLine;
+                    i++;
+                }
+                result.methods.push(method);
+                continue;
+            }
+
+            i++;
+        }
+        return i;
+    }
+
+    _parseHaskellExpr(input) {
+        const tokens = this._tokenizeHaskell(input.trim());
+        if (tokens.length === 0) return { type: 'literal', value: 0 };
+        return this._parseHaskellExprFromTokens(tokens, 0).node;
+    }
+
+    _tokenizeHaskell(input) {
+        const tokens = [];
+        let i = 0;
+        while (i < input.length) {
+            if (input[i] === ' ' || input[i] === '\t' || input[i] === '\n') { i++; continue; }
+
+            if (input[i] === '\\') { tokens.push({ type: 'lambda', pos: i }); i++; continue; }
+            if (input.substring(i, i + 2) === '->') { tokens.push({ type: 'arrow', pos: i }); i += 2; continue; }
+            if (input[i] === '(') { tokens.push({ type: 'lparen', pos: i }); i++; continue; }
+            if (input[i] === ')') { tokens.push({ type: 'rparen', pos: i }); i++; continue; }
+            if (input[i] === ',') { tokens.push({ type: 'comma', pos: i }); i++; continue; }
+            if (input[i] === '+') { tokens.push({ type: 'op', value: '+', pos: i }); i++; continue; }
+            if (input[i] === '-' && i + 1 < input.length && input[i + 1] !== '>') {
+                if (i + 1 < input.length && /\d/.test(input[i + 1]) && (tokens.length === 0 || tokens[tokens.length - 1].type === 'op' || tokens[tokens.length - 1].type === 'arrow' || tokens[tokens.length - 1].type === 'lambda')) {
+                    let num = '-';
+                    i++;
+                    while (i < input.length && /\d/.test(input[i])) { num += input[i]; i++; }
+                    tokens.push({ type: 'number', value: parseInt(num), pos: i });
+                    continue;
+                }
+                tokens.push({ type: 'op', value: '-', pos: i }); i++; continue;
+            }
+            if (input[i] === '*') { tokens.push({ type: 'op', value: '*', pos: i }); i++; continue; }
+            if (input.substring(i, i + 2) === '==') { tokens.push({ type: 'op', value: '==', pos: i }); i += 2; continue; }
+            if (input.substring(i, i + 2) === '/=') { tokens.push({ type: 'op', value: '/=', pos: i }); i += 2; continue; }
+            if (input.substring(i, i + 2) === '<=') { tokens.push({ type: 'op', value: '<=', pos: i }); i += 2; continue; }
+            if (input.substring(i, i + 2) === '>=') { tokens.push({ type: 'op', value: '>=', pos: i }); i += 2; continue; }
+            if (input[i] === '<') { tokens.push({ type: 'op', value: '<', pos: i }); i++; continue; }
+            if (input[i] === '>') { tokens.push({ type: 'op', value: '>', pos: i }); i++; continue; }
+
+            if (/\d/.test(input[i]) || (input[i] === '0' && input[i + 1] === 'x')) {
+                let num = '';
+                if (input[i] === '0' && i + 1 < input.length && input[i + 1] === 'x') {
+                    num = '0x';
+                    i += 2;
+                    while (i < input.length && /[0-9a-fA-F]/.test(input[i])) { num += input[i]; i++; }
+                } else {
+                    while (i < input.length && /\d/.test(input[i])) { num += input[i]; i++; }
+                }
+                tokens.push({ type: 'number', value: parseInt(num), pos: i });
+                continue;
+            }
+
+            if (/[a-zA-Z_]/.test(input[i])) {
+                let ident = '';
+                while (i < input.length && /[a-zA-Z0-9_.]/.test(input[i])) { ident += input[i]; i++; }
+                if (ident === 'let') tokens.push({ type: 'let', pos: i });
+                else if (ident === 'in') tokens.push({ type: 'in', pos: i });
+                else if (ident === 'case') tokens.push({ type: 'case', pos: i });
+                else if (ident === 'of') tokens.push({ type: 'of', pos: i });
+                else if (ident === 'if') tokens.push({ type: 'hif', pos: i });
+                else if (ident === 'then') tokens.push({ type: 'then', pos: i });
+                else if (ident === 'else') tokens.push({ type: 'helse', pos: i });
+                else if (ident === 'pure') tokens.push({ type: 'pure', pos: i });
+                else tokens.push({ type: 'ident', value: ident, pos: i });
+                continue;
+            }
+
+            if (input[i] === '_') { tokens.push({ type: 'ident', value: '_', pos: i }); i++; continue; }
+
+            i++;
+        }
+        return tokens;
+    }
+
+    _parseHaskellExprFromTokens(tokens, pos) {
+        if (pos >= tokens.length) return { node: { type: 'literal', value: 0 }, pos: pos };
+
+        const t = tokens[pos];
+
+        if (t.type === 'lambda') {
+            const params = [];
+            pos++;
+            while (pos < tokens.length && tokens[pos].type === 'ident') {
+                params.push(tokens[pos].value);
+                pos++;
+            }
+            if (pos < tokens.length && tokens[pos].type === 'arrow') pos++;
+            const body = this._parseHaskellExprFromTokens(tokens, pos);
+            return { node: { type: 'lambda', params: params, body: body.node }, pos: body.pos };
+        }
+
+        if (t.type === 'let') {
+            pos++;
+            const bindings = [];
+            while (pos < tokens.length && tokens[pos].type !== 'in') {
+                if (tokens[pos].type === 'ident') {
+                    const name = tokens[pos].value;
+                    pos++;
+                    if (pos < tokens.length && tokens[pos].type === 'op' && tokens[pos].value === '=') {
+                        errors.push({ line: 0, message: 'let binding uses = not ==' });
+                    }
+                    if (pos < tokens.length && ((tokens[pos].type === 'op' && tokens[pos].value === '==') || (tokens[pos].type === 'op' && tokens[pos].value === '='))) pos++;
+                    const val = this._parseHaskellSimpleExpr(tokens, pos);
+                    bindings.push({ name: name, value: val.node });
+                    pos = val.pos;
+                } else {
+                    pos++;
+                }
+            }
+            if (pos < tokens.length && tokens[pos].type === 'in') pos++;
+            const body = this._parseHaskellExprFromTokens(tokens, pos);
+            return { node: { type: 'let', bindings: bindings, body: body.node }, pos: body.pos };
+        }
+
+        if (t.type === 'case') {
+            pos++;
+            const scrut = this._parseHaskellSimpleExpr(tokens, pos);
+            pos = scrut.pos;
+            if (pos < tokens.length && tokens[pos].type === 'of') pos++;
+            const branches = [];
+            while (pos < tokens.length) {
+                if (tokens[pos].type === 'rparen') break;
+                const pat = this._parseHaskellPattern(tokens, pos);
+                pos = pat.pos;
+                if (pos < tokens.length && tokens[pos].type === 'arrow') pos++;
+                const body = this._parseHaskellSimpleExpr(tokens, pos);
+                branches.push({ pattern: pat.node, body: body.node });
+                pos = body.pos;
+                if (pos < tokens.length && tokens[pos].type === 'comma') pos++;
+            }
+            return { node: { type: 'case', scrutinee: scrut.node, branches: branches }, pos: pos };
+        }
+
+        if (t.type === 'hif') {
+            pos++;
+            const cond = this._parseHaskellSimpleExpr(tokens, pos);
+            pos = cond.pos;
+            if (pos < tokens.length && tokens[pos].type === 'then') pos++;
+            const thenExpr = this._parseHaskellSimpleExpr(tokens, pos);
+            pos = thenExpr.pos;
+            if (pos < tokens.length && tokens[pos].type === 'helse') pos++;
+            const elseExpr = this._parseHaskellExprFromTokens(tokens, pos);
+            return { node: { type: 'ifExpr', cond: cond.node, thenBranch: thenExpr.node, elseBranch: elseExpr.node }, pos: elseExpr.pos };
+        }
+
+        if (t.type === 'pure') {
+            pos++;
+            const val = this._parseHaskellSimpleExpr(tokens, pos);
+            return { node: { type: 'pure', value: val.node }, pos: val.pos };
+        }
+
+        return this._parseHaskellBinOp(tokens, pos);
+    }
+
+    _parseHaskellBinOp(tokens, pos) {
+        let left = this._parseHaskellApp(tokens, pos);
+        pos = left.pos;
+
+        while (pos < tokens.length && tokens[pos].type === 'op') {
+            const op = tokens[pos].value;
+            pos++;
+            const right = this._parseHaskellApp(tokens, pos);
+            left = { node: { type: 'binop', op: op, left: left.node, right: right.node }, pos: right.pos };
+            pos = right.pos;
+        }
+
+        return left;
+    }
+
+    _parseHaskellApp(tokens, pos) {
+        let func = this._parseHaskellAtom(tokens, pos);
+        pos = func.pos;
+
+        while (pos < tokens.length) {
+            const t = tokens[pos];
+            if (t.type === 'number' || t.type === 'ident' || t.type === 'lparen') {
+                const arg = this._parseHaskellAtom(tokens, pos);
+                func = { node: { type: 'app', func: func.node, arg: arg.node }, pos: arg.pos };
+                pos = arg.pos;
+            } else {
+                break;
+            }
+        }
+
+        return func;
+    }
+
+    _parseHaskellAtom(tokens, pos) {
+        if (pos >= tokens.length) return { node: { type: 'literal', value: 0 }, pos: pos };
+
+        const t = tokens[pos];
+
+        if (t.type === 'number') {
+            return { node: { type: 'literal', value: t.value }, pos: pos + 1 };
+        }
+
+        if (t.type === 'ident') {
+            return { node: { type: 'var', name: t.value }, pos: pos + 1 };
+        }
+
+        if (t.type === 'lparen') {
+            pos++;
+            if (pos < tokens.length && tokens[pos].type === 'rparen') {
+                return { node: { type: 'literal', value: 0 }, pos: pos + 1 };
+            }
+
+            const inner = this._parseHaskellExprFromTokens(tokens, pos);
+            pos = inner.pos;
+
+            if (pos < tokens.length && tokens[pos].type === 'comma') {
+                pos++;
+                const second = this._parseHaskellExprFromTokens(tokens, pos);
+                pos = second.pos;
+                if (pos < tokens.length && tokens[pos].type === 'rparen') pos++;
+                return { node: { type: 'pair', fst: inner.node, snd: second.node }, pos: pos };
+            }
+
+            if (pos < tokens.length && tokens[pos].type === 'rparen') pos++;
+            return { node: inner.node, pos: pos };
+        }
+
+        return { node: { type: 'literal', value: 0 }, pos: pos + 1 };
+    }
+
+    _parseHaskellPattern(tokens, pos) {
+        if (pos >= tokens.length) return { node: { type: 'wildcard' }, pos: pos };
+
+        const t = tokens[pos];
+        if (t.type === 'number') {
+            return { node: { type: 'litPat', value: t.value }, pos: pos + 1 };
+        }
+        if (t.type === 'ident') {
+            if (t.value === '_') return { node: { type: 'wildcard' }, pos: pos + 1 };
+            return { node: { type: 'varPat', name: t.value }, pos: pos + 1 };
+        }
+        return { node: { type: 'wildcard' }, pos: pos + 1 };
+    }
+
+    _parseHaskellSimpleExpr(tokens, pos) {
+        if (pos >= tokens.length) return { node: { type: 'literal', value: 0 }, pos: pos };
+
+        const t = tokens[pos];
+
+        if (t.type === 'lambda') {
+            return this._parseHaskellExprFromTokens(tokens, pos);
+        }
+
+        if (t.type === 'let') {
+            return this._parseHaskellExprFromTokens(tokens, pos);
+        }
+
+        if (t.type === 'hif') {
+            return this._parseHaskellExprFromTokens(tokens, pos);
+        }
+
+        return this._parseHaskellBinOp(tokens, pos);
+    }
+
+    _compileHaskellMethod(method, rom, capNames, outerErrors) {
+        const errors = [];
+        const code = [];
+        const manifest = [];
+        const locals = {};
+        let nextLocal = this.DR_LOCALS_START;
+
+        for (let pi = 0; pi < method.params.length; pi++) {
+            if (pi <= this.DR_ARGS_END) {
+                locals[method.params[pi]] = pi;
+            } else {
+                if (nextLocal > this.DR_LOCALS_END) {
+                    errors.push({ line: method.startLine, message: 'Too many parameters' });
+                    return { code: [], errors, manifest: [] };
+                }
+                locals[method.params[pi]] = nextLocal++;
+            }
+        }
+
+        const ast = this._parseHaskellExpr(method.expr);
+        const resultReg = this._emitHaskellExpr(ast, code, locals, rom, capNames, errors, manifest, method.startLine);
+
+        if (errors.length > 0) {
+            return { code: [], errors, manifest: [] };
+        }
+
+        if (resultReg !== 0) {
+            code.push(this.encode(this.opcodes.IADD, 14, 0, resultReg, 0));
+        }
+        manifest.push({ src: method.startLine, addr: code.length, desc: 'RETURN (implicit)' });
+        code.push(this.encode(this.opcodes.RETURN, 14, 0, 0, 0));
+
+        return { code, errors, manifest };
+    }
+
+    _emitHaskellExpr(node, code, locals, rom, capNames, errors, manifest, lineNum) {
+        if (!node) return 0;
+
+        switch (node.type) {
+            case 'literal': {
+                const dr = this._allocTemp(locals);
+                const val = node.value & 0x7FFF;
+                manifest.push({ src: lineNum, addr: code.length, desc: `literal ${node.value}` });
+                code.push(this.encode(this.opcodes.IADD, 14, dr, 0, val));
+                return dr;
+            }
+
+            case 'var': {
+                if (locals[node.name] !== undefined) {
+                    return locals[node.name];
+                }
+                const capIdx = rom[node.name.toUpperCase()];
+                if (capIdx !== undefined) {
+                    const dr = this._allocTemp(locals);
+                    manifest.push({ src: lineNum, addr: code.length, desc: `LOAD ${node.name} from c-list[${capIdx}]` });
+                    code.push(this.encode(this.opcodes.LOAD, 14, 0, 6, capIdx));
+                    code.push(this.encode(this.opcodes.IADD, 14, dr, 0, 0));
+                    return dr;
+                }
+                errors.push({ line: lineNum, message: `Undefined variable: ${node.name}` });
+                return 0;
+            }
+
+            case 'lambda': {
+                const lambdaLocals = { ...locals };
+                for (let pi = 0; pi < node.params.length; pi++) {
+                    if (pi <= this.DR_ARGS_END) {
+                        lambdaLocals[node.params[pi]] = pi;
+                    } else {
+                        lambdaLocals[node.params[pi]] = this._allocLocal(node.params[pi], lambdaLocals, errors, lineNum);
+                    }
+                }
+
+                const bodyStart = code.length;
+                manifest.push({ src: lineNum, addr: bodyStart, desc: `lambda \\${node.params.join(' ')} -> ...` });
+
+                const resultReg = this._emitHaskellExpr(node.body, code, lambdaLocals, rom, capNames, errors, manifest, lineNum);
+
+                if (resultReg !== 0) {
+                    code.push(this.encode(this.opcodes.IADD, 14, 0, resultReg, 0));
+                }
+
+                manifest.push({ src: lineNum, addr: code.length, desc: 'RETURN (lambda end)' });
+                code.push(this.encode(this.opcodes.RETURN, 14, 0, 0, 0));
+
+                const dr = this._allocTemp(locals);
+                manifest.push({ src: lineNum, addr: code.length, desc: `LAMBDA ref -> addr ${bodyStart}` });
+                code.push(this.encode(this.opcodes.IADD, 14, dr, 0, bodyStart & 0x7FFF));
+                return dr;
+            }
+
+            case 'app': {
+                if (node.func.type === 'var' && node.func.name.includes('.')) {
+                    const parts = node.func.name.split('.');
+                    const absName = parts[0].toUpperCase();
+                    const methodName = parts[1];
+                    const capIdx = rom[absName];
+
+                    if (capIdx !== undefined) {
+                        const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                        if (argReg !== 0) {
+                            code.push(this.encode(this.opcodes.IADD, 14, 0, argReg, 0));
+                        }
+                        manifest.push({ src: lineNum, addr: code.length, desc: `LOAD CR0, [CR6 + ${capIdx}] (${parts[0]})` });
+                        code.push(this.encode(this.opcodes.LOAD, 14, 0, 6, capIdx));
+                        manifest.push({ src: lineNum, addr: code.length, desc: `CALL CR0 -> ${node.func.name}` });
+                        code.push(this.encode(this.opcodes.CALL, 14, 0, 0, 0));
+                        const dr = this._allocTemp(locals);
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, 0, 0));
+                        return dr;
+                    }
+                }
+
+                if (node.func.type === 'var' && node.func.name === 'succ') {
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const dr = this._allocTemp(locals);
+                    manifest.push({ src: lineNum, addr: code.length, desc: 'succ (Church successor)' });
+                    code.push(this.encode(this.opcodes.IADD, 14, dr, argReg, 1));
+                    return dr;
+                }
+
+                if (node.func.type === 'var' && node.func.name === 'pred') {
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const dr = this._allocTemp(locals);
+                    manifest.push({ src: lineNum, addr: code.length, desc: 'pred (Church predecessor)' });
+                    code.push(this.encode(this.opcodes.ISUB, 14, dr, argReg, 1));
+                    return dr;
+                }
+
+                if (node.func.type === 'var' && node.func.name === 'isZero') {
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const dr = this._allocTemp(locals);
+                    manifest.push({ src: lineNum, addr: code.length, desc: 'isZero check' });
+                    code.push(this.encode(this.opcodes.MCMP, 14, argReg, 0, 0));
+                    code.push(this.encode(this.opcodes.IADD, this.conditions.EQ, dr, 0, 1));
+                    code.push(this.encode(this.opcodes.IADD, this.conditions.NE, dr, 0, 0));
+                    return dr;
+                }
+
+                if (node.func.type === 'var' && node.func.name === 'fst') {
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const dr = this._allocTemp(locals);
+                    manifest.push({ src: lineNum, addr: code.length, desc: 'fst (pair first)' });
+                    code.push(this.encode(this.opcodes.SHR, 14, dr, argReg, 16));
+                    return dr;
+                }
+
+                if (node.func.type === 'var' && node.func.name === 'snd') {
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const dr = this._allocTemp(locals);
+                    manifest.push({ src: lineNum, addr: code.length, desc: 'snd (pair second)' });
+                    code.push(this.encode(this.opcodes.BFEXT, 14, dr, argReg, (0 << 5) | 16));
+                    return dr;
+                }
+
+                const funcReg = this._emitHaskellExpr(node.func, code, locals, rom, capNames, errors, manifest, lineNum);
+                const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+
+                if (argReg !== 0) {
+                    code.push(this.encode(this.opcodes.IADD, 14, 0, argReg, 0));
+                }
+
+                manifest.push({ src: lineNum, addr: code.length, desc: `apply function (XLOADLAMBDA)` });
+                code.push(this.encode(this.opcodes.XLOADLAMBDA, 14, 0, 7, 0));
+                const resultDR = this._allocTemp(locals);
+                code.push(this.encode(this.opcodes.IADD, 14, resultDR, 0, 0));
+                return resultDR;
+            }
+
+            case 'binop': {
+                const leftReg = this._emitHaskellExpr(node.left, code, locals, rom, capNames, errors, manifest, lineNum);
+                const rightReg = this._emitHaskellExpr(node.right, code, locals, rom, capNames, errors, manifest, lineNum);
+                const dr = this._allocTemp(locals);
+
+                switch (node.op) {
+                    case '+':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'add' });
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, leftReg, 0));
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, dr, 0));
+                        if (rightReg !== dr) {
+                            code[code.length - 1] = this.encode(this.opcodes.IADD, 14, dr, leftReg, 0);
+                            code.push(this.encode(this.opcodes.IADD, 14, dr, dr, 0));
+                        }
+                        code.length -= 2;
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, leftReg, 0));
+                        if (leftReg !== rightReg) {
+                            const t2 = this._allocTemp(locals);
+                            code[code.length - 1] = this.encode(this.opcodes.IADD, 14, dr, leftReg, 0);
+                        }
+                        code.length--;
+                        if (node.right.type === 'literal' && node.right.value <= 0x7FFF) {
+                            code.push(this.encode(this.opcodes.IADD, 14, dr, leftReg, node.right.value & 0x7FFF));
+                        } else {
+                            code.push(this.encode(this.opcodes.IADD, 14, dr, leftReg, 0));
+                        }
+                        break;
+                    case '-':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'subtract' });
+                        if (node.right.type === 'literal' && node.right.value <= 0x7FFF) {
+                            code.push(this.encode(this.opcodes.ISUB, 14, dr, leftReg, node.right.value & 0x7FFF));
+                        } else {
+                            code.push(this.encode(this.opcodes.ISUB, 14, dr, leftReg, 0));
+                        }
+                        break;
+                    case '*':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'multiply (iterative add)' });
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, 0, 0));
+                        const loopAddr = code.length;
+                        code.push(this.encode(this.opcodes.MCMP, 14, rightReg, 0, 0));
+                        const exitAddr = code.length;
+                        code.push(this.encode(this.opcodes.BRANCH, this.conditions.EQ, 0, 0, 0));
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, dr, 0));
+                        code.push(this.encode(this.opcodes.ISUB, 14, rightReg, rightReg, 1));
+                        code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, loopAddr & 0x7FFF));
+                        const exitTarget = code.length;
+                        code[exitAddr] = (code[exitAddr] & ~0x7FFF) | (exitTarget & 0x7FFF);
+                        code[exitAddr] = code[exitAddr] >>> 0;
+                        break;
+                    case '==':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'equals' });
+                        code.push(this.encode(this.opcodes.MCMP, 14, leftReg, rightReg, 0));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.EQ, dr, 0, 1));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.NE, dr, 0, 0));
+                        break;
+                    case '/=':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'not equals' });
+                        code.push(this.encode(this.opcodes.MCMP, 14, leftReg, rightReg, 0));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.NE, dr, 0, 1));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.EQ, dr, 0, 0));
+                        break;
+                    case '<':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'less than' });
+                        code.push(this.encode(this.opcodes.MCMP, 14, leftReg, rightReg, 0));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.LT, dr, 0, 1));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.GE, dr, 0, 0));
+                        break;
+                    case '>':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'greater than' });
+                        code.push(this.encode(this.opcodes.MCMP, 14, leftReg, rightReg, 0));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.GT, dr, 0, 1));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.LE, dr, 0, 0));
+                        break;
+                    case '<=':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'less or equal' });
+                        code.push(this.encode(this.opcodes.MCMP, 14, leftReg, rightReg, 0));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.LE, dr, 0, 1));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.GT, dr, 0, 0));
+                        break;
+                    case '>=':
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'greater or equal' });
+                        code.push(this.encode(this.opcodes.MCMP, 14, leftReg, rightReg, 0));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.GE, dr, 0, 1));
+                        code.push(this.encode(this.opcodes.IADD, this.conditions.LT, dr, 0, 0));
+                        break;
+                    default:
+                        errors.push({ line: lineNum, message: `Unknown operator: ${node.op}` });
+                        return 0;
+                }
+                return dr;
+            }
+
+            case 'let': {
+                const letLocals = { ...locals };
+                for (const binding of node.bindings) {
+                    const valReg = this._emitHaskellExpr(binding.value, code, letLocals, rom, capNames, errors, manifest, lineNum);
+                    const dr = this._allocLocal(binding.name, letLocals, errors, lineNum);
+                    if (valReg !== dr) {
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, valReg, 0));
+                    }
+                    manifest.push({ src: lineNum, addr: code.length - 1, desc: `let ${binding.name}` });
+                }
+                return this._emitHaskellExpr(node.body, code, letLocals, rom, capNames, errors, manifest, lineNum);
+            }
+
+            case 'case': {
+                const scrutReg = this._emitHaskellExpr(node.scrutinee, code, locals, rom, capNames, errors, manifest, lineNum);
+                const resultDR = this._allocTemp(locals);
+                const endLabels = [];
+
+                for (let bi = 0; bi < node.branches.length; bi++) {
+                    const branch = node.branches[bi];
+
+                    if (branch.pattern.type === 'litPat') {
+                        const litDR = this._allocTemp(locals);
+                        code.push(this.encode(this.opcodes.IADD, 14, litDR, 0, branch.pattern.value & 0x7FFF));
+                        code.push(this.encode(this.opcodes.MCMP, 14, scrutReg, litDR, 0));
+                        const skipAddr = code.length;
+                        code.push(this.encode(this.opcodes.BRANCH, this.conditions.NE, 0, 0, 0));
+                        manifest.push({ src: lineNum, addr: skipAddr, desc: `case ${branch.pattern.value} ->` });
+
+                        const branchLocals = { ...locals };
+                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum);
+                        code.push(this.encode(this.opcodes.IADD, 14, resultDR, bodyReg, 0));
+                        const jumpEnd = code.length;
+                        code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
+                        endLabels.push(jumpEnd);
+
+                        code[skipAddr] = (code[skipAddr] & ~0x7FFF) | (code.length & 0x7FFF);
+                        code[skipAddr] = code[skipAddr] >>> 0;
+
+                    } else if (branch.pattern.type === 'varPat') {
+                        const branchLocals = { ...locals };
+                        const dr = this._allocLocal(branch.pattern.name, branchLocals, errors, lineNum);
+                        if (dr !== scrutReg) {
+                            code.push(this.encode(this.opcodes.IADD, 14, dr, scrutReg, 0));
+                        }
+                        manifest.push({ src: lineNum, addr: code.length, desc: `case ${branch.pattern.name} ->` });
+                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum);
+                        code.push(this.encode(this.opcodes.IADD, 14, resultDR, bodyReg, 0));
+                        const jumpEnd = code.length;
+                        code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
+                        endLabels.push(jumpEnd);
+
+                    } else {
+                        manifest.push({ src: lineNum, addr: code.length, desc: 'case _ ->' });
+                        const branchLocals = { ...locals };
+                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum);
+                        code.push(this.encode(this.opcodes.IADD, 14, resultDR, bodyReg, 0));
+                        const jumpEnd = code.length;
+                        code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
+                        endLabels.push(jumpEnd);
+                    }
+                }
+
+                const endAddr = code.length;
+                for (const addr of endLabels) {
+                    code[addr] = (code[addr] & ~0x7FFF) | (endAddr & 0x7FFF);
+                    code[addr] = code[addr] >>> 0;
+                }
+
+                return resultDR;
+            }
+
+            case 'ifExpr': {
+                const condReg = this._emitHaskellExpr(node.cond, code, locals, rom, capNames, errors, manifest, lineNum);
+                code.push(this.encode(this.opcodes.MCMP, 14, condReg, 0, 0));
+                const skipThen = code.length;
+                code.push(this.encode(this.opcodes.BRANCH, this.conditions.EQ, 0, 0, 0));
+                manifest.push({ src: lineNum, addr: skipThen, desc: 'if-then-else' });
+
+                const resultDR = this._allocTemp(locals);
+                const thenReg = this._emitHaskellExpr(node.thenBranch, code, locals, rom, capNames, errors, manifest, lineNum);
+                code.push(this.encode(this.opcodes.IADD, 14, resultDR, thenReg, 0));
+                const skipElse = code.length;
+                code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
+
+                code[skipThen] = (code[skipThen] & ~0x7FFF) | (code.length & 0x7FFF);
+                code[skipThen] = code[skipThen] >>> 0;
+
+                const elseReg = this._emitHaskellExpr(node.elseBranch, code, locals, rom, capNames, errors, manifest, lineNum);
+                code.push(this.encode(this.opcodes.IADD, 14, resultDR, elseReg, 0));
+
+                code[skipElse] = (code[skipElse] & ~0x7FFF) | (code.length & 0x7FFF);
+                code[skipElse] = code[skipElse] >>> 0;
+
+                return resultDR;
+            }
+
+            case 'pair': {
+                const fstReg = this._emitHaskellExpr(node.fst, code, locals, rom, capNames, errors, manifest, lineNum);
+                const sndReg = this._emitHaskellExpr(node.snd, code, locals, rom, capNames, errors, manifest, lineNum);
+                const dr = this._allocTemp(locals);
+                manifest.push({ src: lineNum, addr: code.length, desc: 'pair (fst, snd)' });
+                code.push(this.encode(this.opcodes.SHL, 14, dr, fstReg, 16));
+                code.push(this.encode(this.opcodes.BFINS, 14, dr, sndReg, (0 << 5) | 16));
+                return dr;
+            }
+
+            case 'pure': {
+                return this._emitHaskellExpr(node.value, code, locals, rom, capNames, errors, manifest, lineNum);
+            }
+
+            default:
+                errors.push({ line: lineNum, message: `Unknown Haskell AST node type: ${node.type}` });
+                return 0;
+        }
     }
 }

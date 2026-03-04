@@ -90,7 +90,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
   never capability registers. CR access is only through LOAD/SAVE instructions targeting
   the c-list (CR6). The compiler should reject any attempt to capture CRn.
 - **Task**: T006
-- **Status**: DEFERRED (Phase 1b — Haskell front-end)
+- **Status**: RESOLVED (Haskell front-end enforces data-register-only capture)
 
 ## R007: Upload Validation — Integer Underflow / Capability Escalation
 - **Severity**: HIGH
@@ -152,7 +152,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
 | R003 | LOW | T009 | RESOLVED |
 | R004 | HIGH/LOW | T005,T006 | RESOLVED (Phase 1) |
 | R005 | MEDIUM | T005 | RESOLVED |
-| R006 | MEDIUM | T006 | DEFERRED |
+| R006 | MEDIUM | T006 | RESOLVED |
 | R007 | HIGH | T010 | RESOLVED |
 | R008 | MEDIUM | T005 | RESOLVED |
 | R009 | FOUNDATIONAL | All | SECURE |

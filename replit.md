@@ -82,7 +82,7 @@ type = 01 (Inform) for all abstractions
 
 Multi-language compiler targeting Church Machine 20-instruction set:
 - JavaScript front-end (Phase 1, implemented): JS subset → 32-bit code words
-- Haskell front-end (Phase 1b, planned): Lambda calculus → Church Machine instructions
+- Haskell front-end (Phase 1b, implemented): Lambda calculus, case expressions, pairs, let bindings → Church Machine instructions
 - Resident Object Model: c-list = compiler symbol table, maps abstraction names to offsets
 - Calling convention: DR0-3 args/return, DR4-11 locals, DR12-15 temporaries (R008)
 - Output: upload.json format for Navana.Abstraction.Add
@@ -147,4 +147,4 @@ Multi-language compiler targeting Church Machine 20-instruction set:
 - No separate dynamicObjects — all entries in namespaceObjects
 - B (Bind) bit defaults to 0, auto-cleared by CALL
 - C-Lists only have E permission, CLOOMC only X or RX
-- Phase 1: JS compiler only; Haskell deferred to Phase 1b
+- Phase 1 + 1b: Both JS and Haskell front-ends implemented; auto-detected by compiler
