@@ -4,12 +4,24 @@
 
 Every abstraction in the Church Machine is a **security block** — a protected unit of functionality with measurable reliability.
 
-- **Namespace entry** — Has a c-list (CR6 target) and code (CR7 target at c-list[0]). The code object is a DATA-domain entity — never Church domain.
-- **Entry** — Via CALL (E-GT). LAMBDA (X-GT) is a method/instruction within abstractions, not a separate security block.
+- **Namespace entry** — A single lump in memory. CALL uses the clistCount field in word1 to split the lump into a code region (CR7, X-only) and a c-list region (CR6, L-only). The code object is a DATA-domain entity — never Church domain.
+- **Entry** — Via CALL (Inform E-GT). LAMBDA (X-GT) is a method/instruction within abstractions, not a separate security block.
 - **MTBF** — Mean Time Between Failures, measured by fault reports over time in the namespace. Every fault against a security block is counted. The MTBF ratio provides continuous reliability measurement.
 - **Method dispatch** — Symbolic dispatch (high-security), LAMBDA fast-path (performance), or compiled binary (fastest)
+- **Lump layout** — Code (method table + instructions) at offset 0, freespace in the middle, c-list (GT slots) at the end. Allocated as power-of-2 blocks (minimum 256 words).
 
 There is no operating system. Every system service, hardware driver, and user-facing tool is a security block accessed through Golden Tokens. The same security model applies at every level — from boot firmware to social networking. A code object belongs to the DATA domain — it is data stored in memory, accessed via X permission. Code is never a Church-domain capability.
+
+### Lump Structure
+
+```
+offset 0:       Method table + Code     → CR7 (code, Turing X-only)
+codeEnd:        FREESPACE               (unreachable, padding to power-of-2)
+clistStart:     C-list (GT slots)       → CR6 (c-list, Church L-only)
+allocatedSize:  (power-of-2)
+```
+
+Where `clistStart = allocSize - clistCount`. CALL computes the split from the clistCount field in the NS entry's word1. CR7 gets location=base, limit=clistStart-1 with X-only permissions. CR6 gets location=base+clistStart, limit=clistCount-1 with L-only permissions.
 
 ## Polymorphic Interface
 
@@ -64,7 +76,7 @@ The Namespace controller and sole NS entry writer. Navana runs indefinitely — 
 - **Init**: Initialize all higher-layer abstractions and register them in the namespace
 - **Add**: Find free NS slot, write 3-word entry with clistCount, return nsIndex + version
 - **Remove**: Revoke GT (increment version), free NS slot
-- **Abstraction.Add**: Process upload.json, allocate lump (power-of-2), write code + c-list, create NS entry, forge Inform E-GT
+- **Abstraction.Add**: Process upload.json, allocate lump (power-of-2, minimum 256 words), write method table + code at offset 0, write c-list GTs at allocSize-clistCount, create NS entry with clistCount, forge Inform E-GT. Validates: codeSize + clistCount <= allocSize, clistCount <= 511, power-of-2 allocation, capability delegation rights.
 - **Abstraction.Update**: Re-carve lump or migrate to larger allocation
 - **Abstraction.Remove**: Revoke GT, free lump, clear NS slot
 - **Manage**: Abstraction lifecycle — creation, destruction, and reconfiguration

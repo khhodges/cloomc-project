@@ -174,7 +174,7 @@ class ChurchSimulator {
             { label: 'Boot.NS',      perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
             { label: 'Boot.Thread',   perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
             { label: 'Boot.CList',    perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
-            { label: 'Boot.CLOOMC',   perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
+            { label: 'Boot.CLOOMC',   perms: {R:1,W:1,X:1,L:0,S:0,E:0}, chainable: false },
             { label: 'Salvation',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Navana',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Mint',          perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
@@ -1035,25 +1035,27 @@ class ChurchSimulator {
             const allocSize = limit + 1;
             const clistStart = allocSize - clistCount;
 
+            const cr7GT = this.createGT(srcParsed.version, check.index, {R:1,W:1,X:1,L:0,S:0,E:0}, 1);
             const cr7Word1 = this.packNSWord1(clistStart - 1, 0, 0, 0, 0, 1, 0);
             this.cr[7] = {
-                word0: sourceGT,
+                word0: cr7GT,
                 word1: base,
                 word2: cr7Word1,
                 word3: nsEntry.word2_seals,
                 m: this.mElevation ? 1 : 0
             };
 
+            const cr6GT = this.createGT(srcParsed.version, check.index, {R:0,W:0,X:0,L:1,S:0,E:0}, 1);
             const cr6Word1 = this.packNSWord1(clistCount - 1, 0, 0, 0, 0, 1, 0);
             this.cr[6] = {
-                word0: sourceGT,
+                word0: cr6GT,
                 word1: (base + clistStart) >>> 0,
                 word2: cr6Word1,
                 word3: nsEntry.word2_seals,
                 m: this.mElevation ? 1 : 0
             };
 
-            cr7Desc = `, CR7(code,X,lim=${clistStart-1}), CR6(clist,L,lim=${clistCount-1})`;
+            cr7Desc = `, CR7(code,RWX,lim=${clistStart-1}), CR6(clist,L,lim=${clistCount-1})`;
         } else {
             this._writeCR(6, sourceGT, nsEntry);
 

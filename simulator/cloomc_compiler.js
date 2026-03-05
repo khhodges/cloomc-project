@@ -1020,7 +1020,7 @@ class CLOOMCCompiler {
 
                 const dr = this._allocTemp(locals);
                 manifest.push({ src: lineNum, addr: code.length, desc: `LAMBDA ref -> addr ${bodyStart}` });
-                code.push(this.encode(this.opcodes.IADD, 14, dr, 0, bodyStart & 0x7FFF));
+                code.push(this.encode(this.opcodes.LAMBDA, 14, dr, 0, bodyStart & 0x7FFF));
                 return dr;
             }
 
@@ -1095,8 +1095,8 @@ class CLOOMCCompiler {
                     code.push(this.encode(this.opcodes.IADD, 14, 0, argReg, 0));
                 }
 
-                manifest.push({ src: lineNum, addr: code.length, desc: `apply function (XLOADLAMBDA)` });
-                code.push(this.encode(this.opcodes.XLOADLAMBDA, 14, 0, 7, 0));
+                manifest.push({ src: lineNum, addr: code.length, desc: `CALL lambda` });
+                code.push(this.encode(this.opcodes.CALL, 14, 0, 0, 0));
                 const resultDR = this._allocTemp(locals);
                 code.push(this.encode(this.opcodes.IADD, 14, resultDR, 0, 0));
                 return resultDR;

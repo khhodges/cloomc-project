@@ -2,14 +2,16 @@ abstraction Memory {
     capabilities {
     }
     method Allocate(size) {
-        location = read(CR7, 0)
-        needed = size + 255
+        var needed = size + 255
         needed = needed >> 8
         needed = needed << 8
-        write(CR7, 0, location + needed)
+        var location = read(CR7, 0)
+        var newFree = location + needed
+        write(CR7, 0, newFree)
         return(location, needed)
     }
     method Free(location) {
+        write(CR7, 1, location)
         return(0)
     }
     method Resize(location, newSize) {

@@ -27,7 +27,7 @@ const BOOT_UPLOADS = [
         abstraction: 'Boot.CLOOMC',
         type: 'boot',
         index: 3,
-        grants: ['X'],
+        grants: ['R', 'W', 'X'],
         capabilities: [],
         methods: []
     },
@@ -54,15 +54,15 @@ const BOOT_UPLOADS = [
             { target: 6, name: 'Mint', grants: ['E'] }
         ],
         methods: [
-            { name: 'Init', code: [] },
-            { name: 'Add', code: [] },
-            { name: 'Remove', code: [] },
-            { name: 'Abstraction.Add', code: [] },
-            { name: 'Abstraction.Remove', code: [] },
-            { name: 'Abstraction.Update', code: [] },
-            { name: 'Manage', code: [] },
-            { name: 'Monitor', code: [] },
-            { name: 'IDS', code: [] }
+            { name: 'Init', code: [0x7F600001, 0x7F060000, 0x1F000000] },
+            { name: 'Add', code: [0x1F000000] },
+            { name: 'Remove', code: [0x7F600000, 0x7F060000, 0x1F000000] },
+            { name: 'Abstraction.Add', code: [0x7F008000, 0x07030000, 0x17000000, 0x7F200000, 0x7F020000, 0x1F000000] },
+            { name: 'Abstraction.Remove', code: [0x7F600000, 0x7F060000, 0x1F000000] },
+            { name: 'Abstraction.Update', code: [0x1F000000] },
+            { name: 'Manage', code: [0x19C00000] },
+            { name: 'Monitor', code: [0x19C00000] },
+            { name: 'IDS', code: [0x19C00000] }
         ]
     },
     {
@@ -74,9 +74,9 @@ const BOOT_UPLOADS = [
             { target: 7, name: 'Memory', grants: ['E'] }
         ],
         methods: [
-            { name: 'Create', code: [] },
-            { name: 'Revoke', code: [] },
-            { name: 'Transfer', code: [] }
+            { name: 'Create', code: [0x07030000, 0x17000000, 0x7F200000, 0x7F020000, 0x1F000000] },
+            { name: 'Revoke', code: [0x57638002, 0x7F260000, 0x67620327, 0x7F2E0000, 0x7F628001, 0x7F360000, 0x6F230327, 0x5F238002, 0x7F030000, 0x1F000000] },
+            { name: 'Transfer', code: [0x1F000000] }
         ]
     },
     {
@@ -86,9 +86,9 @@ const BOOT_UPLOADS = [
         grants: ['E'],
         capabilities: [],
         methods: [
-            { name: 'Allocate', code: [] },
-            { name: 'Free', code: [] },
-            { name: 'Resize', code: [] }
+            { name: 'Allocate', code: [0x7F6000FF, 0x7F260000, 0x9F620008, 0x7F260000, 0x97620008, 0x7F260000, 0x57638000, 0x7F2E0000, 0x7F628000, 0x7F660000, 0x7F360000, 0x5F338000, 0x7F028000, 0x7F0A0000, 0x1F000000] },
+            { name: 'Free', code: [0x5F038001, 0x7F600000, 0x7F060000, 0x1F000000] },
+            { name: 'Resize', code: [0x1F000000] }
         ]
     },
     {

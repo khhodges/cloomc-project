@@ -80,14 +80,26 @@ clistCount = 0: plain data object
 type = 01 (Inform) for all abstractions
 ```
 
+### Lump Layout
+
+```
+offset 0:       Method table + Code     → CR7 (code, X-only)
+codeEnd:        FREESPACE               (unreachable padding)
+clistStart:     C-list (GT slots)       → CR6 (c-list, L-only)
+allocatedSize:  (power-of-2, min 256)
+```
+
+clistStart = allocSize - clistCount. CALL splits the lump using clistCount from word1.
+
 ### CLOOMC++ Compiler
 
 Multi-language compiler targeting Church Machine 20-instruction set:
 - JavaScript front-end (Phase 1, implemented): JS subset → 32-bit code words
 - Haskell front-end (Phase 1b, implemented): Lambda calculus, case expressions, pairs, let bindings → Church Machine instructions
 - Resident Object Model: c-list = compiler symbol table, maps abstraction names to offsets
-- Calling convention: DR0-3 args/return, DR4-11 locals, DR12-15 temporaries (R008)
+- Calling convention: DR0-3 args/return, DR4-11 locals (callee-saved), DR12-15 temporaries (caller-saved)
 - Output: upload.json format for Navana.Abstraction.Add
+- Auto-detection: compiler identifies language from source syntax
 
 ### Navana as Master Controller
 
@@ -95,6 +107,7 @@ Multi-language compiler targeting Church Machine 20-instruction set:
 - Navana.Add: find free NS slot, write 3-word entry with clistCount
 - Navana.Abstraction.Add: process upload.json, allocate lump, write code+c-list, forge E-GT
 - Upload validation: R007 fixes (bounds, capability delegation, integer overflow checks)
+- Navana.Abstraction.Add: validates codeSize+clistCount<=allocSize, clistCount<=511, power-of-2 allocation
 
 ### Upload Format
 

@@ -180,8 +180,8 @@ class AbstractionRegistry {
             { perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(3, 'Boot.CLOOMC', 0, [],
-            'Boot code entry point (CR7) — code is a DATA-domain object, accessed via X permission',
-            { perms: { R: 0, W: 0, X: 1, L: 0, S: 0, E: 0 } });
+            'Boot code entry point (CR7) — code is a DATA-domain object with RWX permissions',
+            { perms: { R: 1, W: 1, X: 1, L: 0, S: 0, E: 0 } });
 
         this.createAbstraction(4, 'Salvation', 1,
             ['LOAD', 'TPERM', 'LAMBDA', 'TransitionToNavana'],

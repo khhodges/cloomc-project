@@ -49,11 +49,35 @@ class ChurchAssembler {
                 continue;
             }
 
+            if (line.startsWith('.org ') || line.startsWith('.ORG ')) {
+                const target = parseInt(line.substring(5).trim());
+                if (!isNaN(target) && target >= instructions.length) {
+                    while (instructions.length < target) {
+                        instructions.push({ line: 'NOP', lineNum: lineNum + 1, ispad: true });
+                    }
+                }
+                continue;
+            }
+
+            if (line.startsWith('.word ') || line.startsWith('.WORD ')) {
+                const val = parseInt(line.substring(6).trim());
+                instructions.push({ line: null, lineNum: lineNum + 1, rawWord: (isNaN(val) ? 0 : val) >>> 0 });
+                continue;
+            }
+
             instructions.push({ line, lineNum: lineNum + 1 });
         }
 
         const words = [];
         for (const inst of instructions) {
+            if (inst.rawWord !== undefined) {
+                words.push(inst.rawWord);
+                continue;
+            }
+            if (inst.ispad) {
+                words.push(0);
+                continue;
+            }
             const word = this._assembleLine(inst.line, inst.lineNum, instructions.indexOf(inst));
             if (word !== null) {
                 words.push(word);

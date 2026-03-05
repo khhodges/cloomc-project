@@ -69,8 +69,13 @@
         <div class="editor-layout">
             <div class="editor-panel">
                 <div class="editor-toolbar">
-                    <button class="btn btn-primary" onclick="assembleAndLoad()" title="Assemble code and load into simulator">Assemble</button>
-                    <button class="btn" onclick="compileCLOOMC()" style="background:#C89B3C;color:#141414;border:none;font-weight:bold;" title="Compile CLOOMC++ source to Church Machine code">CLOOMC++</button>
+                    <select id="langSelector" class="lang-selector" onchange="onLangChange()" title="Source language">
+                        <option value="assembly">Assembly</option>
+                        <option value="javascript">JS (CLOOMC++)</option>
+                        <option value="haskell">Haskell (CLOOMC++)</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="smartCompile()" title="Compile with auto-detected or selected language">Compile</button>
+                    <button class="btn" onclick="compileDraft()" style="background:#C89B3C;color:#141414;border:none;font-weight:bold;" title="Show compilation draft — methods, capabilities, lump layout">Draft</button>
                     <button class="btn" onclick="compileAndCreateAbstraction()" style="background:#4a7a2e;color:#fff;border:none;" title="Compile and create abstraction via Navana.Abstraction.Add">Create Abstraction</button>
                     <button class="btn" onclick="saveUploadJSON()" style="background:#2a6fdb;color:#fff;border:none;" title="Compile and save upload.json file">Save Upload JSON</button>
                     <button class="btn btn-primary" onclick="showSaveToNamespace()" id="btnSaveNS" disabled title="Save assembled program to namespace">Save to NS</button>
@@ -81,6 +86,7 @@
                 <div class="example-tabs-row">
                     <button class="example-arrow" onclick="scrollExamples(-1)">&lsaquo;</button>
                     <div class="example-tabs-scroll" id="exampleTabsScroll">
+                        <button class="example-tab" onclick="loadExample('ada_note_g')" data-example="ada_note_g" style="color:#f0c674;">Ada Note G</button>
                         <button class="example-tab active" onclick="loadExample('selftest')" data-example="selftest">Self-Test</button>
                         <button class="example-tab" onclick="loadExample('load_save')" data-example="load_save">Load/Save</button>
                         <button class="example-tab" onclick="loadExample('bernoulli')" data-example="bernoulli">Bernoulli</button>

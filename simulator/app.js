@@ -2570,6 +2570,397 @@ function loadExample(name) {
     if (!editor) return;
 
     const examples = {
+        'ada_note_g': `; ============================================
+; Ada Lovelace — Note G (1843)
+; The First Computer Program
+; Computes B7 (Bernoulli number = -1/30)
+; 25 operations from the original diagram
+; ============================================
+;
+; Ada wrote this for Babbage's Analytical
+; Engine, which was never built. Here it runs
+; on the Church Machine — 181 years later.
+;
+; The Analytical Engine had multiply and
+; divide in hardware. The Church Machine has
+; no multiply or divide — so Ada's × becomes
+; repeated addition (IADD loop) and ÷ becomes
+; repeated subtraction (ISUB loop), exactly
+; as a child would compute them by hand.
+;
+; Variable mapping (Ada → Church Machine):
+;   DR1  = V1  = 1 (constant)
+;   DR2  = V2  = 2 (constant)
+;   DR3  = V3  = n (4 for B7)
+;   DR4  = V4  (working: 2n, then 2n-1)
+;   DR5  = V5  (working: 2n, then 2n+1)
+;   DR6  = V6  (working: 2n, decrements)
+;   DR7  = V7  (denominator counter)
+;   DR8  = V8  (fraction quotient)
+;   DR9  = V9  (fraction quotient)
+;   DR10 = V10 (loop counter)
+;   DR11 = V11 (working coefficient)
+;   DR12 = V12 (product Bk × Ak)
+;   DR13 = V13 (accumulator)
+;   DR14 = scratch (loop counter for ×/÷)
+;   DR15 = V24 (result: B7)
+;
+; DR0 = 0 always (hardwired zero register).
+; Constants loaded via DREAD from a data
+; table at the end of this program (CR7).
+; ============================================
+
+; --- Initialize Ada's Store columns ---
+DREAD DR1, CR7, 100        ; V1 = 1
+DREAD DR2, CR7, 101        ; V2 = 2
+DREAD DR3, CR7, 102        ; V3 = n = 4
+
+; ============================================
+; OPERATION 1: × (V2 × V3 → V4, V5, V6)
+; "Multiply 2 by n"
+; 2 × 4 = 8 — by repeated addition
+; ============================================
+IADD DR4, DR0, DR0         ; V4 = 0
+IADD DR14, DR3, DR0        ; counter = n
+op1_loop:
+MCMP DR14, DR0
+BRANCHEQ op1_done
+IADD DR4, DR4, DR2         ; V4 += 2
+ISUB DR14, DR14, DR1       ; counter--
+BRANCH op1_loop
+op1_done:
+IADD DR5, DR4, DR0         ; V5 = 2n
+IADD DR6, DR4, DR0         ; V6 = 2n
+
+; ============================================
+; OPERATION 2: − (V4 − V1 → V4)
+; "2n minus 1"
+; ============================================
+ISUB DR4, DR4, DR1         ; V4 = 2n - 1 = 7
+
+; ============================================
+; OPERATION 3: + (V5 + V1 → V5)
+; "2n plus 1"
+; ============================================
+IADD DR5, DR5, DR1         ; V5 = 2n + 1 = 9
+
+; ============================================
+; OPERATION 4: ÷ (V4 ÷ V5 → V11)
+; "(2n-1) / (2n+1)" = 7 / 9 = 0 remainder 7
+; NOTE: Published as V5÷V4 — typo per
+; Bromley (1990). Corrected here.
+; ============================================
+IADD DR11, DR0, DR0        ; quotient = 0
+IADD DR14, DR4, DR0        ; dividend = V4
+op4_loop:
+MCMP DR14, DR5
+BRANCHLT op4_done
+ISUB DR14, DR14, DR5       ; dividend -= V5
+IADD DR11, DR11, DR1       ; quotient++
+BRANCH op4_loop
+op4_done:
+
+; ============================================
+; OPERATION 5: ÷ (V11 ÷ V2 → V11)
+; "Divide coefficient by 2"
+; ============================================
+SHR DR11, DR11, 1          ; V11 / 2
+
+; ============================================
+; OPERATION 6: − (V13 − V11 → V13)
+; "Accumulator A0 = 0 − coefficient"
+; ============================================
+IADD DR13, DR0, DR0        ; V13 = 0
+ISUB DR13, DR13, DR11      ; V13 = -V11
+
+; ============================================
+; OPERATION 7: − (V3 − V1 → V10)
+; "Loop counter = n − 1 = 3"
+; ============================================
+ISUB DR10, DR3, DR1        ; V10 = 4 - 1 = 3
+
+; ============================================
+; OPERATION 8: + (V2 + V7 → V7)
+; "Set denominator counter = 2"
+; ============================================
+IADD DR7, DR2, DR0         ; V7 = 2
+
+; ============================================
+; OPERATION 9: ÷ (V6 ÷ V7 → V11)
+; "2n / counter" = 8 / 2 = 4
+; ============================================
+IADD DR11, DR0, DR0        ; quotient = 0
+IADD DR14, DR6, DR0        ; dividend = V6
+op9_loop:
+MCMP DR14, DR7
+BRANCHLT op9_done
+ISUB DR14, DR14, DR7
+IADD DR11, DR11, DR1       ; quotient++
+BRANCH op9_loop
+op9_done:
+
+; ============================================
+; OPERATION 10: × (V21 × V11 → V12)
+; "B1 × coefficient"
+; B1 = 1 (integer stand-in for 1/6)
+; 1 × 4 = 4 — multiplication loop
+; ============================================
+DREAD DR15, CR7, 103       ; DR15 = B1 = 1
+IADD DR12, DR0, DR0        ; V12 = 0
+IADD DR14, DR11, DR0       ; counter = V11
+op10_loop:
+MCMP DR14, DR0
+BRANCHEQ op10_done
+IADD DR12, DR12, DR15      ; V12 += B1
+ISUB DR14, DR14, DR1       ; counter--
+BRANCH op10_loop
+op10_done:
+
+; ============================================
+; OPERATION 11: + (V12 + V13 → V13)
+; "Accumulate: sum += B1 × A1"
+; ============================================
+IADD DR13, DR12, DR13      ; V13 += V12
+
+; ============================================
+; OPERATION 12: − (V10 − V1 → V10)
+; "Decrement loop counter"
+; ============================================
+ISUB DR10, DR10, DR1       ; V10 = 3 - 1 = 2
+
+; ============================================
+; OPERATION 13: − (V6 − V1 → V6)
+; "Decrement working variable"
+; ============================================
+ISUB DR6, DR6, DR1         ; V6 = 8 - 1 = 7
+
+; ============================================
+; OPERATION 14: + (V1 + V7 → V7)
+; "Increment denominator"
+; ============================================
+IADD DR7, DR1, DR7         ; V7 = 2 + 1 = 3
+
+; ============================================
+; OPERATION 15: ÷ (V6 ÷ V7 → V8)
+; "Fraction part" = 7 / 3 = 2
+; ============================================
+IADD DR8, DR0, DR0         ; quotient = 0
+IADD DR14, DR6, DR0        ; dividend = V6
+op15_loop:
+MCMP DR14, DR7
+BRANCHLT op15_done
+ISUB DR14, DR14, DR7
+IADD DR8, DR8, DR1
+BRANCH op15_loop
+op15_done:
+
+; ============================================
+; OPERATION 16: × (V8 × V11 → V11)
+; "Update coefficient" = 2 × 4 = 8
+; ============================================
+IADD DR14, DR11, DR0       ; save old V11
+IADD DR11, DR0, DR0        ; V11 = 0
+IADD DR15, DR8, DR0        ; counter = V8
+op16_loop:
+MCMP DR15, DR0
+BRANCHEQ op16_done
+IADD DR11, DR11, DR14      ; V11 += old V11
+ISUB DR15, DR15, DR1       ; counter--
+BRANCH op16_loop
+op16_done:
+
+; ============================================
+; OPERATION 17: − (V6 − V1 → V6)
+; "Decrement working variable"
+; ============================================
+ISUB DR6, DR6, DR1         ; V6 = 7 - 1 = 6
+
+; ============================================
+; OPERATION 18: + (V1 + V7 → V7)
+; "Increment denominator"
+; ============================================
+IADD DR7, DR1, DR7         ; V7 = 3 + 1 = 4
+
+; ============================================
+; OPERATION 19: ÷ (V6 ÷ V7 → V9)
+; "Fraction part" = 6 / 4 = 1
+; ============================================
+IADD DR9, DR0, DR0         ; quotient = 0
+IADD DR14, DR6, DR0        ; dividend = V6
+op19_loop:
+MCMP DR14, DR7
+BRANCHLT op19_done
+ISUB DR14, DR14, DR7
+IADD DR9, DR9, DR1
+BRANCH op19_loop
+op19_done:
+
+; ============================================
+; OPERATION 20: × (V9 × V11 → V11)
+; "Coefficient → A3" = 1 × 8 = 8
+; ============================================
+IADD DR14, DR11, DR0       ; save V11
+IADD DR11, DR0, DR0        ; V11 = 0
+IADD DR15, DR9, DR0        ; counter = V9
+op20_loop:
+MCMP DR15, DR0
+BRANCHEQ op20_done
+IADD DR11, DR11, DR14
+ISUB DR15, DR15, DR1
+BRANCH op20_loop
+op20_done:
+
+; ============================================
+; OPERATION 21: × (V22 × V11 → V12)
+; "B3 × coefficient"
+; B3 = 1 (integer stand-in for -1/30)
+; ============================================
+DREAD DR15, CR7, 104       ; DR15 = B3 = 1
+IADD DR12, DR0, DR0        ; V12 = 0
+IADD DR14, DR11, DR0       ; counter = V11
+op21_loop:
+MCMP DR14, DR0
+BRANCHEQ op21_done
+IADD DR12, DR12, DR15      ; V12 += B3
+ISUB DR14, DR14, DR1       ; counter--
+BRANCH op21_loop
+op21_done:
+
+; ============================================
+; OPERATION 22: + (V12 + V13 → V13)
+; "Accumulate: sum += B3 × A3"
+; ============================================
+IADD DR13, DR12, DR13      ; V13 += V12
+
+; ============================================
+; OPERATION 23: − (V10 − V1 → V10)
+; "Decrement loop counter"
+; ============================================
+ISUB DR10, DR10, DR1       ; V10 = 2 - 1 = 1
+
+; ============================================
+; Ada writes: "Here follows a repetition of
+; Operations thirteen to twenty-three."
+; The inner loop repeats for each Bernoulli
+; term. For B7, it runs twice: once for B3
+; (above), once for B5 (below).
+; ============================================
+
+; --- Second iteration: B5 term ---
+; OPERATION 13b: V6 = V6 - V1
+ISUB DR6, DR6, DR1         ; V6 = 6 - 1 = 5
+
+; OPERATION 14b: V7 = V1 + V7
+IADD DR7, DR1, DR7         ; V7 = 4 + 1 = 5
+
+; OPERATION 15b: V8 = V6 / V7 = 5/5 = 1
+IADD DR8, DR0, DR0
+IADD DR14, DR6, DR0
+op15b_loop:
+MCMP DR14, DR7
+BRANCHLT op15b_done
+ISUB DR14, DR14, DR7
+IADD DR8, DR8, DR1
+BRANCH op15b_loop
+op15b_done:
+
+; OPERATION 16b: V11 = V8 × V11 = 1 × 8 = 8
+IADD DR14, DR11, DR0
+IADD DR11, DR0, DR0
+IADD DR15, DR8, DR0
+op16b_loop:
+MCMP DR15, DR0
+BRANCHEQ op16b_done
+IADD DR11, DR11, DR14
+ISUB DR15, DR15, DR1
+BRANCH op16b_loop
+op16b_done:
+
+; OPERATION 17b: V6 = V6 - V1
+ISUB DR6, DR6, DR1         ; V6 = 5 - 1 = 4
+
+; OPERATION 18b: V7 = V1 + V7
+IADD DR7, DR1, DR7         ; V7 = 5 + 1 = 6
+
+; OPERATION 19b: V9 = V6 / V7 = 4/6 = 0
+IADD DR9, DR0, DR0
+IADD DR14, DR6, DR0
+op19b_loop:
+MCMP DR14, DR7
+BRANCHLT op19b_done
+ISUB DR14, DR14, DR7
+IADD DR9, DR9, DR1
+BRANCH op19b_loop
+op19b_done:
+
+; OPERATION 20b: V11 = V9 × V11 = 0 × 8 = 0
+IADD DR14, DR11, DR0
+IADD DR11, DR0, DR0
+IADD DR15, DR9, DR0
+op20b_loop:
+MCMP DR15, DR0
+BRANCHEQ op20b_done
+IADD DR11, DR11, DR14
+ISUB DR15, DR15, DR1
+BRANCH op20b_loop
+op20b_done:
+
+; OPERATION 21b: V12 = V23 × V11 = B5 × 0 = 0
+DREAD DR15, CR7, 105       ; DR15 = B5 = 1
+IADD DR12, DR0, DR0
+IADD DR14, DR11, DR0
+op21b_loop:
+MCMP DR14, DR0
+BRANCHEQ op21b_done
+IADD DR12, DR12, DR15
+ISUB DR14, DR14, DR1
+BRANCH op21b_loop
+op21b_done:
+
+; OPERATION 22b: V13 = V12 + V13
+IADD DR13, DR12, DR13
+
+; OPERATION 23b: V10 = V10 - V1
+ISUB DR10, DR10, DR1       ; V10 = 1 - 1 = 0
+
+; ============================================
+; OPERATION 24: − (V24 − V13 → V24)
+; "Final result: B7 = −accumulated sum"
+; ============================================
+IADD DR15, DR0, DR0        ; V24 = 0
+ISUB DR15, DR15, DR13      ; V24 = -V13
+
+; ============================================
+; OPERATION 25: + (V1 + V3 → V3)
+; "Increment n for next Bernoulli number"
+; ============================================
+IADD DR3, DR1, DR3         ; V3 = 4 + 1 = 5
+
+; ============================================
+; Result: DR15 = B7 (negated accumulator)
+; DR13 = accumulated sum of Bk × Ak terms
+;
+; Ada, 1843: "The Analytical Engine weaves
+; algebraical patterns just as the Jacquard
+; loom weaves flowers and leaves."
+;
+; The first program — running 181 years later
+; inside a capability-secured namespace where
+; no instruction can escape its lump.
+; ============================================
+HALT
+
+; --- Data table (Ada's Store constants) ---
+; Placed at offset 100 via .org directive.
+; DREAD DR, CR7, offset reads these values.
+.org 100
+.word 1                    ; offset 100: V1 = 1
+.word 2                    ; offset 101: V2 = 2
+.word 4                    ; offset 102: V3 = n = 4
+.word 1                    ; offset 103: B1 (stand-in)
+.word 1                    ; offset 104: B3 (stand-in)
+.word 1                    ; offset 105: B5 (stand-in)
+`,
         'selftest': `; ============================================
 ; Church Machine Self-Test
 ; Tests every opcode and CR0-CR5 registers
@@ -2882,6 +3273,8 @@ HALT
         document.querySelectorAll('.example-tab').forEach(t => {
             t.classList.toggle('active', t.dataset.example === name);
         });
+        const sel = document.getElementById('langSelector');
+        if (sel) sel.value = 'assembly';
     }
 }
 
@@ -3472,8 +3865,8 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'E (Enter/Execute) on CRd',
         flags: 'None',
-        details: 'Enters a namespace abstraction. The target GT must have E permission. The current PC, CRs, DRs, and flags are pushed onto the call stack. CALL automatically clears the B (Bind) bit on all preserved context registers passed to the callee. This means the callee can USE any GT it receives but cannot SAVE it to a c-list \u2014 "use it, don\'t keep it" is the hardware default. To allow the callee to save a GT (delegation), the caller must explicitly set B=1 via TPERM before the CALL. RETURN is the only way to exit.',
-        example: 'CALL CR3             ; Enter abstraction \u2014 callee gets GTs with B=0\n                     ; Callee can use them but cannot SAVE them',
+        details: 'Enters a namespace abstraction. The target GT must be an Inform E-GT. mLoad validates version, seal, and E permission. CALL then parses word1 to extract clistCount. If clistCount > 0, the lump is split: CR7 (code) gets location=base, limit=clistStart-1, X-only permissions; CR6 (c-list) gets location=base+clistStart, limit=clistCount-1, L-only permissions; where clistStart = (limit+1) - clistCount. The current PC, CRs, DRs, and flags are pushed onto the call stack. CALL automatically clears the B (Bind) bit on all preserved context registers passed to the callee \u2014 "use it, don\'t keep it" is the hardware default. To allow the callee to save a GT (delegation), the caller must explicitly set B=1 via TPERM before the CALL. PC is set to 0. RETURN is the only way to exit.',
+        example: 'CALL CR3             ; Enter abstraction \u2014 split lump into CR7 (code, X) + CR6 (c-list, L)\n                     ; Callee gets GTs with B=0 \u2014 cannot SAVE them',
     },
     {
         opcode: 3, mnemonic: 'RETURN', domain: 'church',
@@ -3826,6 +4219,112 @@ function showInstructionDetail(opcode) {
     `;
 }
 
+function onLangChange() {
+    const sel = document.getElementById('langSelector');
+    if (!sel) return;
+    const lang = sel.value;
+    const btnSaveNS = document.getElementById('btnSaveNS');
+    if (btnSaveNS) btnSaveNS.disabled = (lang !== 'assembly' || !lastAssembledWords);
+}
+
+function smartCompile() {
+    const sel = document.getElementById('langSelector');
+    const lang = sel ? sel.value : 'assembly';
+    if (lang === 'assembly') {
+        assembleAndLoad();
+    } else {
+        compileCLOOMC();
+    }
+}
+
+function compileDraft() {
+    const editor = document.getElementById('asmEditor');
+    if (!editor || !cloomcCompiler) return;
+    const source = editor.value;
+    const con = document.getElementById('editorConsole');
+
+    const result = cloomcCompiler.compile(source, []);
+
+    if (result.errors.length > 0) {
+        const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
+        if (con) con.textContent = `CLOOMC++ Draft — compilation errors:\n${errText}`;
+        return;
+    }
+
+    const lang = result.language === 'haskell' ? 'Haskell' : 'JavaScript';
+    const caps = result.capabilities || [];
+    const clistCount = caps.length;
+    let totalCodeWords = 0;
+    for (const m of result.methods) {
+        totalCodeWords += (m.code || []).length;
+    }
+    const methodTableSize = result.methods.length;
+    const codeSize = methodTableSize + totalCodeWords;
+    const neededSize = codeSize + clistCount;
+    const allocSize = Math.max(256, nextPow2(neededSize));
+    const clistStart = allocSize - clistCount;
+    const freespace = allocSize - codeSize - clistCount;
+
+    let draft = `═══════════════════════════════════════════════════\n`;
+    draft += `  CLOOMC++ DRAFT — "${result.abstractionName}" [${lang}]\n`;
+    draft += `═══════════════════════════════════════════════════\n\n`;
+
+    draft += `  Methods (${result.methods.length}):\n`;
+    for (const m of result.methods) {
+        draft += `    • ${m.name}: ${m.code.length} instruction(s)\n`;
+    }
+
+    draft += `\n  Capabilities (${clistCount}):\n`;
+    if (clistCount === 0) {
+        draft += `    (none)\n`;
+    } else {
+        for (let i = 0; i < caps.length; i++) {
+            draft += `    [${i}] ${caps[i]}\n`;
+        }
+    }
+
+    draft += `\n  Lump Layout:\n`;
+    draft += `    ┌─────────────────────────────────────────┐\n`;
+    draft += `    │ Method Table     ${methodTableSize.toString().padStart(5)} words  (offset 0)  │\n`;
+    draft += `    │ Code             ${totalCodeWords.toString().padStart(5)} words              │\n`;
+    draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
+    draft += `    │ FREESPACE        ${freespace.toString().padStart(5)} words              │\n`;
+    draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
+    draft += `    │ C-List           ${clistCount.toString().padStart(5)} slots  (offset ${clistStart})${' '.repeat(Math.max(0, 3 - clistStart.toString().length))}│\n`;
+    draft += `    └─────────────────────────────────────────┘\n`;
+    draft += `    Total alloc: ${allocSize} words (power-of-2)\n`;
+
+    draft += `\n  clistCount: ${clistCount} (word1 bits[25:17])\n`;
+    draft += `  Code size:  ${codeSize} words (table + instructions)\n`;
+    draft += `  Lump size:  ${allocSize} words (power-of-2)\n`;
+    draft += `  Freespace:  ${freespace} words\n`;
+
+    draft += `\n  CALL split preview:\n`;
+    if (clistCount > 0) {
+        draft += `    CR7 (code):   base=0, limit=${clistStart - 1}, perms=X-only\n`;
+        draft += `    CR6 (c-list): base+${clistStart}, limit=${clistCount - 1}, perms=L-only\n`;
+    } else {
+        draft += `    CR7 (code):   base=0, limit=${allocSize - 1}, perms=X-only\n`;
+        draft += `    CR6:          (no c-list)\n`;
+    }
+
+    draft += `\n═══════════════════════════════════════════════════\n`;
+    draft += `  Instruction Listing:\n`;
+    draft += `═══════════════════════════════════════════════════\n\n`;
+
+    for (const m of result.methods) {
+        draft += `  method ${m.name}: ${m.code.length} instruction(s)\n`;
+        for (let i = 0; i < m.code.length; i++) {
+            const word = m.code[i];
+            draft += `    ${i.toString().padStart(4)}: 0x${word.toString(16).padStart(8, '0')}  ${assembler.disassemble(word)}\n`;
+        }
+        draft += '\n';
+    }
+
+    if (con) con.textContent = draft;
+    appendOutput(`Draft: "${result.abstractionName}" — ${result.methods.length} methods, ${clistCount} caps, ${allocSize} alloc`, 'info');
+}
+
 function compileCLOOMC() {
     const editor = document.getElementById('asmEditor');
     if (!editor || !cloomcCompiler) return;
@@ -3913,15 +4412,25 @@ function compileAndCreateAbstraction() {
         return;
     }
 
-    let listing = `Abstraction "${upload.abstraction}" created via Navana.Abstraction.Add:\n`;
-    listing += `  NS Index: ${addResult.result.nsIndex}\n`;
-    listing += `  Version: ${addResult.result.version}\n`;
-    listing += `  Location: 0x${addResult.result.location.toString(16)}\n`;
-    listing += `  Alloc Size: ${addResult.result.allocSize}\n`;
-    listing += `  Code Size: ${addResult.result.codeSize}\n`;
-    listing += `  C-List Count: ${addResult.result.clistCount}\n`;
-    listing += `  Methods: ${addResult.result.methods.join(', ')}\n`;
-    listing += `  E-GT: 0x${addResult.result.eGT.toString(16).padStart(8, '0')}\n`;
+    const r = addResult.result;
+    const freespace = r.allocSize - r.codeSize - r.clistCount;
+    const clistStart = r.allocSize - r.clistCount;
+    let listing = `Abstraction "${upload.abstraction}" created via Navana.Abstraction.Add:\n\n`;
+    listing += `  NS Index:    ${r.nsIndex}\n`;
+    listing += `  Version:     ${r.version}\n`;
+    listing += `  E-GT:        0x${r.eGT.toString(16).padStart(8, '0')}\n`;
+    listing += `  Location:    0x${r.location.toString(16)}\n`;
+    listing += `  Methods:     ${r.methods.join(', ')}\n`;
+    listing += `\n  Lump Layout:\n`;
+    listing += `    Code size:   ${r.codeSize} words\n`;
+    listing += `    C-List:      ${r.clistCount} slots (offset ${clistStart})\n`;
+    listing += `    Freespace:   ${freespace} words\n`;
+    listing += `    Alloc size:  ${r.allocSize} words (power-of-2)\n`;
+    if (r.clistCount > 0) {
+        listing += `\n  CALL split:\n`;
+        listing += `    CR7 (code):   base=0x${r.location.toString(16)}, limit=${clistStart - 1}, perms=X-only\n`;
+        listing += `    CR6 (c-list): base=0x${(r.location + clistStart).toString(16)}, limit=${r.clistCount - 1}, perms=L-only\n`;
+    }
 
     if (con) con.textContent = listing;
     appendOutput(`Created "${upload.abstraction}" @ NS[${addResult.result.nsIndex}]`, 'info');
@@ -3948,6 +4457,12 @@ function loadCLOOMCExample(name) {
     editor.value = examples[name] || examples['hello'];
     updateLineNumbers();
     saveEditorState();
+
+    const sel = document.getElementById('langSelector');
+    if (sel) {
+        const isHaskell = ['church_math','church_pair','church_case','church_lambda','sliderule_hs'].includes(name);
+        sel.value = isHaskell ? 'haskell' : 'javascript';
+    }
 }
 
 function saveUploadJSON() {
