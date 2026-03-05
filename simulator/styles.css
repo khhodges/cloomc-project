@@ -1441,6 +1441,89 @@ header h1 {
     justify-content: flex-end;
 }
 
+.intro-dialog {
+    max-width: 560px;
+    min-width: 340px;
+}
+
+.intro-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.intro-header .modal-title {
+    font-size: 1.15rem;
+}
+
+.intro-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.intro-close:hover {
+    color: var(--text-primary);
+}
+
+.intro-body {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 0.75rem 0 1rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.intro-body p {
+    margin: 0 0 0.75rem;
+}
+
+.intro-body .intro-highlight {
+    color: var(--church-gold);
+    font-weight: 600;
+}
+
+.intro-body .intro-example {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.6rem 0.8rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    margin: 0.5rem 0 0.75rem;
+    white-space: pre-wrap;
+}
+
+.intro-body .intro-tip {
+    background: rgba(200, 155, 60, 0.12);
+    border-left: 3px solid var(--church-gold);
+    padding: 0.5rem 0.75rem;
+    border-radius: 0 4px 4px 0;
+    margin: 0.5rem 0 0.75rem;
+    font-size: 0.85rem;
+}
+
+.intro-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.intro-dismiss-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
 .ns-entry-actions {
     display: flex;
     gap: 0.3rem;

@@ -76,6 +76,10 @@ function switchView(viewId) {
     if (viewId === 'namespace') updateNamespace();
     if (viewId === 'abstractions') renderAbstractions();
     if (viewId === 'pipeline') pipelineViz.render();
+    if (viewId === 'editor') {
+        const sel = document.getElementById('langSelector');
+        if (sel) showIntro(sel.value);
+    }
     if (viewId === 'tutorial') {
         if (activeTutorial === 'sliderule') {
             slideRuleTutorial.render('tutorialView');
@@ -3522,6 +3526,127 @@ function closeSaveDialog() {
     document.getElementById('saveNSDialog').style.display = 'none';
 }
 
+const langIntros = {
+    symbolic: {
+        title: "Symbolic Math -- Ada Lovelace's Notation (1843)",
+        body: `
+            <p>You are looking at <span class="intro-highlight">the first computer program ever written.</span></p>
+            <p>In 1843, a mathematician named <span class="intro-highlight">Ada Lovelace</span> wrote a program
+            for Charles Babbage's Analytical Engine -- a mechanical computer that was never built.
+            Her program computed a special number called B7, the seventh Bernoulli number.</p>
+            <p>Ada used a simple notation: named variables (like store columns on the Engine)
+            and one operation per line. Here is what it looks like:</p>
+            <div class="intro-example">let V1 = 1
+let V2 = 2
+let V4 = V2 * V3    -- multiply V2 by V3
+let V11 = V4 / V5   -- divide V4 by V5</div>
+            <p>Each <span class="intro-highlight">V-variable</span> is a storage column --
+            V1 is the first column, V2 is the second, and so on.
+            You write one operation per line, just like Ada did on paper.</p>
+            <p>The Church Machine can now run Ada's program -- 183 years after she wrote it.
+            Her notation is a real programming language here.</p>
+            <div class="intro-tip">Try clicking <strong>Compile</strong> to turn Ada's program into
+            machine code, then <strong>Draft</strong> to see how it maps to hardware.</div>
+        `
+    },
+    assembly: {
+        title: "Assembly -- Church Machine Instructions",
+        body: `
+            <p>This is <span class="intro-highlight">assembly language</span> --
+            the lowest level you can program the Church Machine.</p>
+            <p>Every line is one instruction that the processor executes directly.
+            The Church Machine has <span class="intro-highlight">20 instructions</span> split into two worlds:</p>
+            <p><span class="intro-highlight">Church domain</span> (10 instructions) --
+            for security and capabilities: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA, ELOADCALL, XLOADLAMBDA</p>
+            <p><span class="intro-highlight">Turing domain</span> (10 instructions) --
+            for computation and data: DREAD, DWRITE, BFEXT, BFINS, MCMP, IADD, ISUB, BRANCH, SHL, SHR</p>
+            <div class="intro-example">LOAD CR0, CR6, 4    ; Load from capability list
+TPERM CR0, XL       ; Check permissions
+LAMBDA CR0          ; Execute
+RETURN CR0          ; Return result</div>
+            <p>Assembly gives you direct control over registers, memory, and Golden Token permissions.
+            Every instruction can have a <span class="intro-highlight">condition code</span> (like EQ, NE, GT)
+            so it only runs when the condition is true.</p>
+            <div class="intro-tip">Start with the <strong>Self-Test</strong> example to see how the machine boots,
+            or try <strong>Ada Note G</strong> to see Ada Lovelace's program in raw machine instructions.</div>
+        `
+    },
+    javascript: {
+        title: "JavaScript -- CLOOMC++ High-Level Language",
+        body: `
+            <p><span class="intro-highlight">CLOOMC++</span> is the Church Machine's
+            high-level compiler. The JavaScript front-end lets you write programs
+            using familiar syntax -- curly braces, if/while, functions -- and the compiler
+            turns them into Church Machine instructions.</p>
+            <div class="intro-example">abstraction Hello {
+    capabilities { }
+
+    method Greet(who) {
+        result = who + 1
+        return(result)
+    }
+}</div>
+            <p>Every program is an <span class="intro-highlight">abstraction</span> --
+            a secure block of code with its own capabilities list.
+            Methods inside the abstraction are the functions you can call.</p>
+            <p>The compiler translates your code into the same 20 instructions
+            that assembly uses. Variables become data registers (DR0-DR15),
+            and multiply/divide become loops of addition and subtraction.</p>
+            <div class="intro-tip">Try the <strong>JS: Hello</strong> example, then click <strong>Compile</strong>
+            to see the machine code it produces. Click <strong>Draft</strong> to see the full layout.</div>
+        `
+    },
+    haskell: {
+        title: "Haskell -- Functional Programming on Hardware",
+        body: `
+            <p>The <span class="intro-highlight">Haskell front-end</span> proves that
+            the Church Machine is a true universal target -- functional programming
+            compiles to the same 20 instructions as JavaScript and assembly.</p>
+            <div class="intro-example">abstraction ChurchMath {
+    capabilities { }
+
+    method successor(n) = n + 1
+    method add(a, b) = a + b
+    method isZero(n) = if n == 0 then 1 else 0
+}</div>
+            <p>You get <span class="intro-highlight">pattern matching</span> (case expressions),
+            <span class="intro-highlight">pairs</span> (fst/snd),
+            <span class="intro-highlight">let bindings</span>,
+            and <span class="intro-highlight">Church numerals</span> -- the building blocks of lambda calculus,
+            running on real hardware.</p>
+            <p>The name "Church Machine" comes from Alonzo Church, who invented lambda calculus.
+            This front-end connects his mathematics to actual silicon.</p>
+            <div class="intro-tip">Try <strong>HS: Math</strong> for basic arithmetic,
+            <strong>HS: Pairs</strong> for data structures,
+            or <strong>HS: Case</strong> for pattern matching.</div>
+        `
+    }
+};
+
+function showIntro(lang) {
+    const dismissed = localStorage.getItem('church_intro_dismissed_' + lang);
+    if (dismissed === 'true') return;
+
+    const intro = langIntros[lang];
+    if (!intro) return;
+
+    document.getElementById('introTitle').innerHTML = intro.title;
+    document.getElementById('introBody').innerHTML = intro.body;
+    document.getElementById('introDismiss').checked = false;
+    document.getElementById('introModal').style.display = 'flex';
+    document.getElementById('introModal').setAttribute('data-lang', lang);
+}
+
+function closeIntro() {
+    const modal = document.getElementById('introModal');
+    const lang = modal.getAttribute('data-lang');
+    const dismiss = document.getElementById('introDismiss').checked;
+    if (dismiss && lang) {
+        localStorage.setItem('church_intro_dismissed_' + lang, 'true');
+    }
+    modal.style.display = 'none';
+}
+
 function confirmSaveToNamespace() {
     const slotSel = document.getElementById('saveNSSlot');
     const label = document.getElementById('saveNSLabel').value.trim();
@@ -4275,6 +4400,7 @@ function onLangChange(restoring) {
                 loadCLOOMCExample(defaultExample);
             }
         }
+        showIntro(lang);
     }
 }
 
