@@ -73,6 +73,7 @@
                         <option value="assembly">Assembly</option>
                         <option value="javascript">JS (CLOOMC++)</option>
                         <option value="haskell">Haskell (CLOOMC++)</option>
+                        <option value="symbolic">Symbolic Math (Ada)</option>
                     </select>
                     <button class="btn btn-primary" onclick="smartCompile()" title="Compile with auto-detected or selected language">Compile</button>
                     <button class="btn" onclick="compileDraft()" style="background:#C89B3C;color:#141414;border:none;font-weight:bold;" title="Show compilation draft — methods, capabilities, lump layout">Draft</button>
@@ -105,6 +106,7 @@
                         <button class="example-tab" onclick="loadCLOOMCExample('church_lambda')" data-example="cloomc_church_lambda" style="color:#a78bfa;">HS: Lambda</button>
                         <button class="example-tab" onclick="loadCLOOMCExample('sliderule')" data-example="cloomc_sliderule" style="color:#C89B3C;">JS: SlideRule</button>
                         <button class="example-tab" onclick="loadCLOOMCExample('sliderule_hs')" data-example="cloomc_sliderule_hs" style="color:#a78bfa;">HS: SlideRule</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('ada_note_g')" data-example="cloomc_ada_note_g" style="color:#e8a87c;">Ada: Note G</button>
                     </div>
                     <button class="example-arrow" onclick="scrollExamples(1)">&rsaquo;</button>
                 </div>
@@ -184,6 +186,7 @@
                 <div class="panel">
                     <div class="panel-title">Quick Commands</div>
                     <button class="btn" onclick="loadBernoulliInREPL()" style="width:100%;margin-bottom:0.5rem;">Run Bernoulli</button>
+                    <button class="btn" onclick="replCompileSession()" style="width:100%;margin-bottom:0.5rem;background:#C89B3C;color:#141414;font-weight:bold;">Compile Session</button>
                     <button class="btn" onclick="replExecute('HELP')" style="width:100%;margin-bottom:0.5rem;">Help</button>
                     <button class="btn" onclick="replExecute('VARS')" style="width:100%;margin-bottom:0.5rem;">Show Variables</button>
                     <button class="btn btn-warning" onclick="replExecute('CLEAR')" style="width:100%;">Clear All</button>

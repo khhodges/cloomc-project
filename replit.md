@@ -97,10 +97,11 @@ clistStart = allocSize - clistCount. CALL splits the lump using clistCount from 
 Multi-language compiler targeting Church Machine 20-instruction set:
 - JavaScript front-end (Phase 1, implemented): JS subset → 32-bit code words
 - Haskell front-end (Phase 1b, implemented): Lambda calculus, case expressions, pairs, let bindings → Church Machine instructions
+- Symbolic Math front-end (Phase 1c, implemented): Ada Lovelace's 1843 notation — V-variables (V1-V15→DR1-DR15), one operation per line, `let V4 = V2 * V3` or arrow notation `V2 × V3 → V4`, multiply/divide compile to IADD/ISUB loops
 - Resident Object Model: c-list = compiler symbol table, maps abstraction names to offsets
 - Calling convention: DR0-3 args/return, DR4-11 locals (callee-saved), DR12-15 temporaries (caller-saved)
 - Output: upload.json format for Navana.Abstraction.Add
-- Auto-detection: compiler identifies language from source syntax
+- Auto-detection: compiler identifies language from source syntax (symbolic → haskell → JS)
 
 ### Navana as Master Controller
 
@@ -138,7 +139,8 @@ Multi-language compiler targeting Church Machine 20-instruction set:
 - Tutorial tab: two tutorials selectable via buttons:
   - Discovery Path (Bernoulli): interactive step-through with REPL execution (tutorial.js)
   - SlideRule Comparative Study: 23-step walkthrough of architecture, compiler, JS vs Haskell comparison, disassembly, performance, security, and hands-on guide (sliderule_tutorial.js)
-- CLOOMC++ compiler integrated: write source → compile → create abstraction
+- CLOOMC++ compiler integrated: write source → compile → create abstraction (JS, Haskell, Symbolic Math)
+- REPL: interactive calculator + "Compile Session" button compiles let-bindings to Church Machine code
 - Docs tab: browse docs/*.md and docs/figures/*.html from the IDE; markdown rendered in-app, figures embedded via iframe
 - State persistence via localStorage
 - WebSerial for Tang Nano 20K deployment
@@ -167,4 +169,5 @@ Multi-language compiler targeting Church Machine 20-instruction set:
 - No separate dynamicObjects — all entries in namespaceObjects
 - B (Bind) bit defaults to 0, auto-cleared by CALL
 - C-Lists only have E permission, CLOOMC only X or RX
-- Phase 1 + 1b: Both JS and Haskell front-ends implemented; auto-detected by compiler
+- Phase 1 + 1b + 1c: JS, Haskell, and Symbolic Math (Ada) front-ends implemented; auto-detected by compiler
+- REPL "Compile Session" button: compiles interactive let-bindings to Church Machine code via symbolic math front-end

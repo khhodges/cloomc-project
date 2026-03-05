@@ -34,6 +34,9 @@ class CLOOMCCompiler {
     }
 
     compile(source, capabilities) {
+        if (this._detectSymbolic(source)) {
+            return this.compileSymbolic(source, capabilities);
+        }
         if (this._detectHaskell(source)) {
             return this.compileHaskell(source, capabilities);
         }
@@ -1309,5 +1312,422 @@ class CLOOMCCompiler {
                 errors.push({ line: lineNum, message: `Unknown Haskell AST node type: ${node.type}` });
                 return 0;
         }
+    }
+
+    _detectSymbolic(source) {
+        const lines = source.split('\n');
+        let adaVars = 0;
+        let arrowAssign = 0;
+        let opKeywords = 0;
+        for (const line of lines) {
+            const t = line.trim();
+            if (!t || t.startsWith('--') || t.startsWith('//')) continue;
+            if (t.match(/^abstraction\s+\w+\s*\{/)) continue;
+            if (t.match(/^capabilities\s*\{/)) continue;
+            if (t === '}') continue;
+            if (t.match(/\bV\d+\b/) && (t.includes('=') || t.includes('→') || t.includes('->'))) adaVars++;
+            if (t.includes('→') || (t.match(/\S\s*->\s*V\d+/) && !t.includes('\\'))) arrowAssign++;
+            if (t.match(/\b(multiply|divide|add|subtract|operation|repeat)\b/i)) opKeywords++;
+            if (t.match(/^step\s+\d+/i)) opKeywords++;
+        }
+        return (adaVars >= 2) || (arrowAssign >= 1) || (opKeywords >= 2);
+    }
+
+    compileSymbolic(source, capabilities) {
+        const errors = [];
+        const parsed = this._parseSymbolicAbstraction(source, errors);
+        if (errors.length > 0) {
+            return { methods: [], errors, manifest: [] };
+        }
+
+        const rom = this._buildROM(parsed.capabilities, capabilities || []);
+        const methods = [];
+        const manifest = [];
+
+        for (const method of parsed.methods) {
+            const result = this._compileSymbolicMethod(method, rom, parsed.capabilities, errors);
+            if (result.errors.length > 0) {
+                errors.push(...result.errors);
+            } else {
+                methods.push({ name: method.name, code: result.code });
+                manifest.push({ name: method.name, mapping: result.manifest });
+            }
+        }
+
+        return { methods, errors, manifest, abstractionName: parsed.name, capabilities: parsed.capabilities || [], language: 'symbolic' };
+    }
+
+    _parseSymbolicAbstraction(source, errors) {
+        const result = { name: '', capabilities: [], methods: [] };
+        const lines = source.split('\n');
+        let i = 0;
+        let hasAbstraction = false;
+
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (!line || line.startsWith('--') || line.startsWith('//')) { i++; continue; }
+
+            const absMatch = line.match(/^abstraction\s+(\w+)\s*\{/);
+            if (absMatch) {
+                result.name = absMatch[1];
+                hasAbstraction = true;
+                i++;
+                i = this._parseSymbolicBody(lines, i, result, errors);
+                break;
+            }
+            i++;
+        }
+
+        if (!hasAbstraction) {
+            result.name = 'Symbolic';
+            const stmts = [];
+            for (let j = 0; j < lines.length; j++) {
+                const line = lines[j].trim();
+                if (!line || line.startsWith('--') || line.startsWith('//')) continue;
+                stmts.push({ line: j + 1, text: line });
+            }
+            if (stmts.length > 0) {
+                result.methods.push({ name: 'compute', params: [], body: stmts });
+            }
+        }
+
+        return result;
+    }
+
+    _parseSymbolicBody(lines, i, result, errors) {
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (!line || line.startsWith('--') || line.startsWith('//')) { i++; continue; }
+            if (line === '}') return i + 1;
+
+            const capMatch = line.match(/^capabilities\s*\{/);
+            if (capMatch) {
+                const inlineMatch = line.match(/^capabilities\s*\{\s*(.*?)\s*\}$/);
+                if (inlineMatch) {
+                    if (inlineMatch[1]) {
+                        result.capabilities.push(...inlineMatch[1].replace(/,/g, ' ').split(/\s+/).filter(Boolean));
+                    }
+                    i++;
+                } else {
+                    i++;
+                    while (i < lines.length) {
+                        const capLine = lines[i].trim();
+                        if (capLine === '}') { i++; break; }
+                        if (capLine && !capLine.startsWith('--')) {
+                            result.capabilities.push(...capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean));
+                        }
+                        i++;
+                    }
+                }
+                continue;
+            }
+
+            const methodMatch = line.match(/^method\s+(\w+)\s*(?:\(([^)]*)\))?\s*\{/);
+            if (methodMatch) {
+                const method = { name: methodMatch[1], params: [], body: [] };
+                if (methodMatch[2]) {
+                    method.params = methodMatch[2].split(',').map(s => s.trim()).filter(Boolean);
+                }
+                i++;
+                while (i < lines.length) {
+                    const bodyLine = lines[i].trim();
+                    if (bodyLine === '}') { i++; break; }
+                    if (bodyLine && !bodyLine.startsWith('--') && !bodyLine.startsWith('//')) {
+                        method.body.push({ line: i + 1, text: bodyLine });
+                    } else if (bodyLine.startsWith('--') || bodyLine.startsWith('//')) {
+                        method.body.push({ line: i + 1, text: bodyLine, comment: true });
+                    }
+                    i++;
+                }
+                result.methods.push(method);
+                continue;
+            }
+
+            i++;
+        }
+        return i;
+    }
+
+    _compileSymbolicMethod(method, rom, capNames, outerErrors) {
+        const code = [];
+        const errors = [];
+        const manifest = [];
+        const vars = {};
+        let nextLocal = this.DR_LOCALS_START;
+        const constants = [];
+
+        for (const param of method.params) {
+            const paramIdx = method.params.indexOf(param);
+            if (paramIdx <= this.DR_ARGS_END) {
+                vars[param] = paramIdx;
+            }
+        }
+
+        const allocVar = (name) => {
+            if (vars[name] !== undefined) return vars[name];
+            const vMatch = name.match(/^V(\d+)$/);
+            if (vMatch) {
+                const vNum = parseInt(vMatch[1]);
+                if (vNum >= 1 && vNum <= 15) {
+                    vars[name] = vNum;
+                    return vNum;
+                }
+            }
+            if (nextLocal > this.DR_LOCALS_END) {
+                nextLocal = this.DR_TEMP_START;
+            }
+            if (nextLocal > this.DR_TEMP_END) {
+                errors.push({ line: 0, message: `Out of registers for variable: ${name}` });
+                return this.DR_TEMP_START;
+            }
+            vars[name] = nextLocal;
+            return nextLocal++;
+        };
+
+        const getVar = (name) => {
+            if (vars[name] !== undefined) return vars[name];
+            return allocVar(name);
+        };
+
+        const parseExprValue = (expr) => {
+            expr = expr.trim();
+            if (expr === '0') return { type: 'zero' };
+            const num = parseInt(expr);
+            if (!isNaN(num) && num > 0) return { type: 'const', value: num };
+            const vMatch = expr.match(/^V(\d+)$/);
+            if (vMatch) return { type: 'var', name: expr };
+            if (expr.match(/^[a-zA-Z_]\w*$/)) return { type: 'var', name: expr };
+            return { type: 'expr', text: expr };
+        };
+
+        const emitLoadConst = (dr, value) => {
+            const offset = 100 + constants.length;
+            constants.push(value);
+            code.push(this.encode(this.opcodes.DREAD, 14, dr, 7, offset));
+            manifest.push({ line: 0, instr: `DREAD DR${dr}, CR7, ${offset}`, comment: `load constant ${value}` });
+        };
+
+        const emitExpr = (expr, dstDR, lineNum) => {
+            expr = expr.trim();
+
+            expr = expr.replace(/×/g, '*').replace(/÷/g, '/');
+
+            const funcMatch = expr.match(/^(multiply|divide|add|subtract|succ|pred|negate|abs)\s*\(\s*(.+)\s*\)$/i);
+            if (funcMatch) {
+                const func = funcMatch[1].toLowerCase();
+                const argStr = funcMatch[2];
+                if (func === 'succ') {
+                    const arg = parseExprValue(argStr);
+                    const srcDR = loadToReg(arg, this.DR_TEMP_START, lineNum);
+                    code.push(this.encode(this.opcodes.IADD, 14, dstDR, srcDR, 1));
+                    manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${srcDR}, 1`, comment: `succ(${argStr})` });
+                    return dstDR;
+                }
+                if (func === 'pred') {
+                    const arg = parseExprValue(argStr);
+                    const srcDR = loadToReg(arg, this.DR_TEMP_START, lineNum);
+                    code.push(this.encode(this.opcodes.ISUB, 14, dstDR, srcDR, 1));
+                    manifest.push({ line: lineNum, instr: `ISUB DR${dstDR}, DR${srcDR}, 1`, comment: `pred(${argStr})` });
+                    return dstDR;
+                }
+                if (func === 'negate') {
+                    const arg = parseExprValue(argStr);
+                    const srcDR = loadToReg(arg, this.DR_TEMP_START, lineNum);
+                    code.push(this.encode(this.opcodes.ISUB, 14, dstDR, 0, srcDR));
+                    manifest.push({ line: lineNum, instr: `ISUB DR${dstDR}, DR0, DR${srcDR}`, comment: `negate(${argStr})` });
+                    return dstDR;
+                }
+                const parts = argStr.split(',').map(s => s.trim());
+                if (parts.length >= 2) {
+                    const leftVal = parseExprValue(parts[0]);
+                    const rightVal = parseExprValue(parts[1]);
+                    const leftDR = loadToReg(leftVal, this.DR_TEMP_START, lineNum);
+                    const rightDR = loadToReg(rightVal, this.DR_TEMP_START + 1, lineNum);
+                    if (func === 'add') {
+                        code.push(this.encode(this.opcodes.IADD, 14, dstDR, leftDR, rightDR));
+                        manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${leftDR}, DR${rightDR}`, comment: `add(${parts[0]}, ${parts[1]})` });
+                    } else if (func === 'subtract') {
+                        code.push(this.encode(this.opcodes.ISUB, 14, dstDR, leftDR, rightDR));
+                        manifest.push({ line: lineNum, instr: `ISUB DR${dstDR}, DR${leftDR}, DR${rightDR}`, comment: `subtract(${parts[0]}, ${parts[1]})` });
+                    } else if (func === 'multiply') {
+                        emitMultiply(leftDR, rightDR, dstDR, lineNum, `multiply(${parts[0]}, ${parts[1]})`);
+                    } else if (func === 'divide') {
+                        emitDivide(leftDR, rightDR, dstDR, lineNum, `divide(${parts[0]}, ${parts[1]})`);
+                    }
+                    return dstDR;
+                }
+            }
+
+            const binMatch = expr.match(/^(.+?)\s*([+\-*/])\s*([^+\-*/]+)$/);
+            if (binMatch) {
+                const leftExpr = binMatch[1].trim();
+                const op = binMatch[2];
+                const rightExpr = binMatch[3].trim();
+                const leftVal = parseExprValue(leftExpr);
+                const rightVal = parseExprValue(rightExpr);
+                const leftDR = loadToReg(leftVal, this.DR_TEMP_START, lineNum);
+                const rightDR = loadToReg(rightVal, this.DR_TEMP_START + 1, lineNum);
+
+                switch (op) {
+                    case '+':
+                        code.push(this.encode(this.opcodes.IADD, 14, dstDR, leftDR, rightDR));
+                        manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${leftDR}, DR${rightDR}`, comment: `${leftExpr} + ${rightExpr}` });
+                        break;
+                    case '-':
+                        code.push(this.encode(this.opcodes.ISUB, 14, dstDR, leftDR, rightDR));
+                        manifest.push({ line: lineNum, instr: `ISUB DR${dstDR}, DR${leftDR}, DR${rightDR}`, comment: `${leftExpr} - ${rightExpr}` });
+                        break;
+                    case '*':
+                        emitMultiply(leftDR, rightDR, dstDR, lineNum, `${leftExpr} * ${rightExpr}`);
+                        break;
+                    case '/':
+                        emitDivide(leftDR, rightDR, dstDR, lineNum, `${leftExpr} / ${rightExpr}`);
+                        break;
+                }
+                return dstDR;
+            }
+
+            const val = parseExprValue(expr);
+            const srcDR = loadToReg(val, dstDR, lineNum);
+            if (srcDR !== dstDR) {
+                code.push(this.encode(this.opcodes.IADD, 14, dstDR, srcDR, 0));
+                manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${srcDR}, DR0`, comment: `copy ${expr}` });
+            }
+            return dstDR;
+        };
+
+        const loadToReg = (val, preferDR, lineNum) => {
+            if (val.type === 'zero') return 0;
+            if (val.type === 'var') {
+                return getVar(val.name);
+            }
+            if (val.type === 'const') {
+                emitLoadConst(preferDR, val.value);
+                return preferDR;
+            }
+            if (val.type === 'expr') {
+                emitExpr(val.text, preferDR, lineNum);
+                return preferDR;
+            }
+            return 0;
+        };
+
+        const findTempReg = (...exclude) => {
+            for (let r = 15; r >= 12; r--) {
+                if (exclude.includes(r)) continue;
+                const inUse = Object.values(vars).includes(r);
+                if (!inUse) return r;
+            }
+            return 14;
+        };
+
+        const emitMultiply = (leftDR, rightDR, dstDR, lineNum, comment) => {
+            const counterDR = findTempReg(leftDR, rightDR, dstDR);
+            code.push(this.encode(this.opcodes.IADD, 14, dstDR, 0, 0));
+            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR0, DR0`, comment: `${comment}: result = 0` });
+            code.push(this.encode(this.opcodes.IADD, 14, counterDR, rightDR, 0));
+            manifest.push({ line: lineNum, instr: `IADD DR${counterDR}, DR${rightDR}, DR0`, comment: `counter = right operand` });
+            const loopPC = code.length;
+            code.push(this.encode(this.opcodes.MCMP, 14, counterDR, 0, 0));
+            manifest.push({ line: lineNum, instr: `MCMP DR${counterDR}, DR0`, comment: `loop: counter == 0?` });
+            code.push(this.encode(this.opcodes.BRANCH, 0, 0, 0, 0));
+            const branchIdx = code.length - 1;
+            manifest.push({ line: lineNum, instr: `BRANCHEQ done`, comment: `exit if zero` });
+            code.push(this.encode(this.opcodes.IADD, 14, dstDR, dstDR, leftDR));
+            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${dstDR}, DR${leftDR}`, comment: `result += left` });
+            code.push(this.encode(this.opcodes.ISUB, 14, counterDR, counterDR, 1));
+            manifest.push({ line: lineNum, instr: `ISUB DR${counterDR}, DR${counterDR}, 1`, comment: `counter--` });
+            code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, loopPC));
+            manifest.push({ line: lineNum, instr: `BRANCH loop`, comment: `repeat` });
+            code[branchIdx] = this.encode(this.opcodes.BRANCH, 0, 0, 0, code.length);
+        };
+
+        const emitDivide = (leftDR, rightDR, dstDR, lineNum, comment) => {
+            const remainDR = findTempReg(leftDR, rightDR, dstDR);
+            code.push(this.encode(this.opcodes.IADD, 14, dstDR, 0, 0));
+            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR0, DR0`, comment: `${comment}: quotient = 0` });
+            code.push(this.encode(this.opcodes.IADD, 14, remainDR, leftDR, 0));
+            manifest.push({ line: lineNum, instr: `IADD DR${remainDR}, DR${leftDR}, DR0`, comment: `remainder = dividend` });
+            const loopPC = code.length;
+            code.push(this.encode(this.opcodes.MCMP, 14, remainDR, rightDR, 0));
+            manifest.push({ line: lineNum, instr: `MCMP DR${remainDR}, DR${rightDR}`, comment: `remainder >= divisor?` });
+            code.push(this.encode(this.opcodes.BRANCH, 11, 0, 0, 0));
+            const branchIdx = code.length - 1;
+            manifest.push({ line: lineNum, instr: `BRANCHLT done`, comment: `exit if less` });
+            code.push(this.encode(this.opcodes.ISUB, 14, remainDR, remainDR, rightDR));
+            manifest.push({ line: lineNum, instr: `ISUB DR${remainDR}, DR${remainDR}, DR${rightDR}`, comment: `remainder -= divisor` });
+            code.push(this.encode(this.opcodes.IADD, 14, dstDR, dstDR, 1));
+            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${dstDR}, 1`, comment: `quotient++` });
+            code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, loopPC));
+            manifest.push({ line: lineNum, instr: `BRANCH loop`, comment: `repeat` });
+            code[branchIdx] = this.encode(this.opcodes.BRANCH, 11, 0, 0, code.length);
+        };
+
+        for (const stmt of method.body) {
+            if (stmt.comment) continue;
+            const lineNum = stmt.line;
+            let text = stmt.text.trim();
+
+            let commentIdx = text.indexOf('--');
+            if (commentIdx > 0) text = text.substring(0, commentIdx).trim();
+            commentIdx = text.indexOf('//');
+            if (commentIdx > 0) text = text.substring(0, commentIdx).trim();
+
+            text = text.replace(/×/g, '*').replace(/÷/g, '/');
+
+            const arrowMatch = text.match(/^(.+?)\s*(?:→|->)\s*(\w+)$/);
+            if (arrowMatch) {
+                const expr = arrowMatch[1].trim();
+                const target = arrowMatch[2].trim();
+                const dstDR = allocVar(target);
+                emitExpr(expr, dstDR, lineNum);
+                continue;
+            }
+
+            const letMatch = text.match(/^let\s+(\w+)\s*=\s*(.+)$/);
+            if (letMatch) {
+                const varName = letMatch[1].trim();
+                const expr = letMatch[2].trim();
+                const dstDR = allocVar(varName);
+                emitExpr(expr, dstDR, lineNum);
+                continue;
+            }
+
+            const assignMatch = text.match(/^(\w+)\s*=\s*(.+)$/);
+            if (assignMatch) {
+                const varName = assignMatch[1].trim();
+                const expr = assignMatch[2].trim();
+                const dstDR = allocVar(varName);
+                emitExpr(expr, dstDR, lineNum);
+                continue;
+            }
+
+            const returnMatch = text.match(/^return\s+(.+)$/i);
+            if (returnMatch) {
+                const expr = returnMatch[1].trim();
+                emitExpr(expr, 0, lineNum);
+                code.push(this.encode(this.opcodes.RETURN, 14, 0, 0, 0));
+                manifest.push({ line: lineNum, instr: 'RETURN', comment: `return ${expr}` });
+                continue;
+            }
+
+            if (text.match(/^halt$/i) || text.match(/^stop$/i)) {
+                code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, code.length));
+                manifest.push({ line: lineNum, instr: 'HALT', comment: 'halt (branch to self)' });
+                continue;
+            }
+
+            errors.push({ line: lineNum, message: `Cannot parse symbolic statement: ${text}` });
+        }
+
+        if (code.length === 0 || (code[code.length - 1] & (0x1F << 27)) !== (this.opcodes.RETURN << 27)) {
+            const lastBranch = code.length > 0 ? (code[code.length - 1] >>> 27) : -1;
+            if (lastBranch !== this.opcodes.BRANCH) {
+                code.push(this.encode(this.opcodes.RETURN, 14, 0, 0, 0));
+                manifest.push({ line: 0, instr: 'RETURN', comment: 'implicit return' });
+            }
+        }
+
+        return { code, errors, manifest };
     }
 }

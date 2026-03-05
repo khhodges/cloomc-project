@@ -377,6 +377,77 @@ class ChurchREPL {
         }
         return results;
     }
+
+    compileSession() {
+        const bindings = [];
+        for (const [name, value] of Object.entries(this.variables)) {
+            bindings.push({ name, value });
+        }
+        if (bindings.length === 0) {
+            return { type: 'info', text: 'No variables defined. Use "let V1 = 42" to define variables first.' };
+        }
+
+        let source = `-- REPL Session compiled to Symbolic Math\n`;
+        source += `-- ${bindings.length} variable(s)\n\n`;
+        source += `abstraction REPLSession {\n`;
+        source += `    capabilities {\n    }\n\n`;
+        source += `    method compute() {\n`;
+
+        for (const cmd of this.history) {
+            const trimmed = cmd.trim();
+            if (!trimmed || trimmed.startsWith('--')) continue;
+            const upper = trimmed.toUpperCase();
+            if (['VARS', 'CLEAR', 'RESET', 'HELP', 'EXIT', 'QUIT'].includes(upper)) continue;
+            if (trimmed.toLowerCase().startsWith('let ') || trimmed.match(/^\w+\s*=/)) {
+                source += `        ${trimmed}\n`;
+            }
+        }
+
+        source += `        halt\n`;
+        source += `    }\n`;
+        source += `}\n`;
+
+        if (typeof cloomcCompiler === 'undefined' || !cloomcCompiler) {
+            return {
+                type: 'info',
+                text: `Session source (paste into Code tab with Symbolic Math selected):\n\n${source}`
+            };
+        }
+
+        const result = cloomcCompiler.compileSymbolic(source, []);
+        if (result.errors && result.errors.length > 0) {
+            const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
+            return { type: 'result', text: `Compile errors:\n${errText}\n\nSource:\n${source}` };
+        }
+
+        let output = `═══ REPL Session → Church Machine Code ═══\n\n`;
+        output += `Language: Symbolic Math (Ada)\n`;
+        output += `Abstraction: "${result.abstractionName}"\n`;
+        output += `Methods: ${result.methods.length}\n\n`;
+
+        for (const m of result.methods) {
+            output += `  method ${m.name}: ${m.code.length} instruction(s)\n`;
+            for (let i = 0; i < m.code.length; i++) {
+                const word = m.code[i];
+                output += `    [${i}] 0x${word.toString(16).padStart(8, '0').toUpperCase()}\n`;
+            }
+        }
+
+        const caps = result.capabilities || [];
+        const clistCount = caps.length;
+        let totalCodeWords = 0;
+        for (const m of result.methods) totalCodeWords += (m.code || []).length;
+        const methodTableSize = result.methods.length;
+        const codeSize = methodTableSize + totalCodeWords;
+        const neededSize = codeSize + clistCount;
+        const allocSize = Math.max(256, Math.pow(2, Math.ceil(Math.log2(Math.max(neededSize, 1)))));
+
+        output += `\n  Lump: ${codeSize} code + ${clistCount} c-list = ${neededSize} words`;
+        output += ` (alloc ${allocSize})\n`;
+        output += `\n═══ Source ═══\n${source}`;
+
+        return { type: 'result', text: output };
+    }
 }
 
 if (typeof module !== 'undefined' && module.exports) {

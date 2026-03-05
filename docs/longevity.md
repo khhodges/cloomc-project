@@ -319,6 +319,29 @@ Mint still forges the GT (that is Mint's unique role — only Mint can create ne
 
 ---
 
+### T015: Symbolic Math Front-End (Ada Lovelace Notation)
+
+**Problem:** The CLOOMC++ compiler supported JavaScript and Haskell but not the notation that started it all — Ada Lovelace's 1843 symbolic mathematics from Note G. The Analytical Engine's "machine code" (V-variables, one operation per line, explicit result assignment) was not a first-class language.
+
+**Solution:**
+
+1. **Third compiler front-end** — `compileSymbolic()` in cloomc_compiler.js parses Ada-style notation:
+   - V-variables: `let V4 = V2 * V3` maps V1→DR1 through V15→DR15
+   - Arrow notation: `V2 × V3 → V4` (Unicode × and → supported)
+   - Named operations: `multiply(a,b)`, `divide(a,b)`, `succ(n)`, `pred(n)`
+   - Auto-detection: `_detectSymbolic()` identifies V-variable patterns before Haskell/JS detection
+   - Multiply/divide compile to IADD/ISUB loops (same code as assembler)
+
+2. **IDE integration** — Fourth language option "Symbolic Math (Ada)" in the Code tab selector. Ada Note G example loadable as `Ada: Note G` button.
+
+3. **REPL compile session** — "Compile Session" button in REPL sidebar collects all let-bindings from the interactive session and compiles them through the symbolic math front-end, showing Church Machine code words and lump layout.
+
+4. **Ada Note G source file** — `simulator/cloomc/ada_note_g.cloomc` implements all 25 operations from Ada's original table in symbolic notation, with Operation 4 corrected per Bromley (1990): `V4/V5` not `V5/V4`.
+
+**Outcome:** Ada's 1843 notation is now a first-class programming language on the Church Machine. The same program she wrote for the Analytical Engine compiles to 32-bit code words on modern FPGA hardware — 183 years of continuity.
+
+---
+
 ## Part 2: Ada's Bug — The Proof That Code Can Be Read Forever
 
 In August 1843, Ada Lovelace published Note G — a 25-operation program for Charles Babbage's Analytical Engine that computed Bernoulli numbers. It is widely regarded as the first published computer algorithm.
