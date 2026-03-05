@@ -3426,6 +3426,10 @@ function saveEditorState() {
     if (editor) {
         localStorage.setItem('church_editor_code', editor.value);
     }
+    const sel = document.getElementById('langSelector');
+    if (sel) {
+        localStorage.setItem('church_editor_lang', sel.value);
+    }
 }
 
 function loadEditorState() {
@@ -3446,6 +3450,12 @@ LAMBDA CR0             ; Apply via LAMBDA instruction
 RETURN CR0             ; Return result
 `;
         }
+    }
+    const sel = document.getElementById('langSelector');
+    const savedLang = localStorage.getItem('church_editor_lang');
+    if (sel && savedLang) {
+        sel.value = savedLang;
+        onLangChange(true);
     }
 }
 
@@ -4234,7 +4244,7 @@ function showInstructionDetail(opcode) {
     `;
 }
 
-function onLangChange() {
+function onLangChange(restoring) {
     const sel = document.getElementById('langSelector');
     if (!sel) return;
     const lang = sel.value;
@@ -4258,18 +4268,20 @@ function onLangChange() {
         });
     }
 
-    const defaults = {
-        assembly: 'selftest',
-        javascript: 'hello',
-        haskell: 'church_math',
-        symbolic: 'ada_note_g'
-    };
-    const defaultExample = defaults[lang];
-    if (defaultExample) {
-        if (lang === 'assembly') {
-            loadExample(defaultExample);
-        } else {
-            loadCLOOMCExample(defaultExample);
+    if (!restoring) {
+        const defaults = {
+            assembly: 'selftest',
+            javascript: 'hello',
+            haskell: 'church_math',
+            symbolic: 'ada_note_g'
+        };
+        const defaultExample = defaults[lang];
+        if (defaultExample) {
+            if (lang === 'assembly') {
+                loadExample(defaultExample);
+            } else {
+                loadCLOOMCExample(defaultExample);
+            }
         }
     }
 }
