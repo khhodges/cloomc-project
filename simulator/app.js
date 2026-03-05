@@ -4276,7 +4276,7 @@ function showWelcomePopup() {
         `<p style="font-size:0.85rem;line-height:1.55;margin:0;">` +
         `No one else can send that message. No one else can intercept it. It works because Mum is not just a name &mdash; ` +
         `she is a <strong>Golden Token</strong>, unforgeable and unique. That is what Church's mathematics gives us: ` +
-        `a computer where "Hello Mum" actually means something safe.</p>` +
+        `a computer where "Hello Mum" (unlike Hello World from 1972) actually means something safe.</p>` +
         `</div>` +
 
         `<div style="font-weight:600;margin-bottom:0.5rem;">Getting started:</div>` +
