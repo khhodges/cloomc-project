@@ -152,6 +152,10 @@
     </div>
 
     <div id="tutorial" class="view">
+        <div class="tutorial-selector" style="margin: 0.5rem 1rem 0;">
+            <button class="btn-tut-select active" id="tutSelect-bernoulli" onclick="selectTutorial('bernoulli')">Discovery Path (Bernoulli)</button>
+            <button class="btn-tut-select" id="tutSelect-sliderule" onclick="selectTutorial('sliderule')">SlideRule Comparative Study</button>
+        </div>
         <div id="tutorialView"></div>
     </div>
 
@@ -281,6 +285,7 @@
     <script src="pipeline.js"></script>
     <script src="repl.js"></script>
     <script src="tutorial.js"></script>
+    <script src="sliderule_tutorial.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

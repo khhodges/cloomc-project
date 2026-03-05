@@ -3,6 +3,8 @@ let assembler = null;
 let pipelineViz = null;
 let repl = null;
 let churchTutorial = null;
+let slideRuleTutorial = null;
+let activeTutorial = 'bernoulli';
 let cloomcCompiler = null;
 let currentView = 'dashboard';
 let lastAssembledWords = null;
@@ -16,6 +18,7 @@ function init() {
     pipelineViz = new PipelineVisualizer('pipelineContainer');
     repl = new ChurchREPL(sim, pipelineViz);
     churchTutorial = new BernoulliTutorial(repl, pipelineViz);
+    slideRuleTutorial = new SlideRuleTutorial();
 
     abstractionRegistry = new AbstractionRegistry();
     systemAbstractions = new SystemAbstractions(abstractionRegistry);
@@ -27,6 +30,7 @@ function init() {
     }
 
     window.churchTutorial = churchTutorial;
+    window.slideRuleTutorial = slideRuleTutorial;
 
     sim.on('stateChange', () => updateDashboard());
     sim.on('fault', (f) => appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error'));
@@ -72,9 +76,27 @@ function switchView(viewId) {
     if (viewId === 'namespace') updateNamespace();
     if (viewId === 'abstractions') renderAbstractions();
     if (viewId === 'pipeline') pipelineViz.render();
-    if (viewId === 'tutorial') churchTutorial.render('tutorialView');
+    if (viewId === 'tutorial') {
+        if (activeTutorial === 'sliderule') {
+            slideRuleTutorial.render('tutorialView');
+        } else {
+            churchTutorial.render('tutorialView');
+        }
+    }
     if (viewId === 'reference') renderReference();
     if (viewId === 'docs') loadDocsView();
+}
+
+function selectTutorial(which) {
+    activeTutorial = which;
+    document.querySelectorAll('.tutorial-selector .btn-tut-select').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('tutSelect-' + which);
+    if (btn) btn.classList.add('active');
+    if (which === 'sliderule') {
+        slideRuleTutorial.render('tutorialView');
+    } else {
+        churchTutorial.render('tutorialView');
+    }
 }
 
 function switchDashTab(tabId) {

@@ -121,6 +121,9 @@ Multi-language compiler targeting Church Machine 20-instruction set:
 
 - Flask server on port 5000, serves simulator/ as static files
 - 9 views: Dashboard, Code, Namespace, Abstractions, Pipeline, Tutorial, REPL, Reference, Docs
+- Tutorial tab: two tutorials selectable via buttons:
+  - Discovery Path (Bernoulli): interactive step-through with REPL execution (tutorial.js)
+  - SlideRule Comparative Study: 23-step walkthrough of architecture, compiler, JS vs Haskell comparison, disassembly, performance, security, and hands-on guide (sliderule_tutorial.js)
 - CLOOMC++ compiler integrated: write source → compile → create abstraction
 - Docs tab: browse docs/*.md and docs/figures/*.html from the IDE; markdown rendered in-app, figures embedded via iframe
 - State persistence via localStorage
