@@ -237,9 +237,8 @@ class ChurchREPL {
             return { value: this.variables[expr], cycles: 0 };
         }
 
-        const num = parseFloat(expr);
-        if (!isNaN(num)) {
-            return { value: num, cycles: 0 };
+        if (/^-?\d+(\.\d+)?$/.test(expr)) {
+            return { value: parseFloat(expr), cycles: 0 };
         }
 
         return { error: `Undefined: ${expr}` };
