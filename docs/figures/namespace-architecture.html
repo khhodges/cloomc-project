@@ -1,3 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Namespace Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #141414;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 20px;
+    color: #C89B3C;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .subtitle {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 24px;
+    text-align: center;
+    max-width: 700px;
+  }
+  svg {
+    max-width: 900px;
+    width: 100%;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+<h1>Namespace Architecture</h1>
+<p class="subtitle">Single NS entry model: one lump, one Inform E-GT, CALL splits by clistCount. Navana is sole NS writer. CLOOMC++ compiles JS and Haskell to 20-instruction target.</p>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" font-family="monospace" font-size="12">
   <rect width="900" height="700" fill="#141414"/>
   <rect x="20" y="10" width="860" height="680" rx="8" fill="none" stroke="#C89B3C" stroke-width="2"/>
@@ -109,3 +150,5 @@
   <text x="50" y="640" fill="#888" font-size="10">Each namespace protects itself. No external actor can reach inside without a valid, unrevoked Inform GT.</text>
   <text x="50" y="655" fill="#666" font-size="9">Revoking a GT (incrementing version) instantly cuts ALL access — every copy becomes invalid.</text>
 </svg>
+</body>
+</html>
