@@ -4243,6 +4243,11 @@ function showWelcomePopup() {
         `behind only the USA and China. If it were a country, it would be richer than Japan, Germany, and the UK combined. ` +
         `<a href="https://sipantic.blogspot.com/2025/11/the-cybercrime-tsunami.html" target="_blank" rel="noopener" style="color:var(--church-gold);">Read more</a></div>` +
 
+        `<p style="font-size:0.88rem;line-height:1.55;margin-bottom:0.75rem;">` +
+        `The Church Machine implements the <strong>Lambda Calculus</strong>: a universal model of computation that provides ` +
+        `a rigorous mathematical foundation for designing secure and provably correct software and hardware, ` +
+        `offering an alternative to the problematic von Neumann model.</p>` +
+
         `<div style="font-weight:700;color:var(--church-gold);font-size:1.05rem;margin-bottom:0.5rem;">Why does security matter?</div>` +
 
         `<p style="font-size:0.9rem;line-height:1.65;margin-bottom:0.75rem;">` +
