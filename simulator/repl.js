@@ -425,11 +425,34 @@ class ChurchREPL {
         output += `Abstraction: "${result.abstractionName}"\n`;
         output += `Methods: ${result.methods.length}\n\n`;
 
+        const manifestByMethod = {};
+        if (result.manifest) {
+            for (const entry of result.manifest) {
+                const comments = {};
+                if (entry.mapping) {
+                    let seqIdx = 0;
+                    for (const m of entry.mapping) {
+                        if (m.comment !== undefined) {
+                            comments[seqIdx++] = m.comment;
+                        } else if (m.addr !== undefined && m.desc) {
+                            comments[m.addr] = m.desc;
+                        }
+                    }
+                }
+                manifestByMethod[entry.name] = comments;
+            }
+        }
+
         for (const m of result.methods) {
             output += `  method ${m.name}: ${m.code.length} instruction(s)\n`;
+            const comments = manifestByMethod[m.name] || {};
             for (let i = 0; i < m.code.length; i++) {
                 const word = m.code[i];
-                output += `    [${i}] 0x${word.toString(16).padStart(8, '0').toUpperCase()}\n`;
+                const hex = `0x${word.toString(16).padStart(8, '0').toUpperCase()}`;
+                const disasm = (typeof assembler !== 'undefined' && assembler) ? assembler.disassemble(word) : '';
+                const comment = comments[i];
+                const base = `    [${i}] ${hex}  ${disasm}`;
+                output += comment ? `${base.padEnd(55)}; ${comment}\n` : `${base}\n`;
             }
         }
 

@@ -4490,11 +4490,33 @@ function compileDraft() {
     draft += `  Instruction Listing:\n`;
     draft += `═══════════════════════════════════════════════════\n\n`;
 
+    const draftManifest = {};
+    if (result.manifest) {
+        for (const entry of result.manifest) {
+            const comments = {};
+            if (entry.mapping) {
+                let seqIdx = 0;
+                for (const m of entry.mapping) {
+                    if (m.comment !== undefined) {
+                        comments[seqIdx++] = m.comment;
+                    } else if (m.addr !== undefined && m.desc) {
+                        comments[m.addr] = m.desc;
+                    }
+                }
+            }
+            draftManifest[entry.name] = comments;
+        }
+    }
+
     for (const m of result.methods) {
         draft += `  method ${m.name}: ${m.code.length} instruction(s)\n`;
+        const comments = draftManifest[m.name] || {};
         for (let i = 0; i < m.code.length; i++) {
             const word = m.code[i];
-            draft += `    ${i.toString().padStart(4)}: 0x${word.toString(16).padStart(8, '0')}  ${assembler.disassemble(word)}\n`;
+            const disasm = assembler.disassemble(word);
+            const comment = comments[i];
+            const line = `    ${i.toString().padStart(4)}: 0x${word.toString(16).padStart(8, '0')}  ${disasm}`;
+            draft += comment ? `${line.padEnd(60)}; ${comment}\n` : `${line}\n`;
         }
         draft += '\n';
     }
@@ -4521,22 +4543,36 @@ function compileCLOOMC() {
     const langNames2 = { haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', javascript: 'JavaScript' };
     const lang = langNames2[result.language] || 'JavaScript';
     let listing = `CLOOMC++ [${lang}] compiled "${result.abstractionName}" — ${result.methods.length} method(s):\n\n`;
-    for (const m of result.methods) {
-        listing += `  method ${m.name}: ${m.code.length} instruction(s)\n`;
-        for (let i = 0; i < m.code.length; i++) {
-            const word = m.code[i];
-            listing += `    ${i.toString().padStart(4)}: 0x${word.toString(16).padStart(8, '0')}  ${assembler.disassemble(word)}\n`;
+
+    const manifestByMethod = {};
+    if (result.manifest) {
+        for (const entry of result.manifest) {
+            const comments = {};
+            if (entry.mapping) {
+                let seqIdx = 0;
+                for (const m of entry.mapping) {
+                    if (m.comment !== undefined) {
+                        comments[seqIdx++] = m.comment;
+                    } else if (m.addr !== undefined && m.desc) {
+                        comments[m.addr] = m.desc;
+                    }
+                }
+            }
+            manifestByMethod[entry.name] = comments;
         }
-        listing += '\n';
     }
 
-    if (result.manifest && result.manifest.length > 0) {
-        listing += 'Compilation manifest:\n';
-        for (const entry of result.manifest) {
-            for (const m of entry.mapping || []) {
-                listing += `  src:${m.src} -> addr:${m.addr} ${m.desc}\n`;
-            }
+    for (const m of result.methods) {
+        listing += `  method ${m.name}: ${m.code.length} instruction(s)\n`;
+        const comments = manifestByMethod[m.name] || {};
+        for (let i = 0; i < m.code.length; i++) {
+            const word = m.code[i];
+            const disasm = assembler.disassemble(word);
+            const comment = comments[i];
+            const line = `    ${i.toString().padStart(4)}: 0x${word.toString(16).padStart(8, '0')}  ${disasm}`;
+            listing += comment ? `${line.padEnd(60)}; ${comment}\n` : `${line}\n`;
         }
+        listing += '\n';
     }
 
     if (con) con.textContent = listing;
