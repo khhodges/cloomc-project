@@ -3608,8 +3608,7 @@ function showChallengeExplanation(el, c) {
 
 function showMathGuidePopup() {
     if (localStorage.getItem('churchMachine_mathGuideDismissed')) return;
-    const welcomeModal = document.getElementById('welcomeModal');
-    if (welcomeModal && welcomeModal.style.display !== 'none') return;
+    if (!localStorage.getItem('church_welcome_dismissed')) return;
 
     const modal = document.getElementById('mathGuideModal');
     const body = document.getElementById('mathGuideBody');
