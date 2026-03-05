@@ -3833,6 +3833,10 @@ function collectFamilyMembers() {
 }
 
 function isWelcomeNeeded() {
+    const settings = getStudentSettings();
+    const hasFamily = settings.familyMembers && settings.familyMembers.length > 0 &&
+        settings.familyMembers.some(m => m.name && m.name.trim() !== '');
+    if (!hasFamily) return true;
     return !localStorage.getItem('church_welcome_dismissed');
 }
 
