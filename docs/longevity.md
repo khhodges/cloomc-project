@@ -396,9 +396,9 @@ The Church Machine has:
 - A namespace table — every entry is 3 words, visible in the Namespace tab
 - A program counter, a stack depth, four condition flags (N, Z, C, V) — all visible
 
-There is no hidden state. No TLB. No branch predictor. No speculative execution buffer. No microarchitectural side channels. If you can see the registers and the namespace table, you know the complete state of the machine.
+There is no hidden state. No address translation cache. No branch predictor. No speculative execution buffer. Conventional processors contain dozens of invisible internal caches and buffers that affect program behaviour in ways the programmer cannot see or control. The Church Machine has none of these. If you can see the registers and the namespace table, you know the complete state of the machine.
 
-**Why this matters for longevity:** Hidden state makes programs impossible to reason about. Spectre and Meltdown are bugs in hidden state that existed for 20 years before discovery. Code that depends on hidden state cannot be debugged by reading — you need to run it on the exact hardware that has the hidden state. Code that depends only on visible state can be debugged by anyone, anywhere, at any time, with a pencil and paper.
+**Why this matters for longevity:** Hidden state makes programs impossible to reason about. The Spectre and Meltdown security vulnerabilities — discovered in 2018 — were caused by hidden speculative execution buffers inside Intel and ARM processors. Those bugs existed undetected for over 20 years because the state that caused them was invisible to programmers. Code that depends on hidden state cannot be debugged by reading — you need to run it on the exact hardware that has the hidden state. Code that depends only on visible state can be debugged by anyone, anywhere, at any time, with a pencil and paper.
 
 ### 4. Self-Describing Structure
 
