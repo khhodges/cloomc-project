@@ -3584,13 +3584,12 @@ function showChallengeExplanation(el, c) {
     html += `<div class="explain-church">`;
     html += `<div class="explain-header">The mind \u2014 Church (symbols)</div>`;
 
-    const argNote = c.opType === 'factorial'
-        ? 'DR0 = ' + c.a
-        : 'DR0 = ' + c.a + ', DR1 = ' + c.b;
+    const setArgs = c.opType === 'factorial'
+        ? 'SET(' + c.a + ')'
+        : 'SET(' + c.a + ',' + c.b + ')';
 
     const churchLines = [
-        {asm: 'CALL ' + opName, desc: 'Security envelope opens \u2014 the body runs ' + exprStr + ' inside \u2014 envelope closes'},
-        {asm: 'RETURN', desc: 'Result ' + c.answer + ' is in DR0'},
+        {asm: 'CALL ' + setArgs + ' ' + opName, desc: exprStr + ' \u2192 ' + c.answer + ' in DR0'},
     ];
 
     for (let i = 0; i < churchLines.length; i++) {
@@ -3600,13 +3599,7 @@ function showChallengeExplanation(el, c) {
         html += `<span class="code-desc">${escapeHtml(churchLines[i].desc)}</span>`;
         html += `</div>`;
     }
-    html += `<div style="margin-top:0.3rem;font-size:0.78rem;font-style:italic;color:var(--church-gold);opacity:0.8;">"${opName}" is a symbol in the capability list \u2014 a name, not a number. CALL finds it, checks the Golden Token, enters the abstraction, runs the body inside, and returns. The hardware does everything. Arguments (${argNote}) cross into the envelope via data registers.</div>`;
-    html += `</div>`;
-
-    html += `<div class="explain-bridge">`;
-    html += `<p><strong>Body and mind.</strong> The Turing instructions above use numbers: DR0 = ${c.a}${c.opType !== 'factorial' ? ', DR1 = ' + c.b : ''}, physical addresses, values that can overflow. That is the body \u2014 the physical work that runs <em>inside</em> the CALL.</p>`;
-    html += `<p>The Church instruction is one word: CALL ${opName}. No numbers. That is the mind \u2014 the security envelope that wraps the body\u2019s work.</p>`;
-    html += `<p>Ada wrote the first program in 1843 using symbols \u2014 no compiler, no OS, no superuser. The Church Machine returns to what she had. Turing was Church\u2019s student. He built the body. His teacher gave it a mind.</p>`;
+    html += `<div style="margin-top:0.3rem;font-size:0.78rem;font-style:italic;color:var(--church-gold);opacity:0.8;">One instruction. "${opName}" is a symbol \u2014 a name, not a number. The hardware checks the Golden Token, opens the security envelope, runs the body inside, and returns the result.</div>`;
     html += `</div>`;
 
     el.innerHTML = html;
