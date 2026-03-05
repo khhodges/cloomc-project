@@ -135,7 +135,7 @@ Multi-language compiler targeting Church Machine 20-instruction set:
 ### Web IDE
 
 - Flask server on port 5000, serves simulator/ as static files
-- 9 views: Dashboard, Code, Namespace, Abstractions, Pipeline, Tutorial, REPL, Reference, Docs
+- 9 views: Math (default, was REPL), Code, Tutorial, Dashboard, Namespace, Abstractions, Pipeline, Reference, Docs
 - Tutorial tab: two tutorials selectable via buttons:
   - Discovery Path (Bernoulli): interactive step-through with REPL execution (tutorial.js)
   - SlideRule Comparative Study: 23-step walkthrough of architecture, compiler, JS vs Haskell comparison, disassembly, performance, security, and hands-on guide (sliderule_tutorial.js)

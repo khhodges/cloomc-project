@@ -53,9 +53,9 @@ function init() {
     }
     updateLineNumbers();
     loadNamespaceState();
-    const views = ['dashboard','editor','namespace','abstractions','pipeline','tutorial','repl','reference'];
+    const views = ['repl','editor','tutorial','dashboard','namespace','abstractions','pipeline','reference','docs'];
     const hash = window.location.hash.replace('#', '');
-    const startView = views.includes(hash) ? hash : 'dashboard';
+    const startView = views.includes(hash) ? hash : 'repl';
     switchView(startView);
     updateDashboard();
     pipelineViz.render();
