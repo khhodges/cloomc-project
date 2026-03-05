@@ -37,6 +37,7 @@ function init() {
     sim.on('halt', () => appendOutput('Machine halted.', 'info'));
 
     loadEditorState();
+    initReplDivider();
     const asmEd = document.getElementById('asmEditor');
     if (asmEd) {
         asmEd.addEventListener('input', updateLineNumbers);
@@ -3588,12 +3589,17 @@ function showChallengeExplanation(el, c) {
 
     html += `<div class="explain-church">`;
     html += `<div class="explain-header">The mind \u2014 Church (symbols)</div>`;
+
+    const argNote = c.opType === 'factorial'
+        ? 'DR0 = ' + c.a
+        : 'DR0 = ' + c.a + ', DR1 = ' + c.b;
+
     const churchLines = [
-        {asm: 'LOAD CR1, [CR6 + ' + opName + ']', desc: 'Load the E-GT for "' + opName + '" \u2014 the hardware checks permissions automatically'},
-        {asm: 'CALL CR1', desc: 'Enter ' + opName + '. CALL sets CR7=code, CR6=c-list'},
-        {asm: 'LAMBDA CR7', desc: opName + ' runs: ' + exprStr + ' \u2192 ' + c.answer},
-        {asm: 'RETURN', desc: 'Exit. The answer (' + c.answer + ') is in DR0'},
+        {asm: 'LOAD CR1, [CR6 + ' + opName + ']', desc: '"' + opName + '" is a symbol in the capability list \u2014 a name, not a number'},
+        {asm: 'CALL CR1', desc: 'Security envelope opens. The body runs inside: ' + exprStr + ' \u2192 ' + c.answer},
+        {asm: 'RETURN', desc: 'Security envelope closes. Result ' + c.answer + ' is in DR0'},
     ];
+
     for (let i = 0; i < churchLines.length; i++) {
         html += `<div class="code-line">`;
         html += `<span class="code-hex" style="min-width:20px;">${i + 1}.</span>`;
@@ -3601,12 +3607,12 @@ function showChallengeExplanation(el, c) {
         html += `<span class="code-desc">${escapeHtml(churchLines[i].desc)}</span>`;
         html += `</div>`;
     }
-    html += `<div style="margin-top:0.3rem;font-size:0.78rem;font-style:italic;color:var(--church-gold);opacity:0.8;">TPERM is not needed here \u2014 the capability hardware checks permissions on every LOAD and CALL automatically. TPERM is only used when you receive a capability from an untrusted source.</div>`;
+    html += `<div style="margin-top:0.3rem;font-size:0.78rem;font-style:italic;color:var(--church-gold);opacity:0.8;">Three instructions, no numbers. CR1 is a capability register, "${opName}" is a symbol, "E" is a permission checked by the hardware. CALL/RETURN is the security envelope \u2014 everything inside is protected. The body\u2019s arguments (${argNote}) cross into the envelope via data registers.</div>`;
     html += `</div>`;
 
     html += `<div class="explain-bridge">`;
-    html += `<p><strong>Body and mind.</strong> The Turing instructions above use numbers: DR1 = ${c.a}, DR2 = ${c.b}, physical addresses, values that can overflow. That is the body \u2014 action, physics, the part that can fail.</p>`;
-    html += `<p>The Church instructions use symbols: CR7, "${opName}", permission "E". No numbers. That is the mind \u2014 mathematics, proof, the part that cannot be forged.</p>`;
+    html += `<p><strong>Body and mind.</strong> The Turing instructions above use numbers: DR1 = ${c.a}, DR2 = ${c.b}, physical addresses, values that can overflow. That is the body \u2014 the physical work that runs <em>inside</em> the CALL envelope.</p>`;
+    html += `<p>The Church instructions use symbols: CR1, "${opName}", CALL/RETURN. No numbers anywhere. That is the mind \u2014 the security envelope that wraps the body\u2019s work.</p>`;
     html += `<p>Ada wrote the first program in 1843 using symbols \u2014 no compiler, no OS, no superuser. The Church Machine returns to what she had. Turing was Church\u2019s student. He built the body. His teacher gave it a mind.</p>`;
     html += `</div>`;
 
@@ -5710,6 +5716,68 @@ function renderMarkdown(md) {
         }
     }
     return result.join('\n');
+}
+
+function initReplDivider() {
+    const divider = document.getElementById('replDivider');
+    if (!divider) return;
+    const layout = divider.parentElement;
+    const panel = layout.querySelector('.repl-panel');
+    const sidebar = layout.querySelector('.repl-sidebar');
+    let dragging = false;
+
+    divider.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        dragging = true;
+        divider.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        const rect = layout.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const total = rect.width - 10;
+        const leftPct = Math.max(15, Math.min(85, (x / rect.width) * 100));
+        const rightPct = 100 - leftPct;
+        panel.style.flex = 'none';
+        panel.style.width = leftPct + '%';
+        sidebar.style.flex = 'none';
+        sidebar.style.width = rightPct + '%';
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        divider.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    });
+
+    divider.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        dragging = true;
+        divider.classList.add('dragging');
+    }, { passive: false });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        const touch = e.touches[0];
+        const rect = layout.getBoundingClientRect();
+        const leftPct = Math.max(15, Math.min(85, ((touch.clientX - rect.left) / rect.width) * 100));
+        const rightPct = 100 - leftPct;
+        panel.style.flex = 'none';
+        panel.style.width = leftPct + '%';
+        sidebar.style.flex = 'none';
+        sidebar.style.width = rightPct + '%';
+    }, { passive: true });
+
+    document.addEventListener('touchend', function() {
+        if (!dragging) return;
+        dragging = false;
+        divider.classList.remove('dragging');
+    });
 }
 
 document.addEventListener('DOMContentLoaded', init);
