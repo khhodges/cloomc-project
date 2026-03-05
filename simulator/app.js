@@ -88,6 +88,7 @@ function switchView(viewId) {
             churchTutorial.render('tutorialView');
         }
     }
+    if (viewId === 'repl') updateMathWelcome();
     if (viewId === 'reference') renderReference();
     if (viewId === 'docs') loadDocsView();
 }
@@ -3310,6 +3311,51 @@ function scrollExamples(dir) {
     }
 }
 
+function updateMathWelcome() {
+    const el = document.getElementById('replWelcomeMsg');
+    if (!el) return;
+    const settings = getStudentSettings();
+    const progress = getStudentProgress();
+    const grade = settings.grade || '';
+    const name = settings.name || '';
+    const sessions = progress.replSessions || 0;
+
+    let prompt = '';
+    const greeting = name ? `Hi ${escapeHtml(name)}! ` : '';
+
+    if (grade === 'K' || grade === '1' || grade === '2') {
+        if (sessions === 0) prompt = greeting + 'Try typing: let x = 2 + 3';
+        else if (sessions < 3) prompt = greeting + 'Nice work! Now try: let y = 5 - 1';
+        else if (sessions < 6) prompt = greeting + 'Can you try: let z = 4 + 4';
+        else prompt = greeting + 'Keep going! Try adding bigger numbers together.';
+    } else if (grade === '3' || grade === '4' || grade === '5') {
+        if (sessions === 0) prompt = greeting + 'Try typing: let x = 6 * 7';
+        else if (sessions < 3) prompt = greeting + 'Great! Now try: let y = 100 / 4';
+        else if (sessions < 6) prompt = greeting + 'Try this: let area = 12 * 8';
+        else prompt = greeting + 'Challenge: use multiply and divide to solve a word problem!';
+    } else if (grade === '6' || grade === '7' || grade === '8') {
+        if (sessions === 0) prompt = greeting + 'Try typing: let ratio = 355 / 113';
+        else if (sessions < 3) prompt = greeting + 'Now try: let hyp = sqrt(add(mul(3,3), mul(4,4)))';
+        else if (sessions < 6) prompt = greeting + 'Try: let percent = mul(div(45, 200), 100)';
+        else prompt = greeting + 'Explore: try defining variables and using them in expressions.';
+    } else if (grade === '9' || grade === '10') {
+        if (sessions === 0) prompt = greeting + 'Try typing: let slope = div(sub(8, 2), sub(5, 1))';
+        else if (sessions < 3) prompt = greeting + 'Try: let quad = add(mul(3, mul(x, x)), mul(2, x))';
+        else prompt = greeting + 'Try the Compile Session button to see your math become machine code.';
+    } else if (grade === '11' || grade === '12' || grade === 'IB') {
+        if (sessions === 0) prompt = greeting + 'Try typing: let deriv = div(sub(succ(mul(x,x)), mul(x,x)), 1)';
+        else if (sessions < 3) prompt = greeting + 'Try: let series = add(1, add(div(1,2), add(div(1,6), div(1,24))))';
+        else prompt = greeting + 'Try Compile Session to see lambda calculus compile to machine instructions.';
+    } else {
+        if (sessions === 0) prompt = (greeting || 'Welcome! ') + 'Try typing: let x = 2 + 3';
+        else if (sessions < 3) prompt = (greeting || '') + 'Nice! Now try: let y = 10 * 5';
+        else if (sessions < 6) prompt = (greeting || '') + 'Try: let answer = div(mul(7, 8), 4)';
+        else prompt = (greeting || '') + 'Keep exploring! Type HELP to see all available commands.';
+    }
+
+    el.textContent = prompt;
+}
+
 function replExecute(cmdOverride) {
     const input = document.getElementById('replInput');
     const output = document.getElementById('replOutput');
@@ -3848,16 +3894,22 @@ function showWelcomePopup() {
 
     body.innerHTML =
         `<p style="font-size:0.95rem;line-height:1.6;margin-bottom:1rem;">` +
-        `The Church Machine is a safe, capability-secured computer your child programs through this web-based IDE. ` +
-        `Every action is controlled by <strong>Golden Tokens</strong> &mdash; unforgeable digital permissions that work like keys. ` +
-        `Nothing happens without the right token, and <em>you</em> control which tokens your child holds.</p>` +
+        `Welcome! This is the <strong>Church Machine IDE</strong> &mdash; a learning environment where you or your children ` +
+        `can explore mathematics and programming. The IDE has several tabs across the top:</p>` +
+
+        `<ul style="font-size:0.88rem;line-height:1.7;margin:0 0 1rem 1.2rem;padding:0;">` +
+        `<li><strong>Math</strong> &mdash; an interactive calculator. Type a math problem and press Enter to see the answer.</li>` +
+        `<li><strong>Code</strong> &mdash; write programs in four languages that compile to real machine instructions.</li>` +
+        `<li><strong>Tutorial</strong> &mdash; guided walkthroughs (still growing &mdash; more lessons coming soon).</li>` +
+        `<li><strong>Dashboard</strong> &mdash; see the machine's registers and internal state.</li>` +
+        `</ul>` +
 
         `<div style="background:rgba(218,165,32,0.08);border:1px solid rgba(218,165,32,0.25);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;">` +
-        `<div style="font-weight:700;color:var(--church-gold);margin-bottom:0.4rem;">What is the Family Abstraction?</div>` +
+        `<div style="font-weight:700;color:var(--church-gold);margin-bottom:0.4rem;">How does security work?</div>` +
         `<p style="font-size:0.85rem;line-height:1.5;margin:0;">` +
-        `The <strong>Family</strong> (NS[28]) is a security block in the Church Machine that binds parents and children together. ` +
-        `When you register your family, the machine creates a <strong>capability link</strong> between parent and child &mdash; ` +
-        `your child can only communicate, share, or connect with others if the Family abstraction (and therefore you) approves it. ` +
+        `Every action on the Church Machine is controlled by <strong>Golden Tokens</strong> &mdash; unforgeable digital permissions ` +
+        `that work like keys. When you register your family, the machine creates a secure link between parent and child. ` +
+        `Your child can only communicate, share, or connect with others if you approve it. ` +
         `Think of it as a digital permission slip that cannot be forged or bypassed.</p>` +
         `</div>` +
 
@@ -3865,26 +3917,22 @@ function showWelcomePopup() {
 
         `<div class="welcome-step">` +
         `<span class="welcome-step-num">1</span>` +
-        `<div class="welcome-step-text"><strong>Register your family.</strong> Click "Set Up My Family" below to enter your name, your child's name, and their grade level. This creates the parent-child capability binding in the Family abstraction.</div>` +
+        `<div class="welcome-step-text"><strong>Register your family.</strong> Click "Set Up My Family" below to enter your name (or your children's names) and select a grade level.</div>` +
         `</div>` +
 
         `<div class="welcome-step">` +
         `<span class="welcome-step-num">2</span>` +
-        `<div class="welcome-step-text"><strong>Let your child explore the Code tab.</strong> They will write programs in one of four languages &mdash; Symbolic Math (Ada's 1843 notation), JavaScript, Haskell, or Assembly. Each program compiles to real machine instructions.</div>` +
+        `<div class="welcome-step-text"><strong>Try the Math tab.</strong> Type a simple calculation like <code style="background:#1a1a2e;padding:0.15rem 0.4rem;border-radius:3px;color:var(--church-gold);">let x = 2 + 3</code> and press Enter. The answer appears instantly.</div>` +
         `</div>` +
 
         `<div class="welcome-step">` +
         `<span class="welcome-step-num">3</span>` +
-        `<div class="welcome-step-text"><strong>Watch their progress.</strong> Open Settings (the gear icon) at any time to see how many programs they have compiled, which languages they have tried, and what they have been working on. Every action is tracked &mdash; safely and locally on this device.</div>` +
+        `<div class="welcome-step-text"><strong>Watch their progress.</strong> Open Settings (the gear icon) at any time to see how many problems they have solved, which areas they have explored, and what they have been working on. Everything stays on this device &mdash; no accounts or cloud needed.</div>` +
         `</div>` +
 
         `<div class="welcome-step">` +
         `<span class="welcome-step-num">4</span>` +
-        `<div class="welcome-step-text"><strong>Approve connections.</strong> If your child wants to share with friends or join a schoolroom, it goes through the <strong>Negotiate</strong> abstraction &mdash; both parent and teacher must approve. No permission is ever granted silently.</div>` +
-        `</div>` +
-
-        `<div style="background:rgba(218,165,32,0.06);border-left:3px solid var(--church-gold);padding:0.5rem 0.75rem;margin-top:0.5rem;font-size:0.82rem;line-height:1.5;">` +
-        `<strong>For educators:</strong> The Tutorial tab has two guided walkthroughs &mdash; the Discovery Path (Bernoulli numbers) and a Comparative Study (JavaScript vs Haskell). The REPL tab is an interactive calculator. Everything runs in the browser &mdash; no accounts, no cloud, no data leaves this device.` +
+        `<div class="welcome-step-text"><strong>Explore at your own pace.</strong> The Code tab has four programming languages to try. The Tutorial tab has guided lessons (with more being added). There is no wrong way to explore.</div>` +
         `</div>`;
 
     document.getElementById('welcomeModal').style.display = 'flex';

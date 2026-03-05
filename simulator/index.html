@@ -170,15 +170,13 @@
     <div id="repl" class="view">
         <div class="repl-layout">
             <div class="repl-panel">
-                <div class="panel-title">Church Computer REPL -- Symbolic Mathematics</div>
+                <div class="panel-title">Church Machine Math</div>
                 <div id="replOutput">
-                    <div class="repl-info">Church Computer REPL -- Pure Lambda Calculus</div>
-                    <div class="repl-info">Type HELP for commands. Every operation goes through the 7-step security pipeline.</div>
-                    <div class="repl-info">===================================================</div>
+                    <div class="repl-info" id="replWelcomeMsg"></div>
                 </div>
                 <div class="repl-input-bar">
                     <span class="repl-prompt">&#955;&gt;</span>
-                    <input type="text" id="replInput" placeholder="let n = succ(3)" onkeydown="replKeydown(event)">
+                    <input type="text" id="replInput" placeholder="let x = 2 + 3" onkeydown="replKeydown(event)">
                     <button class="btn btn-primary" onclick="replExecute()">Enter</button>
                 </div>
             </div>
