@@ -1442,8 +1442,38 @@ header h1 {
 }
 
 .intro-dialog {
-    max-width: 560px;
+    max-width: 680px;
     min-width: 340px;
+    width: 90vw;
+}
+
+.intro-body-wrap {
+    position: relative;
+}
+
+.intro-scroll-arrow {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: linear-gradient(transparent, var(--bg-secondary) 80%);
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.intro-scroll-arrow.hidden {
+    opacity: 0;
+}
+
+.intro-scroll-arrow span {
+    font-size: 1.2rem;
+    color: var(--church-gold);
+    animation: intro-bounce 1.5s infinite;
+    padding-bottom: 2px;
 }
 
 .intro-header {
@@ -1477,6 +1507,7 @@ header h1 {
     margin: 0.75rem 0 1rem;
     max-height: 60vh;
     overflow-y: auto;
+    padding-bottom: 1.5rem;
 }
 
 .intro-body p {
@@ -2925,4 +2956,9 @@ header h1 {
     .tutorial-selector {
         flex-direction: column;
     }
+}
+
+@keyframes intro-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
 }

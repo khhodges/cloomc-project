@@ -3635,6 +3635,19 @@ function showIntro(lang) {
     document.getElementById('introDismiss').checked = false;
     document.getElementById('introModal').style.display = 'flex';
     document.getElementById('introModal').setAttribute('data-lang', lang);
+
+    const body = document.getElementById('introBody');
+    const arrow = document.getElementById('introScrollArrow');
+    if (body && arrow) {
+        const updateArrow = () => {
+            const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 8;
+            arrow.classList.toggle('hidden', atBottom || body.scrollHeight <= body.clientHeight);
+        };
+        body.removeEventListener('scroll', body._introScrollHandler);
+        body._introScrollHandler = updateArrow;
+        body.addEventListener('scroll', updateArrow);
+        requestAnimationFrame(updateArrow);
+    }
 }
 
 function closeIntro() {
@@ -3645,6 +3658,13 @@ function closeIntro() {
         localStorage.setItem('church_intro_dismissed_' + lang, 'true');
     }
     modal.style.display = 'none';
+    const body = document.getElementById('introBody');
+    if (body && body._introScrollHandler) {
+        body.removeEventListener('scroll', body._introScrollHandler);
+        body._introScrollHandler = null;
+    }
+    const arrow = document.getElementById('introScrollArrow');
+    if (arrow) arrow.classList.add('hidden');
 }
 
 function confirmSaveToNamespace() {
