@@ -4240,6 +4240,38 @@ function onLangChange() {
     const lang = sel.value;
     const btnSaveNS = document.getElementById('btnSaveNS');
     if (btnSaveNS) btnSaveNS.disabled = (lang !== 'assembly' || !lastAssembledWords);
+
+    const langExampleGroups = {
+        assembly: ['ada_note_g', 'selftest', 'load_save', 'bernoulli', 'conditional', 'gc_test', 'turing_test', 'salvation', 'perm_attack', 'bind_attack'],
+        javascript: ['cloomc_hello', 'cloomc_memory', 'cloomc_counter', 'cloomc_sliderule'],
+        haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_church_lambda', 'cloomc_sliderule_hs'],
+        symbolic: ['cloomc_ada_note_g']
+    };
+
+    const scroll = document.getElementById('exampleTabsScroll');
+    if (scroll) {
+        const tabs = scroll.querySelectorAll('.example-tab');
+        const allowedSet = langExampleGroups[lang] || [];
+        tabs.forEach(tab => {
+            const ex = tab.getAttribute('data-example');
+            tab.style.display = allowedSet.includes(ex) ? '' : 'none';
+        });
+    }
+
+    const defaults = {
+        assembly: 'selftest',
+        javascript: 'hello',
+        haskell: 'church_math',
+        symbolic: 'ada_note_g'
+    };
+    const defaultExample = defaults[lang];
+    if (defaultExample) {
+        if (lang === 'assembly') {
+            loadExample(defaultExample);
+        } else {
+            loadCLOOMCExample(defaultExample);
+        }
+    }
 }
 
 function smartCompile() {
