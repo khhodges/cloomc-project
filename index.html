@@ -1,149 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CLOOMC Foundation | Industrial Strength Computer Science</title>
-    <style>
-        :root {
-            --bg-carbon: #121212;
-            --bg-surface: #1e1e1e;
-            --gold-token: #D4AF37;
-            --gold-glow: rgba(212, 175, 55, 0.3);
-            --text-main: #e0e0e0;
-            --text-muted: #a0a0a0;
-        }
-
-        body {
-            background-color: var(--bg-carbon);
-            color: var(--text-main);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            line-height: 1.6;
-        }
-
-        .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
-
-        /* Header & Hero */
-        header { padding: 60px 0; text-align: center; border-bottom: 1px solid #333; }
-        h1 { color: var(--gold-token); font-size: 3rem; margin: 0; letter-spacing: 2px; }
-        .tagline { font-style: italic; color: var(--text-muted); font-size: 1.2rem; }
-
-        /* Navigation Grid */
-        .nav-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: -40px;
-        }
-
-        .card {
-            background: var(--bg-surface);
-            padding: 30px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            transition: transform 0.3s, border-color 0.3s;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            border-color: var(--gold-token);
-            box-shadow: 0 10px 20px var(--gold-glow);
-        }
-
-        .card h3 { color: var(--gold-token); margin-top: 0; }
-
-        /* Trilogy Section */
-        .trilogy { padding: 80px 0; text-align: center; }
-        .book-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin-top: 30px; }
-        .book-item { max-width: 250px; }
-        .book-item a { color: var(--gold-token); text-decoration: none; font-weight: bold; }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 40px 0;
-            border-top: 1px solid #333;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .cta-button {
-            display: inline-block;
-            background: var(--gold-token);
-            color: black;
-            padding: 12px 24px;
-            border-radius: 4px;
-            font-weight: bold;
-            text-decoration: none;
-            margin-top: 20px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLOOMC — The Church Machine Educational Platform</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1400;color:#e8d9a0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+a{color:#d4a843;text-decoration:none}
+a:hover{color:#f0c050;text-decoration:underline}
+.header{background:linear-gradient(135deg,#2a1f00,#1a1400);border-bottom:2px solid #d4a843;padding:2rem;text-align:center}
+.header h1{font-size:2.5rem;color:#d4a843;margin-bottom:0.5rem}
+.header p{font-size:1.1rem;color:#c0a870;max-width:700px;margin:0 auto}
+.badge{display:inline-block;background:#2a1f00;border:1px solid #d4a843;color:#d4a843;padding:0.25rem 0.75rem;border-radius:4px;font-size:0.85rem;margin:0.5rem 0.25rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;max-width:1100px;margin:2rem auto;padding:0 1.5rem}
+.card{background:#2a1f00;border:1px solid #3a2f10;border-radius:8px;padding:1.5rem;transition:border-color 0.2s}
+.card:hover{border-color:#d4a843}
+.card h3{color:#d4a843;margin-bottom:0.5rem;font-size:1.2rem}
+.card p{color:#c0a870;line-height:1.5;font-size:0.95rem}
+.card .btn{display:inline-block;margin-top:1rem;padding:0.5rem 1.25rem;background:#d4a843;color:#1a1400;border-radius:4px;font-weight:600;font-size:0.9rem}
+.card .btn:hover{background:#f0c050;text-decoration:none}
+.section{max-width:1100px;margin:2rem auto;padding:0 1.5rem}
+.section h2{color:#d4a843;font-size:1.6rem;margin-bottom:1rem;border-bottom:1px solid #3a2f10;padding-bottom:0.5rem}
+.license-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem}
+.license-card{background:#221a00;border:1px solid #3a2f10;border-radius:8px;padding:1.5rem}
+.license-card h3{color:#d4a843;margin-bottom:0.5rem}
+.license-card .price{font-size:1.5rem;color:#d4a843;font-weight:700;margin-bottom:0.5rem}
+.license-card ul{list-style:none;padding:0}
+.license-card ul li{padding:0.25rem 0;color:#c0a870}
+.license-card ul li::before{content:"\2713 ";color:#d4a843}
+.footer{text-align:center;padding:2rem;color:#8a7a50;border-top:1px solid #3a2f10;margin-top:3rem;font-size:0.9rem}
+</style>
 </head>
 <body>
-
-<header>
-    <div class="container">
-        <h1>CLOOMC FOUNDATION</h1>
-        <p class="tagline">Civilizing Cyberspace through Industrial Strength Computer Science</p>
-    </div>
-</header>
-
-<div class="container">
-    <div class="nav-grid">
-        <a href="http://cloomc.org/README.md" class="card">
-            <h3>The Library (.org)</h3>
-            <p>The formal residency for CTMM specifications, the 6 Church Instructions, and the philosophy of Type Segregation.</p>
-            <small>EXPLORE STANDARDS &rarr;</small>
-        </a>
-
-        <a href="https://cloomc.com" class="card">
-            <h3>The Gateway (.com)</h3>
-            <p>Establish your private namespace and mint your Golden Tokens. The entry point for personal digital sovereignty.</p>
-            <small>VISIT CLOOMC.COM &rarr;</small>
-        </a>
-
-        <a href="https://sipantic.blogspot.com" class="card">
-            <h3>SIPantic Blog</h3>
-            <p>Ongoing dispatches from the frontier of Lambda-based logic and the fight against monolithic privilege.</p>
-            <small>READ DISPATCHES &rarr;</small>
-        </a>
-    </div>
-
-    <section class="trilogy">
-        <h2>The Trilogy of Civilized Cyberspace</h2>
-        <p>The definitive guide to the What, Why, and How of the CTMM Architecture.</p>
-        
-        <div class="book-links">
-            <div class="book-item">
-                <p><strong>Civilizing Cyberspace</strong></p>
-                <a href="https://sipantic.blogspot.com/p/industrial-strength-computer-science_7.html" target="_blank">View on B&N</a>
-            </div>
-            <div class="book-item">
-                <p><strong>The Fate of AI Society</strong></p>
-                <a href="https://www.amazon.com/Fate-Society-Civilizing-Superhuman-Cyberspace/dp/1964148545?ref_=ast_author_dp" target="_blank">Read Reviews</a>
-            </div>
-            <div class="book-item">
-                <p><strong>Winning World War III</strong></p>
-                <a href="https://www.amazon.com/Winning-World-War-III-Industrial/dp/1964864984/ref=sr_1_1?crid=2NLZGB4ZERMQM&dib=eyJ2IjoiMSJ9.j3CvAubuZUEC_pNnbs9H_HsIMk72EcklIQZcxS9DKzOY-EsWgf4qLoRlxJPvuFaIfEwE-rsebb9qUJleQfclgjkCFEKg9-bGdvkJjqwaI-Io0PBE9Q45ZDGARJBJ8kfryFK9n8GTvjBAERh3ECX-dhtWMnEeXkL7UCZIG_3bTFtyiDeSndwSbf7xToR1OvTJITV3RR7iIGfBAEsHKSrmRDa1roCxB1k-4CZTllKM0Dg.Z8dCTlp5yrr2ozDWR2zSZfcHo-XfxP38R7FSBIofjzI&dib_tag=se&keywords=winning+World+War+III&qid=1755608118&s=books&sprefix=winning+world+war+iii%2Cstripbooks%2C130&sr=1-1" target="_blank">Read Reviews</a>
-            </div>
-        </div>
-    </section>
-
-    <div style="text-align: center; padding-bottom: 80px;">
-        <h2>The Forge</h2>
-        <p>Ready to audit the architecture? Launch the bit-accurate CTMM simulator.</p>
-        
-        <a href="https://haskell-main-1--sipanticinc.replit.app/" class="cta-button">LAUNCH SIMULATOR</a>
-    </div>
+<div class="header">
+<h1>CLOOMC</h1>
+<p>The Church Machine Educational Platform &mdash; a capability-secured processor architecture with an educational IDE for the Tang Nano 20K FPGA.</p>
+<div style="margin-top:1rem">
+<span class="badge">GPL-3.0</span>
+<span class="badge">Free for Education</span>
+<span class="badge">Tang Nano 20K</span>
+<span class="badge">20 Instructions</span>
+</div>
 </div>
 
-<footer>
-    <p>&copy; 2026 CLOOMC Technologies LLC | Stuart, Florida</p>
-    <p>Established on the principles of the PP250 and the Lambda Calculus.</p>
-</footer>
+<div class="cards">
+<div class="card">
+<h3>Launch Simulator</h3>
+<p>Run the full Church Machine IDE in your browser. Write, compile, and test programs in English, JavaScript, Haskell, Symbolic Math, or Assembly.</p>
+<a href="simulator/index.html" class="btn">Open IDE</a>
+</div>
+<div class="card">
+<h3>Clone &amp; Self-Host</h3>
+<p>Clone the repository and run the IDE locally. No build step required &mdash; just open index.html.</p>
+<a href="https://github.com/khhodges/cloomc-project" class="btn">View on GitHub</a>
+</div>
+<div class="card">
+<h3>Browse Library</h3>
+<p>Explore shared abstractions in the Mum Tunnel library. Import community code or publish your own.</p>
+<a href="https://github.com/khhodges/cloomc-project/tree/main/library" class="btn">Browse Library</a>
+</div>
+<div class="card">
+<h3>Hardware Design</h3>
+<p>Amaranth HDL designs for the Tang Nano 20K FPGA. Flash your own capability-secured processor.</p>
+<a href="https://github.com/khhodges/cloomc-project/tree/main/hardware" class="btn">View Hardware</a>
+</div>
+</div>
 
+<div class="section">
+<h2>Licensing</h2>
+<div class="license-grid">
+<div class="license-card">
+<h3>Free Platform</h3>
+<div class="price">Free</div>
+<p>The full platform under GPL-3.0:</p>
+<ul>
+<li>IDE, simulator, compiler</li>
+<li>Shared abstraction library</li>
+<li>Hardware designs (CTMM)</li>
+<li>All students, parents, teachers</li>
+<li>K-12, IB, universities, homeschool</li>
+<li>Non-profit academic research</li>
+</ul>
+</div>
+<div class="license-card">
+<h3>Curriculum Packages</h3>
+<div class="price">Paid Add-Ons</div>
+<p>Structured courseware for exam boards:</p>
+<ul>
+<li>UK O-Levels &amp; A-Levels</li>
+<li>International Baccalaureate (IB)</li>
+<li>11+ Entrance Exams</li>
+<li>GCSE Computer Science</li>
+<li>AP Computer Science</li>
+<li>Lesson plans &amp; mark schemes</li>
+</ul>
+<p style="margin-top:0.75rem"><a href="https://cloomc.com">Details at cloomc.com &rarr;</a></p>
+</div>
+<div class="license-card">
+<h3>Commercial License</h3>
+<div class="price">Contact Us</div>
+<p>For commercial and for-profit use:</p>
+<ul>
+<li>Embedding in products</li>
+<li>Proprietary hardware</li>
+<li>Paid services</li>
+<li>For-profit systems</li>
+</ul>
+<p style="margin-top:0.75rem">Contact: <a href="mailto:SIPanticINC@gmail.com">SIPanticINC@gmail.com</a></p>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h2>The Church Machine</h2>
+<p style="color:#c0a870;line-height:1.6">A 32-bit capability-secured processor with 20 instructions (10 Church + 10 Turing), Golden Token security, 9 abstraction layers, and strict domain purity. Named for Alonzo Church, whose lambda calculus gave us the mathematical foundation of computation.</p>
+</div>
+
+<div class="footer">
+&copy; 2024&ndash;2026 CLOOMC Technologies LLC &mdash; Making secure computing accessible to every learner.
+<br><a href="https://cloomc.com">cloomc.com</a> &middot; <a href="https://github.com/khhodges/cloomc-project">GitHub</a> &middot; <a href="mailto:SIPanticINC@gmail.com">Contact</a>
+</div>
 </body>
 </html>
