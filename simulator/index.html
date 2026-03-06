@@ -90,6 +90,7 @@
                     <div class="toolbar-phase">
                         <span class="phase-label">Install</span>
                         <button class="btn" onclick="saveUploadJSON()" style="background:#2a6fdb;color:#fff;border:none;" title="Compile and save upload.json file">Save Upload JSON</button>
+                        <button class="btn" onclick="showLibrary()" style="background:#C89B3C;color:#141414;border:none;font-weight:bold;" title="Browse and share abstractions via Mum Tunnel Library">Library</button>
                         <button class="btn btn-primary" onclick="showSaveToNamespace()" id="btnSaveNS" disabled title="Save assembled program to namespace">Save to NS</button>
                         <button class="btn" onclick="runGC()" style="background:#9b59b6;color:#fff;border:none;" title="Run PP250 garbage collection">Run GC</button>
                         <button class="btn btn-deploy" onclick="downloadHardwareImage()" title="Download binary for Tang Nano 20K">Download .bin</button>
@@ -491,6 +492,51 @@
             <div class="modal-buttons">
                 <button class="btn btn-primary" onclick="confirmSaveToNamespace()">Save</button>
                 <button class="btn btn-warning" onclick="closeSaveDialog()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="libraryModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog library-dialog">
+            <div class="library-header">
+                <div class="library-title">Mum Tunnel Library</div>
+                <div class="library-subtitle">Share abstractions with learners worldwide</div>
+            </div>
+            <div class="library-toolbar">
+                <input type="text" id="librarySearch" class="modal-input" placeholder="Search abstractions..." oninput="filterLibrary()">
+                <select id="libraryLangFilter" class="modal-input" onchange="filterLibrary()" style="width:auto;">
+                    <option value="">All Languages</option>
+                    <option value="english">English</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="haskell">Haskell</option>
+                    <option value="symbolic">Symbolic Math</option>
+                    <option value="assembly">Assembly</option>
+                </select>
+                <button class="btn" onclick="publishToLibrary()" style="background:#4a7a2e;color:#fff;border:none;">Publish Current</button>
+            </div>
+            <div id="libraryGrid" class="library-grid">
+                <div class="library-loading">Loading shared abstractions...</div>
+            </div>
+            <div class="library-footer">
+                <a id="libraryGitHubLink" href="#" target="_blank" class="library-github-link">View on GitHub</a>
+                <button class="btn btn-warning" onclick="document.getElementById('libraryModal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="publishModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title">Publish to Mum Tunnel Library</div>
+            <label class="modal-label">Description:
+                <textarea id="publishDescription" class="modal-input" rows="3" placeholder="What does this abstraction do?"></textarea>
+            </label>
+            <label class="modal-label">Tags (comma-separated):
+                <input type="text" id="publishTags" class="modal-input" placeholder="math, counter, tutorial">
+            </label>
+            <div id="publishPreview" class="publish-preview"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="confirmPublish()">Publish to GitHub</button>
+                <button class="btn btn-warning" onclick="document.getElementById('publishModal').style.display='none'">Cancel</button>
             </div>
         </div>
     </div>

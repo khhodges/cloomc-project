@@ -296,7 +296,8 @@ class SystemAbstractions {
                     codeSize: codeSize,
                     clistCount: clistCount,
                     clistStart: clistStart,
-                    methods: methods.map(m => m.name)
+                    methods: methods.map(m => m.name),
+                    doc: upload.doc || null
                 },
                 message: `Navana.Abstraction.Add: "${name}" @ NS[${nsIndex}] v${version}, code=${codeSize}, clist=${clistCount}, alloc=${allocSize}`
             };

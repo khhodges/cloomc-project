@@ -1,7 +1,10 @@
 import os
+import json
 import logging
 import uuid
-from flask import Flask, jsonify, send_from_directory, redirect, make_response
+import base64
+import requests as http_requests
+from flask import Flask, jsonify, send_from_directory, redirect, make_response, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -104,6 +107,149 @@ def docs_read(filename):
     with open(filepath, 'r') as f:
         content = f.read()
     return jsonify({"name": filename, "content": content})
+
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+GITHUB_LIBRARY_REPO = os.environ.get("GITHUB_LIBRARY_REPO", "")
+
+def github_api(method, path, json_data=None):
+    if not GITHUB_TOKEN or not GITHUB_LIBRARY_REPO:
+        return None, "GitHub not configured"
+    url = f"https://api.github.com/repos/{GITHUB_LIBRARY_REPO}{path}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    try:
+        if method == "GET":
+            r = http_requests.get(url, headers=headers, timeout=15)
+        elif method == "PUT":
+            r = http_requests.put(url, headers=headers, json=json_data, timeout=15)
+        else:
+            return None, f"Unsupported method: {method}"
+        if r.status_code >= 400:
+            return None, f"GitHub API {r.status_code}: {r.text[:200]}"
+        return r.json(), None
+    except Exception as e:
+        return None, str(e)
+
+@app.route("/api/library/repo-url")
+def library_repo_url():
+    if GITHUB_LIBRARY_REPO:
+        return jsonify({"url": f"https://github.com/{GITHUB_LIBRARY_REPO}"})
+    return jsonify({"url": ""})
+
+@app.route("/api/library/browse")
+def library_browse():
+    lang_filter = request.args.get("language", "")
+
+    if not GITHUB_TOKEN or not GITHUB_LIBRARY_REPO:
+        return jsonify({"items": [], "message": "GitHub not configured. Connect GitHub to enable the shared library."})
+
+    items = []
+    data, err = github_api("GET", "/contents/library")
+    if err:
+        return jsonify({"items": [], "message": err})
+
+    if not isinstance(data, list):
+        return jsonify({"items": [], "message": "No library directory found"})
+
+    lang_dirs = [d for d in data if d.get("type") == "dir"]
+    if lang_filter:
+        lang_dirs = [d for d in lang_dirs if d["name"] == lang_filter]
+
+    for lang_dir in lang_dirs:
+        lang_name = lang_dir["name"]
+        files_data, files_err = github_api("GET", f"/contents/library/{lang_name}")
+        if files_err or not isinstance(files_data, list):
+            continue
+        for f in files_data:
+            if f.get("name", "").endswith(".json"):
+                abs_name = f["name"][:-5]
+                file_data, file_err = github_api("GET", f"/contents/library/{lang_name}/{f['name']}")
+                if file_err:
+                    items.append({
+                        "name": abs_name,
+                        "path": f"library/{lang_name}/{f['name']}",
+                        "doc": {"language": lang_name, "description": "", "author": "", "date": ""}
+                    })
+                    continue
+                try:
+                    content = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+                    parsed = json.loads(content)
+                    doc = parsed.get("doc", {})
+                    items.append({
+                        "name": parsed.get("abstraction", abs_name),
+                        "path": f"library/{lang_name}/{f['name']}",
+                        "doc": doc
+                    })
+                except Exception:
+                    items.append({
+                        "name": abs_name,
+                        "path": f"library/{lang_name}/{f['name']}",
+                        "doc": {"language": lang_name}
+                    })
+
+    return jsonify({"items": items})
+
+@app.route("/api/library/get/<path:filepath>")
+def library_get(filepath):
+    if not GITHUB_TOKEN or not GITHUB_LIBRARY_REPO:
+        return jsonify({"error": "GitHub not configured"}), 503
+
+    data, err = github_api("GET", f"/contents/{filepath}")
+    if err:
+        return jsonify({"error": err}), 404
+
+    try:
+        content = base64.b64decode(data.get("content", "")).decode("utf-8")
+        parsed = json.loads(content)
+        return jsonify(parsed)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/library/publish", methods=["POST"])
+def library_publish():
+    if not GITHUB_TOKEN or not GITHUB_LIBRARY_REPO:
+        return jsonify({"error": "GitHub not configured. Please connect your GitHub account first."}), 503
+
+    payload = request.get_json()
+    if not payload:
+        return jsonify({"error": "No data provided"}), 400
+
+    name = payload.get("abstraction", "").strip()
+    if not name:
+        return jsonify({"error": "Abstraction name is required"}), 400
+
+    doc = payload.get("doc", {})
+    lang = doc.get("language", "javascript")
+    source = payload.get("source", "")
+    author = doc.get("author", "Anonymous")
+
+    safe_name = "".join(c for c in name if c.isalnum() or c in "_-").strip()
+    if not safe_name:
+        safe_name = "abstraction"
+
+    json_path = f"library/{lang}/{safe_name}.json"
+    json_content = json.dumps(payload, indent=2)
+    encoded = base64.b64encode(json_content.encode("utf-8")).decode("utf-8")
+
+    existing, _ = github_api("GET", f"/contents/{json_path}")
+    sha = existing.get("sha") if existing and isinstance(existing, dict) else None
+
+    put_data = {
+        "message": f"Add {name} by {author}",
+        "content": encoded,
+        "branch": "main"
+    }
+    if sha:
+        put_data["sha"] = sha
+        put_data["message"] = f"Update {name} by {author}"
+
+    result, err = github_api("PUT", f"/contents/{json_path}", put_data)
+    if err:
+        return jsonify({"error": f"GitHub push failed: {err}"}), 500
+
+    return jsonify({"ok": True, "path": json_path, "message": f"Published {name} to {GITHUB_LIBRARY_REPO}"})
 
 with app.app_context():
     import sys

@@ -882,6 +882,24 @@ function showAbstractionDetail(index) {
     html += '</div>';
     html += '</div>';
 
+    if (abs.doc) {
+        html += '<div class="abs-detail-section abs-doc-section">';
+        html += '<div class="abs-doc-label">Self-Documentation</div>';
+        if (abs.doc.author) html += `<div class="abs-doc-field"><strong>Author:</strong> ${abs.doc.author}</div>`;
+        if (abs.doc.date) html += `<div class="abs-doc-field"><strong>Date:</strong> ${abs.doc.date}</div>`;
+        if (abs.doc.languageLabel) html += `<div class="abs-doc-field"><strong>Language:</strong> ${abs.doc.languageLabel}</div>`;
+        if (abs.doc.description) html += `<div class="abs-doc-field"><strong>Description:</strong> ${abs.doc.description}</div>`;
+        if (abs.doc.tags && abs.doc.tags.length > 0) html += `<div class="abs-doc-field"><strong>Tags:</strong> ${abs.doc.tags.join(', ')}</div>`;
+        if (abs.doc.methods && abs.doc.methods.length > 0) {
+            html += '<div class="abs-doc-field"><strong>Method Signatures:</strong></div>';
+            for (const m of abs.doc.methods) {
+                const params = m.params && m.params.length > 0 ? `(${m.params.join(', ')})` : '()';
+                html += `<div class="abs-doc-field" style="padding-left:1rem;">${m.name}${params} — ${m.instructions} instruction${m.instructions !== 1 ? 's' : ''}</div>`;
+            }
+        }
+        html += '</div>';
+    }
+
     if (abs.layer === 7) {
         html += '<div class="abs-detail-section abs-note-security">';
         html += '<div class="abs-detail-label">Internet Security Model</div>';
@@ -6119,12 +6137,15 @@ function compileAndCreateAbstraction() {
         return { target: target, name: capName, grants: ['E'] };
     }).filter(c => c.target >= 0);
 
+    const doc = buildDocBlock(result, source);
+
     const upload = {
         abstraction: result.abstractionName || 'UserAbstraction',
         type: 'abstraction',
         grants: ['E'],
         capabilities: uploadCaps,
-        methods: result.methods
+        methods: result.methods,
+        doc: doc
     };
 
     const addResult = abstractionRegistry.dispatchMethod(5, 'Abstraction.Add', sim, { upload: upload });
@@ -6153,6 +6174,11 @@ function compileAndCreateAbstraction() {
         listing += `\n  CALL split:\n`;
         listing += `    CR7 (code):   base=0x${r.location.toString(16)}, limit=${clistStart - 1}, perms=X-only\n`;
         listing += `    CR6 (c-list): base=0x${(r.location + clistStart).toString(16)}, limit=${r.clistCount - 1}, perms=L-only\n`;
+    }
+
+    if (r.doc && abstractionRegistry) {
+        const abs = abstractionRegistry.getAbstraction(r.nsIndex);
+        if (abs) abs.doc = r.doc;
     }
 
     if (con) con.textContent = listing;
@@ -6227,6 +6253,8 @@ function saveUploadJSON() {
         return { target: target, name: capName, grants: ['E'] };
     });
 
+    const doc = buildDocBlock(result, source);
+
     const upload = {
         abstraction: result.abstractionName || 'Unnamed',
         type: 'abstraction',
@@ -6235,7 +6263,8 @@ function saveUploadJSON() {
         methods: result.methods.map(m => ({
             name: m.name,
             code: m.code.map(w => '0x' + (w >>> 0).toString(16).padStart(8, '0'))
-        }))
+        })),
+        doc: doc
     };
 
     const json = JSON.stringify(upload, null, 2);
@@ -6264,6 +6293,240 @@ function saveUploadJSON() {
 
     if (con) con.textContent = listing;
     appendOutput(`Saved upload JSON for "${result.abstractionName}"`, 'info');
+}
+
+function buildDocBlock(result, source) {
+    const settings = getStudentSettings();
+    const sel = document.getElementById('langSelector');
+    const lang = sel ? sel.value : (result.language || 'javascript');
+    const langNames = { english: 'English', javascript: 'JavaScript', haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', assembly: 'Assembly' };
+    const caps = result.capabilities || [];
+    const methods = (result.methods || []).map(m => ({
+        name: m.name,
+        params: m.params || [],
+        instructions: (m.code || []).length
+    }));
+
+    const lines = source.split('\n');
+    const sourcePreview = lines.slice(0, 20).join('\n') + (lines.length > 20 ? '\n...' : '');
+
+    return {
+        author: settings.name || 'Anonymous',
+        date: new Date().toISOString().split('T')[0],
+        language: lang,
+        languageLabel: langNames[lang] || lang,
+        description: `${methods.length} method${methods.length !== 1 ? 's' : ''}, ${caps.length} capabilit${caps.length !== 1 ? 'ies' : 'y'}, language: ${langNames[lang] || lang}`,
+        tags: [],
+        methods: methods,
+        capabilities: caps,
+        sourcePreview: sourcePreview
+    };
+}
+
+let libraryCache = null;
+let libraryAllItems = [];
+
+async function showLibrary() {
+    document.getElementById('libraryModal').style.display = 'flex';
+    const repoLink = document.getElementById('libraryGitHubLink');
+    if (repoLink) {
+        repoLink.href = '/api/library/repo-url';
+        try {
+            const r = await fetch('/api/library/repo-url');
+            if (r.ok) {
+                const data = await r.json();
+                if (data.url) repoLink.href = data.url;
+            }
+        } catch (e) {}
+    }
+    await loadLibraryItems();
+}
+
+async function loadLibraryItems() {
+    const grid = document.getElementById('libraryGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="library-loading">Loading shared abstractions...</div>';
+
+    try {
+        const langFilter = document.getElementById('libraryLangFilter');
+        const langParam = langFilter && langFilter.value ? `?language=${langFilter.value}` : '';
+        const resp = await fetch(`/api/library/browse${langParam}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        libraryAllItems = data.items || [];
+        renderLibraryGrid(libraryAllItems);
+    } catch (e) {
+        grid.innerHTML = `<div class="library-empty">Could not load library: ${e.message}</div>`;
+    }
+}
+
+function renderLibraryGrid(items) {
+    const grid = document.getElementById('libraryGrid');
+    if (!grid) return;
+
+    if (items.length === 0) {
+        grid.innerHTML = '<div class="library-empty">No shared abstractions yet. Be the first to publish!</div>';
+        return;
+    }
+
+    let html = '';
+    for (const item of items) {
+        const doc = item.doc || {};
+        const langClass = 'lang-' + (doc.language || 'javascript');
+        const langLabel = doc.languageLabel || doc.language || 'Unknown';
+        const tags = (doc.tags || []);
+        html += '<div class="library-card">';
+        html += `<div class="library-card-name">${escapeHTML(item.name || 'Untitled')}</div>`;
+        html += `<div class="library-card-meta">`;
+        html += `<span class="library-lang-badge ${langClass}">${escapeHTML(langLabel)}</span>`;
+        html += `<span>by ${escapeHTML(doc.author || 'Anonymous')}</span>`;
+        html += `<span>${escapeHTML(doc.date || '')}</span>`;
+        html += `</div>`;
+        html += `<div class="library-card-desc">${escapeHTML(doc.description || '')}</div>`;
+        if (tags.length > 0) {
+            html += '<div class="library-card-tags">';
+            for (const t of tags) html += `<span class="library-tag">${escapeHTML(t)}</span>`;
+            html += '</div>';
+        }
+        html += `<div class="library-card-actions">`;
+        html += `<button class="btn btn-primary" onclick="importFromLibrary('${escapeHTML(item.path || '')}')">Import</button>`;
+        html += `</div>`;
+        html += '</div>';
+    }
+    grid.innerHTML = html;
+}
+
+function escapeHTML(str) {
+    const el = document.createElement('span');
+    el.textContent = str;
+    return el.innerHTML;
+}
+
+function filterLibrary() {
+    const search = (document.getElementById('librarySearch').value || '').toLowerCase();
+    const langFilter = document.getElementById('libraryLangFilter').value;
+
+    let filtered = libraryAllItems;
+    if (langFilter) {
+        filtered = filtered.filter(item => (item.doc && item.doc.language) === langFilter);
+    }
+    if (search) {
+        filtered = filtered.filter(item => {
+            const name = (item.name || '').toLowerCase();
+            const desc = (item.doc && item.doc.description || '').toLowerCase();
+            const author = (item.doc && item.doc.author || '').toLowerCase();
+            const tags = (item.doc && item.doc.tags || []).join(' ').toLowerCase();
+            return name.includes(search) || desc.includes(search) || author.includes(search) || tags.includes(search);
+        });
+    }
+    renderLibraryGrid(filtered);
+}
+
+function publishToLibrary() {
+    const editor = document.getElementById('asmEditor');
+    if (!editor || !cloomcCompiler) return;
+    const source = editor.value;
+
+    const result = cloomcCompiler.compile(source, []);
+    if (result.errors.length > 0) {
+        alert('Compile first — there are errors in the current source.');
+        return;
+    }
+
+    const doc = buildDocBlock(result, source);
+    const preview = document.getElementById('publishPreview');
+    if (preview) {
+        preview.textContent = `Abstraction: ${result.abstractionName}\nMethods: ${doc.methods.map(m => m.name).join(', ')}\nCapabilities: ${doc.capabilities.join(', ') || 'none'}\nLanguage: ${doc.languageLabel}\nAuthor: ${doc.author}`;
+    }
+
+    document.getElementById('publishDescription').value = doc.description;
+    document.getElementById('publishTags').value = '';
+    document.getElementById('publishModal').style.display = 'flex';
+    document.getElementById('publishModal')._compiledResult = result;
+    document.getElementById('publishModal')._source = source;
+}
+
+async function confirmPublish() {
+    const modal = document.getElementById('publishModal');
+    const result = modal._compiledResult;
+    const source = modal._source;
+    if (!result) return;
+
+    const description = document.getElementById('publishDescription').value.trim();
+    const tagsRaw = document.getElementById('publishTags').value.trim();
+    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+    const doc = buildDocBlock(result, source);
+    doc.description = description || doc.description;
+    doc.tags = tags;
+
+    const uploadCaps = (result.capabilities || []).map((capName) => {
+        return { target: -1, name: capName, grants: ['E'] };
+    });
+
+    const payload = {
+        abstraction: result.abstractionName || 'Unnamed',
+        type: 'abstraction',
+        grants: ['E'],
+        capabilities: uploadCaps,
+        methods: result.methods.map(m => ({
+            name: m.name,
+            code: m.code.map(w => '0x' + (w >>> 0).toString(16).padStart(8, '0'))
+        })),
+        doc: doc,
+        source: source
+    };
+
+    try {
+        const resp = await fetch('/api/library/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        modal.style.display = 'none';
+        appendOutput(`Published "${result.abstractionName}" to Mum Tunnel Library`, 'info');
+        await loadLibraryItems();
+    } catch (e) {
+        alert(`Publish failed: ${e.message}`);
+    }
+}
+
+async function importFromLibrary(path) {
+    try {
+        const resp = await fetch(`/api/library/get/${encodeURIComponent(path)}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        if (data.source) {
+            const editor = document.getElementById('asmEditor');
+            if (editor) {
+                editor.value = data.source;
+                updateLineNumbers();
+                saveEditorState();
+            }
+
+            if (data.doc && data.doc.language) {
+                const sel = document.getElementById('langSelector');
+                if (sel) {
+                    sel.value = data.doc.language;
+                    onLangChange(true);
+                }
+            }
+
+            document.getElementById('libraryModal').style.display = 'none';
+            appendOutput(`Imported "${data.abstraction || path}" from Mum Tunnel Library`, 'info');
+            switchCodeTab('console');
+        }
+    } catch (e) {
+        alert(`Import failed: ${e.message}`);
+    }
 }
 
 let docsLoaded = false;
