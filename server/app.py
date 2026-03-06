@@ -109,12 +109,16 @@ def docs_read(filename):
     return jsonify({"name": filename, "content": content})
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
-GITHUB_LIBRARY_REPO = os.environ.get("GITHUB_LIBRARY_REPO", "")
+GITHUB_LIBRARY_REPO = os.environ.get("GITHUB_LIBRARY_REPO", "khhodges/cloomc-project")
+GITHUB_FOUNDATION_REPO = "khhodges/cloomc-foundation"
 
-def github_api(method, path, json_data=None):
-    if not GITHUB_TOKEN or not GITHUB_LIBRARY_REPO:
-        return None, "GitHub not configured"
-    url = f"https://api.github.com/repos/{GITHUB_LIBRARY_REPO}{path}"
+def github_api(method, path, json_data=None, repo=None):
+    if not GITHUB_TOKEN:
+        return None, "GitHub not configured — set GITHUB_TOKEN"
+    target_repo = repo or GITHUB_LIBRARY_REPO
+    if not target_repo:
+        return None, "No target repository configured"
+    url = f"https://api.github.com/repos/{target_repo}{path}"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -131,6 +135,16 @@ def github_api(method, path, json_data=None):
         return r.json(), None
     except Exception as e:
         return None, str(e)
+
+def github_push_file(repo, filepath, content_str, commit_msg, branch="main"):
+    encoded = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
+    existing, _ = github_api("GET", f"/contents/{filepath}", repo=repo)
+    sha = existing.get("sha") if existing and isinstance(existing, dict) and "sha" in existing else None
+    put_data = {"message": commit_msg, "content": encoded, "branch": branch}
+    if sha:
+        put_data["sha"] = sha
+    result, err = github_api("PUT", f"/contents/{filepath}", put_data, repo=repo)
+    return result, err
 
 @app.route("/api/library/repo-url")
 def library_repo_url():
