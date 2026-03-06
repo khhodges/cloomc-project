@@ -118,13 +118,13 @@
             </div>
             <div class="editor-panel console-panel">
                 <div class="sidebar-tabs">
-                    <button class="sidebar-tab active" id="codeTabConsole" onclick="switchCodeTab('console')">Console Output</button>
-                    <button class="sidebar-tab" id="codeTabHistory" onclick="switchCodeTab('history')">History</button>
+                    <button class="sidebar-tab" id="codeTabConsole" onclick="switchCodeTab('console')">Console Output</button>
+                    <button class="sidebar-tab active" id="codeTabHistory" onclick="switchCodeTab('history')">History</button>
                 </div>
-                <div id="codeConsoleContent">
+                <div id="codeConsoleContent" style="display:none;">
                     <div id="editorConsole">Ready. Write Church assembly and click Assemble.</div>
                 </div>
-                <div id="codeHistoryPanel" style="display:none;">
+                <div id="codeHistoryPanel">
                     <div style="display:flex;justify-content:flex-end;gap:0.4rem;padding:0.3rem 0;">
                         <button class="btn" onclick="historyShowStepGuide()" style="padding:0.2rem 0.6rem;font-size:0.75rem;">How to Step</button>
                         <button class="btn btn-primary" onclick="historyNewCodeStory()" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Another Story</button>
@@ -206,10 +206,10 @@
             <div class="repl-divider" id="replDivider"></div>
             <div class="repl-sidebar">
                 <div class="sidebar-tabs">
-                    <button class="sidebar-tab active" id="sidebarTabChallenge" onclick="switchSidebarTab('challenge')">Challenge</button>
-                    <button class="sidebar-tab" id="sidebarTabHistory" onclick="switchSidebarTab('history')">History</button>
+                    <button class="sidebar-tab" id="sidebarTabChallenge" onclick="switchSidebarTab('challenge')">Challenge</button>
+                    <button class="sidebar-tab active" id="sidebarTabHistory" onclick="switchSidebarTab('history')">History</button>
                 </div>
-                <div id="sidebarChallengeContent">
+                <div id="sidebarChallengeContent" style="display:none;">
                     <div class="panel challenge-panel">
                         <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
                             <span>Challenge</span>
@@ -237,7 +237,7 @@
                         <button class="btn btn-warning" onclick="replExecute('CLEAR')" style="width:100%;">Clear All</button>
                     </div>
                 </div>
-                <div id="sidebarHistoryContent" style="display:none;">
+                <div id="sidebarHistoryContent">
                     <div class="panel history-panel">
                         <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
                             <span>History</span>

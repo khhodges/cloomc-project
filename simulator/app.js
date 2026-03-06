@@ -101,6 +101,10 @@ function switchView(viewId) {
     if (viewId === 'editor') {
         const sel = document.getElementById('langSelector');
         if (sel) showIntro(sel.value);
+        if (typeof historyRefreshCode === 'function') {
+            const area = document.getElementById('codeHistoryContent');
+            if (area && !area.innerHTML.trim()) historyRefreshCode();
+        }
     }
     if (viewId === 'tutorial') {
         if (activeTutorial === 'sliderule') {
@@ -109,7 +113,14 @@ function switchView(viewId) {
             churchTutorial.render('tutorialView');
         }
     }
-    if (viewId === 'repl') { updateMathWelcome(); showMathGuidePopup(); }
+    if (viewId === 'repl') {
+        updateMathWelcome();
+        showMathGuidePopup();
+        if (typeof historyRefresh === 'function') {
+            const area = document.getElementById('historyContent');
+            if (area && !area.innerHTML.trim()) historyRefresh();
+        }
+    }
     if (viewId === 'reference') renderReference();
     if (viewId === 'docs') loadDocsView();
 }
