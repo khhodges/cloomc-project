@@ -612,6 +612,19 @@ header h1 {
 
 .btn-warning:hover { background: #92400e; }
 
+.btn-settings-icon {
+    font-size: 1.15rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.35rem;
+    line-height: 1;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+}
+.btn-settings-icon:hover {
+    opacity: 1;
+    color: var(--church-gold);
+}
+
 .btn-info {
     background: #164e63;
     border-color: #22d3ee;
