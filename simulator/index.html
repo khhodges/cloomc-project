@@ -133,11 +133,15 @@
             <div class="editor-panel console-panel">
                 <div class="sidebar-tabs">
                     <button class="sidebar-tab" id="codeTabConsole" onclick="switchCodeTab('console')">Console Output</button>
+                    <button class="sidebar-tab" id="codeTabSyntax" onclick="switchCodeTab('syntax')">Syntax</button>
                     <button class="sidebar-tab active" id="codeTabHistory" onclick="switchCodeTab('history')">History</button>
                 </div>
                 <div id="codeConsoleContent" style="display:none;">
                     <div id="editorConsole">Ready. Write Church assembly and click Assemble.</div>
                     <div id="nextStepsBox" class="next-steps-box"></div>
+                </div>
+                <div id="codeSyntaxPanel" style="display:none;">
+                    <div id="syntaxRefContent"></div>
                 </div>
                 <div id="codeHistoryPanel">
                     <div style="display:flex;justify-content:flex-end;gap:0.4rem;padding:0.3rem 0;">

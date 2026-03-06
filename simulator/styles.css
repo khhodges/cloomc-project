@@ -1255,6 +1255,67 @@ header h1 {
     margin-bottom: 0.3rem;
 }
 
+#codeSyntaxPanel {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+    padding: 0.3rem 0.5rem;
+}
+
+.syntax-ref-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--church-gold);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.syntax-ref-section {
+    margin-bottom: 0.6rem;
+}
+
+.syntax-ref-heading {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--church-gold);
+    font-weight: 600;
+    opacity: 0.8;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid rgba(200,155,60,0.2);
+    padding-bottom: 0.15rem;
+}
+
+.syntax-ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.2rem;
+}
+
+.syntax-ref-table tr:hover {
+    background: rgba(200,155,60,0.06);
+}
+
+.syntax-ref-code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.72rem;
+    color: var(--text-primary);
+    padding: 0.2rem 0.4rem 0.2rem 0;
+    white-space: nowrap;
+    vertical-align: top;
+}
+
+.syntax-ref-code em {
+    color: var(--church-gold);
+    font-style: normal;
+}
+
+.syntax-ref-desc {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    padding: 0.2rem 0;
+    vertical-align: top;
+}
+
 .history-empty {
     font-size: 0.8rem;
     color: var(--text-secondary);

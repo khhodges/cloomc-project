@@ -3969,21 +3969,30 @@ function switchMathMode(mode) {
 function switchCodeTab(tab) {
     const consoleContent = document.getElementById('codeConsoleContent');
     const historyPanel = document.getElementById('codeHistoryPanel');
+    const syntaxPanel = document.getElementById('codeSyntaxPanel');
     const tabConsole = document.getElementById('codeTabConsole');
     const tabHistory = document.getElementById('codeTabHistory');
+    const tabSyntax = document.getElementById('codeTabSyntax');
+
+    if (consoleContent) consoleContent.style.display = 'none';
+    if (historyPanel) historyPanel.style.display = 'none';
+    if (syntaxPanel) syntaxPanel.style.display = 'none';
+    if (tabConsole) tabConsole.classList.remove('active');
+    if (tabHistory) tabHistory.classList.remove('active');
+    if (tabSyntax) tabSyntax.classList.remove('active');
 
     if (tab === 'history') {
-        if (consoleContent) consoleContent.style.display = 'none';
         if (historyPanel) historyPanel.style.display = 'block';
-        if (tabConsole) tabConsole.classList.remove('active');
         if (tabHistory) tabHistory.classList.add('active');
         const area = document.getElementById('codeHistoryContent');
         if (area && !area.innerHTML.trim() && typeof historyRefreshCode === 'function') historyRefreshCode();
+    } else if (tab === 'syntax') {
+        if (syntaxPanel) syntaxPanel.style.display = 'block';
+        if (tabSyntax) tabSyntax.classList.add('active');
+        if (typeof renderSyntaxRef === 'function') renderSyntaxRef();
     } else {
         if (consoleContent) consoleContent.style.display = 'block';
-        if (historyPanel) historyPanel.style.display = 'none';
         if (tabConsole) tabConsole.classList.add('active');
-        if (tabHistory) tabHistory.classList.remove('active');
     }
 }
 
@@ -5650,6 +5659,201 @@ function showInstructionDetail(opcode) {
     `;
 }
 
+const SYNTAX_REF = {
+    english: {
+        title: "English Syntax Reference",
+        sections: [
+            { heading: "Structure", items: [
+                { syntax: "Create an abstraction called <em>Name</em>", desc: "Declare abstraction" },
+                { syntax: "Add a method called <em>Name</em> that takes <em>a</em>, <em>b</em>", desc: "Define method with parameters" },
+                { syntax: "It needs <em>Memory</em> and <em>Mint</em>", desc: "Declare capabilities" },
+            ]},
+            { heading: "Assignment", items: [
+                { syntax: "Set <em>result</em> to <em>x</em> plus <em>1</em>", desc: "Assign with arithmetic" },
+                { syntax: "Let <em>total</em> be <em>a</em> times <em>b</em>", desc: "Alternative assignment" },
+            ]},
+            { heading: "Arithmetic", items: [
+                { syntax: "<em>a</em> plus <em>b</em>", desc: "Addition" },
+                { syntax: "<em>a</em> minus <em>b</em>", desc: "Subtraction" },
+                { syntax: "<em>a</em> times <em>b</em>", desc: "Multiply (software)" },
+                { syntax: "<em>a</em> divided by <em>b</em>", desc: "Divide (software)" },
+                { syntax: "<em>a</em> shifted left by <em>n</em>", desc: "Shift left" },
+                { syntax: "<em>a</em> shifted right by <em>n</em>", desc: "Shift right" },
+            ]},
+            { heading: "Control Flow", items: [
+                { syntax: "If <em>count</em> is greater than <em>0</em>", desc: "Conditional (also: equal to, less than, not)" },
+                { syntax: "Otherwise", desc: "Else branch" },
+                { syntax: "End if", desc: "Close conditional" },
+            ]},
+            { heading: "Calls & Returns", items: [
+                { syntax: "Call <em>Memory.Allocate</em> with <em>size</em>", desc: "Invoke method" },
+                { syntax: "Set <em>r</em> to the result of calling <em>Memory.Allocate</em> with <em>size</em>", desc: "Capture return value" },
+                { syntax: "Return the result", desc: "Return DR0" },
+                { syntax: "Return <em>value</em>", desc: "Return a specific value" },
+            ]},
+            { heading: "Memory", items: [
+                { syntax: "Read from <em>CR7</em> at offset <em>0</em>", desc: "Read memory" },
+                { syntax: "Write <em>value</em> to <em>CR7</em> at offset <em>0</em>", desc: "Write memory" },
+            ]},
+        ]
+    },
+    javascript: {
+        title: "JavaScript (CLOOMC++) Syntax Reference",
+        sections: [
+            { heading: "Structure", items: [
+                { syntax: "abstraction <em>Name</em> { }", desc: "Declare abstraction" },
+                { syntax: "capabilities { <em>Memory</em>, <em>Mint</em> }", desc: "Capability list" },
+                { syntax: "method <em>Name</em>(<em>a</em>, <em>b</em>) { }", desc: "Define method" },
+            ]},
+            { heading: "Assignment & Arithmetic", items: [
+                { syntax: "<em>result</em> = <em>a</em> + <em>b</em>", desc: "Add" },
+                { syntax: "<em>result</em> = <em>a</em> - <em>b</em>", desc: "Subtract" },
+                { syntax: "<em>result</em> = <em>a</em> * <em>b</em>", desc: "Multiply (software)" },
+                { syntax: "<em>result</em> = <em>a</em> / <em>b</em>", desc: "Divide (software)" },
+                { syntax: "<em>result</em> = <em>a</em> &lt;&lt; <em>n</em>", desc: "Shift left" },
+                { syntax: "<em>result</em> = <em>a</em> &gt;&gt; <em>n</em>", desc: "Shift right" },
+            ]},
+            { heading: "Control Flow", items: [
+                { syntax: "if (<em>a</em> == <em>b</em>) { ... }", desc: "Conditional (==, !=, <, >, <=, >=)" },
+                { syntax: "while (<em>i</em> &lt; <em>10</em>) { ... }", desc: "Loop" },
+            ]},
+            { heading: "Calls & Returns", items: [
+                { syntax: "result = call(<em>Memory.Allocate</em>(<em>size</em>))", desc: "Call via c-list" },
+                { syntax: "return(<em>result</em>)", desc: "Return value in DR0" },
+            ]},
+            { heading: "Memory & Bit Fields", items: [
+                { syntax: "<em>x</em> = read(<em>CR7</em>, <em>offset</em>)", desc: "Read from capability" },
+                { syntax: "write(<em>CR7</em>, <em>offset</em>, <em>value</em>)", desc: "Write to capability" },
+                { syntax: "bfext(<em>word</em>, <em>pos</em>, <em>width</em>)", desc: "Extract bit field" },
+                { syntax: "bfins(<em>word</em>, <em>val</em>, <em>pos</em>, <em>width</em>)", desc: "Insert bit field" },
+            ]},
+            { heading: "Registers", items: [
+                { syntax: "DR0\u2013DR3", desc: "Arguments & return values" },
+                { syntax: "DR4\u2013DR11", desc: "Locals (callee-saved)" },
+                { syntax: "DR12\u2013DR15", desc: "Temps (caller-saved)" },
+            ]},
+        ]
+    },
+    haskell: {
+        title: "Haskell (CLOOMC++) Syntax Reference",
+        sections: [
+            { heading: "Structure", items: [
+                { syntax: "abstraction <em>Name</em> { }", desc: "Declare abstraction" },
+                { syntax: "capabilities { <em>Memory</em> }", desc: "Capability list" },
+                { syntax: "method <em>name</em>(<em>a</em>, <em>b</em>) = <em>expr</em>", desc: "Method as expression" },
+            ]},
+            { heading: "Expressions", items: [
+                { syntax: "<em>a</em> + <em>b</em>", desc: "Add" },
+                { syntax: "<em>a</em> - <em>b</em>", desc: "Subtract" },
+                { syntax: "<em>a</em> * <em>b</em>", desc: "Multiply (software)" },
+                { syntax: "if <em>x</em> == <em>0</em> then <em>a</em> else <em>b</em>", desc: "Inline conditional" },
+            ]},
+            { heading: "Pattern Matching", items: [
+                { syntax: "case <em>n</em> of <em>0</em> -&gt; <em>1</em>, _ -&gt; <em>n</em>", desc: "Case expression" },
+            ]},
+            { heading: "Let Bindings", items: [
+                { syntax: "let <em>a</em> = <em>x</em> + <em>1</em> in <em>a</em> + <em>a</em>", desc: "Local binding" },
+            ]},
+            { heading: "Pairs", items: [
+                { syntax: "(<em>a</em>, <em>b</em>)", desc: "Construct pair (BFINS)" },
+                { syntax: "fst <em>p</em>", desc: "First element (BFEXT)" },
+                { syntax: "snd <em>p</em>", desc: "Second element (BFEXT)" },
+            ]},
+            { heading: "Lambda", items: [
+                { syntax: "\\<em>x</em> -&gt; <em>x</em> + <em>1</em>", desc: "Lambda expression (LAMBDA instruction)" },
+            ]},
+        ]
+    },
+    symbolic: {
+        title: "Symbolic Math (Ada) Syntax Reference",
+        sections: [
+            { heading: "Structure", items: [
+                { syntax: "abstraction <em>Name</em> { }", desc: "Declare abstraction" },
+                { syntax: "method <em>name</em>() { ... }", desc: "Define method" },
+            ]},
+            { heading: "Variables", items: [
+                { syntax: "let V1 = <em>1</em>", desc: "Initialise store column (V1\u2013V15 \u2192 DR1\u2013DR15)" },
+                { syntax: "let V4 = V2 * V3", desc: "Multiply (shift-and-add loop)" },
+                { syntax: "let V11 = V4 / V5", desc: "Divide (repeated subtraction)" },
+                { syntax: "let V5 = V5 + V1", desc: "Addition" },
+                { syntax: "let V4 = V4 - V1", desc: "Subtraction" },
+            ]},
+            { heading: "Arrow Notation", items: [
+                { syntax: "V2 \u00d7 V3 \u2192 V4", desc: "Ada's original notation" },
+                { syntax: "V2 + V3 \u2192 V4", desc: "Arrow assignment" },
+            ]},
+            { heading: "Notes", items: [
+                { syntax: "-- <em>comment</em>", desc: "Comment (Ada-style)" },
+                { syntax: "V1\u2013V15 map to DR1\u2013DR15", desc: "Direct register mapping" },
+            ]},
+        ]
+    },
+    assembly: {
+        title: "Assembly Syntax Reference",
+        sections: [
+            { heading: "Church Domain (Mind)", items: [
+                { syntax: "LOAD CRd, [CRs, <em>idx</em>]", desc: "Load Golden Token" },
+                { syntax: "SAVE [CRd, <em>idx</em>], CRs", desc: "Save Golden Token" },
+                { syntax: "CALL CRd", desc: "Enter abstraction (E perm)" },
+                { syntax: "RETURN", desc: "Return from abstraction" },
+                { syntax: "LAMBDA CRd, <em>offset</em>", desc: "Capture closure" },
+                { syntax: "SEAL CRd, CRs", desc: "Seal token" },
+                { syntax: "UNSEAL CRd, CRs", desc: "Unseal (S perm)" },
+                { syntax: "REVOKE <em>idx</em>", desc: "Revoke (bump version)" },
+                { syntax: "CMPSWP CRd, CRs, CRt", desc: "Atomic compare-swap" },
+                { syntax: "MINT CRd, <em>perms</em>", desc: "Create token" },
+            ]},
+            { heading: "Turing Domain (Body)", items: [
+                { syntax: "DREAD DRd, [CRs, <em>off</em>]", desc: "Read data" },
+                { syntax: "DWRITE [CRd, <em>off</em>], DRs", desc: "Write data" },
+                { syntax: "IADD DRd, DRs, <em>imm</em>", desc: "Integer add" },
+                { syntax: "ISUB DRd, DRs, <em>imm</em>", desc: "Integer subtract" },
+                { syntax: "SHL DRd, DRs, <em>imm</em>", desc: "Shift left" },
+                { syntax: "SHR DRd, DRs, <em>imm</em>", desc: "Shift right" },
+                { syntax: "BFEXT DRd, DRs, <em>pos</em>, <em>w</em>", desc: "Bit field extract" },
+                { syntax: "BFINS DRd, DRs, <em>pos</em>, <em>w</em>", desc: "Bit field insert" },
+                { syntax: "MCMP DRa, DRb", desc: "Compare, set flags" },
+                { syntax: "BRANCH <em>cond</em>, <em>target</em>", desc: "Branch (AL/EQ/NE/LT/GE/GT/LE)" },
+            ]},
+            { heading: "Condition Codes", items: [
+                { syntax: ".EQ / .NE / .LT / .GE / .GT / .LE", desc: "Suffix any instruction" },
+                { syntax: "IADD.EQ DR0, DR1, 1", desc: "Conditional add (only if equal)" },
+            ]},
+            { heading: "Registers", items: [
+                { syntax: "CR0\u2013CR7", desc: "Capability registers (Golden Tokens)" },
+                { syntax: "DR0\u2013DR15", desc: "Data registers (32-bit integers)" },
+                { syntax: "CR6", desc: "C-list (L-only)" },
+                { syntax: "CR7", desc: "Code region (X-only)" },
+            ]},
+        ]
+    }
+};
+
+function renderSyntaxRef(lang) {
+    if (!lang) {
+        const sel = document.getElementById('langSelector');
+        lang = sel ? sel.value : 'assembly';
+    }
+    const ref = SYNTAX_REF[lang];
+    if (!ref) return;
+    const area = document.getElementById('syntaxRefContent');
+    if (!area) return;
+
+    let html = '<div class="syntax-ref">';
+    html += '<div class="syntax-ref-title">' + ref.title + '</div>';
+    for (const sec of ref.sections) {
+        html += '<div class="syntax-ref-section">';
+        html += '<div class="syntax-ref-heading">' + sec.heading + '</div>';
+        html += '<table class="syntax-ref-table">';
+        for (const item of sec.items) {
+            html += '<tr><td class="syntax-ref-code">' + item.syntax + '</td><td class="syntax-ref-desc">' + item.desc + '</td></tr>';
+        }
+        html += '</table></div>';
+    }
+    html += '</div>';
+    area.innerHTML = html;
+}
+
 function onLangChange(restoring) {
     const sel = document.getElementById('langSelector');
     if (!sel) return;
@@ -5692,6 +5896,8 @@ function onLangChange(restoring) {
             }
         }
         if (typeof historyShowLanguageStory === 'function') historyShowLanguageStory(lang);
+        const syntaxPanel = document.getElementById('codeSyntaxPanel');
+        if (syntaxPanel && syntaxPanel.style.display !== 'none') renderSyntaxRef(lang);
         showIntro(lang);
     }
 }
