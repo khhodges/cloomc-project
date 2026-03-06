@@ -1327,7 +1327,7 @@ class CLOOMCCompiler {
             if (t === '}') continue;
             if (t.match(/\bV\d+\b/) && (t.includes('=') || t.includes('→') || t.includes('->'))) adaVars++;
             if (t.includes('→') || (t.match(/\S\s*->\s*V\d+/) && !t.includes('\\'))) arrowAssign++;
-            if (t.match(/\b(multiply|divide|add|subtract|operation|repeat)\b/i)) opKeywords++;
+            if (!t.match(/^method\s/) && t.match(/\b(multiply|divide|add|subtract|operation|repeat)\b/i)) opKeywords++;
             if (t.match(/^step\s+\d+/i)) opKeywords++;
         }
         return (adaVars >= 2) || (arrowAssign >= 1) || (opKeywords >= 2);
