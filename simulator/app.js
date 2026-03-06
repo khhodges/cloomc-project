@@ -4723,7 +4723,7 @@ function renderProgressReport() {
     html += `<div class="progress-stat"><span class="progress-stat-label">Interactive Math Sessions</span><span class="progress-stat-value">${progress.replSessions}</span></div>`;
 
     if (progress.langsUsed.length > 0) {
-        const langNames = { symbolic: 'Symbolic Math', javascript: 'JavaScript', haskell: 'Haskell', assembly: 'Assembly' };
+        const langNames = { english: 'English', symbolic: 'Symbolic Math', javascript: 'JavaScript', haskell: 'Haskell', assembly: 'Assembly' };
         html += `<div style="margin-top:0.5rem;"><span class="progress-stat-label">Languages Used</span></div>`;
         html += `<div class="progress-langs">`;
         for (const l of progress.langsUsed) {
@@ -5697,7 +5697,7 @@ function compileDraft() {
         return;
     }
 
-    const langNames = { haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', javascript: 'JavaScript' };
+    const langNames = { english: 'English', haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', javascript: 'JavaScript' };
     const lang = langNames[result.language] || 'JavaScript';
     const caps = result.capabilities || [];
     const clistCount = caps.length;
@@ -5812,7 +5812,7 @@ function compileCLOOMC() {
         return;
     }
 
-    const langNames2 = { haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', javascript: 'JavaScript' };
+    const langNames2 = { english: 'English', haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', javascript: 'JavaScript' };
     const lang = langNames2[result.language] || 'JavaScript';
     let listing = `CLOOMC++ [${lang}] compiled "${result.abstractionName}" — ${result.methods.length} method(s):\n\n`;
 
@@ -5948,6 +5948,8 @@ function loadCLOOMCExample(name) {
         'sliderule': `abstraction SlideRule {\n    capabilities { Constants }\n\n    method Add(a, b) {\n        result = a + b\n        return(result)\n    }\n\n    method Sub(a, b) {\n        result = a - b\n        return(result)\n    }\n\n    method Mul(a, b) {\n        acc = 0\n        sign = 0\n        if (b < 0) {\n            b = 0 - b\n            sign = 1\n        }\n        while (b > 0) {\n            low = bfext(b, 0, 1)\n            if (low == 1) {\n                acc = acc + a\n            }\n            a = a << 1\n            b = b >> 1\n        }\n        if (sign == 1) {\n            acc = 0 - acc\n        }\n        return(acc)\n    }\n\n    method Div(a, b) {\n        if (b == 0) {\n            return(0)\n        }\n        sign = 0\n        if (a < 0) {\n            a = 0 - a\n            sign = sign + 1\n        }\n        if (b < 0) {\n            b = 0 - b\n            sign = sign + 1\n        }\n        quot = 0\n        while (a >= b) {\n            a = a - b\n            quot = quot + 1\n        }\n        if (sign == 1) {\n            quot = 0 - quot\n        }\n        return(quot)\n    }\n\n    method Sqrt(n) {\n        if (n == 0) {\n            return(0)\n        }\n        if (n == 1) {\n            return(1)\n        }\n        guess = n >> 1\n        i = 0\n        while (i < 20) {\n            q = 0\n            rem = n\n            while (rem >= guess) {\n                rem = rem - guess\n                q = q + 1\n            }\n            next = guess + q\n            next = next >> 1\n            guess = next\n            i = i + 1\n        }\n        return(guess)\n    }\n\n    method Pow(base, exp) {\n        result = 1\n        while (exp > 0) {\n            acc = 0\n            m = base\n            r = result\n            while (r > 0) {\n                low = bfext(r, 0, 1)\n                if (low == 1) {\n                    acc = acc + m\n                }\n                m = m << 1\n                r = r >> 1\n            }\n            result = acc\n            exp = exp - 1\n        }\n        return(result)\n    }\n\n    method ToDegrees(radians) {\n        return(radians)\n    }\n\n    method ToRadians(degrees) {\n        return(degrees)\n    }\n}`,
         'ada_note_g': `-- Ada Lovelace — Note G (1843)\n-- The First Computer Program\n-- Computes B7 (Bernoulli number = -1/30)\n-- Written in Symbolic Mathematics notation\n\nabstraction NoteG {\n    capabilities {\n    }\n\n    method compute() {\n        -- Initialize Ada's Store columns\n        let V1 = 1\n        let V2 = 2\n        let V3 = 4\n\n        -- Operation 1: V4 = 2n = 8\n        let V4 = V2 * V3\n        let V5 = V4\n        let V6 = V4\n\n        -- Operation 2: 2n-1 = 7\n        let V4 = V4 - V1\n\n        -- Operation 3: 2n+1 = 9\n        let V5 = V5 + V1\n\n        -- Operation 4: (2n-1)/(2n+1) — CORRECTED per Bromley (1990)\n        let V11 = V4 / V5\n\n        -- Operation 5: divide coefficient by 2\n        let V11 = V11 / V2\n\n        -- Operation 6: accumulator\n        let V13 = 0\n        let V13 = V13 - V11\n\n        -- Operation 7: loop counter = n-1 = 3\n        let V10 = V3 - V1\n\n        -- Operation 8: denominator counter\n        let V7 = V2\n\n        -- Operation 9: 2n / counter\n        let V11 = V6 / V7\n\n        -- Operation 10: B1 * coefficient\n        let V15 = 1\n        let V12 = V15 * V11\n\n        -- Operation 11: accumulate\n        let V13 = V12 + V13\n\n        -- Operation 12: decrement loop\n        let V10 = V10 - V1\n\n        -- Operations 13-23: first iteration\n        let V6 = V6 - V1\n        let V7 = V1 + V7\n        let V8 = V6 / V7\n        let V11 = V8 * V11\n        let V6 = V6 - V1\n        let V7 = V1 + V7\n        let V9 = V6 / V7\n        let V11 = V9 * V11\n        let V15 = 1\n        let V12 = V15 * V11\n        let V13 = V12 + V13\n        let V10 = V10 - V1\n\n        -- Second iteration (B5 term)\n        let V6 = V6 - V1\n        let V7 = V1 + V7\n        let V8 = V6 / V7\n        let V11 = V8 * V11\n        let V6 = V6 - V1\n        let V7 = V1 + V7\n        let V9 = V6 / V7\n        let V11 = V9 * V11\n        let V15 = 1\n        let V12 = V15 * V11\n        let V13 = V12 + V13\n        let V10 = V10 - V1\n\n        -- Operation 24: B7 = -sum\n        let V15 = 0\n        let V15 = V15 - V13\n\n        -- Operation 25: increment n\n        let V3 = V1 + V3\n\n        halt\n    }\n}`,
         'sliderule_hs': `-- SlideRule — Haskell front-end\n-- Integer arithmetic on Church Machine hardware\n-- Proves both languages compile to the same 20-instruction target\n\nabstraction SlideRuleHS {\n    capabilities { Constants }\n\n    -- Basic arithmetic\n    method Add(a, b) = a + b\n\n    method Sub(a, b) = a - b\n\n    method Mul(a, b) = a * b\n\n    -- Integer division via repeated subtraction\n    method Div(a, b) = if b == 0 then 0 else a - (a - b)\n\n    -- Integer square root approximation\n    method Sqrt(n) = if n == 0 then 0 else if n == 1 then 1 else (n + 1) - (n - 1)\n\n    -- Power of 2 (base=2 exponentiation)\n    method Pow2(exp) = if exp == 0 then 1 else 2 * exp\n\n    -- Absolute value\n    method Abs(n) = if n < 0 then 0 - n else n\n\n    -- Signum: -1, 0, or 1\n    method Signum(n) = if n == 0 then 0 else if n > 0 then 1 else 0 - 1\n\n    -- Max of two values\n    method Max(a, b) = if a > b then a else b\n\n    -- Min of two values\n    method Min(a, b) = if a < b then a else b\n\n    -- Clamp value between lo and hi\n    method Clamp(x, lo, hi) = if x < lo then lo else if x > hi then hi else x\n}`,
+        'english_hello': `Create an abstraction called Hello\n\nAdd a method called Greet that takes who\nSet result to who plus 1\nReturn the result`,
+        'english_counter': `Create an abstraction called Counter\n\nAdd a method called Increment that takes value\nSet result to value plus 1\nReturn the result\n\nAdd a method called Add that takes a and b\nSet result to a plus b\nReturn the result\n\nAdd a method called Double that takes x\nSet result to x plus x\nReturn the result`,
     };
 
     editor.value = examples[name] || examples['hello'];
@@ -5958,7 +5960,8 @@ function loadCLOOMCExample(name) {
     if (sel) {
         const isHaskell = ['church_math','church_pair','church_case','church_lambda','sliderule_hs'].includes(name);
         const isSymbolic = ['ada_note_g'].includes(name);
-        sel.value = isSymbolic ? 'symbolic' : isHaskell ? 'haskell' : 'javascript';
+        const isEnglish = ['english_hello','english_counter'].includes(name);
+        sel.value = isEnglish ? 'english' : isSymbolic ? 'symbolic' : isHaskell ? 'haskell' : 'javascript';
     }
 
     if (typeof historySetCodeExample === 'function') historySetCodeExample(name);
@@ -6017,7 +6020,7 @@ function saveUploadJSON() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    const langNames3 = { haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', javascript: 'JavaScript' };
+    const langNames3 = { english: 'English', haskell: 'Haskell', symbolic: 'Symbolic Math (Ada)', javascript: 'JavaScript' };
     const lang = langNames3[result.language] || 'JavaScript';
     let listing = `Upload JSON saved as "${a.download}"\n\n`;
     listing += `CLOOMC++ [${lang}] compiled "${result.abstractionName}":\n`;

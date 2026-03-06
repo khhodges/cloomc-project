@@ -34,6 +34,9 @@ class CLOOMCCompiler {
     }
 
     compile(source, capabilities) {
+        if (this._detectEnglish(source)) {
+            return this.compileEnglish(source, capabilities);
+        }
         if (this._detectSymbolic(source)) {
             return this.compileSymbolic(source, capabilities);
         }
@@ -507,7 +510,27 @@ class CLOOMCCompiler {
             return;
         }
 
+        if (text === '} else {') {
+            const pendingLabels = Object.keys(labels).filter(l => l.startsWith('__endif_') && labels[l] === -1);
+            if (pendingLabels.length > 0) {
+                const ifLabel = pendingLabels[pendingLabels.length - 1];
+                const elseEndAddr = code.length;
+                code.push(this.encode(this.opcodes.BRANCH, this.conditions.AL, 0, 0, 0));
+                const elseLabel = `__endelse_${elseEndAddr}`;
+                labelRefs.push({ addr: elseEndAddr, label: elseLabel, lineNum: stmt.lineNum });
+                labels[elseLabel] = -1;
+                labels[ifLabel] = code.length;
+            }
+            return;
+        }
+
         if (text === '}') {
+            const pendingElse = Object.keys(labels).filter(l => l.startsWith('__endelse_') && labels[l] === -1);
+            if (pendingElse.length > 0) {
+                const label = pendingElse[pendingElse.length - 1];
+                labels[label] = code.length;
+                return;
+            }
             const pendingLabels = Object.keys(labels).filter(l => l.startsWith('__endif_') && labels[l] === -1);
             if (pendingLabels.length > 0) {
                 const label = pendingLabels[pendingLabels.length - 1];
@@ -1729,5 +1752,211 @@ class CLOOMCCompiler {
         }
 
         return { code, errors, manifest };
+    }
+
+    _detectEnglish(source) {
+        const lines = source.split('\n');
+        let englishScore = 0;
+        for (const line of lines) {
+            const t = line.trim().toLowerCase();
+            if (!t || t.startsWith('//') || t.startsWith('--')) continue;
+            if (t.match(/^(create|define|make)\s+(an?\s+)?abstraction\s+(called|named)\s+/)) englishScore += 3;
+            if (t.match(/^(add|define|create)\s+(an?\s+)?method\s+(called|named)\s+/)) englishScore += 2;
+            if (t.match(/^(set|store|put|assign)\s+/)) englishScore++;
+            if (t.match(/^(return|give back|send back)\s+(the\s+)?/)) englishScore++;
+            if (t.match(/^(if|when)\s+.+\s+(is|equals|is equal to|is greater than|is less than|is not)\s+/)) englishScore++;
+            if (t.match(/^(it needs|it uses|it requires|using)\s+/)) englishScore++;
+            if (t.match(/\b(plus|minus|times|divided by|multiplied by|added to|subtracted from)\b/)) englishScore++;
+            if (t.match(/^(read|write|load|save)\s+(from|to|the value)\s+/)) englishScore++;
+            if (t.match(/^(call|run|execute|invoke)\s+/)) englishScore++;
+            if (t.match(/^(that takes|which takes|with parameters?|with inputs?)\s+/)) englishScore++;
+        }
+        return englishScore >= 3;
+    }
+
+    compileEnglish(source, capabilities) {
+        const errors = [];
+        const parsed = this._parseEnglishAbstraction(source, errors);
+        if (errors.length > 0) {
+            return { methods: [], errors, manifest: [] };
+        }
+
+        const rom = this._buildROM(parsed.capabilities, capabilities || []);
+        const methods = [];
+        const manifest = [];
+
+        for (const method of parsed.methods) {
+            const result = this._compileMethod(method, rom, parsed.capabilities);
+            if (result.errors.length > 0) {
+                errors.push(...result.errors);
+            } else {
+                methods.push({ name: method.name, code: result.code });
+                manifest.push({ name: method.name, mapping: result.manifest });
+            }
+        }
+
+        return { methods, errors, manifest, abstractionName: parsed.name, capabilities: parsed.capabilities || [], language: 'english' };
+    }
+
+    _parseEnglishAbstraction(source, errors) {
+        const result = { name: '', capabilities: [], methods: [] };
+        const lines = source.split('\n');
+        let currentMethod = null;
+
+        for (let i = 0; i < lines.length; i++) {
+            const raw = lines[i];
+            const t = raw.trim();
+            if (!t || t.startsWith('//') || t.startsWith('--')) continue;
+            const lo = t.toLowerCase();
+
+            const absMatch = lo.match(/^(?:create|define|make)\s+(?:an?\s+)?abstraction\s+(?:called|named)\s+(\w+)/);
+            if (absMatch) {
+                result.name = t.match(/(?:called|named)\s+(\w+)/i)[1];
+                continue;
+            }
+
+            const capMatch = lo.match(/^(?:it needs|it uses|it requires|using)\s+(.+)/);
+            if (capMatch) {
+                const caps = capMatch[1].replace(/\band\b/g, ',').replace(/\./g, '').split(',').map(s => s.trim()).filter(Boolean);
+                result.capabilities.push(...caps);
+                continue;
+            }
+
+            const methodMatch = lo.match(/^(?:add|define|create)\s+(?:an?\s+)?method\s+(?:called|named)\s+(\w+)/);
+            if (methodMatch) {
+                if (currentMethod) result.methods.push(currentMethod);
+                const name = t.match(/(?:called|named)\s+(\w+)/i)[1];
+                currentMethod = { name: name, params: [], body: [], startLine: i };
+
+                const paramMatch = lo.match(/(?:that takes|which takes|with parameters?|with inputs?)\s+(.+)/);
+                if (paramMatch) {
+                    const params = paramMatch[1].replace(/\band\b/g, ',').replace(/\./g, '').split(',').map(s => s.trim()).filter(Boolean);
+                    currentMethod.params = params;
+                }
+                continue;
+            }
+
+            if (!currentMethod) continue;
+
+            const stmt = this._translateEnglishStatement(t, i);
+            if (stmt) {
+                currentMethod.body.push({ text: stmt, lineNum: i });
+            } else {
+                errors.push({ line: i + 1, message: `Cannot understand: "${t}"` });
+            }
+        }
+
+        if (currentMethod) result.methods.push(currentMethod);
+
+        if (!result.name) {
+            if (result.methods.length > 0) {
+                result.name = result.methods[0].name || 'English';
+            } else {
+                errors.push({ line: 0, message: 'No abstraction name found. Try: "Create an abstraction called MyName"' });
+            }
+        }
+
+        if (result.methods.length === 0) {
+            errors.push({ line: 0, message: 'No methods found. Try: "Add a method called DoSomething"' });
+        }
+
+        return result;
+    }
+
+    _translateEnglishStatement(text, lineNum) {
+        const lo = text.toLowerCase().replace(/\.$/, '').trim();
+
+        const returnMatch = lo.match(/^(?:return|give back|send back)\s+(?:the\s+)?(.+)/);
+        if (returnMatch) {
+            const val = this._translateEnglishExpr(returnMatch[1]);
+            return `return(${val})`;
+        }
+
+        const resultCallMatch = lo.match(/^(?:set|store|put)\s+(\w+)\s+(?:to|as)\s+(?:the\s+)?(?:result of\s+)?(?:call(?:ing)?)\s+(\w+)\.(\w+)\s*(?:\(([^)]*)\)|with\s+(.+))?/);
+        if (resultCallMatch) {
+            const varName = resultCallMatch[1];
+            const abs = resultCallMatch[2];
+            const meth = resultCallMatch[3];
+            const argsStr = resultCallMatch[4] || resultCallMatch[5] || '';
+            const args = argsStr ? argsStr.replace(/\band\b/g, ',').split(',').map(s => s.trim()).filter(Boolean).join(', ') : '';
+            return `${varName} = call(${abs}.${meth}(${args}))`;
+        }
+
+        const readMatch = lo.match(/^(?:set|store|put)\s+(\w+)\s+(?:to|as)\s+(?:the\s+)?(?:value\s+)?(?:read|loaded)\s+from\s+(\w+)\s+(?:at\s+)?(?:offset\s+)?(\w+)/);
+        if (readMatch) {
+            return `${readMatch[1]} = read(${readMatch[2]}, ${readMatch[3]})`;
+        }
+
+        const setMatch = lo.match(/^(?:set|store|put|assign)\s+(\w+)\s+(?:to|as|=)\s+(.+)/);
+        if (setMatch) {
+            const varName = setMatch[1];
+            const expr = this._translateEnglishExpr(setMatch[2]);
+            return `${varName} = ${expr}`;
+        }
+
+        const letMatch = lo.match(/^(?:let)\s+(\w+)\s+(?:be|equal|=)\s+(.+)/);
+        if (letMatch) {
+            const varName = letMatch[1];
+            const expr = this._translateEnglishExpr(letMatch[2]);
+            return `${varName} = ${expr}`;
+        }
+
+        const callMatch = lo.match(/^(?:call|run|execute|invoke)\s+(\w+)\.(\w+)\s*(?:\(([^)]*)\)|with\s+(.+))?/);
+        if (callMatch) {
+            const abs = callMatch[1];
+            const meth = callMatch[2];
+            const argsStr = callMatch[3] || callMatch[4] || '';
+            const args = argsStr ? argsStr.replace(/\band\b/g, ',').split(',').map(s => s.trim()).filter(Boolean).join(', ') : '';
+            return `call(${abs}.${meth}(${args}))`;
+        }
+
+        const writeMatch = lo.match(/^write\s+(.+)\s+to\s+(?:memory\s+)?(\w+)\s+(?:at\s+)?(?:offset\s+)?(\w+)/);
+        if (writeMatch) {
+            const val = this._translateEnglishExpr(writeMatch[1]);
+            const cr = writeMatch[2];
+            const offset = writeMatch[3];
+            return `write(${cr}, ${offset}, ${val})`;
+        }
+
+        const ifMatch = lo.match(/^(?:if|when)\s+(\w+)\s+(is equal to|equals|is not|is greater than|is less than|is|==|!=|<|>|<=|>=)\s+(\w+)/);
+        if (ifMatch) {
+            let op;
+            switch (ifMatch[2]) {
+                case 'is equal to': case 'equals': case 'is': case '==': op = '=='; break;
+                case 'is not': case '!=': op = '!='; break;
+                case 'is greater than': case '>': op = '>'; break;
+                case 'is less than': case '<': op = '<'; break;
+                case '>=': op = '>='; break;
+                case '<=': op = '<='; break;
+                default: op = '=='; break;
+            }
+            return `if (${ifMatch[1]} ${op} ${ifMatch[3]}) {`;
+        }
+
+        if (lo === 'otherwise') {
+            return '} else {';
+        }
+
+        if (lo === 'end if' || lo === 'end' || lo === '}') {
+            return '}';
+        }
+
+        return null;
+    }
+
+    _translateEnglishExpr(expr) {
+        let e = expr.trim().replace(/\.$/, '').trim();
+
+        e = e.replace(/\b(\w+)\s+plus\s+(\w+)\b/gi, '$1 + $2');
+        e = e.replace(/\b(\w+)\s+minus\s+(\w+)\b/gi, '$1 - $2');
+        e = e.replace(/\b(\w+)\s+added\s+to\s+(\w+)\b/gi, '$2 + $1');
+        e = e.replace(/\b(\w+)\s+subtracted\s+from\s+(\w+)\b/gi, '$2 - $1');
+        e = e.replace(/\b(\w+)\s+times\s+(\w+)\b/gi, '$1 * $2');
+        e = e.replace(/\b(\w+)\s+multiplied\s+by\s+(\w+)\b/gi, '$1 * $2');
+        e = e.replace(/\b(\w+)\s+divided\s+by\s+(\w+)\b/gi, '$1 / $2');
+        e = e.replace(/\b(\w+)\s+shifted\s+left\s+(?:by\s+)?(\d+)\b/gi, '$1 << $2');
+        e = e.replace(/\b(\w+)\s+shifted\s+right\s+(?:by\s+)?(\d+)\b/gi, '$1 >> $2');
+
+        return e.trim();
     }
 }
