@@ -276,52 +276,54 @@ function slideruleGenerateScaleTicksForDef(scaleDef, offset) {
     return ticks;
 }
 
+function slideruleHandArrow(x1, y, x2, color, id) {
+    const len = x2 - x1;
+    const dir = len > 0 ? 1 : -1;
+    const abs = Math.abs(len);
+    const mid = (x1 + x2) / 2;
+    const wobble = Math.min(abs * 0.06, 5);
+    const cp1x = x1 + len * 0.3;
+    const cp1y = y - wobble;
+    const cp2x = x1 + len * 0.7;
+    const cp2y = y + wobble * 0.7;
+    const tipX = x2;
+    const headLen = Math.min(abs * 0.15, 14);
+    const headW = Math.min(abs * 0.08, 7);
+    return `<path d="M${x1},${y} C${cp1x},${cp1y} ${cp2x},${cp2y} ${tipX},${y}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.9"/>` +
+        `<path d="M${tipX - dir * headLen},${y - headW} L${tipX},${y} L${tipX - dir * headLen},${y + headW}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+}
+
 function slideruleGenerateArrows(cx) {
     const so = slideruleState.slideOffset;
     if (Math.abs(so) < 2) return '';
     if (slideruleState.scaleMode !== 'CD') return '';
 
-    const arrowColor = '#ff3333';
-    const defs = `
-        <defs>
-            <marker id="arrowRight" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto">
-                <path d="M0,0 L10,3 L0,6 Z" fill="${arrowColor}"/>
-            </marker>
-            <marker id="arrowLeft" viewBox="0 0 10 6" refX="0" refY="3" markerWidth="8" markerHeight="6" orient="auto">
-                <path d="M10,0 L0,3 L10,6 Z" fill="${arrowColor}"/>
-            </marker>
-        </defs>`;
+    const colorA = '#ff6644';
+    const colorB = '#44aaff';
+    const colorR = '#ff3333';
 
-    let arrows = defs;
+    let arrows = '';
     const ss = slideruleState.scaleStart;
-
     const cOneX = ss + so;
-    const arrowY1 = 120;
-    const arrowY2 = 132;
-    const arrowY3 = 144;
+    const vals = slideruleReadAtCursor();
+    const aVal = Math.round(vals.d * 1000) / 1000;
+    const bVal = Math.round(vals.c * 1000) / 1000;
+    const product = Math.round(aVal * bVal * 1000) / 1000;
 
-    if (so > 0 && cOneX > ss) {
-        arrows += `<line x1="${ss}" y1="${arrowY1}" x2="${cOneX}" y2="${arrowY1}" stroke="${arrowColor}" stroke-width="2" marker-end="url(#arrowRight)" opacity="0.85"/>`;
-        const midA = (ss + cOneX) / 2;
-        arrows += `<text x="${midA}" y="${arrowY1 - 4}" text-anchor="middle" fill="${arrowColor}" font-size="8" font-family="monospace" opacity="0.9">log(a)</text>`;
+    const labelY = -8;
+    const labelFontSize = 16;
+
+    arrows += `<text x="${cOneX}" y="${labelY}" text-anchor="middle" fill="${colorA}" font-size="${labelFontSize}" font-weight="bold" font-family="'Comic Sans MS', 'Marker Felt', cursive">a = ${aVal}</text>`;
+
+    if (Math.abs(cx - cOneX) > 2) {
+        arrows += `<text x="${cx}" y="${labelY}" text-anchor="middle" fill="${colorB}" font-size="${labelFontSize}" font-weight="bold" font-family="'Comic Sans MS', 'Marker Felt', cursive">b = ${bVal}</text>`;
     }
 
-    if (cx > cOneX + 2) {
-        arrows += `<line x1="${cOneX}" y1="${arrowY2}" x2="${cx}" y2="${arrowY2}" stroke="${arrowColor}" stroke-width="2" marker-end="url(#arrowRight)" opacity="0.65"/>`;
-        const midB = (cOneX + cx) / 2;
-        arrows += `<text x="${midB}" y="${arrowY2 - 4}" text-anchor="middle" fill="${arrowColor}" font-size="8" font-family="monospace" opacity="0.7">log(b)</text>`;
-    } else if (cx < cOneX - 2) {
-        arrows += `<line x1="${cOneX}" y1="${arrowY2}" x2="${cx}" y2="${arrowY2}" stroke="${arrowColor}" stroke-width="2" marker-end="url(#arrowLeft)" opacity="0.65"/>`;
-        const midB = (cOneX + cx) / 2;
-        arrows += `<text x="${midB}" y="${arrowY2 - 4}" text-anchor="middle" fill="${arrowColor}" font-size="8" font-family="monospace" opacity="0.7">log(b)</text>`;
-    }
-
+    const sumY = 128;
     if (cx > ss + 2) {
-        arrows += `<line x1="${ss}" y1="${arrowY3}" x2="${cx}" y2="${arrowY3}" stroke="${arrowColor}" stroke-width="2.5" marker-end="url(#arrowRight)" opacity="0.95"/>`;
+        arrows += slideruleHandArrow(ss, sumY, cx, colorR, 'sum');
         const midR = (ss + cx) / 2;
-        const vals = slideruleReadAtCursor();
-        const product = Math.round(vals.d * vals.c * 1000) / 1000;
-        arrows += `<text x="${midR}" y="${arrowY3 - 4}" text-anchor="middle" fill="${arrowColor}" font-size="9" font-weight="bold" font-family="monospace">log(${product}) = log(a) + log(b)</text>`;
+        arrows += `<text x="${midR}" y="${sumY + 18}" text-anchor="middle" fill="${colorR}" font-size="14" font-weight="bold" font-family="'Comic Sans MS', 'Marker Felt', cursive">a × b = ${product}</text>`;
     }
 
     return arrows;
@@ -344,9 +346,11 @@ function slideruleRenderDisplay() {
         const slideTicks = slideruleGenerateScaleTicksForDef(mode.slide, slideruleState.slideOffset);
         const cx = slideruleState.cursorX;
         const arrowsSVG = slideruleGenerateArrows(cx);
-        const svgHeight = (Math.abs(slideruleState.slideOffset) > 2 && slideruleState.scaleMode === 'CD') ? 155 : 110;
+        const hasArrows = Math.abs(slideruleState.slideOffset) > 2 && slideruleState.scaleMode === 'CD';
+        const svgHeight = hasArrows ? 150 : 110;
+        const svgTop = hasArrows ? -26 : 0;
 
-        svgEl.setAttribute('viewBox', `0 0 ${totalW} ${svgHeight}`);
+        svgEl.setAttribute('viewBox', `0 ${svgTop} ${totalW} ${svgHeight - svgTop}`);
 
         svgEl.innerHTML = `
             <rect x="0" y="0" width="${totalW}" height="110" rx="4" fill="#2a1a0a" stroke="#8B7355" stroke-width="2"/>
@@ -443,7 +447,7 @@ function renderSlideRuleCalculator() {
             <div class="sliderule-info-text">
                 The slide rule computes by <em>adding or comparing logarithmic lengths</em>.
                 On the C/D scales, sliding by log(a) and reading at C=b gives D = a\u00d7b.
-                The <span style="color:#ff3333;">red arrows</span> show log(a) + log(b) = log(a\u00d7b).
+                <span style="color:#ff6644;">a</span> and <span style="color:#44aaff;">b</span> are labelled above the scale. The <span style="color:#ff3333;">red arrow</span> below shows a \u00d7 b.
                 Other scales use the same principle for squares (A/B), cubes (K),
                 reciprocals (CI), and trigonometry (S/T) \u2014 all backed by
                 CALL SlideRule at NS[16].
