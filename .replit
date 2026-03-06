@@ -43,3 +43,8 @@ build = ["pip", "install", "-r", "requirements.txt"]
 [nix]
 channel = "stable-25_05"
 packages = ["freetype", "gitFull", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "symbiyosys", "tcl", "tk", "yices", "yosys", "zlib", "nextpnr", "icestorm"]
+
+[userenv]
+
+[userenv.shared]
+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 = ""
