@@ -1,78 +1,119 @@
-# Cloomc-Open Source Project
+# CLOOMC — The Church Machine Educational Platform
 
-# Licensing & Commercial Use
-This project is Dual-Licensed. It is designed to be accessible for public audit and academic research while maintaining a sustainable model for industrial deployment.
+> A capability-secured processor architecture with an educational IDE,
+> designed for the Tang Nano 20K FPGA. Making computer architecture
+> and secure programming accessible through hands-on learning.
 
-1. Open Source License
-For the open-source community, this software is licensed under the GNU General Public License v3.0 (GPL-3.0).
-
-Auditability: Anyone may inspect, modify, and redistribute the source code.
-
-Reciprocity: Any derivative works or "industrial strength" improvements made to this code must also be released under the GPL-3.0 if distributed.
-
-2. Commercial & Industrial License
-If you wish to incorporate this technology into proprietary hardware, closed-source systems, or "golden token" fail-safe environments where the GPL's reciprocity requirements are not acceptable, a Commercial License is required.
-
-The Commercial License provides:
-
-Proprietary Rights: The ability to keep your derivative source code private.
-
-Indemnification: Legal protections and warranties not provided under the GPL.
-
-Expert Support: Access to consulting regarding symbolic addressing, Lambda Calculus optimisations, and high-integrity namespace management.
-
-To obtain a commercial license, please contact:
-
-Kenneth Hamer-Hodges > SIPanticINC@gmail.com
-
-Subject: CLOOMC Commercial Licensing Inquiry
-
-This open source hardware and software project aims to solve the digital insecurity, lack of personal privacy, and unacceptable malware intrusion that corrupts and will destroy democratic life in the Information Age. Visit [https://sipantic.blogspot.com/] for technical details.
-
-## **The CLOOMC Manifesto: A Declaration of Digital Sovereignty**
-
-**The Information Age is built on sand.** For decades, we have accepted a "patch-and-pray" culture, relying on bloated corporations that prioritise "feature creep" over fundamental safety. They sold us a digital world where insecurity is a feature, not a bug, because it keeps the cycle of consumption and "security-as-a-service" turning.
-
-**Industry will not save us. Only a bottom-up, open-source revolution can.**
-
-We are the architects, the coders, and the citizens of cyberspace. We refuse to live in a world of brittle binary systems and "golden keys" held only by the elite. It is time to reclaim our digital destiny through **Open Source CLOOMC**.
+**Website:** [cloomc.org](https://cloomc.org) | **Commercial & Curriculum Info:** [cloomc.com](https://cloomc.com)
 
 ---
 
-### I. The Great Failure of the Status Quo
+## Licensing
 
-Traditional computer science has failed. By treating memory as a flat, unprotected sea of bits, the industry created a playground for chaos. Ransomware, data theft, and systemic fragility are the inevitable results of a "boundary-based" security model that was never designed for a hostile world. We do not need better antivirus; **we need better math.**
+### 1. Free for Everyone to Learn
 
-### II. The Golden Token: Power to the People
+The CLOOMC platform is **free and open source** under GPL-3.0. This includes the full IDE,
+simulator, CLOOMC++ compiler, shared abstraction library, and CTMM hardware designs.
 
-CLOOMC (Capability-Limited/Object-Oriented/Machine-Code) is our weapon. By replacing raw pointers with **immutable "Golden Tokens"** of trust, we create a cyberspace where:
+**Who can use it for free:**
+- Students of all ages — primary school through postgraduate
+- Parents and families, including homeschool
+- Teachers and educators
+- Schools (K-12), IB programmes, and universities
+- Non-profit academic researchers
 
-* **Security is an inherent property**, not an afterthought.
-* **Isolation is absolute**, enforced by the Six Church Instructions.
-* **The individual is sovereign**, holding the keys to their own private namespace.
+Clone it. Use it. Teach with it. Build student projects. No cost, no restrictions
+beyond the GPL-3.0 license terms.
 
-### III. The Open Source Mandate
+```bash
+git clone https://github.com/khhodges/cloomc-project.git
+cd cloomc-project/simulator
+# Open index.html in a browser — that's it
+```
 
-Because the corporate world is tethered to legacy profits, this movement belongs to the commons.
+### 2. Curriculum Packages (Paid Add-Ons)
 
-* **Transparency is Safety:** No hidden backdoors. The microcode must be open, verified by the Lambda Calculus, and peer-reviewed by the world.
-* **Investment in Intellect:** We don't need venture capital; we need **human capital**. We need the collective brainpower of those who understand that a scientific cyberspace is the only way to "Win World War III" before it begins.
-* **Universal Access:** The tools to build a secure society must not be locked behind a paywall. CLOOMC is a public good.
+Structured courseware aligned to specific examination boards is available as
+paid add-on services. These curriculum packages build on the free platform:
 
-### IV. The Call to Action
+- **UK O-Levels** — Computer Science
+- **UK A-Levels** — Computer Science
+- **International Baccalaureate (IB)** — Computer Science HL/SL
+- **11+ Entrance Exams** — Logic and computational thinking
+- **GCSE** — Computer Science
+- **AP Computer Science** — Principles and A
 
-The "Industrial Strength Computer Science" we seek will not be handed down from a boardroom. It will be forged in our repositories, debated in our forums, and compiled on our machines.
+These packages include lesson plans, exercises, mark schemes, and exam-style
+questions mapped to the Church Machine architecture. Visit [cloomc.com](https://cloomc.com)
+for details and availability.
 
-1. **Stop Patching, Start Building:** Cease the endless cycle of fixing broken binary logic. Redirect your energy toward capability-based architectures.
-2. **Contribute to the Core:** Help us refine the symbolic addressing and the microcode that governs the Six Church Instructions.
-3. **Spread the Knowledge:** Educate the next generation. Move beyond the "black box" of modern computing and teach the science of the Lambda Calculus.
+### 3. Commercial License
+
+Any use of the platform technology in commercial products, proprietary hardware,
+paid services, or for-profit systems requires a separate commercial license from
+CLOOMC Technologies LLC.
+
+**Contact:** SIPanticINC@gmail.com
 
 ---
 
-**Cyberspace is the new frontier of human civilisation. We will not let it remain a dark alley. We will build a "Golden Token" future, instruction by instruction, until the Information Age is finally secure.**
+## What's Inside
 
-**Rise up. Code the revolution.**
+| Directory | Contents |
+|-----------|----------|
+| `simulator/` | Web-based IDE — editor, compiler, pipeline viewer, math tools |
+| `library/` | Shared abstraction library (Mum Tunnel) |
+| `hardware/` | Amaranth HDL designs for Tang Nano 20K FPGA |
+
+### The Church Machine
+
+A 32-bit capability-secured processor with:
+- **20 instructions** — 10 Church (capability) + 10 Turing (data)
+- **Golden Tokens** — 32-bit unforgeable capability tokens with R/W/X/L/S/E permission bits
+- **9 abstraction layers** — 45 abstractions, each a security block with MTBF tracking
+- **Domain purity** — strict separation between capabilities and code/data
+
+### The IDE
+
+Nine integrated views: Math, Code, Tutorial, Dashboard, Namespace, Abstractions,
+Pipeline, Reference, and Docs. Includes:
+
+- **CLOOMC++ Compiler** — Multi-language: English, JavaScript, Haskell, Symbolic Math (Ada), Assembly
+- **Interactive Math Tools** — HP-35 calculator, soroban abacus, slide rule
+- **Math Challenge** — Grade-adaptive problems with Turing/Church dual explanations
+- **WebSerial Deploy** — Flash compiled programs to the Tang Nano 20K FPGA
+- **Mum Tunnel Library** — Share and discover abstractions via GitHub
+
+### Hardware Target
+
+**Tang Nano 20K** (Gowin GW2AR-18) with all features enabled:
+CHANGE/SWITCH, SEAL_CHECK, FUSED_OPS, GC.
 
 ---
 
-**"How to Contribute"** Subscribe to this manifesto [https://cloomc.com/], identify the specific technical tasks you would like to support, and sign up here to get your own Golden Token, the key to your own private Namespace in global cyberspace!
+## Manifesto
+
+Every child deserves to understand how computers actually work — not just how to
+use them, but how they think. The Church Machine bridges the gap between theoretical
+computer science and hands-on engineering. Named for Alonzo Church, whose lambda
+calculus gave us the mathematical foundation of computation, this platform makes
+capability-based security and processor architecture tangible.
+
+We believe:
+- **Security should be built in**, not bolted on. Golden Tokens make capability-based
+  security a first-class concept from day one.
+- **Theory and practice belong together.** Students write real code that runs on real
+  hardware, seeing Church's lambda calculus and Turing's state machines working side by side.
+- **Education should be free.** The platform is open source. Every student, everywhere,
+  can learn.
+
+## Call to Action
+
+- **Students:** Clone the repo, launch the simulator, write your first Church Machine program.
+- **Teachers:** Use it in your classroom. The curriculum packages give you structured lesson plans.
+- **Makers:** Grab a Tang Nano 20K and flash your own capability-secured processor.
+- **Contributors:** PRs welcome. Help us build the future of computer science education.
+
+---
+
+*CLOOMC Technologies LLC — Making secure computing accessible to every learner.*
