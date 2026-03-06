@@ -27,6 +27,7 @@ The web IDE features nine views (Math, Code, Tutorial, Dashboard, Namespace, Abs
 - **Slide Rule:** A logarithmic slide rule with draggable scales and trace of Church Machine operations.
 - **Math Challenge:** A sidebar providing grade-appropriate problems with hints and dual-domain explanations (Turing/Church).
 - **History Tab:** Dynamic historical stories related to the active math tool, encouraging contextual learning.
+- **Syntax Tab:** Quick-reference cheat sheet for the currently selected language, auto-updates on language change.
 - **Responsive Design:** Panels often use a 50-50 split with draggable dividers, adapting to narrow screens.
 - **Popups:** Educational popups for welcome, math guide, and individual tool guides enhance the learning experience.
 - **State Persistence:** Utilizes localStorage for editor state, settings, progress, and dismissals.
@@ -35,11 +36,21 @@ The web IDE features nine views (Math, Code, Tutorial, Dashboard, Namespace, Abs
 - **Abstraction Model:** A scale-free model where each of 45 abstractions across 9 layers functions as a security block with MTBF tracking.
 - **Security Model:** Based on 32-bit unforgeable Golden Tokens with specific permission bits (R, W, X, L, S, E) and a 7-step mLoad pipeline for robust capability handling. Domain purity ensures strict separation between capabilities (Church domain) and code/data (DATA domain).
 - **NS Entry and Lump Layout:** Defines the structure of Namespace entries and memory lumps for abstractions. Lumps are power-of-2 allocated (minimum 32 words). Code at offset 0, c-list at allocSize-clistCount, freespace between.
+- **Self-Documenting Abstractions:** Every upload.json includes a `doc` block with author, date, language, description, tags, method signatures, capabilities, and sourcePreview. Auto-generated from compiler output and student settings. Displayed in the Abstractions view detail panel.
+- **Mum Tunnel Library:** GitHub-backed shared abstraction library. Server API (`/api/library/browse`, `/api/library/get/<path>`, `/api/library/publish`) pushes/reads from a GitHub repo. UI: Library modal with search, language filter, card grid, import/publish. Requires `GITHUB_TOKEN` and `GITHUB_LIBRARY_REPO` environment variables.
 - **CLOOMC++ Compiler:** A multi-language compiler targeting the 20-instruction Church Machine instruction set. It supports English, JavaScript, Haskell, and Symbolic Math (Ada Lovelace's notation) front-ends. The compiler auto-detects language from source syntax and outputs in a JSON format for abstraction deployment.
 - **Navana Master Controller:** Acts as the sole writer for Namespace entries, managing abstraction creation, allocation, and secure deployment by validating uploads and enforcing security constraints.
 - **Instruction Set:** Comprises 20 instructions, evenly split between Church (capability-focused) and Turing (data manipulation) sets, all supporting ARM-style conditional execution.
 - **Hardware Target:** The Tang Nano 20K FPGA (Gowin GW2AR-18) is the primary hardware target, with all features enabled (CHANGE/SWITCH, SEAL_CHECK, FUSED_OPS, GC). It uses specific pins for UART, LEDs, and buttons.
 - **WebSerial:** Used for deploying compiled programs to the Tang Nano 20K FPGA.
+
+## GitHub Integration Note
+
+The Replit GitHub connector was dismissed by the user. To enable the shared library, manually set these environment secrets:
+- `GITHUB_TOKEN` — A GitHub Personal Access Token with `repo` scope
+- `GITHUB_LIBRARY_REPO` — The GitHub repo path (e.g., `username/CLOOMC`)
+
+The repo should have a `library/` directory. Abstractions are stored as `library/<language>/<name>.json`.
 
 ## External Dependencies
 
