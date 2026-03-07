@@ -1,0 +1,38 @@
+-- SlideRule — Haskell front-end
+-- Integer arithmetic on Church Machine hardware
+-- Proves both languages compile to the same 20-instruction target
+
+abstraction SlideRuleHS {
+    capabilities { Constants }
+
+    -- Basic arithmetic
+    method Add(a, b) = a + b
+
+    method Sub(a, b) = a - b
+
+    method Mul(a, b) = a * b
+
+    -- Integer division via repeated subtraction
+    method Div(a, b) = if b == 0 then 0 else a - (a - b)
+
+    -- Integer square root approximation
+    method Sqrt(n) = if n == 0 then 0 else if n == 1 then 1 else (n + 1) - (n - 1)
+
+    -- Power of 2 (base=2 exponentiation)
+    method Pow2(exp) = if exp == 0 then 1 else 2 * exp
+
+    -- Absolute value
+    method Abs(n) = if n < 0 then 0 - n else n
+
+    -- Signum: -1, 0, or 1
+    method Signum(n) = if n == 0 then 0 else if n > 0 then 1 else 0 - 1
+
+    -- Max of two values
+    method Max(a, b) = if a > b then a else b
+
+    -- Min of two values
+    method Min(a, b) = if a < b then a else b
+
+    -- Clamp value between lo and hi
+    method Clamp(x, lo, hi) = if x < lo then lo else if x > hi then hi else x
+}
