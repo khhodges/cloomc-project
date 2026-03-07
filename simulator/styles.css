@@ -3919,6 +3919,13 @@ header h1 {
     justify-content: center;
 }
 
+.hp35-tile-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
 .hp35-tile-header {
     font-size: 0.8rem;
     font-weight: 700;
