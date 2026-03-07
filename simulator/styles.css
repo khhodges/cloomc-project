@@ -2796,6 +2796,30 @@ header h1 {
     margin: 0;
 }
 
+.abs-catalog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.abs-library-btn {
+    background: #C89B3C;
+    color: #141414;
+    border: none;
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 5px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.abs-library-btn:hover {
+    background: #d4a94a;
+}
+
 .abs-layout {
     display: grid;
     grid-template-columns: 340px 1fr;
