@@ -152,14 +152,11 @@ function renderAbacusCalculator() {
                 <div class="abacus-controls">
                     <button class="abacus-btn" onclick="abacusClear()">Clear</button>
                 </div>
+                <div class="abacus-place-info">Each rod: 1 heaven bead (5) + 4 earth beads (1 each) = 0\u20139 per digit</div>
             </div>
         </div>
 
         <div class="abacus-tile-column">
-            <div class="abacus-tile">
-                <div class="abacus-tile-header">Place Values</div>
-                <div class="abacus-place-info">Each rod: 1 heaven bead (5) + 4 earth beads (1 each) = 0\u20139 per digit</div>
-            </div>
             <div class="abacus-tile abacus-tile-trace">
                 <div class="abacus-tile-header">Church Machine Trace</div>
                 <div class="abacus-trace-area"></div>

@@ -4440,11 +4440,12 @@ header h1 {
 
 .abacus-place-info {
     font-size: 0.68rem;
-    color: var(--text-secondary);
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
+    color: #8B7355;
+    background: rgba(0,0,0,0.3);
     border-radius: 6px;
     padding: 8px 10px;
+    margin-top: 10px;
+    text-align: center;
 }
 
 
