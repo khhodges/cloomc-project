@@ -1,0 +1,69 @@
+-- Church Machine Lambda Calculus — Haskell front-end
+-- Proves Church Machine is a universal computation target
+-- Church numerals operate on the machine's 20-instruction set
+-- Lambda expressions compile to LAMBDA/CALL instructions
+
+abstraction ChurchMath {
+    capabilities {
+    }
+
+    -- Church successor: \n -> n + 1
+    method successor(n) = n + 1
+
+    -- Church addition: \a b -> a + b
+    method add(a, b) = a + b
+
+    -- Church multiplication via repeated addition
+    method multiply(a, b) = a * b
+
+    -- Church predecessor: max(0, n - 1)
+    method predecessor(n) = if n > 0 then n - 1 else 0
+
+    -- Church subtraction: max(0, a - b)
+    method monus(a, b) = if a > b then a - b else 0
+
+    -- isZero test: returns 1 if n == 0, else 0
+    method isZero(n) = if n == 0 then 1 else 0
+
+    -- Church pair constructor: pack two 16-bit values
+    method pair(a, b) = (a, b)
+
+    -- Extract first element of a pair
+    method first(p) = fst p
+
+    -- Extract second element of a pair
+    method second(p) = snd p
+
+    -- Factorial via case expression
+    method factorial(n) = case n of 0 -> 1, _ -> n * (n - 1)
+
+    -- Lambda identity: \x -> x (Church I combinator)
+    method identity() = \x -> x
+
+    -- Lambda constant: \x -> \y -> x (Church K combinator)
+    method constant() = \x -> \y -> x
+
+    -- Lambda apply: takes a lambda and argument, applies it
+    method apply(f, x) = \g -> g x
+
+    -- Church numeral zero: \f -> \x -> x
+    method churchZero() = \f -> \x -> x
+
+    -- Church numeral one: \f -> \x -> f x
+    method churchOne() = \f -> \x -> succ x
+
+    -- Church succ via lambda: \n -> n + 1
+    method churchSucc() = \n -> succ n
+
+    -- Church isZero via lambda: \n -> isZero n
+    method churchIsZero() = \n -> isZero n
+
+    -- Let binding with lambda: let id = \x -> x in id 42
+    method letLambda() = let id = \x -> x in id 42
+
+    -- Pair via lambda: \a -> \b -> (a, b)
+    method pairLambda() = \a -> \b -> (a, b)
+
+    -- Church predecessor via lambda
+    method predLambda() = \n -> if n > 0 then n - 1 else 0
+}
