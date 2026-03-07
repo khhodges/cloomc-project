@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Church Machine IDE</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="fixed-toolbar">
+        <header>
+            <h1>Church Machine</h1>
+            <nav class="controls">
+                <div class="view-buttons">
+                    <button onclick="switchView('repl')" class="btn btn-view active" id="viewBtn-repl">Math</button>
+                    <button onclick="switchView('editor')" class="btn btn-view" id="viewBtn-editor">Code</button>
+                    <button onclick="switchView('tutorial')" class="btn btn-view" id="viewBtn-tutorial">Tutorial</button>
+                    <button onclick="switchView('dashboard')" class="btn btn-view" id="viewBtn-dashboard">Dashboard</button>
+                    <button onclick="switchView('namespace')" class="btn btn-view" id="viewBtn-namespace">Namespace</button>
+                    <button onclick="switchView('abstractions')" class="btn btn-view" id="viewBtn-abstractions">Abstractions</button>
+                    <button onclick="switchView('pipeline')" class="btn btn-view" id="viewBtn-pipeline">Pipeline</button>
+                    <button onclick="switchView('reference')" class="btn btn-view" id="viewBtn-reference">Reference</button>
+                    <button onclick="switchView('docs')" class="btn btn-view" id="viewBtn-docs">Docs</button>
+                </div>
+                <div class="sim-controls">
+                    <button class="btn btn-success" onclick="stepSim()" title="Execute one instruction">Step</button>
+                    <button class="btn btn-success" onclick="runSim()" title="Run until halt or fault">Run</button>
+                    <button class="btn btn-warning" onclick="resetSim()" title="Reset machine">Reset</button>
+                    <button class="btn btn-view btn-settings-icon" onclick="openSettings()" title="Settings">&#9881;</button>
+                </div>
+            </nav>
+        </header>
+    </div>
+
+    <div id="dashboard" class="view active">
+        <div id="flagsDisplay" class="flags-bar"></div>
+        <div class="dash-tabs">
+            <button onclick="switchDashTab('cr')" class="dash-tab active" id="dashTab-cr">Context Registers</button>
+            <button onclick="switchDashTab('dr')" class="dash-tab" id="dashTab-dr">Data Registers</button>
+            <button onclick="switchDashTab('state')" class="dash-tab" id="dashTab-state">Machine State</button>
+            <button onclick="switchDashTab('crdetail')" class="dash-tab" id="dashTab-crdetail" style="display:none;">CR Detail</button>
+            <button onclick="exportSimulatorToGitHub()" class="dash-tab" id="dashTab-export" title="Push simulator files to GitHub">Push to GitHub</button>
+        </div>
+        <div id="dashPanel-cr" class="dash-panel active">
+            <div class="panel">
+                <div class="panel-title">CR0-CR15 -- 128-bit Context Registers (4 x 32-bit words)</div>
+                <div id="crRegs"></div>
+            </div>
+        </div>
+        <div id="dashPanel-crdetail" class="dash-panel">
+            <div class="panel">
+                <div class="panel-title" id="crDetailTitle">CR Detail</div>
+                <div id="crDetailContent"></div>
+            </div>
+        </div>
+        <div id="dashPanel-dr" class="dash-panel">
+            <div class="panel">
+                <div class="panel-title">DR0-DR15 -- 32-bit Values (DR0 = zero)</div>
+                <div id="drRegs"></div>
+            </div>
+        </div>
+        <div id="dashPanel-state" class="dash-panel">
+            <div class="panel">
+                <div class="panel-title">Machine Architecture</div>
+                <div id="machineInfo"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editor" class="view">
+        <div class="editor-layout">
+            <div class="editor-panel">
+                <div class="editor-toolbar">
+                    <div class="toolbar-phase">
+                        <span class="phase-label">Design</span>
+                        <select id="langSelector" class="lang-selector" onchange="onLangChange()" title="Source language">
+                            <option value="english">English</option>
+                            <option value="symbolic">Symbolic Math (Ada)</option>
+                            <option value="assembly">Assembly</option>
+                            <option value="javascript">JS (CLOOMC++)</option>
+                            <option value="haskell">Haskell (CLOOMC++)</option>
+                        </select>
+                        <button class="btn" onclick="compileDraft()" style="background:#C89B3C;color:#141414;border:none;font-weight:bold;" title="Show compilation draft — methods, capabilities, lump layout">Draft</button>
+                    </div>
+                    <div class="toolbar-phase">
+                        <span class="phase-label">Build</span>
+                        <button class="btn btn-primary" onclick="smartCompile()" title="Compile with auto-detected or selected language">Compile</button>
+                        <button class="btn" onclick="showCreateNamespace()" style="background:#2196F3;color:#fff;border:none;" title="Create a namespace entry — reserve a slot for your abstraction">Create Namespace</button>
+                        <button class="btn" onclick="compileAndCreateAbstraction()" style="background:#4a7a2e;color:#fff;border:none;" title="Compile and create abstraction via Navana.Abstraction.Add">Create Abstraction</button>
+                    </div>
+                    <div class="toolbar-phase">
+                        <span class="phase-label">Install</span>
+                        <button class="btn" onclick="saveUploadJSON()" style="background:#2a6fdb;color:#fff;border:none;" title="Compile and save upload.json file">Save Upload JSON</button>
+                        <button class="btn" onclick="showLibrary()" style="background:#C89B3C;color:#141414;border:none;font-weight:bold;" title="Browse and share abstractions via Mum Tunnel Library">Library</button>
+                        <button class="btn btn-primary" onclick="showSaveToNamespace()" id="btnSaveNS" disabled title="Save assembled program to namespace">Save to NS</button>
+                        <button class="btn" onclick="runGC()" style="background:#9b59b6;color:#fff;border:none;" title="Run PP250 garbage collection">Run GC</button>
+                        <button class="btn btn-deploy" onclick="downloadHardwareImage()" title="Download binary for Tang Nano 20K">Download .bin</button>
+                        <button class="btn btn-deploy" onclick="uploadToTang()" title="Upload to Tang Nano 20K via WebSerial">Deploy to Tang</button>
+                    </div>
+                </div>
+                <div class="example-tabs-row">
+                    <button class="example-arrow" onclick="scrollExamples(-1)">&lsaquo;</button>
+                    <div class="example-tabs-scroll" id="exampleTabsScroll">
+                        <button class="example-tab" onclick="loadExample('ada_note_g')" data-example="ada_note_g" style="color:#f0c674;">Ada Note G</button>
+                        <button class="example-tab active" onclick="loadExample('selftest')" data-example="selftest">Self-Test</button>
+                        <button class="example-tab" onclick="loadExample('load_save')" data-example="load_save">Load/Save</button>
+                        <button class="example-tab" onclick="loadExample('bernoulli')" data-example="bernoulli">Bernoulli</button>
+                        <button class="example-tab" onclick="loadExample('conditional')" data-example="conditional">Conditional</button>
+                        <button class="example-tab" onclick="loadExample('gc_test')" data-example="gc_test">GC Test</button>
+                        <button class="example-tab" onclick="loadExample('turing_test')" data-example="turing_test">Turing ISA</button>
+                        <button class="example-tab" onclick="loadExample('salvation')" data-example="salvation" style="color:#4ade80;">Salvation</button>
+                        <button class="example-tab" onclick="loadExample('perm_attack')" data-example="perm_attack" style="color:#f87171;">Perm Attack</button>
+                        <button class="example-tab" onclick="loadExample('bind_attack')" data-example="bind_attack" style="color:#f87171;">Bind Attack</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('hello')" data-example="cloomc_hello" style="color:#C89B3C;">JS: Hello</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('memory')" data-example="cloomc_memory" style="color:#C89B3C;">JS: Memory</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('counter')" data-example="cloomc_counter" style="color:#C89B3C;">JS: Counter</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('church_math')" data-example="cloomc_church_math" style="color:#a78bfa;">HS: Math</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('church_pair')" data-example="cloomc_church_pair" style="color:#a78bfa;">HS: Pairs</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('church_case')" data-example="cloomc_church_case" style="color:#a78bfa;">HS: Case</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('church_lambda')" data-example="cloomc_church_lambda" style="color:#a78bfa;">HS: Lambda</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('sliderule')" data-example="cloomc_sliderule" style="color:#C89B3C;">JS: SlideRule</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('sliderule_hs')" data-example="cloomc_sliderule_hs" style="color:#a78bfa;">HS: SlideRule</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('ada_note_g')" data-example="cloomc_ada_note_g" style="color:#e8a87c;">Ada: Note G</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('english_hello')" data-example="cloomc_english_hello" style="color:#4fc3f7;">EN: Hello</button>
+                        <button class="example-tab" onclick="loadCLOOMCExample('english_counter')" data-example="cloomc_english_counter" style="color:#4fc3f7;">EN: Counter</button>
+                    </div>
+                    <button class="example-arrow" onclick="scrollExamples(1)">&rsaquo;</button>
+                </div>
+                <div class="code-editor-wrap">
+                    <div class="line-numbers" id="lineNumbers"></div>
+                    <textarea id="asmEditor" spellcheck="false" wrap="off"></textarea>
+                </div>
+            </div>
+            <div class="editor-divider" id="editorDivider"></div>
+            <div class="editor-panel console-panel">
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab" id="codeTabConsole" onclick="switchCodeTab('console')">Console Output</button>
+                    <button class="sidebar-tab" id="codeTabSyntax" onclick="switchCodeTab('syntax')">Syntax</button>
+                    <button class="sidebar-tab active" id="codeTabHistory" onclick="switchCodeTab('history')">History</button>
+                </div>
+                <div id="codeConsoleContent" style="display:none;">
+                    <div id="editorConsole">Ready. Write Church assembly and click Assemble.</div>
+                    <div id="nextStepsBox" class="next-steps-box"></div>
+                </div>
+                <div id="codeSyntaxPanel" style="display:none;">
+                    <div id="syntaxRefContent"></div>
+                </div>
+                <div id="codeHistoryPanel">
+                    <div style="display:flex;justify-content:flex-end;gap:0.4rem;padding:0.3rem 0;">
+                        <button class="btn" onclick="historyShowStepGuide()" style="padding:0.2rem 0.6rem;font-size:0.75rem;">How to Step</button>
+                        <button class="btn btn-primary" onclick="historyNewCodeStory()" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Another Story</button>
+                    </div>
+                    <div id="codeHistoryContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="namespace" class="view">
+        <div class="panel">
+            <div class="panel-title">Namespace Table -- Golden Token Entries</div>
+            <div class="ns-toolbar">
+                <button class="btn btn-primary btn-sm" onclick="exportAllNamespace()">Export All</button>
+                <button class="btn btn-primary btn-sm" onclick="importNamespaceFile()">Import</button>
+                <input type="file" id="nsImportFile" style="display:none;" accept=".json,.bin" onchange="handleNSImport(event)">
+            </div>
+            <div id="namespaceTable"></div>
+        </div>
+    </div>
+
+    <div id="abstractions" class="view">
+        <div class="abs-layout">
+            <div class="abs-list-panel">
+                <div class="panel">
+                    <div class="panel-title abs-catalog-header">
+                        <span>Abstraction Catalog -- 9 Layers, 44 Abstractions</span>
+                        <button class="btn abs-library-btn" onclick="showLibrary()" title="Browse and share abstractions via Mum Tunnel Library">Browse Library</button>
+                    </div>
+                    <div id="absLayerList"></div>
+                </div>
+            </div>
+            <div class="abs-detail-panel">
+                <div class="panel">
+                    <div class="panel-title" id="absDetailTitle">Select an abstraction</div>
+                    <div id="absDetailContent">
+                        <div class="abs-placeholder">Click any abstraction on the left to see its methods, permissions, and how it fits into the CR6/CR7 canonical form.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pipeline" class="view">
+        <div class="panel">
+            <div id="pipelineContainer"></div>
+        </div>
+    </div>
+
+    <div id="tutorial" class="view">
+        <div class="tutorial-selector" style="margin: 0.5rem 1rem 0;">
+            <button class="btn-tut-select active" id="tutSelect-bernoulli" onclick="selectTutorial('bernoulli')">Discovery Path (Bernoulli)</button>
+            <button class="btn-tut-select" id="tutSelect-sliderule" onclick="selectTutorial('sliderule')">SlideRule Comparative Study</button>
+        </div>
+        <div id="tutorialView"></div>
+    </div>
+
+    <div id="repl" class="view">
+        <div class="repl-layout">
+            <div class="repl-panel">
+                <div class="math-mode-tabs">
+                    <button class="math-mode-tab active" id="mathTabInteractive" onclick="switchMathMode('interactive')">Interactive Math</button>
+                    <button class="math-mode-tab" id="mathTabHP35" onclick="switchMathMode('hp35')">HP-35</button>
+                    <button class="math-mode-tab" id="mathTabAbacus" onclick="switchMathMode('abacus')">Abacus</button>
+                    <button class="math-mode-tab" id="mathTabSlideRule" onclick="switchMathMode('sliderule')">Slide Rule</button>
+                </div>
+                <div id="interactiveMathContent">
+                    <div id="replOutput">
+                        <div class="repl-info" id="replWelcomeMsg"></div>
+                    </div>
+                    <div class="repl-input-bar">
+                        <span class="repl-prompt">&#955;&gt;</span>
+                        <input type="text" id="replInput" placeholder="let x = 2 + 3" onkeydown="replKeydown(event)">
+                        <button class="btn btn-primary" onclick="replExecute()">Enter</button>
+                    </div>
+                </div>
+                <div id="hp35Container" style="display:none;"></div>
+                <div id="abacusContainer" style="display:none;"></div>
+                <div id="slideruleContainer" style="display:none;"></div>
+            </div>
+            <div class="repl-divider" id="replDivider"></div>
+            <div class="repl-sidebar">
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab" id="sidebarTabChallenge" onclick="switchSidebarTab('challenge')">Challenge</button>
+                    <button class="sidebar-tab active" id="sidebarTabHistory" onclick="switchSidebarTab('history')">History</button>
+                </div>
+                <div id="sidebarChallengeContent" style="display:none;">
+                    <div class="panel challenge-panel">
+                        <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
+                            <span>Challenge</span>
+                            <button class="btn btn-primary" onclick="generateChallenge()" style="padding:0.2rem 0.6rem;font-size:0.75rem;">New Problem</button>
+                        </div>
+                        <div id="challengeArea">
+                            <div id="challengePrompt" class="challenge-prompt">Click "New Problem" to get a math challenge!</div>
+                            <div id="challengeInput" class="challenge-input-area" style="display:none;">
+                                <input type="text" id="challengeAnswer" class="modal-input" placeholder="Your answer..." onkeydown="if(event.key==='Enter')checkChallenge()">
+                                <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+                                    <button class="btn btn-primary" onclick="checkChallenge()" style="flex:1;font-size:0.8rem;">Check</button>
+                                    <button class="btn" onclick="showChallengeHint()" style="flex:1;font-size:0.8rem;">Hint</button>
+                                </div>
+                            </div>
+                            <div id="challengeResult" class="challenge-result"></div>
+                            <div id="challengeExplain" class="challenge-explain"></div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-title">Tools</div>
+                        <button class="btn" onclick="loadBernoulliInREPL()" style="width:100%;margin-bottom:0.5rem;">Run Bernoulli</button>
+                        <button class="btn" onclick="replCompileSession()" style="width:100%;margin-bottom:0.5rem;background:#C89B3C;color:#141414;font-weight:bold;">Compile Session</button>
+                        <button class="btn" onclick="replExecute('HELP')" style="width:100%;margin-bottom:0.5rem;">Help</button>
+                        <button class="btn" onclick="replExecute('VARS')" style="width:100%;margin-bottom:0.5rem;">Show Variables</button>
+                        <button class="btn btn-warning" onclick="replExecute('CLEAR')" style="width:100%;">Clear All</button>
+                    </div>
+                </div>
+                <div id="sidebarHistoryContent">
+                    <div class="panel history-panel">
+                        <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
+                            <span>History</span>
+                            <button class="btn btn-primary" onclick="historyNewStory()" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Another Story</button>
+                        </div>
+                        <div id="historyContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reference" class="view">
+        <div class="ref-layout">
+            <div class="ref-list-panel">
+                <div class="panel">
+                    <div class="panel-title">Instruction Set -- 20 Instructions</div>
+                    <div class="instr-domain-header">Church Domain (10)</div>
+                    <div id="instrListChurch" class="instr-list"></div>
+                    <div class="instr-domain-header">Turing Domain (10 + shared RETURN)</div>
+                    <div id="instrListTuring" class="instr-list"></div>
+                </div>
+            </div>
+            <div class="ref-detail-panel">
+                <div class="panel">
+                    <div class="panel-title" id="instrDetailTitle">Select an instruction</div>
+                    <div id="instrDetailContent" class="instr-detail-content">
+                        <div class="instr-placeholder">Click any instruction on the left to see its format, encoding, permissions, flags, and usage examples.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="docs" class="view">
+        <div class="docs-layout">
+            <div class="docs-sidebar">
+                <div class="panel">
+                    <div class="panel-title">Documents</div>
+                    <div id="docsFileList" class="docs-file-list"></div>
+                    <div class="panel-title" style="margin-top:12px;">Figures</div>
+                    <div id="docsFigureList" class="docs-file-list"></div>
+                </div>
+            </div>
+            <div class="docs-content-panel">
+                <div class="panel">
+                    <div class="panel-title" id="docsContentTitle">Select a document or figure</div>
+                    <div id="docsContentBody" class="docs-content-body">
+                        <div class="docs-placeholder">Click any document on the left to view it, or click a figure to see the diagram.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="welcomeModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog welcome-dialog">
+            <div class="intro-header">
+                <div class="modal-title">Welcome to the Church Machine</div>
+            </div>
+            <div class="intro-body-wrap">
+                <div class="intro-body" id="welcomeBody"></div>
+                <div class="intro-scroll-arrow hidden" id="welcomeScrollArrow"><span>&#x25BC;</span></div>
+            </div>
+            <div class="welcome-footer">
+                <button class="btn btn-primary" id="welcomeSetupBtn" onclick="welcomeSetup()">Set Up My Family</button>
+                <button class="btn btn-view" onclick="welcomeSkip()">Skip for Now</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mathGuideModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog" style="max-width:720px;">
+            <div class="intro-header">
+                <div class="modal-title">Mind and Body</div>
+            </div>
+            <div class="intro-body" id="mathGuideBody"></div>
+            <div style="text-align:center;padding:0.75rem;">
+                <button class="btn btn-primary" onclick="dismissMathGuide()">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toolGuideModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog" style="max-width:540px;">
+            <div class="intro-header">
+                <div class="modal-title" id="toolGuideTitle"></div>
+            </div>
+            <div class="intro-body" id="toolGuideBody"></div>
+            <div style="text-align:center;padding:0.75rem;">
+                <button class="btn btn-primary" onclick="dismissToolGuide()">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="introModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog intro-dialog">
+            <div class="intro-header">
+                <div class="modal-title" id="introTitle"></div>
+                <button class="intro-close" onclick="closeIntro()">&times;</button>
+            </div>
+            <div class="intro-body-wrap">
+                <div class="intro-body" id="introBody"></div>
+                <div class="intro-scroll-arrow hidden" id="introScrollArrow"><span>&#x25BC;</span></div>
+            </div>
+            <div class="intro-footer">
+                <button class="settings-gear-btn" onclick="openSettings()" title="Settings">&#x2699;</button>
+                <label class="intro-dismiss-label">
+                    <input type="checkbox" id="introDismiss"> Don't show this again
+                </label>
+                <button class="btn btn-primary" id="introGoBtn" onclick="closeIntro()">Let's Go!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog settings-dialog">
+            <div class="intro-header">
+                <div class="modal-title">Settings</div>
+                <button class="intro-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-section">
+                    <div class="settings-section-title">Student Profile</div>
+                    <label class="settings-label">Name
+                        <input type="text" id="settingName" class="modal-input" placeholder="Your name">
+                    </label>
+                    <label class="settings-label">School
+                        <input type="text" id="settingSchool" class="modal-input" placeholder="School name">
+                    </label>
+                    <label class="settings-label">Grade Level
+                        <select id="settingGrade" class="modal-input" onchange="onGradeChange()">
+                            <option value="">-- Select --</option>
+                            <option value="K">Kindergarten</option>
+                            <option value="1">Grade 1</option>
+                            <option value="2">Grade 2</option>
+                            <option value="3">Grade 3</option>
+                            <option value="4">Grade 4</option>
+                            <option value="5">Grade 5</option>
+                            <option value="6">Grade 6</option>
+                            <option value="7">Grade 7</option>
+                            <option value="8">Grade 8</option>
+                            <option value="9">Grade 9</option>
+                            <option value="10">Grade 10</option>
+                            <option value="11">Grade 11</option>
+                            <option value="12">Grade 12</option>
+                            <option value="IB">IB (International Baccalaureate)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-section-title">Family Members</div>
+                    <div id="familyMembersList"></div>
+                    <button class="btn-add-member" onclick="addFamilyMemberRow()">+ Add Family Member</button>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-section-title">Progress Report</div>
+                    <div id="progressReport" class="progress-report"></div>
+                </div>
+                <div class="settings-section">
+                    <button class="btn btn-view" onclick="resetGuidePopups()" style="font-size:0.82rem;">Show Guides Again</button>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+                <button class="btn btn-warning" onclick="closeSettings()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="createNSDialog" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title">Create Namespace Entry</div>
+            <p style="color:#aaa;font-size:0.85rem;margin:0 0 0.75rem;">Reserve a slot in the namespace for your abstraction. This is where Mind meets the machine — every abstraction needs a home.</p>
+            <label class="modal-label">Name:
+                <input type="text" id="createNSName" class="modal-input" placeholder="MyAbstraction">
+            </label>
+            <label class="modal-label">GT Type:
+                <select id="createNSGTType" class="modal-input">
+                    <option value="1">Inform (standard abstraction)</option>
+                    <option value="2">Outform (remote/F-bit)</option>
+                    <option value="3">Abstract (GT is value)</option>
+                </select>
+            </label>
+            <label class="modal-label">Allocation Size (words):
+                <select id="createNSAllocSize" class="modal-input">
+                    <option value="32">32 (minimum)</option>
+                    <option value="64">64</option>
+                    <option value="128">128</option>
+                    <option value="256">256</option>
+                    <option value="512">512</option>
+                    <option value="1024">1024</option>
+                </select>
+            </label>
+            <label class="modal-label">C-List Slots:
+                <input type="number" id="createNSClistCount" class="modal-input" value="0" min="0" max="511" title="Number of capability slots (0-511)">
+            </label>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="confirmCreateNamespace()">Create</button>
+                <button class="btn btn-warning" onclick="document.getElementById('createNSDialog').style.display='none'">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="saveNSDialog" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title">Save to Namespace</div>
+            <label class="modal-label">Namespace Slot:
+                <select id="saveNSSlot" class="modal-input" onchange="onSlotChange()"></select>
+            </label>
+            <label class="modal-label">Label:
+                <input type="text" id="saveNSLabel" class="modal-input" placeholder="MyCode">
+            </label>
+            <label class="modal-label">GT Type:
+                <select id="saveNSType" class="modal-input">
+                    <option value="0">Abstract</option>
+                    <option value="1">Outform</option>
+                    <option value="2">Inform</option>
+                </select>
+            </label>
+            <label class="modal-label">Permissions:
+                <div class="perm-checks">
+                    <label><input type="checkbox" id="permR"> R</label>
+                    <label><input type="checkbox" id="permW"> W</label>
+                    <label><input type="checkbox" id="permX" checked> X</label>
+                    <label><input type="checkbox" id="permL"> L</label>
+                    <label><input type="checkbox" id="permS"> S</label>
+                    <label><input type="checkbox" id="permE"> E</label>
+                </div>
+            </label>
+            <div class="modal-label" id="saveNSInfo" style="font-family:'Courier New',monospace;color:var(--church-gold);"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="confirmSaveToNamespace()">Save</button>
+                <button class="btn btn-warning" onclick="closeSaveDialog()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="libraryModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog library-dialog">
+            <div class="library-header">
+                <div class="library-title">Mum Tunnel Library</div>
+                <div class="library-subtitle">Share abstractions with learners worldwide</div>
+            </div>
+            <div class="library-toolbar">
+                <input type="text" id="librarySearch" class="modal-input" placeholder="Search abstractions..." oninput="filterLibrary()">
+                <select id="libraryLangFilter" class="modal-input" onchange="filterLibrary()" style="width:auto;">
+                    <option value="">All Languages</option>
+                    <option value="english">English</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="haskell">Haskell</option>
+                    <option value="symbolic">Symbolic Math</option>
+                    <option value="assembly">Assembly</option>
+                </select>
+                <button class="btn" onclick="publishToLibrary()" style="background:#4a7a2e;color:#fff;border:none;">Publish Current</button>
+            </div>
+            <div id="libraryGrid" class="library-grid">
+                <div class="library-loading">Loading shared abstractions...</div>
+            </div>
+            <div class="library-footer">
+                <a id="libraryGitHubLink" href="#" target="_blank" class="library-github-link">View on GitHub</a>
+                <button class="btn btn-warning" onclick="document.getElementById('libraryModal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="publishModal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title">Publish to Mum Tunnel Library</div>
+            <label class="modal-label">Description:
+                <textarea id="publishDescription" class="modal-input" rows="3" placeholder="What does this abstraction do?"></textarea>
+            </label>
+            <label class="modal-label">Tags (comma-separated):
+                <input type="text" id="publishTags" class="modal-input" placeholder="math, counter, tutorial">
+            </label>
+            <div id="publishPreview" class="publish-preview"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="confirmPublish()">Publish to GitHub</button>
+                <button class="btn btn-warning" onclick="document.getElementById('publishModal').style.display='none'">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="abstractions.js"></script>
+    <script src="system_abstractions.js"></script>
+    <script src="device_abstractions.js"></script>
+    <script src="cloomc_compiler.js"></script>
+    <script src="boot_uploads.js"></script>
+    <script src="webserial.js"></script>
+    <script src="hw_binary.js"></script>
+    <script src="simulator.js"></script>
+    <script src="assembler.js"></script>
+    <script src="pipeline.js"></script>
+    <script src="repl.js"></script>
+    <script src="hp35.js"></script>
+    <script src="abacus.js"></script>
+    <script src="sliderule.js"></script>
+    <script src="history.js"></script>
+    <script src="tutorial.js"></script>
+    <script src="sliderule_tutorial.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
