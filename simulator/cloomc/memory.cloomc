@@ -1,0 +1,20 @@
+abstraction Memory {
+    capabilities {
+    }
+    method Allocate(size) {
+        var needed = size + 255
+        needed = needed >> 8
+        needed = needed << 8
+        var location = read(CR7, 0)
+        var newFree = location + needed
+        write(CR7, 0, newFree)
+        return(location, needed)
+    }
+    method Free(location) {
+        write(CR7, 1, location)
+        return(0)
+    }
+    method Resize(location, newSize) {
+        return(location, newSize)
+    }
+}
