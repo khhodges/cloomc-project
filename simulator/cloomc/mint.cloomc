@@ -1,0 +1,20 @@
+abstraction Mint {
+    capabilities {
+        Memory
+    }
+    method Create(size, perms) {
+        result = call(Memory.Allocate(size))
+        return(result)
+    }
+    method Revoke(index) {
+        var word2 = read(CR7, 2)
+        var version = bfext(word2, 25, 7)
+        var newVersion = version + 1
+        bfins(word2, newVersion, 25, 7)
+        write(CR7, 2, word2)
+        return(newVersion)
+    }
+    method Transfer(gt) {
+        return(gt)
+    }
+}
