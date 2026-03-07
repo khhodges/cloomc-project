@@ -255,6 +255,7 @@ function renderHP35Calculator() {
 
     container.innerHTML = `
         <div class="hp35-tile-grid">
+          <div class="hp35-tile-left">
             <div class="hp35-tile hp35-tile-calc">
                 <div class="hp35-body">
                     <div class="hp35-brand">
@@ -339,6 +340,8 @@ function renderHP35Calculator() {
                     <div class="hp35-stack-row"><span class="hp35-sreg">X</span> <span class="hp35-sdesc">Display \u2014 what you see and type into</span></div>
                 </div>
             </div>
+          </div>
+          <div class="hp35-tile-right">
             <div class="hp35-tile hp35-tile-trace">
                 <div class="hp35-tile-header">Lambda Calculus Trace</div>
                 <div class="hp35-trace-area"></div>
@@ -366,6 +369,7 @@ function renderHP35Calculator() {
                     </div>
                 </div>
             </div>
+          </div>
         </div>
     `;
 

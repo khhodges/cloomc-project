@@ -3977,11 +3977,26 @@ header h1 {
 }
 
 .hp35-tile-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     gap: 12px;
     padding: 8px 0;
-    align-items: start;
+    align-items: flex-start;
+}
+
+.hp35-tile-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.hp35-tile-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
 }
 
 .hp35-tile {
@@ -3998,32 +4013,11 @@ header h1 {
     padding: 0;
     display: flex;
     justify-content: center;
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.hp35-tile-stack {
-    grid-column: 1;
-    grid-row: 2;
-}
-
-.hp35-tile-trace {
-    grid-column: 2;
-    grid-row: 1;
-}
-
-.hp35-tile-guide {
-    grid-column: 2;
-    grid-row: 2;
 }
 
 @media (max-width: 700px) {
     .hp35-tile-grid {
-        grid-template-columns: 1fr;
-    }
-    .hp35-tile-calc, .hp35-tile-stack, .hp35-tile-trace, .hp35-tile-guide {
-        grid-column: 1;
-        grid-row: auto;
+        flex-direction: column;
     }
 }
 
@@ -4285,14 +4279,12 @@ header h1 {
 }
 
 .hp35-tile-trace {
-    max-height: 350px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
 }
 
 .hp35-trace-area {
-    overflow-y: auto;
     padding: 2px 0;
-    flex: 1;
 }
 
 .hp35-trace-entry {
