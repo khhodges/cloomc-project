@@ -4149,6 +4149,7 @@ function loadEditorState() {
 }
 
 function showCreateNamespace() {
+    if (!requirePermission('createNS', 'Create Namespace Entries')) return;
     if (!sim.bootComplete) {
         const con = document.getElementById('editorConsole');
         if (con) con.textContent = 'Boot not complete — run boot sequence first.';
@@ -4513,6 +4514,106 @@ function closeIntro() {
     if (arrow) arrow.classList.add('hidden');
 }
 
+const FAMILY_PERMISSIONS = [
+    { key: 'compile',       label: 'Compile Programs',        desc: 'Use the CLOOMC++ compiler' },
+    { key: 'browseLibrary', label: 'Browse Library',           desc: 'Access Mum Tunnel shared abstractions' },
+    { key: 'publish',       label: 'Publish to Library',       desc: 'Share abstractions publicly' },
+    { key: 'createNS',      label: 'Create Namespace Entries', desc: 'Reserve namespace slots' },
+    { key: 'deploy',        label: 'Deploy to Tang',           desc: 'Upload to FPGA hardware' },
+    { key: 'editCode',      label: 'Edit Code',                desc: 'Write and modify source code' },
+    { key: 'viewPipeline',  label: 'View Pipeline',            desc: 'See the mLoad pipeline' },
+    { key: 'mathTools',     label: 'Use Math Tools',           desc: 'HP-35, Abacus, Slide Rule' },
+    { key: 'settings',      label: 'Change Settings',          desc: 'Modify family settings' }
+];
+
+function mintGoldenToken() {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return '0x' + arr[0].toString(16).toUpperCase().padStart(8, '0');
+}
+
+function getFamilyAbstraction() {
+    try {
+        const raw = localStorage.getItem('church_family_abstraction');
+        if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return null;
+}
+
+function saveFamilyAbstraction(fa) {
+    localStorage.setItem('church_family_abstraction', JSON.stringify(fa));
+}
+
+function initFamilyAbstraction(parentName) {
+    const parentGT = mintGoldenToken();
+    const allPerms = {};
+    FAMILY_PERMISSIONS.forEach(p => { allPerms[p.key] = true; });
+    const fa = {
+        nsSlot: 42,
+        name: 'Family',
+        owner: parentGT,
+        clist: [
+            { gtId: parentGT, role: 'Parent', name: parentName, permissions: allPerms, immutable: true, mintedAt: Date.now() }
+        ]
+    };
+    saveFamilyAbstraction(fa);
+    return fa;
+}
+
+function mintChildGT(fa, childName, role) {
+    const childGT = mintGoldenToken();
+    const childPerms = {};
+    FAMILY_PERMISSIONS.forEach(p => {
+        childPerms[p.key] = (p.key !== 'settings' && p.key !== 'deploy' && p.key !== 'publish');
+    });
+    fa.clist.push({
+        gtId: childGT,
+        role: role || 'Child',
+        name: childName,
+        permissions: childPerms,
+        immutable: true,
+        mintedAt: Date.now()
+    });
+    saveFamilyAbstraction(fa);
+    return childGT;
+}
+
+function familyAllow(fa, gtId, permKey) {
+    const entry = fa.clist.find(e => e.gtId === gtId);
+    if (!entry) return false;
+    if (entry.gtId === fa.owner) return false;
+    entry.permissions[permKey] = true;
+    saveFamilyAbstraction(fa);
+    return true;
+}
+
+function familyDeny(fa, gtId, permKey) {
+    const entry = fa.clist.find(e => e.gtId === gtId);
+    if (!entry) return false;
+    if (entry.gtId === fa.owner) return false;
+    entry.permissions[permKey] = false;
+    saveFamilyAbstraction(fa);
+    return true;
+}
+
+function getActiveGT() {
+    return localStorage.getItem('church_active_gt') || null;
+}
+
+function setActiveGT(gtId) {
+    localStorage.setItem('church_active_gt', gtId);
+}
+
+function checkPermission(permKey) {
+    const fa = getFamilyAbstraction();
+    if (!fa) return true;
+    const activeGT = getActiveGT();
+    if (!activeGT) return true;
+    const entry = fa.clist.find(e => e.gtId === activeGT);
+    if (!entry) return false;
+    return entry.permissions[permKey] !== false;
+}
+
 function getStudentSettings() {
     try {
         const raw = localStorage.getItem('church_student_settings');
@@ -4554,6 +4655,7 @@ function trackAction(action, detail) {
 }
 
 function openSettings() {
+    if (!requirePermission('settings', 'Change Settings')) return;
     const settings = getStudentSettings();
     document.getElementById('settingName').value = settings.name || '';
     document.getElementById('settingSchool').value = settings.school || '';
@@ -4575,6 +4677,30 @@ function saveSettings() {
         familyMembers: collectFamilyMembers()
     };
     localStorage.setItem('church_student_settings', JSON.stringify(settings));
+
+    let fa = getFamilyAbstraction();
+    const members = settings.familyMembers;
+    if (members.length > 0) {
+        const firstParent = members.find(m => m.role === 'Parent');
+        if (!fa && firstParent) {
+            fa = initFamilyAbstraction(firstParent.name);
+            setActiveGT(fa.owner);
+        }
+        if (fa) {
+            members.forEach(m => {
+                const existing = fa.clist.find(e => e.name === m.name && e.role === m.role);
+                if (!existing && m.name) {
+                    if (m.role === 'Parent' && fa.clist.filter(e => e.role === 'Parent').length === 0) {
+                        fa.owner = mintGoldenToken();
+                        fa.clist.unshift({ gtId: fa.owner, role: 'Parent', name: m.name, permissions: (() => { const p = {}; FAMILY_PERMISSIONS.forEach(x => { p[x.key] = true; }); return p; })(), immutable: true, mintedAt: Date.now() });
+                        saveFamilyAbstraction(fa);
+                    } else {
+                        mintChildGT(fa, m.name, m.role);
+                    }
+                }
+            });
+        }
+    }
     closeSettings();
 }
 
@@ -4604,9 +4730,31 @@ function addFamilyMemberRow(role, name) {
     const defaultRole = count < 2 ? (count === 0 ? 'Parent' : 'Child') : 'Child';
     const r = role || defaultRole;
     const n = name || '';
+    const fa = getFamilyAbstraction();
+    const entry = fa ? fa.clist.find(e => e.name === n && e.role === r) : null;
+    const gtDisplay = entry ? entry.gtId : '';
+    const isOwner = entry && fa && entry.gtId === fa.owner;
+
     const row = document.createElement('div');
     row.className = 'family-member-row';
+
+    let gtBadge = '';
+    if (gtDisplay) {
+        gtBadge = `<span class="gt-badge${isOwner ? ' gt-owner' : ''}" title="${isOwner ? 'Owner GT — full permissions' : 'Child GT — permissions set by parent'}">${gtDisplay}</span>`;
+    }
+
+    let permsHTML = '';
+    if (entry && !isOwner && fa) {
+        permsHTML = `<div class="gt-perms-row">`;
+        FAMILY_PERMISSIONS.forEach(p => {
+            const checked = entry.permissions[p.key] !== false ? ' checked' : '';
+            permsHTML += `<label class="gt-perm-label" title="${escapeHtml(p.desc)}"><input type="checkbox" class="gt-perm-cb" data-gt="${entry.gtId}" data-perm="${p.key}"${checked} onchange="toggleFamilyPerm(this)"> ${escapeHtml(p.label)}</label>`;
+        });
+        permsHTML += `</div>`;
+    }
+
     row.innerHTML =
+        `<div class="family-member-top">` +
         `<select class="modal-input family-role-select" style="width:100px;flex:none;">` +
         `<option value="Parent"${r === 'Parent' ? ' selected' : ''}>Parent</option>` +
         `<option value="Child"${r === 'Child' ? ' selected' : ''}>Child</option>` +
@@ -4614,8 +4762,37 @@ function addFamilyMemberRow(role, name) {
         `<option value="Teacher"${r === 'Teacher' ? ' selected' : ''}>Teacher</option>` +
         `</select>` +
         `<input type="text" class="modal-input family-name-input" placeholder="Name" value="${escapeHtml(n)}">` +
-        `<button class="btn-remove-member" onclick="this.parentElement.remove()" title="Remove">&times;</button>`;
+        gtBadge +
+        `<button class="btn-remove-member" onclick="this.closest('.family-member-row').remove()" title="Remove">&times;</button>` +
+        `</div>` +
+        permsHTML;
     container.appendChild(row);
+}
+
+function toggleFamilyPerm(cb) {
+    const fa = getFamilyAbstraction();
+    if (!fa) return;
+    const activeGT = getActiveGT();
+    if (activeGT !== fa.owner) {
+        cb.checked = !cb.checked;
+        appendOutput('Only the parent (owner GT) can change permissions.', 'error');
+        return;
+    }
+    const gtId = cb.dataset.gt;
+    const permKey = cb.dataset.perm;
+    if (cb.checked) {
+        familyAllow(fa, gtId, permKey);
+    } else {
+        familyDeny(fa, gtId, permKey);
+    }
+}
+
+function requirePermission(permKey, actionLabel) {
+    if (!checkPermission(permKey)) {
+        appendOutput(`Permission denied: ${actionLabel}. Ask your parent to enable "${permKey}" on your GT.`, 'error');
+        return false;
+    }
+    return true;
 }
 
 function collectFamilyMembers() {
@@ -5182,6 +5359,7 @@ function loadNamespaceState() {
 }
 
 function downloadHardwareImage() {
+    if (!requirePermission('deploy', 'Deploy to Tang')) return;
     const image = sim.exportHardwareImage();
     const NS_WORDS = 192;
     const CLIST_WORDS = 64;
@@ -5222,6 +5400,7 @@ function downloadHardwareImage() {
 }
 
 async function uploadToTang() {
+    if (!requirePermission('deploy', 'Deploy to Tang')) return;
     const con = document.getElementById('editorConsole');
     if (!con) return;
 
@@ -5921,6 +6100,7 @@ function onLangChange(restoring) {
 }
 
 function smartCompile() {
+    if (!requirePermission('compile', 'Compile Programs')) return;
     const sel = document.getElementById('langSelector');
     const lang = sel ? sel.value : 'assembly';
     if (lang === 'assembly') {
@@ -6346,6 +6526,7 @@ let libraryCache = null;
 let libraryAllItems = [];
 
 async function showLibrary() {
+    if (!requirePermission('browseLibrary', 'Browse Library')) return;
     document.getElementById('libraryModal').style.display = 'flex';
     const repoLink = document.getElementById('libraryGitHubLink');
     if (repoLink) {
@@ -6442,6 +6623,7 @@ function filterLibrary() {
 }
 
 function publishToLibrary() {
+    if (!requirePermission('publish', 'Publish to Library')) return;
     const editor = document.getElementById('asmEditor');
     if (!editor || !cloomcCompiler) return;
     const source = editor.value;

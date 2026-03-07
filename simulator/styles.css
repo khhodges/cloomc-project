@@ -2325,9 +2325,19 @@ header h1 {
 
 .family-member-row {
     display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.6rem;
+    padding: 0.5rem;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.family-member-top {
+    display: flex;
     gap: 0.5rem;
     align-items: center;
-    margin-bottom: 0.4rem;
 }
 
 .family-member-row .modal-input {
@@ -2372,6 +2382,53 @@ header h1 {
 .btn-add-member:hover {
     color: var(--church-gold);
     border-color: var(--church-gold);
+}
+
+.gt-badge {
+    font-family: 'Courier New', monospace;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    background: rgba(200,155,60,0.1);
+    border: 1px solid rgba(200,155,60,0.3);
+    border-radius: 3px;
+    padding: 1px 6px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.gt-badge.gt-owner {
+    color: var(--church-gold);
+    background: rgba(200,155,60,0.15);
+    border-color: var(--church-gold);
+    font-weight: 700;
+}
+
+.gt-perms-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 4px 0 0;
+}
+
+.gt-perm-label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.gt-perm-label:hover {
+    color: var(--text-primary);
+}
+
+.gt-perm-cb {
+    accent-color: var(--church-gold);
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
 }
 
 .settings-dialog {
