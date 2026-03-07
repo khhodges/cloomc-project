@@ -1,0 +1,110 @@
+abstraction SlideRule {
+    capabilities { Constants }
+
+    method Add(a, b) {
+        result = a + b
+        return(result)
+    }
+
+    method Sub(a, b) {
+        result = a - b
+        return(result)
+    }
+
+    method Mul(a, b) {
+        acc = 0
+        sign = 0
+        if (b < 0) {
+            b = 0 - b
+            sign = 1
+        }
+        while (b > 0) {
+            low = bfext(b, 0, 1)
+            if (low == 1) {
+                acc = acc + a
+            }
+            a = a << 1
+            b = b >> 1
+        }
+        if (sign == 1) {
+            acc = 0 - acc
+        }
+        return(acc)
+    }
+
+    method Div(a, b) {
+        if (b == 0) {
+            return(0)
+        }
+        sign = 0
+        if (a < 0) {
+            a = 0 - a
+            sign = sign + 1
+        }
+        if (b < 0) {
+            b = 0 - b
+            sign = sign + 1
+        }
+        quot = 0
+        while (a >= b) {
+            a = a - b
+            quot = quot + 1
+        }
+        if (sign == 1) {
+            quot = 0 - quot
+        }
+        return(quot)
+    }
+
+    method Sqrt(n) {
+        if (n == 0) {
+            return(0)
+        }
+        if (n == 1) {
+            return(1)
+        }
+        guess = n >> 1
+        i = 0
+        while (i < 20) {
+            q = 0
+            rem = n
+            while (rem >= guess) {
+                rem = rem - guess
+                q = q + 1
+            }
+            next = guess + q
+            next = next >> 1
+            guess = next
+            i = i + 1
+        }
+        return(guess)
+    }
+
+    method Pow(base, exp) {
+        result = 1
+        while (exp > 0) {
+            acc = 0
+            m = base
+            r = result
+            while (r > 0) {
+                low = bfext(r, 0, 1)
+                if (low == 1) {
+                    acc = acc + m
+                }
+                m = m << 1
+                r = r >> 1
+            }
+            result = acc
+            exp = exp - 1
+        }
+        return(result)
+    }
+
+    method ToDegrees(radians) {
+        return(radians)
+    }
+
+    method ToRadians(degrees) {
+        return(degrees)
+    }
+}
