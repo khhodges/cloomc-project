@@ -1,0 +1,25 @@
+abstraction Navana {
+    capabilities {
+        Memory
+        Mint
+    }
+    method Init() {
+        return(1)
+    }
+    method Add(location, limit) {
+        return(location)
+    }
+    method Remove(index) {
+        return(0)
+    }
+    method AbstractionAdd(location, limit, clistCount) {
+        result = call(Memory.Allocate(limit))
+        return(result)
+    }
+    method AbstractionUpdate(index) {
+        return(index)
+    }
+    method AbstractionRemove(index) {
+        return(0)
+    }
+}
