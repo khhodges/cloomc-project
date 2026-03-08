@@ -15,6 +15,42 @@ class ChurchREPL {
             'log':  (a) => Math.log(a),
             'exp':  (a) => Math.exp(a),
         };
+
+        this.constants = {
+            'pi':        Math.PI,
+            '\u03C0':    Math.PI,
+            'e':         Math.E,
+            'phi':       (1 + Math.sqrt(5)) / 2,
+            '\u03C6':    (1 + Math.sqrt(5)) / 2,
+            'tau':       2 * Math.PI,
+            '\u03C4':    2 * Math.PI,
+            'inf':       Infinity,
+            '\u221E':    Infinity,
+            'sqrt2':     Math.SQRT2,
+            '\u221A2':   Math.SQRT2,
+            'sqrt3':     Math.sqrt(3),
+            'ln2':       Math.LN2,
+            'ln10':      Math.LN10,
+            'log2e':     Math.LOG2E,
+            'log10e':    Math.LOG10E,
+            'c':         299792458,
+            'G':         6.67430e-11,
+            'g':         9.80665,
+            'h':         6.62607e-34,
+            'hbar':      1.05457e-34,
+            '\u210F':    1.05457e-34,
+            'kb':        1.38065e-23,
+            'Na':        6.02214e23,
+            'R':         8.31446,
+            'e0':        8.85419e-12,
+            '\u03B5\u2080': 8.85419e-12,
+            'mu0':       1.25664e-6,
+            '\u03BC\u2080': 1.25664e-6,
+            'qe':        1.60218e-19,
+            'me':        9.10938e-31,
+            'mp':        1.67262e-27,
+            'sigma':     5.67037e-8,
+        };
     }
 
     setPipelineMode(mode) {
@@ -234,6 +270,10 @@ class ChurchREPL {
             return { value: this.variables[expr], cycles: 0 };
         }
 
+        if (this.constants[expr] !== undefined) {
+            return { value: this.constants[expr], cycles: 0 };
+        }
+
         if (/^-?\d+(\.\d+)?$/.test(expr)) {
             return { value: parseFloat(expr), cycles: 0 };
         }
@@ -341,6 +381,10 @@ class ChurchREPL {
                 'Functions:   succ(n), pred(n), sqrt(x), log(x), exp(x)',
                 'Variables:   let n = 4',
                 '             let result = n * succ(n)',
+                'Constants:   pi \u03C0, e, phi \u03C6, tau \u03C4, inf \u221E',
+                '  Roots:     sqrt2 \u221A2, sqrt3, ln2, ln10, log2e, log10e',
+                '  Physics:   c, G, g, h, hbar \u210F, kb, Na, R',
+                '             qe, me, mp, sigma, e0 \u03B5\u2080, mu0 \u03BC\u2080',
                 'Special:     ANS (last result), VARS (show all), CLEAR (reset)',
                 '',
                 'Pipeline modes:',
