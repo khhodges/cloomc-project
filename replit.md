@@ -13,7 +13,7 @@ The Church Machine is a capability-secured processor architecture with an educat
 - B (Bind) bit defaults to 0, auto-cleared by CALL
 - C-Lists only have E permission, CLOOMC only X or RX
 - Phase 1 + 1b + 1c + 1d: English, JS, Haskell, and Symbolic Math (Ada) front-ends implemented; auto-detected by compiler
-- Interactive Math "Compile Session" button: compiles interactive let-bindings to Church Machine code via symbolic math front-end
+- Pure Math "Compile Session" button: compiles interactive let-bindings to Church Machine code via symbolic math front-end
 
 ## System Architecture
 
@@ -21,7 +21,7 @@ The system is composed of hardware (Amaranth HDL for FPGA), a web IDE (HTML/JS/C
 
 **UI/UX Decisions:**
 The web IDE features nine views (Math, Code, Tutorial, Dashboard, Namespace, Abstractions, Pipeline, Reference, Docs) and incorporates interactive learning tools:
-- **Interactive Math:** A calculator with a "Compile Session" feature for converting let-bindings to Church Machine code.
+- **Pure Math:** A calculator with a "Compile Session" feature for converting let-bindings to Church Machine code.
 - **HP-35 Calculator:** A pure lambda calculus implementation of the 1972 HP-35 scientific calculator, including RPN engine and Church numeral operation tracing.
 - **Abacus:** A soroban-style abacus with digital readout and Church Machine trace for operations.
 - **Slide Rule:** A logarithmic slide rule with draggable scales and trace of Church Machine operations.

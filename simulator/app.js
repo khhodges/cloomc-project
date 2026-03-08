@@ -3774,7 +3774,7 @@ function resetAllPopups() {
 
 const TOOL_GUIDES = {
     interactive: {
-        title: 'Interactive Math',
+        title: 'Pure Math',
         body:
             `<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;">` +
             `<span style="font-size:2rem;">&#955;</span>` +
@@ -4222,7 +4222,7 @@ function populateHowItWorks(mode) {
 
         interactive: `
             <div class="panel" style="margin-bottom:0.75rem;">
-                <div class="panel-title" style="color:var(--church-gold);">How Interactive Math Works</div>
+                <div class="panel-title" style="color:var(--church-gold);">How Pure Math Works</div>
                 <div style="font-size:0.82rem;line-height:1.55;color:var(--text-secondary);">
                     Type expressions using <code>let</code> bindings to define variables and build calculations step by step.
                     For example: <code>let x = 5</code>, then <code>let y = x * 3</code>.
@@ -4349,7 +4349,7 @@ function populateHowToUse(mode) {
 
         interactive: `
             <div class="panel" style="margin-bottom:0.75rem;">
-                <div class="panel-title" style="color:var(--church-gold);">How to Use Interactive Math</div>
+                <div class="panel-title" style="color:var(--church-gold);">How to Use Pure Math</div>
                 <div style="font-size:0.82rem;line-height:1.55;color:var(--text-secondary);">
                     Type expressions into the REPL input and press Enter. Use <code>let</code> to define variables.
                 </div>
@@ -4738,10 +4738,10 @@ function getNextStepTip(lang) {
     }
 
     if (lang === 'symbolic') {
-        return `<div class="intro-tip intro-next-step"><strong>Explore:</strong> Try the <strong>Interactive Math</strong> tab to experiment with expressions interactively, then click <strong>Compile Session</strong> to turn your experiments into a program. Or visit the <strong>Tutorial</strong> tab for a guided walkthrough.</div>`;
+        return `<div class="intro-tip intro-next-step"><strong>Explore:</strong> Try the <strong>Pure Math</strong> tab to experiment with expressions interactively, then click <strong>Compile Session</strong> to turn your experiments into a program. Or visit the <strong>Tutorial</strong> tab for a guided walkthrough.</div>`;
     }
 
-    return `<div class="intro-tip intro-next-step"><strong>Explore:</strong> Open the <strong>Tutorial</strong> tab for a guided discovery path, try the <strong>Interactive Math</strong> for interactive experiments, or view your progress in the <strong>Settings</strong> (gear icon below).</div>`;
+    return `<div class="intro-tip intro-next-step"><strong>Explore:</strong> Open the <strong>Tutorial</strong> tab for a guided discovery path, try the <strong>Pure Math</strong> for interactive experiments, or view your progress in the <strong>Settings</strong> (gear icon below).</div>`;
 }
 
 const langIntros = {
