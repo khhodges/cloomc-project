@@ -7659,4 +7659,125 @@ function initReplDivider() {
     });
 }
 
+function initTabOverflow(container) {
+    if (!container || container.dataset.overflowInit) return;
+    container.dataset.overflowInit = '1';
+
+    var hamburger = document.createElement('button');
+    hamburger.className = 'tab-overflow-btn';
+    hamburger.innerHTML = '\u2630';
+    hamburger.title = 'More tabs';
+
+    var dropdown = document.createElement('div');
+    dropdown.className = 'tab-overflow-dropdown';
+
+    container.appendChild(hamburger);
+    document.body.appendChild(dropdown);
+
+    function closeDropdown() { dropdown.classList.remove('open'); }
+
+    hamburger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var rect = hamburger.getBoundingClientRect();
+        var top = rect.bottom + 2;
+        var left = rect.right - 160;
+        if (left < 4) left = 4;
+        if (top + 200 > window.innerHeight) top = rect.top - 200;
+        dropdown.style.top = top + 'px';
+        dropdown.style.left = left + 'px';
+        dropdown.style.right = '';
+        dropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', closeDropdown);
+
+    dropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    function updateOverflow() {
+        var tabs = Array.from(container.querySelectorAll('.math-mode-tab, .sidebar-tab'));
+        tabs.forEach(function(t) { t.classList.remove('overflow-hidden'); });
+        hamburger.classList.remove('visible', 'has-active');
+        dropdown.innerHTML = '';
+        dropdown.classList.remove('open');
+
+        var visibleTabs = tabs.filter(function(t) { return t.style.display !== 'none'; });
+        if (visibleTabs.length === 0) return;
+
+        var totalTabWidth = 0;
+        var tabWidths = [];
+        visibleTabs.forEach(function(t) {
+            var w = t.getBoundingClientRect().width;
+            tabWidths.push(w);
+            totalTabWidth += w;
+        });
+
+        var containerWidth = container.getBoundingClientRect().width;
+        if (totalTabWidth <= containerWidth) return;
+
+        hamburger.classList.add('visible');
+        var hbWidth = hamburger.getBoundingClientRect().width || 36;
+        var availableWidth = containerWidth - hbWidth;
+        var usedWidth = 0;
+        var overflowedTabs = [];
+        var hasActiveInOverflow = false;
+
+        for (var i = 0; i < visibleTabs.length; i++) {
+            if (usedWidth + tabWidths[i] > availableWidth) {
+                overflowedTabs.push(visibleTabs[i]);
+            } else {
+                usedWidth += tabWidths[i];
+            }
+        }
+
+        if (overflowedTabs.length === 0) {
+            hamburger.classList.remove('visible');
+            return;
+        }
+
+        overflowedTabs.forEach(function(tab) {
+            tab.classList.add('overflow-hidden');
+            var item = document.createElement('button');
+            item.textContent = tab.textContent;
+            if (tab.classList.contains('active')) {
+                item.classList.add('active');
+                hasActiveInOverflow = true;
+            }
+            item.addEventListener('click', function() {
+                tab.click();
+                dropdown.classList.remove('open');
+                setTimeout(updateOverflow, 50);
+            });
+            dropdown.appendChild(item);
+        });
+
+        if (hasActiveInOverflow) {
+            hamburger.classList.add('has-active');
+        }
+    }
+
+    var observer = new ResizeObserver(updateOverflow);
+    observer.observe(container);
+
+    var updating = false;
+    var mutObserver = new MutationObserver(function(mutations) {
+        if (updating) return;
+        var dominated = mutations.some(function(m) {
+            return m.target.classList.contains('tab-overflow-btn') || m.target.classList.contains('tab-overflow-dropdown');
+        });
+        if (dominated) return;
+        updating = true;
+        setTimeout(function() { updateOverflow(); updating = false; }, 20);
+    });
+    mutObserver.observe(container, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+
+    updateOverflow();
+}
+
+function initAllTabOverflows() {
+    document.querySelectorAll('.math-mode-tabs, .sidebar-tabs').forEach(initTabOverflow);
+}
+
 document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', initAllTabOverflows);

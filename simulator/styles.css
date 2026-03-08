@@ -1047,6 +1047,84 @@ a.next-step-link:hover {
     gap: 0;
     margin-bottom: 0.5rem;
     border-bottom: 2px solid var(--border);
+    position: relative;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.math-mode-tab.overflow-hidden {
+    display: none;
+}
+
+.sidebar-tab.overflow-hidden {
+    display: none;
+}
+
+.tab-overflow-btn {
+    display: none;
+    padding: 0.4rem 0.6rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    cursor: pointer;
+    margin-left: auto;
+    flex-shrink: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    line-height: 1;
+}
+
+.tab-overflow-btn:hover {
+    color: var(--church-gold);
+}
+
+.tab-overflow-btn.visible {
+    display: block;
+}
+
+.tab-overflow-btn.has-active {
+    color: var(--church-gold);
+}
+
+.tab-overflow-dropdown {
+    display: none;
+    position: fixed;
+    z-index: 200;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    min-width: 140px;
+    padding: 0.3rem 0;
+}
+
+.tab-overflow-dropdown.open {
+    display: block;
+}
+
+.tab-overflow-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 0.45rem 1rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.tab-overflow-dropdown button:hover {
+    background: rgba(251,191,36,0.1);
+    color: var(--text-primary);
+}
+
+.tab-overflow-dropdown button.active {
+    color: var(--church-gold);
 }
 
 .math-mode-tab {
@@ -1060,6 +1138,8 @@ a.next-step-link:hover {
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
     transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .math-mode-tab:hover {
@@ -1223,6 +1303,10 @@ a.next-step-link:hover {
     border-bottom: 2px solid var(--border);
     margin-bottom: 0.5rem;
     flex-shrink: 0;
+    position: relative;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .sidebar-tab {
@@ -1236,6 +1320,8 @@ a.next-step-link:hover {
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
     transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .sidebar-tab:hover {
