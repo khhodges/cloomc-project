@@ -92,7 +92,8 @@ function abacusRenderDisplay() {
         }
     }
 
-    const traceArea = container.querySelector('.abacus-trace-area');
+    const sidebar = document.getElementById('sidebarTraceContent');
+    const traceArea = sidebar ? sidebar.querySelector('.abacus-trace-area') : null;
     if (traceArea) {
         traceArea.innerHTML = abacusState.trace.map((t, i) =>
             `<div class="abacus-trace-entry${i === 0 ? ' abacus-trace-latest' : ''}">
@@ -155,10 +156,6 @@ function renderAbacusCalculator() {
                     </div>
                     <div class="abacus-place-info">Each rod: 1 heaven bead (5) + 4 earth beads (1 each) = 0\u20139 per digit</div>
                 </div>
-            </div>
-            <div class="abacus-tile abacus-tile-trace">
-                <div class="abacus-tile-header">Church Machine Trace</div>
-                <div class="abacus-trace-area"></div>
             </div>
         </div>
 

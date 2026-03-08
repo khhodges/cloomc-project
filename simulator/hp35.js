@@ -219,8 +219,10 @@ function renderHP35Display() {
     const arcIndicator = container.querySelector('.hp35-arc-indicator');
     if (arcIndicator) arcIndicator.style.visibility = hp35State.arcMode ? 'visible' : 'hidden';
 
+    const sidebar = document.getElementById('sidebarTraceContent');
+
     for (let i = 0; i < 4; i++) {
-        const el = container.querySelector(`.hp35-stack-reg[data-reg="${i}"]`);
+        const el = sidebar ? sidebar.querySelector(`.hp35-stack-reg[data-reg="${i}"]`) : null;
         if (el) {
             const labels = ['X','Y','Z','T'];
             const val = hp35State.stack[i];
@@ -236,7 +238,7 @@ function renderHP35Display() {
         }
     }
 
-    const traceEl = container.querySelector('.hp35-trace-area');
+    const traceEl = sidebar ? sidebar.querySelector('.hp35-trace-area') : null;
     if (traceEl) {
         let traceHtml = '';
         hp35State.trace.forEach((t, idx) => {
@@ -323,25 +325,6 @@ function renderHP35Calculator() {
                             <button class="hp35-key" style="visibility:hidden"></button>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="hp35-tile hp35-tile-trace">
-                <div class="hp35-tile-header">Lambda Calculus Trace</div>
-                <div class="hp35-trace-area"></div>
-            </div>
-            <div class="hp35-tile hp35-tile-stack">
-                <div class="hp35-tile-header">4-Register Stack</div>
-                <div class="hp35-stack-display">
-                    <div class="hp35-stack-reg" data-reg="3"></div>
-                    <div class="hp35-stack-reg" data-reg="2"></div>
-                    <div class="hp35-stack-reg" data-reg="1"></div>
-                    <div class="hp35-stack-reg" data-reg="0"></div>
-                </div>
-                <div class="hp35-stack-diagram">
-                    <div class="hp35-stack-row"><span class="hp35-sreg">T</span> <span class="hp35-sdesc">Top \u2014 oldest value, falls off when full</span></div>
-                    <div class="hp35-stack-row"><span class="hp35-sreg">Z</span> <span class="hp35-sdesc">Third level \u2014 holds earlier numbers</span></div>
-                    <div class="hp35-stack-row"><span class="hp35-sreg">Y</span> <span class="hp35-sdesc">Second operand for +, \u2212, \u00d7, \u00f7</span></div>
-                    <div class="hp35-stack-row"><span class="hp35-sreg">X</span> <span class="hp35-sdesc">Display \u2014 what you see and type into</span></div>
                 </div>
             </div>
           </div>

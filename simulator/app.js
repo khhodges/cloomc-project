@@ -4031,11 +4031,14 @@ function switchMathMode(mode) {
 
     const hiwTab = document.getElementById('sidebarTabHowItWorks');
     const htuTab = document.getElementById('sidebarTabHowToUse');
+    const trTab = document.getElementById('sidebarTabTrace');
     if (hiwTab) hiwTab.style.display = '';
     if (htuTab) htuTab.style.display = '';
+    if (trTab) trTab.style.display = '';
     populateHowItWorks(mode);
     populateHowToUse(mode);
-    switchSidebarTab('howitworks');
+    populateTrace(mode);
+    switchSidebarTab('trace');
 
     if (typeof historySetTool === 'function') historySetTool(mode);
 
@@ -4077,13 +4080,15 @@ function switchSidebarTab(tab) {
         challenge: document.getElementById('sidebarChallengeContent'),
         history: document.getElementById('sidebarHistoryContent'),
         howitworks: document.getElementById('sidebarHowItWorksContent'),
-        howtouse: document.getElementById('sidebarHowToUseContent')
+        howtouse: document.getElementById('sidebarHowToUseContent'),
+        trace: document.getElementById('sidebarTraceContent')
     };
     const tabs = {
         challenge: document.getElementById('sidebarTabChallenge'),
         history: document.getElementById('sidebarTabHistory'),
         howitworks: document.getElementById('sidebarTabHowItWorks'),
-        howtouse: document.getElementById('sidebarTabHowToUse')
+        howtouse: document.getElementById('sidebarTabHowToUse'),
+        trace: document.getElementById('sidebarTabTrace')
     };
 
     for (const key in panels) { if (panels[key]) panels[key].style.display = 'none'; }
@@ -4095,6 +4100,18 @@ function switchSidebarTab(tab) {
     if (tab === 'history' && typeof historyRefresh === 'function') {
         const area = document.getElementById('historyContent');
         if (area && !area.innerHTML.trim()) historyRefresh();
+    }
+
+    if (tab === 'trace') {
+        const traceContainer = document.getElementById('sidebarTraceContent');
+        if (traceContainer && !traceContainer.innerHTML.trim()) {
+            const currentMode = document.querySelector('.math-tab.active');
+            if (currentMode) {
+                const modeId = currentMode.id.replace('mathTab', '').toLowerCase();
+                const modeMap = { 'hp35': 'hp35', 'abacus': 'abacus', 'sliderule': 'sliderule', 'interactivemath': 'interactive' };
+                populateTrace(modeMap[modeId] || 'interactive');
+            }
+        }
     }
 }
 
@@ -4361,6 +4378,60 @@ function populateHowToUse(mode) {
     };
 
     container.innerHTML = content[mode] || content.interactive;
+}
+
+function populateTrace(mode) {
+    const container = document.getElementById('sidebarTraceContent');
+    if (!container) return;
+
+    const content = {
+        hp35: `
+            <div class="panel" style="margin-bottom:0.75rem;">
+                <div class="panel-title" style="color:var(--church-gold);">Lambda Calculus Trace</div>
+                <div class="hp35-trace-area"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title" style="color:var(--church-gold);">4-Register Stack</div>
+                <div class="hp35-stack-display">
+                    <div class="hp35-stack-reg" data-reg="3"></div>
+                    <div class="hp35-stack-reg" data-reg="2"></div>
+                    <div class="hp35-stack-reg" data-reg="1"></div>
+                    <div class="hp35-stack-reg" data-reg="0"></div>
+                </div>
+                <div class="hp35-stack-diagram">
+                    <div class="hp35-stack-row"><span class="hp35-sreg">T</span> <span class="hp35-sdesc">Top \u2014 oldest value, falls off when full</span></div>
+                    <div class="hp35-stack-row"><span class="hp35-sreg">Z</span> <span class="hp35-sdesc">Third level \u2014 holds earlier numbers</span></div>
+                    <div class="hp35-stack-row"><span class="hp35-sreg">Y</span> <span class="hp35-sdesc">Second operand for +, \u2212, \u00d7, \u00f7</span></div>
+                    <div class="hp35-stack-row"><span class="hp35-sreg">X</span> <span class="hp35-sdesc">Display \u2014 what you see and type into</span></div>
+                </div>
+            </div>`,
+
+        abacus: `
+            <div class="panel">
+                <div class="panel-title" style="color:var(--church-gold);">Church Machine Trace</div>
+                <div class="abacus-trace-area"></div>
+            </div>`,
+
+        sliderule: `
+            <div class="panel">
+                <div class="panel-title" style="color:var(--church-gold);">Church Machine Trace</div>
+                <div class="sliderule-trace-area"></div>
+            </div>`,
+
+        interactive: `
+            <div class="panel">
+                <div class="panel-title" style="color:var(--church-gold);">Trace</div>
+                <div style="font-size:0.82rem;line-height:1.55;color:var(--text-secondary);">
+                    Use <strong>Compile Session</strong> to see your expressions transformed into Church Machine instructions.
+                </div>
+            </div>`
+    };
+
+    container.innerHTML = content[mode] || content.interactive;
+
+    if (mode === 'hp35' && typeof hp35UpdateDisplay === 'function') hp35UpdateDisplay();
+    if (mode === 'abacus' && typeof abacusUpdateDisplay === 'function') abacusUpdateDisplay();
+    if (mode === 'sliderule' && typeof slideruleRenderDisplay === 'function') slideruleRenderDisplay();
 }
 
 function replKeydown(event) {

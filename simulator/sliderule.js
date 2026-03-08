@@ -420,7 +420,8 @@ function slideruleRenderDisplay() {
         }
     }
 
-    const traceArea = container.querySelector('.sliderule-trace-area');
+    const sidebar = document.getElementById('sidebarTraceContent');
+    const traceArea = sidebar ? sidebar.querySelector('.sliderule-trace-area') : null;
     if (traceArea) {
         traceArea.innerHTML = slideruleState.trace.map((t, i) =>
             `<div class="sliderule-trace-entry${i === 0 ? ' sliderule-trace-latest' : ''}">
@@ -472,10 +473,6 @@ function renderSlideRuleCalculator() {
                         <button class="sliderule-preset-btn" onclick="slideruleReset()">Reset</button>
                     </div>
                 </div>
-            </div>
-            <div class="sliderule-tile sliderule-tile-trace">
-                <div class="sliderule-tile-header">Church Machine Trace</div>
-                <div class="sliderule-trace-area"></div>
             </div>
         </div>
     </div>`;
