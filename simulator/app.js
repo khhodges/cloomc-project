@@ -61,6 +61,7 @@ function init() {
     const hash = window.location.hash.replace('#', '');
     const startView = views.includes(hash) ? hash : 'repl';
     switchView(startView);
+    switchMathMode('hp35');
     updateDashboard();
     pipelineViz.render();
     showWelcomePopup();
