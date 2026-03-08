@@ -1360,8 +1360,49 @@ a.next-step-link:hover {
     border-color: var(--church-gold);
 }
 
-.symbol-grid-btn[title]::after {
-    content: none;
+.symbol-tooltip {
+    display: none;
+    position: fixed;
+    z-index: 400;
+    background: var(--bg-dark);
+    border: 1px solid var(--church-gold);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    pointer-events: none;
+    max-width: 240px;
+    min-width: 100px;
+}
+
+.symbol-tooltip.visible {
+    display: block;
+}
+
+.symbol-tooltip-sym {
+    font-size: 1.4rem;
+    color: var(--church-gold);
+    margin-bottom: 0.2rem;
+    line-height: 1.2;
+}
+
+.symbol-tooltip-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.15rem;
+}
+
+.symbol-tooltip-desc {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.symbol-tooltip-val {
+    font-size: 0.72rem;
+    color: var(--church-gold);
+    font-family: 'Courier New', monospace;
+    margin-top: 0.2rem;
 }
 
 .repl-prompt {

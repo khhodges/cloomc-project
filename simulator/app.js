@@ -4557,9 +4557,191 @@ var MATH_SYMBOLS = {
 
 var symbolPickerCat = 'Greek';
 
+var SYMBOL_DESCRIPTIONS = {
+    '\u03B1': 'Used for angles, coefficients, and fine-structure constant',
+    '\u03B2': 'Used for angles, velocity ratio v/c, and beta functions',
+    '\u03B3': 'Euler-Mascheroni constant, Lorentz factor, gamma function',
+    '\u03B4': 'Small change or variation, Dirac delta function',
+    '\u03B5': 'Small positive quantity, permittivity',
+    '\u03B6': 'Riemann zeta function argument',
+    '\u03B7': 'Efficiency, viscosity, Dirichlet eta function',
+    '\u03B8': 'Angle measure in trigonometry and polar coordinates',
+    '\u03B9': 'Index variable, inclusion map',
+    '\u03BA': 'Curvature, thermal conductivity',
+    '\u03BB': 'Wavelength in physics, anonymous function in lambda calculus',
+    '\u03BC': 'Micro prefix (10\u207B\u2076), mean in statistics, magnetic permeability',
+    '\u03BD': 'Frequency, kinematic viscosity',
+    '\u03BE': 'Random variable, damping ratio',
+    '\u03C0': 'Ratio of circumference to diameter \u2248 3.14159',
+    '\u03C1': 'Density, resistivity, correlation coefficient',
+    '\u03C3': 'Standard deviation, surface charge density, Stefan-Boltzmann constant',
+    '\u03C4': 'Torque, time constant, tau = 2\u03C0 \u2248 6.28318',
+    '\u03C6': 'Golden ratio \u2248 1.61803, phase angle, Euler totient',
+    '\u03C7': 'Chi-squared distribution, electric susceptibility',
+    '\u03C8': 'Wave function in quantum mechanics, angle',
+    '\u03C9': 'Angular velocity, angular frequency',
+    '\u0393': 'Gamma function, circulation in fluid dynamics',
+    '\u0394': 'Change or difference (\u0394x = x\u2082 - x\u2081)',
+    '\u0398': 'Heaviside step function, big-O related notation',
+    '\u039B': 'Cosmological constant, diagonal matrix of eigenvalues',
+    '\u03A0': 'Product operator \u2014 multiply a sequence of terms',
+    '\u03A3': 'Summation operator \u2014 add a sequence of terms',
+    '\u03A6': 'Magnetic flux, cumulative distribution function',
+    '\u03A8': 'Quantum state vector, wave function',
+    '\u03A9': 'Ohm (unit of resistance), sample space in probability',
+
+    '\u00B1': 'Plus or minus \u2014 indicates two possible values',
+    '\u00D7': 'Multiplication (cross product in vectors)',
+    '\u00F7': 'Division of two quantities',
+    '\u2212': 'Subtraction or negative sign',
+    '\u22C5': 'Scalar (dot) product of two vectors',
+    '\u221A': 'Principal square root of a number',
+    '\u221B': 'Cube root \u2014 the number whose cube equals the input',
+    '\u221C': 'Fourth root of a number',
+    '\u2070': 'Superscript 0 \u2014 any number to the power 0 equals 1',
+    '\u00B9': 'Superscript 1 \u2014 identity exponent',
+    '\u00B2': 'Squared \u2014 multiply a number by itself',
+    '\u00B3': 'Cubed \u2014 multiply a number by itself three times',
+    '\u2074': 'Raised to the fourth power',
+    '\u2075': 'Raised to the fifth power',
+    '\u2076': 'Raised to the sixth power',
+    '\u2077': 'Raised to the seventh power',
+    '\u2078': 'Raised to the eighth power',
+    '\u2079': 'Raised to the ninth power',
+    '\u207A': 'Positive exponent',
+    '\u207B': 'Negative exponent (reciprocal)',
+    '\u207F': 'Raised to the nth power',
+    '\u2080': 'Subscript 0 \u2014 base or initial value',
+    '\u2081': 'Subscript 1 \u2014 first element or index',
+    '\u2082': 'Subscript 2 \u2014 second element or index',
+    '\u2083': 'Subscript 3',
+    '\u2084': 'Subscript 4',
+    '\u2085': 'Subscript 5',
+    '\u2086': 'Subscript 6',
+    '\u2087': 'Subscript 7',
+    '\u2088': 'Subscript 8',
+    '\u2089': 'Subscript 9',
+    '\u2260': 'Not equal to \u2014 two values are different',
+    '\u2248': 'Approximately equal \u2014 close but not exact',
+    '\u2261': 'Identically equal \u2014 true by definition',
+    '\u2264': 'Less than or equal to',
+    '\u2265': 'Greater than or equal to',
+    '\u226A': 'Much less than \u2014 orders of magnitude smaller',
+    '\u226B': 'Much greater than \u2014 orders of magnitude larger',
+    '\u221E': 'Infinity \u2014 unbounded quantity, not a real number',
+    '\u2030': 'Per mille \u2014 parts per thousand',
+
+    '\u2205': 'The empty set \u2014 a set with no elements',
+    '\u2208': 'Element of \u2014 x \u2208 S means x belongs to set S',
+    '\u2209': 'Not an element of \u2014 x is not in the set',
+    '\u220B': 'Contains \u2014 the set contains the element',
+    '\u2282': 'Proper subset \u2014 all elements of A are in B, but A \u2260 B',
+    '\u2283': 'Proper superset \u2014 B contains all elements of A',
+    '\u2286': 'Subset or equal \u2014 A is contained in or equals B',
+    '\u2287': 'Superset or equal \u2014 B contains or equals A',
+    '\u222A': 'Union \u2014 all elements in A or B (or both)',
+    '\u2229': 'Intersection \u2014 elements in both A and B',
+    '\u2216': 'Set difference \u2014 elements in A but not in B',
+    '\u2295': 'Direct sum or XOR \u2014 exclusive combination',
+    '\u2297': 'Tensor product or cross product',
+    '\u2115': 'Natural numbers: 0, 1, 2, 3, 4, \u2026',
+    '\u2124': 'Integers: \u2026, -2, -1, 0, 1, 2, \u2026',
+    '\u211A': 'Rational numbers \u2014 fractions p/q',
+    '\u211D': 'Real numbers \u2014 all points on the number line',
+    '\u2102': 'Complex numbers \u2014 a + bi where i\u00B2 = -1',
+    '\u2200': 'For all \u2014 universal quantifier, every element',
+    '\u2203': 'There exists \u2014 at least one element satisfies this',
+    '\u2204': 'There does not exist \u2014 no element satisfies this',
+
+    '\u00AC': 'Logical NOT \u2014 negation, flips true to false',
+    '\u2227': 'Logical AND \u2014 true only when both sides are true',
+    '\u2228': 'Logical OR \u2014 true when at least one side is true',
+    '\u21D2': 'Implies \u2014 if A is true then B must be true',
+    '\u21D4': 'If and only if \u2014 both sides are equivalent',
+    '\u22A2': 'Proves (turnstile) \u2014 derivable from axioms',
+    '\u22A8': 'Models \u2014 semantically entails, is satisfied by',
+    '\u22A4': 'Top/True \u2014 always true, the unit type',
+    '\u22A5': 'Bottom/False \u2014 always false, contradiction',
+    '\u25A1': 'Necessity \u2014 must be true in all possible worlds',
+    '\u25C7': 'Possibility \u2014 true in at least one possible world',
+    '\u2234': 'Therefore \u2014 the conclusion follows',
+    '\u2235': 'Because \u2014 the reason or premise',
+    '\u22A3': 'Does not prove \u2014 not derivable',
+
+    '\u2202': 'Partial derivative \u2014 rate of change in one variable',
+    '\u222B': 'Integral \u2014 area under a curve, antiderivative',
+    '\u222C': 'Double integral \u2014 over a 2D region',
+    '\u222D': 'Triple integral \u2014 over a 3D volume',
+    '\u222E': 'Contour integral \u2014 integral around a closed path',
+    '\u2207': 'Nabla/del \u2014 gradient, divergence, or curl operator',
+    '\u2206': 'Laplacian or finite difference operator',
+    '\u2211': 'Summation \u2014 add up a sequence of terms',
+    '\u220F': 'Product \u2014 multiply a sequence of terms',
+    '\u2032': 'Prime \u2014 derivative f\u2032(x) or transformed variable',
+    '\u2033': 'Double prime \u2014 second derivative f\u2033(x)',
+    '\u221D': 'Proportional to \u2014 y \u221D x means y = kx for some k',
+    '\u2243': 'Asymptotically equal \u2014 same behaviour for large values',
+
+    '\u210F': 'Reduced Planck constant h/(2\u03C0) \u2248 1.055 \u00D7 10\u207B\u00B3\u2074 J\u00B7s',
+    '\u212B': 'Angstrom \u2014 10\u207B\u00B9\u2070 metres, atomic scale length',
+    '\u2126': 'Ohm \u2014 SI unit of electrical resistance',
+    '\u00B5': 'Micro \u2014 prefix meaning 10\u207B\u2076',
+    '\u2220': 'Angle \u2014 the figure formed by two rays from a point',
+    '\u2225': 'Parallel \u2014 lines that never meet',
+    '\u2190': 'Left arrow \u2014 direction, assignment, or mapping',
+    '\u2192': 'Right arrow \u2014 function type, maps to, implies',
+    '\u2194': 'Left-right arrow \u2014 bidirectional, if and only if',
+    '\u2191': 'Up arrow \u2014 increasing, exponentiation (Knuth)',
+    '\u2193': 'Down arrow \u2014 decreasing',
+    '\u00B0': 'Degree \u2014 unit of angle (360\u00B0 in a circle) or temperature',
+    '\u2299': 'Circled dot \u2014 direct product, solar symbol',
+
+    '\u2218': 'Function composition \u2014 (f \u2218 g)(x) = f(g(x))',
+    '\u21A6': 'Maps to \u2014 x \u21A6 f(x), element-level mapping',
+    '\u27E8': 'Left angle bracket \u2014 inner product, bra in quantum mechanics',
+    '\u27E9': 'Right angle bracket \u2014 inner product, ket in quantum mechanics',
+    '\u22C6': 'Star operator \u2014 Kleene star, convolution',
+    '\u2022': 'Bullet \u2014 list marker, binary operation',
+};
+
+var CONSTANT_VALUES = {
+    '\u03C0': '\u2248 3.14159265',
+    'e': '\u2248 2.71828183',
+    '\u03C6': '\u2248 1.61803399',
+    '\u221E': 'unbounded',
+    'c': '299,792,458 m/s',
+    'G': '6.674 \u00D7 10\u207B\u00B9\u00B9 N\u00B7m\u00B2/kg\u00B2',
+    'g': '9.80665 m/s\u00B2',
+    'h': '6.626 \u00D7 10\u207B\u00B3\u2074 J\u00B7s',
+    '\u210F': '1.055 \u00D7 10\u207B\u00B3\u2074 J\u00B7s',
+    'k\u0299': '1.381 \u00D7 10\u207B\u00B2\u00B3 J/K',
+    'N\u2090': '6.022 \u00D7 10\u00B2\u00B3 mol\u207B\u00B9',
+    'R': '8.314 J/(mol\u00B7K)',
+    '\u03B5\u2080': '8.854 \u00D7 10\u207B\u00B9\u00B2 F/m',
+    '\u03BC\u2080': '1.257 \u00D7 10\u207B\u2076 H/m',
+    'e\u207B': '1.602 \u00D7 10\u207B\u00B9\u2079 C',
+    'm\u2091': '9.109 \u00D7 10\u207B\u00B3\u00B9 kg',
+    'm\u209A': '1.673 \u00D7 10\u207B\u00B2\u2077 kg',
+    '\u03C3': '5.670 \u00D7 10\u207B\u2078 W/(m\u00B2\u00B7K\u2074)',
+    'i': '\u221A(-1)',
+    '\u03B3': '\u2248 0.57721566',
+    '\u03B6': '\u2248 1.20206 (\u03B6(3))',
+    '\u221A2': '\u2248 1.41421356',
+    'ln2': '\u2248 0.69314718',
+    'ln10': '\u2248 2.30258509',
+};
+
 function buildSymbolPicker() {
     var dd = document.getElementById('symbolPickerDropdown');
     if (!dd) return;
+
+    var tooltip = document.getElementById('symbolTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'symbolTooltip';
+        tooltip.className = 'symbol-tooltip';
+        document.body.appendChild(tooltip);
+    }
 
     var catsHtml = '<div class="symbol-picker-cats">';
     for (var cat in MATH_SYMBOLS) {
@@ -4570,7 +4752,7 @@ function buildSymbolPicker() {
     var gridHtml = '<div class="symbol-grid">';
     var syms = MATH_SYMBOLS[symbolPickerCat] || [];
     for (var i = 0; i < syms.length; i++) {
-        gridHtml += '<button class="symbol-grid-btn" data-sym="' + syms[i][0] + '" title="' + syms[i][1] + '">' + syms[i][0] + '</button>';
+        gridHtml += '<button class="symbol-grid-btn" data-sym="' + syms[i][0] + '" data-name="' + syms[i][1].replace(/'/g, '&#39;') + '">' + syms[i][0] + '</button>';
     }
     gridHtml += '</div>';
 
@@ -4590,14 +4772,39 @@ function buildSymbolPicker() {
             e.stopPropagation();
             insertSymbol(btn.dataset.sym);
         });
+        btn.addEventListener('mouseenter', function() {
+            var sym = btn.dataset.sym;
+            var name = btn.dataset.name;
+            var desc = SYMBOL_DESCRIPTIONS[sym] || '';
+            var val = CONSTANT_VALUES[sym] || '';
+            var html = '<div class="symbol-tooltip-sym">' + sym + '</div>';
+            html += '<div class="symbol-tooltip-name">' + name + '</div>';
+            if (desc) html += '<div class="symbol-tooltip-desc">' + desc + '</div>';
+            if (val) html += '<div class="symbol-tooltip-val">' + val + '</div>';
+            tooltip.innerHTML = html;
+            var rect = btn.getBoundingClientRect();
+            var top = rect.top - tooltip.offsetHeight - 6;
+            if (top < 4) top = rect.bottom + 6;
+            var left = rect.left + rect.width / 2 - 60;
+            if (left < 4) left = 4;
+            if (left + 240 > window.innerWidth) left = window.innerWidth - 244;
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+            tooltip.classList.add('visible');
+        });
+        btn.addEventListener('mouseleave', function() {
+            tooltip.classList.remove('visible');
+        });
     });
 }
 
 function toggleSymbolPicker() {
     var dd = document.getElementById('symbolPickerDropdown');
     if (!dd) return;
+    var tooltip = document.getElementById('symbolTooltip');
     if (dd.classList.contains('open')) {
         dd.classList.remove('open');
+        if (tooltip) tooltip.classList.remove('visible');
     } else {
         buildSymbolPicker();
         dd.classList.add('open');
@@ -4620,6 +4827,8 @@ document.addEventListener('click', function(e) {
     var dd = document.getElementById('symbolPickerDropdown');
     if (dd && !e.target.closest('.symbol-picker-wrap')) {
         dd.classList.remove('open');
+        var tooltip = document.getElementById('symbolTooltip');
+        if (tooltip) tooltip.classList.remove('visible');
     }
 });
 
