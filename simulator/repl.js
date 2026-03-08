@@ -93,7 +93,7 @@ class ChurchREPL {
         const name = assignment.substring(0, eqIdx).trim();
         const expr = assignment.substring(eqIdx + 1).trim();
 
-        if (!name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+        if (!name.match(/^[a-zA-Z_\u0391-\u03C9\u210F\u221A\u221E][a-zA-Z0-9_\u0391-\u03C9\u2080-\u209C\u2070-\u207F\u00B2\u00B3\u00B9\u207A\u207B]*$/)) {
             return { type: 'error', text: `Invalid variable name: ${name}` };
         }
 
@@ -136,10 +136,123 @@ class ChurchREPL {
         };
     }
 
+    _preprocess(expr) {
+        var SUPER_TO_DIGIT = {
+            '\u2070':'0','\u00B9':'1','\u00B2':'2','\u00B3':'3','\u2074':'4',
+            '\u2075':'5','\u2076':'6','\u2077':'7','\u2078':'8','\u2079':'9',
+            '\u207A':'+','\u207B':'-','\u207F':'n','\u2071':'i'
+        };
+        var result = '';
+        var i = 0;
+        while (i < expr.length) {
+            var ch = expr[i];
+            if (SUPER_TO_DIGIT[ch] !== undefined) {
+                var exp = '';
+                while (i < expr.length && SUPER_TO_DIGIT[expr[i]] !== undefined) {
+                    exp += SUPER_TO_DIGIT[expr[i]];
+                    i++;
+                }
+                result += '^' + exp;
+            } else {
+                result += ch;
+                i++;
+            }
+        }
+        expr = result;
+
+        var isIdChar = function(c) {
+            if (!c) return false;
+            if (/[a-zA-Z0-9_]/.test(c)) return true;
+            var cp = c.charCodeAt(0);
+            return (cp >= 0x0391 && cp <= 0x03C9) || c === '\u221A' || c === '\u210F' || c === '\u221E' ||
+                   (cp >= 0x2080 && cp <= 0x209C);
+        };
+        var isDigitOrDot = function(c) { return c && /[0-9.]/.test(c); };
+        var isValueEnd = function(c) { return isIdChar(c) || isDigitOrDot(c) || c === ')'; };
+        var isValueStart = function(c) { return isIdChar(c) || isDigitOrDot(c) || c === '('; };
+
+        result = '';
+        for (i = 0; i < expr.length; i++) {
+            result += expr[i];
+            if (i + 1 < expr.length) {
+                var cur = expr[i];
+                var next = expr[i + 1];
+                var needsMul = false;
+                if (isDigitOrDot(cur) && isIdChar(next) && !isDigitOrDot(next)) needsMul = true;
+                if (isDigitOrDot(cur) && next === '(') needsMul = true;
+                if (cur === ')' && (isIdChar(next) || isDigitOrDot(next) || next === '(')) needsMul = true;
+                if (isIdChar(cur) && next === '(' && !/[a-zA-Z_]/.test(cur)) needsMul = true;
+                if (needsMul) {
+                    result += ' * ';
+                }
+            }
+        }
+        expr = result;
+
+        var tokens = expr.split(/\s+/);
+        result = '';
+        for (i = 0; i < tokens.length; i++) {
+            if (i > 0) {
+                var prev = tokens[i - 1];
+                var tok = tokens[i];
+                var prevEnd = prev[prev.length - 1];
+                var tokStart = tok[0];
+                var prevIsOp = /^[+\-*/%^]$/.test(prev);
+                var tokIsOp = /^[+\-*/%^]$/.test(tok);
+                if (!prevIsOp && !tokIsOp && isValueEnd(prevEnd) && isValueStart(tokStart)) {
+                    result += ' * ';
+                } else {
+                    result += ' ';
+                }
+            }
+            result += tokens[i];
+        }
+
+        return result.trim();
+    }
+
+    _findOperator(expr) {
+        var precedence = [['+', '-'], ['*', '/', '%'], ['^']];
+        for (var p = 0; p < precedence.length; p++) {
+            var ops = precedence[p];
+            var depth = 0;
+            var scanDir = (p === 2) ? 1 : -1;
+            var start = scanDir === -1 ? expr.length - 1 : 0;
+            var end = scanDir === -1 ? -1 : expr.length;
+            for (var i = start; i !== end; i += scanDir) {
+                var c = expr[i];
+                if (c === '(') depth += (scanDir === -1 ? -1 : 1);
+                else if (c === ')') depth += (scanDir === -1 ? 1 : -1);
+                if (depth !== 0) continue;
+                if (ops.indexOf(c) >= 0) {
+                    var left = expr.substring(0, i).trim();
+                    var right = expr.substring(i + 1).trim();
+                    if (left && right) {
+                        if ((c === '-' || c === '+') && i > 0 && /[+\-*/%^(]/.test(expr[i-1].trim() || expr[i-1])) continue;
+                        return { left: left, op: c, right: right };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     _evaluate(expr) {
-        expr = expr.trim();
+        expr = this._preprocess(expr.trim());
         const churchSteps = [];
         let pipeline = [];
+
+        if (expr.startsWith('(') && expr.endsWith(')')) {
+            var depth = 0, matched = true;
+            for (var ci = 0; ci < expr.length; ci++) {
+                if (expr[ci] === '(') depth++;
+                else if (expr[ci] === ')') depth--;
+                if (depth === 0 && ci < expr.length - 1) { matched = false; break; }
+            }
+            if (matched) {
+                return this._evaluate(expr.substring(1, expr.length - 1));
+            }
+        }
 
         const funcMatch = expr.match(/^(\w+)\((.+)\)$/);
         if (funcMatch) {
@@ -211,11 +324,11 @@ class ChurchREPL {
             return { error: `Unknown function: ${func}` };
         }
 
-        const opMatch = expr.match(/^(.+?)\s*([+\-*/%^])\s*(.+)$/);
-        if (opMatch) {
-            const leftExpr = opMatch[1].trim();
-            const op = opMatch[2];
-            const rightExpr = opMatch[3].trim();
+        var opInfo = this._findOperator(expr);
+        if (opInfo) {
+            const leftExpr = opInfo.left;
+            const op = opInfo.op;
+            const rightExpr = opInfo.right;
 
             const left = this._evaluate(leftExpr);
             if (left.error) return left;
