@@ -2602,7 +2602,7 @@ function resetSim() {
         sim._bootStep();
     }
     const con = document.getElementById('editorConsole');
-    if (con) con.textContent = 'Machine reset and booted.';
+    if (con) con.textContent = 'Machine reset and booted.\n';
     updateDashboard();
 }
 
