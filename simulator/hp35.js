@@ -325,6 +325,10 @@ function renderHP35Calculator() {
                     </div>
                 </div>
             </div>
+            <div class="hp35-tile hp35-tile-trace">
+                <div class="hp35-tile-header">Lambda Calculus Trace</div>
+                <div class="hp35-trace-area"></div>
+            </div>
             <div class="hp35-tile hp35-tile-stack">
                 <div class="hp35-tile-header">4-Register Stack</div>
                 <div class="hp35-stack-display">
@@ -339,12 +343,6 @@ function renderHP35Calculator() {
                     <div class="hp35-stack-row"><span class="hp35-sreg">Y</span> <span class="hp35-sdesc">Second operand for +, \u2212, \u00d7, \u00f7</span></div>
                     <div class="hp35-stack-row"><span class="hp35-sreg">X</span> <span class="hp35-sdesc">Display \u2014 what you see and type into</span></div>
                 </div>
-            </div>
-          </div>
-          <div class="hp35-tile-right">
-            <div class="hp35-tile hp35-tile-trace">
-                <div class="hp35-tile-header">Lambda Calculus Trace</div>
-                <div class="hp35-trace-area"></div>
             </div>
           </div>
         </div>
