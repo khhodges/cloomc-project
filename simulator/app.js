@@ -4036,14 +4036,6 @@ function replExecute(cmdOverride) {
     if (result) {
         if (result.type === 'result') {
             output.innerHTML += `<div class="repl-result">${convertCaretToSuperscript(escapeHtml(result.text))}</div>`;
-            if (result.churchSteps && result.churchSteps.length > 0) {
-                let traceHtml = '<div class="repl-trace">';
-                for (const step of result.churchSteps) {
-                    traceHtml += `<div class="repl-trace-step">${escapeHtml(step)}</div>`;
-                }
-                traceHtml += '</div>';
-                output.innerHTML += traceHtml;
-            }
             _appendToTraceTab(command, result);
             if (result.pipeline && pipelineViz) {
                 pipelineViz.showFullPipeline(result.pipeline);
