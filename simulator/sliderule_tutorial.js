@@ -162,7 +162,7 @@ class SlideRuleTutorial {
 </div>`
             },
             {
-                title: "Register Allocation & Upload Format",
+                title: "Register Allocation & JSON Upload Format",
                 type: "compiler",
                 content: `<p>The Church Machine provides 16 data registers:</p>
 <table class="sr-table sr-table-wide"><tr><th>Registers</th><th>Purpose</th><th>Saved by</th></tr>
