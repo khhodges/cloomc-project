@@ -371,10 +371,20 @@ class SlideRuleTutorial {
             {
                 title: "Compiled Output Comparison",
                 type: "comparison",
-                content: `<p><strong>Semantically equivalent methods</strong> (produce identical results):</p>
-<table class="sr-table sr-table-wide"><tr><th>Method</th><th>JS (instr)</th><th>HS (instr)</th><th>HS Reduction</th><th>Semantics</th></tr>
-<tr><td>Add</td><td>5</td><td>4</td><td>20%</td><td>Identical: a + b</td></tr>
-<tr><td>Sub</td><td>4</td><td>3</td><td>25%</td><td>Identical: a - b</td></tr>
+                content: `<div class="sr-comp-layout">
+<div class="sr-compiler-diagram" style="flex:3;min-width:0">
+<p><strong>All four languages &mdash; same Add method:</strong></p>
+<table class="sr-table sr-table-wide"><tr><th>Language</th><th>Instructions</th><th>Floating Point</th><th>Approach</th></tr>
+<tr><td>English</td><td>3</td><td>&check;</td><td>Delegates to slide rule abstraction</td></tr>
+<tr><td>JavaScript</td><td>5</td><td>&cross;</td><td>Explicit integer IADD</td></tr>
+<tr><td>Haskell</td><td>4</td><td>&cross;</td><td>Expression: a + b</td></tr>
+<tr><td>Machine code</td><td>2</td><td>&cross;</td><td>Hand-written IADD + RETURN</td></tr>
+</table>
+<p><strong>Mul &amp; Div &mdash; the critical difference:</strong></p>
+<table class="sr-table sr-table-wide"><tr><th>Method</th><th>EN</th><th>JS</th><th>HS</th><th>ASM</th><th>EN Algorithm</th></tr>
+<tr><td>Mul</td><td>4</td><td>35</td><td>8</td><td>15</td><td>Slide rule abstraction (float) &check;</td></tr>
+<tr><td>Div</td><td>5</td><td>28</td><td>&mdash;</td><td>&mdash;</td><td>Slide rule abstraction (float) &check;</td></tr>
+<tr><td>Sqrt</td><td>6</td><td>38</td><td>27</td><td>&mdash;</td><td>Integer lookup</td></tr>
 </table>
 <p><strong>Semantically different methods</strong> (same name, different algorithms):</p>
 <table class="sr-table sr-table-wide"><tr><th>Method</th><th>JS</th><th>HS</th><th>JS Algorithm</th><th>HS Algorithm</th></tr>
@@ -382,18 +392,22 @@ class SlideRuleTutorial {
 <tr><td>Sqrt</td><td>38</td><td>27</td><td>Newton-Raphson iteration &check;</td><td>Conditional lookup table &check;</td></tr>
 <tr><td>Pow/Pow2</td><td>29</td><td>19</td><td>General base^exp loop &check;</td><td>2^exp lookup table &check;</td></tr>
 </table>
-<p><strong>Haskell-only methods</strong> (all correct):</p>
-<table class="sr-table sr-table-wide"><tr><th>Method</th><th>Instructions</th><th>Correct</th></tr>
-<tr><td>Abs</td><td>13</td><td>&check;</td></tr>
-<tr><td>Signum</td><td>25</td><td>&check;</td></tr>
-<tr><td>Max</td><td>10</td><td>&check;</td></tr>
-<tr><td>Min</td><td>10</td><td>&check;</td></tr>
-<tr><td>Clamp</td><td>18</td><td>&check;</td></tr>
-</table>
 <div class="sr-totals">
+<div class="sr-total-item"><strong>English:</strong> 5 methods, 22 instructions, 88 bytes + slide rule delegation</div>
 <div class="sr-total-item"><strong>JavaScript:</strong> 8 methods, 153 instructions, 612 bytes</div>
 <div class="sr-total-item"><strong>Haskell:</strong> 11 methods, 151 instructions, 604 bytes</div>
-<div class="sr-total-note">Haskell: 37.5% more methods in 1.3% less code &mdash; but JS has correct algorithms for all methods.</div>
+<div class="sr-total-item"><strong>Machine code:</strong> 3 methods, 19 instructions, 76 bytes (hand-optimised)</div>
+</div>
+</div>
+<div class="sr-comp-side sr-comp-side-right">
+<div class="sr-comp-side-panel open">
+<div class="sr-comp-side-title">Abstraction = Performance</div>
+<p>English achieves the <strong>fewest instructions</strong> for Mul and Div by delegating to the slide rule abstraction &mdash; a pre-existing, tested capability that performs floating-point arithmetic via logarithmic scales.</p>
+<p>Instead of compiling 35 instructions of shift-and-add (JS) or 8 instructions of repeated addition (HS), English compiles to just <strong>4 instructions</strong>: load the capability, pass parameters, call, return.</p>
+<p>This is the key insight: <em>using abstractions in the English front-end turns composition into a performance advantage</em>. The work is done by optimised code already resident in the machine, not by inlining a new algorithm every time.</p>
+<p>Higher-level language &rarr; fewer instructions &rarr; smaller lumps &rarr; faster execution.</p>
+</div>
+</div>
 </div>`
             },
             {
