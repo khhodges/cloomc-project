@@ -125,6 +125,15 @@ class SlideRuleTutorial {
                 title: "The CLOOMC++ Compiler",
                 type: "compiler",
                 content: `<p>CLOOMC++ is a multi-language compiler with a single back-end. All front-ends produce the same output: arrays of 32-bit Church Machine instruction words.</p>
+<div class="sr-comp-layout">
+<div class="sr-comp-side sr-comp-side-left">
+<div class="sr-comp-side-panel" id="srCompPanelLeft">
+<div class="sr-comp-side-title">First-Class Variables</div>
+<p>The real advantage of CLOOMC++ is <strong>first-class variables</strong>: Golden Tokens pass complex ideas as secure packages.</p>
+<p>For example, the PP250 statement <code>CALL.Connect(me, to: my_mother)</code> passes two capability tokens &mdash; each an unforgeable, permission-carrying reference &mdash; as ordinary variables.</p>
+<p>No raw pointers, no shared memory, no ambient authority. The compiler ensures every variable is a sealed capability.</p>
+</div>
+</div>
 <div class="sr-compiler-diagram">
 <div class="sr-comp-inputs">
 <div class="sr-comp-input" data-tooltip="English: Add(a, b) &mdash; add two numbers&#10;&#10;Compiles to:&#10;IADD DR0, DR0, DR1  &rarr; 0x7F600000&#10;RETURN              &rarr; 0x1F800000">English</div>
@@ -133,9 +142,18 @@ class SlideRuleTutorial {
 <div class="sr-comp-input" data-tooltip="Machine code: 0x7F600000, 0x1F800000&#10;&#10;Direct 32-bit words:&#10;0x7F600000 = IADD DR0, DR0, DR1&#10;0x1F800000 = RETURN&#10;No compilation needed &mdash; injected verbatim">Machine code</div>
 </div>
 <div class="sr-comp-arrow">&darr;</div>
-<div class="sr-comp-core" data-tooltip="The real advantage of CLOOMC++ is first-class variables: Golden Tokens pass complex ideas as secure packages. For example, the PP250 statement CALL.Connect(me, to: my_mother) passes two capability tokens — each an unforgeable, permission-carrying reference — as ordinary variables. No raw pointers, no shared memory, no ambient authority. The compiler ensures every variable is a sealed capability.">CLOOMC++ Compiler<br><small>Resident Object Model</small></div>
+<div class="sr-comp-core" onclick="document.getElementById('srCompPanelLeft').classList.toggle('open')"><span style="font-size:0.65rem;opacity:0.7">&#9654; click</span><br>CLOOMC++ Compiler<br><small>Resident Object Model</small></div>
 <div class="sr-comp-arrow">&darr;</div>
-<div class="sr-comp-output" data-tooltip="CLOOMC++ runs on bare metal hardware with no operating system required. No malware. No ransomware. No ethical constraints on AI behaviour to patch after the fact. No lethal autonomous weapons. No AI breakout problems. The hardware enforces security at every cycle — software cannot override what the silicon forbids.">32-bit code words &rarr; upload.json</div>
+<div class="sr-comp-output" onclick="document.getElementById('srCompPanelRight').classList.toggle('open')"><span style="font-size:0.65rem;opacity:0.7">&#9654; click</span><br>32-bit code words &rarr; upload.json</div>
+</div>
+<div class="sr-comp-side sr-comp-side-right">
+<div class="sr-comp-side-panel" id="srCompPanelRight">
+<div class="sr-comp-side-title">Bare Metal Security</div>
+<p>CLOOMC++ runs on <strong>bare metal hardware</strong> with no operating system required.</p>
+<p>No malware. No ransomware. No ethical constraints on AI behaviour to patch after the fact. No lethal autonomous weapons. No AI breakout problems.</p>
+<p>The hardware enforces security at every cycle &mdash; software cannot override what the silicon forbids.</p>
+</div>
+</div>
 </div>
 <div class="sr-key-concept">
 <div class="sr-concept-title">Resident Object Model</div>

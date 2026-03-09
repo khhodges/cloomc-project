@@ -4403,6 +4403,63 @@ a.next-step-link:hover {
     color: var(--text-dim);
 }
 
+.sr-comp-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+}
+
+.sr-comp-layout .sr-compiler-diagram {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.sr-comp-side {
+    flex: 1;
+    min-width: 0;
+}
+
+.sr-comp-side-panel {
+    background: rgba(26, 45, 80, 0.6);
+    border: 1px solid rgba(100, 150, 220, 0.3);
+    border-radius: 8px;
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.sr-comp-side-panel.open {
+    padding: 0.6rem 0.75rem;
+    max-height: 400px;
+    opacity: 1;
+}
+
+.sr-comp-side-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--church-gold);
+    margin-bottom: 0.4rem;
+}
+
+.sr-comp-side-panel p {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin: 0 0 0.4rem;
+    line-height: 1.45;
+}
+
+.sr-comp-side-panel p:last-child {
+    margin-bottom: 0;
+}
+
+.sr-comp-side-panel code {
+    color: var(--church-gold);
+    font-size: 0.7rem;
+}
+
 .sr-comp-core {
     padding: 0.6rem 1.5rem;
     background: var(--church-gold);
@@ -4410,21 +4467,7 @@ a.next-step-link:hover {
     border-radius: 6px;
     font-weight: 600;
     position: relative;
-    cursor: help;
-}
-
-.sr-comp-core[data-tooltip]::after {
-    bottom: auto;
-    top: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: normal;
-    text-align: left;
-    max-width: 380px;
-    line-height: 1.5;
-    font-weight: normal;
-    font-size: 0.85rem;
-    text-align: center;
+    cursor: pointer;
 }
 
 .sr-comp-output {
@@ -4435,19 +4478,7 @@ a.next-step-link:hover {
     font-size: 0.78rem;
     color: #7ee787;
     position: relative;
-    cursor: help;
-}
-
-.sr-comp-output[data-tooltip]::after {
-    bottom: auto;
-    top: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: normal;
-    text-align: left;
-    max-width: 380px;
-    line-height: 1.5;
-    font-weight: normal;
+    cursor: pointer;
 }
 
 .sr-totals {
