@@ -371,36 +371,57 @@ function slideruleHandArrow(x1, y, x2, color, id) {
 }
 
 function slideruleGenerateArrows(cx) {
-    const so = slideruleState.slideOffset;
-    if (Math.abs(so) < 2) return '';
-    if (slideruleState.scaleMode !== 'CD') return '';
+    const ss = slideruleState.scaleStart;
+    if (cx <= ss + 2) return '';
 
+    const vals = slideruleReadAtCursor();
+    const mode = SLIDERULE_SCALES[slideruleState.scaleMode];
+    const so = slideruleState.slideOffset;
     const colorA = '#ff6644';
     const colorB = '#44aaff';
     const colorR = '#ff3333';
-
-    let arrows = '';
-    const ss = slideruleState.scaleStart;
-    const cOneX = ss + so;
-    const vals = slideruleReadAtCursor();
-    const aVal = Math.round(vals.bottom * 1000) / 1000;
-    const bVal = Math.round(vals.slide * 1000) / 1000;
-    const product = Math.round(aVal * bVal * 1000) / 1000;
-
     const labelY = -8;
     const labelFontSize = 16;
+    const sumY = 128;
+    const font = "'Comic Sans MS', 'Marker Felt', cursive";
+    let arrows = '';
 
-    arrows += `<text x="${cOneX}" y="${labelY}" text-anchor="middle" fill="${colorA}" font-size="${labelFontSize}" font-weight="bold" font-family="'Comic Sans MS', 'Marker Felt', cursive">a = ${aVal}</text>`;
-
-    if (Math.abs(cx - cOneX) > 2) {
-        arrows += `<text x="${cx}" y="${labelY}" text-anchor="middle" fill="${colorB}" font-size="${labelFontSize}" font-weight="bold" font-family="'Comic Sans MS', 'Marker Felt', cursive">b = ${bVal}</text>`;
+    let resultLabel = '';
+    if (slideruleState.scaleMode === 'CD') {
+        if (Math.abs(so) < 2) return '';
+        const cOneX = ss + so;
+        const aVal = Math.round(vals.bottom * 1000) / 1000;
+        const bVal = Math.round(vals.slide * 1000) / 1000;
+        const product = Math.round(aVal * bVal * 1000) / 1000;
+        arrows += `<text x="${cOneX}" y="${labelY}" text-anchor="middle" fill="${colorA}" font-size="${labelFontSize}" font-weight="bold" font-family="${font}">a = ${aVal}</text>`;
+        if (Math.abs(cx - cOneX) > 2) {
+            arrows += `<text x="${cx}" y="${labelY}" text-anchor="middle" fill="${colorB}" font-size="${labelFontSize}" font-weight="bold" font-family="${font}">b = ${bVal}</text>`;
+        }
+        resultLabel = `a \u00d7 b = ${product}`;
+    } else if (slideruleState.scaleMode === 'AB') {
+        const aVal = Math.round(vals.top * 1000) / 1000;
+        const dVal = Math.round(vals.bottom * 1000) / 1000;
+        resultLabel = `\u221a${aVal} = ${dVal}`;
+    } else if (slideruleState.scaleMode === 'CI') {
+        const ciVal = Math.round(vals.slide * 1000) / 1000;
+        const recip = Math.round(1 / ciVal * 10000) / 10000;
+        resultLabel = `1/${ciVal} = ${recip}`;
+    } else if (slideruleState.scaleMode === 'K') {
+        const kVal = Math.round(vals.top * 1000) / 1000;
+        const dVal = Math.round(vals.bottom * 1000) / 1000;
+        resultLabel = `\u00b3\u221a${kVal} = ${dVal}`;
+    } else if (slideruleState.scaleMode === 'ST') {
+        const sVal = Math.round(vals.top * 100) / 100;
+        const tVal = Math.round(vals.bottom * 100) / 100;
+        const sinV = Math.round(Math.sin(sVal * Math.PI / 180) * 10000) / 10000;
+        const tanV = Math.round(Math.tan(tVal * Math.PI / 180) * 10000) / 10000;
+        resultLabel = `sin(${sVal}\u00b0) = ${sinV}  \u00b7  tan(${tVal}\u00b0) = ${tanV}`;
     }
 
-    const sumY = 128;
-    if (cx > ss + 2) {
+    if (resultLabel) {
         arrows += slideruleHandArrow(ss, sumY, cx, colorR, 'sum');
         const midR = (ss + cx) / 2;
-        arrows += `<text x="${midR}" y="${sumY + 18}" text-anchor="middle" fill="${colorR}" font-size="14" font-weight="bold" font-family="'Comic Sans MS', 'Marker Felt', cursive">a \u00d7 b = ${product}</text>`;
+        arrows += `<text x="${midR}" y="${sumY + 18}" text-anchor="middle" fill="${colorR}" font-size="14" font-weight="bold" font-family="${font}">${resultLabel}</text>`;
     }
 
     return arrows;
@@ -456,7 +477,7 @@ function slideruleRenderDisplay() {
         const bottomTicks = slideruleGenerateScaleTicksForDef(mode.bottom, 0);
         const cx = slideruleState.cursorX;
         const arrowsSVG = slideruleGenerateArrows(cx);
-        const hasArrows = Math.abs(slideruleState.slideOffset) > 2 && slideruleState.scaleMode === 'CD';
+        const hasArrows = arrowsSVG.length > 0;
         const svgHeight = hasArrows ? 150 : 140;
         const svgTop = hasArrows ? -30 : -28;
 
