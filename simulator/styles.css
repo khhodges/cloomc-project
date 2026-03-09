@@ -4434,6 +4434,20 @@ a.next-step-link:hover {
     border-radius: 4px;
     font-size: 0.78rem;
     color: #7ee787;
+    position: relative;
+    cursor: help;
+}
+
+.sr-comp-output[data-tooltip]::after {
+    bottom: auto;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: normal;
+    text-align: left;
+    max-width: 380px;
+    line-height: 1.5;
+    font-weight: normal;
 }
 
 .sr-totals {

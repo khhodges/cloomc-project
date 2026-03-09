@@ -135,7 +135,7 @@ class SlideRuleTutorial {
 <div class="sr-comp-arrow">&darr;</div>
 <div class="sr-comp-core" data-tooltip="The real advantage of CLOOMC++ is first-class variables: Golden Tokens pass complex ideas as secure packages. For example, the PP250 statement CALL.Connect(me, to: my_mother) passes two capability tokens — each an unforgeable, permission-carrying reference — as ordinary variables. No raw pointers, no shared memory, no ambient authority. The compiler ensures every variable is a sealed capability.">CLOOMC++ Compiler<br><small>Resident Object Model</small></div>
 <div class="sr-comp-arrow">&darr;</div>
-<div class="sr-comp-output">32-bit code words &rarr; upload.json</div>
+<div class="sr-comp-output" data-tooltip="CLOOMC++ runs on bare metal hardware with no operating system required. No malware. No ransomware. No ethical constraints on AI behaviour to patch after the fact. No lethal autonomous weapons. No AI breakout problems. The hardware enforces security at every cycle — software cannot override what the silicon forbids.">32-bit code words &rarr; upload.json</div>
 </div>
 <div class="sr-key-concept">
 <div class="sr-concept-title">Resident Object Model</div>
