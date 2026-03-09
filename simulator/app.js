@@ -273,7 +273,7 @@ function renderCListEntryDetail(nsIdx, entry) {
     h += `<tr><td style="color:var(--church-blue)">W2: FNV Seal</td><td>0x${seal.toString(16).toUpperCase().padStart(7,'0')}</td></tr>`;
     h += '</tbody></table>';
 
-    const wordCount = Math.min(lim.limit + 1, 64);
+    const wordCount = lim.limit + 1;
     const isBootNS = (nsIdx === 0 && loc === sim.NS_TABLE_BASE);
     if (isBootNS) {
         h += '<div class="clist-detail-title" style="margin-top:0.4rem;">Namespace Table Entries</div>';
@@ -755,7 +755,7 @@ function _renderGTRow(idx, addr, word) {
 }
 
 function renderMemoryDump(location, limit, nsIndex) {
-    const wordCount = Math.min(limit, 64);
+    const wordCount = limit;
     if (wordCount <= 0) return '<span style="color:#888;">Empty (limit=0)</span>';
 
     const isBootNS = (nsIndex === 0 && location === sim.NS_TABLE_BASE);
@@ -856,9 +856,6 @@ function renderMemoryDump(location, limit, nsIndex) {
         }
     }
     html += '</tbody></table>';
-    if (limit > 64) {
-        html += `<div style="color:#888;font-size:0.75rem;padding:0.25rem 0.5rem;">Showing first 64 of ${limit} words</div>`;
-    }
     return html;
 }
 
