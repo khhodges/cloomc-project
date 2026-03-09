@@ -189,7 +189,9 @@ class SlideRuleTutorial {
                 title: "English SlideRule",
                 type: "code",
                 lang: "en",
-                content: `<p>The English front-end uses natural language to describe methods. The compiler parses structured English sentences into Church Machine instructions:</p>
+                content: `<div class="sr-comp-layout">
+<div class="sr-compiler-diagram" style="flex:2;min-width:0">
+<p>The English front-end uses natural language to describe methods. The compiler parses structured English sentences into Church Machine instructions:</p>
 <pre class="sr-code sr-code-en">abstraction SlideRuleEN {
     capabilities { Constants }
 
@@ -200,19 +202,31 @@ class SlideRuleTutorial {
         Subtract b from a and return the result.
 
     Mul(a, b):
-        Multiply a by b using repeated addition
-        and return the product.
+        Use the slide rule abstraction to
+        multiply a by b with floating-point
+        precision, and return the product.
 
     Div(a, b):
         If b is zero, return zero.
-        Otherwise divide a by b using repeated
-        subtraction and return the quotient.
+        Otherwise use the slide rule abstraction
+        to divide a by b with floating-point
+        precision, and return the quotient.
 
     Sqrt(n):
         Find the largest integer whose square
         does not exceed n, and return it.
 }</pre>
-<p><strong>Key characteristics:</strong> Each method is a plain-language description. The compiler maps verbs (<em>Add</em>, <em>Subtract</em>, <em>Multiply</em>) to opcodes (IADD, ISUB, shift-and-add loops). Natural language is unambiguous here because the structured format constrains grammar to imperative commands with named parameters.</p>`
+<p><strong>Key characteristics:</strong> Each method is a plain-language description. The compiler maps verbs (<em>Add</em>, <em>Subtract</em>) to opcodes (IADD, ISUB) and delegates complex operations to existing abstractions. Natural language is unambiguous here because the structured format constrains grammar to imperative commands with named parameters.</p>
+</div>
+<div class="sr-comp-side sr-comp-side-right">
+<div class="sr-comp-side-panel open">
+<div class="sr-comp-side-title">Slide Rule Floating Point</div>
+<p>Mul and Div delegate to the <strong>slide rule abstraction</strong> rather than using integer-only shift-and-add or repeated subtraction.</p>
+<p>A physical slide rule performs multiplication and division by adding and subtracting logarithmic distances &mdash; inherently floating-point. The Church Machine slide rule abstraction mirrors this: it uses logarithmic scales to produce results with fractional precision.</p>
+<p>This means the English front-end can express <em>"multiply a by b"</em> and get true floating-point behaviour &mdash; something the integer-only JavaScript and Haskell versions cannot match without extra hardware support.</p>
+</div>
+</div>
+</div>`
             },
             {
                 title: "JavaScript SlideRule",
