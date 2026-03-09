@@ -387,6 +387,7 @@ function slideruleGenerateArrows(cx) {
     let arrows = '';
 
     let resultLabel = '';
+    let cursorLabel = '';
     if (slideruleState.scaleMode === 'CD') {
         if (Math.abs(so) < 2) return '';
         const cOneX = ss + so;
@@ -398,24 +399,41 @@ function slideruleGenerateArrows(cx) {
             arrows += `<text x="${cx}" y="${labelY}" text-anchor="middle" fill="${colorB}" font-size="${labelFontSize}" font-weight="bold" font-family="${font}">b = ${bVal}</text>`;
         }
         resultLabel = `a \u00d7 b = ${product}`;
+        cursorLabel = `= ${product}`;
     } else if (slideruleState.scaleMode === 'AB') {
         const aVal = Math.round(vals.top * 1000) / 1000;
         const dVal = Math.round(vals.bottom * 1000) / 1000;
         resultLabel = `\u221a${aVal} = ${dVal}`;
+        cursorLabel = `\u221a${aVal} = ${dVal}`;
     } else if (slideruleState.scaleMode === 'CI') {
         const ciVal = Math.round(vals.slide * 1000) / 1000;
         const recip = Math.round(1 / ciVal * 10000) / 10000;
         resultLabel = `1/${ciVal} = ${recip}`;
+        cursorLabel = `1/${ciVal} = ${recip}`;
     } else if (slideruleState.scaleMode === 'K') {
         const kVal = Math.round(vals.top * 1000) / 1000;
         const dVal = Math.round(vals.bottom * 1000) / 1000;
         resultLabel = `\u00b3\u221a${kVal} = ${dVal}`;
+        cursorLabel = `\u00b3\u221a${kVal} = ${dVal}`;
     } else if (slideruleState.scaleMode === 'ST') {
         const sVal = Math.round(vals.top * 100) / 100;
         const tVal = Math.round(vals.bottom * 100) / 100;
         const sinV = Math.round(Math.sin(sVal * Math.PI / 180) * 10000) / 10000;
         const tanV = Math.round(Math.tan(tVal * Math.PI / 180) * 10000) / 10000;
-        resultLabel = `sin(${sVal}\u00b0) = ${sinV}  \u00b7  tan(${tVal}\u00b0) = ${tanV}`;
+        resultLabel = `sin ${sVal}\u00b0 = ${sinV}  \u00b7  tan ${tVal}\u00b0 = ${tanV}`;
+        cursorLabel = `sin = ${sinV}\ntan = ${tanV}`;
+    }
+
+    if (cursorLabel) {
+        const markerY = -22;
+        arrows += `<text x="${cx}" y="${markerY}" text-anchor="middle" fill="#ff3333" font-size="18" font-weight="bold" font-family="monospace">\u00d7</text>`;
+        if (cursorLabel.includes('\n')) {
+            const parts = cursorLabel.split('\n');
+            arrows += `<text x="${cx + 14}" y="${markerY - 12}" text-anchor="start" fill="#ff3333" font-size="11" font-weight="bold" font-family="${font}">${parts[0]}</text>`;
+            arrows += `<text x="${cx + 14}" y="${markerY + 2}" text-anchor="start" fill="#ff3333" font-size="11" font-weight="bold" font-family="${font}">${parts[1]}</text>`;
+        } else {
+            arrows += `<text x="${cx + 14}" y="${markerY - 4}" text-anchor="start" fill="#ff3333" font-size="12" font-weight="bold" font-family="${font}">${cursorLabel}</text>`;
+        }
     }
 
     if (resultLabel) {
@@ -478,8 +496,8 @@ function slideruleRenderDisplay() {
         const cx = slideruleState.cursorX;
         const arrowsSVG = slideruleGenerateArrows(cx);
         const hasArrows = arrowsSVG.length > 0;
-        const svgHeight = hasArrows ? 150 : 140;
-        const svgTop = hasArrows ? -30 : -28;
+        const svgHeight = hasArrows ? 155 : 140;
+        const svgTop = hasArrows ? -40 : -28;
 
         svgEl.setAttribute('viewBox', `0 ${svgTop} ${totalW} ${svgHeight - svgTop}`);
 
