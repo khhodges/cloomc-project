@@ -121,6 +121,7 @@ header h1 {
     left: 0; right: 0; bottom: 0;
     overflow-y: auto;
     padding: 0.5rem;
+    transition: top 0.15s ease;
 }
 
 .view.active { display: block; }

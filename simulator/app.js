@@ -8216,5 +8216,16 @@ function initAllTabOverflows() {
     document.querySelectorAll('.math-mode-tabs, .sidebar-tabs').forEach(initTabOverflow);
 }
 
-document.addEventListener('DOMContentLoaded', init);
-document.addEventListener('DOMContentLoaded', initAllTabOverflows);
+function adjustViewTop() {
+    const toolbar = document.querySelector('.fixed-toolbar');
+    if (!toolbar) return;
+    const h = toolbar.offsetHeight;
+    document.querySelectorAll('.view').forEach(v => { v.style.top = h + 'px'; });
+}
+
+window.addEventListener('resize', adjustViewTop);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initAllTabOverflows();
+    adjustViewTop();
+});
