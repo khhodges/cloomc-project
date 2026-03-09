@@ -4,6 +4,7 @@ let pipelineViz = null;
 let repl = null;
 let churchTutorial = null;
 let slideRuleTutorial = null;
+let securityTutorial = null;
 let activeTutorial = 'sliderule';
 let cloomcCompiler = null;
 let currentView = 'dashboard';
@@ -19,6 +20,7 @@ function init() {
     repl = new ChurchREPL(sim, pipelineViz);
     churchTutorial = new BernoulliTutorial(repl, pipelineViz);
     slideRuleTutorial = new SlideRuleTutorial();
+    securityTutorial = new SecurityTutorial();
 
     abstractionRegistry = new AbstractionRegistry();
     systemAbstractions = new SystemAbstractions(abstractionRegistry);
@@ -126,6 +128,8 @@ function switchView(viewId) {
     if (viewId === 'tutorial') {
         if (activeTutorial === 'sliderule') {
             slideRuleTutorial.render('tutorialView');
+        } else if (activeTutorial === 'security') {
+            securityTutorial.render('tutorialView');
         } else {
             churchTutorial.render('tutorialView');
         }
@@ -149,6 +153,8 @@ function selectTutorial(which) {
     if (btn) btn.classList.add('active');
     if (which === 'sliderule') {
         slideRuleTutorial.render('tutorialView');
+    } else if (which === 'security') {
+        securityTutorial.render('tutorialView');
     } else {
         churchTutorial.render('tutorialView');
     }
