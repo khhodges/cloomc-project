@@ -118,6 +118,11 @@ function switchView(viewId) {
     if (viewId === 'abstractions') renderAbstractions();
     if (viewId === 'pipeline') pipelineViz.render();
     if (viewId === 'editor') {
+        const asmEd = document.getElementById('asmEditor');
+        if (asmEd) asmEd.value = '';
+        document.querySelectorAll('.example-tab').forEach(t => t.classList.remove('active'));
+        const outputEl = document.getElementById('assemblyOutput');
+        if (outputEl) outputEl.innerHTML = '';
         const sel = document.getElementById('langSelector');
         if (sel) showIntro(sel.value);
         if (typeof historyRefreshCode === 'function') {
