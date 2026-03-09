@@ -126,7 +126,25 @@ class SecurityTutorial {
                 content: `<div class="sr-tutorial-steps">
 <div class="sr-tut-step">
 <span class="sr-tut-num">1</span>
-<div><strong>Write the source.</strong> Open the <strong>Code</strong> tab and type:</div>
+<div><strong>Choose a language.</strong> Open the <strong>Code</strong> tab. You can write the same abstraction in any of the four languages:</div>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">2</span>
+<div><strong>English</strong> &mdash; describe what each method does in plain language:</div>
+<pre class="sr-code sr-code-en">abstraction MyMath {
+    capabilities { Constants }
+
+    Double(n):
+        Add n to n and return the result.
+
+    Square(n):
+        Multiply n by n using repeated addition
+        and return the product.
+}</pre>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">3</span>
+<div><strong>JavaScript</strong> &mdash; imperative style with explicit loops:</div>
 <pre class="sr-code sr-code-js">abstraction MyMath {
     capabilities { Constants }
     method Double(n) {
@@ -143,7 +161,10 @@ class SecurityTutorial {
         return(acc)
     }
 }</pre>
-<p>Or in Haskell:</p>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">4</span>
+<div><strong>Haskell</strong> &mdash; functional style with single expressions:</div>
 <pre class="sr-code sr-code-hs">abstraction MyMath {
     capabilities { Constants }
     method Double(n) = n + n
@@ -151,24 +172,46 @@ class SecurityTutorial {
 }</pre>
 </div>
 <div class="sr-tut-step">
-<span class="sr-tut-num">2</span>
-<div><strong>Compile.</strong> Click the gold <strong>CLOOMC++</strong> button. The compiler auto-detects the language.</div>
-</div>
-<div class="sr-tut-step">
-<span class="sr-tut-num">3</span>
-<div><strong>Inspect.</strong> Verify each method ends with RETURN, branch targets are in bounds, and capability count matches declarations.</div>
-</div>
-<div class="sr-tut-step">
-<span class="sr-tut-num">4</span>
-<div><strong>Save.</strong> Click the blue <strong>Save Upload JSON</strong> button to download the upload file.</div>
-</div>
-<div class="sr-tut-step">
 <span class="sr-tut-num">5</span>
-<div><strong>Create.</strong> Click <strong>Boot</strong>, then <strong>Create Abstraction</strong>. Navana allocates the lump and forges an E-GT.</div>
+<div><strong>Machine code</strong> &mdash; direct 32-bit hex words, no compiler needed:</div>
+<pre class="sr-code sr-code-asm">"methods": [
+  { "name": "Double", "code": [
+      "0x7F600000",  // IADD DR0, DR0, DR0
+      "0x1F800000"   // RETURN
+  ]},
+  { "name": "Square", "code": [
+      "0x8F808000",  // MOVI DR4, 0 (acc)
+      "0x8F828000",  // MOVI DR5, n (counter)
+      "0x97600001",  // BFEXT DR3, DR5, 0, 1
+      "0xA7618000",  // MCMP DR3, 1
+      "0xB0020000",  // BRANCH.NE +2
+      "0x7F808000",  // IADD DR4, DR4, DR0
+      "0x9F610001",  // SHR DR5, DR5, 1
+      "0xA7610000",  // MCMP DR5, 0
+      "0xB0F90000",  // BRANCH.GT -7
+      "0x1F800000"   // RETURN
+  ]}
+]</pre>
 </div>
 <div class="sr-tut-step">
 <span class="sr-tut-num">6</span>
-<div><strong>Test.</strong> Switch to the <strong>REPL</strong> tab and call your methods.</div>
+<div><strong>Compile.</strong> Click the gold <strong>CLOOMC++</strong> button. The compiler auto-detects the language (English, JavaScript, or Haskell). Machine code bypasses the compiler entirely.</div>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">7</span>
+<div><strong>Inspect.</strong> Verify each method ends with RETURN, branch targets are in bounds, and capability count matches declarations. All four languages produce the same secure output format.</div>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">8</span>
+<div><strong>Save.</strong> Click the blue <strong>Save Upload JSON</strong> button to download the upload file. The JSON format is identical regardless of source language.</div>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">9</span>
+<div><strong>Create.</strong> Click <strong>Boot</strong>, then <strong>Create Abstraction</strong>. Navana validates the upload, allocates a lump, writes code + c-list, and forges an E-GT back to the creator.</div>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">10</span>
+<div><strong>Test.</strong> Switch to the <strong>REPL</strong> tab and call your methods. The results are identical whichever language you chose &mdash; the hardware enforces the same security model on all four.</div>
 </div>
 </div>`
             },
