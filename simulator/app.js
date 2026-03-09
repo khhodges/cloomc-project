@@ -2639,17 +2639,156 @@ function runGC() {
         if (con) con.textContent += '\nGC Error: Boot must complete before running GC.\n';
         return;
     }
+
     sim.output += '[I/O] GC button pressed \u2014 invoking GC safe abstraction\n';
     sim.mElevation = true;
     const result = sim.runGC();
     sim.mElevation = false;
     sim.output += '[I/O] GC abstraction complete \u2014 RETURN\n';
-    const con = document.getElementById('editorConsole');
-    if (con) {
-        con.textContent += '\n' + result.report + '\n';
-        con.scrollTop = con.scrollHeight;
+
+    const lines = result.report.split('\n');
+    const phases = [];
+    let current = null;
+    for (const line of lines) {
+        if (line.startsWith('===') || line.startsWith('---')) {
+            if (current) phases.push(current);
+            current = { heading: line, lines: [] };
+        } else if (current) {
+            current.lines.push(line);
+        }
     }
-    updateDashboard();
+    if (current) phases.push(current);
+
+    showGCConsole(phases, result);
+}
+
+function showGCConsole(phases, result) {
+    let existing = document.getElementById('gcConsoleOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gcConsoleOverlay';
+    overlay.className = 'modal-overlay';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'gc-console-dialog';
+
+    const title = document.createElement('div');
+    title.className = 'gc-console-title';
+    title.textContent = 'PP250 Garbage Collection';
+    dialog.appendChild(title);
+
+    const output = document.createElement('pre');
+    output.className = 'gc-console-output';
+    output.id = 'gcConsoleOutput';
+    dialog.appendChild(output);
+
+    const status = document.createElement('div');
+    status.className = 'gc-console-status';
+    status.id = 'gcConsoleStatus';
+    status.textContent = 'GC executed — Step through the report one phase at a time, or Run All to replay.';
+    dialog.appendChild(status);
+
+    const buttons = document.createElement('div');
+    buttons.className = 'gc-console-buttons';
+
+    const stepBtn = document.createElement('button');
+    stepBtn.className = 'btn';
+    stepBtn.textContent = 'Step';
+    stepBtn.style.cssText = 'background:#9b59b6;color:#fff;border:none;font-weight:bold;';
+    stepBtn.id = 'gcStepBtn';
+
+    const runBtn = document.createElement('button');
+    runBtn.className = 'btn';
+    runBtn.textContent = 'Run All';
+    runBtn.style.cssText = 'background:#27ae60;color:#fff;border:none;font-weight:bold;';
+    runBtn.id = 'gcRunBtn';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn';
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = 'background:#555;color:#fff;border:none;';
+
+    buttons.appendChild(stepBtn);
+    buttons.appendChild(runBtn);
+    buttons.appendChild(closeBtn);
+    dialog.appendChild(buttons);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    let currentPhase = 0;
+    let runTimer = null;
+
+    function appendPhase(idx) {
+        const phase = phases[idx];
+        if (!phase) return;
+        const heading = phase.heading;
+        const body = phase.lines.filter(function(l) { return l.trim(); }).join('\n');
+        output.textContent += (output.textContent ? '\n' : '') + heading + '\n' + body + '\n';
+        output.scrollTop = output.scrollHeight;
+    }
+
+    function updateStatus() {
+        const statusEl = document.getElementById('gcConsoleStatus');
+        if (!statusEl) return;
+        if (currentPhase >= phases.length) {
+            statusEl.textContent = 'GC Complete — ' + result.freedSlots + ' slots freed, ' + result.freedWords + ' words reclaimed.';
+            stepBtn.disabled = true;
+            runBtn.disabled = true;
+            stepBtn.style.opacity = '0.5';
+            runBtn.style.opacity = '0.5';
+        } else {
+            statusEl.textContent = 'Phase ' + (currentPhase + 1) + ' of ' + phases.length + ' ready.';
+        }
+    }
+
+    stepBtn.addEventListener('click', function() {
+        if (currentPhase >= phases.length) return;
+        appendPhase(currentPhase);
+        currentPhase++;
+        updateStatus();
+        updateDashboard();
+    });
+
+    runBtn.addEventListener('click', function() {
+        if (runTimer) return;
+        runBtn.textContent = 'Running...';
+        runTimer = setInterval(function() {
+            if (currentPhase >= phases.length) {
+                clearInterval(runTimer);
+                runTimer = null;
+                runBtn.textContent = 'Run All';
+                updateStatus();
+                updateDashboard();
+                return;
+            }
+            appendPhase(currentPhase);
+            currentPhase++;
+            updateStatus();
+        }, 400);
+    });
+
+    function closeConsole() {
+        if (runTimer) clearInterval(runTimer);
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+        updateDashboard();
+    }
+
+    function escHandler(e) {
+        if (e.key === 'Escape') closeConsole();
+    }
+
+    closeBtn.addEventListener('click', closeConsole);
+
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeConsole();
+    });
+
+    document.addEventListener('keydown', escHandler);
+
+    updateStatus();
+    stepBtn.focus();
 }
 
 function loadExample(name) {

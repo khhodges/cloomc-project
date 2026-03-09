@@ -4634,6 +4634,68 @@ pre:hover .code-copy-btn {
     line-height: 1.6;
 }
 
+.gc-console-dialog {
+    background: #0d1b2a;
+    border: 2px solid #9b59b6;
+    border-radius: 10px;
+    padding: 1.5rem;
+    min-width: 520px;
+    max-width: 700px;
+    width: 90vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(155, 89, 182, 0.3);
+}
+
+.gc-console-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #9b59b6;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.gc-console-output {
+    background: #080f1a;
+    color: #c8d6e5;
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #1e3a5f;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 200px;
+    max-height: 50vh;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.gc-console-status {
+    font-size: 0.8rem;
+    color: #a0a0a0;
+    margin: 0.75rem 0;
+    padding: 0.4rem 0.6rem;
+    background: #111d2e;
+    border-radius: 4px;
+    border-left: 3px solid #9b59b6;
+}
+
+.gc-console-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.gc-console-buttons .btn {
+    padding: 0.4rem 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
 .sr-references a {
     color: #5dade2;
     text-decoration: none;
