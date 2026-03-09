@@ -1360,6 +1360,7 @@ class CLOOMCCompiler {
     }
 
     _detectSymbolic(source) {
+        if (this._detectEnglish(source)) return false;
         const lines = source.split('\n');
         let adaVars = 0;
         let arrowAssign = 0;
@@ -1779,6 +1780,8 @@ class CLOOMCCompiler {
     _detectEnglish(source) {
         const lines = source.split('\n');
         let englishScore = 0;
+        let hasBlockMethod = false;
+        let hasEnglishBody = false;
         for (const line of lines) {
             const t = line.trim().toLowerCase();
             if (!t || t.startsWith('//') || t.startsWith('--')) continue;
@@ -1793,7 +1796,11 @@ class CLOOMCCompiler {
             if (t.match(/^(read|write|load|save)\s+(from|to|the value)\s+/)) englishScore++;
             if (t.match(/^(call|run|execute|invoke)\s+/)) englishScore++;
             if (t.match(/^(that takes|which takes|with parameters?|with inputs?)\s+/)) englishScore++;
+            if (t.match(/^\w+\s*\([^)]*\)\s*:\s*$/)) hasBlockMethod = true;
+            if (t.match(/^(add|multiply|subtract|divide)\s+\w+\s+(to|by|from)\s+/)) hasEnglishBody = true;
+            if (t.match(/\band\s+return\s+(the\s+)?/)) hasEnglishBody = true;
         }
+        if (hasBlockMethod && hasEnglishBody) return true;
         return englishScore >= 3;
     }
 
@@ -1826,7 +1833,8 @@ class CLOOMCCompiler {
         const lines = source.split('\n');
         let currentMethod = null;
 
-        const blockMatch = lines[0] && lines[0].trim().match(/^ENGLISH\s+abstraction\s+(\w+)\s*\{?\s*$/i);
+        const firstLine = lines[0] ? lines[0].trim() : '';
+        const blockMatch = firstLine.match(/^(?:ENGLISH\s+)?abstraction\s+(\w+)\s*\{?\s*$/i);
         if (blockMatch) {
             return this._parseEnglishBlock(source, errors);
         }
@@ -1917,7 +1925,7 @@ class CLOOMCCompiler {
             }
             const lo = t.toLowerCase();
 
-            const absMatch = lo.match(/^english\s+abstraction\s+(\w+)\s*\{?\s*$/);
+            const absMatch = lo.match(/^(?:english\s+)?abstraction\s+(\w+)\s*\{?\s*$/);
             if (absMatch) {
                 result.name = t.match(/abstraction\s+(\w+)/i)[1];
                 continue;
