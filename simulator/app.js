@@ -8348,4 +8348,50 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     initAllTabOverflows();
     adjustViewTop();
+    initCodeCopyButtons();
 });
+
+function addCopyButton(pre) {
+    if (pre.querySelector('.code-copy-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const text = pre.textContent.replace(/^Copy\n?/, '').replace(/\nCopied!$/, '');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() {
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+            });
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+        }
+    });
+    pre.appendChild(btn);
+}
+
+function initCodeCopyButtons() {
+    document.querySelectorAll('pre').forEach(addCopyButton);
+    const observer = new MutationObserver(function(mutations) {
+        for (const m of mutations) {
+            for (const node of m.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                if (node.tagName === 'PRE') addCopyButton(node);
+                node.querySelectorAll && node.querySelectorAll('pre').forEach(addCopyButton);
+            }
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
