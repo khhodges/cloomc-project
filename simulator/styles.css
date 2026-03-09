@@ -5656,3 +5656,23 @@ a.next-step-link:hover {
     gap: 8px;
     justify-content: flex-end;
 }
+
+.sr-instr-tip {
+    position: relative;
+    cursor: help;
+    color: var(--church-gold);
+    font-weight: bold;
+    border-bottom: 1px dotted rgba(200, 155, 60, 0.4);
+}
+
+.sr-instr-tip[data-tooltip]::after {
+    bottom: auto;
+    top: calc(100% + 6px);
+    left: 0;
+    transform: none;
+    text-align: left;
+    max-width: 320px;
+    white-space: normal;
+    font-weight: normal;
+    line-height: 1.4;
+}

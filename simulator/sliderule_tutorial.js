@@ -35,31 +35,31 @@ class SlideRuleTutorial {
 <div class="sr-col">
 <div class="sr-col-title">Church Domain (capability)</div>
 <table class="sr-table"><tr><th>Op</th><th>Instruction</th><th>Purpose</th></tr>
-<tr><td>0</td><td>LOAD</td><td>Load GT from c-list</td></tr>
-<tr><td>1</td><td>SAVE</td><td>Save GT to c-list</td></tr>
-<tr><td>2</td><td>CALL</td><td>Enter abstraction via E-GT</td></tr>
-<tr><td>3</td><td>RETURN</td><td>Return from abstraction</td></tr>
-<tr><td>4</td><td>CHANGE</td><td>Replace capability</td></tr>
-<tr><td>5</td><td>SWITCH</td><td>Switch execution context</td></tr>
-<tr><td>6</td><td>TPERM</td><td>Reduce token permissions</td></tr>
-<tr><td>7</td><td>LAMBDA</td><td>Invoke a method</td></tr>
-<tr><td>8</td><td>ELOADCALL</td><td>Fused load-and-call</td></tr>
-<tr><td>9</td><td>XLOADLAMBDA</td><td>Fused load-and-lambda</td></tr>
+<tr><td>0</td><td><span class="sr-instr-tip" data-tooltip="LOAD — Copy a Golden Token from a capability-list (c-list) slot into a context register. The token carries L (load) permission. No raw address is ever used.">LOAD</span></td><td>Load GT from c-list</td></tr>
+<tr><td>1</td><td><span class="sr-instr-tip" data-tooltip="SAVE — Write a Golden Token back into a c-list slot. Requires S (save) permission on the target. The token is copied, not moved.">SAVE</span></td><td>Save GT to c-list</td></tr>
+<tr><td>2</td><td><span class="sr-instr-tip" data-tooltip="CALL — Enter an abstraction by presenting a token with E (enter) permission. Creates a new execution context. Like a function call, but mediated by capability.">CALL</span></td><td>Enter abstraction via E-GT</td></tr>
+<tr><td>3</td><td><span class="sr-instr-tip" data-tooltip="RETURN — Exit the current abstraction and return to the caller. Shared by both Church and Turing domains. Restores the previous execution context.">RETURN</span></td><td>Return from abstraction</td></tr>
+<tr><td>4</td><td><span class="sr-instr-tip" data-tooltip="CHANGE — Replace one capability with another in a context register. Used to swap tokens during abstraction dispatch.">CHANGE</span></td><td>Replace capability</td></tr>
+<tr><td>5</td><td><span class="sr-instr-tip" data-tooltip="SWITCH — Switch to a different execution context (like a thread switch). The target context is identified by a capability, not an address.">SWITCH</span></td><td>Switch execution context</td></tr>
+<tr><td>6</td><td><span class="sr-instr-tip" data-tooltip="TPERM — Token Permission reduce. Strips permissions from a Golden Token (e.g. remove write, keep read-only). Permissions can only be reduced, never amplified.">TPERM</span></td><td>Reduce token permissions</td></tr>
+<tr><td>7</td><td><span class="sr-instr-tip" data-tooltip="LAMBDA — Invoke a named method within the current abstraction. The Church Machine equivalent of a local function call.">LAMBDA</span></td><td>Invoke a method</td></tr>
+<tr><td>8</td><td><span class="sr-instr-tip" data-tooltip="ELOADCALL — Enter-Load-Call fused instruction. Loads a token and immediately calls the abstraction it points to. Saves one instruction cycle.">ELOADCALL</span></td><td>Fused load-and-call</td></tr>
+<tr><td>9</td><td><span class="sr-instr-tip" data-tooltip="XLOADLAMBDA — Cross-Load-Lambda fused instruction. Loads a token and immediately invokes a method. Combines two operations into one cycle.">XLOADLAMBDA</span></td><td>Fused load-and-lambda</td></tr>
 </table>
 </div>
 <div class="sr-col">
 <div class="sr-col-title">Turing Domain (data)</div>
 <table class="sr-table"><tr><th>Op</th><th>Instruction</th><th>Purpose</th></tr>
-<tr><td>10</td><td>DREAD</td><td>Read from data memory</td></tr>
-<tr><td>11</td><td>DWRITE</td><td>Write to data memory</td></tr>
-<tr><td>12</td><td>BFEXT</td><td>Extract a bitfield</td></tr>
-<tr><td>13</td><td>BFINS</td><td>Insert a bitfield</td></tr>
-<tr><td>14</td><td>MCMP</td><td>Compare (set flags)</td></tr>
-<tr><td>15</td><td>IADD</td><td>Integer addition</td></tr>
-<tr><td>16</td><td>ISUB</td><td>Integer subtraction</td></tr>
-<tr><td>17</td><td>BRANCH</td><td>Conditional branch</td></tr>
-<tr><td>18</td><td>SHL</td><td>Shift left</td></tr>
-<tr><td>19</td><td>SHR</td><td>Shift right</td></tr>
+<tr><td>10</td><td><span class="sr-instr-tip" data-tooltip="DREAD — Data Read. Read a 32-bit value from data memory into a data register. Uses R (read) permission. Operates only in the Turing (data) domain.">DREAD</span></td><td>Read from data memory</td></tr>
+<tr><td>11</td><td><span class="sr-instr-tip" data-tooltip="DWRITE — Data Write. Write a 32-bit value from a data register into data memory. Uses W (write) permission. Cannot touch capability space.">DWRITE</span></td><td>Write to data memory</td></tr>
+<tr><td>12</td><td><span class="sr-instr-tip" data-tooltip="BFEXT — Bit Field Extract. Extract a contiguous range of bits from a data register. Used for decoding packed values and protocol fields.">BFEXT</span></td><td>Extract a bitfield</td></tr>
+<tr><td>13</td><td><span class="sr-instr-tip" data-tooltip="BFINS — Bit Field Insert. Insert a value into a specific bit range of a data register. The complement of BFEXT for packing data.">BFINS</span></td><td>Insert a bitfield</td></tr>
+<tr><td>14</td><td><span class="sr-instr-tip" data-tooltip="MCMP — Machine Compare. Compare two data registers and set condition flags (EQ, NE, LT, GT, etc.). Used before BRANCH for conditional logic.">MCMP</span></td><td>Compare (set flags)</td></tr>
+<tr><td>15</td><td><span class="sr-instr-tip" data-tooltip="IADD — Integer Add. Add two 32-bit data registers and store the result. Sets overflow and carry flags. All arithmetic is built from IADD, ISUB, SHL, and SHR.">IADD</span></td><td>Integer addition</td></tr>
+<tr><td>16</td><td><span class="sr-instr-tip" data-tooltip="ISUB — Integer Subtract. Subtract one data register from another. Sets borrow and zero flags. With IADD, provides the basis for all arithmetic.">ISUB</span></td><td>Integer subtraction</td></tr>
+<tr><td>17</td><td><span class="sr-instr-tip" data-tooltip="BRANCH — Conditional Branch. Jump to a target address if the condition flags (set by MCMP) match the instruction's condition code. ARM-style conditional execution.">BRANCH</span></td><td>Conditional branch</td></tr>
+<tr><td>18</td><td><span class="sr-instr-tip" data-tooltip="SHL — Shift Left. Shift a data register left by a specified number of bits, filling with zeros. Equivalent to multiplication by powers of 2.">SHL</span></td><td>Shift left</td></tr>
+<tr><td>19</td><td><span class="sr-instr-tip" data-tooltip="SHR — Shift Right. Shift a data register right by a specified number of bits. Equivalent to integer division by powers of 2.">SHR</span></td><td>Shift right</td></tr>
 </table>
 </div>
 </div>
