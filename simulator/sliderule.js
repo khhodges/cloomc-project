@@ -338,6 +338,18 @@ function slideruleGenerateScaleTicksForDef(scaleDef, offset) {
         }
     }
 
+    const PI = Math.PI;
+    const gaugeMarks = [
+        { val: PI, symbol: '\u03c0', color: '#ff4444' }
+    ];
+    for (const gm of gaugeMarks) {
+        if (gm.val < range[0] || gm.val > range[1]) continue;
+        const x = slideruleValToXForScale(gm.val, scaleDef, offset);
+        if (x < slideruleState.scaleStart - 5 || x > slideruleState.scaleStart + slideruleState.scaleWidth + 5) continue;
+        ticks += `<line x1="${x}" y1="0" x2="${x}" y2="22" stroke="${gm.color}" stroke-width="1.5"/>`;
+        ticks += `<text x="${x}" y="32" text-anchor="middle" fill="${gm.color}" font-size="16" font-weight="bold" font-family="serif" font-style="italic">${gm.symbol}</text>`;
+    }
+
     return ticks;
 }
 
@@ -415,6 +427,13 @@ function slideruleGenerateTopLabels(scaleDef, offset) {
         if (v >= 1000) label = '1k';
         labels += `<text x="${x}" y="-6" text-anchor="middle" fill="${scaleDef.color}" font-size="20" font-weight="bold" font-family="monospace" opacity="0.85">${label}</text>`;
         labels += `<line x1="${x}" y1="-2" x2="${x}" y2="0" stroke="${scaleDef.color}" stroke-width="1" opacity="0.5"/>`;
+    }
+    if (Math.PI >= range[0] && Math.PI <= range[1]) {
+        const px = slideruleValToXForScale(Math.PI, scaleDef, offset);
+        if (px >= slideruleState.scaleStart - 5 && px <= slideruleState.scaleStart + slideruleState.scaleWidth + 5) {
+            labels += `<text x="${px}" y="-6" text-anchor="middle" fill="#ff4444" font-size="16" font-weight="bold" font-family="serif" font-style="italic" opacity="0.9">\u03c0</text>`;
+            labels += `<line x1="${px}" y1="-2" x2="${px}" y2="0" stroke="#ff4444" stroke-width="1" opacity="0.7"/>`;
+        }
     }
     return labels;
 }
