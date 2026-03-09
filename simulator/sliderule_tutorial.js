@@ -223,7 +223,7 @@ class SlideRuleTutorial {
                 title: "Haskell SlideRule",
                 type: "code",
                 lang: "hs",
-                content: `<p>The Haskell front-end uses a functional style with expression-based methods. 11 methods, 38 lines:</p>
+                content: `<p>The Haskell front-end uses a functional style with expression-based methods. 9 methods:</p>
 <pre class="sr-code sr-code-hs">abstraction SlideRuleHS {
     capabilities { Constants }
 
@@ -231,12 +231,16 @@ class SlideRuleTutorial {
     method Sub(a, b) = a - b
     method Mul(a, b) = a * b
 
-    method Div(a, b) = if b == 0 then 0
-                        else a - (a - b)
+    method Sqrt(n) = if n &lt; 1 then 0
+                     else if n &lt; 4 then 1
+                     else if n &lt; 9 then 2
+                     else if n &lt; 16 then 3
+                     ...else 10
 
-    method Sqrt(n) = if n == 0 then 0
-                     else if n == 1 then 1
-                     else (n + 1) - (n - 1)
+    method Pow2(exp) = if exp == 0 then 1
+                       else if exp == 1 then 2
+                       else if exp == 2 then 4
+                       ...else 256
 
     method Abs(n) = if n &lt; 0 then 0 - n else n
 
@@ -251,8 +255,7 @@ class SlideRuleTutorial {
                               else if x &gt; hi then hi
                               else x
 }</pre>
-<p><strong>Key characteristics:</strong> Each method is a single expression. Pattern-matching via <code>if/then/else</code> compiles to MCMP + BRANCH chains. The <code>*</code> operator expands to repeated addition.</p>
-<div class="sr-warning">Div, Sqrt, and Pow2 are simplified expressions &mdash; not production-correct algorithms. See the Limitations step for discussion.</div>`
+<p><strong>Key characteristics:</strong> Each method is a single expression. Pattern-matching via <code>if/then/else</code> compiles to MCMP + BRANCH chains. Sqrt and Pow2 use conditional lookup tables &mdash; correct for values in range. The <code>*</code> operator expands to repeated addition.</p>`
             },
             {
                 title: "Compiled Output Comparison",
@@ -265,9 +268,8 @@ class SlideRuleTutorial {
 <p><strong>Semantically different methods</strong> (same name, different algorithms):</p>
 <table class="sr-table sr-table-wide"><tr><th>Method</th><th>JS</th><th>HS</th><th>JS Algorithm</th><th>HS Algorithm</th></tr>
 <tr><td>Mul</td><td>35</td><td>8</td><td>Shift-and-add O(log n) &check;</td><td>Repeated addition O(n) &check;</td></tr>
-<tr><td>Div</td><td>40</td><td>14</td><td>Repeated subtraction &check;</td><td>Simplified expression &cross;</td></tr>
-<tr><td>Sqrt</td><td>38</td><td>27</td><td>Newton-Raphson &check;</td><td>Simplified expression &cross;</td></tr>
-<tr><td>Pow</td><td>29</td><td>19</td><td>General base^exp &check;</td><td>2*exp only &cross;</td></tr>
+<tr><td>Sqrt</td><td>38</td><td>27</td><td>Newton-Raphson iteration &check;</td><td>Conditional lookup table &check;</td></tr>
+<tr><td>Pow/Pow2</td><td>29</td><td>19</td><td>General base^exp loop &check;</td><td>2^exp lookup table &check;</td></tr>
 </table>
 <p><strong>Haskell-only methods</strong> (all correct):</p>
 <table class="sr-table sr-table-wide"><tr><th>Method</th><th>Instructions</th><th>Correct</th></tr>
@@ -470,9 +472,9 @@ class SlideRuleTutorial {
 <p class="sr-objection"><strong>Objection:</strong> The Church Machine deliberately avoids superscalar/speculative execution &mdash; these are attack surfaces (Spectre, Meltdown). The simple pipeline eliminates this entire class of attack.</p>
 </div>
 <div class="sr-con-item">
-<div class="sr-con-title">Haskell Div/Sqrt are approximations</div>
-<p><code>Div(a,b) = a - (a - b)</code> simplifies to just <code>b</code> &mdash; not correct general division.</p>
-<p class="sr-objection"><strong>Objection:</strong> The Haskell front-end compiles pure expressions and does not yet support loops. True division requires iteration (recursion support is future work). The JS front-end handles iterative algorithms correctly.</p>
+<div class="sr-con-title">Haskell lacks iterative algorithms</div>
+<p>Sqrt and Pow2 use conditional lookup tables rather than iterative Newton-Raphson or shift-and-multiply. Division is omitted entirely from the Haskell version.</p>
+<p class="sr-objection"><strong>Objection:</strong> The Haskell front-end compiles pure expressions without loop support. Lookup tables are correct within their defined range. The JS front-end handles the full iterative algorithms. Recursion support is future work.</p>
 </div>
 </div>`
             },
