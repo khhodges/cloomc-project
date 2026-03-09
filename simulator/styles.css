@@ -4027,11 +4027,16 @@ a.next-step-link:hover {
 .tutorial-selector {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 1rem;
-    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.4rem;
     background: var(--bg-card);
     border-radius: 8px;
     border: 1px solid var(--border);
+}
+
+.tutorial-selector [data-tooltip]::after {
+    bottom: auto;
+    top: calc(100% + 8px);
 }
 
 .tutorial-selector .btn-tut-select {
