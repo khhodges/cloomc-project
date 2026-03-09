@@ -8417,7 +8417,9 @@ function addCopyButton(pre) {
     btn.textContent = 'Copy';
     btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        const text = pre.textContent.replace(/^Copy\n?/, '').replace(/\nCopied!$/, '');
+        const clone = pre.cloneNode(true);
+        clone.querySelectorAll('.code-copy-btn').forEach(function(b) { b.remove(); });
+        const text = clone.textContent;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(function() {
                 btn.textContent = 'Copied!';
