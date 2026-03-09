@@ -487,6 +487,24 @@ function slideruleRenderDisplay() {
     const readout = container.querySelector('.sliderule-readout-value');
     if (readout) readout.textContent = mode.readout(vals.top, vals.slide, vals.bottom);
 
+    const instrEl = document.getElementById('slideruleInstructions');
+    if (instrEl) {
+        const sm = slideruleState.scaleMode;
+        let instr = '';
+        if (sm === 'CD') {
+            instr = 'Slide <span style="color:#33cc66;">C</span> so its 1 aligns with <i>a</i> on <span style="color:#cc9933;">D</span>, then drag <span style="color:#ff3333;">cursor</span> to <i>b</i> on C \u2014 read D for a \u00d7 b';
+        } else if (sm === 'AB') {
+            instr = 'Drag <span style="color:#ff3333;">cursor</span> to a value on <span style="color:#cc9933;">A</span> (1\u2013100) \u2014 read its square root on <span style="color:#cc9933;">D</span> below';
+        } else if (sm === 'CI') {
+            instr = 'Drag <span style="color:#ff3333;">cursor</span> to a value on <span style="color:#cc9933;">D</span> \u2014 read its reciprocal on <span style="color:#ff6699;">CI</span> (runs right\u2192left)';
+        } else if (sm === 'K') {
+            instr = 'Drag <span style="color:#ff3333;">cursor</span> to a value on <span style="color:#cc9933;">K</span> (1\u20131000) \u2014 read its cube root on <span style="color:#cc9933;">D</span> below';
+        } else if (sm === 'ST') {
+            instr = 'Drag <span style="color:#ff3333;">cursor</span> to an angle on <span style="color:#cc9933;">S</span> or <span style="color:#66bbff;">T</span> \u2014 the <span style="color:#ff3333;">\u00d7</span> above shows sin and tan values';
+        }
+        instrEl.innerHTML = instr;
+    }
+
     const svgEl = container.querySelector('.sliderule-svg');
     if (svgEl) {
         const totalW = slideruleState.scaleStart * 2 + slideruleState.scaleWidth;
@@ -601,7 +619,7 @@ function renderSlideRuleCalculator() {
                         <span class="sliderule-readout-value"></span>
                     </div>
                     <svg class="sliderule-svg" width="100%" height="110" viewBox="0 0 ${totalW} 110" preserveAspectRatio="xMidYMid meet"></svg>
-                    <div class="sliderule-instructions">Drag <span style="color:#33cc66;">green slide</span> to set value \u00b7 Drag <span style="color:#ff3333;">red cursor</span> to read</div>
+                    <div class="sliderule-instructions" id="slideruleInstructions"></div>
                     <div class="sliderule-presets">
                         <span class="sliderule-preset-label">Try:</span>
                         <button class="sliderule-preset-btn" onclick="sliderulePresetMultiply(2, 3)">2 \u00d7 3</button>
