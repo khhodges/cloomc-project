@@ -186,6 +186,35 @@ class SlideRuleTutorial {
 <p>Navana validates the upload (bounds checking, capability delegation, integer overflow protection), allocates a power-of-2 lump, writes code + c-list, creates the NS entry, and forges an Inform E-GT back to the creator.</p>`
             },
             {
+                title: "English SlideRule",
+                type: "code",
+                lang: "en",
+                content: `<p>The English front-end uses natural language to describe methods. The compiler parses structured English sentences into Church Machine instructions:</p>
+<pre class="sr-code sr-code-en">abstraction SlideRuleEN {
+    capabilities { Constants }
+
+    Add(a, b):
+        Add a to b and return the result.
+
+    Sub(a, b):
+        Subtract b from a and return the result.
+
+    Mul(a, b):
+        Multiply a by b using repeated addition
+        and return the product.
+
+    Div(a, b):
+        If b is zero, return zero.
+        Otherwise divide a by b using repeated
+        subtraction and return the quotient.
+
+    Sqrt(n):
+        Find the largest integer whose square
+        does not exceed n, and return it.
+}</pre>
+<p><strong>Key characteristics:</strong> Each method is a plain-language description. The compiler maps verbs (<em>Add</em>, <em>Subtract</em>, <em>Multiply</em>) to opcodes (IADD, ISUB, shift-and-add loops). Natural language is unambiguous here because the structured format constrains grammar to imperative commands with named parameters.</p>`
+            },
+            {
                 title: "JavaScript SlideRule",
                 type: "code",
                 lang: "js",
@@ -278,6 +307,52 @@ class SlideRuleTutorial {
                               else x
 }</pre>
 <p><strong>Key characteristics:</strong> Each method is a single expression. Pattern-matching via <code>if/then/else</code> compiles to MCMP + BRANCH chains. Sqrt and Pow2 use conditional lookup tables &mdash; correct for values in range. The <code>*</code> operator expands to repeated addition.</p>`
+            },
+            {
+                title: "Machine Code SlideRule",
+                type: "code",
+                lang: "asm",
+                content: `<p>The Machine code front-end bypasses the compiler entirely. 32-bit instruction words are injected verbatim into the upload JSON &mdash; no parsing, no compilation:</p>
+<pre class="sr-code sr-code-asm">// SlideRule — direct machine code
+// Each method is an array of 32-bit hex words
+
+"methods": [
+  {
+    "name": "Add",
+    "code": [
+      "0x7F600000",  // IADD DR0, DR0, DR1
+      "0x1F800000"   // RETURN
+    ]
+  },
+  {
+    "name": "Sub",
+    "code": [
+      "0x87600000",  // ISUB DR0, DR0, DR1
+      "0x1F800000"   // RETURN
+    ]
+  },
+  {
+    "name": "Mul",
+    "code": [
+      "0x8F808000",  // MOVI DR4, 0       (acc = 0)
+      "0x8F828000",  // MOVI DR5, 0       (sign = 0)
+      "0xA7610000",  // MCMP DR1, 0
+      "0xB0040000",  // BRANCH.GE +4
+      "0x87618000",  // ISUB DR1, DR1, DR0 (negate)
+      "0x7FE28001",  // IADD DR5, DR5, 1
+      "0x97600001",  // BFEXT DR3, DR1, 0, 1
+      "0xA7618000",  // MCMP DR3, 1
+      "0xB0020000",  // BRANCH.NE +2
+      "0x7F808000",  // IADD DR4, DR4, DR0
+      "0x9F600001",  // SHL  DR0, DR0, 1
+      "0x9F610001",  // SHR  DR1, DR1, 1
+      "0xA7610000",  // MCMP DR1, 0
+      "0xB0F90000",  // BRANCH.GT -7
+      "0x1F800000"   // RETURN
+    ]
+  }
+]</pre>
+<p><strong>Key characteristics:</strong> No abstraction &mdash; the programmer writes raw opcodes. Every bit of every word is under direct control. Useful for hand-optimised inner loops, hardware drivers, or bootstrapping the compiler itself. The upload JSON accepts these arrays directly alongside compiler-generated methods.</p>`
             },
             {
                 title: "Compiled Output Comparison",
