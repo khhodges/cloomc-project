@@ -386,6 +386,50 @@ The lambda calculus guarantees this property mathematically: a pure function app
 
 This means **code reuse is not a feature that was designed in — it is a consequence of the mathematical model**. Any abstraction, once written and deployed, can be safely shared by any number of concurrent callers without modification, without synchronisation, and without risk. The `FixedPointMath` abstraction serves a telephone exchange, a banking system, and a medical instrument simultaneously — the same code, the same methods, different threads, provably independent results.
 
+### Synchronisation — When Is It Actually Needed?
+
+Within a single thread, execution is strictly sequential — one instruction, then the next, one program counter. A thread cannot race with itself, so there is nothing to synchronise.
+
+Synchronisation becomes relevant only when **two or more threads need to coordinate access to shared mutable state** — specifically, a shared memory lump or a shared namespace entry. But because abstractions are stateless code, the vast majority of method calls never touch shared mutable memory at all. Each thread passes values in its own registers, gets results back in its own registers, and the abstraction's code lump is read-only. No locks. No barriers. No flags.
+
+Even garbage collection avoids synchronisation flags. The Church Machine's deterministic GC uses the **G-bit mechanism** — a hardware bit on each namespace entry that indicates reachability. The Mark-Scan-Sweep cycle runs at defined points with bounded time, not as a concurrent collector racing against mutator threads. There are no write barriers, no card tables, no remembered sets — the mechanisms that make concurrent GC in conventional systems so complex and fragile.
+
+So when *is* synchronisation actually needed? Only when threads **intentionally share a mutable data structure** — a message queue, a shared counter, a device buffer. And even in those cases, the Church Machine's capability system often eliminates the need for traditional synchronisation primitives entirely.
+
+**Example — Shared line printer:**
+
+Consider four threads that all need to print. In a conventional system, you would protect the printer with a mutex:
+
+```
+Thread A: lock(printer_mutex)  → print  → unlock(printer_mutex)
+Thread B: lock(printer_mutex)  → BLOCKED waiting for A...
+Thread C: lock(printer_mutex)  → BLOCKED waiting for A...
+Thread D: lock(printer_mutex)  → BLOCKED waiting for A...
+```
+
+This works, but introduces deadlock risk (what if Thread A also needs another lock?), priority inversion (what if Thread D is high-priority but Thread A holds the lock?), and lock convoy effects (all threads serialise behind the slowest printer operation).
+
+On the Church Machine, a **PrinterManager** abstraction handles access through capabilities:
+
+```
+1. PrinterManager holds the sole write-capability to the printer device
+2. Thread A calls PrinterManager.requestPrint(document)
+   → PrinterManager grants Thread A a temporary write-capability (short-lived Golden Token)
+   → Thread A writes to the printer using this capability
+   → On completion, the capability is revoked (version bump)
+3. Thread B's queued request is now serviced
+   → PrinterManager grants Thread B a fresh temporary capability
+   → Thread B prints
+   → Capability revoked on completion
+4. Threads C and D are serviced in turn
+```
+
+No mutex. No lock hierarchy. The capability grant/revoke cycle **serialises access by construction** — only one thread holds a valid write-capability at any given moment, and revocation is instant (O(1) version bump). If Thread A crashes mid-print, its capability expires with the thread's termination and GC sweep — the printer doesn't stay "locked" forever.
+
+Note that this does not automatically solve all scheduling concerns. If the PrinterManager's queue is FIFO, a high-priority thread still waits behind low-priority threads — the same logical issue as priority inversion, though without the unbounded-blocking danger of a mutex (because the capability holder will complete and release, not deadlock). A priority-aware queue policy in the manager abstraction addresses this, but it is a design choice, not a hardware guarantee.
+
+The PrinterManager itself is a stateless abstraction — its code is shared, and the queue state lives in a memory lump accessed through its own capability. The entire mechanism composes from the same building blocks: stateless code, per-thread registers, capability-mediated access, and deterministic cleanup.
+
 ### How Values Are Tracked
 
 The caller keeps track of what values mean. For fixed-point:
@@ -630,6 +674,69 @@ This is not coincidental. The Church Machine's security model is a direct implem
 The PP250 telephone exchange is Church's lambda calculus made physical: every call is a lambda expression in flight, every thread is a reduction in progress, and garbage collection is the mechanism that ensures completed reductions release their resources.
 
 The same is true for a banking transaction, a weapon's fire-control authorisation, and a surgical robot's motor command. Each is a thread — a lambda expression in flight — and each is subject to the same guarantees: deterministic collection, instant revocation, and zero-window temporal safety. The security properties are not bolted on after the fact. They emerge naturally from the mathematical foundation that Alonzo Church established in 1936.
+
+### Bugs Eliminated by Architecture
+
+The sections above describe what the Church Machine *does*. This section catalogues what it makes *impossible* — specific, well-known bug classes that cannot occur on this architecture, not because programmers are careful, but because the hardware does not provide the mechanisms that allow them.
+
+#### Concurrency Bugs — Eliminated by Stateless Abstractions + Per-Thread Registers
+
+| Bug class | Why it cannot occur |
+|---|---|
+| **Race condition** | No shared mutable state in the common case. Each thread has its own register file; abstractions are read-only code. Two threads calling the same method cannot interfere. |
+| **Deadlock** (mutex-based) | No locks to acquire in the wrong order. Access to shared resources is mediated by capability grant/revoke, not by mutexes that a thread might hold while waiting for another. Note: logical circular dependencies between manager abstractions are still possible in principle, but they manifest as queue stalls with bounded wait times, not unbounded mutex deadlocks. |
+| **Priority inversion** (mutex-based) | No mutexes for a high-priority thread to block on. Capability-mediated access replaces lock-based blocking. However, queue-based scheduling can still delay high-priority work behind low-priority work unless the manager abstraction implements a priority-aware queue policy — see the printer example above. |
+| **Data race / torn read / torn write** | Each thread's registers are private. A thread cannot observe a half-written value from another thread's register file. Memory lump access is mediated by capabilities — only the holder can write. |
+| **Lock convoy** | No locks in the method-call path. Threads calling stateless abstractions execute concurrently without serialisation. Shared device access is serialised by capability grant, not by convoy-inducing mutexes. |
+| **ABA problem** | Golden Token version numbers are monotonically increasing. When a namespace entry is recycled, its version is bumped. A token from the old allocation (version 5) will never match the new allocation (version 6), even though the entry index is the same. The "A" looks different from the second "A". |
+
+#### Memory Safety Bugs — Eliminated by Capability-Bounded Memory Access
+
+| Bug class | Why it cannot occur |
+|---|---|
+| **Buffer overflow / underflow** | Capabilities carry bounds. A Golden Token grants access to a specific memory lump with a defined size. The hardware checks every LOAD and SAVE against the lump's bounds — writing beyond the end is not a software error, it is a hardware fault. |
+| **Wild / uninitialised pointer** | Registers do not hold raw memory addresses. A thread can only access memory through a capability in its C-List, granted by the system. There is no concept of "cast an integer to a pointer" — the hardware does not support it. |
+| **Null pointer dereference** | There is no null. A capability register either holds a valid Golden Token (version matches, permissions set) or it holds nothing. Attempting to use an empty capability register is a hardware fault, not an access to address zero. |
+| **Stack smashing** | There is no conventional call stack. The Church Machine uses register files and the CALL/RETURN instructions manage control flow through capabilities, not by pushing return addresses onto a writable stack. There is no stack to smash. |
+| **Heap spray / heap overflow** | Memory allocation is managed through the namespace — each allocation is a namespace entry with a capability-protected lump. An attacker cannot spray the heap with shellcode because (a) code and data lumps are separate, (b) allocations are capability-protected, and (c) there is no way to jump to an arbitrary address. |
+
+#### Authority and Security Bugs — Eliminated by Golden Tokens + C-List Capability Model
+
+| Bug class | Why it cannot occur |
+|---|---|
+| **Ambient authority** | There are no global variables, no file paths, no environment variables, no DNS lookups. A thread can only access what it holds a capability for. If a thread does not have a token for the printer, it cannot print — regardless of what "user" it runs as. |
+| **Confused deputy** | A capability encodes specific permissions (read, write, execute, grant). A server abstraction that receives a request from a client can only exercise the permissions encoded in the capability it holds — not "whatever the client has access to". The deputy cannot be confused because it does not inherit the caller's authority. |
+| **Privilege escalation** | Golden Tokens are unforgeable at the hardware level. The token format includes a version number validated by mLoad on every access. You cannot construct a valid token by bit manipulation — there is no `setuid`, no `sudo`, no ring transition that grants broader authority. Capabilities can only be **attenuated** (reduced in scope), never amplified. |
+| **Code injection / ROP / JOP** | Code and data are stored in separate memory lumps. A data lump cannot be executed; a code lump cannot be written to after loading. There is no way to write shellcode into a buffer and jump to it, because the hardware will not execute instructions from a data lump. Return addresses are managed by the hardware through capabilities, not stored on a writable stack. |
+| **TOCTOU (time-of-check-to-time-of-use)** | At the instruction level, the mLoad pipeline validates the Golden Token **atomically at execution time** — the permission check and the resource access are the same hardware operation. A capability that was valid one instruction ago but revoked since will fault immediately. Note: multi-step logical TOCTOU patterns (e.g., "check balance, then debit") can still occur at the application level and require application-level transaction design, but the hardware eliminates the single-instruction TOCTOU window that plagues conventional architectures. |
+
+#### Resource Management Bugs — Eliminated by Deterministic Garbage Collection
+
+| Bug class | Why it cannot occur |
+|---|---|
+| **Memory leak** | Deterministic GC reclaims all unreferenced namespace entries within one bounded cycle. There is no "forgot to free" — the system identifies and collects every entry that no thread can reach. |
+| **Double-free** | There is no `free()`. The programmer does not deallocate memory. GC identifies unreferenced entries and sweeps them. You cannot free something twice because you cannot free anything — the hardware does it for you. |
+| **Use-after-free** | Version bumping makes this impossible. When an entry is swept, its version is incremented. Any Golden Token referencing the old version will fail the mLoad validation on the next access — instantly, deterministically, with zero window of exploitation. |
+| **Resource exhaustion from leaked handles** | Capability revocation + deterministic GC ensures terminated threads cannot accumulate unreachable resources. A terminated thread's capabilities die with it; the entries they referenced are collected if no other thread references them. Note: a long-lived thread that retains reachable capabilities can still exhaust resources — this is a logical resource management issue, not a leak. The difference is that on the Church Machine, every held resource is accounted for and traceable through the C-List. |
+| **Finalizer ordering bugs** | The deterministic GC cycle (Mark → Scan → Sweep) runs in a defined order with bounded time. There are no finalizer queues, no weak references that might be cleared before or after their referents, no "it depends on which GC cycle runs first" non-determinism. The order is fixed by the hardware. |
+| **Zombie processes / orphaned resources** | Thread termination triggers capability revocation and GC eligibility. A terminated thread cannot leave orphaned resources because its namespace entries are swept in the next cycle. There is no "zombie" state — a thread is either running and reachable, or terminated and collected. |
+
+#### What This Means in Practice
+
+On conventional architectures, each of these bug classes requires a separate mitigation:
+
+- Race conditions → mutexes and lock discipline
+- Buffer overflows → bounds checking, ASLR, stack canaries, DEP
+- Use-after-free → smart pointers, borrow checkers, sanitisers
+- Privilege escalation → access control lists, sandboxing, capability wrappers
+- Memory leaks → profilers, leak detectors, reference counting
+- TOCTOU → file locking, atomic operations, transaction mechanisms
+
+Each mitigation adds complexity, and each can be implemented incorrectly. The mitigations interact — a lock intended to prevent a race condition can cause a deadlock; a smart pointer intended to prevent use-after-free can cause a reference cycle and a memory leak.
+
+On the Church Machine, **the vast majority of these mitigations are unnecessary** because the hardware does not provide the mechanisms (raw pointers, shared mutable state, ambient authority, manual deallocation) that make the corresponding bugs possible. Where the architecture shifts a problem rather than eliminating it entirely — such as queue-based scheduling replacing mutex-based priority inversion, or application-level TOCTOU requiring transaction design — the failure mode is bounded, traceable, and explicit rather than silent, unbounded, and exploitable.
+
+This is the difference between **safety by discipline** and **safety by construction**. The Church Machine achieves the latter for the hardware-level bug classes, and provides a sound foundation for addressing the remaining application-level concerns.
 
 ---
 
