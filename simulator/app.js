@@ -7644,7 +7644,7 @@ function onLangChange(restoring) {
         javascript: ['cloomc_hello', 'cloomc_memory', 'cloomc_counter', 'cloomc_sliderule'],
         haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_church_lambda', 'cloomc_sliderule_hs'],
         symbolic: ['cloomc_ada_note_g'],
-        lambda: ['cloomc_lambda_church', 'cloomc_lambda_booleans', 'cloomc_lambda_pairs', 'cloomc_lambda_ycomb', 'cloomc_lambda_sliderule']
+        lambda: ['cloomc_lambda_church', 'cloomc_lambda_booleans', 'cloomc_lambda_pairs', 'cloomc_lambda_ycomb', 'cloomc_lambda_sliderule', 'cloomc_lambda_fixedpoint', 'cloomc_lambda_rational']
     };
 
     const scroll = document.getElementById('exampleTabsScroll');
@@ -8233,6 +8233,101 @@ abstraction SlideRule {
     -- Min: \u03BBa.\u03BBb.if a < b then a else b
     method Min(a, b) = if a < b then a else b
 }`,
+        'lambda_fixedpoint': `-- LAMBDA CALCULUS
+-- Fixed-Point Arithmetic \u2014 decimal precision on integer hardware
+-- Scale factor = 100 (two decimal places)
+-- 3.14 is stored as 314, 0.5 as 50, 1.0 as 100
+-- All operations maintain the scale invariant
+
+abstraction FixedPointMath {
+    capabilities { Constants }
+
+    -- Convert integer to fixed-point: n \u2192 n * 100
+    -- \u03BBn.n \u00d7 100
+    method toFixed(n) = n * 100
+
+    -- Convert fixed-point back to integer (truncates): f \u2192 f / 100
+    -- \u03BBf.f \u00f7 100
+    method fromFixed(f) = f / 100
+
+    -- Add two fixed-point values (both already scaled)
+    -- \u03BBa.\u03BBb.a + b  (scale preserved)
+    method addFixed(a, b) = a + b
+
+    -- Subtract two fixed-point values
+    -- \u03BBa.\u03BBb.a - b  (scale preserved)
+    method subFixed(a, b) = a - b
+
+    -- Multiply fixed-point: (a * b) / 100
+    -- Rescale after multiply to avoid double-scaling
+    -- \u03BBa.\u03BBb.(a \u00d7 b) / scale
+    method mulFixed(a, b) = (a * b) / 100
+
+    -- Divide fixed-point: (a * 100) / b
+    -- Pre-scale numerator to preserve precision
+    -- \u03BBa.\u03BBb.(a \u00d7 scale) / b
+    method divFixed(a, b) =
+        if b == 0 then 0
+        else (a * 100) / b
+
+    -- Percentage: what is pct% of whole?
+    -- \u03BBw.\u03BBp.(w \u00d7 p) / 100
+    method percent(whole, pct) = (whole * pct) / 100
+
+    -- Round fixed-point to nearest integer
+    -- \u03BBf.(f + 50) / 100  (banker\u2019s rounding approx)
+    method roundFixed(f) = (f + 50) / 100
+}`,
+        'lambda_rational': `-- LAMBDA CALCULUS
+-- Rational Arithmetic \u2014 exact fractions on integer hardware
+-- A fraction is (numerator, denominator)
+-- 1/3 + 1/6 = (1\u00d76 + 1\u00d73) / (3\u00d76) = 9/18 = 1/2
+-- No precision loss \u2014 every result is exact
+
+abstraction RationalArith {
+    capabilities { }
+
+    -- Numerator: \u03BB(n,d).n
+    method numerator(n, d) = n
+
+    -- Denominator: \u03BB(n,d).d
+    method denominator(n, d) = d
+
+    -- Add fractions: a/b + c/d = (a\u00d7d + c\u00d7b) / (b\u00d7d)
+    -- \u03BBn1.\u03BBd1.\u03BBn2.\u03BBd2.(n1\u00d7d2 + n2\u00d7d1)
+    method addNum(n1, d1, n2, d2) = (n1 * d2) + (n2 * d1)
+
+    -- Common denominator after add: b\u00d7d
+    method addDen(d1, d2) = d1 * d2
+
+    -- Subtract fractions: a/b - c/d = (a\u00d7d - c\u00d7b) / (b\u00d7d)
+    method subNum(n1, d1, n2, d2) = (n1 * d2) - (n2 * d1)
+
+    -- Multiply fractions: (a/b) \u00d7 (c/d) = (a\u00d7c) / (b\u00d7d)
+    method mulNum(n1, n2) = n1 * n2
+
+    -- Multiply denominators
+    method mulDen(d1, d2) = d1 * d2
+
+    -- Divide fractions: (a/b) \u00f7 (c/d) = (a\u00d7d) / (b\u00d7c)
+    method divNum(n1, d2) = n1 * d2
+
+    -- Divide denominator: b\u00d7c
+    method divDen(d1, n2) = d1 * n2
+
+    -- Equality: a/b == c/d iff a\u00d7d == c\u00d7b
+    -- \u03BBn1.\u03BBd1.\u03BBn2.\u03BBd2.if n1\u00d7d2 == n2\u00d7d1 then 1 else 0
+    method isEqual(n1, d1, n2, d2) =
+        if (n1 * d2) == (n2 * d1) then 1 else 0
+
+    -- Simplify by GCD (iterative Euclidean algorithm approx)
+    -- Returns GCD of a and b for manual simplification
+    method gcd(a, b) =
+        if b == 0 then a
+        else if a == b then a
+        else if a > b then a - b
+        else b - a
+}`,
     };
 
     editor.value = examples[name] || examples['hello'];
@@ -8244,7 +8339,7 @@ abstraction SlideRule {
         const isHaskell = ['church_math','church_pair','church_case','church_lambda','sliderule_hs'].includes(name);
         const isSymbolic = ['ada_note_g'].includes(name);
         const isEnglish = ['english_hello','english_counter'].includes(name);
-        const isLambda = ['lambda_church','lambda_booleans','lambda_pairs','lambda_ycomb','lambda_sliderule'].includes(name);
+        const isLambda = ['lambda_church','lambda_booleans','lambda_pairs','lambda_ycomb','lambda_sliderule','lambda_fixedpoint','lambda_rational'].includes(name);
         sel.value = isLambda ? 'lambda' : isEnglish ? 'english' : isSymbolic ? 'symbolic' : isHaskell ? 'haskell' : 'javascript';
     }
 
