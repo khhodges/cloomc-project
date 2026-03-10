@@ -145,6 +145,26 @@ Three specific features of conventional architecture deserve attention, because 
 
 These three features — virtual memory, centralised OS, superuser — form the **architectural toolkit of digital dictatorship**. Every surveillance state, every digital monopoly, every authoritarian regime depends on the ability to see all memory, control all access, and exercise unlimited privilege. The conventional architecture provides these abilities by design. The Church Machine removes them by design.
 
+### SOSP-6, 1977 — The Warning That Was Ignored
+
+The centralised OS model was not adopted without challenge. At the **Sixth ACM Symposium on Operating System Principles (SOSP-6)**, November 16–18, 1977, Session 3 featured a **Capability Panel — The Case For and Against**, chaired by R.S. Fabry of U.C. Berkeley. The panellists were:
+
+- **R. Feiertag** — SRI International
+- **A.K. Jones** — Carnegie-Mellon University
+- **B.W. Lampson** — Xerox PARC
+- **R.M. Needham** — University of Cambridge
+- **M.D. Schroeder** — Xerox PARC
+
+These were the architects of the centralised operating system model — the designers of the very systems (Multics, Alto, CAP) that would define conventional computing for the next half-century. They argued from theory that their centralised systems could detect and prevent any error. They were in love with the idea of the omniscient OS — the system that sees everything, controls everything, and therefore protects everything. They were, in effect, arguing for playing God through software.
+
+Against them stood a single voice from industry — someone who had built and operated real capability hardware in production telecom environments, where "detect and prevent any error" was not a theoretical aspiration but a contractual obligation measured in uptime and revenue per second. The argument was straightforward: centralised detection cannot scale, omniscient control is an illusion, and the only reliable security is architectural — capabilities enforced at the hardware level, where the vulnerability classes that require detection simply do not exist.
+
+The panel voted with the theorists. The industry chose centralised operating systems. The PP250's approach — full immersion capability hardware, proven in production — was sidelined in favour of Unix, the VAX, and the von Neumann orthodoxy.
+
+**Forty-eight years later, the theorists have been proved catastrophically wrong.** Their centralised systems did not detect and prevent any error. They generated an unbounded supply of errors — 30,000 CVEs per year and rising — that no amount of centralised monitoring can contain. The $10.5 trillion cybercrime economy, the 3.5 million unfilled cybersecurity positions, the surveillance states justified by software insecurity, the digital dictatorships enabled by centralised control — all are direct consequences of the architectural decision made in the late 1970s to pursue centralised OS theory over capability-based practice.
+
+The warning was given. It was ignored. The arguments made from that stage in 1977 remain not merely true but more urgent than ever. Theory without practice is not just intellectually insufficient — it is dangerous. The theorists built elegant systems that could not survive contact with adversarial reality. The practitioner built systems that ran telephone exchanges. The world chose the theory, and the world is paying the price.
+
 ### Unelected Elites — Who Decides?
 
 The direction of conventional computing is not set by democratic processes. It is dictated by **unelected elites** — the CEOs, board members, and venture capitalists of a handful of technology companies. Their decisions shape the digital environment for billions of people:
