@@ -8792,6 +8792,17 @@ async function loadDoc(filename) {
     if (title) title.textContent = filename;
     if (body) body.innerHTML = '<div class="docs-placeholder">Loading...</div>';
 
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        const sidebar = document.querySelector('.docs-sidebar');
+        if (sidebar) sidebar.classList.add('docs-sidebar-collapsed');
+    }
+
+    const contentPanel = document.querySelector('.docs-content-panel');
+    if (isMobile && contentPanel) {
+        contentPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     try {
         const resp = await fetch('/api/docs/read/' + filename);
         const data = await resp.json();
@@ -8811,6 +8822,22 @@ function loadFigure(filename) {
     const label = filename.replace('.html', '');
     if (title) title.textContent = 'Figure: ' + label;
     if (body) body.innerHTML = `<iframe class="docs-figure-frame" src="/docs/figures/${filename}"></iframe>`;
+
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        const sidebar = document.querySelector('.docs-sidebar');
+        if (sidebar) sidebar.classList.add('docs-sidebar-collapsed');
+        const contentPanel = document.querySelector('.docs-content-panel');
+        if (contentPanel) contentPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function docsBackToList() {
+    const sidebar = document.querySelector('.docs-sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('docs-sidebar-collapsed');
+        sidebar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function renderMarkdown(md) {

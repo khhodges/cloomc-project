@@ -3841,6 +3841,18 @@ a.next-step-link:hover {
 
     .docs-sidebar {
         max-height: 40vh;
+        transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+    }
+
+    .docs-sidebar.docs-sidebar-collapsed {
+        max-height: 0;
+        padding: 0;
+        opacity: 0;
+        overflow: hidden;
+    }
+
+    .docs-back-btn {
+        display: inline-block !important;
     }
 }
 
@@ -3867,6 +3879,19 @@ a.next-step-link:hover {
 
 .docs-content-panel .panel {
     height: 100%;
+}
+
+.docs-content-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.docs-back-btn {
+    display: none;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
 }
 
 .docs-file-list {
