@@ -133,6 +133,65 @@ The von Neumann architecture — shared memory, unrestricted pointers, mutable g
 
 Every layer of the modern software stack — operating systems, compilers, libraries, frameworks, applications — is built on this 80-year-old foundation. And every layer inherits its fundamental insecurity.
 
+### The Architecture of Control
+
+Three specific features of conventional architecture deserve attention, because they are not merely insecure — they are **instruments of centralised control**:
+
+**Virtual memory** creates the illusion that every process has access to the entire address space. In practice, it means the operating system kernel has complete visibility into — and control over — every byte of every process. Virtual memory was designed for resource management, but it is the mechanism that enables memory forensics, process injection, and the surveillance tools that read your data while it sits "securely" in RAM. On the Church Machine, there is no virtual memory. Memory is organised into lumps, each accessible only through a Golden Token. The kernel — or any other process — cannot see your data unless it holds a valid capability for that specific lump.
+
+**The centralised operating system** — Unix, Windows, Linux — is a single point of authority that mediates all access to hardware, files, networks, and processes. It is the digital equivalent of a centralised government: all power flows through it, and whoever controls it controls everything that runs on it. A compromised kernel owns every process. A malicious update owns every machine. This is not a bug — it is the design. The OS model assumes a trusted administrator. The Church Machine has no operating system in the conventional sense. The Navana Master Controller manages abstraction loading, but it does not mediate runtime access — capabilities do. There is no single point that, if compromised, grants access to everything.
+
+**Superuser privileges** — root, Administrator, sudo — are the architectural embodiment of absolute power. A single account, with unrestricted access to every file, every process, every device on the system. In a world of 3.5 million unfilled cybersecurity positions, the single greatest target for every attacker is the superuser account, because compromising it is game over. On the Church Machine, the concept of superuser does not exist. No account, no process, no thread has unrestricted access. Authority is always specific, always bounded, always attenuable. You cannot escalate to root because root does not exist.
+
+These three features — virtual memory, centralised OS, superuser — form the **architectural toolkit of digital dictatorship**. Every surveillance state, every digital monopoly, every authoritarian regime depends on the ability to see all memory, control all access, and exercise unlimited privilege. The conventional architecture provides these abilities by design. The Church Machine removes them by design.
+
+### Unelected Elites — Who Decides?
+
+The direction of conventional computing is not set by democratic processes. It is dictated by **unelected elites** — the CEOs, board members, and venture capitalists of a handful of technology companies. Their decisions shape the digital environment for billions of people:
+
+- A single decision at Google determines what 4.3 billion people find when they search
+- A single policy change at Apple determines what software 1.5 billion people can install
+- A single algorithm change at Meta determines what political content 3 billion people see
+- A single moderation decision at any platform can silence an individual, a movement, or a government
+
+These are not democratic decisions. They are not subject to public debate, legislative oversight, or judicial review. They are corporate decisions, made by unelected individuals, with civilisational consequences.
+
+The conventional architecture enables this concentration of power because it is *designed* for centralised control. The OS model, the cloud model, the platform model — all assume a trusted central authority. The Church Machine's capability model assumes no central authority. Power is distributed by design, because capabilities are held by the entities that use them, not granted by a central administrator who can revoke them at will.
+
+### The Skills Shortage Accelerates the Decline
+
+The cybersecurity workforce crisis (3.5 million unfilled positions) is not an isolated problem — it is a **force multiplier for every other threat**. As the skills shortage deepens:
+
+- **Vulnerabilities go unpatched longer** — fewer analysts means longer response times; the mean time to detect a breach is already 204 days (IBM Cost of a Data Breach Report)
+- **Defenders burn out faster** — the remaining staff absorb the workload of unfilled positions, accelerating turnover and deepening the shortage
+- **Quality of defence degrades** — overworked teams make mistakes, skip reviews, defer updates; security debt compounds
+- **Organisations lower hiring standards** — desperate for staff, companies accept less experienced analysts, increasing the error rate
+- **Cybercrime becomes more profitable** — as defences weaken, attack success rates rise, attracting more criminals, generating more attacks, requiring more defenders who don't exist
+
+This is a death spiral. The shortage weakens defences, which increases successful attacks, which increases demand for defenders, which widens the shortage. There is no equilibrium — the cycle accelerates until something breaks.
+
+### Inequality Fuels Cybercrime
+
+The cybercrime economy does not recruit from nowhere. It recruits from populations with **technical skills and no legitimate economic opportunity**:
+
+- A skilled programmer in a developing nation earns $5,000–$15,000/year legitimately. The same skills applied to ransomware can yield $100,000–$500,000/year.
+- Nations with strong technical education but weak economies (parts of Eastern Europe, West Africa, Southeast Asia) produce a steady supply of capable individuals with powerful economic incentives to enter cybercrime.
+- As legitimate software jobs increasingly require clearance-level background checks and expensive certifications (driven by cybersecurity regulation), the barrier to legitimate employment rises while the barrier to cybercrime remains zero.
+
+**Global inequality is a cybercrime recruitment engine.** As long as conventional architecture generates a $10.5 trillion cybercrime economy, that economy will attract talent from wherever legitimate opportunity falls short. The solution is not policing the criminals — it is eliminating the vulnerability classes that make cybercrime profitable. Remove the exploitable software, and the cybercrime business model collapses regardless of how many skilled individuals might be tempted by it.
+
+### Ethics Cannot Be Programmed
+
+The technology industry's response to these threats increasingly relies on "ethical AI," "responsible computing," and corporate codes of conduct. These are inadequate for a structural reason: **ethics cannot be programmed into software because ethics requires judgement, and judgement requires context that software does not have.**
+
+- An algorithm cannot determine whether surveilling a citizen is justified — that requires understanding the specific political context, the individual's rights, and the proportionality of the action.
+- A content filter cannot distinguish between dangerous misinformation and legitimate dissent — that requires understanding the speaker's intent, the audience's context, and the boundary between protection and censorship.
+- An AI cannot decide whether a capability should be granted or revoked — that requires understanding the social relationship between the parties, which no formal system can fully capture.
+
+Ethics is a human function. It cannot be delegated to code. What *can* be built into hardware is **constraint** — the architectural impossibility of certain actions regardless of intent. The Church Machine does not attempt to make software ethical. It makes certain unethical actions — mass surveillance, unauthorised data access, privilege escalation, silent data modification — **architecturally impossible**. The hardware enforces boundaries. Humans exercise judgement within those boundaries.
+
+This is the correct division of responsibility: hardware prevents the actions that should never occur under any circumstances, and humans make the contextual judgements about everything else. Attempting to programme ethics into software inverts this division — it asks code to make judgements it cannot make, while leaving the hardware free to execute any action the code permits.
+
 ### The Patching Treadmill
 
 The industry's response has been to patch — to add security mechanisms on top of insecure foundations:
@@ -391,7 +450,7 @@ Artificial general intelligence emerges on conventional architecture, inheriting
 
 The vulnerability classes that enable cybercrime, justify surveillance, and threaten democratic institutions are eliminated at the hardware level. Software is written as mathematics — pure functions that cannot be exploited, that do not decay, and that do not require the surveillance infrastructure that erodes freedom.
 
-This is not utopian. It is engineering. The PP250 proved it could work for telecom in the 1960s. The Church Machine generalises it to all computing. The lambda calculus provides the mathematical foundation. The capability model provides the security enforcement. MTBF measurement provides continuous evidence of reliability.
+This is not utopian. It is engineering. The PP250 proved it could work for telecom in 1972. The Church Machine generalises it to all computing. The lambda calculus provides the mathematical foundation. The capability model provides the security enforcement. MTBF measurement provides continuous evidence of reliability.
 
 **Probability: Depends entirely on whether we choose to build it.**
 

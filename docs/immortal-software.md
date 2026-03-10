@@ -311,7 +311,7 @@ Architectural transitions in computing follow a consistent pattern. New paradigm
 
 ### The Momentum Question
 
-Sceptics will point out that capability architectures have been proposed before (CAP computer 1970, iAPX 432 1981, CHERI 2014) without achieving mainstream adoption. What's different this time?
+Sceptics will point out that capability architectures have been proposed before (PP250 1972, CAP computer 1978, iAPX 432 1981, CHERI 2014) without achieving mainstream adoption. What's different this time?
 
 ### Hardware Patching vs Full Immersion — The Fundamental Difference
 
@@ -319,7 +319,7 @@ Most capability architectures took a conventional processor and **patched capabi
 
 | Architecture | Approach | What remained underneath |
 |---|---|---|
-| **CAP Computer** (Cambridge, 1970) | Added capability registers to a conventional processor | Conventional memory model, conventional instruction set, conventional linking |
+| **CAP Computer** (Cambridge, 1978) | Added capability registers to a conventional processor | Conventional memory model, conventional instruction set, conventional linking |
 | **iAPX 432** (Intel, 1981) | Object-based capability architecture, but implemented as a complex CISC design on top of conventional silicon | x86-era memory model, enormous microcode complexity, catastrophic performance overhead |
 | **CHERI** (Cambridge/SRI, 2014–present) | Extended MIPS/RISC-V/ARM with capability pointers — "fat pointers" that carry bounds and permissions | The entire conventional software stack: C, Unix, shared libraries, mutable global state, raw pointers still exist alongside capabilities |
 
@@ -333,7 +333,7 @@ These are all **hardware patches**: the conventional architecture persists, and 
 
 ### The PP250 — The Pioneer That Got It Right
 
-There is one critical exception to the patching pattern. The **Plessey PP250** (late 1960s) — predating the CAP Computer by several years — was the first capability architecture to take the full immersion approach. It was not a conventional processor with capabilities bolted on. It was a capability machine from the ground up, designed for telecom switching where downtime was measured in lost revenue per second and a stale token from a terminated call must never grant access to a new call's billing data.
+There is one critical exception to the patching pattern. The **Plessey PP250** (1972) — predating the CAP Computer by six years — was the first capability architecture to take the full immersion approach. It was not a conventional processor with capabilities bolted on. It was a capability machine from the ground up, designed for telecom switching where downtime was measured in lost revenue per second and a stale token from a terminated call must never grant access to a new call's billing data.
 
 The PP250 made design choices that the patching architectures did not:
 
@@ -345,7 +345,7 @@ The PP250 proved that full immersion capability hardware could work, could perfo
 
 **Why didn't it spread?** The PP250 was designed for a specific domain (telecom switching) by a specific company (Plessey) at a time when the broader computing industry was consolidating around the von Neumann model and general-purpose processors. The market chose backward compatibility and general-purpose flexibility over architectural correctness. The PP250's lessons were not lost — they were ignored, because the cost of ignoring them had not yet become high enough.
 
-The Church Machine is the PP250's architectural descendant. It takes the same full immersion approach — capabilities as the only mechanism, no conventional hardware underneath, no escape hatch — and extends it with the lambda calculus as the computational model, the Navana Master Controller for abstraction management, and per-abstraction MTBF measurement. What the PP250 proved for telecom in the 1960s, the Church Machine generalises for all safety-critical computing.
+The Church Machine is the PP250's architectural descendant. It takes the same full immersion approach — capabilities as the only mechanism, no conventional hardware underneath, no escape hatch — and extends it with the lambda calculus as the computational model, the Navana Master Controller for abstraction management, and per-abstraction MTBF measurement. What the PP250 proved for telecom in 1972, the Church Machine generalises for all safety-critical computing.
 
 ### The Church Machine: Full Immersion — Completing What the PP250 Started
 
@@ -374,9 +374,9 @@ This is the difference between a building with a sprinkler system and a building
 
 ### Why This Matters for the Timeline
 
-The failure of CAP, iAPX 432, and CHERI is often cited as evidence that capability hardware cannot succeed commercially. But those architectures were all patching approaches — they were asking: *"How do we add capabilities to a conventional computer?"* The PP250 and the Church Machine ask a different question: *"What does a computer look like if capabilities are the only mechanism?"*
+The failure of CAP (1978), iAPX 432, and CHERI is often cited as evidence that capability hardware cannot succeed commercially. But those architectures were all patching approaches — they were asking: *"How do we add capabilities to a conventional computer?"* The PP250 and the Church Machine ask a different question: *"What does a computer look like if capabilities are the only mechanism?"*
 
-The PP250 answered that question for telecom in the 1960s and ran in production for years. It was not a failure — it was a success in a narrow domain that the broader industry chose to ignore. The Church Machine generalises the PP250's answer to all computing, with the lambda calculus providing the mathematical foundation that makes the architecture domain-independent.
+The PP250 answered that question for telecom in 1972 and ran in production for years. It was not a failure — it was a success in a narrow domain that the broader industry chose to ignore. The Church Machine generalises the PP250's answer to all computing, with the lambda calculus providing the mathematical foundation that makes the architecture domain-independent.
 
 This is a harder engineering problem — there is no legacy compatibility, no gradual migration path, no "run your existing C code with added protection." But it is a *simpler* machine. Twenty instructions instead of thousands. No microcode. No compatibility modes. No dual memory models. The hardware is verifiable precisely because it is minimal.
 
