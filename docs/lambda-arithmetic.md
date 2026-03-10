@@ -247,6 +247,7 @@ abstraction RationalArith {
 
     method isEqual(n1, d1, n2, d2)    = if (n1 * d2) == (n2 * d1) then 1 else 0
 
+    -- GCD: Greatest Common Divisor — the largest number that divides evenly into both values
     method gcd(a, b)                  = if b == 0 then a
                                         else if a == b then a
                                         else if a > b then a - b
