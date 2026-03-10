@@ -738,6 +738,68 @@ On the Church Machine, **the vast majority of these mitigations are unnecessary*
 
 This is the difference between **safety by discipline** and **safety by construction**. The Church Machine achieves the latter for the hardware-level bug classes, and provides a sound foundation for addressing the remaining application-level concerns.
 
+### What the Architecture Does Not Prevent
+
+Intellectual honesty requires drawing a clear boundary. The Church Machine's capability model, deterministic GC, and stateless abstractions eliminate a large class of bugs — but not all bugs. The following categories remain outside the architectural threat model:
+
+**Arithmetic errors:**
+Integer overflow and underflow are not caught by the hardware. `2,000,000,000 + 2,000,000,000` silently wraps on a 32-bit register. The fixed-point overflow limits table earlier in this document exists precisely because this is a real constraint. A safety-critical system using fixed-point arithmetic must validate that intermediate values stay within representable range — this is an application-level responsibility.
+
+**Logic bugs:**
+If `addFrac` computes `n1 * d1` instead of `n1 * d2`, the hardware will dutifully execute the wrong formula and return a wrong result. No architecture prevents incorrect algorithms. The Church Machine ensures that the wrong result is computed *safely* — no buffer overflow, no privilege escalation, no leaked capability — but wrong is still wrong.
+
+**Side-channel attacks:**
+If two threads share physical hardware — the same ALU, the same memory bus, the same cache hierarchy — execution timing can leak information about what another thread is computing. A thread performing a capability-secured cryptographic operation may reveal key bits through timing variations, even though the capability system perfectly isolates logical access. Side-channel resistance requires additional countermeasures: constant-time algorithms, cache partitioning, or physical isolation.
+
+**Covert channels:**
+Related to side channels but intentional. Two colluding threads could communicate by modulating observable timing (e.g., one thread busy-loops to signal a "1" and idles to signal a "0", while the other thread measures its own execution rate). This bypasses the capability system entirely because it exploits shared physical resources, not logical access paths. Covert channel analysis and bandwidth limitation are well-studied problems, but they sit outside the capability model.
+
+**Denial of service via CPU exhaustion:**
+A thread in an infinite loop consumes CPU time. Deterministic GC prevents namespace exhaustion (memory DoS), and the bounded GC cycle prevents GC storms, but a thread that never terminates holds its registers and namespace entry indefinitely. Whether the Church Machine architecture includes preemptive time-slicing or per-thread CPU quotas is a scheduler design question not addressed in this document.
+
+**Speculative execution attacks (Spectre/Meltdown class):**
+If the Church Machine implements speculative or out-of-order execution, transient execution paths could bypass capability checks before being rolled back — accessing data that the architectural model says is inaccessible. If the Church Machine executes strictly in-order with no speculation, this entire class is eliminated by simplicity. The answer depends on the microarchitectural implementation, not the architectural model.
+
+**Physical and fault-injection attacks:**
+Voltage glitching, clock manipulation, electromagnetic fault injection, and cold boot attacks on register files operate below the architectural abstraction. These attacks can cause the hardware to behave differently from its specification — skipping a mLoad validation, corrupting a version number, reading a register file that should have been cleared. Defence against physical attacks requires hardware countermeasures (glitch detectors, secure enclaves, memory encryption) that are orthogonal to the capability model.
+
+**Supply chain and hardware trojan attacks:**
+If the fabricated chip contains a trojan — a hidden circuit that, under specific conditions, bypasses capability checks or leaks register contents — then the architectural guarantees are void because the implementation does not match the specification. This is a fabrication integrity problem, addressed by techniques like split manufacturing, formal hardware verification against RTL, and post-silicon validation.
+
+### The Boundary of Proof
+
+The "Flawless, Fail-Safe Security" section above makes five specific claims:
+
+1. No Dangling Capabilities (version bumping invalidates stale tokens)
+2. No Resource Exhaustion Attacks (bounded deterministic GC cycle)
+3. No Information Leakage Between Calls (entry clearing on sweep)
+4. Least Authority Per Thread (C-List scoping, no ambient authority)
+5. No Window of Vulnerability (atomic mLoad validation per instruction)
+
+These claims are **provable within the architectural model**. Given a formal specification of the instruction semantics, the mLoad pipeline, the GC cycle, and the namespace operations, each property follows as a theorem:
+
+- **Claim 1** follows from the version-monotonicity invariant: if `token.version < entry.version`, the token is invalid; versions only increase; therefore a swept entry's tokens are permanently invalid.
+- **Claim 2** follows from the GC bounded-time guarantee: if the sweep phase runs in O(n) time for n namespace entries, and n is bounded by hardware, then reclamation is bounded.
+- **Claim 3** follows from the sweep-clear postcondition: if the sweep phase zeroes every field of a reclaimed entry before it is reallocated, then the new occupant starts with a clean slate.
+- **Claim 4** follows from the C-List access rule: if every instruction that accesses a resource validates a capability from the thread's C-List, and capabilities can only be attenuated (never amplified), then a thread's authority is bounded by its initial grant.
+- **Claim 5** follows from the mLoad atomicity property: if the validation and the access are a single hardware operation, there is no intermediate state where the token is valid but the access has not yet occurred.
+
+This is analogous to how **seL4** proved capability safety for a microkernel, or how **CompCert** proved compilation correctness for C. The Church Machine's simpler architecture — 20 instructions, no virtual memory, no speculative execution, no interrupts in the conventional sense — is arguably **more tractable** for formal verification than either of those systems.
+
+However, "provable within the model" is not the same as "formally verified." Full substantiation of the "Flawless" claim would require three things:
+
+| Level | What is needed | Status |
+|---|---|---|
+| **Specification** | A formal model of the Church Machine's instruction semantics, mLoad pipeline, GC cycle, and namespace operations — written in a proof language (Coq, Isabelle/HOL, or Lean) | Needed |
+| **Property proofs** | Mechanised proofs that the specification implies the five security properties — machine-checked, not hand-waved | Needed |
+| **Implementation verification** | Proof that the physical hardware (or the simulator in this IDE) faithfully implements the specification — either by RTL-level formal verification or by verified compilation from the spec | Needed |
+
+Until these exist, the five security claims rest on architectural reasoning — which is sound, detailed, and consistent with established results in capability-based security (Dennis & Van Horn 1966, Levy 1984, the EROS/CapROS lineage, seL4's capability proofs) — but not on mechanised proof.
+
+The title "Flawless, Fail-Safe Security" is therefore best understood as a **design goal and architectural claim**, not as a formally verified theorem. The architecture is *designed* to make these properties true, the reasoning that they hold is *sound*, and the path to formal proof is *tractable*. But the proof has not yet been carried out.
+
+This is not a weakness — it is a statement of where the project stands, and an invitation to complete the verification. The architecture was built to be provable. The proofs remain to be written.
+
 ---
 
 ## The Full Picture
