@@ -168,7 +168,35 @@ All arithmetic follows the standard fraction rules you learned in school:
 | a/b − c/d | (a×d − c×b) / (b×d) | 3/4 − 1/4 = (12−4)/16 = 8/16 |
 | a/b × c/d | (a×c) / (b×d) | 2/3 × 3/5 = 6/15 |
 | a/b ÷ c/d | (a×d) / (b×c) | 2/3 ÷ 4/5 = 10/12 |
-| a/b = c/d? | a×d = c×b? | 9/18 = 1/2? → 18 = 18 ✓ |
+| a/b = c/d? | a×d = c×b? | 9/18 = 1/2? → see below |
+
+**Equality by cross-multiplication:**
+
+To test whether two fractions are equal, you don't need to simplify them or find common denominators. Instead, you **cross-multiply** — multiply each numerator by the other fraction's denominator — and check if the two products are the same.
+
+The rule: **a/b = c/d** if and only if **a × d = c × b**.
+
+Example: is 9/18 equal to 1/2?
+
+```
+Left side:  a × d = 9 × 2  = 18
+Right side: c × b = 1 × 18 = 18
+
+18 = 18 ✓  → Yes, 9/18 and 1/2 are the same fraction.
+```
+
+This works because multiplying both sides of `a/b = c/d` by `b × d` cancels the denominators, leaving `a × d = c × b`. If the products match, the fractions are equal — no matter how different the numerators and denominators look.
+
+Another example: is 2/3 equal to 3/4?
+
+```
+Left side:  2 × 4 = 8
+Right side: 3 × 3 = 9
+
+8 ≠ 9  → No, 2/3 and 3/4 are not equal.
+```
+
+This is exactly what the `isEqual` method computes: `if (n1 * d2) == (n2 * d1) then 1 else 0`.
 
 ### The Abstraction: `RationalArith`
 
