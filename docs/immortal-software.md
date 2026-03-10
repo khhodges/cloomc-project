@@ -4,7 +4,9 @@
 
 A Church Machine abstraction, once written and verified, never needs to be patched, updated, or replaced. It can run unchanged for decades — or centuries — because the conditions that force software rewrites on conventional architectures do not exist.
 
-This is not aspirational. It is a direct consequence of three architectural properties working together:
+This is not even a new idea. In 1843, Ada Lovelace wrote the first computer program — Note G, an algorithm for computing Bernoulli numbers on Charles Babbage's Analytical Engine. That program was never patched, never updated, never security-audited. It is 183 years old and it is still correct. The mathematics has not changed. The algorithm has not decayed. It is, and will forever remain, the longest-serving program in history — because it was written as mathematics, not as platform-dependent code.
+
+The Church Machine is designed so that every abstraction can be written the same way Ada wrote Note G. This is a direct consequence of three architectural properties working together:
 
 1. **Every abstraction is a security block with measured MTBF**
 2. **Code is written as pure mathematical functions**
@@ -205,9 +207,9 @@ If code never needs to change, these economic structures are unnecessary:
 - **No version treadmill** — version 1.0 is the final version, unless the requirements change
 - **No planned obsolescence** — the abstraction outlives the developer who wrote it
 
-This is how physical engineering works. The formula for calculating the area of a circle (A = πr²) has not been updated since Archimedes. It has no version number, no maintenance contract, and no security patches. It is a mathematical truth, and it works forever.
+This is how mathematics works. The formula for calculating the area of a circle (A = πr²) has not been updated since Archimedes. Ada Lovelace's Bernoulli algorithm has not been updated since 1843. Neither has a version number, a maintenance contract, or a security patch. They are mathematical truths, and they work forever.
 
-Church Machine abstractions are software written the same way.
+Ada proved in 1843 that software can be written this way. The Church Machine is an architecture designed so that every abstraction *must* be written this way — and the MTBF measurement proves, continuously and per-abstraction, that it is working.
 
 ---
 
