@@ -476,6 +476,10 @@ An abstraction is a pure function. A pure function is a mathematical truth. A ma
 
 The MTBF measurement proves it. The lambda calculus guarantees it. The hardware enforces it.
 
+### Getting Started
+
+The Church Machine is an open source design, available on GitHub. Individuals can try it for free. Universities can teach it for free. Industry requires a licence for commercial deployment. The architecture that makes software immortal should be accessible to everyone who wants to learn — and accountable when deployed at scale.
+
 ---
 
 ## Further Reading

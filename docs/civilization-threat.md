@@ -474,6 +474,26 @@ This is not utopian. It is engineering. The PP250 proved it could work for telec
 
 **Probability: Depends entirely on whether we choose to build it.**
 
+### How to Start — Open Source by Design
+
+The Church Machine is an **open source design**, available on GitHub, because the architecture that protects civilisation must not itself become a tool of monopoly control.
+
+| Who | Access | Cost |
+|---|---|---|
+| **Individuals** | Full access to the design, simulator, and documentation | Free — try it, learn it, build with it |
+| **Universities** | Full access for teaching, research, and academic publication | Free — teach the next generation of capability-aware engineers |
+| **Industry** | Commercial deployment in products and services | Licensed — because production use at scale requires support, certification, and accountability |
+
+This licensing model is deliberate:
+
+- **Free for individuals** because individual freedom is the foundation of everything this architecture protects. Anyone, anywhere, should be able to explore, understand, and experiment with capability hardware without asking permission or paying a fee.
+
+- **Free for universities** because the cybersecurity workforce crisis cannot be solved by training people to patch insecure systems faster. It can only be solved by training people to build secure systems from the ground up. University access ensures that the next generation of computer scientists learns capability-based architecture alongside — and eventually instead of — the von Neumann model.
+
+- **Licensed for industry** because commercial deployment requires engineering support, certification assistance, and long-term commitment to the architecture's integrity. A licence ensures that commercial implementations meet the standard required for safety-critical deployment, and that the revenue funds continued development of the open source design.
+
+The Church Machine cannot be the vanguard of digital democracy if it is locked behind a paywall. And it cannot sustain development and certification if commercial users contribute nothing. The open source model with commercial licensing threads this needle — universally accessible for learning and experimentation, commercially supported for production deployment.
+
 ---
 
 ## Conclusion
