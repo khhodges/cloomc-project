@@ -1129,15 +1129,17 @@ LOAD   CR1, NS[4]       ; mLoad pipeline validates GT:
 ; CR1.word1 = NS[4].word0 (location)
 ; CR1.word2 = NS[4].word1 (B|F|G|...|limit[16:0])
 ; CR1.word3 = NS[4].word2 (version[31:25]|seal[24:0])`,
-            'TPERM': `; Salvation.TPERM — prove permission monotonicity
-; TPERM can only remove permissions, never add them
-; This is how the architecture enforces least privilege
+            'TPERM': `; Salvation.TPERM — prove GT health check
+; TPERM checks permissions + validity + bounds in one cycle
+; Sets Z flag: Z=1 = all passed, Z=0 = something failed
+; Never traps — enables conditional execution (try-catch)
 LOAD   CR1, NS[4]       ; CR1 holds Salvation GT [E]
-TPERM  CR1, #0b100000   ; Test E bit (bit 5 of perm field)
-BRANCH.NE  @perm_fault  ; Z flag clear = permission denied
-; Permission check passed
-; Note: TPERM never escalates — if source lacks a bit,
-; the result cannot have it. Monotonic restriction only.`,
+TPERM  CR1, E            ; Check E permission, valid, MAC
+; Z=1: permission present, GT valid
+; Z=0: permission denied or GT invalid
+; Subsequent EQ instructions skip if Z=0
+; Note: TPERM can also restrict permissions (monotonic)
+; — permissions can only be removed, never added.`,
             'LAMBDA': `; Salvation.LAMBDA — prove Church numeral reduction
 ; LAMBDA dispatches a method within an abstraction
 ; It is NOT a security block — just an instruction
@@ -7093,17 +7095,18 @@ const INSTRUCTION_DATA = [
     },
     {
         opcode: 6, mnemonic: 'TPERM', domain: 'church',
-        syntax: 'TPERM CRd, preset',
-        brief: 'Attenuate permissions \u2014 remove bits from a GT',
-        encoding: 'opcode[5]=00110 | cond[4] | CRd[4] | 0[4] | mask[15]',
+        syntax: 'TPERM CRs, #preset [, offset]',
+        brief: 'GT health check \u2014 test permissions, validity, and bounds; set flags',
+        encoding: 'opcode[5]=00110 | cond[4] | CRs[4] | preset[4] | offset[15]',
         fields: [
-            { name: 'CRd', desc: 'Context register holding the GT to attenuate' },
-            { name: 'preset', desc: 'Permission mask \u2014 bits to keep (R, W, X, L, S, E, B combinations)' },
+            { name: 'CRs', desc: 'Context register holding the GT to check' },
+            { name: 'preset', desc: 'Permission preset to test (R, W, RW, X, E, LSE, etc.)' },
+            { name: 'offset', desc: 'Optional offset \u2014 checks base + offset \u2264 limit (bounds test)' },
         ],
-        permission: 'None \u2014 operates on cached register only',
-        flags: 'Z=1 if resulting permissions are non-zero, N=!Z',
-        details: 'Attenuates (reduces) the permission bits on the GT in CRd by ANDing with the given mask. Permissions can only be removed, never added \u2014 monotonic security. The attenuation is local to the cached context register and signals the M (modified) bit, just like any CR modification. The namespace slot is NOT updated until a legitimate SAVE commits the attenuated GT back to a c-list. Since CALL auto-clears B on all passed GTs, TPERM is also used for the special case of ALLOWING bind \u2014 explicitly setting B=1 before a CALL to delegate a capability the callee may keep.',
-        example: '; Example 1: Strip write \u2014 hand off read-only\nTPERM CR0, RX        ; Keep only R+X, strip W,L,S,E\nCALL CR2             ; Callee can read+execute but not write\n\n; Example 2: ALLOW BIND \u2014 delegate a GT the callee may keep\nLOAD CR1, CR6, 3     ; Load GT from c-list slot 3\nTPERM CR1, RWXB      ; Keep R+W+X and SET B (Bind)\nCALL CR2             ; Callee receives CR1 with B=1\n                     ; Callee CAN save this GT (delegation)',
+        permission: 'None \u2014 reads cached register, does not trap',
+        flags: 'Z=1 if all checks pass (permissions present, valid, in bounds); Z=0 if any check fails',
+        details: 'Single-instruction GT health check. Evaluates permissions, validity (version + MAC), and bounds in one cycle. Sets condition flags but never traps \u2014 this is the one Church instruction that does not FAULT on failure. The Z flag persists across subsequent instructions, enabling ARM-style conditional execution (EQ/NE suffixes) for zero-cost try-catch patterns. The happy path carries EQ suffixes; the catch path uses NE or falls through. TPERM can also restrict permissions on a GT (monotonic attenuation \u2014 permissions can only be removed, never added). Domain purity is enforced: Turing (R, W, X) and Church (L, S, E) permissions cannot be mixed.',
+        example: '; Example 1: Try-catch pattern (zero-cost happy path)\nTPERM CR5, RW, 0     ; Check R+W, valid, offset 0 in bounds\nreadEQ val, CR5, 0   ; Only fires if Z=1 (TPERM passed)\nwriteEQ CR5, 0, val+1; Only fires if Z=1\nreturnEQ(val)        ; Only fires if Z=1\n; catch: Z=0 \u2014 permission, validity, or bounds failure\nreturn(0)\n\n; Example 2: Permission restriction (monotonic)\nTPERM CR0, RX        ; Keep only R+X, strip W,L,S,E\nCALL CR2             ; Callee can read+execute but not write\n\n; Example 3: Allow bind for delegation\nLOAD CR1, CR6, 3     ; Load GT from c-list slot 3\nTPERM CR1, RWXB      ; Keep R+W+X and SET B (Bind)\nCALL CR2             ; Callee receives CR1 with B=1 (can save it)',
     },
     {
         opcode: 7, mnemonic: 'LAMBDA', domain: 'church',
