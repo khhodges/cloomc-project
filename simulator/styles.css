@@ -6162,3 +6162,16 @@ pre:hover .code-copy-btn {
     color: #cc3344;
     font-weight: bold;
 }
+
+/* TSB Audit guide (empty state) */
+.audit-guide ol.audit-guide-steps {
+    text-align: left;
+    margin: 10px 0 10px 0;
+    padding-left: 1.4em;
+    color: #c8c0b0;
+    font-size: 0.82rem;
+    line-height: 1.8;
+}
+.audit-guide ol.audit-guide-steps li b {
+    color: #f0d080;
+}

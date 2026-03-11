@@ -162,8 +162,16 @@ class PipelineVisualizer {
         html += '<div class="pipeline-subtitle">Every capability gate shown as an explicit instruction-level audit step</div>';
 
         if (steps.length === 0) {
-            html += '<div class="pipeline-info"><div class="pipeline-current">Ready</div>';
-            html += '<div class="pipeline-detail">Step through code — every mLoad and mSave gate will appear here as a live audit record</div></div>';
+            html += '<div class="pipeline-info audit-guide">';
+            html += '<div class="pipeline-current">How to see live TSB audit gates</div>';
+            html += '<ol class="audit-guide-steps">';
+            html += '<li>Click <b>Boot</b> (top-right) to start the boot microcode</li>';
+            html += '<li>Make sure you are on the <b>Pipeline</b> tab (you are here)</li>';
+            html += '<li>Click <b>Step</b> (top-right) once or twice</li>';
+            html += '<li>Each step runs one instruction — every mLoad and mSave gate appears below as a live audit record with ✓/✗ per check</li>';
+            html += '</ol>';
+            html += '<div class="pipeline-detail">If already booted: open <b>Code</b>, write or load a program, then click <b>Step</b> from any view.</div>';
+            html += '</div>';
             html += '</div>';
             this.container.innerHTML = html;
             return;
