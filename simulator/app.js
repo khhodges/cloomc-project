@@ -7021,7 +7021,15 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'L (Load) on CRs',
         flags: 'None',
-        details: 'Reads a GT from the namespace at the given slot index. The source register must hold a GT with L permission. The loaded GT is written to CRd after version and seal validation via mLoad.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00000 │ cond │  CRd │  CRs │       slot        │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit       15-bit\n\n'
+          + 'CRs must hold a C-List GT with L (Load) permission.\n'
+          + 'mLoad validates: version, seal, slot within bounds.\n'
+          + 'The GT at slot index is copied into CRd.',
         example: 'LOAD CR0, CR6, 7    ; Load slot 7 into CR0 via C-List CR6',
     },
     {
@@ -7036,7 +7044,19 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'S (Save) on CRs; B=1 required on source GT',
         flags: 'None',
-        details: 'Saves the GT from CRd into the C-List pointed to by CRs, at the specified slot index. A C-List (capability list) is a namespace entry that holds other GTs \u2014 it is the fundamental mechanism for storing and sharing capabilities. The target C-List GT must have S (Save) permission, and the source GT must have its B (Bind) bit set to 1. This prevents unauthorized capability propagation \u2014 you cannot save a GT you have not explicitly been allowed to share.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00001 │ cond │  CRd │  CRs │       slot        │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit       15-bit\n\n'
+          + 'CRd = GT to save (B=1 required on this GT).\n'
+          + 'CRs = target C-List GT (must have S permission).\n'
+          + 'slot = destination slot within the C-List.\n\n'
+          + 'A C-List is a namespace entry that holds other GTs — the fundamental\n'
+          + 'mechanism for storing and sharing capabilities. B=1 on the source GT\n'
+          + 'is the hardware\'s "use it, don\'t keep it" default: a callee cannot\n'
+          + 'save GTs it was only passed for use, preventing unauthorized propagation.',
         example: 'SAVE CR1, CR6, 20   ; Save CR1 into slot 20 of C-List CR6',
     },
     {
@@ -7049,7 +7069,23 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'E (Enter/Execute) on CRd',
         flags: 'None',
-        details: 'Enters a namespace abstraction. The target GT must be an Inform E-GT. mLoad validates version, seal, and E permission. CALL then parses word1 to extract clistCount. If clistCount > 0, the lump is split: CR7 (code) gets location=base, limit=clistStart-1, X-only permissions; CR6 (c-list) gets location=base+clistStart, limit=clistCount-1, L-only permissions; where clistStart = (limit+1) - clistCount. The current PC, CRs, DRs, and flags are pushed onto the call stack. CALL automatically clears the B (Bind) bit on all preserved context registers passed to the callee \u2014 "use it, don\'t keep it" is the hardware default. To allow the callee to save a GT (delegation), the caller must explicitly set B=1 via TPERM before the CALL. PC is set to 0. RETURN is the only way to exit.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00010 │ cond │  CRd │  ─   │        0          │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit  zero        zero\n\n'
+          + 'CRd = target E-GT (Inform abstraction entry point).\n'
+          + 'src field and imm15 are both zero.\n\n'
+          + 'mLoad validates version, seal, and E permission on CRd.\n'
+          + 'CALL reads word1 of the lump to extract clistCount:\n'
+          + '  clistStart = (limit + 1) - clistCount\n'
+          + '  CR7 (code)   → base .. clistStart-1   (X-only)\n'
+          + '  CR6 (c-list) → clistStart .. limit     (L-only)\n\n'
+          + 'Caller PC, all CRs, DRs, and flags are pushed to the call stack.\n'
+          + 'B bit is cleared on every passed GT (hardware "use it, don\'t keep it").\n'
+          + 'To allow delegation, set B=1 via TPERM before CALL.\n'
+          + 'PC is set to 0. RETURN is the only exit.',
         example: 'CALL CR3             ; Enter abstraction \u2014 split lump into CR7 (code, X) + CR6 (c-list, L)\n                     ; Callee gets GTs with B=0 \u2014 cannot SAVE them',
     },
     {
@@ -7062,7 +7098,17 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'None',
         flags: 'None',
-        details: 'Pops the call stack and restores the caller\'s context (PC, CRs, DRs, flags). Shared between Church and Turing domains \u2014 it is the only exit from a safe Turing abstraction. If the call stack is empty, the machine halts.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00011 │ cond │  CRd │  ─   │        0          │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit  zero        zero\n\n'
+          + 'CRd = return value register (conventionally CR0).\n'
+          + 'src and imm15 are zero.\n\n'
+          + 'Pops the call stack, restoring caller PC, all CRs, DRs, and flags.\n'
+          + 'Shared between Church and Turing domains — the only exit from a safe\n'
+          + 'Turing abstraction. If the call stack is empty, the machine halts.',
         example: 'RETURN CR0           ; Exit abstraction, restore caller',
     },
     {
@@ -7076,7 +7122,18 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'Thread GT must be valid',
         flags: 'None',
-        details: 'The thread suspend/activate instruction. CHANGE saves the entire machine register set of the current thread (all CRs, DRs, PC, flags) and then loads the complete register set of the target thread. This is the fundamental context-switch mechanism \u2014 one atomic instruction that suspends the running thread and activates another. All register state is preserved so the suspended thread can resume exactly where it left off.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00100 │ cond │  CRd │  ─   │      flags        │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit  zero       15-bit\n\n'
+          + 'CRd   = thread GT identifying the target thread.\n'
+          + 'flags = thread control flags (imm15).\n\n'
+          + 'Atomic context-switch: saves ALL registers of the current thread\n'
+          + '(all CRs, DRs, PC, flags) then loads the complete register set of the\n'
+          + 'target thread. One instruction — no intermediate state is visible.\n'
+          + 'The suspended thread resumes exactly where it left off.',
         example: 'CHANGE CR8, 0        ; Suspend current thread, activate thread in CR8',
     },
     {
@@ -7090,7 +7147,19 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'CRs must point to a valid namespace',
         flags: 'None',
-        details: 'Switches the active namespace by reloading CR15 (the namespace root register) with a new namespace. CR15 is the machine\'s view of the entire capability world \u2014 all LOADs, SAVEs, and CALLs resolve through it. SWITCH atomically replaces that root, giving the current thread an entirely different set of visible capabilities. This is the mechanism for domain isolation, sandboxing, and controlled namespace transitions.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00101 │ cond │  ─   │  CRs │      flags        │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit  zero   4-bit       15-bit\n\n'
+          + 'CRs   = GT pointing to the new namespace root.\n'
+          + 'dst field is zero (unused).\n'
+          + 'flags = namespace control flags (imm15).\n\n'
+          + 'Atomically reloads CR15 (the namespace root register) with the new\n'
+          + 'namespace. CR15 is the machine\'s view of the entire capability world —\n'
+          + 'all LOADs, SAVEs, and CALLs resolve through it. The switch is the\n'
+          + 'mechanism for domain isolation, sandboxing, and controlled transitions.',
         example: 'SWITCH CR3, 0        ; Switch namespace root (CR15) to namespace in CR3',
     },
     {
@@ -7179,7 +7248,17 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'X (Execute in-scope) on CRd',
         flags: 'None',
-        details: 'Lightweight function application \u2014 applies a Church reduction without saving/restoring context (unlike CALL). The target GT must have X permission. Used for fast-path lambda calculus operations like SUCC, ADD, etc.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00111 │ cond │  CRd │  ─   │        0          │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit  zero        zero\n\n'
+          + 'CRd = target GT (must have X permission).\n'
+          + 'src and imm15 are zero.\n\n'
+          + 'Lightweight in-scope application — applies a Church reduction without\n'
+          + 'saving or restoring context (unlike CALL). No call-stack frame is pushed.\n'
+          + 'Used for fast-path lambda calculus operations: SUCC, ADD, MUL, etc.',
         example: 'LAMBDA CR0           ; Apply reduction via CR0',
     },
     {
@@ -7194,7 +7273,20 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'L on CRs, then E on loaded GT',
         flags: 'None',
-        details: 'Fused instruction that performs LOAD, verifies E permission, and enters the abstraction \u2014 all in one cycle. Reduces the 3-instruction sequence (LOAD + TPERM + CALL) to a single instruction for common abstraction entry patterns.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │01000 │ cond │  CRd │  CRs │       slot        │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit       15-bit\n\n'
+          + 'CRd  = destination for the loaded GT.\n'
+          + 'CRs  = C-List GT (must have L permission).\n'
+          + 'slot = namespace slot to load from.\n\n'
+          + 'Fused micro-op sequence in one cycle:\n'
+          + '  1. LOAD  — read GT at slot via CRs (L permission checked)\n'
+          + '  2. TPERM — verify E permission on the loaded GT\n'
+          + '  3. CALL  — enter the abstraction\n'
+          + 'Reduces the common 3-instruction entry sequence to a single word.',
         example: 'ELOADCALL CR0, CR6, 12  ; Load slot 12, verify E, enter',
     },
     {
@@ -7209,7 +7301,20 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'L on CRs, then X on loaded GT',
         flags: 'None',
-        details: 'Fused instruction that performs LOAD, verifies X permission, and applies a lambda reduction \u2014 all in one cycle. Used for fast-path Church reductions where the GT is loaded and applied in a single operation.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │01001 │ cond │  CRd │  CRs │       slot        │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit       15-bit\n\n'
+          + 'CRd  = destination for the loaded GT.\n'
+          + 'CRs  = C-List GT (must have L permission).\n'
+          + 'slot = namespace slot to load from.\n\n'
+          + 'Fused micro-op sequence in one cycle:\n'
+          + '  1. LOAD   — read GT at slot via CRs (L permission checked)\n'
+          + '  2. TPERM  — verify X permission on the loaded GT\n'
+          + '  3. LAMBDA — apply the reduction in-scope (no context save)\n'
+          + 'Used for fast-path Church reductions where load + apply is one operation.',
         example: 'XLOADLAMBDA CR0, CR6, 7  ; Load slot 7, verify X, reduce',
     },
     {
@@ -7224,7 +7329,17 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'R (Read) on CRs',
         flags: 'None',
-        details: 'Reads a 32-bit word from the address range protected by the GT in CRs, at the given offset. mLoad validates the GT (version, seal, bounds) and checks R permission. Works on any address range \u2014 memory, devices, or registers.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │01010 │ cond │  DRd │  CRs │      offset       │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit       15-bit\n\n'
+          + 'DRd    = destination data register for the 32-bit result.\n'
+          + 'CRs    = GT covering the data object (must have R permission).\n'
+          + 'offset = word offset within the protected region.\n\n'
+          + 'mLoad validates: version, seal, R permission, base+offset within limit.\n'
+          + 'Unified address space: works on memory, devices, or device registers.',
         example: 'DREAD DR1, CR2, 0    ; Read word 0 from data object CR2',
     },
     {
@@ -7239,7 +7354,17 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'W (Write) on CRs',
         flags: 'None',
-        details: 'Writes a 32-bit word from the specified DR to the address range protected by the GT in CRs. mLoad validates the GT and checks W permission. Bounds-checked against the entry limit. Works on memory, devices, or registers.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │01011 │ cond │  DRd │  CRs │      offset       │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit       15-bit\n\n'
+          + 'DRd    = source data register (value to write).\n'
+          + 'CRs    = GT covering the data object (must have W permission).\n'
+          + 'offset = word offset within the protected region.\n\n'
+          + 'mLoad validates: version, seal, W permission, base+offset within limit.\n'
+          + 'Works on memory, device registers, or any GT-protected address range.',
         example: 'DWRITE DR3, CR2, 4   ; Write DR3 to word 4 of data object CR2',
     },
     {
@@ -7255,7 +7380,20 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'R (Read) on CRs',
         flags: 'None',
-        details: 'Extracts a bitfield from the first word of the data object pointed to by CRs. The extracted bits are right-aligned and zero-extended into DRd. Useful for parsing packed structures, GT fields, and device registers.',
+        details:
+            '  31    27│26   23│22   19│18   15│14  10│9    5│4    0\n'
+          + '  ┌──────┬──────┬──────┬──────┬──────┬──────┬──────┐\n'
+          + '  │01100 │ cond │  DRd │  CRs │  ─   │ pos  │ wid  │\n'
+          + '  └──────┴──────┴──────┴──────┴──────┴──────┴──────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit  5-bit  5-bit  5-bit\n\n'
+          + 'DRd = destination (extracted bits, right-aligned, zero-extended).\n'
+          + 'CRs = GT covering the data object (must have R permission).\n'
+          + 'imm15 split:  [14:10] = unused (─)  [9:5] = pos  [4:0] = width\n'
+          + '  pos   = bit position to start extraction (0–31)\n'
+          + '  width = number of bits to extract (1–32)\n\n'
+          + 'Reads word 0 of the GT-protected region, extracts bits [pos+width-1:pos],\n'
+          + 'right-aligns them, and zero-extends into DRd.\n'
+          + 'Useful for parsing packed structures, GT header fields, device registers.',
         example: 'BFEXT DR1, CR2, 8, 4  ; Extract 4 bits starting at bit 8',
     },
     {
@@ -7271,7 +7409,20 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'W (Write) on CRs',
         flags: 'None',
-        details: 'Inserts the low bits of DRd into the specified bitfield of the first word at the address protected by CRs. Other bits in the target word are preserved. Useful for modifying packed structures without full read-modify-write.',
+        details:
+            '  31    27│26   23│22   19│18   15│14  10│9    5│4    0\n'
+          + '  ┌──────┬──────┬──────┬──────┬──────┬──────┬──────┐\n'
+          + '  │01101 │ cond │  DRd │  CRs │  ─   │ pos  │ wid  │\n'
+          + '  └──────┴──────┴──────┴──────┴──────┴──────┴──────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit  5-bit  5-bit  5-bit\n\n'
+          + 'DRd = source (low \'width\' bits are inserted).\n'
+          + 'CRs = GT covering the data object (must have W permission).\n'
+          + 'imm15 split:  [14:10] = unused (─)  [9:5] = pos  [4:0] = width\n'
+          + '  pos   = bit position to start insertion (0–31)\n'
+          + '  width = number of bits to insert (1–32)\n\n'
+          + 'Reads word 0 of the protected region, replaces bits [pos+width-1:pos]\n'
+          + 'with the low \'width\' bits of DRd, and writes back. All other bits in\n'
+          + 'the word are preserved — no full read-modify-write required in software.',
         example: 'BFINS DR1, CR2, 8, 4  ; Insert low 4 bits of DR1 at bit 8',
     },
     {
@@ -7285,7 +7436,21 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'None',
         flags: 'Z (zero/equal), N (negative), C (carry/unsigned \u2265), V (signed overflow)',
-        details: 'Computes DRa - DRb internally (without storing the result) and sets the ARM-style condition flags. Use with BRANCH or conditional instructions to control flow based on comparison results. C flag uses unsigned comparison semantics (C=1 if DRa \u2265 DRb unsigned).',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │01110 │ cond │  DRa │  DRb │        0          │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit       zero\n\n'
+          + 'DRa    = first operand (minuend, in dst field).\n'
+          + 'DRb    = second operand (subtrahend, in src field).\n'
+          + 'imm15  = 0 (unused).\n\n'
+          + 'Computes DRa - DRb internally and sets all four ARM-style flags.\n'
+          + 'Result is discarded — no destination register is written.\n\n'
+          + 'Z = 1 if DRa == DRb\n'
+          + 'N = 1 if result is negative (signed)\n'
+          + 'C = 1 if DRa >= DRb (unsigned, no borrow)\n'
+          + 'V = 1 if signed overflow',
         example: 'MCMP DR1, DR2        ; Compare DR1 with DR2\nBRANCHEQ equal       ; Branch if DR1 == DR2',
     },
     {
@@ -7300,7 +7465,22 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'None',
         flags: 'Z (zero), N (negative), C (unsigned carry), V (signed overflow)',
-        details: 'Computes DRd = DRa + DRb as unsigned 32-bit integers and sets all four ARM-style flags. DR0 is hardwired to zero, so IADD DRd, DR0, DR0 initializes DRd to 0. C=1 if the result exceeds 32 bits. V=1 if signed overflow occurred.',
+        details:
+            '  31    27│26   23│22   19│18   15│14     4│3     0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────┬──────┐\n'
+          + '  │01111 │ cond │  DRd │  DRa │     0     │ DRb  │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────┴──────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit   11-bit    4-bit\n\n'
+          + 'DRd = destination (result).\n'
+          + 'DRa = first source (in src field).\n'
+          + 'DRb = second source (in imm15[3:0] — low 4 bits of imm15).\n'
+          + 'imm15[14:4] = 0 (unused).\n\n'
+          + 'Computes DRd = DRa + DRb as unsigned 32-bit integers.\n'
+          + 'DR0 is hardwired to zero: IADD DRd, DR0, DR0 initialises DRd = 0.\n\n'
+          + 'Z = 1 if result is zero\n'
+          + 'N = 1 if bit 31 of result is set\n'
+          + 'C = 1 if carry out (result > 0xFFFFFFFF)\n'
+          + 'V = 1 if signed overflow',
         example: 'IADD DR3, DR1, DR2   ; DR3 = DR1 + DR2, set flags',
     },
     {
@@ -7315,7 +7495,22 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'None',
         flags: 'Z (zero), N (negative), C (borrow: C=1 if DRa \u2265 DRb), V (signed overflow)',
-        details: 'Computes DRd = DRa - DRb as unsigned 32-bit integers and sets all four ARM-style flags. C flag follows ARM convention: C=1 means no borrow (DRa \u2265 DRb unsigned). ISUB DRd, DR0, DRx computes the two\'s complement negation.',
+        details:
+            '  31    27│26   23│22   19│18   15│14     4│3     0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────┬──────┐\n'
+          + '  │10000 │ cond │  DRd │  DRa │     0     │ DRb  │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────┴──────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit   11-bit    4-bit\n\n'
+          + 'DRd = destination (result).\n'
+          + 'DRa = minuend (in src field).\n'
+          + 'DRb = subtrahend (in imm15[3:0] — low 4 bits of imm15).\n'
+          + 'imm15[14:4] = 0 (unused).\n\n'
+          + 'Computes DRd = DRa - DRb as unsigned 32-bit integers.\n'
+          + 'ISUB DRd, DR0, DRx computes two\'s complement negation (0 - DRx).\n\n'
+          + 'Z = 1 if result is zero\n'
+          + 'N = 1 if bit 31 of result is set\n'
+          + 'C = 1 if no borrow (DRa >= DRb unsigned — ARM convention)\n'
+          + 'V = 1 if signed overflow',
         example: 'ISUB DR4, DR3, DR1   ; DR4 = DR3 - DR1, set flags',
     },
     {
@@ -7328,7 +7523,20 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'None',
         flags: 'None (reads flags, does not set them)',
-        details: 'Branches to PC + offset if the condition (from the condition field) is true. The offset is sign-extended from 15 bits. Typically used with a condition suffix: BRANCHEQ, BRANCHNE, BRANCHGT, etc. Bounded within the abstraction.',
+        details:
+            '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │10001 │ cond │  ─   │  ─   │  signed offset    │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit  zero   zero        15-bit\n\n'
+          + 'cond          = condition code (the branch condition)\n'
+          + 'dst, src      = zero (unused)\n'
+          + 'signed offset = sign-extended 15-bit PC-relative displacement\n'
+          + '                range: -16384 to +16383 instructions\n\n'
+          + 'If the condition is true, PC = PC + sign_ext(offset).\n'
+          + 'The cond field IS the branch condition — no separate comparison needed\n'
+          + 'if flags were set by a prior MCMP or arithmetic instruction.\n'
+          + 'Branch targets are bounded within the current abstraction.',
         example: 'BRANCHEQ +3          ; If Z=1, skip 3 instructions\nBRANCHNE -5          ; If Z=0, loop back 5',
     },
     {
@@ -7343,7 +7551,22 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'None',
         flags: 'Z (zero), N (sign bit of result), C (last bit shifted out)',
-        details: 'Shifts DRs left by shamt positions, filling vacated bits with zeros, and stores the result in DRd. C flag is set to the last bit shifted out (bit 32-shamt of the original value). Equivalent to multiplication by 2^shamt. V is always cleared.',
+        details:
+            '  31    27│26   23│22   19│18   15│14     5│4     0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────┬──────┐\n'
+          + '  │10010 │ cond │  DRd │  DRs │     0     │shamt │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────┴──────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit   10-bit    5-bit\n\n'
+          + 'DRd   = destination (shifted result).\n'
+          + 'DRs   = source (value to shift).\n'
+          + 'shamt = shift amount 0–31 (in imm15[4:0]).\n'
+          + 'imm15[14:5] = 0 (unused).\n\n'
+          + 'DRd = DRs << shamt. Vacated low bits are filled with zeros.\n'
+          + 'Equivalent to multiplication by 2^shamt.\n\n'
+          + 'Z = 1 if result is zero\n'
+          + 'N = 1 if bit 31 of result is set\n'
+          + 'C = last bit shifted out (bit 32-shamt of original value)\n'
+          + 'V = always 0',
         example: 'SHL DR2, DR1, 4      ; DR2 = DR1 << 4 (multiply by 16)',
     },
     {
@@ -7359,7 +7582,26 @@ const INSTRUCTION_DATA = [
         ],
         permission: 'None',
         flags: 'Z (zero), N (sign bit of result), C (last bit shifted out)',
-        details: 'Shifts DRs right by shamt positions. In logical mode (default), vacated high bits are filled with zeros. In arithmetic mode (ASR), vacated bits are filled with the sign bit, preserving the sign for signed division by powers of 2. C flag is the last bit shifted out (bit shamt-1). V is always cleared.',
+        details:
+            '  31    27│26   23│22   19│18   15│14   6│5│4     0\n'
+          + '  ┌──────┬──────┬──────┬──────┬──────────┬─┬──────┐\n'
+          + '  │10011 │ cond │  DRd │  DRs │    0     │A│shamt │\n'
+          + '  └──────┴──────┴──────┴──────┴──────────┴─┴──────┘\n'
+          + '   5-bit   4-bit   4-bit   4-bit   9-bit  1   5-bit\n\n'
+          + 'DRd   = destination (shifted result).\n'
+          + 'DRs   = source (value to shift).\n'
+          + 'shamt = shift amount 0–31 (imm15[4:0]).\n'
+          + 'A     = arithmetic mode flag (imm15[5]).\n'
+          + '        0 = logical shift (fill high bits with 0)\n'
+          + '        1 = arithmetic shift / ASR (fill with sign bit)\n'
+          + 'imm15[14:6] = 0 (unused).\n\n'
+          + 'Logical (A=0):    DRd = DRs >> shamt, high bits = 0\n'
+          + 'Arithmetic (A=1): DRd = DRs >>> shamt, high bits = sign bit\n'
+          + 'ASR preserves sign — equivalent to signed division by 2^shamt.\n\n'
+          + 'Z = 1 if result is zero\n'
+          + 'N = 1 if bit 31 of result is set\n'
+          + 'C = last bit shifted out (bit shamt-1 of original value)\n'
+          + 'V = always 0',
         example: 'SHR DR2, DR1, 3      ; DR2 = DR1 >> 3 (logical)\nSHR DR3, DR1, 1, ASR ; DR3 = DR1 >>> 1 (arithmetic, sign-extending)',
     },
 ];
