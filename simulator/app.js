@@ -7641,7 +7641,7 @@ function onLangChange(restoring) {
     const langExampleGroups = {
         english: ['cloomc_english_hello', 'cloomc_english_counter'],
         assembly: ['ada_note_g', 'selftest', 'load_save', 'bernoulli', 'conditional', 'gc_test', 'turing_test', 'salvation', 'perm_attack', 'bind_attack'],
-        javascript: ['cloomc_hello', 'cloomc_memory', 'cloomc_counter', 'cloomc_sliderule'],
+        javascript: ['cloomc_hello', 'cloomc_string', 'cloomc_memory', 'cloomc_counter', 'cloomc_sliderule'],
         haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_church_lambda', 'cloomc_sliderule_hs'],
         symbolic: ['cloomc_ada_note_g'],
         lambda: ['cloomc_lambda_church', 'cloomc_lambda_booleans', 'cloomc_lambda_pairs', 'cloomc_lambda_ycomb', 'cloomc_lambda_sliderule', 'cloomc_lambda_fixedpoint', 'cloomc_lambda_rational']
@@ -8013,7 +8013,142 @@ function loadCLOOMCExample(name) {
     const examples = {
         'memory': `abstraction Memory {\n    capabilities {\n    }\n    method Allocate(size) {\n        location = read(CR7, 0)\n        needed = size + 255\n        needed = needed >> 8\n        needed = needed << 8\n        write(CR7, 0, location + needed)\n        return(location, needed)\n    }\n    method Free(location) {\n        return(0)\n    }\n}`,
         'mint': `abstraction Mint {\n    capabilities {\n        Memory\n    }\n    method Create(size, perms) {\n        result = call(Memory.Allocate(size))\n        return(result)\n    }\n    method Revoke(index) {\n        return(0)\n    }\n}`,
-        'hello': `abstraction Hello {\n    capabilities {\n    }\n    method Greet(who) {\n        result = who + 1\n        return(result)\n    }\n}`,
+        'hello': `// ── Church Machine: Anatomy of an Abstraction ──
+// The Church Machine is a 32-bit integer machine.
+// There are no strings, no floats, no data types.
+// Every value in a data register (DR0-DR15) is
+// a 32-bit integer. Richer types (strings, floats,
+// records) are built as abstractions on top.
+//
+// An "abstraction" is a security block — a self-
+// contained module with its own code and its own
+// capability list (c-list). Think of it as a locked
+// room: nothing gets in or out without a Golden Token.
+//
+// The "capabilities" section lists other abstractions
+// this one needs access to. Empty means it is fully
+// self-contained — it cannot reach anything else.
+//
+// Methods are called via CALL with an E (Enter)
+// permission Golden Token. Arguments arrive in data
+// registers (DR0-DR3). Results return the same way.
+// Hardware enforces every boundary — no software
+// can bypass it.
+
+abstraction IntegerOps {
+    capabilities {
+        // Empty: this abstraction is self-contained.
+        // It cannot access any other abstraction.
+        // If it needed Memory or a Counter, they
+        // would be listed here, and the system would
+        // place the corresponding Golden Token in
+        // IntegerOps' c-list at install time.
+    }
+
+    // Clamp: restrict a value to a range [lo, hi].
+    // If value < lo, return lo.
+    // If value > hi, return hi.
+    // Otherwise return value unchanged.
+    //
+    // This is useful for RGB colour channels (0-255),
+    // audio samples, sensor readings, etc.
+    method Clamp(value, lo, hi) {
+        if (value < lo) {
+            return(lo)
+        }
+        if (value > hi) {
+            return(hi)
+        }
+        return(value)
+    }
+
+    // Absolute value: return the magnitude of n.
+    // If n is negative, negate it (0 - n).
+    // If n is zero or positive, return it as-is.
+    method Abs(n) {
+        if (n < 0) {
+            return(0 - n)
+        }
+        return(n)
+    }
+}`,
+        'string': `// ── Building Strings on Integer Hardware ──
+// The Church Machine has no string type. Every
+// register holds a 32-bit integer. To work with
+// text, we pack characters into integers:
+//
+//   4 ASCII characters fit in one 32-bit word
+//   using 8 bits per character.
+//
+//   Word layout (big-endian packing):
+//   [31:24] = char 0 (leftmost)
+//   [23:16] = char 1
+//   [15:8]  = char 2
+//   [7:0]   = char 3 (rightmost)
+//
+// For example, "HELL" = 0x48454C4C
+//   H=0x48, E=0x45, L=0x4C, L=0x4C
+//
+// This is exactly how real hardware works: C stores
+// strings as arrays of bytes. The Church Machine
+// makes this explicit — there is no magic, just
+// integers and bit manipulation.
+
+abstraction PackedString {
+    capabilities {
+        // Self-contained. No external dependencies.
+    }
+
+    // Pack4: pack four ASCII codes into one 32-bit word.
+    // ch0 is the leftmost character (bits 31:24).
+    // ch1 is next (bits 23:16), ch2 (bits 15:8),
+    // ch3 is rightmost (bits 7:0).
+    method Pack4(ch0, ch1, ch2, ch3) {
+        word = ch0 << 24
+        word = word + (ch1 << 16)
+        word = word + (ch2 << 8)
+        word = word + ch3
+        return(word)
+    }
+
+    // Unpack: extract one character from a packed word.
+    // pos=0 returns leftmost char (bits 31:24).
+    // pos=1 returns bits 23:16, etc.
+    method Unpack(word, pos) {
+        shift = 24 - (pos << 3)
+        ch = word >> shift
+        ch = bfext(ch, 0, 8)
+        return(ch)
+    }
+
+    // IsLetter: return 1 if ch is A-Z or a-z.
+    // ASCII: A=65, Z=90, a=97, z=122.
+    method IsLetter(ch) {
+        if (ch >= 65) {
+            if (ch <= 90) {
+                return(1)
+            }
+        }
+        if (ch >= 97) {
+            if (ch <= 122) {
+                return(1)
+            }
+        }
+        return(0)
+    }
+
+    // ToUpper: convert lowercase a-z to uppercase A-Z.
+    // Uppercase and non-letters pass through unchanged.
+    // ASCII difference: a(97) - A(65) = 32.
+    method ToUpper(ch) {
+        if (ch >= 97) {
+            if (ch <= 122) {
+                return(ch - 32)
+            }
+        }
+        return(ch)
+    }
+}`,
         'counter': `abstraction Counter {\n    capabilities {\n    }\n    method Increment(value) {\n        result = value + 1\n        return(result)\n    }\n    method Add(a, b) {\n        result = a + b\n        return(result)\n    }\n}`,
         'church_math': `-- Church Machine Lambda Calculus\n-- Haskell front-end proves universal target\n\nabstraction ChurchMath {\n    capabilities {\n    }\n\n    -- Church successor: n + 1\n    method successor(n) = n + 1\n\n    -- Church addition: a + b\n    method add(a, b) = a + b\n\n    -- Church multiplication\n    method multiply(a, b) = a * b\n\n    -- Predecessor: max(0, n-1)\n    method predecessor(n) = if n > 0 then n - 1 else 0\n\n    -- isZero: 1 if n==0, else 0\n    method isZero(n) = if n == 0 then 1 else 0\n}`,
         'church_pair': `-- Church Pairs — Haskell front-end\n-- Pairs pack two 16-bit values\n\nabstraction ChurchPair {\n    capabilities {\n    }\n\n    -- Construct a pair from two values\n    method makePair(a, b) = (a, b)\n\n    -- Extract first element\n    method first(p) = fst p\n\n    -- Extract second element  \n    method second(p) = snd p\n\n    -- Swap pair elements\n    method swap(p) = (snd p, fst p)\n}`,
