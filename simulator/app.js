@@ -7641,7 +7641,7 @@ function onLangChange(restoring) {
     const langExampleGroups = {
         english: ['cloomc_english_hello', 'cloomc_english_counter'],
         assembly: ['ada_note_g', 'selftest', 'load_save', 'bernoulli', 'conditional', 'gc_test', 'turing_test', 'salvation', 'perm_attack', 'bind_attack'],
-        javascript: ['cloomc_hello', 'cloomc_string', 'cloomc_memory', 'cloomc_counter', 'cloomc_sliderule'],
+        javascript: ['cloomc_hello', 'cloomc_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_counter', 'cloomc_sliderule'],
         haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_church_lambda', 'cloomc_sliderule_hs'],
         symbolic: ['cloomc_ada_note_g'],
         lambda: ['cloomc_lambda_church', 'cloomc_lambda_booleans', 'cloomc_lambda_pairs', 'cloomc_lambda_ycomb', 'cloomc_lambda_sliderule', 'cloomc_lambda_fixedpoint', 'cloomc_lambda_rational']
@@ -8243,6 +8243,81 @@ abstraction PackedString {
             }
         }
         return(ch)
+    }
+}`,
+        'heap': `// ── Heap: A Capability-Controlled Typed Array ──
+// In JavaScript, the heap is hidden — the engine
+// allocates and garbage-collects objects for you.
+// You never see the raw memory.
+//
+// On the Church Machine there is no hidden heap.
+// The Heap abstraction IS the heap — a flat array
+// of 32-bit integer cells, accessed through CR5.
+//
+// Every operation checks permissions (TPERM) and
+// bounds (GLIMIT) before touching memory. This is
+// what JavaScript's ArrayBuffer would look like if
+// access control were enforced by hardware.
+//
+// Key differences from JavaScript:
+//   - No garbage collection needed. The GT's lifetime
+//     IS the heap's lifetime. Revoke the GT, the
+//     memory is gone. No dangling pointers.
+//   - No buffer overflows. GLIMIT gives exact bounds.
+//   - No shared mutable state. Each thread's CR5
+//     points to its own private region.
+//   - Access is unforgeable. You can't manufacture
+//     a CR5 value — you have the GT or you don't.
+
+abstraction Heap {
+    capabilities {
+    }
+
+    // Init: set the heap offset to zero.
+    // Called once when the instance is created.
+    // CR5 must have R+W permissions.
+    method Init() {
+        TPERM CR5, R
+        TPERM CR5, W
+        write(CR5, 0, 0)
+        return(0)
+    }
+
+    // Alloc: reserve 'count' words from the heap.
+    // Returns the starting offset, or 0 if full.
+    // Each word is 32 bits (one integer).
+    method Alloc(count) {
+        TPERM CR5, R
+        TPERM CR5, W
+        offset = read(CR5, 0)
+        limit = GLIMIT(CR5)
+        if (offset + count > limit) {
+            return(0)
+        }
+        write(CR5, 0, offset + count)
+        return(offset)
+    }
+
+    // Read: return the value at heap[index].
+    method Read(index) {
+        TPERM CR5, R
+        limit = GLIMIT(CR5)
+        if (index >= limit) {
+            return(0)
+        }
+        value = read(CR5, index)
+        return(value)
+    }
+
+    // Write: store a value at heap[index].
+    method Write(index, value) {
+        TPERM CR5, W
+        limit = GLIMIT(CR5)
+        if (index >= limit) {
+            return(0)
+        }
+        write(CR5, index, value)
+        return(1)
     }
 }`,
         'counter': `abstraction Counter {\n    capabilities {\n    }\n    method Increment(value) {\n        result = value + 1\n        return(result)\n    }\n    method Add(a, b) {\n        result = a + b\n        return(result)\n    }\n}`,
