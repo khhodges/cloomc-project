@@ -37,7 +37,7 @@ This document maps each instruction across all implementation layers for verific
 - [ ] RETURN: Verify stack pop, context restore, mask handling
 - [ ] CHANGE: Verify thread switch, monitor clearing
 - [ ] SWITCH: Verify C-List context switch
-- [ ] TPERM: Verify preset codes 0-13, FAULT on 14-15
+- [ ] TPERM: Verify preset codes 0-13, FAULT on 14-15. Verify LIMIT extraction mode writes correct bounds to DR
 - [ ] LOADX: Verify monitor set, same validation as LOAD
 - [ ] SAVEX: Verify monitor check, conditional store, result in DR
 - [ ] LDM: Verify per-register mLoad validation, register list
@@ -96,7 +96,7 @@ This document maps each instruction across all implementation layers for verific
 | 10   | LE    | L,E         | Combo    | [ ]         | [x] Amaranth     |
 | 11   | SE    | S,E         | Combo    | [ ]         | [x] Amaranth     |
 | 12   | LSE   | L,S,E       | Combo    | [ ]         | [x] Amaranth     |
-| 13   | RSVD  | FAULT       | Reserved | [ ]         | [x] Amaranth     |
+| 13   | RWXLSE| R,W,X,L,S,E| All      | [ ]         | [x] Amaranth     |
 | 14   | RSVD  | FAULT       | Reserved | [ ]         | [x] Amaranth     |
 | 15   | RSVD  | FAULT       | Reserved | [ ]         | [x] Amaranth     |
 

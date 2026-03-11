@@ -103,11 +103,15 @@ Atomically swaps the contents of CRd and CRs. Used for thread context switching 
 
 ### TPERM (opcode 6)
 
+TPERM is the unified instruction for inspecting and restricting Golden Token metadata. It has three modes selected by the operand:
+
+#### Mode 1: Permission Restriction (monotonic)
+
 ```
 TPERM CRd, #preset
 ```
 
-Restricts the permissions on the GT in CRd to the given preset. Permissions can only be removed, never added (monotonic restriction).
+Restricts the permissions on the GT in CRd to the given preset. Permissions can only be removed, never added (monotonic restriction). Domain purity is enforced: Turing (R, W, X) and Church (L, S, E) permissions cannot be mixed.
 
 **Presets**:
 
@@ -129,6 +133,33 @@ Restricts the permissions on the GT in CRd to the given preset. Permissions can 
 | 13 | RWXLSE | All |
 
 B-modifier variants (add 0x10): RB, RWB, XB, EB, etc. — sets B-bit alongside permissions.
+
+#### Mode 2: Permission Test (read-only)
+
+```
+TPERM CRs, #perm
+```
+
+Tests whether the GT in CRs has the specified permission. If the permission is absent, the processor traps (FAULT). No namespace access occurs — this is a register-local read-only check. Used to verify R, W, X, L, S, or E before accessing memory or capabilities.
+
+#### Mode 3: Field Extraction
+
+```
+TPERM DRd, CRs, LIMIT
+```
+
+Extracts the limit field from the GT in CRs and writes it to data register DRd. The limit field encodes how many words the GT's region covers. The hardware already has the CR decoded when TPERM runs — reading the limit is just selecting a different field from the same register. No new opcode is needed.
+
+This enables software bounds checking before access:
+```
+limit = TPERM(CR5, LIMIT)    // extract limit from CR5's GT
+if (offset > limit) {
+    return(0)                 // out of bounds — refuse access
+}
+value = read(CR5, offset)     // safe to proceed
+```
+
+**Design rationale**: TPERM is the single gateway for inspecting any GT metadata — permissions, validity, type, stack indicators, and bounds. Keeping all metadata inspection in one instruction minimises opcode usage and silicon cost while providing a uniform interface for software safety checks.
 
 ### LAMBDA (opcode 7)
 

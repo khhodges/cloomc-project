@@ -202,13 +202,32 @@ These rules apply identically to both simulators:
 
 ---
 
-## TPERM — Test Permission (Sim-32)
+## TPERM — Test Permission / Inspect GT Metadata
 
-**Purpose**: Test the permissions, validity, type, and stack indicators of a Golden Token and write the result to a data register.
+TPERM is the unified instruction for all Golden Token metadata inspection. One opcode handles permission restriction, permission testing, and field extraction — the hardware already has the CR decoded, so selecting different fields costs no additional silicon.
+
+### Sim-32 (RV32-Cap)
 
 **Mnemonic**: `CAP.TPERM rd, CRs`
 
 **Encoding**: opcode=0x0B, funct3=011, CRs in rs2[22:20], result in rd[11:7]
+
+**Mode 1 — Permission Test (read-only)**:
+Tests whether CRs has a specified permission. If absent, the processor traps (FAULT). No namespace access occurs — this is a register-local check. Used to verify R, W, X, L, S, or E before accessing memory or capabilities:
+```
+TPERM CR5, R    ; trap if CR5 lacks Read permission
+TPERM CR5, W    ; trap if CR5 lacks Write permission
+```
+
+**Mode 2 — Field Extraction (LIMIT)**:
+Extracts the limit field from the GT in CRs and writes it to data register rd. The limit encodes how many words the GT's region covers:
+```
+TPERM DR1, CR5, LIMIT    ; DR1 = number of words CR5 covers
+```
+This enables software bounds checking before access, complementing the hardware bounds checking that occurs on every read/write.
+
+**Mode 3 — Full Metadata Query**:
+Reads all metadata fields from CRs into rd:
 
 **Result Layout (rd)**:
 | Bits | Field | Description |
@@ -220,6 +239,10 @@ These rules apply identically to both simulators:
 | [13] | Valid | 1 = GT passes version and MAC validation |
 | [15:14] | Type | GT type: 00=Inform, 01=Outform, 10=NULL, 11=Abstract |
 | [31:16] | (Reserved) | Zero |
+
+### Sim-64 (CTMM)
+
+In Sim-64, TPERM checks permission bits and bounds on a GT, setting condition flags (P, B, Z). It also supports LIMIT extraction into a data register. No namespace access occurs (read-only, no G-bit reset).
 
 ---
 
@@ -233,7 +256,7 @@ The CTMM simulator includes five additional Church instructions not present in t
 | **SAVEX** | Save Exclusive — conditional save that only succeeds if the exclusive monitor is still valid | S or M | Yes — on accessed entry |
 | **LDM** | Load Multiple — load multiple CRs from consecutive C-List entries in one instruction | L or M | Yes — on each accessed entry |
 | **STM** | Store Multiple — store multiple CRs to consecutive C-List entries in one instruction | S or M | Yes — on each accessed entry |
-| **TPERM** | Test Permission — check permission bits and bounds on a GT, setting condition flags (P, B, Z) | None | No (read-only, no namespace access) |
+| **TPERM** | Test Permission / Inspect Metadata — check permission bits, extract limit field, query validity and type. Sets condition flags (P, B, Z) | None | No (read-only, no namespace access) |
 
 These instructions exist in Sim-64 because its custom ISA has room for dedicated opcodes. Sim-32 uses the standard RISC-V opcode space with 4 dedicated custom opcodes (0x2B=LOAD, 0x5B=CALL, 0x7B=SAVE) plus custom-0 (0x0B) with funct3 selecting: 000=RETURN, 001=CHANGE, 010=SWITCH, 011=TPERM (100-111 reserved).
 
