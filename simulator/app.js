@@ -7039,11 +7039,11 @@ const INSTRUCTION_DATA = [
         brief: 'Save a Golden Token into a C-List (capability list)',
         encoding: 'opcode[5]=00001 | cond[4] | CRd[4] | CRs[4] | offset[15]',
         fields: [
-            { name: 'CRd',    desc: 'Source context register containing the GT to save' },
-            { name: 'CRs',    desc: 'C-List — the capability list to write into (word-addressed)' },
-            { name: 'offset', desc: 'Word address offset within the C-List (0–32767)' },
+            { name: 'CRd',    desc: 'C-List — the capability list to save into (S permission required, word-addressed)' },
+            { name: 'CRs',    desc: 'Source GT to save into the C-List (must have B=1 — Bind bit set)' },
+            { name: 'offset', desc: 'Word address within the C-List at CRd (0–32767)' },
         ],
-        permission: 'S (Save) — checked by mLoad on CRs; B=1 required on source GT',
+        permission: 'S on CRd (C-List); B=1 on CRs (source GT) — mSave validates all',
         flags: 'None',
         details:
             '  31    27│26   23│22   19│18   15│14                0\n'
@@ -7051,14 +7051,14 @@ const INSTRUCTION_DATA = [
           + '  │00001 │ cond │  CRd │  CRs │      offset       │\n'
           + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
           + '   5-bit   4-bit   4-bit   4-bit       15-bit\n\n'
-          + 'CRd    = GT to save (B=1 required on this GT).\n'
-          + 'CRs    = the C-List (capability list), word-addressed.\n'
-          + 'offset = word address within the C-List.\n\n'
-          + 'Writes the GT from CRd into the C-List at CRs + offset.\n'
-          + 'B=1 on the source GT is the hardware\'s delegation gate: a callee\n'
-          + 'cannot save GTs it was only passed for use, preventing unauthorized\n'
-          + 'capability propagation.',
-        example: 'SAVE CR1, CR6, 20   ; Save CR1 into word 20 of C-List CR6',
+          + 'CRd    = the C-List (capability list), word-addressed.\n'
+          + 'CRs    = the source GT to save (B=1 — Bind bit — must be set).\n'
+          + 'offset = word address within the C-List at CRd.\n\n'
+          + 'mSave writes the GT from CRs into the C-List at CRd + offset.\n'
+          + 'mSave validates: S permission on CRd, B=1 on CRs, version, seal,\n'
+          + 'and bounds. B=1 is the delegation gate: a callee cannot propagate\n'
+          + 'GTs it was only passed for use.',
+        example: 'SAVE CR6, CR1, 20   ; Save CR1 (B=1) into word 20 of C-List CR6',
     },
     {
         opcode: 2, mnemonic: 'CALL', domain: 'church',
