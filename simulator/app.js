@@ -7968,6 +7968,56 @@ const INSTRUCTION_DATA = [
 
 let selectedInstr = null;
 
+function _refTipShow(text, e) {
+    let tip = document.getElementById('_refBriefTip');
+    if (!tip) {
+        tip = document.createElement('div');
+        tip.id = '_refBriefTip';
+        tip.style.cssText = [
+            'position:fixed',
+            'z-index:9999',
+            'background:#1b2d45',
+            'color:#e0e0e0',
+            'font-size:0.75rem',
+            'line-height:1.45',
+            'padding:0.4rem 0.75rem',
+            'border-radius:5px',
+            'border:1px solid #3a86ff',
+            'max-width:320px',
+            'pointer-events:none',
+            'box-shadow:0 2px 10px rgba(0,0,0,0.5)',
+            'white-space:normal',
+            'display:none',
+        ].join(';');
+        document.body.appendChild(tip);
+    }
+    tip.textContent = text;
+    tip.style.display = 'block';
+    _refTipMove(e);
+}
+
+function _refTipMove(e) {
+    const tip = document.getElementById('_refBriefTip');
+    if (!tip || tip.style.display === 'none') return;
+    const x = e.clientX + 16;
+    const y = e.clientY - 6;
+    const tw = tip.offsetWidth;
+    const th = tip.offsetHeight;
+    tip.style.left = (x + tw > window.innerWidth  ? window.innerWidth  - tw - 10 : x) + 'px';
+    tip.style.top  = (y + th > window.innerHeight ? window.innerHeight - th - 10 : y) + 'px';
+}
+
+function _refTipHide() {
+    const tip = document.getElementById('_refBriefTip');
+    if (tip) tip.style.display = 'none';
+}
+
+function _attachRefTip(card, brief) {
+    card.addEventListener('mouseenter', e => _refTipShow(brief, e));
+    card.addEventListener('mousemove',  _refTipMove);
+    card.addEventListener('mouseleave', _refTipHide);
+}
+
 function renderReference() {
     const churchList = document.getElementById('instrListChurch');
     const turingList = document.getElementById('instrListTuring');
@@ -7984,7 +8034,8 @@ function renderReference() {
             <span class="instr-mnemonic">${instr.mnemonic}</span>
             <span class="instr-brief">${instr.brief}</span>
         `;
-        card.onclick = () => showInstructionDetail(instr.opcode);
+        card.onclick = () => { _refTipHide(); showInstructionDetail(instr.opcode); };
+        _attachRefTip(card, instr.brief);
 
         if (instr.domain === 'church') {
             churchList.appendChild(card);
@@ -8000,7 +8051,8 @@ function renderReference() {
         <span class="instr-mnemonic">RETURN</span>
         <span class="instr-brief">Shared \u2014 exit from Turing abstraction</span>
     `;
-    returnCard.onclick = () => showInstructionDetail(3);
+    returnCard.onclick = () => { _refTipHide(); showInstructionDetail(3); };
+    _attachRefTip(returnCard, 'Shared \u2014 exit from Turing abstraction');
     turingList.appendChild(returnCard);
 }
 
