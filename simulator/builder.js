@@ -590,17 +590,26 @@ class NamespaceBuilder {
         svg += '<marker id="arrowCross" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#fbbf24"/></marker></defs>';
         svg += this._renderMapBackground(W, H, this.mapStyle);
 
+        var self = this;
+        var isCompVisible = function(c) {
+            var hasGeoLoc = c.location && c.location.lat !== null;
+            return !hasGeoLoc || self.mapStyle === 'earth';
+        };
+
         for (var ei = 0; ei < edges.length; ei++) {
             var edge = edges[ei];
             var a = this.computers.find(function(c) { return c.id === edge.from; });
             var b = this.computers.find(function(c) { return c.id === edge.to; });
-            if (a && b) {
+            if (a && b && isCompVisible(a) && isCompVisible(b)) {
                 svg += '<line x1="' + (a.x + 75) + '" y1="' + (a.y + 30) + '" x2="' + (b.x + 75) + '" y2="' + (b.y + 30) + '" stroke="#3a86ff" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>';
             }
         }
 
+        var visibleCount = 0;
         for (var ci = 0; ci < this.computers.length; ci++) {
             var comp = this.computers[ci];
+            if (!isCompVisible(comp)) continue;
+            visibleCount++;
             var isSelected = this.selectedComputer && this.selectedComputer.id === comp.id;
             var stroke = isSelected ? '#fbbf24' : '#3a86ff';
             var fill = isSelected ? 'rgba(26,21,0,0.92)' : 'rgba(17,24,51,0.92)';
@@ -619,7 +628,7 @@ class NamespaceBuilder {
             svg += '</g>';
         }
 
-        if (this.computers.length === 0) {
+        if (visibleCount === 0) {
             var msgFill = this.mapStyle === 'moon' ? '#333' : '#555';
             var subFill = this.mapStyle === 'moon' ? '#444' : '#444';
             svg += '<text x="' + (W / 2) + '" y="' + (H / 2 - 10) + '" fill="' + msgFill + '" font-size="14" text-anchor="middle" font-family="sans-serif">Drop or click to add a computer</text>';
