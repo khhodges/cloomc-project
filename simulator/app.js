@@ -7587,30 +7587,41 @@ const INSTRUCTION_DATA = [
     },
     {
         opcode: 7, mnemonic: 'LAMBDA', domain: 'church',
-        syntax: 'LAMBDA CRd',
-        brief: 'Apply a lambda reduction in-scope — code fetched from CRd.base',
-        encoding: 'opcode[5]=00111 | cond[4] | CRd[4] | 0[4] | 0[15]',
+        syntax: 'LAMBDA CRd | LAMBDA CRd, offset',
+        brief: 'In-scope lambda reduction — immediate (CRd holds GT) or store (load from CRd[offset])',
+        encoding: 'opcode[5]=00111 | cond[4] | CRd[4] | 0[4] | imm15[15]  (imm15=0x7FFF → immediate; else store)',
         fields: [
-            { name: 'CRd', desc: 'Target GT (must have X permission)' },
+            { name: 'CRd', desc: 'Immediate: X-perm GT to apply. Store: C-List source (GT loaded into CRd)' },
+            { name: 'imm15', desc: '0x7FFF (all ones) = immediate mode; 0–32766 = store-mode offset into CRd C-List' },
         ],
-        permission: 'X (Execute in-scope) on CRd',
+        permission: 'X (Execute in-scope) on the resolved GT in CRd',
         flags: 'None',
         details:
-            '  31    27│26   23│22   19│18   15│14                0\n'
+            'Two forms, same opcode — distinguished by bits[14:0]:\n\n'
+          + 'Form 1 — Immediate (bits[14:0] = 0x7FFF, all ones):\n'
+          + '  31    27│26   23│22   19│18   15│14                0\n'
           + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
-          + '  │00111 │ cond │  CRd │  ─   │        0          │\n'
+          + '  │00111 │ cond │  CRd │  ─   │  1111111111111111 │\n'
           + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
-          + '   5-bit   4-bit   4-bit  zero        zero\n\n'
-          + 'CRd = target GT (must have X permission).\n'
-          + 'src and imm15 are zero.\n\n'
-          + 'Lightweight in-scope application — applies a Church reduction and pushes\n'
-          + 'a minimal 1-word frame (SZ=0) onto the FIFO stack (region of thread lump addressed by CR12 + STO):\n'
+          + '   5-bit   4-bit   4-bit  zero   all ones (0x7FFF)\n'
+          + 'CRd already holds the X-perm GT — use it directly.\n\n'
+          + 'Form 2 — Store (bits[14:0] = offset, 0–32766):\n'
+          + '  31    27│26   23│22   19│18   15│14                0\n'
+          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
+          + '  │00111 │ cond │  CRd │  ─   │      offset       │\n'
+          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   4-bit  zero       15-bit\n'
+          + 'CRd is the C-List; the X GT is fetched from CRd[offset]\n'
+          + 'into CRd (self-loading, single-register), then applied.\n'
+          + 'Contrast: XLOADLAMBDA uses a separate CRs for the C-List.\n\n'
+          + 'Both forms push a minimal 1-word frame (SZ=0) onto the FIFO\n'
+          + 'stack (region of thread lump addressed by CR12 + STO):\n'
           + '  31  28 │ 27      13 │ 12  │ 11       0\n'
           + '  ┌──────┬───────────┬─────┬────────────┐\n'
           + '  │FLAGS │  PC[14:0] │  0  │  STO[11:0] │\n'
           + '  └──────┴───────────┴─────┴────────────┘\n'
           + 'SZ=0 tells RETURN this is a LAMBDA frame (1 word, no E-GT).\n'
-          + 'Hidden STO is updated to (savedSTO + 1) after the push.\n'
+          + 'Hidden STO is updated to (savedSTO + 1) after the slot reservation.\n'
           + 'RETURN (with its MASK literal) is required to exit the reduction.\n\n'
           + 'Code-fetch authority: PC is set to CRd.base on entry; instruction\n'
           + 'fetch for the lambda body is bounded by CRd.limit. CRd acts as the\n'
@@ -7619,7 +7630,8 @@ const INSTRUCTION_DATA = [
           + 'lookup. On RETURN (SZ=0), CR6 and CR14 are restored from the saved\n'
           + 'register snapshot, not re-derived from an E-GT.\n\n'
           + 'Used for fast-path lambda calculus operations: SUCC, ADD, MUL, etc.',
-        example: 'LAMBDA CR0           ; Apply reduction via CR0',
+        example: 'LAMBDA CR0           ; Immediate — apply reduction via CR0\n'
+               + 'LAMBDA CR6, 5        ; Store — load X GT from CR6[5] into CR6, then apply',
     },
     {
         opcode: 8, mnemonic: 'ELOADCALL', domain: 'church',
@@ -7680,6 +7692,9 @@ const INSTRUCTION_DATA = [
           + 'directly from the C-List entry. On RETURN (SZ=0), CR6 and CR14 are\n'
           + 'restored from the saved register snapshot, not re-derived from an\n'
           + 'E-GT.\n\n'
+          + 'Contrast with LAMBDA store-mode: LAMBDA store (bits[14:0] ≠ 0x7FFF)\n'
+          + 'uses CRd as both the C-List source and GT destination (one register);\n'
+          + 'XLOADLAMBDA uses a separate CRs register as the C-List.\n\n'
           + 'Used for fast-path Church reductions where load + apply is one operation.',
         example: 'XLOADLAMBDA CR0, CR6, 7  ; Load word 7 of C-List CR6, verify X, reduce',
     },
