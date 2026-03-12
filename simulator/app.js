@@ -2717,11 +2717,16 @@ function stepSim() {
             con.textContent += `\n[boot ${sim.bootStep}/6] ${sim.output.split('\n').filter(l => l).pop()}`;
             con.scrollTop = con.scrollHeight;
         }
-        if (pipelineViz && pipelineViz.mode === 'audit') {
-            pipelineViz.showFullPipeline(sim.auditLog.map(a => {
-                const checks = Object.entries(a.checks).map(([k, v]) => ({ name: k.toUpperCase(), pass: v.pass, perm: v.perm || null }));
-                return { stage: a.gate, type: a.gate, desc: `${a.gate}(NS[${a.nsIndex}]="${a.label}"${a.requiredPerm ? ', '+a.requiredPerm : ''})`, label: a.label, nsIndex: a.nsIndex, requiredPerm: a.requiredPerm, checks, status: a.result, b: a.b, f: a.f };
-            }));
+        if (pipelineViz) {
+            pipelineViz.setNIA(_bootNIARows(sim.bootStep));
+            if (pipelineViz.mode === 'audit') {
+                pipelineViz.showFullPipeline(sim.auditLog.map(a => {
+                    const checks = Object.entries(a.checks).map(([k, v]) => ({ name: k.toUpperCase(), pass: v.pass, perm: v.perm || null }));
+                    return { stage: a.gate, type: a.gate, desc: `${a.gate}(NS[${a.nsIndex}]="${a.label}"${a.requiredPerm ? ', '+a.requiredPerm : ''})`, label: a.label, nsIndex: a.nsIndex, requiredPerm: a.requiredPerm, checks, status: a.result, b: a.b, f: a.f };
+                }));
+            } else {
+                pipelineViz.render();
+            }
         }
         updateDashboard();
         return;
@@ -2828,6 +2833,7 @@ function slowBoot() {
                     con.textContent += '\n--- Boot sequence complete ---';
                     con.scrollTop = con.scrollHeight;
                 }
+                if (pipelineViz) { pipelineViz.setNIA(null); pipelineViz.render(); }
                 updateDashboard();
                 return;
             }
@@ -2838,11 +2844,16 @@ function slowBoot() {
                 con.textContent += `\n[boot ${sim.bootStep}/6] ${lastLine}`;
                 con.scrollTop = con.scrollHeight;
             }
+            if (pipelineViz) {
+                pipelineViz.setNIA(_bootNIARows(sim.bootStep));
+                pipelineViz.render();
+            }
             updateDashboard();
             setTimeout(nextPhase, delay);
         } catch(e) {
             bootAnimating = false;
             console.error('slowBoot nextPhase error:', e);
+            if (pipelineViz) pipelineViz.render();
             updateDashboard();
         }
     }
@@ -2956,6 +2967,7 @@ function faultModalDismiss() {
 
 function faultModalReboot() {
     faultModalDismiss();
+    if (pipelineViz) pipelineViz.setNIA(null);
     sim.reset();
     pipelineViz.reset();
     bootAnimating = false;
@@ -2971,6 +2983,7 @@ function faultModalInvestigate() {
 }
 
 function resetSim() {
+    if (pipelineViz) pipelineViz.setNIA(null);
     sim.reset();
     pipelineViz.reset();
     bootAnimating = false;
