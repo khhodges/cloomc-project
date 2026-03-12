@@ -7588,7 +7588,7 @@ const INSTRUCTION_DATA = [
     {
         opcode: 7, mnemonic: 'LAMBDA', domain: 'church',
         syntax: 'LAMBDA CRd',
-        brief: 'Apply a lambda reduction in-scope (no context save)',
+        brief: 'Apply a lambda reduction in-scope — code fetched from CRd.base',
         encoding: 'opcode[5]=00111 | cond[4] | CRd[4] | 0[4] | 0[15]',
         fields: [
             { name: 'CRd', desc: 'Target GT (must have X permission)' },
@@ -7610,9 +7610,14 @@ const INSTRUCTION_DATA = [
           + '  │FLAGS │  PC[14:0] │  0  │  STO[11:0] │\n'
           + '  └──────┴───────────┴─────┴────────────┘\n'
           + 'SZ=0 tells RETURN this is a LAMBDA frame (1 word, no E-GT).\n'
-          + 'CR6/CR14 are NOT re-derived on RETURN (no E-GT word to revalidate).\n'
           + 'Hidden STO is updated to (savedSTO + 1) after the push.\n'
-          + 'RETURN (with its MASK literal) is required to exit the reduction.\n'
+          + 'RETURN (with its MASK literal) is required to exit the reduction.\n\n'
+          + 'Code-fetch authority: PC is set to CRd.base on entry; instruction\n'
+          + 'fetch for the lambda body is bounded by CRd.limit. CRd acts as the\n'
+          + 'code-fetch authority for the duration of the reduction, analogous\n'
+          + 'to CR14 in a CALL frame — but it is NOT derived from an NS-slot\n'
+          + 'lookup. On RETURN (SZ=0), CR6 and CR14 are restored from the saved\n'
+          + 'register snapshot, not re-derived from an E-GT.\n\n'
           + 'Used for fast-path lambda calculus operations: SUCC, ADD, MUL, etc.',
         example: 'LAMBDA CR0           ; Apply reduction via CR0',
     },
@@ -7669,6 +7674,12 @@ const INSTRUCTION_DATA = [
           + '  1. LOAD   — fetch GT at CRs + offset via mLoad\n'
           + '  2. TPERM  — verify X permission on the loaded GT\n'
           + '  3. LAMBDA — apply the reduction in-scope (no context save)\n'
+          + 'After the fused sequence, CRd holds the loaded GT and acts as the\n'
+          + 'code-fetch authority: PC ← CRd.base, instruction fetch bounded by\n'
+          + 'CRd.limit. CRd is NOT derived from an NS-slot lookup — it comes\n'
+          + 'directly from the C-List entry. On RETURN (SZ=0), CR6 and CR14 are\n'
+          + 'restored from the saved register snapshot, not re-derived from an\n'
+          + 'E-GT.\n\n'
           + 'Used for fast-path Church reductions where load + apply is one operation.',
         example: 'XLOADLAMBDA CR0, CR6, 7  ; Load word 7 of C-List CR6, verify X, reduce',
     },
