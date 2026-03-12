@@ -7,7 +7,29 @@ class PipelineVisualizer {
         this.animating = false;
         this.stageData = [];
         this.chainSteps = [];
+        this.niaPrev = null;
+        this.niaCurr = null;
         this._setMode('full');
+    }
+
+    setNIA(prev, curr) {
+        this.niaPrev = (prev !== undefined && prev !== null) ? prev : null;
+        this.niaCurr = (curr !== undefined && curr !== null) ? curr : null;
+    }
+
+    _renderNIA() {
+        if (this.niaCurr === null) return '';
+        const fmt = n => '0x' + n.toString(16).toUpperCase().padStart(4, '0');
+        const prev  = this.niaPrev !== null ? fmt(this.niaPrev) : '—';
+        const curr  = fmt(this.niaCurr);
+        const next  = fmt(this.niaCurr + 1);
+        return `<div class="nia-strip">` +
+               `<span class="nia-cell nia-prev"><span class="nia-arrow">\u2190</span> NIA\u22121&nbsp;<code>${prev}</code></span>` +
+               `<span class="nia-sep">|</span>` +
+               `<span class="nia-cell nia-curr">\u25B6 NIA&nbsp;<code>${curr}</code></span>` +
+               `<span class="nia-sep">|</span>` +
+               `<span class="nia-cell nia-next">NIA\u002B1&nbsp;<code>${next}</code> <span class="nia-arrow">\u2192</span></span>` +
+               `</div>`;
     }
 
     _setMode(mode) {
@@ -68,6 +90,7 @@ class PipelineVisualizer {
 
         html += `<div class="pipeline-title">${modeLabels[this.mode]}</div>`;
         html += `<div class="pipeline-subtitle">${modeDescs[this.mode]}</div>`;
+        html += this._renderNIA();
         html += '<div class="pipeline-stages">';
 
         const displayStages = [...this.stages];
@@ -160,6 +183,7 @@ class PipelineVisualizer {
 
         html += '<div class="pipeline-title">TSB Audit — mLoad / mSave Gates</div>';
         html += '<div class="pipeline-subtitle">Every capability gate shown as an explicit instruction-level audit step</div>';
+        html += this._renderNIA();
 
         if (steps.length === 0) {
             html += '<div class="pipeline-info audit-guide">';

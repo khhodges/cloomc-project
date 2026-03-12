@@ -2655,6 +2655,7 @@ function stepSim() {
             con.scrollTop = con.scrollHeight;
         }
         if (pipelineViz) {
+            pipelineViz.setNIA(result.pc, sim.pc);
             if (pipelineViz.mode === 'audit' && result.auditPipeline) {
                 pipelineViz.showFullPipeline(result.auditPipeline);
             } else if (result.pipeline) {
@@ -2713,6 +2714,7 @@ function walkNext() {
         con.scrollTop = con.scrollHeight;
     }
     if (result.pipeline && pipelineViz) {
+        pipelineViz.setNIA(result.pc, sim.pc);
         pipelineViz.animate(result.pipeline, 500).then(() => {
             updateDashboard();
             if (walkRunning && sim.bootComplete) {
