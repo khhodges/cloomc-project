@@ -20,12 +20,13 @@ The Church Machine is a capability-secured processor architecture with an educat
 The system is composed of hardware (Amaranth HDL for FPGA), a web IDE (HTML/JS/CSS), and a Flask backend.
 
 **UI/UX Decisions:**
-The web IDE features nine views (Math, Code, Tutorial, Dashboard, Namespace, Abstractions, Pipeline, Reference, Docs) and incorporates interactive learning tools:
+The web IDE features ten views (Math, Code, Tutorial, Dashboard, Namespace, Abstractions, Pipeline, Reference, Builder, Docs) and incorporates interactive learning tools:
 - **Pure Math:** A calculator with a "Compile Session" feature for converting let-bindings to Church Machine code. Includes a symbol picker button (summation icon) on the input line that opens a categorized dropdown (Greek, Arithmetic, Sets, Logic, Calculus, Physics, Lambda) for inserting mathematical symbols at cursor position.
 - **HP-35 Calculator:** A pure lambda calculus implementation of the 1972 HP-35 scientific calculator, including RPN engine and Church numeral operation tracing.
 - **Abacus:** A soroban-style abacus with digital readout and Church Machine trace for operations.
 - **Slide Rule:** A logarithmic slide rule with draggable scales and trace of Church Machine operations.
 - **Math Challenge:** A sidebar providing grade-appropriate problems with hints and dual-domain explanations (Turing/Church).
+- **Builder:** Visual Namespace Builder for designing deployment topology — three-level hierarchy of Cyberspace (computers on SVG canvas), Computer (namespace slots), and Namespace (abstraction drop zone for upload.json files). Includes topology export, drag-and-drop node positioning, and dependency wiring between abstractions. Implemented in `simulator/builder.js`.
 - **History Tab:** Dynamic historical stories related to the active math tool, encouraging contextual learning.
 - **Syntax Tab:** Quick-reference cheat sheet for the currently selected language, auto-updates on language change.
 - **Subjects:** Settings page displays 8 subject cards (English, JavaScript, Haskell, Symbolic Math, Lambda Calculus, Assembly, Math Tools, Security). Each card opens a lesson list; clicking a lesson navigates to the editor with starter code or the relevant view/tab.

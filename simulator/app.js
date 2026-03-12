@@ -70,7 +70,7 @@ function init() {
     updateLineNumbers();
     loadNamespaceState();
     checkBootId();
-    const views = ['repl','editor','tutorial','dashboard','namespace','abstractions','pipeline','reference','docs'];
+    const views = ['repl','editor','tutorial','dashboard','namespace','abstractions','pipeline','reference','docs','builder'];
     const hash = window.location.hash.replace('#', '');
     const startView = views.includes(hash) ? hash : 'pipeline';
     switchView(startView);
@@ -129,6 +129,7 @@ function switchView(viewId) {
     if (viewId === 'namespace') updateNamespace();
     if (viewId === 'abstractions') renderAbstractions();
     if (viewId === 'pipeline') pipelineViz.render();
+    if (viewId === 'builder') initBuilder();
     if (viewId === 'editor') {
         const asmEd = document.getElementById('asmEditor');
         if (asmEd) asmEd.value = '';
