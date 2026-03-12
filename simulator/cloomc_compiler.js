@@ -1785,8 +1785,10 @@ class CLOOMCCompiler {
         let arrowAssign = 0;
         let opKeywords = 0;
         for (const line of lines) {
-            const t = line.trim();
-            if (!t || t.startsWith('--') || t.startsWith('//') || t.startsWith(';')) continue;
+            let t = line.trim();
+            const semiPos = t.indexOf(';');
+            if (semiPos >= 0) t = t.substring(0, semiPos).trim();
+            if (!t || t.startsWith('--') || t.startsWith('//')) continue;
             if (t.match(/^abstraction\s+\w+\s*\{/)) continue;
             if (t.match(/^capabilities\s*\{/)) continue;
             if (t === '}') continue;
@@ -2136,6 +2138,8 @@ class CLOOMCCompiler {
             let commentIdx = text.indexOf('--');
             if (commentIdx > 0) text = text.substring(0, commentIdx).trim();
             commentIdx = text.indexOf('//');
+            if (commentIdx > 0) text = text.substring(0, commentIdx).trim();
+            commentIdx = text.indexOf(';');
             if (commentIdx > 0) text = text.substring(0, commentIdx).trim();
 
             text = text.replace(/×/g, '*').replace(/÷/g, '/');
