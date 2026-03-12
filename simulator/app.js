@@ -242,7 +242,7 @@ function updateCRDisplay() {
     if (!container) return;
     const localNames = {
         0: 'Return', 1: 'Arg 1', 6: 'C-List',
-        12: 'Fault', 13: 'IRQ', 14: 'CLOOMC', 15: 'Namespace'
+        12: 'Stack', 13: 'IRQ', 14: 'CLOOMC', 15: 'Namespace'
     };
     const crMeta = {
         0:  { group: 'gt',     role: 'arch',   badge: 'Arch'   },
@@ -257,7 +257,7 @@ function updateCRDisplay() {
         9:  { group: 'gt',     role: 'prog',   badge: 'Prog'   },
         10: { group: 'gt',     role: 'prog',   badge: 'Prog'   },
         11: { group: 'gt',     role: 'prog',   badge: 'Prog'   },
-        12: { group: 'system', role: 'system', badge: 'System' },
+        12: { group: 'privil', role: 'privil', badge: 'Priv'   },
         13: { group: 'system', role: 'system', badge: 'System' },
         14: { group: 'privil', role: 'privil', badge: 'Priv'   },
         15: { group: 'privil', role: 'privil', badge: 'Priv'   },
@@ -272,9 +272,7 @@ function updateCRDisplay() {
     html += '</tr></thead><tbody>';
     for (let i = 0; i < 16; i++) {
         if (i === 12) {
-            html += `<tr class="cr-separator"><td colspan="${COLS + 1}">&#9472;&#9472; System-wide hidden (not in GT zone) &#9472;&#9472;</td></tr>`;
-        } else if (i === 14) {
-            html += `<tr class="cr-separator"><td colspan="${COLS + 1}">&#9472;&#9472; Per-thread privileged (saved by CHANGE) &#9472;&#9472;</td></tr>`;
+            html += `<tr class="cr-separator"><td colspan="${COLS + 1}">&#9472;&#9472; Not in GT zone &#9472;&#9472; CR12 Thread Stack (Priv) \u00b7 CR13 IRQ (System) \u00b7 CR14\u201315 Privileged &#9472;&#9472;</td></tr>`;
         }
         const cr = sim.getFormattedCR(i);
         const name = localNames[i] || '';
@@ -313,7 +311,7 @@ function openCRDetail(crIdx) {
         const cr = sim.getFormattedCR(crIdx);
         const localNames = {
             0: 'Return', 1: 'Arg 1', 6: 'C-List',
-            12: 'Fault', 13: 'IRQ', 14: 'CLOOMC', 15: 'Namespace'
+            12: 'Stack', 13: 'IRQ', 14: 'CLOOMC', 15: 'Namespace'
         };
         const name = localNames[crIdx] || '';
         detailTab.textContent = `CR${crIdx}${name ? ' \u2014 ' + name : ''}`;
