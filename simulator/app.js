@@ -63,7 +63,7 @@ function init() {
     checkBootId();
     const views = ['repl','editor','tutorial','dashboard','namespace','abstractions','pipeline','reference','docs'];
     const hash = window.location.hash.replace('#', '');
-    const startView = views.includes(hash) ? hash : 'repl';
+    const startView = views.includes(hash) ? hash : 'pipeline';
     switchView(startView);
     switchMathMode('hp35');
     updateDashboard();
