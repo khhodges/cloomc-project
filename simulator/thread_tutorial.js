@@ -6,16 +6,16 @@ class ThreadTutorial {
 
     _memMap(highlighted) {
         const sections = [
-            { id: 'cap',   label: '\u2460 Capabilities',     sub: 'GT for CR1\u2013CR11  (44 words, fixed)',  bg: '#3a2c00', border: '#c8a020', text: '#f0d060' },
-            { id: 'stack', label: '\u2461 FIFO Stack \u2193', sub: 'Expands down \u00b7 limit set by NS slot',  bg: '#002a40', border: '#2080c0', text: '#60b8f0' },
-            { id: 'free',  label: '\u2462 Freespace',         sub: 'Dynamic gap \u00b7 shrinks as stack/heap grow', bg: '#181818', border: '#404040', text: '#888' },
-            { id: 'heap',  label: '\u2463 Heap \u2191',       sub: 'Fixed size \u00b7 defined by IDE slot metadata', bg: '#002a10', border: '#20a040', text: '#60d080' },
-            { id: 'dr',    label: '\u2464 Data Registers',    sub: 'DR0\u2013DR15  (16 \u00d7 32-bit, fixed at base)',  bg: '#1e0840', border: '#8040c0', text: '#b080f0' },
+            { id: 'cap',   label: '\u2460 Capabilities',     sub: 'GT for CR0\u2013CR11  (12 words, fixed)',      bg: '#3a2c00', border: '#c8a020', text: '#f0d060' },
+            { id: 'stack', label: '\u2461 FIFO Stack \u2193', sub: 'Expands down \u00b7 limit set by NS slot',     bg: '#002a40', border: '#2080c0', text: '#60b8f0' },
+            { id: 'free',  label: '\u2462 Freespace',         sub: 'Dynamic gap \u00b7 shrinks as stack/heap grow',bg: '#181818', border: '#404040', text: '#888'    },
+            { id: 'heap',  label: '\u2463 Heap \u2191',       sub: 'Fixed size \u00b7 defined by IDE slot metadata',bg: '#002a10', border: '#20a040', text: '#60d080' },
+            { id: 'dr',    label: '\u2464 Data Registers',    sub: 'DR0\u2013DR15  (16 \u00d7 32-bit, fixed at base)', bg: '#1e0840', border: '#8040c0', text: '#b080f0' },
         ];
         const heights = { cap: 72, stack: 96, free: 56, heap: 72, dr: 64 };
         const addrLabels = {
             cap:   'word 0 \u2192',
-            stack: 'word 44 \u2192',
+            stack: 'word 12 \u2192',
             free:  'stack bottom \u2192',
             heap:  'heap base \u2192',
             dr:    'DR base \u2192',
@@ -51,43 +51,44 @@ class ThreadTutorial {
 <p>The thread is identified by a Golden Token stored in <strong>CR8</strong> during boot. That token points to NS Slot 1, whose metadata defines the lump size and heap limit.</p>
 ${this._memMap(null)}
 <div class="sr-key-concept"><div class="sr-concept-title">Five Regions, One Lump</div>
-<p>Reading top-to-bottom (low address \u2192 high address): <strong>\u2460 Capabilities \u2192 \u2461 Stack \u2192 \u2462 Freespace \u2192 \u2463 Heap \u2192 \u2464 Data Registers</strong>. Every region lives inside the same protected lump; the hardware enforces bounds on every access.</p></div>`
+<p>Reading top-to-bottom (word 0 \u2192 base): <strong>\u2460 Capabilities \u2192 \u2461 Stack \u2192 \u2462 Freespace \u2192 \u2463 Heap \u2192 \u2464 Data Registers</strong>. Every region lives inside the same protected lump; the hardware enforces bounds on every access.</p></div>`
             },
             {
-                title: '\u2460 Capabilities \u2014 GT for CR1\u2013CR11',
+                title: '\u2460 Capabilities \u2014 GT Zone for CR0\u2013CR11',
                 type: 'capabilities',
                 content: `${this._memMap('cap')}
-<p>The top of the thread lump holds <strong>11 Golden Token entries</strong>, one for each of CR1\u2013CR11. Each entry is 4 words wide (128 bits), giving a fixed 44-word region at the start of the lump.</p>
-<table class="sr-table"><tr><th>Slot</th><th>CR</th><th>Typical contents</th></tr>
-<tr><td>0\u20133</td><td>CR1</td><td>Caller\u2019s return capability</td></tr>
-<tr><td>4\u20137</td><td>CR2</td><td>Thread-local Constants GT</td></tr>
-<tr><td>8\u201311</td><td>CR3</td><td>Thread-local Memory GT</td></tr>
-<tr><td>12\u201315</td><td>CR4</td><td>Thread-local I/O device GT</td></tr>
-<tr><td>16\u201319</td><td>CR5</td><td>Spare / user-defined</td></tr>
-<tr><td>20\u201323</td><td>CR6</td><td>C-list (L-only) for current abstraction</td></tr>
-<tr><td>24\u201327</td><td>CR7</td><td>Code segment (X-only)</td></tr>
-<tr><td>28\u201331</td><td>CR8</td><td>Thread identity (self-reference)</td></tr>
-<tr><td>32\u201335</td><td>CR9</td><td>Heap base GT</td></tr>
-<tr><td>36\u201339</td><td>CR10</td><td>Namespace root (R/W admin)</td></tr>
-<tr><td>40\u201343</td><td>CR11</td><td>Spare / extended capability</td></tr>
+<p>The top 12 words of the thread lump are the <strong>GT zone</strong>: one 32-bit Golden Token word for each of CR0\u2013CR11. CR12\u2013CR13 are system-wide (fault/interrupt handlers, not per-thread). CR14 (code) and CR15 (namespace) are per-thread privileged registers saved separately by CHANGE.</p>
+<table class="sr-table"><tr><th>Word</th><th>CR</th><th>Typical contents</th></tr>
+<tr><td>0</td><td>CR0</td><td>Return value \u00b7 first return GT</td></tr>
+<tr><td>1</td><td>CR1</td><td>Argument 1 \u00b7 general capability</td></tr>
+<tr><td>2</td><td>CR2</td><td>Thread-local Constants GT</td></tr>
+<tr><td>3</td><td>CR3</td><td>Thread-local Memory GT</td></tr>
+<tr><td>4</td><td>CR4</td><td>Thread-local I/O device GT</td></tr>
+<tr><td>5</td><td>CR5</td><td>User-defined</td></tr>
+<tr><td>6</td><td>CR6</td><td>C-list (L-only) for current abstraction</td></tr>
+<tr><td>7</td><td>CR7</td><td>Spare \u00b7 user capability</td></tr>
+<tr><td>8</td><td>CR8</td><td>Thread identity (self-reference GT)</td></tr>
+<tr><td>9</td><td>CR9</td><td>Heap base GT</td></tr>
+<tr><td>10</td><td>CR10</td><td>Namespace root (R/W admin)</td></tr>
+<tr><td>11</td><td>CR11</td><td>Extended capability \u00b7 spare</td></tr>
 </table>
-<div class="sr-key-concept"><div class="sr-concept-title">Why at the Top?</div>
-<p>Placing capabilities at word 0 means the GT base address equals the thread lump base. A single add-zero lookup reaches any capability. The fixed 44-word size means the stack always starts at <strong>word 44</strong>, regardless of which thread it is.</p></div>`
+<div class="sr-key-concept"><div class="sr-concept-title">mLoad Keeps the GT Zone in Sync</div>
+<p>Every time mLoad executes it <strong>writes the loaded GT back into the corresponding GT-zone word</strong> (word N for CR_N). This guarantees the lump\u2019s GT zone always mirrors the live CR registers. When CHANGE suspends the thread, the hardware simply reads the GT zone directly \u2014 no separate save step needed for CR0\u2013CR11.</p></div>`
             },
             {
                 title: '\u2461 FIFO Stack \u2014 Grows Downward',
                 type: 'stack',
                 content: `${this._memMap('stack')}
-<p>Immediately after the capability region, the <strong>FIFO call stack</strong> begins at word 44 and expands <em>downward</em> (toward higher addresses). Each CALL frame pushes two words: the return PC and the caller\u2019s CR snapshot. RETURN pops them.</p>
+<p>Immediately after the GT zone, the <strong>FIFO call stack</strong> begins at word 12 and expands <em>downward</em> (toward higher addresses). Each CALL frame pushes two words: the caller\u2019s E-GT (used by RETURN to revalidate and re-derive CR6/CR14) and the MASK-selected CR snapshot. RETURN pops them.</p>
 <ul>
-<li><strong>Stack top</strong>: word 44 (just after capabilities)</li>
+<li><strong>Stack top</strong>: word 12 (immediately after the GT zone)</li>
 <li><strong>Stack limit</strong>: set by the NS slot field <code>clistStart \u2212 1</code> inside <code>word0_location</code></li>
 <li><strong>Overflow</strong>: a hardware fault fires if the stack pointer reaches the limit</li>
-<li><strong>2-word call frame</strong>: <code>[return_PC | packed_CRs]</code></li>
+<li><strong>2-word call frame</strong>: <code>[caller E-GT \u00b7 MASK\u2019d CR snapshot]</code></li>
 </ul>
 <table class="sr-table"><tr><th>Frame word</th><th>Contents</th></tr>
-<tr><td>word 0</td><td>Return PC (18-bit instruction address)</td></tr>
-<tr><td>word 1</td><td>MASK-selected CR snapshot (up to 12 capability registers)</td></tr>
+<tr><td>word 0</td><td>Caller\u2019s E-GT (revalidated by RETURN to re-derive CR6 + CR14)</td></tr>
+<tr><td>word 1</td><td>MASK-selected CR snapshot (up to 12 capability registers, bit N = clear CR_N)</td></tr>
 </table>
 <div class="sr-key-concept"><div class="sr-concept-title">FIFO, Not LIFO</div>
 <p>The stack discipline is <strong>First-In First-Out</strong> from the runtime\u2019s perspective: CALL is the entry, RETURN is the exit, and nested calls push sequentially downward. The abstraction model guarantees no frame can be forged or overwritten because all stack words are inside the thread\u2019s lump boundary.</p></div>`
@@ -114,10 +115,10 @@ ${this._memMap(null)}
 <li><strong>Heap base</strong>: <code>lump base + allocSize \u2212 heapWords \u2212 16</code> (16 = DR region)</li>
 <li><strong>Allocation</strong>: objects grow upward from heap base toward freespace</li>
 <li><strong>Fixed ceiling</strong>: the heap cannot expand beyond its allocated words</li>
-<li><strong>GC</strong>: the Garbage Collector (accessible via <code>runGC()</code>) reclaims unreachable heap objects and compacts the live set</li>
+<li><strong>GC</strong>: the Garbage Collector (<code>runGC()</code>) reclaims unreachable heap objects and compacts the live set</li>
 </ul>
 <table class="sr-table"><tr><th>NS word1 field</th><th>Encodes</th></tr>
-<tr><td>clistCount (bits 26\u201317)</td><td>Number of heap words reserved</td></tr>
+<tr><td>clistCount (bits 25\u201317)</td><td>Number of heap words reserved</td></tr>
 <tr><td>limit (bits 16\u20130)</td><td>Total lump word count \u2212 1</td></tr>
 </table>
 <div class="sr-key-concept"><div class="sr-concept-title">Why Fixed at Design Time?</div>
@@ -129,11 +130,11 @@ ${this._memMap(null)}
                 content: `${this._memMap('dr')}
 <p>The final 16 words of the thread lump hold the <strong>Data Register file</strong>: DR0\u2013DR15. These are 32-bit general-purpose registers used by Turing-domain instructions (IADD, ISUB, BFEXT, MCMP, SHL, SHR, DREAD, DWRITE).</p>
 <table class="sr-table"><tr><th>Register</th><th>Conventional use</th></tr>
-<tr><td>DR0</td><td>Return value / first argument</td></tr>
+<tr><td>DR0</td><td>Return value \u00b7 first argument</td></tr>
 <tr><td>DR1\u2013DR3</td><td>Arguments 2\u20134</td></tr>
 <tr><td>DR4\u2013DR11</td><td>Local variables (caller-saved)</td></tr>
 <tr><td>DR12\u2013DR14</td><td>Temporaries</td></tr>
-<tr><td>DR15</td><td>Stack-spill pointer / reserved</td></tr>
+<tr><td>DR15</td><td>Stack-spill pointer \u00b7 reserved</td></tr>
 </table>
 <p>Being at the <em>fixed base</em> of the lump means the CPU always knows their addresses: <code>lumpBase + allocSize \u2212 16</code>. No pointer arithmetic needed at runtime.</p>
 <div class="sr-key-concept"><div class="sr-concept-title">DREAD / DWRITE</div>
@@ -145,8 +146,8 @@ ${this._memMap(null)}
                 content: `${this._memMap(null)}
 <p>The full thread lump, from word 0 to <code>allocSize \u2212 1</code>:</p>
 <table class="sr-table"><tr><th>Region</th><th>Start</th><th>Size</th><th>Defined by</th></tr>
-<tr><td>\u2460 Capabilities</td><td>word 0</td><td>44 words (fixed)</td><td>Architecture constant (11 \u00d7 4)</td></tr>
-<tr><td>\u2461 FIFO Stack</td><td>word 44</td><td>variable \u2193</td><td>NS slot clistStart field</td></tr>
+<tr><td>\u2460 GT Zone (Capabilities)</td><td>word 0</td><td>12 words (fixed)</td><td>Architecture constant  (1 word \u00d7 CR0\u2013CR11)</td></tr>
+<tr><td>\u2461 FIFO Stack</td><td>word 12</td><td>variable \u2193</td><td>NS slot clistStart field</td></tr>
 <tr><td>\u2462 Freespace</td><td>stack bottom</td><td>dynamic</td><td>Remaining after stack + heap</td></tr>
 <tr><td>\u2463 Heap</td><td>heap base</td><td>fixed \u2191</td><td>IDE slot metadata (clistCount)</td></tr>
 <tr><td>\u2464 Data Registers</td><td>allocSize\u221216</td><td>16 words (fixed)</td><td>Architecture constant (DR0\u2013DR15)</td></tr>
@@ -155,15 +156,17 @@ ${this._memMap(null)}
 <p>The boot microcode stores the thread\u2019s Golden Token in <strong>CR8</strong> (INIT_THRD step, boot step B:02). The GT\u2019s <code>index</code> field is NS Slot 1. The NS entry at Slot 1 supplies <code>word0_location</code> (lump base address) and <code>word0_limit + 1</code> (allocSize). All five regions are derived from these two values plus the architecture constants above.</p></div>`
             },
             {
-                title: 'Thread Lifecycle',
+                title: 'Thread Lifecycle \u2014 mLoad, CHANGE, and Suspension',
                 type: 'lifecycle',
-                content: `<p>A thread moves through four phases from boot to garbage collection:</p>
+                content: `<p>A thread moves through phases from boot to suspension and back:</p>
 <div class="sr-security-list">
-<div class="sr-sec-item"><span class="sr-sec-num">1</span><strong>Boot \u2014 INIT_THRD (B:02).</strong> <code>sim._bootStep()</code> loads NS Slot 1 into CR8. The lump is now the active thread context. All five regions are ready but empty.</div>
-<div class="sr-sec-item"><span class="sr-sec-num">2</span><strong>CALL.</strong> Entering any abstraction pushes a 2-word frame onto the FIFO stack. The CALL instruction checks CR14 bounds, then writes <code>[return_PC, MASK\u2019d CRs]</code> to the stack top. Stack pointer advances by 2.</div>
-<div class="sr-sec-item"><span class="sr-sec-num">3</span><strong>RETURN.</strong> The RETURN instruction reads the MASK field (12-bit), restores the selected CRs from the frame, and jumps to return_PC. Stack pointer retreats by 2.</div>
-<div class="sr-sec-item"><span class="sr-sec-num">4</span><strong>Heap allocation.</strong> New objects are written into the heap region via DWRITE (with a heap-GT stored in CR9). The heap pointer advances. When freespace is exhausted, a <code>FAULT [HEAP_FULL]</code> fires before any overwrite.</div>
-<div class="sr-sec-item"><span class="sr-sec-num">5</span><strong>GC.</strong> The Church Machine\u2019s Garbage Collector (<strong>Run GC</strong> button) scans the heap for unreachable objects, compacts the live set, and updates all in-heap GTs. Freespace is restored without moving the stack or the capability region.</div>
+<div class="sr-sec-item"><span class="sr-sec-num">1</span><strong>Boot \u2014 INIT_THRD (B:02).</strong> <code>sim._bootStep()</code> loads NS Slot 1 into CR8. The lump is now the active thread context. The GT zone (words 0\u201311) holds the initial capability set.</div>
+<div class="sr-sec-item"><span class="sr-sec-num">2</span><strong>mLoad \u2014 GT zone maintenance.</strong> Every time mLoad loads a GT into CR_N, it <strong>writes the same GT word back to lump word N</strong>. The GT zone is always a live mirror of CR0\u2013CR11. No separate \u201csave\u201d step is needed at context-switch time.</div>
+<div class="sr-sec-item"><span class="sr-sec-num">3</span><strong>CALL.</strong> Entering any abstraction pushes a 2-word frame onto the FIFO stack at word 12+. The CALL instruction checks CR14 bounds, writes <code>[caller E-GT, MASK\u2019d CRs]</code>, and advances the stack pointer by 2.</div>
+<div class="sr-sec-item"><span class="sr-sec-num">4</span><strong>RETURN.</strong> Reads the MASK field (12-bit), restores the selected CRs from the frame, re-derives CR6 and CR14 by re-running the NS split on the caller\u2019s E-GT, then jumps to the return address.</div>
+<div class="sr-sec-item"><span class="sr-sec-num">5</span><strong>CHANGE \u2014 Suspend &amp; Resume.</strong> CHANGE atomically swaps CR8 for a new thread GT. Before the swap, the outgoing thread\u2019s context (DR0\u2013DR15, CR0\u2013CR11, CR14, CR15, PC) is saved to its thread-table entry. Because mLoad kept the GT zone in sync, <strong>the NS slot is updated only if the metadata fields have changed</strong> \u2014 otherwise the GT zone words already contain the correct saved state.</div>
+<div class="sr-sec-item"><span class="sr-sec-num">6</span><strong>Resume.</strong> CHANGE restores the incoming thread\u2019s saved context from its thread-table entry. CR12 and CR13 (fault/interrupt handlers) are system-wide and are <em>not</em> changed.</div>
+<div class="sr-sec-item"><span class="sr-sec-num">7</span><strong>Heap allocation &amp; GC.</strong> Objects are written into the heap via DWRITE using CR9. When freespace is exhausted a <code>FAULT [HEAP_FULL]</code> fires. The <strong>Run GC</strong> button triggers the Garbage Collector, which compacts the live heap set and restores freespace without moving the stack or the GT zone.</div>
 </div>
 <div class="sr-key-concept"><div class="sr-concept-title">No Stack Smash, No Heap Spray</div>
 <p>Because every region has hardware-enforced bounds derived from immutable NS slot metadata, <strong>buffer overflows, stack smashes, and heap sprays are impossible</strong>. An attacker cannot push the stack pointer past its limit, cannot write past the heap ceiling, and cannot forge the GTs in the capability region \u2014 all without any OS, runtime check, or compiler mitigation.</p></div>`
@@ -178,7 +181,7 @@ ${this._memMap(null)}
         let html = '<div class="sr-wrapper">';
         html += '<div class="sr-header">';
         html += '<h2>Thread Abstraction</h2>';
-        html += '<p class="sr-tagline">Capabilities &bull; FIFO Stack &bull; Heap &bull; Data Registers &bull; Hardware-Enforced Layout</p>';
+        html += '<p class="sr-tagline">GT Zone \u00b7 FIFO Stack \u00b7 Heap \u00b7 Data Registers \u00b7 mLoad Sync \u00b7 CHANGE Suspension</p>';
         html += '<div class="sr-controls">';
         html += `<button class="btn btn-tutorial" onclick="threadTutorial.stepBack()" ${this.currentStep <= 0 ? 'disabled' : ''}>&laquo; Back</button>`;
         html += `<span class="tutorial-progress">${Math.max(0, this.currentStep + 1)} / ${this.steps.length}</span>`;
@@ -198,7 +201,7 @@ ${this._memMap(null)}
             html += '<div class="sr-step-container sr-type-intro">';
             html += '<div class="sr-step-title">Thread Abstraction Memory Layout</div>';
             html += '<div class="sr-step-content">';
-            html += '<p>This tutorial walks through the five memory regions of a Church Machine Thread Abstraction: its fixed capability set, the FIFO call stack, the dynamic freespace buffer, the fixed-size heap, and the hardware register file at the base.</p>';
+            html += '<p>This tutorial walks through the five memory regions of a Church Machine Thread Abstraction: the GT zone (CR0\u2013CR11), the FIFO call stack, the dynamic freespace buffer, the fixed-size heap, and the hardware register file at the base. It also covers mLoad\u2019s GT-zone maintenance and how CHANGE suspends and resumes threads.</p>';
             html += '<p>Click <strong>Next</strong> to begin.</p>';
             html += '</div></div>';
         }
