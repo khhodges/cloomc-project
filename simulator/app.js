@@ -27,12 +27,7 @@ function init() {
         return _buildNIARows(sim.pc > 0 ? sim.pc - 1 : null, sim.pc);
     });
     repl = new ChurchREPL(sim, pipelineViz);
-    churchTutorial = new BernoulliTutorial(repl, pipelineViz);
-    slideRuleTutorial = new SlideRuleTutorial();
-    securityTutorial = new SecurityTutorial();
-    threadTutorial = new ThreadTutorial();
-    abstrTutorial = new AbstractionTutorial();
-    nsTutorial = new NamespaceTutorial();
+    _ensureTutorialObjects();
 
     abstractionRegistry = new AbstractionRegistry();
     systemAbstractions = new SystemAbstractions(abstractionRegistry);
@@ -42,9 +37,6 @@ function init() {
     if (typeof CLOOMCCompiler !== 'undefined') {
         cloomcCompiler = new CLOOMCCompiler();
     }
-
-    window.churchTutorial = churchTutorial;
-    window.slideRuleTutorial = slideRuleTutorial;
 
     sim.on('stateChange', () => { updateDashboard(); updateLedStrip(); });
     sim.on('fault', (f) => { appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error'); showFaultModal(f); });
@@ -136,7 +128,7 @@ function switchView(viewId) {
     if (viewId === 'namespace') updateNamespace();
     if (viewId === 'abstractions') renderAbstractions();
     if (viewId === 'pipeline') pipelineViz.render();
-    if (viewId === 'builder') initBuilder();
+    if (viewId === 'builder' && typeof initBuilder === 'function') initBuilder();
     if (viewId === 'editor') {
         const asmEd = document.getElementById('asmEditor');
         if (asmEd) asmEd.value = '';
@@ -151,17 +143,18 @@ function switchView(viewId) {
         }
     }
     if (viewId === 'tutorial') {
-        if (activeTutorial === 'sliderule') {
+        _ensureTutorialObjects();
+        if (activeTutorial === 'sliderule' && slideRuleTutorial) {
             slideRuleTutorial.render('tutorialView');
-        } else if (activeTutorial === 'security') {
+        } else if (activeTutorial === 'security' && securityTutorial) {
             securityTutorial.render('tutorialView');
-        } else if (activeTutorial === 'thread') {
+        } else if (activeTutorial === 'thread' && threadTutorial) {
             threadTutorial.render('tutorialView');
-        } else if (activeTutorial === 'abstraction') {
+        } else if (activeTutorial === 'abstraction' && abstrTutorial) {
             abstrTutorial.render('tutorialView');
-        } else if (activeTutorial === 'namespace') {
+        } else if (activeTutorial === 'namespace' && nsTutorial) {
             nsTutorial.render('tutorialView');
-        } else {
+        } else if (churchTutorial) {
             churchTutorial.render('tutorialView');
         }
     }
@@ -182,17 +175,18 @@ function selectTutorial(which) {
     document.querySelectorAll('.tutorial-selector .btn-tut-select').forEach(b => b.classList.remove('active'));
     const btn = document.getElementById('tutSelect-' + which);
     if (btn) btn.classList.add('active');
-    if (which === 'sliderule') {
+    _ensureTutorialObjects();
+    if (which === 'sliderule' && slideRuleTutorial) {
         slideRuleTutorial.render('tutorialView');
-    } else if (which === 'security') {
+    } else if (which === 'security' && securityTutorial) {
         securityTutorial.render('tutorialView');
-    } else if (which === 'thread') {
+    } else if (which === 'thread' && threadTutorial) {
         threadTutorial.render('tutorialView');
-    } else if (which === 'abstraction') {
+    } else if (which === 'abstraction' && abstrTutorial) {
         abstrTutorial.render('tutorialView');
-    } else if (which === 'namespace') {
+    } else if (which === 'namespace' && nsTutorial) {
         nsTutorial.render('tutorialView');
-    } else {
+    } else if (churchTutorial) {
         churchTutorial.render('tutorialView');
     }
 }
@@ -207,6 +201,25 @@ function switchDashTab(tabId) {
     if (panel) panel.classList.add('active');
 
     updateDashboard();
+}
+
+function _ensureTutorialObjects() {
+    if (!churchTutorial && typeof BernoulliTutorial !== 'undefined') {
+        churchTutorial = new BernoulliTutorial(repl, pipelineViz);
+        window.churchTutorial = churchTutorial;
+    }
+    if (!slideRuleTutorial && typeof SlideRuleTutorial !== 'undefined') {
+        slideRuleTutorial = new SlideRuleTutorial();
+        window.slideRuleTutorial = slideRuleTutorial;
+    }
+    if (!securityTutorial && typeof SecurityTutorial !== 'undefined')
+        securityTutorial = new SecurityTutorial();
+    if (!threadTutorial && typeof ThreadTutorial !== 'undefined')
+        threadTutorial = new ThreadTutorial();
+    if (!abstrTutorial && typeof AbstractionTutorial !== 'undefined')
+        abstrTutorial = new AbstractionTutorial();
+    if (!nsTutorial && typeof NamespaceTutorial !== 'undefined')
+        nsTutorial = new NamespaceTutorial();
 }
 
 function hideLoadingOverlay() {
@@ -4849,8 +4862,8 @@ function switchMathMode(mode) {
     }
 
     if (mode === 'hp35' && !hp35State.rendered) renderHP35Calculator();
-    if (mode === 'abacus' && !abacusState.rendered) renderAbacusCalculator();
-    if (mode === 'sliderule' && !slideruleState.rendered) renderSlideRuleCalculator();
+    if (mode === 'abacus' && !abacusState.rendered && typeof renderAbacusCalculator === 'function') renderAbacusCalculator();
+    if (mode === 'sliderule' && !slideruleState.rendered && typeof renderSlideRuleCalculator === 'function') renderSlideRuleCalculator();
 
     const hiwTab = document.getElementById('sidebarTabHowItWorks');
     const htuTab = document.getElementById('sidebarTabHowToUse');
