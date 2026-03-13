@@ -47,7 +47,7 @@ function init() {
     window.churchTutorial = churchTutorial;
     window.slideRuleTutorial = slideRuleTutorial;
 
-    sim.on('stateChange', () => updateDashboard());
+    sim.on('stateChange', () => { updateDashboard(); updateLedStrip(); });
     sim.on('fault', (f) => { appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error'); showFaultModal(f); });
     sim.on('halt', () => appendOutput('Machine halted.', 'info'));
 
@@ -204,6 +204,60 @@ function switchDashTab(tabId) {
     if (panel) panel.classList.add('active');
 
     updateDashboard();
+}
+
+const BOOT_STEP_NAMES = ['FAULT_RST','LOAD_NS','INIT_THRD','INIT_ABSTR','LOAD_NUC','COMPLETE'];
+
+function updateLedStrip() {
+    if (!sim) return;
+    const bits = typeof sim.ledBits === 'number' ? sim.ledBits : 0;
+    const mode = sim.ledMode || 'boot';
+    const complete = !!sim.bootComplete;
+
+    for (let i = 0; i < 6; i++) {
+        const el = document.getElementById('led' + i);
+        if (!el) continue;
+        const lit = !!((bits >> i) & 1);
+        el.classList.toggle('on', lit && !complete);
+        el.classList.toggle('boot-complete', lit && complete);
+    }
+
+    const modeEl = document.getElementById('ledModeTag');
+    const bitsEl = document.getElementById('ledBitsDisplay');
+
+    if (modeEl) {
+        if (mode === 'boot') {
+            if (bits === 0) {
+                modeEl.textContent = 'pre-boot';
+                modeEl.style.color = '#666';
+            } else if (complete) {
+                modeEl.textContent = 'boot ok';
+                modeEl.style.color = '#22cc66';
+            } else {
+                const step = bits.toString(2).replace(/0/g, '').length;
+                modeEl.textContent = 'B:0' + (step - 1) + ' ' + (BOOT_STEP_NAMES[step - 1] || '');
+                modeEl.style.color = '#e08820';
+            }
+        } else {
+            modeEl.textContent = 'LED program';
+            modeEl.style.color = '#8888ff';
+        }
+    }
+    if (bitsEl) {
+        bitsEl.textContent = '0b' + bits.toString(2).padStart(6, '0') + ' = ' + bits;
+    }
+}
+
+function copyLedAssembly() {
+    const bits = (sim && typeof sim.ledBits === 'number') ? sim.ledBits : 0;
+    const asm = `; LED.Pattern — set all 6 LEDs at once\nLOAD   CR1, NS[12]      ; Load LED device GT [L,S,E]\nDWRITE DR0, #${bits}${' '.repeat(Math.max(1, 12 - bits.toString().length))}; Pattern 0b${bits.toString(2).padStart(6,'0')}\nSAVE   CR1, CR6, 12     ; Write pattern to all LEDs`;
+    navigator.clipboard.writeText(asm).then(() => {
+        const btn = document.querySelector('.led-copy-btn');
+        if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = '↗ Copy assembly'; }, 1600); }
+    }).catch(() => {
+        const ta = document.getElementById('editorCode');
+        if (ta) { ta.value = asm; ta.focus(); }
+    });
 }
 
 function updateDashboard() {
@@ -7352,6 +7406,12 @@ async function uploadToTang() {
             }
 
             con.textContent += '─'.repeat(56) + '\n';
+
+            sim.ledBits = 0b111111;
+            sim.ledMode = 'boot';
+            sim.bootComplete = true;
+            updateLedStrip();
+
         } else {
             con.textContent += '\nNo response from FPGA after sending data.\n\n';
             con.textContent += 'TIPS:\n';

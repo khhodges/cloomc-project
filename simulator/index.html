@@ -159,6 +159,21 @@
                     <button class="sidebar-tab active" id="codeTabHistory" onclick="switchCodeTab('history')" data-tooltip="History — Stories and context about Church Machine concepts">History</button>
                 </div>
                 <div id="codeConsoleContent" style="display:none;">
+                    <div id="ledStrip" class="led-strip">
+                        <div class="led-strip-leds">
+                            <div class="led-wrap"><div class="led" id="led0"></div><span class="led-lbl">0</span></div>
+                            <div class="led-wrap"><div class="led" id="led1"></div><span class="led-lbl">1</span></div>
+                            <div class="led-wrap"><div class="led" id="led2"></div><span class="led-lbl">2</span></div>
+                            <div class="led-wrap"><div class="led" id="led3"></div><span class="led-lbl">3</span></div>
+                            <div class="led-wrap"><div class="led" id="led4"></div><span class="led-lbl">4</span></div>
+                            <div class="led-wrap"><div class="led" id="led5"></div><span class="led-lbl">5</span></div>
+                        </div>
+                        <div class="led-meta">
+                            <span id="ledModeTag" class="led-mode-tag">pre-boot</span>
+                            <span id="ledBitsDisplay" class="led-bits-display">0b000000</span>
+                            <button class="led-copy-btn" onclick="copyLedAssembly()">↗ Copy assembly</button>
+                        </div>
+                    </div>
                     <div id="editorConsole">Ready. Write Church assembly and click Assemble.</div>
                     <div id="nextStepsBox" class="next-steps-box"></div>
                 </div>

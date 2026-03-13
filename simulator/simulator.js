@@ -59,6 +59,8 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this.ledBits = 0;
+        this.ledMode = 'boot';
         this.lastCapability = null;
         this.auditLog = [];
 
@@ -85,6 +87,8 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this.ledBits = 0;
+        this.ledMode = 'boot';
         this.output += '[PP250] Machine state cleared. Re-entering boot sequence.\n';
         this.emit('stateChange', this.getState());
     }
@@ -279,6 +283,7 @@ class ChurchSimulator {
                 this.mElevation = true;
                 this.output += '[BOOT] FAULT_RST — All CRs cleared to NULL, all DRs zeroed. M-Elevation ON.\n';
                 this.bootStep++;
+                this.ledBits = 0b000001; this.ledMode = 'boot';
                 break;
             }
             case 1: {
@@ -291,6 +296,7 @@ class ChurchSimulator {
                 this._writeCR(15, gt15, check.entry);
                 this.output += `[BOOT] LOAD_NS — CR15 <- mLoad(Slot 0) Namespace (base=0x0000, size=${this.memory.length} words, NS table entries=${this.nsCount})\n`;
                 this.bootStep++;
+                this.ledBits = 0b000011;
                 break;
             }
             case 2: {
@@ -303,6 +309,7 @@ class ChurchSimulator {
                 this._writeCR(12, gt12, check12.entry);
                 this.output += `[BOOT] INIT_THRD — CR12 <- mLoad(Slot 1) Thread identity (zero perms, Inform)\n`;
                 this.bootStep++;
+                this.ledBits = 0b000111;
                 break;
             }
             case 3: {
@@ -315,6 +322,7 @@ class ChurchSimulator {
                 this._writeCR(6, gt6, check6.entry);
                 this.output += '[BOOT] INIT_ABSTR — CR6 <- mLoad(Slot 2) Boot.Abstr (E, M-elevation)\n';
                 this.bootStep++;
+                this.ledBits = 0b001111;
                 break;
             }
             case 4: {
@@ -366,11 +374,14 @@ class ChurchSimulator {
                 this.pc = 0;
                 this.output += `[BOOT] LOAD_NUC — CALL into Boot.Abstr (Slot 2); CR14(code,X,lim=${clistStart-1}), CR6(clist,L,base=0x${(base+clistStart).toString(16).toUpperCase()},lim=${clistCount-1}), PC=0\n`;
                 this.bootStep++;
+                this.ledBits = 0b011111;
                 break;
             }
             case 5:
                 this.mElevation = false;
                 this.bootComplete = true;
+                this.ledBits = 0b111111;
+                this.ledMode = 'boot';
                 this.output += '[BOOT] COMPLETE — M-Elevation OFF. All Layer 0-1 abstractions initialized. Boot complete.\n';
                 break;
         }
@@ -1042,6 +1053,10 @@ class ChurchSimulator {
             this.nsClistMap[clistIdx].push(srcParsed.index);
         }
         const label = this.nsLabels[srcParsed.index] || 'entry_'+srcParsed.index;
+        if (srcParsed.index === 12) {
+            this.ledBits = this.dr[0] & 0x3F;
+            this.ledMode = 'program';
+        }
         const desc = `SAVE CR${d.crDst} -> [CR${d.crSrc} + ${d.imm}] (${label})`;
         this.output += desc + '\n';
         this.pc++;
@@ -1991,6 +2006,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this.ledBits = 0; this.ledMode = 'boot';
         this.faultLog = [];
         this.stepCount = 0;
         this.callStack = [];
@@ -2092,6 +2108,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this.ledBits = 0; this.ledMode = 'boot';
         this.faultLog = [];
         this.stepCount = 0;
         this.callStack = [];
