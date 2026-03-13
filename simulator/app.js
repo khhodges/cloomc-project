@@ -26,7 +26,6 @@ function init() {
         if (!sim.bootComplete) return _bootNIARows(sim.bootStep);
         return _buildNIARows(sim.pc > 0 ? sim.pc - 1 : null, sim.pc);
     });
-    pipelineViz.render();
     repl = new ChurchREPL(sim, pipelineViz);
     churchTutorial = new BernoulliTutorial(repl, pipelineViz);
     slideRuleTutorial = new SlideRuleTutorial();
@@ -77,11 +76,14 @@ function init() {
     const startView = views.includes(hash) ? hash : 'pipeline';
     switchView(startView);
     switchMathMode('hp35');
-    updateDashboard();
-    pipelineViz.render();
-    showWelcomePopup();
-    initTooltipAutoFlip();
-    hideLoadingOverlay();
+
+    requestAnimationFrame(() => {
+        updateDashboard();
+        pipelineViz.render();
+        showWelcomePopup();
+        initTooltipAutoFlip();
+        hideLoadingOverlay();
+    });
 }
 
 function initTooltipAutoFlip() {
