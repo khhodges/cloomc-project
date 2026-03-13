@@ -7255,6 +7255,15 @@ async function uploadToTang() {
         return;
     }
 
+    function isPermissionsPolicyError(e) {
+        const m = (e.message || '').toLowerCase();
+        return m.includes('permissions policy') || m.includes('disallowed') || e.name === 'SecurityError';
+    }
+
+    function directUrl() {
+        return window.location.origin + '/simulator/';
+    }
+
     try {
         const image = sim.exportHardwareImage();
         con.textContent = `Ready: ${image.namespace.length} NS words + ${image.clist.length} C-list words\n\n`;
@@ -7267,6 +7276,14 @@ async function uploadToTang() {
             } catch(e) {
                 if (e.name === 'NotFoundError') {
                     con.textContent += 'No port selected. Cancelled.\n';
+                    return;
+                }
+                if (isPermissionsPolicyError(e)) {
+                    con.textContent = 'WebSerial blocked: the app is running inside an embedded preview frame\n';
+                    con.textContent += 'that does not allow hardware access.\n\n';
+                    con.textContent += 'SOLUTION: Open the app directly in a browser tab:\n\n';
+                    con.textContent += '  ' + directUrl() + '\n\n';
+                    con.textContent += 'Then click "Deploy to Tang" from that tab. Chrome or Edge required.\n';
                     return;
                 }
                 con.textContent += 'Could not open port: ' + e.message + '\n\n';
