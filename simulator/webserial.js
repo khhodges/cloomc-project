@@ -1,5 +1,6 @@
 const TangSerial = (function() {
     let port = null;
+    let activeReader = null;
 
     const BAUD = 115200;
     const NS_WORDS = 192;
@@ -74,6 +75,7 @@ const TangSerial = (function() {
     async function drainInput() {
         if (!port || !port.readable) return;
         const r = port.readable.getReader();
+        activeReader = r;
         try {
             while (true) {
                 const { value, done } = await Promise.race([
@@ -83,7 +85,10 @@ const TangSerial = (function() {
                 if (done || !value) break;
             }
         } catch(e) {}
-        finally { try { r.releaseLock(); } catch(e) {} }
+        finally {
+            activeReader = null;
+            try { r.releaseLock(); } catch(e) {}
+        }
     }
 
     async function uploadToFPGA(nsWords, clistWords, onStatus) {
@@ -126,6 +131,7 @@ const TangSerial = (function() {
         const deadline = Date.now() + 5000;
 
         const r = port.readable.getReader();
+        activeReader = r;
         try {
             while (Date.now() < deadline) {
                 const { value, done } = await Promise.race([
@@ -138,6 +144,7 @@ const TangSerial = (function() {
         } catch(e) {
             status('Read error: ' + e.message);
         } finally {
+            activeReader = null;
             try { r.releaseLock(); } catch(e) {}
         }
 
@@ -190,6 +197,17 @@ const TangSerial = (function() {
 
         return { vals, words, leftover, headerEcho, crs, drs, extra };
     }
+
+    window.addEventListener('pagehide', () => {
+        if (activeReader) {
+            try { activeReader.cancel(); } catch(e) {}
+            activeReader = null;
+        }
+        if (port) {
+            try { port.close(); } catch(e) {}
+            port = null;
+        }
+    });
 
     return {
         isSupported,
