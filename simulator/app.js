@@ -7359,8 +7359,15 @@ async function uploadToTang() {
             con.textContent += '  2. Click "Deploy to Tang" within 1-2 seconds of releasing reset\n';
             con.textContent += '  3. Make sure no other app has the serial port open\n';
         }
+
+        try {
+            await TangSerial.disconnect();
+            con.textContent += 'Port closed.\n';
+        } catch(e) {}
+
     } catch(e) {
         con.textContent += 'Error: ' + e.message + '\n';
+        try { await TangSerial.disconnect(); } catch(_) {}
     }
 }
 
