@@ -1,3 +1,5 @@
+const POPUPS_DISABLED = true;
+
 let sim = null;
 let assembler = null;
 let pipelineViz = null;
@@ -4364,6 +4366,7 @@ function showChallengeExplanation(el, c) {
 }
 
 function showMathGuidePopup() {
+    if (POPUPS_DISABLED) return;
     if (localStorage.getItem('churchMachine_mathGuideDismissed_perm')) return;
     if (localStorage.getItem('churchMachine_mathGuideDismissed')) return;
     if (!localStorage.getItem('church_welcome_dismissed')) return;
@@ -4593,6 +4596,7 @@ const TOOL_GUIDES = {
 let currentToolGuide = null;
 
 function showToolGuide(tool) {
+    if (POPUPS_DISABLED) return;
     if (!TOOL_GUIDES[tool]) return;
     if (localStorage.getItem('churchMachine_toolGuide_' + tool + '_perm')) return;
     if (localStorage.getItem('churchMachine_toolGuide_' + tool)) return;
@@ -6503,6 +6507,7 @@ function isWelcomeNeeded() {
 }
 
 function showWelcomePopup() {
+    if (POPUPS_DISABLED) return;
     if (!isWelcomeNeeded()) return;
 
     const body = document.getElementById('welcomeBody');

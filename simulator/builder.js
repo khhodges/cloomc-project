@@ -1242,6 +1242,7 @@ function initBuilder() {
 }
 
 function showBuilderHelpPopup(force) {
+    if (typeof POPUPS_DISABLED !== 'undefined' && POPUPS_DISABLED) return;
     var modal = document.getElementById('builderHelpModal');
     if (!modal) return;
     if (!force && localStorage.getItem('church_builder_help_dismissed')) return;
