@@ -565,7 +565,7 @@ def download_fpga_package():
         logging.info("FPGA package: running Yosys synthesis (RTLIL -> JSON + Verilog)...")
         synth_cmd = (
             f"read_rtlil {rtlil_path}; "
-            f"synth_gowin -top top -json {json_path} -vout {verilog_path}"
+            f"synth_gowin -top top -device GW2A-18C -json {json_path} -vout {verilog_path}"
         )
         synth_result = subprocess.run(
             ["yosys", "-p", synth_cmd],
@@ -583,6 +583,13 @@ def download_fpga_package():
             return jsonify({"error": "Yosys JSON netlist not generated", "stderr": ""}), 500
         if not os.path.isfile(verilog_path):
             return jsonify({"error": "Yosys Verilog output not generated", "stderr": ""}), 500
+
+        with open(json_path, 'r') as f:
+            json_text = f.read()
+        json_text = json_text.replace('"speed": "ES"', '"speed": "C8"')
+        with open(json_path, 'w') as f:
+            f.write(json_text)
+        logging.info("FPGA package: patched JSON speed grade (ES -> C8)")
 
         cst_path = os.path.join(hw_dir, "tang_nano_20k.cst")
         if not os.path.isfile(cst_path):
