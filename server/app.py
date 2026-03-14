@@ -522,7 +522,7 @@ make prog        # flash to Tang Nano 20K via openFPGALoader (USB-C)
 | 0   | 10  | Boot in progress  |
 | 1   | 11  | Running / blink   |
 | 2   | 13  | Fault             |
-| 3   | 14  | Boot complete inv |
+| 3   | 14  | Boot complete     |
 | 4   | 9   | Halted            |
 | 5   | 8   | Stepping          |
 
