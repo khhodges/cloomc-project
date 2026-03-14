@@ -1,5 +1,6 @@
 import os
 import sys
+from amaranth import ClockSignal
 from amaranth.back.rtlil import convert
 from .tang_nano_20k import ChurchTangNano20K
 
@@ -11,6 +12,7 @@ def generate_rtlil(output_dir="build"):
 
     ports = [
         top.uart_tx, top.uart_rx, top.push_button,
+        ClockSignal("sync"),
     ] + [led for i, led in enumerate(top.led) if i != 3]
 
     rtlil_text = convert(top, ports=ports)

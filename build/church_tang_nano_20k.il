@@ -15,7 +15,7 @@ module \top
   attribute \src "/home/runner/workspace/hardware/boot_rom.py:85"
   wire width 32 \data
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:142"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:144"
   wire width 1 \any_ns_access
 
   attribute \src "/home/runner/workspace/hardware/core.py:47"
@@ -24,7 +24,7 @@ module \top
   attribute \src "/home/runner/workspace/hardware/core.py:50"
   wire width 1 \ns_wr_en
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:143"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:145"
   wire width 1 \any_clist_access
 
   attribute \src "/home/runner/workspace/hardware/core.py:53"
@@ -33,7 +33,7 @@ module \top
   attribute \src "/home/runner/workspace/hardware/core.py:56"
   wire width 1 \clist_wr_en
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:141"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:143"
   wire width 11 \mem_addr
 
   attribute \src "/home/runner/workspace/hardware/core.py:46"
@@ -46,7 +46,7 @@ module \top
   wire width 32 \dmem_addr
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:15"
-  wire width 11 \addr$24
+  wire width 11 \addr$23
 
   attribute \src "/home/runner/workspace/hardware/core.py:42"
   wire width 32 \dmem_rd_data
@@ -60,13 +60,13 @@ module \top
   attribute \src "/home/runner/workspace/hardware/core.py:54"
   wire width 32 \clist_rd_data
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:164"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:166"
   wire width 32 \wr_data
 
   attribute \src "/home/runner/workspace/hardware/core.py:49"
   wire width 96 \ns_wr_data
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:165"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:167"
   wire width 1 \wr_en
 
   attribute \src "/home/runner/workspace/hardware/core.py:55"
@@ -79,54 +79,54 @@ module \top
   wire width 1 \dmem_wr_en
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:16"
-  wire width 32 \wr_data$35
+  wire width 32 \wr_data$34
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:18"
-  wire width 1 \wr_en$36
+  wire width 1 \wr_en$35
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:188"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:190"
   attribute \init 9'000000000
   wire width 9 \init_idx
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:190"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:192"
   wire width 32 \init_word
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:189"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:191"
   attribute \init 1'0
   wire width 1 \init_done
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:216"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:218"
   wire width 1 \nia_changed
 
   attribute \src "/home/runner/workspace/hardware/core.py:69"
   wire width 32 \nia
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:214"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:216"
   attribute \init 32'00000000000000000000000000000000
   wire width 32 \prev_nia
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:219"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:221"
   wire width 1 \step_complete
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:212"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:214"
   attribute \init 1'0
   wire width 1 \stepping
 
   attribute \src "/home/runner/workspace/hardware/core.py:38"
   wire width 1 \imem_valid
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:211"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:213"
   attribute \init 1'1
   wire width 1 \halted
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:232"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:234"
   wire width 1 \btn_press
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:225"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:227"
   attribute \init 1'0
   wire width 1 \btn_prev
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:224"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:226"
   attribute \init 3'000
   wire width 3 \btn_sync
 
@@ -154,22 +154,22 @@ module \top
   attribute \src "/home/runner/workspace/hardware/core.py:60"
   wire width 1 \boot_complete
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:245"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:247"
   attribute \init 1'0
   wire width 1 \heartbeat_blink
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:50"
   wire width 1 \led3
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:265"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:267"
   attribute \init 1'0
   wire width 1 \boot_gate
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:271"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:273"
   attribute \init 1'0
   wire width 1 \boot_triggered
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:270"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:272"
   attribute \init 4'0000
   wire width 4 \boot_delay
 
@@ -179,31 +179,31 @@ module \top
   attribute \src "/home/runner/workspace/hardware/core.py:62"
   wire width 1 \gc_start
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:285"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:287"
   wire width 8 \banner_byte
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:284"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:286"
   attribute \init 5'00000
   wire width 5 \banner_idx
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:290"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:292"
   wire width 8 \halt_byte
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:289"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:291"
   attribute \init 3'000
   wire width 3 \halt_idx
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:295"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:297"
   wire width 8 \step_byte
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:294"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:296"
   attribute \init 2'00
   wire width 2 \step_idx
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:300"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:302"
   wire width 8 \fault_byte
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:299"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:301"
   attribute \init 2'00
   wire width 2 \fault_msg_idx
 
@@ -221,31 +221,31 @@ module \top
   wire width 1 \send_byte
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:89"
-  wire width 32 \data$77
+  wire width 32 \data$76
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:90"
   wire width 1 \send
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:303"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:305"
   attribute \init 32'00000000000000000000000000000000
   wire width 32 \step_nia
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:410"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:412"
   wire width 32 \fault_word
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:304"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:306"
   attribute \init 4'0000
   wire width 4 \step_fault
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:244"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:246"
   attribute \init 25'0000000000000000000000000
   wire width 25 \heartbeat_ctr
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:311"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:313"
   attribute \init 28'0000000000000000000000000000
   wire width 28 \startup_ctr
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:305"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:307"
   attribute \init 1'0
   wire width 1 \step_had_fault
 
@@ -255,29 +255,26 @@ module \top
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:48"
   wire width 1 input 1  \push_button
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 2  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 3  \rst
-
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:94"
-  wire width 1 output 4  \uart_tx
+  wire width 1 output 3  \uart_tx
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:50"
-  wire width 1 output 5  \led0
+  wire width 1 output 4  \led0
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:50"
-  wire width 1 output 6  \led1
+  wire width 1 output 5  \led1
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:50"
-  wire width 1 output 7  \led2
+  wire width 1 output 6  \led2
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:50"
-  wire width 1 output 8  \led4
+  wire width 1 output 7  \led4
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:50"
-  wire width 1 output 9  \led5
+  wire width 1 output 8  \led5
 
   wire width 1 $1
 
@@ -417,41 +414,37 @@ module \top
 
   wire width 1 $69
 
-  wire width 32 $70
+  wire width 3 $70
 
-  wire width 3 $71
+  wire width 25 $71
 
   wire width 1 $72
 
-  wire width 25 $73
+  wire width 4 $73
 
   wire width 1 $74
 
-  wire width 4 $75
+  wire width 28 $75
 
-  wire width 1 $76
+  wire width 4 $76
 
-  wire width 28 $77
+  wire width 5 $77
 
-  wire width 4 $78
+  wire width 1 $78
 
-  wire width 5 $79
+  wire width 3 $79
 
   wire width 1 $80
 
-  wire width 3 $81
+  wire width 32 $81
 
-  wire width 1 $82
+  wire width 4 $82
 
-  wire width 32 $83
+  wire width 1 $83
 
-  wire width 4 $84
+  wire width 2 $84
 
-  wire width 1 $85
-
-  wire width 2 $86
-
-  wire width 2 $87
+  wire width 2 $85
 
   attribute \src "/home/runner/workspace/hardware/core.py:54"
   wire width 2 \clist_rd_data.gt_type
@@ -477,10 +470,9 @@ module \top
   attribute \src "/home/runner/workspace/hardware/core.py:55"
   wire width 7 \clist_wr_data.version
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:61"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:63"
   cell \top.core \core
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \imem_valid \imem_valid [0]
     connect \boot_complete \dbg_boot_complete [0]
     connect \perm_gt_sig \clist_wr_data [31:0]
@@ -499,38 +491,35 @@ module \top
     connect \instruction \imem_data [31:0]
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:64"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:66"
   cell \top.boot_rom \boot_rom
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \addr \imem_addr [10:2]
     connect \data \imem_data [31:0]
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:67"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:69"
   cell \top.debug \debug
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \byte_data \byte_data [7:0]
     connect \send_byte \send_byte [0]
-    connect \data$16 \data$77 [31:0]
+    connect \data$15 \data$76 [31:0]
     connect \send \send [0]
     connect \busy \busy [0]
     connect \tx \uart_tx [0]
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:139"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:141"
   cell \top.bsram \bsram
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \rd_data \dmem_rd_data [31:0]
-    connect \mem_r_addr \addr$24 [10:0]
-    connect \mem_w_data \wr_data$35 [31:0]
-    connect \wr_en \wr_en$36 [0]
+    connect \mem_r_addr \addr$23 [10:0]
+    connect \mem_w_data \wr_data$34 [31:0]
+    connect \wr_en \wr_en$35 [0]
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:145"
-  cell $or $88
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:147"
+  cell $or $86
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -541,8 +530,8 @@ module \top
     connect \Y \any_ns_access
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:146"
-  cell $or $89
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:148"
+  cell $or $87
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -553,8 +542,8 @@ module \top
     connect \Y \any_clist_access
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:200"
-  cell $not $90
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:202"
+  cell $not $88
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -562,8 +551,8 @@ module \top
     connect \Y $1
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:217"
-  cell $ne $91
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:219"
+  cell $ne $89
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 32
@@ -574,8 +563,8 @@ module \top
     connect \Y \nia_changed
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:220"
-  cell $and $92
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:222"
+  cell $and $90
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -586,8 +575,8 @@ module \top
     connect \Y \step_complete
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:222"
-  cell $not $93
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:224"
+  cell $not $91
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -595,8 +584,8 @@ module \top
     connect \Y $2
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:222"
-  cell $not $94
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:224"
+  cell $not $92
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -604,8 +593,8 @@ module \top
     connect \Y $3
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:222"
-  cell $and $95
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:224"
+  cell $and $93
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -616,8 +605,8 @@ module \top
     connect \Y $4
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:222"
-  cell $or $96
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:224"
+  cell $or $94
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -628,8 +617,8 @@ module \top
     connect \Y \imem_valid
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:233"
-  cell $not $97
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:235"
+  cell $not $95
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -637,8 +626,8 @@ module \top
     connect \Y $5
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:233"
-  cell $and $98
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:235"
+  cell $and $96
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -649,8 +638,8 @@ module \top
     connect \Y \btn_press
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:250"
-  cell $not $99
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:252"
+  cell $not $97
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -658,8 +647,8 @@ module \top
     connect \Y $6
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:256"
-  cell $not $100
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:258"
+  cell $not $98
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -667,8 +656,8 @@ module \top
     connect \Y \led0
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:251"
-  cell $not $101
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:253"
+  cell $not $99
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -676,8 +665,8 @@ module \top
     connect \Y $7
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:251"
-  cell $and $102
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:253"
+  cell $and $100
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -688,8 +677,8 @@ module \top
     connect \Y $8
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:251"
-  cell $not $103
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:253"
+  cell $not $101
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -697,8 +686,8 @@ module \top
     connect \Y $9
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:251"
-  cell $and $104
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:253"
+  cell $and $102
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -709,8 +698,8 @@ module \top
     connect \Y $10
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:252"
-  cell $and $105
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:254"
+  cell $and $103
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -721,8 +710,8 @@ module \top
     connect \Y $11
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:252"
-  cell $not $106
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:254"
+  cell $not $104
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -730,8 +719,8 @@ module \top
     connect \Y $12
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:252"
-  cell $and $107
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:254"
+  cell $and $105
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -742,8 +731,8 @@ module \top
     connect \Y $13
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:252"
-  cell $and $108
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:254"
+  cell $and $106
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -754,8 +743,8 @@ module \top
     connect \Y $14
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:257"
-  cell $or $109
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:259"
+  cell $or $107
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -766,8 +755,8 @@ module \top
     connect \Y $15
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:257"
-  cell $not $110
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:259"
+  cell $not $108
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -775,8 +764,8 @@ module \top
     connect \Y \led1
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:258"
-  cell $not $111
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:260"
+  cell $not $109
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -784,8 +773,8 @@ module \top
     connect \Y \led2
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:259"
-  cell $not $112
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:261"
+  cell $not $110
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -793,8 +782,8 @@ module \top
     connect \Y \led3
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:260"
-  cell $not $113
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:262"
+  cell $not $111
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -802,8 +791,8 @@ module \top
     connect \Y \led4
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:261"
-  cell $not $114
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:263"
+  cell $not $112
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -811,8 +800,8 @@ module \top
     connect \Y \led5
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:273"
-  cell $not $115
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:275"
+  cell $not $113
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -820,8 +809,8 @@ module \top
     connect \Y $16
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:273"
-  cell $and $116
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:275"
+  cell $and $114
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -832,8 +821,8 @@ module \top
     connect \Y $17
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:275"
-  cell $eq $117
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:277"
+  cell $eq $115
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -844,8 +833,8 @@ module \top
     connect \Y $18
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:286"
-  process $118
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:288"
+  process $116
     assign \banner_byte [7:0] 8'00000000
     switch \banner_idx [4:0]
       case 5'00000
@@ -889,8 +878,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:291"
-  process $119
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:293"
+  process $117
     assign \halt_byte [7:0] 8'00000000
     switch \halt_idx [2:0]
       case 3'000
@@ -908,8 +897,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:296"
-  process $120
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:298"
+  process $118
     assign \step_byte [7:0] 8'00000000
     switch \step_idx [1:0]
       case 2'00
@@ -919,8 +908,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:301"
-  process $121
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:303"
+  process $119
     assign \fault_byte [7:0] 8'00000000
     switch \fault_msg_idx [1:0]
       case 2'00
@@ -930,8 +919,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:325"
-  cell $not $122
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:327"
+  cell $not $120
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -939,8 +928,8 @@ module \top
     connect \Y $19
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:326"
-  cell $lt $123
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:328"
+  cell $lt $121
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 5
@@ -951,8 +940,8 @@ module \top
     connect \Y $20
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:336"
-  cell $not $124
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:338"
+  cell $not $122
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -960,8 +949,8 @@ module \top
     connect \Y $21
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:344"
-  cell $not $125
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:346"
+  cell $not $123
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -969,8 +958,8 @@ module \top
     connect \Y $22
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:345"
-  cell $lt $126
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:347"
+  cell $lt $124
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -981,8 +970,8 @@ module \top
     connect \Y $23
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:372"
-  cell $not $127
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:374"
+  cell $not $125
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -990,8 +979,8 @@ module \top
     connect \Y $24
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:373"
-  cell $lt $128
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:375"
+  cell $lt $126
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1002,8 +991,8 @@ module \top
     connect \Y $25
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:384"
-  cell $not $129
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:386"
+  cell $not $127
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1011,8 +1000,8 @@ module \top
     connect \Y $26
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:397"
-  cell $not $130
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:399"
+  cell $not $128
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1020,8 +1009,8 @@ module \top
     connect \Y $27
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:398"
-  cell $lt $131
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:400"
+  cell $lt $129
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1032,8 +1021,8 @@ module \top
     connect \Y $28
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:409"
-  cell $not $132
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:411"
+  cell $not $130
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1042,7 +1031,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $133
+  cell $eq $131
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1054,7 +1043,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $134
+  cell $eq $132
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1066,7 +1055,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $135
+  cell $eq $133
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1078,7 +1067,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $136
+  cell $eq $134
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1090,7 +1079,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $137
+  cell $eq $135
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1102,7 +1091,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $138
+  cell $eq $136
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1114,7 +1103,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $139
+  cell $eq $137
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1126,7 +1115,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $140
+  cell $eq $138
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1138,7 +1127,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $141
+  cell $eq $139
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1150,7 +1139,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $142
+  cell $eq $140
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1162,7 +1151,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_dsl.py:486"
-  cell $eq $143
+  cell $eq $141
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1173,8 +1162,8 @@ module \top
     connect \Y $40
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:200"
-  cell $not $144
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:202"
+  cell $not $142
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1182,8 +1171,8 @@ module \top
     connect \Y $41
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:206"
-  cell $lt $145
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:208"
+  cell $lt $143
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 9
@@ -1194,8 +1183,8 @@ module \top
     connect \Y $42
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:207"
-  cell $add $146
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:209"
+  cell $add $144
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 9
@@ -1206,8 +1195,8 @@ module \top
     connect \Y $43
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:246"
-  cell $add $147
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:248"
+  cell $add $145
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 25
@@ -1218,8 +1207,8 @@ module \top
     connect \Y $44
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:247"
-  cell $eq $148
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:249"
+  cell $eq $146
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 25
@@ -1230,8 +1219,8 @@ module \top
     connect \Y $45
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:248"
-  cell $not $149
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:250"
+  cell $not $147
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1239,8 +1228,8 @@ module \top
     connect \Y $46
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:273"
-  cell $not $150
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:275"
+  cell $not $148
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1248,8 +1237,8 @@ module \top
     connect \Y $47
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:273"
-  cell $and $151
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:275"
+  cell $and $149
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 1
@@ -1260,8 +1249,8 @@ module \top
     connect \Y $48
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:274"
-  cell $add $152
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:276"
+  cell $add $150
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1272,8 +1261,8 @@ module \top
     connect \Y $49
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:275"
-  cell $eq $153
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:277"
+  cell $eq $151
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 4
@@ -1284,8 +1273,8 @@ module \top
     connect \Y $50
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:315"
-  cell $add $154
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:317"
+  cell $add $152
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 28
@@ -1296,8 +1285,8 @@ module \top
     connect \Y $51
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:316"
-  cell $eq $155
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:318"
+  cell $eq $153
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 28
@@ -1308,8 +1297,8 @@ module \top
     connect \Y $52
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:325"
-  cell $not $156
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:327"
+  cell $not $154
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1317,8 +1306,8 @@ module \top
     connect \Y $53
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:326"
-  cell $lt $157
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:328"
+  cell $lt $155
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 5
@@ -1329,8 +1318,8 @@ module \top
     connect \Y $54
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:331"
-  cell $add $158
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:333"
+  cell $add $156
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 5
@@ -1341,8 +1330,8 @@ module \top
     connect \Y $55
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:336"
-  cell $not $159
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:338"
+  cell $not $157
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1350,8 +1339,8 @@ module \top
     connect \Y $56
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:344"
-  cell $not $160
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:346"
+  cell $not $158
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1359,8 +1348,8 @@ module \top
     connect \Y $57
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:345"
-  cell $lt $161
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:347"
+  cell $lt $159
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1371,8 +1360,8 @@ module \top
     connect \Y $58
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:350"
-  cell $add $162
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:352"
+  cell $add $160
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 3
@@ -1383,8 +1372,8 @@ module \top
     connect \Y $59
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:372"
-  cell $not $163
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:374"
+  cell $not $161
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1392,8 +1381,8 @@ module \top
     connect \Y $60
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:373"
-  cell $lt $164
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:375"
+  cell $lt $162
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1404,8 +1393,8 @@ module \top
     connect \Y $61
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:378"
-  cell $add $165
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:380"
+  cell $add $163
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1416,8 +1405,8 @@ module \top
     connect \Y $62
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:384"
-  cell $not $166
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:386"
+  cell $not $164
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1425,8 +1414,8 @@ module \top
     connect \Y $63
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:397"
-  cell $not $167
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:399"
+  cell $not $165
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1434,8 +1423,8 @@ module \top
     connect \Y $64
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:398"
-  cell $lt $168
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:400"
+  cell $lt $166
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1446,8 +1435,8 @@ module \top
     connect \Y $65
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:403"
-  cell $add $169
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:405"
+  cell $add $167
     parameter \A_SIGNED 0
     parameter \B_SIGNED 0
     parameter \A_WIDTH 2
@@ -1458,8 +1447,8 @@ module \top
     connect \Y $66
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:409"
-  cell $not $170
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:411"
+  cell $not $168
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
@@ -1467,8 +1456,8 @@ module \top
     connect \Y $67
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:141"
-  process $171
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:143"
+  process $169
     assign \mem_addr [10:0] 11'00000000000
     switch { \any_clist_access [0] \any_ns_access [0] }
       case 2'-1
@@ -1481,16 +1470,16 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:15"
-  process $172
-    assign \addr$24 [10:0] \mem_addr [10:0]
+  process $170
+    assign \addr$23 [10:0] \mem_addr [10:0]
     switch $1 [0]
       case 1'1
-        assign \addr$24 [10:0] { 2'00 \init_idx [8:0] }
+        assign \addr$23 [10:0] { 2'00 \init_idx [8:0] }
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:164"
-  process $173
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:166"
+  process $171
     assign \wr_data [31:0] 32'00000000000000000000000000000000
     switch { 1'0 \ns_wr_en [0] }
       case 2'-1
@@ -1502,8 +1491,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:165"
-  process $174
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:167"
+  process $172
     assign \wr_en [0] 1'0
     switch { 1'0 \ns_wr_en [0] }
       case 2'-1
@@ -1516,25 +1505,25 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:16"
-  process $175
-    assign \wr_data$35 [31:0] \wr_data [31:0]
+  process $173
+    assign \wr_data$34 [31:0] \wr_data [31:0]
     switch $1 [0]
       case 1'1
-        assign \wr_data$35 [31:0] \init_word [31:0]
+        assign \wr_data$34 [31:0] \init_word [31:0]
     end
   end
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:18"
-  process $176
-    assign \wr_en$36 [0] \wr_en [0]
+  process $174
+    assign \wr_en$35 [0] \wr_en [0]
     switch $1 [0]
       case 1'1
-        assign \wr_en$36 [0] 1'1
+        assign \wr_en$35 [0] 1'1
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:190"
-  process $177
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:192"
+  process $175
     assign \init_word [31:0] 32'00000000000000000000000000000000
     switch \init_idx [8:0]
       case 9'000000000
@@ -1623,7 +1612,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:58"
-  process $178
+  process $176
     assign \boot_start [0] 1'0
     switch $17 [0]
       case 1'1
@@ -1637,7 +1626,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:92"
-  process $179
+  process $177
     assign \byte_data [7:0] 8'00000000
     switch \debug_fsm_state [3:0]
       case 4'0000
@@ -1687,7 +1676,7 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:91"
-  process $180
+  process $178
     assign \send_byte [0] 1'0
     switch \debug_fsm_state [3:0]
       case 4'0000
@@ -1737,8 +1726,8 @@ module \top
   end
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:89"
-  process $181
-    assign \data$77 [31:0] 32'00000000000000000000000000000000
+  process $179
+    assign \data$76 [31:0] 32'00000000000000000000000000000000
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -1746,7 +1735,7 @@ module \top
       case 4'0011
         switch $21 [0]
           case 1'1
-            assign \data$77 [31:0] \imem_addr [31:0]
+            assign \data$76 [31:0] \imem_addr [31:0]
         end
       case 4'0100
       case 4'0101
@@ -1755,19 +1744,19 @@ module \top
       case 4'1000
         switch $26 [0]
           case 1'1
-            assign \data$77 [31:0] \step_nia [31:0]
+            assign \data$76 [31:0] \step_nia [31:0]
         end
       case 4'1001
       case 4'1010
         switch $29 [0]
           case 1'1
-            assign \data$77 [31:0] \fault_word [31:0]
+            assign \data$76 [31:0] \fault_word [31:0]
         end
     end
   end
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:90"
-  process $182
+  process $180
     assign \send [0] 1'0
     switch \debug_fsm_state [3:0]
       case 4'0000
@@ -1796,8 +1785,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:410"
-  process $183
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:412"
+  process $181
     assign \fault_word [31:0] 32'00000000000000000000000000000000
     switch \debug_fsm_state [3:0]
       case 4'0000
@@ -1818,8 +1807,8 @@ module \top
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:188"
-  process $184
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:190"
+  process $182
     assign $68 [8:0] \init_idx [8:0]
     switch $41 [0]
       case 1'1
@@ -1829,14 +1818,10 @@ module \top
           case
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $68 [8:0] 9'000000000
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:188"
-  cell $dff $185
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:190"
+  cell $dff $183
     parameter \WIDTH 9
     parameter \CLK_POLARITY 1
     connect \D $68 [8:0]
@@ -1844,8 +1829,8 @@ module \top
     connect \Q \init_idx
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:189"
-  process $186
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:191"
+  process $184
     assign $69 [0] \init_done [0]
     switch $41 [0]
       case 1'1
@@ -1855,14 +1840,10 @@ module \top
             assign $69 [0] 1'1
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $69 [0] 1'0
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:189"
-  cell $dff $187
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:191"
+  cell $dff $185
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
     connect \D $69 [0]
@@ -1870,162 +1851,124 @@ module \top
     connect \Q \init_done
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:214"
-  process $188
-    assign $70 [31:0] \imem_addr [31:0]
-    switch \rst [0]
-      case 1'1
-        assign $70 [31:0] 32'00000000000000000000000000000000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:214"
-  cell $dff $189
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:216"
+  cell $dff $186
     parameter \WIDTH 32
     parameter \CLK_POLARITY 1
-    connect \D $70 [31:0]
+    connect \D \imem_addr [31:0]
     connect \CLK \clk [0]
     connect \Q \prev_nia
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:224"
-  process $190
-    assign $71 [2:0] \btn_sync [2:0]
-    assign $71 [0] \push_button [0]
-    assign $71 [1] \btn_sync [0]
-    assign $71 [2] \btn_sync [1]
-    switch \rst [0]
-      case 1'1
-        assign $71 [2:0] 3'000
-    end
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:226"
+  process $187
+    assign $70 [2:0] \btn_sync [2:0]
+    assign $70 [0] \push_button [0]
+    assign $70 [1] \btn_sync [0]
+    assign $70 [2] \btn_sync [1]
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:224"
-  cell $dff $191
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:226"
+  cell $dff $188
     parameter \WIDTH 3
     parameter \CLK_POLARITY 1
-    connect \D $71 [2:0]
+    connect \D $70 [2:0]
     connect \CLK \clk [0]
     connect \Q \btn_sync
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:225"
-  process $192
-    assign $72 [0] \btn_sync [2]
-    switch \rst [0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:227"
+  cell $dff $189
+    parameter \WIDTH 1
+    parameter \CLK_POLARITY 1
+    connect \D \btn_sync [2]
+    connect \CLK \clk [0]
+    connect \Q \btn_prev
+  end
+
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:246"
+  process $190
+    assign $71 [24:0] $44 [24:0]
+    switch $45 [0]
       case 1'1
-        assign $72 [0] 1'0
+        assign $71 [24:0] 25'0000000000000000000000000
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:225"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:246"
+  cell $dff $191
+    parameter \WIDTH 25
+    parameter \CLK_POLARITY 1
+    connect \D $71 [24:0]
+    connect \CLK \clk [0]
+    connect \Q \heartbeat_ctr
+  end
+
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:247"
+  process $192
+    assign $72 [0] \heartbeat_blink [0]
+    switch $45 [0]
+      case 1'1
+        assign $72 [0] $46 [0]
+    end
+  end
+
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:247"
   cell $dff $193
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
     connect \D $72 [0]
     connect \CLK \clk [0]
-    connect \Q \btn_prev
+    connect \Q \heartbeat_blink
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:244"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:272"
   process $194
-    assign $73 [24:0] $44 [24:0]
-    switch $45 [0]
+    assign $73 [3:0] \boot_delay [3:0]
+    switch $48 [0]
       case 1'1
-        assign $73 [24:0] 25'0000000000000000000000000
-    end
-    switch \rst [0]
-      case 1'1
-        assign $73 [24:0] 25'0000000000000000000000000
+        assign $73 [3:0] $49 [3:0]
+      case
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:244"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:272"
   cell $dff $195
-    parameter \WIDTH 25
+    parameter \WIDTH 4
     parameter \CLK_POLARITY 1
-    connect \D $73 [24:0]
+    connect \D $73 [3:0]
     connect \CLK \clk [0]
-    connect \Q \heartbeat_ctr
+    connect \Q \boot_delay
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:245"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:273"
   process $196
-    assign $74 [0] \heartbeat_blink [0]
-    switch $45 [0]
+    assign $74 [0] \boot_triggered [0]
+    switch $48 [0]
       case 1'1
-        assign $74 [0] $46 [0]
-    end
-    switch \rst [0]
-      case 1'1
-        assign $74 [0] 1'0
+        switch $50 [0]
+          case 1'1
+            assign $74 [0] 1'1
+        end
+      case
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:245"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:273"
   cell $dff $197
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
     connect \D $74 [0]
     connect \CLK \clk [0]
-    connect \Q \heartbeat_blink
-  end
-
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:270"
-  process $198
-    assign $75 [3:0] \boot_delay [3:0]
-    switch $48 [0]
-      case 1'1
-        assign $75 [3:0] $49 [3:0]
-      case
-    end
-    switch \rst [0]
-      case 1'1
-        assign $75 [3:0] 4'0000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:270"
-  cell $dff $199
-    parameter \WIDTH 4
-    parameter \CLK_POLARITY 1
-    connect \D $75 [3:0]
-    connect \CLK \clk [0]
-    connect \Q \boot_delay
-  end
-
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:271"
-  process $200
-    assign $76 [0] \boot_triggered [0]
-    switch $48 [0]
-      case 1'1
-        switch $50 [0]
-          case 1'1
-            assign $76 [0] 1'1
-        end
-      case
-    end
-    switch \rst [0]
-      case 1'1
-        assign $76 [0] 1'0
-    end
-  end
-
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:271"
-  cell $dff $201
-    parameter \WIDTH 1
-    parameter \CLK_POLARITY 1
-    connect \D $76 [0]
-    connect \CLK \clk [0]
     connect \Q \boot_triggered
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:311"
-  process $202
-    assign $77 [27:0] \startup_ctr [27:0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:313"
+  process $198
+    assign $75 [27:0] \startup_ctr [27:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
-        assign $77 [27:0] $51 [27:0]
+        assign $75 [27:0] $51 [27:0]
       case 4'0001
       case 4'0010
       case 4'0011
@@ -2037,34 +1980,30 @@ module \top
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $77 [27:0] 28'0000000000000000000000000000
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:311"
-  cell $dff $203
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:313"
+  cell $dff $199
     parameter \WIDTH 28
     parameter \CLK_POLARITY 1
-    connect \D $77 [27:0]
+    connect \D $75 [27:0]
     connect \CLK \clk [0]
     connect \Q \startup_ctr
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
-  process $204
-    assign $78 [3:0] \debug_fsm_state [3:0]
+  process $200
+    assign $76 [3:0] \debug_fsm_state [3:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
         switch $52 [0]
           case 1'1
-            assign $78 [3:0] 4'0001
+            assign $76 [3:0] 4'0001
         end
       case 4'0001
         switch \dbg_boot_complete [0]
           case 1'1
-            assign $78 [3:0] 4'0010
+            assign $76 [3:0] 4'0010
         end
       case 4'0010
         switch $53 [0]
@@ -2072,13 +2011,13 @@ module \top
             switch $54 [0]
               case 1'1
               case
-                assign $78 [3:0] 4'0011
+                assign $76 [3:0] 4'0011
             end
         end
       case 4'0011
         switch $56 [0]
           case 1'1
-            assign $78 [3:0] 4'0100
+            assign $76 [3:0] 4'0100
         end
       case 4'0100
         switch $57 [0]
@@ -2086,18 +2025,18 @@ module \top
             switch $58 [0]
               case 1'1
               case
-                assign $78 [3:0] 4'0101
+                assign $76 [3:0] 4'0101
             end
         end
       case 4'0101
         switch \btn_press [0]
           case 1'1
-            assign $78 [3:0] 4'0110
+            assign $76 [3:0] 4'0110
         end
       case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $78 [3:0] 4'0111
+            assign $76 [3:0] 4'0111
         end
       case 4'0111
         switch $60 [0]
@@ -2105,7 +2044,7 @@ module \top
             switch $61 [0]
               case 1'1
               case
-                assign $78 [3:0] 4'1000
+                assign $76 [3:0] 4'1000
             end
         end
       case 4'1000
@@ -2113,9 +2052,9 @@ module \top
           case 1'1
             switch \step_had_fault [0]
               case 1'1
-                assign $78 [3:0] 4'1001
+                assign $76 [3:0] 4'1001
               case
-                assign $78 [3:0] 4'0100
+                assign $76 [3:0] 4'0100
             end
         end
       case 4'1001
@@ -2124,46 +2063,42 @@ module \top
             switch $65 [0]
               case 1'1
               case
-                assign $78 [3:0] 4'1010
+                assign $76 [3:0] 4'1010
             end
         end
       case 4'1010
         switch $67 [0]
           case 1'1
-            assign $78 [3:0] 4'0100
+            assign $76 [3:0] 4'0100
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $78 [3:0] 4'0000
     end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
-  cell $dff $205
+  cell $dff $201
     parameter \WIDTH 4
     parameter \CLK_POLARITY 1
-    connect \D $78 [3:0]
+    connect \D $76 [3:0]
     connect \CLK \clk [0]
     connect \Q \debug_fsm_state
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:284"
-  process $206
-    assign $79 [4:0] \banner_idx [4:0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:286"
+  process $202
+    assign $77 [4:0] \banner_idx [4:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
         switch \dbg_boot_complete [0]
           case 1'1
-            assign $79 [4:0] 5'00000
+            assign $77 [4:0] 5'00000
         end
       case 4'0010
         switch $53 [0]
           case 1'1
             switch $54 [0]
               case 1'1
-                assign $79 [4:0] $55 [4:0]
+                assign $77 [4:0] $55 [4:0]
               case
             end
         end
@@ -2176,30 +2111,26 @@ module \top
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $79 [4:0] 5'00000
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:284"
-  cell $dff $207
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:286"
+  cell $dff $203
     parameter \WIDTH 5
     parameter \CLK_POLARITY 1
-    connect \D $79 [4:0]
+    connect \D $77 [4:0]
     connect \CLK \clk [0]
     connect \Q \banner_idx
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:211"
-  process $208
-    assign $80 [0] \halted [0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:213"
+  process $204
+    assign $78 [0] \halted [0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
         switch \dbg_boot_complete [0]
           case 1'1
-            assign $80 [0] 1'1
+            assign $78 [0] 1'1
         end
       case 4'0010
       case 4'0011
@@ -2211,24 +2142,20 @@ module \top
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $80 [0] 1'1
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:211"
-  cell $dff $209
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:213"
+  cell $dff $205
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
-    connect \D $80 [0]
+    connect \D $78 [0]
     connect \CLK \clk [0]
     connect \Q \halted
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:289"
-  process $210
-    assign $81 [2:0] \halt_idx [2:0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:291"
+  process $206
+    assign $79 [2:0] \halt_idx [2:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2239,9 +2166,9 @@ module \top
           case 1'1
             switch $58 [0]
               case 1'1
-                assign $81 [2:0] $59 [2:0]
+                assign $79 [2:0] $59 [2:0]
               case
-                assign $81 [2:0] 3'000
+                assign $79 [2:0] 3'000
             end
         end
       case 4'0101
@@ -2253,34 +2180,30 @@ module \top
             switch \step_had_fault [0]
               case 1'1
               case
-                assign $81 [2:0] 3'000
+                assign $79 [2:0] 3'000
             end
         end
       case 4'1001
       case 4'1010
         switch $67 [0]
           case 1'1
-            assign $81 [2:0] 3'000
+            assign $79 [2:0] 3'000
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $81 [2:0] 3'000
     end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:289"
-  cell $dff $211
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:291"
+  cell $dff $207
     parameter \WIDTH 3
     parameter \CLK_POLARITY 1
-    connect \D $81 [2:0]
+    connect \D $79 [2:0]
     connect \CLK \clk [0]
     connect \Q \halt_idx
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:212"
-  process $212
-    assign $82 [0] \stepping [0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:214"
+  process $208
+    assign $80 [0] \stepping [0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2290,36 +2213,32 @@ module \top
       case 4'0101
         switch \btn_press [0]
           case 1'1
-            assign $82 [0] 1'1
+            assign $80 [0] 1'1
         end
       case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $82 [0] 1'0
+            assign $80 [0] 1'0
         end
       case 4'0111
       case 4'1000
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $82 [0] 1'0
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:212"
-  cell $dff $213
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:214"
+  cell $dff $209
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
-    connect \D $82 [0]
+    connect \D $80 [0]
     connect \CLK \clk [0]
     connect \Q \stepping
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:303"
-  process $214
-    assign $83 [31:0] \step_nia [31:0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:305"
+  process $210
+    assign $81 [31:0] \step_nia [31:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2330,31 +2249,27 @@ module \top
       case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $83 [31:0] \imem_addr [31:0]
+            assign $81 [31:0] \imem_addr [31:0]
         end
       case 4'0111
       case 4'1000
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $83 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:303"
-  cell $dff $215
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:305"
+  cell $dff $211
     parameter \WIDTH 32
     parameter \CLK_POLARITY 1
-    connect \D $83 [31:0]
+    connect \D $81 [31:0]
     connect \CLK \clk [0]
     connect \Q \step_nia
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:304"
-  process $216
-    assign $84 [3:0] \step_fault [3:0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:306"
+  process $212
+    assign $82 [3:0] \step_fault [3:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2365,31 +2280,27 @@ module \top
       case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $84 [3:0] \dbg_fault [3:0]
+            assign $82 [3:0] \dbg_fault [3:0]
         end
       case 4'0111
       case 4'1000
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $84 [3:0] 4'0000
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:304"
-  cell $dff $217
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:306"
+  cell $dff $213
     parameter \WIDTH 4
     parameter \CLK_POLARITY 1
-    connect \D $84 [3:0]
+    connect \D $82 [3:0]
     connect \CLK \clk [0]
     connect \Q \step_fault
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:305"
-  process $218
-    assign $85 [0] \step_had_fault [0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:307"
+  process $214
+    assign $83 [0] \step_had_fault [0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2400,31 +2311,27 @@ module \top
       case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $85 [0] \dbg_fault_valid [0]
+            assign $83 [0] \dbg_fault_valid [0]
         end
       case 4'0111
       case 4'1000
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $85 [0] 1'0
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:305"
-  cell $dff $219
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:307"
+  cell $dff $215
     parameter \WIDTH 1
     parameter \CLK_POLARITY 1
-    connect \D $85 [0]
+    connect \D $83 [0]
     connect \CLK \clk [0]
     connect \Q \step_had_fault
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:294"
-  process $220
-    assign $86 [1:0] \step_idx [1:0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:296"
+  process $216
+    assign $84 [1:0] \step_idx [1:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2435,40 +2342,36 @@ module \top
       case 4'0110
         switch \step_complete [0]
           case 1'1
-            assign $86 [1:0] 2'00
+            assign $84 [1:0] 2'00
         end
       case 4'0111
         switch $60 [0]
           case 1'1
             switch $61 [0]
               case 1'1
-                assign $86 [1:0] $62 [1:0]
+                assign $84 [1:0] $62 [1:0]
               case
-                assign $86 [1:0] 2'00
+                assign $84 [1:0] 2'00
             end
         end
       case 4'1000
       case 4'1001
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $86 [1:0] 2'00
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:294"
-  cell $dff $221
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:296"
+  cell $dff $217
     parameter \WIDTH 2
     parameter \CLK_POLARITY 1
-    connect \D $86 [1:0]
+    connect \D $84 [1:0]
     connect \CLK \clk [0]
     connect \Q \step_idx
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:299"
-  process $222
-    assign $87 [1:0] \fault_msg_idx [1:0]
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:301"
+  process $218
+    assign $85 [1:0] \fault_msg_idx [1:0]
     switch \debug_fsm_state [3:0]
       case 4'0000
       case 4'0001
@@ -2483,7 +2386,7 @@ module \top
           case 1'1
             switch \step_had_fault [0]
               case 1'1
-                assign $87 [1:0] 2'00
+                assign $85 [1:0] 2'00
               case
             end
         end
@@ -2492,24 +2395,20 @@ module \top
           case 1'1
             switch $65 [0]
               case 1'1
-                assign $87 [1:0] $66 [1:0]
+                assign $85 [1:0] $66 [1:0]
               case
-                assign $87 [1:0] 2'00
+                assign $85 [1:0] 2'00
             end
         end
       case 4'1010
     end
-    switch \rst [0]
-      case 1'1
-        assign $87 [1:0] 2'00
-    end
   end
 
-  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:299"
-  cell $dff $223
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:301"
+  cell $dff $219
     parameter \WIDTH 2
     parameter \CLK_POLARITY 1
-    connect \D $87 [1:0]
+    connect \D $85 [1:0]
     connect \CLK \clk [0]
     connect \Q \fault_msg_idx
   end
@@ -3729,31 +3628,31 @@ module \top.core
   wire width 1 \nia_set
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:284"
-  wire width 1 \nia_set$408
+  wire width 1 \nia_set$407
 
   attribute \src "/home/runner/workspace/hardware/ret.py:24"
-  wire width 1 \nia_set$409
+  wire width 1 \nia_set$408
 
   attribute \src "/home/runner/workspace/hardware/call.py:39"
-  wire width 1 \nia_set$410
+  wire width 1 \nia_set$409
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:39"
-  wire width 1 \nia_set$411
+  wire width 1 \nia_set$410
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:21"
   wire width 32 \nia_value
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:285"
-  wire width 32 \nia_value$413
+  wire width 32 \nia_value$412
 
   attribute \src "/home/runner/workspace/hardware/ret.py:25"
-  wire width 32 \nia_value$414
+  wire width 32 \nia_value$413
 
   attribute \src "/home/runner/workspace/hardware/call.py:40"
-  wire width 32 \nia_value$415
+  wire width 32 \nia_value$414
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:40"
-  wire width 32 \nia_value$416
+  wire width 32 \nia_value$415
 
   attribute \src "/home/runner/workspace/hardware/ret.py:43"
   wire width 1 \lambda_clear
@@ -3761,60 +3660,57 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:13"
   wire width 1 \lambda_complete
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/core.py:38"
-  wire width 1 input 2  \imem_valid
+  wire width 1 input 1  \imem_valid
 
   attribute \src "/home/runner/workspace/hardware/core.py:60"
-  wire width 1 output 3  \boot_complete
+  wire width 1 output 2  \boot_complete
 
   attribute \src "/home/runner/workspace/hardware/core.py:375"
-  wire width 32 output 4  \perm_gt_sig
+  wire width 32 output 3  \perm_gt_sig
 
   attribute \src "/home/runner/workspace/hardware/mload.py:35"
-  wire width 32 input 5  \mem_rd_data
+  wire width 32 input 4  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/core.py:58"
-  wire width 1 input 6  \boot_start
+  wire width 1 input 5  \boot_start
 
   attribute \src "/home/runner/workspace/hardware/core.py:66"
-  wire width 4 output 7  \fault$320
+  wire width 4 output 6  \fault$320
 
   attribute \src "/home/runner/workspace/hardware/core.py:67"
-  wire width 1 output 8  \fault_valid$322
+  wire width 1 output 7  \fault_valid$322
 
   attribute \src "/home/runner/workspace/hardware/core.py:40"
-  wire width 32 output 9  \dmem_addr
+  wire width 32 output 8  \dmem_addr
 
   attribute \src "/home/runner/workspace/hardware/core.py:43"
-  wire width 32 output 10  \dmem_wr_data
+  wire width 32 output 9  \dmem_wr_data
 
   attribute \src "/home/runner/workspace/hardware/core.py:44"
-  wire width 1 output 11  \dmem_wr_en
+  wire width 1 output 10  \dmem_wr_en
 
   attribute \src "/home/runner/workspace/hardware/core.py:46"
-  wire width 32 output 12  \ns_addr
+  wire width 32 output 11  \ns_addr
 
   attribute \src "/home/runner/workspace/hardware/core.py:47"
-  wire width 1 output 13  \ns_rd_en
+  wire width 1 output 12  \ns_rd_en
 
   attribute \src "/home/runner/workspace/hardware/core.py:49"
-  wire width 96 output 14  \ns_wr_data
+  wire width 96 output 13  \ns_wr_data
 
   attribute \src "/home/runner/workspace/hardware/core.py:50"
-  wire width 1 output 15  \ns_wr_en
+  wire width 1 output 14  \ns_wr_en
 
   attribute \src "/home/runner/workspace/hardware/change.py:44"
   attribute \init 32'00000000000000000000000000000000
-  wire width 32 output 16  \imem_addr
+  wire width 32 output 15  \imem_addr
 
   attribute \src "/home/runner/workspace/hardware/core.py:37"
-  wire width 32 input 17  \instruction
+  wire width 32 input 16  \instruction
 
   wire width 1 $1
 
@@ -5557,7 +5453,6 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:90"
   cell \top.core.u_registers \u_registers
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \clear_all \clear_all [0]
     connect \cr_rd_addr \cr_rd_addr [3:0]
     connect \cr_wr_addr \cr_wr_addr [3:0]
@@ -5626,7 +5521,6 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:93"
   cell \top.core.u_gc_unit \u_gc_unit
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \gc_busy \gc_busy [0]
     connect \port$2010$0 \mem_rd_data [31:0]
     connect \ns_addr \ns_addr$396 [31:0]
@@ -5640,7 +5534,6 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:94"
   cell \top.core.u_lambda \u_lambda
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \lambda_start \lambda_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \lambda_busy \lambda_busy [0]
@@ -5656,7 +5549,6 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:95"
   cell \top.core.u_call \u_call
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \call_start \call_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \mload_src \mload_cr_src [3:0]
@@ -5675,13 +5567,12 @@ module \top.core
     connect \saved_cr5_gt \saved_cr5_gt$309 [31:0]
     connect \mload_start \mload_start [0]
     connect \mload_fault_type \fault_type$329 [3:0]
-    connect \port$2637$0 \instruction [18:0]
+    connect \port$2592$0 \instruction [18:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:96"
   cell \top.core.u_return \u_return
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \return_start \ret_start_sig [0]
     connect \saved_cr5_gt \saved_cr5_gt [31:0]
     connect \cr_rd_data \cr_rd_data [127:0]
@@ -5695,8 +5586,8 @@ module \top.core
     connect \lambda_pc \lambda_pc [31:0]
     connect \mload_dst \mload_cr_dst$354 [3:0]
     connect \mload_direct_gt \mload_direct_gt$357 [31:0]
-    connect \nia_set \nia_set$409 [0]
-    connect \nia_value \nia_value$414 [31:0]
+    connect \nia_set \nia_set$408 [0]
+    connect \nia_value \nia_value$413 [31:0]
     connect \lambda_clear \lambda_clear [0]
     connect \cr_wr_en \cr_wr_en$73 [0]
     connect \cr_wr_addr \cr_wr_addr$78 [3:0]
@@ -5711,7 +5602,6 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:97"
   cell \top.core.u_tperm \u_tperm
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \tperm_start \tperm_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \tperm_busy \tperm_busy [0]
@@ -5728,7 +5618,6 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:98"
   cell \top.core.u_save \u_save
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \save_start \save_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \save_busy \save_busy [0]
@@ -5742,13 +5631,12 @@ module \top.core
     connect \mem_wr_en \mem_wr_en$385 [0]
     connect \mem_wr_addr \mem_wr_addr [31:0]
     connect \mem_wr_data \mem_wr_data$390 [31:0]
-    connect \port$2637$0 \instruction [22:0]
+    connect \port$2592$0 \instruction [22:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:99"
   cell \top.core.u_load \u_load
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \load_start \load_start_sig [0]
     connect \mload_m_elevated \mload_m_elevated$365 [0]
     connect \load_busy \load_busy [0]
@@ -5758,13 +5646,12 @@ module \top.core
     connect \mload_done \mload_done [0]
     connect \mload_start \mload_start$359 [0]
     connect \fault_type \fault_type$329 [3:0]
-    connect \port$2637$0 \instruction [22:0]
+    connect \port$2592$0 \instruction [22:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:101"
   cell \top.core.u_shared_mload \u_shared_mload
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \sub_busy \sub_busy [0]
     connect \sub_fault \mload_fault [0]
@@ -5793,7 +5680,6 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:102"
   cell \top.core.u_change \u_change
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \change_start \change_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \dr_rd_data \dr_rd_data [31:0]
@@ -5809,13 +5695,12 @@ module \top.core
     connect \cr_wr_addr \cr_wr_addr$77 [3:0]
     connect \cr_wr_data \cr_wr_data$86 [127:0]
     connect \cr_wr_en \cr_wr_en$94 [0]
-    connect \port$2637$0 \instruction [18:0]
+    connect \port$2592$0 \instruction [18:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:103"
   cell \top.core.u_switch \u_switch
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \switch_start \switch_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \cr_rd_addr \cr_rd_addr$32 [3:0]
@@ -5827,13 +5712,12 @@ module \top.core
     connect \cr_wr_addr \cr_wr_addr$76 [3:0]
     connect \cr_wr_data \cr_wr_data$85 [127:0]
     connect \cr_wr_en \cr_wr_en$95 [0]
-    connect \port$2637$0 \instruction [17:0]
+    connect \port$2592$0 \instruction [17:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:104"
   cell \top.core.u_eloadcall \u_eloadcall
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \start \eloadcall_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \cr_rd_addr \cr_rd_addr$31 [3:0]
@@ -5847,27 +5731,26 @@ module \top.core
     connect \cr_wr_addr \cr_wr_addr$75 [3:0]
     connect \cr_wr_data \cr_wr_data$84 [127:0]
     connect \cr_wr_en \cr_wr_en$92 [0]
-    connect \port$2637$0 \instruction [22:0]
+    connect \port$2592$0 \instruction [22:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:105"
   cell \top.core.u_xloadlambda \u_xloadlambda
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \start \xloadlambda_start_sig [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \cr_rd_addr \cr_rd_addr$30 [3:0]
     connect \busy \busy$23 [0]
     connect \mem_rd_data \mem_rd_data [31:0]
     connect \cr15_namespace \cr15_namespace [127:0]
-    connect \nia_set \nia_set$408 [0]
-    connect \nia_value \nia_value$413 [31:0]
+    connect \nia_set \nia_set$407 [0]
+    connect \nia_value \nia_value$412 [31:0]
     connect \fault \fault$319 [0]
     connect \fault_type \fault_type$333 [3:0]
     connect \cr_wr_addr \cr_wr_addr$74 [3:0]
     connect \cr_wr_data \cr_wr_data$83 [127:0]
     connect \cr_wr_en \cr_wr_en$93 [0]
-    connect \port$2637$0 \instruction [22:0]
+    connect \port$2592$0 \instruction [22:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:117"
@@ -8741,7 +8624,7 @@ module \top.core
       case 3'110
         assign $138 [2:0] 3'110
     end
-    switch { $119 [0] \complete [0] \call_complete [0] \nia_set$409 [0] \nia_set$408 [0] \nia_set [0] \clear_all [0] \reboot_request [0] }
+    switch { $119 [0] \complete [0] \call_complete [0] \nia_set$408 [0] \nia_set$407 [0] \nia_set [0] \clear_all [0] \reboot_request [0] }
       case 8'-------1
         assign $138 [2:0] 3'001
       case 8'------1-
@@ -8751,10 +8634,6 @@ module \top.core
       case 8'--1-----
       case 8'-1------
       case 8'1-------
-    end
-    switch \rst [0]
-      case 1'1
-        assign $138 [2:0] 3'000
     end
   end
 
@@ -8770,7 +8649,7 @@ module \top.core
   attribute \src "/home/runner/workspace/hardware/core.py:107"
   process $394
     assign $139 [31:0] \imem_addr [31:0]
-    switch { $119 [0] \complete [0] \call_complete [0] \nia_set$409 [0] \nia_set$408 [0] \nia_set [0] \clear_all [0] \reboot_request [0] }
+    switch { $119 [0] \complete [0] \call_complete [0] \nia_set$408 [0] \nia_set$407 [0] \nia_set [0] \clear_all [0] \reboot_request [0] }
       case 8'-------1
         assign $139 [31:0] 32'00000000000000000000000000000000
       case 8'------1-
@@ -8778,19 +8657,15 @@ module \top.core
       case 8'-----1--
         assign $139 [31:0] \nia_value [31:0]
       case 8'----1---
-        assign $139 [31:0] \nia_value$413 [31:0]
+        assign $139 [31:0] \nia_value$412 [31:0]
       case 8'---1----
-        assign $139 [31:0] \nia_value$414 [31:0]
+        assign $139 [31:0] \nia_value$413 [31:0]
       case 8'--1-----
         assign $139 [31:0] 32'00000000000000000000000000000000
       case 8'-1------
         assign $139 [31:0] 32'00000000000000000000000000000000
       case 8'1-------
         assign $139 [31:0] $120 [31:0]
-    end
-    switch \rst [0]
-      case 1'1
-        assign $139 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -8814,10 +8689,6 @@ module \top.core
       case 3'1--
         assign $140 [0] 1'1
     end
-    switch \rst [0]
-      case 1'1
-        assign $140 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/core.py:109"
@@ -8838,10 +8709,6 @@ module \top.core
       case 3'-1-
       case 3'1--
         assign $141 [31:0] $72 [31:0]
-    end
-    switch \rst [0]
-      case 1'1
-        assign $141 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -8864,10 +8731,6 @@ module \top.core
         assign $142 [7:0] $136 [7:0]
       case 3'1--
         assign $142 [7:0] $137 [7:0]
-    end
-    switch \rst [0]
-      case 1'1
-        assign $142 [7:0] 8'00000000
     end
   end
 
@@ -9058,10 +8921,10 @@ connect \mload_fault$377 \mload_fault [0]
 connect \mload_fault_type$378 \fault_type$329 [3:0]
 connect \gbit_reset_done \valid_key_access [0]
 connect \access_index 17'00000000000000000
-connect \nia_set$410 \call_complete [0]
-connect \nia_set$411 \complete [0]
+connect \nia_set$409 \call_complete [0]
+connect \nia_set$410 \complete [0]
+connect \nia_value$414 32'00000000000000000000000000000000
 connect \nia_value$415 32'00000000000000000000000000000000
-connect \nia_value$416 32'00000000000000000000000000000000
 connect \perm_gt_sig \cr_rd_data [31:0]
 connect \flags.N \flags [0]
 connect \flags.Z \flags [1]
@@ -9739,140 +9602,137 @@ module \top.core.u_registers
   attribute \src "/home/runner/workspace/hardware/registers.py:53"
   wire width 4 \flags_in
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/registers.py:56"
-  wire width 1 input 2  \clear_all
+  wire width 1 input 1  \clear_all
 
   attribute \src "/home/runner/workspace/hardware/registers.py:20"
-  wire width 4 input 3  \cr_rd_addr
+  wire width 4 input 2  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/registers.py:23"
-  wire width 4 input 4  \cr_wr_addr
+  wire width 4 input 3  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/registers.py:24"
-  wire width 128 input 5  \cr_wr_data
+  wire width 128 input 4  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:25"
-  wire width 1 input 6  \cr_wr_en
+  wire width 1 input 5  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 7  \cr0_gt_wr_en
+  wire width 1 input 6  \cr0_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 8  \cr0_gt_wr_data
+  wire width 32 input 7  \cr0_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 9  \cr1_gt_wr_en
+  wire width 1 input 8  \cr1_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 10  \cr1_gt_wr_data
+  wire width 32 input 9  \cr1_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 11  \cr2_gt_wr_en
+  wire width 1 input 10  \cr2_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 12  \cr2_gt_wr_data
+  wire width 32 input 11  \cr2_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 13  \cr3_gt_wr_en
+  wire width 1 input 12  \cr3_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 14  \cr3_gt_wr_data
+  wire width 32 input 13  \cr3_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 15  \cr4_gt_wr_en
+  wire width 1 input 14  \cr4_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 16  \cr4_gt_wr_data
+  wire width 32 input 15  \cr4_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 17  \cr5_gt_wr_en
+  wire width 1 input 16  \cr5_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 18  \cr5_gt_wr_data
+  wire width 32 input 17  \cr5_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 19  \cr6_gt_wr_en
+  wire width 1 input 18  \cr6_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 20  \cr6_gt_wr_data
+  wire width 32 input 19  \cr6_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 21  \cr7_gt_wr_en
+  wire width 1 input 20  \cr7_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 22  \cr7_gt_wr_data
+  wire width 32 input 21  \cr7_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 23  \cr8_gt_wr_en
+  wire width 1 input 22  \cr8_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 24  \cr8_gt_wr_data
+  wire width 32 input 23  \cr8_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 25  \cr9_gt_wr_en
+  wire width 1 input 24  \cr9_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 26  \cr9_gt_wr_data
+  wire width 32 input 25  \cr9_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 27  \cr10_gt_wr_en
+  wire width 1 input 26  \cr10_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 28  \cr10_gt_wr_data
+  wire width 32 input 27  \cr10_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 29  \cr11_gt_wr_en
+  wire width 1 input 28  \cr11_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 30  \cr11_gt_wr_data
+  wire width 32 input 29  \cr11_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 31  \cr12_gt_wr_en
+  wire width 1 input 30  \cr12_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 32  \cr12_gt_wr_data
+  wire width 32 input 31  \cr12_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 33  \cr13_gt_wr_en
+  wire width 1 input 32  \cr13_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 34  \cr13_gt_wr_data
+  wire width 32 input 33  \cr13_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 35  \cr14_gt_wr_en
+  wire width 1 input 34  \cr14_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 36  \cr14_gt_wr_data
+  wire width 32 input 35  \cr14_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:42"
-  wire width 1 input 37  \cr15_gt_wr_en
+  wire width 1 input 36  \cr15_gt_wr_en
 
   attribute \src "/home/runner/workspace/hardware/registers.py:41"
-  wire width 32 input 38  \cr15_gt_wr_data
+  wire width 32 input 37  \cr15_gt_wr_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:21"
-  wire width 128 output 39  \cr_rd_data
+  wire width 128 output 38  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/registers.py:45"
-  wire width 32 output 40  \dr_rd_data1
+  wire width 32 output 39  \dr_rd_data1
 
   attribute \src "/home/runner/workspace/hardware/registers.py:38"
   attribute \init 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-  wire width 128 output 41  \cr8
+  wire width 128 output 40  \cr8
 
   attribute \src "/home/runner/workspace/hardware/registers.py:39"
   attribute \init 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-  wire width 128 output 42  \cr15
+  wire width 128 output 41  \cr15
 
   attribute \src "/home/runner/workspace/hardware/registers.py:63"
   attribute \init 4'0000
-  wire width 4 output 43  \flags
+  wire width 4 output 42  \flags
 
   wire width 128 $1
 
@@ -11189,10 +11049,6 @@ module \top.core.u_registers
             assign $11 [31:0] \cr0_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $11 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -11322,10 +11178,6 @@ module \top.core.u_registers
           case 1'1
             assign $12 [31:0] \cr1_gt_wr_data [31:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $12 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -11457,10 +11309,6 @@ module \top.core.u_registers
             assign $13 [31:0] \cr2_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $13 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -11590,10 +11438,6 @@ module \top.core.u_registers
           case 1'1
             assign $14 [31:0] \cr3_gt_wr_data [31:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $14 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -11725,10 +11569,6 @@ module \top.core.u_registers
             assign $15 [31:0] \cr4_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $15 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -11858,10 +11698,6 @@ module \top.core.u_registers
           case 1'1
             assign $16 [31:0] \cr5_gt_wr_data [31:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $16 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -11993,10 +11829,6 @@ module \top.core.u_registers
             assign $17 [31:0] \cr6_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $17 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -12126,10 +11958,6 @@ module \top.core.u_registers
           case 1'1
             assign $18 [31:0] \cr7_gt_wr_data [31:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $18 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -12261,10 +12089,6 @@ module \top.core.u_registers
             assign $19 [31:0] \cr8_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $19 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -12394,10 +12218,6 @@ module \top.core.u_registers
           case 1'1
             assign $20 [31:0] \cr9_gt_wr_data [31:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $20 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -12529,10 +12349,6 @@ module \top.core.u_registers
             assign $21 [31:0] \cr10_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $21 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -12662,10 +12478,6 @@ module \top.core.u_registers
           case 1'1
             assign $22 [31:0] \cr11_gt_wr_data [31:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $22 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -12797,10 +12609,6 @@ module \top.core.u_registers
             assign $23 [31:0] \cr12_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $23 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -12930,10 +12738,6 @@ module \top.core.u_registers
           case 1'1
             assign $24 [31:0] \cr13_gt_wr_data [31:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $24 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -13065,10 +12869,6 @@ module \top.core.u_registers
             assign $25 [31:0] \cr14_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $25 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -13199,10 +12999,6 @@ module \top.core.u_registers
             assign $26 [31:0] \cr15_gt_wr_data [31:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $26 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:61"
@@ -13243,10 +13039,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $27 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13289,10 +13081,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $28 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13333,10 +13121,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $29 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13379,10 +13163,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $30 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13423,10 +13203,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $31 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13469,10 +13245,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $32 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13513,10 +13285,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $33 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13559,10 +13327,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $34 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13603,10 +13367,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $35 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13649,10 +13409,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $36 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13693,10 +13449,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $37 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13739,10 +13491,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $38 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13783,10 +13531,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $39 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13829,10 +13573,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $40 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13873,10 +13613,6 @@ module \top.core.u_registers
               case 4'1111
             end
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $41 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -13919,10 +13655,6 @@ module \top.core.u_registers
             end
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $42 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/registers.py:62"
@@ -13945,10 +13677,6 @@ module \top.core.u_registers
           case 1'1
             assign $43 [3:0] 4'0000
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $43 [3:0] 4'0000
     end
   end
 
@@ -15698,35 +15426,32 @@ module \top.core.u_gc_unit
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:23"
   wire width 17 \ns_end_index
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:13"
-  wire width 1 output 2  \gc_busy
+  wire width 1 output 1  \gc_busy
 
-  wire width 32 input 3  \port$2010$0
+  wire width 32 input 2  \port$2010$0
 
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:16"
-  wire width 32 output 4  \ns_addr
+  wire width 32 output 3  \ns_addr
 
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:17"
-  wire width 1 output 5  \ns_rd_en
+  wire width 1 output 4  \ns_rd_en
 
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:19"
-  wire width 96 output 6  \ns_wr_data
+  wire width 96 output 5  \ns_wr_data
 
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:20"
-  wire width 1 output 7  \ns_wr_en
+  wire width 1 output 6  \ns_wr_en
 
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:37"
   attribute \init 32'00000000000000000000000000000000
-  wire width 32 output 8  \garbage_count
+  wire width 32 output 7  \garbage_count
 
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:28"
-  wire width 1 input 9  \g_bit_reset
+  wire width 1 input 8  \g_bit_reset
 
   wire width 8 $1
 
@@ -16166,10 +15891,6 @@ module \top.core.u_gc_unit
         assign $21 [16:0] $19 [16:0]
       case 3'100
     end
-    switch \rst [0]
-      case 1'1
-        assign $21 [16:0] 17'00000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/gc_unit.py:35"
@@ -16202,10 +15923,6 @@ module \top.core.u_gc_unit
       case 3'101
       case 3'110
       case 3'100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $22 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -16240,10 +15957,6 @@ module \top.core.u_gc_unit
         end
       case 3'110
       case 3'100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $23 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -16305,10 +16018,6 @@ module \top.core.u_gc_unit
       case 3'100
         assign $24 [2:0] 3'000
     end
-    switch \rst [0]
-      case 1'1
-        assign $24 [2:0] 3'000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -16333,10 +16042,6 @@ module \top.core.u_gc_unit
       case 3'101
       case 3'110
       case 3'100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $25 [95:0] 96'000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -16385,43 +16090,40 @@ module \top.core.u_lambda
   attribute \init 4'0000
   wire width 4 \fault_latched
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:10"
-  wire width 1 input 2  \lambda_start
+  wire width 1 input 1  \lambda_start
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:18"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:12"
-  wire width 1 output 4  \lambda_busy
+  wire width 1 output 3  \lambda_busy
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:13"
-  wire width 1 output 5  \lambda_complete
+  wire width 1 output 4  \lambda_complete
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:17"
-  wire width 4 output 6  \cr_rd_addr
+  wire width 4 output 5  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:20"
-  wire width 1 output 7  \nia_set
+  wire width 1 output 6  \nia_set
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:21"
-  wire width 32 output 8  \nia_value
+  wire width 32 output 7  \nia_value
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:35"
   attribute \init 1'0
-  wire width 1 output 9  \lambda_fault
+  wire width 1 output 8  \lambda_fault
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:36"
   attribute \init 4'0000
-  wire width 4 output 10  \fault_type
+  wire width 4 output 9  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:11"
-  wire width 4 input 11  \cr_target
+  wire width 4 input 10  \cr_target
 
   wire width 1 $1
 
@@ -16658,10 +16360,6 @@ module \top.core.u_lambda
       case 3'101
       case 3'011
     end
-    switch \rst [0]
-      case 1'1
-        assign $7 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/lambda_unit.py:35"
@@ -16691,10 +16389,6 @@ module \top.core.u_lambda
       case 3'100
       case 3'101
       case 3'011
-    end
-    switch \rst [0]
-      case 1'1
-        assign $8 [3:0] 4'0000
     end
   end
 
@@ -16734,10 +16428,6 @@ module \top.core.u_lambda
       case 3'011
         assign $9 [2:0] 3'000
     end
-    switch \rst [0]
-      case 1'1
-        assign $9 [2:0] 3'000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -16760,10 +16450,6 @@ module \top.core.u_lambda
       case 3'100
       case 3'101
       case 3'011
-    end
-    switch \rst [0]
-      case 1'1
-        assign $10 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -16911,70 +16597,67 @@ module \top.core.u_call
   attribute \src "/home/runner/workspace/hardware/call.py:13"
   wire width 16 \mask
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/call.py:10"
-  wire width 1 input 2  \call_start
+  wire width 1 input 1  \call_start
 
   attribute \src "/home/runner/workspace/hardware/call.py:20"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/call.py:26"
-  wire width 4 output 4  \mload_src
+  wire width 4 output 3  \mload_src
 
-  wire width 3 output 5  \port$957$0
+  wire width 3 output 4  \port$957$0
 
   attribute \src "/home/runner/workspace/hardware/call.py:28"
-  wire width 17 output 6  \mload_index
+  wire width 17 output 5  \mload_index
 
   attribute \src "/home/runner/workspace/hardware/call.py:14"
-  wire width 1 output 7  \call_busy
+  wire width 1 output 6  \call_busy
 
   attribute \src "/home/runner/workspace/hardware/call.py:39"
-  wire width 1 output 8  \call_complete
+  wire width 1 output 7  \call_complete
 
   attribute \src "/home/runner/workspace/hardware/call.py:34"
-  wire width 1 input 9  \mload_fault
+  wire width 1 input 8  \mload_fault
 
   attribute \src "/home/runner/workspace/hardware/call.py:33"
-  wire width 1 input 10  \mload_done
+  wire width 1 input 9  \mload_done
 
   attribute \src "/home/runner/workspace/hardware/call.py:62"
-  wire width 4 output 11  \cr_rd_addr
+  wire width 4 output 10  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/call.py:68"
-  wire width 128 output 12  \cr_wr_data
+  wire width 128 output 11  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/call.py:66"
-  wire width 1 output 13  \cr_wr_en
+  wire width 1 output 12  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/call.py:67"
-  wire width 4 output 14  \cr_wr_addr
+  wire width 4 output 13  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/call.py:56"
   attribute \init 1'0
-  wire width 1 output 15  \call_fault
+  wire width 1 output 14  \call_fault
 
   attribute \src "/home/runner/workspace/hardware/call.py:57"
   attribute \init 4'0000
-  wire width 4 output 16  \fault_type
+  wire width 4 output 15  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/call.py:37"
   attribute \init 32'00000000000000000000000000000000
-  wire width 32 output 17  \saved_cr5_gt
+  wire width 32 output 16  \saved_cr5_gt
 
   attribute \src "/home/runner/workspace/hardware/call.py:58"
   attribute \init 1'0
-  wire width 1 output 18  \mload_start
+  wire width 1 output 17  \mload_start
 
   attribute \src "/home/runner/workspace/hardware/call.py:35"
-  wire width 4 input 19  \mload_fault_type
+  wire width 4 input 18  \mload_fault_type
 
-  wire width 19 input 20  \port$2637$0
+  wire width 19 input 19  \port$2592$0
 
   wire width 3 $1
 
@@ -17179,7 +16862,7 @@ module \top.core.u_call
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$2637$0 [18:15]
+    connect \A \port$2592$0 [18:15]
     connect \B 3'101
     connect \Y \src_in_range
   end
@@ -17188,7 +16871,7 @@ module \top.core.u_call
   cell $mux $40
     parameter \WIDTH 4
     connect \S \phase [0]
-    connect \A \port$2637$0 [18:15]
+    connect \A \port$2592$0 [18:15]
     connect \B 4'0110
     connect \Y \mload_src
   end
@@ -17206,7 +16889,7 @@ module \top.core.u_call
   cell $mux $42
     parameter \WIDTH 17
     connect \S \phase [0]
-    connect \A { 2'00 \port$2637$0 [14:0] }
+    connect \A { 2'00 \port$2592$0 [14:0] }
     connect \B 17'00000000000000000
     connect \Y \mload_index
   end
@@ -17541,9 +17224,9 @@ module \top.core.u_call
     switch \call_state [3:0]
       case 4'0000
       case 4'0001
-        assign \cr_rd_addr [3:0] \port$2637$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$2592$0 [18:15]
       case 4'0011
-        assign \cr_rd_addr [3:0] \port$2637$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$2592$0 [18:15]
       case 4'0100
         switch $4 [0]
           case 1'1
@@ -17683,10 +17366,6 @@ module \top.core.u_call
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $27 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/call.py:53"
@@ -17735,10 +17414,6 @@ module \top.core.u_call
       case 4'1101
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $28 [0] 1'0
     end
   end
 
@@ -17789,10 +17464,6 @@ module \top.core.u_call
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $29 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/call.py:57"
@@ -17832,10 +17503,6 @@ module \top.core.u_call
       case 4'1101
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $30 [0] 1'0
     end
   end
 
@@ -17877,10 +17544,6 @@ module \top.core.u_call
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $31 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/call.py:60"
@@ -17899,7 +17562,7 @@ module \top.core.u_call
       case 4'0000
         switch \call_start [0]
           case 1'1
-            assign $32 [15:0] { 1'0 \port$2637$0 [14:0] }
+            assign $32 [15:0] { 1'0 \port$2592$0 [14:0] }
         end
       case 4'0001
       case 4'0011
@@ -17914,10 +17577,6 @@ module \top.core.u_call
       case 4'1101
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $32 [15:0] 16'0000000000000000
     end
   end
 
@@ -17992,10 +17651,6 @@ module \top.core.u_call
       case 4'0010
         assign $33 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $33 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -18027,10 +17682,6 @@ module \top.core.u_call
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $34 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/call.py:54"
@@ -18061,10 +17712,6 @@ module \top.core.u_call
       case 4'1101
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $35 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -18099,10 +17746,6 @@ module \top.core.u_call
       case 4'1101
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $36 [0] 1'0
     end
   end
 
@@ -18142,10 +17785,6 @@ module \top.core.u_call
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $37 [2:0] 3'000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/call.py:64"
@@ -18177,10 +17816,6 @@ module \top.core.u_call
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $38 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/call.py:65"
@@ -18192,9 +17827,9 @@ module \top.core.u_call
     connect \Q \b_cr_data
   end
 
-connect \cr_src \port$2637$0 [18:15]
+connect \cr_src \port$2592$0 [18:15]
 connect \mload_dst { 1'0 $1 [2:0] }
-connect \index { 2'00 \port$2637$0 [14:0] }
+connect \index { 2'00 \port$2592$0 [14:0] }
 connect \sub_start_reg \mload_start [0]
 connect \mload_cr_src \mload_src [3:0]
 connect \mload_cr_dst { 1'0 $1 [2:0] }
@@ -18212,7 +17847,7 @@ connect \fault_latched \call_fault [0]
 connect \fault_type_latched \fault_type [3:0]
 connect \nia_set \call_complete [0]
 connect \nia_value 32'00000000000000000000000000000000
-connect \mask { 1'0 \port$2637$0 [14:0] }
+connect \mask { 1'0 \port$2592$0 [14:0] }
 connect \port$957$0 $1 [2:0]
 connect \cr_wr_data.word0_gt \cr_wr_data [31:0]
 connect \cr_wr_data.word0_gt.gt_type \cr_wr_data [1:0]
@@ -18326,86 +17961,83 @@ module \top.core.u_return
   attribute \init 1'0
   wire width 1 \sub_fault_latched
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/ret.py:10"
-  wire width 1 input 2  \return_start
+  wire width 1 input 1  \return_start
 
   attribute \src "/home/runner/workspace/hardware/ret.py:39"
-  wire width 32 input 3  \saved_cr5_gt
+  wire width 32 input 2  \saved_cr5_gt
 
   attribute \src "/home/runner/workspace/hardware/ret.py:19"
-  wire width 128 input 4  \cr_rd_data
+  wire width 128 input 3  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/ret.py:18"
-  wire width 4 output 5  \cr_rd_addr
+  wire width 4 output 4  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/ret.py:12"
-  wire width 1 output 6  \busy
+  wire width 1 output 5  \busy
 
   attribute \src "/home/runner/workspace/hardware/ret.py:13"
-  wire width 1 output 7  \complete
+  wire width 1 output 6  \complete
 
   attribute \src "/home/runner/workspace/hardware/ret.py:16"
-  wire width 1 output 8  \reboot_request
+  wire width 1 output 7  \reboot_request
 
   attribute \src "/home/runner/workspace/hardware/ret.py:36"
-  wire width 1 input 9  \mload_fault
+  wire width 1 input 8  \mload_fault
 
   attribute \src "/home/runner/workspace/hardware/ret.py:35"
-  wire width 1 input 10  \mload_done
+  wire width 1 input 9  \mload_done
 
   attribute \src "/home/runner/workspace/hardware/ret.py:41"
-  wire width 1 input 11  \lambda_active
+  wire width 1 input 10  \lambda_active
 
   attribute \src "/home/runner/workspace/hardware/ret.py:42"
-  wire width 32 input 12  \lambda_pc
+  wire width 32 input 11  \lambda_pc
 
   attribute \src "/home/runner/workspace/hardware/ret.py:29"
-  wire width 4 output 13  \mload_dst
+  wire width 4 output 12  \mload_dst
 
   attribute \src "/home/runner/workspace/hardware/ret.py:32"
-  wire width 32 output 14  \mload_direct_gt
+  wire width 32 output 13  \mload_direct_gt
 
   attribute \src "/home/runner/workspace/hardware/ret.py:24"
-  wire width 1 output 15  \nia_set
+  wire width 1 output 14  \nia_set
 
   attribute \src "/home/runner/workspace/hardware/ret.py:25"
-  wire width 32 output 16  \nia_value
+  wire width 32 output 15  \nia_value
 
   attribute \src "/home/runner/workspace/hardware/ret.py:43"
-  wire width 1 output 17  \lambda_clear
+  wire width 1 output 16  \lambda_clear
 
   attribute \src "/home/runner/workspace/hardware/ret.py:76"
-  wire width 1 output 18  \cr_wr_en
+  wire width 1 output 17  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/ret.py:77"
-  wire width 4 output 19  \cr_wr_addr
+  wire width 4 output 18  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/ret.py:78"
-  wire width 128 output 20  \cr_wr_data
+  wire width 128 output 19  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/ret.py:69"
   attribute \init 1'0
-  wire width 1 output 21  \fault_valid
+  wire width 1 output 20  \fault_valid
 
   attribute \src "/home/runner/workspace/hardware/ret.py:70"
   attribute \init 4'0000
-  wire width 4 output 22  \fault_type
+  wire width 4 output 21  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/ret.py:71"
   attribute \init 1'0
-  wire width 1 output 23  \mload_start
+  wire width 1 output 22  \mload_start
 
   attribute \src "/home/runner/workspace/hardware/ret.py:37"
-  wire width 4 input 24  \mload_fault_type
+  wire width 4 input 23  \mload_fault_type
 
   attribute \src "/home/runner/workspace/hardware/ret.py:11"
-  wire width 3 input 25  \cr_src
+  wire width 3 input 24  \cr_src
 
   wire width 33 $1
 
@@ -19020,10 +18652,6 @@ module \top.core.u_return
       case 4'0101
       case 4'0110
     end
-    switch \rst [0]
-      case 1'1
-        assign $17 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/ret.py:69"
@@ -19075,10 +18703,6 @@ module \top.core.u_return
       case 4'0101
       case 4'0110
     end
-    switch \rst [0]
-      case 1'1
-        assign $18 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/ret.py:70"
@@ -19113,10 +18737,6 @@ module \top.core.u_return
       case 4'0011
       case 4'0101
       case 4'0110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $19 [1:0] 2'00
     end
   end
 
@@ -19170,10 +18790,6 @@ module \top.core.u_return
       case 4'0101
       case 4'0110
     end
-    switch \rst [0]
-      case 1'1
-        assign $20 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/ret.py:72"
@@ -19225,10 +18841,6 @@ module \top.core.u_return
       case 4'0011
       case 4'0101
       case 4'0110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $21 [0] 1'0
     end
   end
 
@@ -19311,10 +18923,6 @@ module \top.core.u_return
       case 4'0110
         assign $22 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $22 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -19346,10 +18954,6 @@ module \top.core.u_return
       case 4'0011
       case 4'0101
       case 4'0110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $23 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -19396,10 +19000,6 @@ module \top.core.u_return
       case 4'0011
       case 4'0101
       case 4'0110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $24 [0] 1'0
     end
   end
 
@@ -19498,46 +19098,43 @@ module \top.core.u_tperm
   attribute \init 4'0000
   wire width 4 \fault_latched
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/tperm.py:10"
-  wire width 1 input 2  \tperm_start
+  wire width 1 input 1  \tperm_start
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:20"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:14"
-  wire width 1 output 4  \tperm_busy
+  wire width 1 output 3  \tperm_busy
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:19"
-  wire width 4 output 5  \cr_rd_addr
+  wire width 4 output 4  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:22"
-  wire width 4 output 6  \cr_wr_addr
+  wire width 4 output 5  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:23"
-  wire width 128 output 7  \cr_wr_data
+  wire width 128 output 6  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:24"
-  wire width 1 output 8  \cr_wr_en
+  wire width 1 output 7  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:33"
   attribute \init 1'0
-  wire width 1 output 9  \tperm_fault
+  wire width 1 output 8  \tperm_fault
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:34"
   attribute \init 4'0000
-  wire width 4 output 10  \fault_type
+  wire width 4 output 9  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:12"
-  wire width 4 input 11  \preset
+  wire width 4 input 10  \preset
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:11"
-  wire width 4 input 12  \cr_target
+  wire width 4 input 11  \cr_target
 
   wire width 6 $1
 
@@ -19934,10 +19531,6 @@ module \top.core.u_tperm
       case 3'101
       case 3'011
     end
-    switch \rst [0]
-      case 1'1
-        assign $9 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:33"
@@ -19968,10 +19561,6 @@ module \top.core.u_tperm
       case 3'101
       case 3'011
     end
-    switch \rst [0]
-      case 1'1
-        assign $10 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/tperm.py:34"
@@ -19997,10 +19586,6 @@ module \top.core.u_tperm
       case 3'100
       case 3'101
       case 3'011
-    end
-    switch \rst [0]
-      case 1'1
-        assign $11 [3:0] 4'0000
     end
   end
 
@@ -20040,10 +19625,6 @@ module \top.core.u_tperm
       case 3'011
         assign $12 [2:0] 3'000
     end
-    switch \rst [0]
-      case 1'1
-        assign $12 [2:0] 3'000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -20066,10 +19647,6 @@ module \top.core.u_tperm
       case 3'100
       case 3'101
       case 3'011
-    end
-    switch \rst [0]
-      case 1'1
-        assign $13 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -20230,54 +19807,51 @@ module \top.core.u_save
   attribute \src "/home/runner/workspace/hardware/msave.py:19"
   wire width 4 \sub_fault_type
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/save.py:11"
-  wire width 1 input 2  \save_start
+  wire width 1 input 1  \save_start
 
   attribute \src "/home/runner/workspace/hardware/save.py:21"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/save.py:15"
-  wire width 1 output 4  \save_busy
+  wire width 1 output 3  \save_busy
 
   attribute \src "/home/runner/workspace/hardware/save.py:30"
-  wire width 32 input 5  \mem_rd_data
+  wire width 32 input 4  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/save.py:33"
-  wire width 128 input 6  \cr15_namespace
+  wire width 128 input 5  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/save.py:20"
-  wire width 4 output 7  \cr_rd_addr
+  wire width 4 output 6  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/save.py:45"
   attribute \init 1'0
-  wire width 1 output 8  \save_fault
+  wire width 1 output 7  \save_fault
 
   attribute \src "/home/runner/workspace/hardware/save.py:46"
   attribute \init 4'0000
-  wire width 4 output 9  \fault_type
+  wire width 4 output 8  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/msave.py:26"
-  wire width 32 output 10  \mem_rd_addr
+  wire width 32 output 9  \mem_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/msave.py:27"
-  wire width 1 output 11  \mem_rd_en
+  wire width 1 output 10  \mem_rd_en
 
   attribute \src "/home/runner/workspace/hardware/msave.py:23"
-  wire width 1 output 12  \mem_wr_en
+  wire width 1 output 11  \mem_wr_en
 
   attribute \src "/home/runner/workspace/hardware/msave.py:21"
-  wire width 32 output 13  \mem_wr_addr
+  wire width 32 output 12  \mem_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/msave.py:22"
-  wire width 32 output 14  \mem_wr_data
+  wire width 32 output 13  \mem_wr_data
 
-  wire width 23 input 15  \port$2637$0
+  wire width 23 input 14  \port$2592$0
 
   wire width 1 $1
 
@@ -20454,7 +20028,6 @@ module \top.core.u_save
   attribute \src "/home/runner/workspace/hardware/save.py:41"
   cell \top.core.u_save.u_msave \u_msave
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \sub_fault \sub_fault [0]
     connect \sub_done \sub_done [0]
     connect \mem_rd_data \mem_rd_data [31:0]
@@ -20468,7 +20041,7 @@ module \top.core.u_save
     connect \mem_wr_addr \mem_wr_addr [31:0]
     connect \mem_wr_data \mem_wr_data [31:0]
     connect \sub_fault_type \sub_fault_type [3:0]
-    connect \port$2637$0 \port$2637$0 [14:0]
+    connect \port$2592$0 \port$2592$0 [14:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/save.py:53"
@@ -20478,7 +20051,7 @@ module \top.core.u_save
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$2637$0 [22:19]
+    connect \A \port$2592$0 [22:19]
     connect \B 3'110
     connect \Y \dst_in_range
   end
@@ -20579,11 +20152,11 @@ module \top.core.u_save
     switch \save_wrapper_state [2:0]
       case 3'000
       case 3'001
-        assign \cr_rd_addr [3:0] \port$2637$0 [22:19]
+        assign \cr_rd_addr [3:0] \port$2592$0 [22:19]
       case 3'010
-        assign \cr_rd_addr [3:0] \port$2637$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$2592$0 [18:15]
       case 3'011
-        assign \cr_rd_addr [3:0] \port$2637$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$2592$0 [18:15]
       case 3'100
     end
   end
@@ -20607,10 +20180,6 @@ module \top.core.u_save
           case 1'1
             assign $7 [0] 1'1
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $7 [0] 1'0
     end
   end
 
@@ -20643,10 +20212,6 @@ module \top.core.u_save
             assign $8 [3:0] \sub_fault_type [3:0]
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $8 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/save.py:46"
@@ -20673,10 +20238,6 @@ module \top.core.u_save
             assign $9 [0] 1'1
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $9 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/save.py:49"
@@ -20702,10 +20263,6 @@ module \top.core.u_save
           case 1'1
             assign $10 [0] 1'1
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $10 [0] 1'0
     end
   end
 
@@ -20746,10 +20303,6 @@ module \top.core.u_save
             assign $11 [2:0] 3'000
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $11 [2:0] 3'000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -20772,10 +20325,6 @@ module \top.core.u_save
       case 3'011
       case 3'100
     end
-    switch \rst [0]
-      case 1'1
-        assign $12 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/save.py:43"
@@ -20797,10 +20346,6 @@ module \top.core.u_save
       case 3'011
         assign $13 [127:0] \cr_rd_data [127:0]
       case 3'100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $13 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -20825,10 +20370,6 @@ module \top.core.u_save
       case 3'100
         assign $14 [0] 1'0
     end
-    switch \rst [0]
-      case 1'1
-        assign $14 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/save.py:48"
@@ -20840,12 +20381,12 @@ module \top.core.u_save
     connect \Q \sub_start
   end
 
-connect \cr_dst \port$2637$0 [22:19]
+connect \cr_dst \port$2592$0 [22:19]
 connect \sub_start$3 \sub_start [0]
 connect \dst_reg_latched \sub_dst_cap [127:0]
 connect \sub_src_gt \src_reg_latched [31:0]
-connect \sub_index { 2'00 \port$2637$0 [14:0] }
-connect \index { 2'00 \port$2637$0 [14:0] }
+connect \sub_index { 2'00 \port$2592$0 [14:0] }
+connect \index { 2'00 \port$2592$0 [14:0] }
 connect \mem_wr_done 1'1
 connect \mem_wr_done$11 1'1
 connect \cr15_namespace$13 \cr15_namespace [127:0]
@@ -20858,7 +20399,7 @@ connect \mem_wr_en$23 \mem_wr_en [0]
 connect \mem_rd_addr$25 \mem_rd_addr [31:0]
 connect \mem_rd_en$27 \mem_rd_en [0]
 connect \sub_start_reg \sub_start [0]
-connect \cr_src \port$2637$0 [18:15]
+connect \cr_src \port$2592$0 [18:15]
 connect \fault_latched \save_fault [0]
 connect \fault_type_latched \fault_type [3:0]
 connect \sub_dst_cap.word0_gt \sub_dst_cap [31:0]
@@ -20987,53 +20528,50 @@ module \top.core.u_save.u_msave
   attribute \src "/home/runner/workspace/hardware/msave.py:24"
   wire width 1 \mem_wr_done
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/msave.py:18"
-  wire width 1 output 2  \sub_fault
+  wire width 1 output 1  \sub_fault
 
   attribute \src "/home/runner/workspace/hardware/msave.py:17"
-  wire width 1 output 3  \sub_done
+  wire width 1 output 2  \sub_done
 
   attribute \src "/home/runner/workspace/hardware/msave.py:28"
-  wire width 32 input 4  \mem_rd_data
+  wire width 32 input 3  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/msave.py:31"
-  wire width 128 input 5  \cr15_namespace
+  wire width 128 input 4  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/msave.py:13"
-  wire width 128 input 6  \sub_dst_cap
+  wire width 128 input 5  \sub_dst_cap
 
   attribute \src "/home/runner/workspace/hardware/msave.py:14"
-  wire width 32 input 7  \sub_src_gt
+  wire width 32 input 6  \sub_src_gt
 
   attribute \src "/home/runner/workspace/hardware/msave.py:12"
-  wire width 1 input 8  \sub_start
+  wire width 1 input 7  \sub_start
 
   attribute \src "/home/runner/workspace/hardware/msave.py:26"
-  wire width 32 output 9  \mem_rd_addr
+  wire width 32 output 8  \mem_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/msave.py:27"
-  wire width 1 output 10  \mem_rd_en
+  wire width 1 output 9  \mem_rd_en
 
   attribute \src "/home/runner/workspace/hardware/msave.py:23"
-  wire width 1 output 11  \mem_wr_en
+  wire width 1 output 10  \mem_wr_en
 
   attribute \src "/home/runner/workspace/hardware/msave.py:21"
-  wire width 32 output 12  \mem_wr_addr
+  wire width 32 output 11  \mem_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/msave.py:22"
-  wire width 32 output 13  \mem_wr_data
+  wire width 32 output 12  \mem_wr_data
 
   attribute \src "/home/runner/workspace/hardware/msave.py:39"
   attribute \init 4'0000
-  wire width 4 output 14  \sub_fault_type
+  wire width 4 output 13  \sub_fault_type
 
-  wire width 15 input 15  \port$2637$0
+  wire width 15 input 14  \port$2592$0
 
   wire width 20 $1
 
@@ -21788,10 +21326,6 @@ module \top.core.u_save.u_msave
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $34 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/msave.py:36"
@@ -21824,10 +21358,6 @@ module \top.core.u_save.u_msave
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $35 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/msave.py:37"
@@ -21846,7 +21376,7 @@ module \top.core.u_save.u_msave
       case 4'0000
         switch \sub_start [0]
           case 1'1
-            assign $36 [16:0] { 2'00 \port$2637$0 [14:0] }
+            assign $36 [16:0] { 2'00 \port$2592$0 [14:0] }
         end
       case 4'0001
       case 4'0011
@@ -21859,10 +21389,6 @@ module \top.core.u_save.u_msave
       case 4'1010
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $36 [16:0] 17'00000000000000000
     end
   end
 
@@ -21922,10 +21448,6 @@ module \top.core.u_save.u_msave
       case 4'1010
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $37 [3:0] 4'0000
     end
   end
 
@@ -22009,10 +21531,6 @@ module \top.core.u_save.u_msave
       case 4'0010
         assign $38 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $38 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -22044,10 +21562,6 @@ module \top.core.u_save.u_msave
       case 4'1010
       case 4'1011
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $39 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -22081,10 +21595,6 @@ module \top.core.u_save.u_msave
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $40 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/msave.py:60"
@@ -22117,10 +21627,6 @@ module \top.core.u_save.u_msave
       case 4'1011
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $41 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/msave.py:65"
@@ -22137,7 +21643,7 @@ connect \ns_entry_addr $6 [31:0]
 connect \fnv_mul $16 [31:0]
 connect \fnv_masked \fnv_hash [24:0]
 connect \fault_type_reg \sub_fault_type [3:0]
-connect \sub_index { 2'00 \port$2637$0 [14:0] }
+connect \sub_index { 2'00 \port$2592$0 [14:0] }
 connect \mem_rd_valid 1'1
 connect \mem_wr_done 1'1
 connect \dst_cap_reg.word0_gt \dst_cap_reg [31:0]
@@ -22205,40 +21711,37 @@ module \top.core.u_load
   attribute \src "/home/runner/workspace/hardware/load.py:28"
   wire width 4 \mload_fault_type
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/load.py:8"
-  wire width 1 input 2  \load_start
+  wire width 1 input 1  \load_start
 
   attribute \src "/home/runner/workspace/hardware/load.py:23"
-  wire width 1 output 3  \mload_m_elevated
+  wire width 1 output 2  \mload_m_elevated
 
   attribute \src "/home/runner/workspace/hardware/load.py:12"
-  wire width 1 output 4  \load_busy
+  wire width 1 output 3  \load_busy
 
   attribute \src "/home/runner/workspace/hardware/load.py:14"
-  wire width 1 output 5  \load_fault
+  wire width 1 output 4  \load_fault
 
   attribute \src "/home/runner/workspace/hardware/load.py:25"
-  wire width 1 input 6  \mload_busy
+  wire width 1 input 5  \mload_busy
 
   attribute \src "/home/runner/workspace/hardware/load.py:27"
-  wire width 1 input 7  \mload_fault
+  wire width 1 input 6  \mload_fault
 
   attribute \src "/home/runner/workspace/hardware/load.py:26"
-  wire width 1 input 8  \mload_done
+  wire width 1 input 7  \mload_done
 
   attribute \src "/home/runner/workspace/hardware/load.py:17"
-  wire width 1 output 9  \mload_start
+  wire width 1 output 8  \mload_start
 
   attribute \src "/home/runner/workspace/hardware/load.py:28"
-  wire width 4 input 10  \fault_type
+  wire width 4 input 9  \fault_type
 
-  wire width 23 input 11  \port$2637$0
+  wire width 23 input 10  \port$2592$0
 
   wire width 1 $1
 
@@ -22259,7 +21762,7 @@ module \top.core.u_load
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$2637$0 [18:15]
+    connect \A \port$2592$0 [18:15]
     connect \B 3'110
     connect \Y \mload_m_elevated
   end
@@ -22392,10 +21895,6 @@ module \top.core.u_load
             assign $6 [1:0] 2'00
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $6 [1:0] 2'00
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -22407,12 +21906,12 @@ module \top.core.u_load
     connect \Q \load_wrapper_state
   end
 
-connect \mload_cr_src \port$2637$0 [18:15]
-connect \cr_src \port$2637$0 [18:15]
-connect \mload_cr_dst \port$2637$0 [22:19]
-connect \cr_dst \port$2637$0 [22:19]
-connect \mload_index { 2'00 \port$2637$0 [14:0] }
-connect \index { 2'00 \port$2637$0 [14:0] }
+connect \mload_cr_src \port$2592$0 [18:15]
+connect \cr_src \port$2592$0 [18:15]
+connect \mload_cr_dst \port$2592$0 [22:19]
+connect \cr_dst \port$2592$0 [22:19]
+connect \mload_index { 2'00 \port$2592$0 [14:0] }
+connect \index { 2'00 \port$2592$0 [14:0] }
 connect \mload_direct 1'0
 connect \mload_direct_gt 32'00000000000000000000000000000000
 connect \mload_fault_type \fault_type [3:0]
@@ -22514,81 +22013,78 @@ module \top.core.u_shared_mload
   attribute \src "/home/runner/workspace/hardware/mload.py:36"
   wire width 1 \mem_rd_valid
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/mload.py:25"
-  wire width 128 input 2  \cr_rd_data
+  wire width 128 input 1  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:19"
-  wire width 1 output 3  \sub_busy
+  wire width 1 output 2  \sub_busy
 
   attribute \src "/home/runner/workspace/hardware/mload.py:21"
-  wire width 1 output 4  \sub_fault
+  wire width 1 output 3  \sub_fault
 
   attribute \src "/home/runner/workspace/hardware/mload.py:20"
-  wire width 1 output 5  \sub_done
+  wire width 1 output 4  \sub_done
 
   attribute \src "/home/runner/workspace/hardware/mload.py:35"
-  wire width 32 input 6  \mem_rd_data
+  wire width 32 input 5  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:12"
-  wire width 1 input 7  \sub_start
+  wire width 1 input 6  \sub_start
 
   attribute \src "/home/runner/workspace/hardware/mload.py:13"
-  wire width 4 input 8  \sub_cr_src
+  wire width 4 input 7  \sub_cr_src
 
   attribute \src "/home/runner/workspace/hardware/mload.py:14"
-  wire width 4 input 9  \sub_cr_dst
+  wire width 4 input 8  \sub_cr_dst
 
   attribute \src "/home/runner/workspace/hardware/mload.py:15"
-  wire width 17 input 10  \sub_index
+  wire width 17 input 9  \sub_index
 
   attribute \src "/home/runner/workspace/hardware/mload.py:16"
-  wire width 1 input 11  \sub_direct
+  wire width 1 input 10  \sub_direct
 
   attribute \src "/home/runner/workspace/hardware/mload.py:17"
-  wire width 32 input 12  \sub_direct_gt
+  wire width 32 input 11  \sub_direct_gt
 
   attribute \src "/home/runner/workspace/hardware/mload.py:18"
-  wire width 1 input 13  \sub_m_elevated
+  wire width 1 input 12  \sub_m_elevated
 
   attribute \src "/home/runner/workspace/hardware/mload.py:31"
-  wire width 128 input 14  \cr15_namespace
+  wire width 128 input 13  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/mload.py:24"
-  wire width 4 output 15  \cr_rd_addr
+  wire width 4 output 14  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:33"
-  wire width 32 output 16  \mem_addr
+  wire width 32 output 15  \mem_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:34"
-  wire width 1 output 17  \mem_rd_en
+  wire width 1 output 16  \mem_rd_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:37"
-  wire width 1 output 18  \mem_wr_en
+  wire width 1 output 17  \mem_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:38"
-  wire width 32 output 19  \mem_wr_data
+  wire width 32 output 18  \mem_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:41"
-  wire width 1 output 20  \gbit_reset_done
+  wire width 1 output 19  \gbit_reset_done
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 21  \cr_wr_addr
+  wire width 4 output 20  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 22  \cr_wr_data
+  wire width 128 output 21  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 23  \cr_wr_en
+  wire width 1 output 22  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:60"
   attribute \init 4'0000
-  wire width 4 output 24  \sub_fault_type
+  wire width 4 output 23  \sub_fault_type
 
   wire width 20 $1
 
@@ -23730,10 +23226,6 @@ module \top.core.u_shared_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $40 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:53"
@@ -23767,10 +23259,6 @@ module \top.core.u_shared_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $41 [3:0] 4'0000
     end
   end
 
@@ -23806,10 +23294,6 @@ module \top.core.u_shared_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $42 [16:0] 17'00000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:55"
@@ -23844,10 +23328,6 @@ module \top.core.u_shared_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $43 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:56"
@@ -23881,10 +23361,6 @@ module \top.core.u_shared_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $44 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -23940,10 +23416,6 @@ module \top.core.u_shared_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $45 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -24002,10 +23474,6 @@ module \top.core.u_shared_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $46 [3:0] 4'0000
     end
   end
 
@@ -24095,10 +23563,6 @@ module \top.core.u_shared_mload
       case 4'0100
         assign $47 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $47 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -24134,10 +23598,6 @@ module \top.core.u_shared_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $48 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:58"
@@ -24171,10 +23631,6 @@ module \top.core.u_shared_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $49 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -24434,60 +23890,57 @@ module \top.core.u_change
   attribute \src "/home/runner/workspace/hardware/mload.py:22"
   wire width 4 \sub_fault_type
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/change.py:11"
-  wire width 1 input 2  \change_start
+  wire width 1 input 1  \change_start
 
   attribute \src "/home/runner/workspace/hardware/change.py:21"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/change.py:43"
-  wire width 32 input 4  \dr_rd_data
+  wire width 32 input 3  \dr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/change.py:15"
-  wire width 1 output 5  \change_busy
+  wire width 1 output 4  \change_busy
 
   attribute \src "/home/runner/workspace/hardware/change.py:31"
-  wire width 32 input 6  \mem_rd_data
+  wire width 32 input 5  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/change.py:44"
-  wire width 32 input 7  \nia
+  wire width 32 input 6  \nia
 
   attribute \src "/home/runner/workspace/hardware/change.py:26"
-  wire width 128 input 8  \cr8_thread
+  wire width 128 input 7  \cr8_thread
 
   attribute \src "/home/runner/workspace/hardware/change.py:27"
-  wire width 128 input 9  \cr15_namespace
+  wire width 128 input 8  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/change.py:45"
-  wire width 4 input 10  \flags
+  wire width 4 input 9  \flags
 
   attribute \src "/home/runner/workspace/hardware/change.py:20"
-  wire width 4 output 11  \cr_rd_addr
+  wire width 4 output 10  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/change.py:59"
   attribute \init 1'0
-  wire width 1 output 12  \change_fault
+  wire width 1 output 11  \change_fault
 
   attribute \src "/home/runner/workspace/hardware/change.py:60"
   attribute \init 4'0000
-  wire width 4 output 13  \fault_type
+  wire width 4 output 12  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 14  \cr_wr_addr
+  wire width 4 output 13  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 15  \cr_wr_data
+  wire width 128 output 14  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 16  \cr_wr_en
+  wire width 1 output 15  \cr_wr_en
 
-  wire width 19 input 17  \port$2637$0
+  wire width 19 input 16  \port$2592$0
 
   wire width 17 $1
 
@@ -24776,7 +24229,6 @@ module \top.core.u_change
   attribute \src "/home/runner/workspace/hardware/change.py:53"
   cell \top.core.u_change.u_mload \u_mload
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \sub_fault \sub_fault [0]
     connect \sub_done \sub_done [0]
@@ -25161,11 +24613,11 @@ module \top.core.u_change
         assign \cr_rd_addr [3:0] 4'0111
       case 4'0010
         assign \cr_rd_addr [3:0] 4'0111
-        assign \cr_rd_addr [3:0] \port$2637$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$2592$0 [18:15]
       case 4'0011
-        assign \cr_rd_addr [3:0] \port$2637$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$2592$0 [18:15]
       case 4'0100
-        assign \cr_rd_addr [3:0] \port$2637$0 [18:15]
+        assign \cr_rd_addr [3:0] \port$2592$0 [18:15]
       case 4'0110
       case 4'0111
       case 4'1000
@@ -25271,7 +24723,7 @@ module \top.core.u_change
       case 4'0110
       case 4'0111
       case 4'1000
-        assign \sub_cr_src [3:0] \port$2637$0 [18:15]
+        assign \sub_cr_src [3:0] \port$2592$0 [18:15]
       case 4'1001
         assign \sub_cr_src [3:0] 4'1000
       case 4'1011
@@ -25357,10 +24809,6 @@ module \top.core.u_change
       case 4'1010
       case 4'0101
     end
-    switch \rst [0]
-      case 1'1
-        assign $28 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/change.py:59"
@@ -25407,10 +24855,6 @@ module \top.core.u_change
       case 4'1010
       case 4'0101
     end
-    switch \rst [0]
-      case 1'1
-        assign $29 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/change.py:60"
@@ -25453,10 +24897,6 @@ module \top.core.u_change
       case 4'1011
       case 4'1010
       case 4'0101
-    end
-    switch \rst [0]
-      case 1'1
-        assign $30 [0] 1'0
     end
   end
 
@@ -25501,10 +24941,6 @@ module \top.core.u_change
       case 4'1010
       case 4'0101
     end
-    switch \rst [0]
-      case 1'1
-        assign $31 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/change.py:66"
@@ -25523,7 +24959,7 @@ module \top.core.u_change
       case 4'0000
         switch \change_start [0]
           case 1'1
-            assign $32 [16:0] { 2'00 \port$2637$0 [14:0] }
+            assign $32 [16:0] { 2'00 \port$2592$0 [14:0] }
         end
       case 4'0001
       case 4'0010
@@ -25536,10 +24972,6 @@ module \top.core.u_change
       case 4'1011
       case 4'1010
       case 4'0101
-    end
-    switch \rst [0]
-      case 1'1
-        assign $32 [16:0] 17'00000000000000000
     end
   end
 
@@ -25559,7 +24991,7 @@ module \top.core.u_change
       case 4'0000
         switch \change_start [0]
           case 1'1
-            assign $33 [15:0] { 1'0 \port$2637$0 [14:0] }
+            assign $33 [15:0] { 1'0 \port$2592$0 [14:0] }
         end
       case 4'0001
       case 4'0010
@@ -25572,10 +25004,6 @@ module \top.core.u_change
       case 4'1011
       case 4'1010
       case 4'0101
-    end
-    switch \rst [0]
-      case 1'1
-        assign $33 [15:0] 16'0000000000000000
     end
   end
 
@@ -25620,10 +25048,6 @@ module \top.core.u_change
       case 4'1010
       case 4'0101
     end
-    switch \rst [0]
-      case 1'1
-        assign $34 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/change.py:55"
@@ -25659,10 +25083,6 @@ module \top.core.u_change
       case 4'1011
       case 4'1010
       case 4'0101
-    end
-    switch \rst [0]
-      case 1'1
-        assign $35 [4:0] 5'00000
     end
   end
 
@@ -25744,10 +25164,6 @@ module \top.core.u_change
       case 4'0101
         assign $36 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $36 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -25777,10 +25193,6 @@ module \top.core.u_change
       case 4'1010
       case 4'0101
     end
-    switch \rst [0]
-      case 1'1
-        assign $37 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/change.py:83"
@@ -25809,10 +25221,6 @@ module \top.core.u_change
       case 4'1011
       case 4'1010
       case 4'0101
-    end
-    switch \rst [0]
-      case 1'1
-        assign $38 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -25848,10 +25256,6 @@ module \top.core.u_change
       case 4'1010
       case 4'0101
     end
-    switch \rst [0]
-      case 1'1
-        assign $39 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/change.py:64"
@@ -25883,10 +25287,6 @@ module \top.core.u_change
       case 4'1011
       case 4'1010
       case 4'0101
-    end
-    switch \rst [0]
-      case 1'1
-        assign $40 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -25925,11 +25325,11 @@ connect \cr_wr_en$43 \cr_wr_en [0]
 connect \thread_wr_en$45 \thread_wr_en [0]
 connect \thread_wr_idx$47 \thread_wr_idx [3:0]
 connect \thread_wr_data$49 \thread_wr_data [31:0]
-connect \cr_src \port$2637$0 [18:15]
+connect \cr_src \port$2592$0 [18:15]
 connect \fault_latched \change_fault [0]
 connect \fault_type_latched \fault_type [3:0]
-connect \index { 2'00 \port$2637$0 [14:0] }
-connect \change_mask { 1'0 \port$2637$0 [14:0] }
+connect \index { 2'00 \port$2592$0 [14:0] }
+connect \change_mask { 1'0 \port$2592$0 [14:0] }
 connect \mem_wr_done 1'1
 connect \flags.N \flags [0]
 connect \flags.Z \flags [1]
@@ -26112,66 +25512,63 @@ module \top.core.u_change.u_mload
   attribute \src "/home/runner/workspace/hardware/mload.py:36"
   wire width 1 \mem_rd_valid
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/mload.py:25"
-  wire width 128 input 2  \cr_rd_data
+  wire width 128 input 1  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:21"
-  wire width 1 output 3  \sub_fault
+  wire width 1 output 2  \sub_fault
 
   attribute \src "/home/runner/workspace/hardware/mload.py:20"
-  wire width 1 output 4  \sub_done
+  wire width 1 output 3  \sub_done
 
   attribute \src "/home/runner/workspace/hardware/mload.py:35"
-  wire width 32 input 5  \mem_rd_data
+  wire width 32 input 4  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:31"
-  wire width 128 input 6  \cr15_namespace
+  wire width 128 input 5  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/mload.py:13"
-  wire width 4 input 7  \sub_cr_src
+  wire width 4 input 6  \sub_cr_src
 
   attribute \src "/home/runner/workspace/hardware/mload.py:14"
-  wire width 4 input 8  \sub_cr_dst
+  wire width 4 input 7  \sub_cr_dst
 
   attribute \src "/home/runner/workspace/hardware/mload.py:15"
-  wire width 17 input 9  \sub_index
+  wire width 17 input 8  \sub_index
 
   attribute \src "/home/runner/workspace/hardware/mload.py:12"
-  wire width 1 input 10  \sub_start
+  wire width 1 input 9  \sub_start
 
   attribute \src "/home/runner/workspace/hardware/mload.py:33"
-  wire width 32 output 11  \mem_addr
+  wire width 32 output 10  \mem_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:34"
-  wire width 1 output 12  \mem_rd_en
+  wire width 1 output 11  \mem_rd_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:43"
-  wire width 1 output 13  \thread_wr_en
+  wire width 1 output 12  \thread_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:44"
-  wire width 4 output 14  \thread_wr_idx
+  wire width 4 output 13  \thread_wr_idx
 
   attribute \src "/home/runner/workspace/hardware/mload.py:45"
-  wire width 32 output 15  \thread_wr_data
+  wire width 32 output 14  \thread_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 16  \cr_wr_addr
+  wire width 4 output 15  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 17  \cr_wr_data
+  wire width 128 output 16  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 18  \cr_wr_en
+  wire width 1 output 17  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:60"
   attribute \init 4'0000
-  wire width 4 output 19  \sub_fault_type
+  wire width 4 output 18  \sub_fault_type
 
   wire width 20 $1
 
@@ -27313,10 +26710,6 @@ module \top.core.u_change.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $40 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:53"
@@ -27350,10 +26743,6 @@ module \top.core.u_change.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $41 [3:0] 4'0000
     end
   end
 
@@ -27389,10 +26778,6 @@ module \top.core.u_change.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $42 [16:0] 17'00000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:55"
@@ -27427,10 +26812,6 @@ module \top.core.u_change.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $43 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:56"
@@ -27464,10 +26845,6 @@ module \top.core.u_change.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $44 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -27523,10 +26900,6 @@ module \top.core.u_change.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $45 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -27585,10 +26958,6 @@ module \top.core.u_change.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $46 [3:0] 4'0000
     end
   end
 
@@ -27678,10 +27047,6 @@ module \top.core.u_change.u_mload
       case 4'0100
         assign $47 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $47 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -27717,10 +27082,6 @@ module \top.core.u_change.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $48 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:58"
@@ -27754,10 +27115,6 @@ module \top.core.u_change.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $49 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -27959,48 +27316,45 @@ module \top.core.u_switch
   attribute \src "/home/runner/workspace/hardware/mload.py:22"
   wire width 4 \sub_fault_type
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/switch.py:11"
-  wire width 1 input 2  \switch_start
+  wire width 1 input 1  \switch_start
 
   attribute \src "/home/runner/workspace/hardware/switch.py:21"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/switch.py:20"
-  wire width 4 output 4  \cr_rd_addr
+  wire width 4 output 3  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/switch.py:15"
-  wire width 1 output 5  \switch_busy
+  wire width 1 output 4  \switch_busy
 
   attribute \src "/home/runner/workspace/hardware/switch.py:29"
-  wire width 32 input 6  \mem_rd_data
+  wire width 32 input 5  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/switch.py:25"
-  wire width 128 input 7  \cr15_namespace
+  wire width 128 input 6  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/switch.py:48"
   attribute \init 1'0
-  wire width 1 output 8  \switch_fault
+  wire width 1 output 7  \switch_fault
 
   attribute \src "/home/runner/workspace/hardware/switch.py:49"
   attribute \init 4'0000
-  wire width 4 output 9  \fault_type
+  wire width 4 output 8  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 10  \cr_wr_addr
+  wire width 4 output 9  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 11  \cr_wr_data
+  wire width 128 output 10  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 12  \cr_wr_en
+  wire width 1 output 11  \cr_wr_en
 
-  wire width 18 input 13  \port$2637$0
+  wire width 18 input 12  \port$2592$0
 
   wire width 5 $1
 
@@ -28203,7 +27557,6 @@ module \top.core.u_switch
   attribute \src "/home/runner/workspace/hardware/switch.py:42"
   cell \top.core.u_switch.u_mload \u_mload
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \sub_cr_dst $1 [3:0]
     connect \sub_busy \sub_busy [0]
@@ -28222,7 +27575,7 @@ module \top.core.u_switch
     connect \cr_wr_data \cr_wr_data [127:0]
     connect \cr_wr_en \cr_wr_en [0]
     connect \sub_fault_type \sub_fault_type [3:0]
-    connect \port$2637$0 \port$2637$0 [17:0]
+    connect \port$2592$0 \port$2592$0 [17:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/switch.py:45"
@@ -28233,7 +27586,7 @@ module \top.core.u_switch
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 5
     connect \A 4'1000
-    connect \B \port$2637$0 [2:0]
+    connect \B \port$2592$0 [2:0]
     connect \Y $1
   end
 
@@ -28244,7 +27597,7 @@ module \top.core.u_switch
     parameter \A_WIDTH 3
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$2637$0 [17:15]
+    connect \A \port$2592$0 [17:15]
     connect \B 3'111
     connect \Y \src_in_range
   end
@@ -28415,9 +27768,9 @@ module \top.core.u_switch
     switch \switch_state [2:0]
       case 3'000
       case 3'001
-        assign \local_cr_rd_addr [3:0] { 1'0 \port$2637$0 [17:15] }
+        assign \local_cr_rd_addr [3:0] { 1'0 \port$2592$0 [17:15] }
       case 3'010
-        assign \local_cr_rd_addr [3:0] { 1'0 \port$2637$0 [17:15] }
+        assign \local_cr_rd_addr [3:0] { 1'0 \port$2592$0 [17:15] }
       case 3'011
       case 3'100
       case 3'101
@@ -28468,10 +27821,6 @@ module \top.core.u_switch
             assign $12 [0] 1'1
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $12 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/switch.py:48"
@@ -28509,10 +27858,6 @@ module \top.core.u_switch
           case 1'1
             assign $13 [3:0] \sub_fault_type [3:0]
         end
-    end
-    switch \rst [0]
-      case 1'1
-        assign $13 [3:0] 4'0000
     end
   end
 
@@ -28563,10 +27908,6 @@ module \top.core.u_switch
             assign $14 [2:0] 3'000
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $14 [2:0] 3'000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -28591,10 +27932,6 @@ module \top.core.u_switch
       case 3'101
       case 3'110
     end
-    switch \rst [0]
-      case 1'1
-        assign $15 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/switch.py:47"
@@ -28607,13 +27944,13 @@ module \top.core.u_switch
   end
 
 connect \dest_cr $1 [3:0]
-connect \target \port$2637$0 [2:0]
-connect \cr_src \port$2637$0 [17:15]
+connect \target \port$2592$0 [2:0]
+connect \cr_src \port$2592$0 [17:15]
 connect \sub_start$5 \sub_start [0]
-connect \sub_cr_src { 1'0 \port$2637$0 [17:15] }
+connect \sub_cr_src { 1'0 \port$2592$0 [17:15] }
 connect \sub_cr_dst $1 [3:0]
-connect \sub_index { 2'00 \port$2637$0 [14:0] }
-connect \index { 2'00 \port$2637$0 [14:0] }
+connect \sub_index { 2'00 \port$2592$0 [14:0] }
+connect \index { 2'00 \port$2592$0 [14:0] }
 connect \sub_direct 1'0
 connect \sub_direct_gt 32'00000000000000000000000000000000
 connect \sub_m_elevated 1'1
@@ -28801,68 +28138,65 @@ module \top.core.u_switch.u_mload
   attribute \src "/home/runner/workspace/hardware/mload.py:36"
   wire width 1 \mem_rd_valid
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/mload.py:25"
-  wire width 128 input 2  \cr_rd_data
+  wire width 128 input 1  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:14"
-  wire width 4 input 3  \sub_cr_dst
+  wire width 4 input 2  \sub_cr_dst
 
   attribute \src "/home/runner/workspace/hardware/mload.py:19"
-  wire width 1 output 4  \sub_busy
+  wire width 1 output 3  \sub_busy
 
   attribute \src "/home/runner/workspace/hardware/mload.py:21"
-  wire width 1 output 5  \sub_fault
+  wire width 1 output 4  \sub_fault
 
   attribute \src "/home/runner/workspace/hardware/mload.py:20"
-  wire width 1 output 6  \sub_done
+  wire width 1 output 5  \sub_done
 
   attribute \src "/home/runner/workspace/hardware/mload.py:35"
-  wire width 32 input 7  \mem_rd_data
+  wire width 32 input 6  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:31"
-  wire width 128 input 8  \cr15_namespace
+  wire width 128 input 7  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/mload.py:12"
-  wire width 1 input 9  \sub_start
+  wire width 1 input 8  \sub_start
 
   attribute \src "/home/runner/workspace/hardware/mload.py:24"
-  wire width 4 output 10  \cr_rd_addr
+  wire width 4 output 9  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:33"
-  wire width 32 output 11  \mem_addr
+  wire width 32 output 10  \mem_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:34"
-  wire width 1 output 12  \mem_rd_en
+  wire width 1 output 11  \mem_rd_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:43"
-  wire width 1 output 13  \thread_wr_en
+  wire width 1 output 12  \thread_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:44"
-  wire width 4 output 14  \thread_wr_idx
+  wire width 4 output 13  \thread_wr_idx
 
   attribute \src "/home/runner/workspace/hardware/mload.py:45"
-  wire width 32 output 15  \thread_wr_data
+  wire width 32 output 14  \thread_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 16  \cr_wr_addr
+  wire width 4 output 15  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 17  \cr_wr_data
+  wire width 128 output 16  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 18  \cr_wr_en
+  wire width 1 output 17  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:60"
   attribute \init 4'0000
-  wire width 4 output 19  \sub_fault_type
+  wire width 4 output 18  \sub_fault_type
 
-  wire width 18 input 20  \port$2637$0
+  wire width 18 input 19  \port$2592$0
 
   wire width 20 $1
 
@@ -29988,7 +29322,7 @@ module \top.core.u_switch.u_mload
       case 4'0000
         switch \sub_start [0]
           case 1'1
-            assign $40 [3:0] { 1'0 \port$2637$0 [17:15] }
+            assign $40 [3:0] { 1'0 \port$2592$0 [17:15] }
         end
       case 4'0001
       case 4'0011
@@ -30003,10 +29337,6 @@ module \top.core.u_switch.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $40 [3:0] 4'0000
     end
   end
 
@@ -30042,10 +29372,6 @@ module \top.core.u_switch.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $41 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:54"
@@ -30064,7 +29390,7 @@ module \top.core.u_switch.u_mload
       case 4'0000
         switch \sub_start [0]
           case 1'1
-            assign $42 [16:0] { 2'00 \port$2637$0 [14:0] }
+            assign $42 [16:0] { 2'00 \port$2592$0 [14:0] }
         end
       case 4'0001
       case 4'0011
@@ -30079,10 +29405,6 @@ module \top.core.u_switch.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $42 [16:0] 17'00000000000000000
     end
   end
 
@@ -30118,10 +29440,6 @@ module \top.core.u_switch.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $43 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:56"
@@ -30155,10 +29473,6 @@ module \top.core.u_switch.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $44 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -30214,10 +29528,6 @@ module \top.core.u_switch.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $45 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -30276,10 +29586,6 @@ module \top.core.u_switch.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $46 [3:0] 4'0000
     end
   end
 
@@ -30369,10 +29675,6 @@ module \top.core.u_switch.u_mload
       case 4'0100
         assign $47 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $47 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -30408,10 +29710,6 @@ module \top.core.u_switch.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $48 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:58"
@@ -30446,10 +29744,6 @@ module \top.core.u_switch.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $49 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:85"
@@ -30466,8 +29760,8 @@ connect \ns_entry_addr $6 [31:0]
 connect \fnv_mul $16 [31:0]
 connect \fnv_masked \fnv_hash [24:0]
 connect \fault_type_reg \sub_fault_type [3:0]
-connect \sub_cr_src { 1'0 \port$2637$0 [17:15] }
-connect \sub_index { 2'00 \port$2637$0 [14:0] }
+connect \sub_cr_src { 1'0 \port$2592$0 [17:15] }
+connect \sub_index { 2'00 \port$2592$0 [14:0] }
 connect \sub_direct 1'0
 connect \sub_direct_gt 32'00000000000000000000000000000000
 connect \sub_m_elevated 1'1
@@ -30695,55 +29989,52 @@ module \top.core.u_eloadcall
   attribute \src "/home/runner/workspace/hardware/mload.py:22"
   wire width 4 \sub_fault_type
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:11"
-  wire width 1 input 2  \start
+  wire width 1 input 1  \start
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:22"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:21"
-  wire width 4 output 4  \cr_rd_addr
+  wire width 4 output 3  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:16"
-  wire width 1 output 5  \busy
+  wire width 1 output 4  \busy
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:39"
-  wire width 1 output 6  \complete
+  wire width 1 output 5  \complete
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:30"
-  wire width 32 input 7  \mem_rd_data
+  wire width 32 input 6  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:26"
-  wire width 128 input 8  \cr15_namespace
+  wire width 128 input 7  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:57"
   attribute \init 1'0
-  wire width 1 output 9  \fault
+  wire width 1 output 8  \fault
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:58"
   attribute \init 4'0000
-  wire width 4 output 10  \fault_type
+  wire width 4 output 9  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:37"
   attribute \init 32'00000000000000000000000000000000
-  wire width 32 output 11  \saved_cr5_gt
+  wire width 32 output 10  \saved_cr5_gt
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 12  \cr_wr_addr
+  wire width 4 output 11  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 13  \cr_wr_data
+  wire width 128 output 12  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 14  \cr_wr_en
+  wire width 1 output 13  \cr_wr_en
 
-  wire width 23 input 15  \port$2637$0
+  wire width 23 input 14  \port$2592$0
 
   wire width 5 $1
 
@@ -30966,7 +30257,6 @@ module \top.core.u_eloadcall
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:52"
   cell \top.core.u_eloadcall.u_mload \u_mload
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \sub_m_elevated \sub_m_elevated [0]
     connect \sub_fault \sub_fault [0]
@@ -30996,7 +30286,7 @@ module \top.core.u_eloadcall
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$2637$0 [18:15]
+    connect \A \port$2592$0 [18:15]
     connect \B 3'101
     connect \Y \src_in_range
   end
@@ -31231,9 +30521,9 @@ module \top.core.u_eloadcall
     assign \mload_src [3:0] 4'0000
     switch \phase [1:0]
       case 2'00
-        assign \mload_src [3:0] \port$2637$0 [18:15]
+        assign \mload_src [3:0] \port$2592$0 [18:15]
       case 2'01
-        assign \mload_src [3:0] \port$2637$0 [22:19]
+        assign \mload_src [3:0] \port$2592$0 [22:19]
       case
         assign \mload_src [3:0] 4'0110
     end
@@ -31244,7 +30534,7 @@ module \top.core.u_eloadcall
     assign \mload_dst [3:0] 4'0000
     switch \phase [1:0]
       case 2'00
-        assign \mload_dst [3:0] \port$2637$0 [22:19]
+        assign \mload_dst [3:0] \port$2592$0 [22:19]
       case 2'01
         assign \mload_dst [3:0] 4'0110
       case
@@ -31257,7 +30547,7 @@ module \top.core.u_eloadcall
     assign \mload_index [16:0] 17'00000000000000000
     switch \phase [1:0]
       case 2'00
-        assign \mload_index [16:0] { 2'00 \port$2637$0 [14:0] }
+        assign \mload_index [16:0] { 2'00 \port$2592$0 [14:0] }
       case 2'01
         assign \mload_index [16:0] 17'00000000000000000
       case
@@ -31298,7 +30588,7 @@ module \top.core.u_eloadcall
       case 4'0001
       case 4'0011
       case 4'0100
-        assign \local_cr_rd_addr [3:0] \port$2637$0 [22:19]
+        assign \local_cr_rd_addr [3:0] \port$2592$0 [22:19]
       case 4'0101
         switch $3 [0]
           case 1'1
@@ -31333,10 +30623,6 @@ module \top.core.u_eloadcall
       case 4'1001
       case 4'1010
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $16 [1:0] 2'00
     end
   end
 
@@ -31388,10 +30674,6 @@ module \top.core.u_eloadcall
       case 4'1010
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $17 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:57"
@@ -31442,10 +30724,6 @@ module \top.core.u_eloadcall
       case 4'1010
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $18 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:58"
@@ -31487,10 +30765,6 @@ module \top.core.u_eloadcall
         end
       case 4'1010
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $19 [0] 1'0
     end
   end
 
@@ -31534,10 +30808,6 @@ module \top.core.u_eloadcall
       case 4'1010
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $20 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:62"
@@ -31556,7 +30826,7 @@ module \top.core.u_eloadcall
       case 4'0000
         switch \start [0]
           case 1'1
-            assign $21 [15:0] { 1'0 \port$2637$0 [14:0] }
+            assign $21 [15:0] { 1'0 \port$2592$0 [14:0] }
         end
       case 4'0001
       case 4'0011
@@ -31568,10 +30838,6 @@ module \top.core.u_eloadcall
       case 4'1001
       case 4'1010
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $21 [15:0] 16'0000000000000000
     end
   end
 
@@ -31639,10 +30905,6 @@ module \top.core.u_eloadcall
       case 4'0010
         assign $22 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $22 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -31680,10 +30942,6 @@ module \top.core.u_eloadcall
       case 4'1010
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $23 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:60"
@@ -31711,10 +30969,6 @@ module \top.core.u_eloadcall
       case 4'1001
       case 4'1010
       case 4'0010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $24 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -31744,10 +30998,6 @@ module \top.core.u_eloadcall
       case 4'1010
       case 4'0010
     end
-    switch \rst [0]
-      case 1'1
-        assign $25 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:37"
@@ -31759,9 +31009,9 @@ module \top.core.u_eloadcall
     connect \Q \saved_cr5_gt
   end
 
-connect \cr_src \port$2637$0 [18:15]
-connect \cr_dst \port$2637$0 [22:19]
-connect \index { 2'00 \port$2637$0 [14:0] }
+connect \cr_src \port$2592$0 [18:15]
+connect \cr_dst \port$2592$0 [22:19]
+connect \index { 2'00 \port$2592$0 [14:0] }
 connect \sub_start$9 \sub_start [0]
 connect \sub_cr_src \mload_src [3:0]
 connect \sub_cr_dst \mload_dst [3:0]
@@ -31788,7 +31038,7 @@ connect \fault_latched \fault [0]
 connect \fault_type_latched \fault_type [3:0]
 connect \nia_set \complete [0]
 connect \nia_value 32'00000000000000000000000000000000
-connect \mask { 1'0 \port$2637$0 [14:0] }
+connect \mask { 1'0 \port$2592$0 [14:0] }
 connect \cr_rd_data.word0_gt \cr_rd_data [31:0]
 connect \cr_rd_data.word0_gt.gt_type \cr_rd_data [1:0]
 connect \cr_rd_data.word0_gt.perms \cr_rd_data [7:2]
@@ -31952,72 +31202,69 @@ module \top.core.u_eloadcall.u_mload
   attribute \src "/home/runner/workspace/hardware/mload.py:36"
   wire width 1 \mem_rd_valid
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/mload.py:25"
-  wire width 128 input 2  \cr_rd_data
+  wire width 128 input 1  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:18"
-  wire width 1 input 3  \sub_m_elevated
+  wire width 1 input 2  \sub_m_elevated
 
   attribute \src "/home/runner/workspace/hardware/mload.py:21"
-  wire width 1 output 4  \sub_fault
+  wire width 1 output 3  \sub_fault
 
   attribute \src "/home/runner/workspace/hardware/mload.py:20"
-  wire width 1 output 5  \sub_done
+  wire width 1 output 4  \sub_done
 
   attribute \src "/home/runner/workspace/hardware/mload.py:35"
-  wire width 32 input 6  \mem_rd_data
+  wire width 32 input 5  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:31"
-  wire width 128 input 7  \cr15_namespace
+  wire width 128 input 6  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/mload.py:13"
-  wire width 4 input 8  \sub_cr_src
+  wire width 4 input 7  \sub_cr_src
 
   attribute \src "/home/runner/workspace/hardware/mload.py:14"
-  wire width 4 input 9  \sub_cr_dst
+  wire width 4 input 8  \sub_cr_dst
 
   attribute \src "/home/runner/workspace/hardware/mload.py:15"
-  wire width 17 input 10  \sub_index
+  wire width 17 input 9  \sub_index
 
   attribute \src "/home/runner/workspace/hardware/mload.py:12"
-  wire width 1 input 11  \sub_start
+  wire width 1 input 10  \sub_start
 
   attribute \src "/home/runner/workspace/hardware/mload.py:24"
-  wire width 4 output 12  \cr_rd_addr
+  wire width 4 output 11  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:33"
-  wire width 32 output 13  \mem_addr
+  wire width 32 output 12  \mem_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:34"
-  wire width 1 output 14  \mem_rd_en
+  wire width 1 output 13  \mem_rd_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:43"
-  wire width 1 output 15  \thread_wr_en
+  wire width 1 output 14  \thread_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:44"
-  wire width 4 output 16  \thread_wr_idx
+  wire width 4 output 15  \thread_wr_idx
 
   attribute \src "/home/runner/workspace/hardware/mload.py:45"
-  wire width 32 output 17  \thread_wr_data
+  wire width 32 output 16  \thread_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 18  \cr_wr_addr
+  wire width 4 output 17  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 19  \cr_wr_data
+  wire width 128 output 18  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 20  \cr_wr_en
+  wire width 1 output 19  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:60"
   attribute \init 4'0000
-  wire width 4 output 21  \sub_fault_type
+  wire width 4 output 20  \sub_fault_type
 
   wire width 20 $1
 
@@ -33159,10 +32406,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $40 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:53"
@@ -33196,10 +32439,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $41 [3:0] 4'0000
     end
   end
 
@@ -33235,10 +32474,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $42 [16:0] 17'00000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:55"
@@ -33273,10 +32508,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $43 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:56"
@@ -33310,10 +32541,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $44 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -33369,10 +32596,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $45 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -33431,10 +32654,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $46 [3:0] 4'0000
     end
   end
 
@@ -33524,10 +32743,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'0100
         assign $47 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $47 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -33563,10 +32778,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $48 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:58"
@@ -33600,10 +32811,6 @@ module \top.core.u_eloadcall.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $49 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -33808,54 +33015,51 @@ module \top.core.u_xloadlambda
   attribute \src "/home/runner/workspace/hardware/mload.py:22"
   wire width 4 \sub_fault_type
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:259"
-  wire width 1 input 2  \start
+  wire width 1 input 1  \start
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:269"
-  wire width 128 input 3  \cr_rd_data
+  wire width 128 input 2  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:268"
-  wire width 4 output 4  \cr_rd_addr
+  wire width 4 output 3  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:263"
-  wire width 1 output 5  \busy
+  wire width 1 output 4  \busy
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:277"
-  wire width 32 input 6  \mem_rd_data
+  wire width 32 input 5  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:273"
-  wire width 128 input 7  \cr15_namespace
+  wire width 128 input 6  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:284"
-  wire width 1 output 8  \nia_set
+  wire width 1 output 7  \nia_set
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:285"
-  wire width 32 output 9  \nia_value
+  wire width 32 output 8  \nia_value
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:295"
   attribute \init 1'0
-  wire width 1 output 10  \fault
+  wire width 1 output 9  \fault
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:296"
   attribute \init 4'0000
-  wire width 4 output 11  \fault_type
+  wire width 4 output 10  \fault_type
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 12  \cr_wr_addr
+  wire width 4 output 11  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 13  \cr_wr_data
+  wire width 128 output 12  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 14  \cr_wr_en
+  wire width 1 output 13  \cr_wr_en
 
-  wire width 23 input 15  \port$2637$0
+  wire width 23 input 14  \port$2592$0
 
   wire width 1 $1
 
@@ -34056,7 +33260,6 @@ module \top.core.u_xloadlambda
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:292"
   cell \top.core.u_xloadlambda.u_mload \u_mload
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \cr_rd_data \cr_rd_data [127:0]
     connect \sub_m_elevated \sub_m_elevated [0]
     connect \sub_fault \sub_fault [0]
@@ -34074,7 +33277,7 @@ module \top.core.u_xloadlambda
     connect \cr_wr_data \cr_wr_data [127:0]
     connect \cr_wr_en \cr_wr_en [0]
     connect \sub_fault_type \sub_fault_type [3:0]
-    connect \port$2637$0 \port$2637$0 [22:0]
+    connect \port$2592$0 \port$2592$0 [22:0]
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:308"
@@ -34096,7 +33299,7 @@ module \top.core.u_xloadlambda
     parameter \A_WIDTH 4
     parameter \B_WIDTH 3
     parameter \Y_WIDTH 1
-    connect \A \port$2637$0 [18:15]
+    connect \A \port$2592$0 [18:15]
     connect \B 3'110
     connect \Y \sub_m_elevated
   end
@@ -34234,7 +33437,7 @@ module \top.core.u_xloadlambda
       case 3'000
       case 3'001
       case 3'011
-        assign \local_cr_rd_addr [3:0] \port$2637$0 [22:19]
+        assign \local_cr_rd_addr [3:0] \port$2592$0 [22:19]
       case 3'100
       case 3'101
       case 3'110
@@ -34296,10 +33499,6 @@ module \top.core.u_xloadlambda
       case 3'110
       case 3'010
     end
-    switch \rst [0]
-      case 1'1
-        assign $8 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:295"
@@ -34335,10 +33534,6 @@ module \top.core.u_xloadlambda
       case 3'110
       case 3'010
     end
-    switch \rst [0]
-      case 1'1
-        assign $9 [3:0] 4'0000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:296"
@@ -34366,10 +33561,6 @@ module \top.core.u_xloadlambda
       case 3'101
       case 3'110
       case 3'010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $10 [0] 1'0
     end
   end
 
@@ -34399,10 +33590,6 @@ module \top.core.u_xloadlambda
       case 3'110
       case 3'010
     end
-    switch \rst [0]
-      case 1'1
-        assign $11 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:299"
@@ -34430,10 +33617,6 @@ module \top.core.u_xloadlambda
       case 3'101
       case 3'110
       case 3'010
-    end
-    switch \rst [0]
-      case 1'1
-        assign $12 [0] 1'0
     end
   end
 
@@ -34480,10 +33663,6 @@ module \top.core.u_xloadlambda
       case 3'010
         assign $13 [2:0] 3'000
     end
-    switch \rst [0]
-      case 1'1
-        assign $13 [2:0] 3'000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -34508,10 +33687,6 @@ module \top.core.u_xloadlambda
       case 3'110
       case 3'010
     end
-    switch \rst [0]
-      case 1'1
-        assign $14 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/fused_unit.py:294"
@@ -34524,12 +33699,12 @@ module \top.core.u_xloadlambda
   end
 
 connect \sub_start_reg \sub_start [0]
-connect \sub_cr_src \port$2637$0 [18:15]
-connect \cr_src \port$2637$0 [18:15]
-connect \sub_cr_dst \port$2637$0 [22:19]
-connect \cr_dst \port$2637$0 [22:19]
-connect \sub_index { 2'00 \port$2637$0 [14:0] }
-connect \index { 2'00 \port$2637$0 [14:0] }
+connect \sub_cr_src \port$2592$0 [18:15]
+connect \cr_src \port$2592$0 [18:15]
+connect \sub_cr_dst \port$2592$0 [22:19]
+connect \cr_dst \port$2592$0 [22:19]
+connect \sub_index { 2'00 \port$2592$0 [14:0] }
+connect \index { 2'00 \port$2592$0 [14:0] }
 connect \sub_direct 1'0
 connect \sub_direct_gt 32'00000000000000000000000000000000
 connect \cr_rd_data$14 \cr_rd_data [127:0]
@@ -34719,65 +33894,62 @@ module \top.core.u_xloadlambda.u_mload
   attribute \src "/home/runner/workspace/hardware/mload.py:36"
   wire width 1 \mem_rd_valid
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/mload.py:25"
-  wire width 128 input 2  \cr_rd_data
+  wire width 128 input 1  \cr_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:18"
-  wire width 1 input 3  \sub_m_elevated
+  wire width 1 input 2  \sub_m_elevated
 
   attribute \src "/home/runner/workspace/hardware/mload.py:21"
-  wire width 1 output 4  \sub_fault
+  wire width 1 output 3  \sub_fault
 
   attribute \src "/home/runner/workspace/hardware/mload.py:20"
-  wire width 1 output 5  \sub_done
+  wire width 1 output 4  \sub_done
 
   attribute \src "/home/runner/workspace/hardware/mload.py:35"
-  wire width 32 input 6  \mem_rd_data
+  wire width 32 input 5  \mem_rd_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:31"
-  wire width 128 input 7  \cr15_namespace
+  wire width 128 input 6  \cr15_namespace
 
   attribute \src "/home/runner/workspace/hardware/mload.py:12"
-  wire width 1 input 8  \sub_start
+  wire width 1 input 7  \sub_start
 
   attribute \src "/home/runner/workspace/hardware/mload.py:24"
-  wire width 4 output 9  \cr_rd_addr
+  wire width 4 output 8  \cr_rd_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:33"
-  wire width 32 output 10  \mem_addr
+  wire width 32 output 9  \mem_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:34"
-  wire width 1 output 11  \mem_rd_en
+  wire width 1 output 10  \mem_rd_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:43"
-  wire width 1 output 12  \thread_wr_en
+  wire width 1 output 11  \thread_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:44"
-  wire width 4 output 13  \thread_wr_idx
+  wire width 4 output 12  \thread_wr_idx
 
   attribute \src "/home/runner/workspace/hardware/mload.py:45"
-  wire width 32 output 14  \thread_wr_data
+  wire width 32 output 13  \thread_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:27"
-  wire width 4 output 15  \cr_wr_addr
+  wire width 4 output 14  \cr_wr_addr
 
   attribute \src "/home/runner/workspace/hardware/mload.py:28"
-  wire width 128 output 16  \cr_wr_data
+  wire width 128 output 15  \cr_wr_data
 
   attribute \src "/home/runner/workspace/hardware/mload.py:29"
-  wire width 1 output 17  \cr_wr_en
+  wire width 1 output 16  \cr_wr_en
 
   attribute \src "/home/runner/workspace/hardware/mload.py:60"
   attribute \init 4'0000
-  wire width 4 output 18  \sub_fault_type
+  wire width 4 output 17  \sub_fault_type
 
-  wire width 23 input 19  \port$2637$0
+  wire width 23 input 18  \port$2592$0
 
   wire width 20 $1
 
@@ -35903,7 +35075,7 @@ module \top.core.u_xloadlambda.u_mload
       case 4'0000
         switch \sub_start [0]
           case 1'1
-            assign $40 [3:0] \port$2637$0 [18:15]
+            assign $40 [3:0] \port$2592$0 [18:15]
         end
       case 4'0001
       case 4'0011
@@ -35918,10 +35090,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $40 [3:0] 4'0000
     end
   end
 
@@ -35941,7 +35109,7 @@ module \top.core.u_xloadlambda.u_mload
       case 4'0000
         switch \sub_start [0]
           case 1'1
-            assign $41 [3:0] \port$2637$0 [22:19]
+            assign $41 [3:0] \port$2592$0 [22:19]
         end
       case 4'0001
       case 4'0011
@@ -35956,10 +35124,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $41 [3:0] 4'0000
     end
   end
 
@@ -35979,7 +35143,7 @@ module \top.core.u_xloadlambda.u_mload
       case 4'0000
         switch \sub_start [0]
           case 1'1
-            assign $42 [16:0] { 2'00 \port$2637$0 [14:0] }
+            assign $42 [16:0] { 2'00 \port$2592$0 [14:0] }
         end
       case 4'0001
       case 4'0011
@@ -35994,10 +35158,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $42 [16:0] 17'00000000000000000
     end
   end
 
@@ -36033,10 +35193,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $43 [0] 1'0
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:56"
@@ -36070,10 +35226,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $44 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -36129,10 +35281,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $45 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     end
   end
 
@@ -36191,10 +35339,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1100
       case 4'1101
       case 4'0100
-    end
-    switch \rst [0]
-      case 1'1
-        assign $46 [3:0] 4'0000
     end
   end
 
@@ -36284,10 +35428,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'0100
         assign $47 [3:0] 4'0000
     end
-    switch \rst [0]
-      case 1'1
-        assign $47 [3:0] 4'0000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -36323,10 +35463,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $48 [127:0] 128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:58"
@@ -36361,10 +35497,6 @@ module \top.core.u_xloadlambda.u_mload
       case 4'1101
       case 4'0100
     end
-    switch \rst [0]
-      case 1'1
-        assign $49 [31:0] 32'00000000000000000000000000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/mload.py:85"
@@ -36381,9 +35513,9 @@ connect \ns_entry_addr $6 [31:0]
 connect \fnv_mul $16 [31:0]
 connect \fnv_masked \fnv_hash [24:0]
 connect \fault_type_reg \sub_fault_type [3:0]
-connect \sub_cr_src \port$2637$0 [18:15]
-connect \sub_cr_dst \port$2637$0 [22:19]
-connect \sub_index { 2'00 \port$2637$0 [14:0] }
+connect \sub_cr_src \port$2592$0 [18:15]
+connect \sub_cr_dst \port$2592$0 [22:19]
+connect \sub_index { 2'00 \port$2592$0 [14:0] }
 connect \sub_direct 1'0
 connect \sub_direct_gt 32'00000000000000000000000000000000
 connect \mem_rd_valid 1'1
@@ -36437,23 +35569,18 @@ module \top.boot_rom
   attribute \src "/home/runner/workspace/hardware/boot_rom.py:90"
   wire width 32 \rom_comb
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/boot_rom.py:84"
-  wire width 9 input 2  \addr
+  wire width 9 input 1  \addr
 
   attribute \src "/home/runner/workspace/hardware/boot_rom.py:85"
   attribute \init 32'00000000000000000000000000000000
-  wire width 32 output 3  \data
-
-  wire width 32 $1
+  wire width 32 output 2  \data
 
   attribute \src "/home/runner/workspace/hardware/boot_rom.py:90"
-  process $2
+  process $1
     assign \rom_comb [31:0] 32'00000000000000000000000000000000
     switch \addr [8:0]
       case 9'000000000
@@ -36488,19 +35615,10 @@ module \top.boot_rom
   end
 
   attribute \src "/home/runner/workspace/hardware/boot_rom.py:85"
-  process $3
-    assign $1 [31:0] \rom_comb [31:0]
-    switch \rst [0]
-      case 1'1
-        assign $1 [31:0] 32'00000000000000000000000000000000
-    end
-  end
-
-  attribute \src "/home/runner/workspace/hardware/boot_rom.py:85"
-  cell $dff $4
+  cell $dff $2
     parameter \WIDTH 32
     parameter \CLK_POLARITY 1
-    connect \D $1 [31:0]
+    connect \D \rom_comb [31:0]
     connect \CLK \clk [0]
     connect \Q \data
   end
@@ -36548,29 +35666,26 @@ module \top.debug
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:22"
   wire width 1 \done
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:92"
-  wire width 8 input 2  \byte_data
+  wire width 8 input 1  \byte_data
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:91"
-  wire width 1 input 3  \send_byte
+  wire width 1 input 2  \send_byte
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:89"
-  wire width 32 input 4  \data$16
+  wire width 32 input 3  \data$15
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:90"
-  wire width 1 input 5  \send
+  wire width 1 input 4  \send
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:93"
-  wire width 1 output 6  \busy
+  wire width 1 output 5  \busy
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:23"
-  wire width 1 output 7  \tx
+  wire width 1 output 6  \tx
 
   wire width 7 $1
 
@@ -36619,7 +35734,6 @@ module \top.debug
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:100"
   cell \top.debug.uart \uart
     connect \clk \clk [0]
-    connect \rst \rst [0]
     connect \data \data [7:0]
     connect \start \start [0]
     connect \tx \tx [0]
@@ -36944,7 +36058,7 @@ module \top.debug
       case 3'000
         switch { \send_byte [0] \send [0] }
           case 2'-1
-            assign $19 [31:0] \data$16 [31:0]
+            assign $19 [31:0] \data$15 [31:0]
           case 2'1-
         end
       case 3'001
@@ -36953,10 +36067,6 @@ module \top.debug
       case 3'101
       case 3'010
       case 3'110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $19 [31:0] 32'00000000000000000000000000000000
     end
   end
 
@@ -36993,10 +36103,6 @@ module \top.debug
       case 3'101
       case 3'010
       case 3'110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $20 [3:0] 4'0000
     end
   end
 
@@ -37056,10 +36162,6 @@ module \top.debug
             assign $21 [2:0] 3'000
         end
     end
-    switch \rst [0]
-      case 1'1
-        assign $21 [2:0] 3'000
-    end
   end
 
   attribute \src "/nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/lib/python3.12/contextlib.py:144"
@@ -37087,10 +36189,6 @@ module \top.debug
       case 3'101
       case 3'010
       case 3'110
-    end
-    switch \rst [0]
-      case 1'1
-        assign $22 [7:0] 8'00000000
     end
   end
 
@@ -37128,26 +36226,23 @@ module \top.debug.uart
   attribute \init 4'0000
   wire width 4 \bit_pos
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:19"
-  wire width 8 input 2  \data
+  wire width 8 input 1  \data
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:20"
-  wire width 1 input 3  \start
+  wire width 1 input 2  \start
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:23"
-  wire width 1 output 4  \tx
+  wire width 1 output 3  \tx
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:21"
-  wire width 1 output 5  \busy
+  wire width 1 output 4  \busy
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:22"
-  wire width 1 output 6  \done
+  wire width 1 output 5  \done
 
   wire width 1 $1
 
@@ -37325,10 +36420,6 @@ module \top.debug.uart
         end
       case 2'10
     end
-    switch \rst [0]
-      case 1'1
-        assign $9 [9:0] 10'0000000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:32"
@@ -37358,10 +36449,6 @@ module \top.debug.uart
         end
       case 2'10
     end
-    switch \rst [0]
-      case 1'1
-        assign $10 [7:0] 8'00000000
-    end
   end
 
   attribute \src "/home/runner/workspace/hardware/uart_tx.py:30"
@@ -37389,10 +36476,6 @@ module \top.debug.uart
           case
         end
       case 2'10
-    end
-    switch \rst [0]
-      case 1'1
-        assign $11 [3:0] 4'0000
     end
   end
 
@@ -37424,10 +36507,6 @@ module \top.debug.uart
           case
         end
       case 2'10
-        assign $12 [1:0] 2'00
-    end
-    switch \rst [0]
-      case 1'1
         assign $12 [1:0] 2'00
     end
   end
@@ -37468,23 +36547,20 @@ module \top.bsram
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:19"
   wire width 1 \cs
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
+  attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:60"
   wire width 1 input 0  \clk
 
-  attribute \src "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/amaranth/hdl/_ir.py:283"
-  wire width 1 input 1  \rst
-
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:26"
-  wire width 32 output 2  \rd_data
+  wire width 32 output 1  \rd_data
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:27"
-  wire width 11 input 3  \mem_r_addr
+  wire width 11 input 2  \mem_r_addr
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:16"
-  wire width 32 input 4  \mem_w_data
+  wire width 32 input 3  \mem_w_data
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:18"
-  wire width 1 input 5  \wr_en
+  wire width 1 input 4  \wr_en
 
   attribute \src "/home/runner/workspace/hardware/tang_nano_20k.py:34"
   cell $and $1
