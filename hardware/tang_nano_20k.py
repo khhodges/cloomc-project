@@ -57,6 +57,8 @@ class ChurchTangNano20K(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        m.d.comb += ResetSignal("sync").eq(0)
+
         core = ChurchCore()
         m.submodules.core = core
 
