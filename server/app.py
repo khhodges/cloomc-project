@@ -484,7 +484,7 @@ BUILD_MD_TEMPLATE = """# Church Machine — Tang Nano 20K Build Package
 
 ## What's Inside
 
-- `church_tang_nano_20k.v` — Synthesisable Verilog (generated from Amaranth HDL)
+- `church_tang_nano_20k.v` — Synthesisable Verilog (produced by Yosys from Amaranth RTLIL)
 - `church_tang_nano_20k.json` — Yosys synthesis netlist (Gowin target)
 - `tang_nano_20k.cst` — Pin constraints for GW2AR-LV18QN88C8/I7
 - `Makefile` — Build automation (pnr, pack, prog targets)
@@ -502,13 +502,11 @@ source oss-cad-suite/environment
 
 ## Build and Flash
 
-The Verilog and synthesis JSON are pre-built. You only need place-and-route
-and bitstream packing:
+The Verilog and synthesis JSON are pre-built. You only need two commands:
 
 ```bash
-make pnr       # place and route with nextpnr-gowin
-make pack      # generate .fs bitstream with gowin_pack
-make prog      # flash to Tang Nano 20K via openFPGALoader (USB-C)
+make pnr pack    # place-and-route (nextpnr-gowin) + generate .fs bitstream (gowin_pack)
+make prog        # flash to Tang Nano 20K via openFPGALoader (USB-C)
 ```
 
 ## After Flashing
@@ -518,7 +516,7 @@ make prog      # flash to Tang Nano 20K via openFPGALoader (USB-C)
 3. Go to the **Code** tab → **Console Output** sub-tab
 4. Click **Deploy to Tang** to upload your program
 
-## LED Pinout (active-low accent)
+## LED Pinout (active-low)
 
 | LED | Pin | Signal            |
 |-----|-----|-------------------|
@@ -545,28 +543,33 @@ def download_fpga_package():
     try:
         os.makedirs(build_dir, exist_ok=True)
 
-        logging.info("FPGA package: generating Verilog from Amaranth...")
+        rtlil_path = os.path.join(build_dir, "church_tang_nano_20k.il")
+        verilog_path = os.path.join(build_dir, "church_tang_nano_20k.v")
+        json_path = os.path.join(build_dir, "church_tang_nano_20k.json")
+
+        logging.info("FPGA package: generating RTLIL from Amaranth...")
         gen_result = subprocess.run(
-            ["python3", "-m", "hardware.gen_verilog", "build"],
+            ["python3", "-m", "hardware.gen_rtlil", "build"],
             cwd=BASE_DIR,
             capture_output=True, text=True, timeout=120
         )
         if gen_result.returncode != 0:
             return jsonify({
-                "error": "Amaranth Verilog generation failed",
+                "error": "Amaranth RTLIL generation failed",
                 "stderr": gen_result.stderr[-2000:] if gen_result.stderr else "",
                 "stdout": gen_result.stdout[-1000:] if gen_result.stdout else ""
             }), 500
 
-        verilog_path = os.path.join(build_dir, "church_tang_nano_20k.v")
-        if not os.path.isfile(verilog_path):
-            return jsonify({"error": "Verilog file not generated"}), 500
+        if not os.path.isfile(rtlil_path):
+            return jsonify({"error": "RTLIL file not generated"}), 500
 
-        logging.info("FPGA package: running Yosys synthesis...")
-        json_path = os.path.join(build_dir, "church_tang_nano_20k.json")
+        logging.info("FPGA package: running Yosys synthesis (RTLIL -> JSON + Verilog)...")
+        synth_cmd = (
+            f"read_rtlil {rtlil_path}; "
+            f"synth_gowin -top top -json {json_path} -vout {verilog_path}"
+        )
         synth_result = subprocess.run(
-            ["yosys", "-p",
-             f"read_verilog {verilog_path}; synth_gowin -top top -json {json_path}"],
+            ["yosys", "-p", synth_cmd],
             cwd=BASE_DIR,
             capture_output=True, text=True, timeout=120
         )
@@ -579,6 +582,8 @@ def download_fpga_package():
 
         if not os.path.isfile(json_path):
             return jsonify({"error": "Yosys JSON netlist not generated"}), 500
+        if not os.path.isfile(verilog_path):
+            return jsonify({"error": "Yosys Verilog output not generated"}), 500
 
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
