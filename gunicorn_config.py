@@ -6,7 +6,6 @@ threads = 8
 timeout = 120
 max_requests = 1000
 max_requests_jitter = 50
-preload_app = True
 loglevel = "info"
 accesslog = "-"
 errorlog = "-"
