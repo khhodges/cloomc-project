@@ -7,8 +7,9 @@ timeout = 120
 max_requests = 1000
 max_requests_jitter = 50
 preload_app = True
-loglevel = "warning"
-accesslog = None
+loglevel = "info"
+accesslog = "-"
+errorlog = "-"
 
 def when_ready(server):
     signal.signal(signal.SIGWINCH, signal.SIG_IGN)

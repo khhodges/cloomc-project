@@ -32,12 +32,16 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 5001
+externalPort = 3003
+
+[[ports]]
 localPort = 5904
 externalPort = 3000
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--workers=2", "server.app:app"]
+deploymentTarget = "vm"
+run = ["gunicorn", "-c", "gunicorn_config.py", "server.app:app"]
 build = ["pip", "install", "-r", "requirements.txt"]
 
 [nix]
