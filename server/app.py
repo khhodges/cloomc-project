@@ -565,7 +565,7 @@ def download_fpga_package():
         logging.info("FPGA package: running Yosys synthesis (RTLIL -> JSON + Verilog)...")
         synth_cmd = (
             f"read_rtlil {rtlil_path}; "
-            f"synth_gowin -top top -device GW2A-18C -json {json_path} -vout {verilog_path}"
+            f"synth_gowin -top top -json {json_path} -vout {verilog_path}"
         )
         synth_result = subprocess.run(
             ["yosys", "-p", synth_cmd],
