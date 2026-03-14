@@ -9,7 +9,7 @@
 #   make prog      — flash to Tang Nano 20K via openFPGALoader (plug in USB-C first)
 #   make clean     — remove generated files
 
-DEVICE   := GW2AR-LV18QN88C8/I7
+DEVICE   := GW2A-LV18QN88
 FAMILY   := GW2A-18C
 FREQ_MHZ := 27
 
@@ -23,21 +23,21 @@ CST      := tang_nano_20k.cst
 
 pnr: $(PNR_JSON)
 $(PNR_JSON): $(JSON) $(CST)
-	nextpnr-himbaechel \
-	        --device $(DEVICE) \
-	        --json $(JSON) \
-	        --write $(PNR_JSON) \
-	        -o family=$(FAMILY) \
-	        -o cst=$(CST) \
-	        --freq $(FREQ_MHZ)
+        nextpnr-himbaechel \
+                --device $(DEVICE) \
+                --json $(JSON) \
+                --write $(PNR_JSON) \
+                -o family=$(FAMILY) \
+                -o cst=$(CST) \
+                --freq $(FREQ_MHZ)
 
 pack: $(PACK)
 $(PACK): $(PNR_JSON)
-	gowin_pack -d $(FAMILY) -o $(PACK) $(PNR_JSON)
+        gowin_pack -d $(FAMILY) -o $(PACK) $(PNR_JSON)
 
 prog: $(PACK)
-	@echo "=== Uploading to Tang Nano 20K ==="
-	openFPGALoader -b tangnano20k $(PACK)
+        @echo "=== Uploading to Tang Nano 20K ==="
+        openFPGALoader -b tangnano20k $(PACK)
 
 clean:
-	rm -f $(PNR_JSON) $(PACK)
+        rm -f $(PNR_JSON) $(PACK)

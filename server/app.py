@@ -528,7 +528,7 @@ make prog        # flash to Tang Nano 20K via openFPGALoader (USB-C)
 
 ## Device
 
-- **FPGA**: Gowin GW2AR-LV18QN88C8/I7
+- **FPGA**: Gowin GW2AR-LV18QN88C8/I7 (nextpnr device: GW2A-LV18QN88)
 - **Board**: Sipeed Tang Nano 20K
 - **Clock**: 27 MHz crystal
 - **UART**: 115200 baud via BL616 USB bridge
