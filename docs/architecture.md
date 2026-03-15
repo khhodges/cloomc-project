@@ -84,6 +84,151 @@ R and W are pure Turing permissions (data access). L, S, and E are pure Church p
 
 All abstractions use **Inform (01)** GTs. The Inform GT points to a namespace entry, which points to a memory lump. CALL uses the clistCount field in the NS entry's word1 to split the lump into code (CR14, privileged) and c-list (CR6) regions.
 
+## Namespace Table Slot Format
+
+The namespace table begins at `0xFD00`. Each entry occupies exactly **3 consecutive 32-bit words**:
+
+```
+NS[idx] base address = 0xFD00 + idx × 3
+```
+
+The table supports up to 256 entries (`MAX_NS_ENTRIES = 256`). Slots 0–7 are reserved by the boot sequence; application abstractions start at slot 8 or higher.
+
+An entry is considered **empty** when both word0 and word1 are zero.
+
+---
+
+### Word 0 — Location
+
+```
+31                              0
+┌────────────────────────────────┐
+│         location               │
+│         32 bits                │
+└────────────────────────────────┘
+```
+
+The base address of the memory object (abstraction lump, data object, or device region) in the unified address space. For an abstraction lump this is where instruction word 0 of the method table lives.
+
+---
+
+### Word 1 — Flags + clistCount + Limit
+
+```
+31 30 29 28 27  26 25          17 16              0
+┌──┬──┬──┬──┬────┬──────────────┬──────────────────┐
+│B │F │G │Ch│Type│  clistCount  │      limit       │
+│1 │1 │1 │1 │ 2  │    9 bits    │     17 bits      │
+└──┴──┴──┴──┴────┴──────────────┴──────────────────┘
+```
+
+| Bits  | Width | Name        | Meaning |
+|-------|-------|-------------|---------|
+| 31    | 1     | B (Bind)    | 1 = GT may be saved into another c-list via mSave. 0 = mSave FAULTs. Cleared automatically by CALL on preserved CRs. |
+| 30    | 1     | F (Far)     | 1 = remote / Outform object; mLoad tunnels access via the Tunnel abstraction instead of direct memory read. |
+| 29    | 1     | G (GC mark) | Used by the PP250 garbage collector mark phase. Set during mark; cleared during flip. Not meaningful to application code. |
+| 28    | 1     | chain       | Reserved for linked-entry chains. Not used by current implementation. |
+| 27:26 | 2     | gtType      | Entry type: `00`=NULL, `01`=Inform, `10`=Outform, `11`=Abstract. Must match the Type field of the GT that references this entry. |
+| 25:17 | 9     | clistCount  | Number of c-list Golden Token slots at the top of the lump (0–511). 0 means a plain data object; > 0 means an abstraction lump that CALL will split. |
+| 16:0  | 17    | limit       | Size of the memory object minus 1, in words. Maximum object size = 131,072 words. |
+
+Encoding expression (from `packNSWord1`):
+
+```js
+word1 = ((B        & 1)    << 31)
+      | ((F        & 1)    << 30)
+      | ((G        & 1)    << 29)
+      | ((chain    & 1)    << 28)
+      | ((gtType   & 3)    << 26)
+      | ((clistCount & 0x1FF) << 17)
+      | ( limit17  & 0x1FFFF)
+```
+
+#### Lump split (clistCount > 0)
+
+When CALL resolves an entry with `clistCount > 0`, the lump is divided into two regions:
+
+```
+offset 0                        clistStart          limit+1
+┌───────────────────────────────┬────────────────────┐
+│   code  (method table + body) │   c-list (GTs)     │
+│   CR14, X-only                │   CR6, L-only      │
+└───────────────────────────────┴────────────────────┘
+```
+
+```
+clistStart = (limit + 1) - clistCount
+CR14: location = word0,                  limit = clistStart - 1,  perms = X-only
+CR6:  location = word0 + clistStart,     limit = clistCount - 1,  perms = L-only
+PC = 0
+```
+
+---
+
+### Word 2 — Version + Seal
+
+```
+31        25 24                               0
+┌───────────┬───────────────────────────────────┐
+│  version  │             seal                  │
+│  7 bits   │            25 bits                │
+└───────────┴───────────────────────────────────┘
+```
+
+| Bits  | Width | Name    | Meaning |
+|-------|-------|---------|---------|
+| 31:25 | 7     | version | Monotonically increasing revocation counter (0–127). Must exactly match the Version field of any GT referencing this entry. Incrementing this field instantly revokes all outstanding GTs. |
+| 24:0  | 25    | seal    | FNV-1a integrity hash of (word0, limit17). Recomputed and verified by every mLoad call. Tamper with word0 or word1's limit field and the seal fails — the GT dies on next use. |
+
+Encoding expression (from `makeVersionSeals`):
+
+```js
+word2 = (((version & 0x7F) << 25) | (seal & 0x01FFFFFF)) >>> 0
+```
+
+#### Seal algorithm
+
+The seal covers the two fields that define what the entry *points to* and *how large it is* — the minimum set an attacker would need to forge a capability:
+
+```js
+// FNV-1a, 32-bit
+function computeSeal(location, limit17) {
+    let h = 0x811c9dc5;                       // FNV offset basis
+    h = ((h ^ location)  * 0x01000193) >>> 0; // mix in word0
+    h = ((h ^ limit17)   * 0x01000193) >>> 0; // mix in limit field of word1
+    return h & 0x01FFFFFF;                    // keep 25 bits
+}
+```
+
+Only `location` (word0) and `limit17` (bits [16:0] of word1) are covered. The flag bits (B, F, G, chain, gtType, clistCount) in word1 are **not** included in the seal — they may be updated by the runtime without re-sealing.
+
+#### Version matching (GT ↔ NS)
+
+The 7-bit version in word2 must equal the Version field in the GT at every mLoad call:
+
+```
+GT[31:25]  =?=  NS[idx].word2[31:25]
+```
+
+Revocation: increment `word2[31:25]` by 1. All existing GTs for this entry now have a stale version and FAULT on next use. No tracking of outstanding GTs is required.
+
+---
+
+### Complete slot at a glance
+
+```
+Offset +0   location        [31:0]   Base address of the memory object
+Offset +1   flags/meta      [31]     B — bindable flag
+                            [30]     F — far (remote/tunnel) flag
+                            [29]     G — GC mark bit
+                            [28]     chain — reserved
+                            [27:26]  gtType — 00 NULL / 01 Inform / 10 Outform / 11 Abstract
+                            [25:17]  clistCount — c-list slots (0 = data, >0 = abstraction)
+                            [16:0]   limit17 — object size - 1
+Offset +2   version+seal    [31:25]  version (7-bit revocation counter)
+                            [24:0]   seal (25-bit FNV-1a of location + limit17)
+```
+
 ## Register Architecture
 
 ### Context Registers (CR0–CR15)
