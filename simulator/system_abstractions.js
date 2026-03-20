@@ -712,7 +712,7 @@ class SystemAbstractions {
                 location: location,
                 limit: limit,
                 clistCount: clistCount,
-                gtType: 1,
+                gtType: 2,
                 label: name
             });
 
@@ -722,7 +722,7 @@ class SystemAbstractions {
 
             const nsIndex = addResult.result.nsIndex;
             const version = addResult.result.version;
-            const eGT = sim.createGT(version, nsIndex, { E: 1 }, 1);
+            const eGT = sim.createGT(version, nsIndex, { E: 1 }, 2);
 
             return {
                 ok: true,
