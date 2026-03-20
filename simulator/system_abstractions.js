@@ -776,9 +776,9 @@ class SystemAbstractions {
             }
 
             const gtType = (args.gtType !== undefined) ? args.gtType : (args.type !== undefined ? args.type : 1);
-            const typeNames = ['NULL','Inform','Outform','Abstract'];
-            if (gtType < 0 || gtType > 3) {
-                return { ok: false, fault: 'TYPE', message: `Mint.Create: invalid type ${gtType}` };
+            const typeNames = ['NULL','Real','Abstract','???'];
+            if (gtType < 0 || gtType > 2) {
+                return { ok: false, fault: 'TYPE', message: `Mint.Create: invalid type ${gtType} — valid types are 1=Real, 2=Abstract` };
             }
             if (gtType === 0) {
                 return { ok: false, fault: 'TYPE', message: 'Mint.Create: cannot create NULL type GT — NULL is the zero/absent type' };
@@ -788,6 +788,8 @@ class SystemAbstractions {
             const bFlag = args.bind ? 1 : 0;
             const fFlag = args.far ? 1 : (gtType === 2 ? 1 : 0);
 
+            if (bFlag) targetPerms.B = 1;
+
             const memResult = sim.abstractionRegistry.dispatchMethod(7, 'Allocate', sim, { size: size });
             if (!memResult || !memResult.ok) {
                 return { ok: false, fault: 'OOM', message: `Mint.Create: Memory.Allocate(${size}) failed — ${memResult ? memResult.message : 'no response'}` };
@@ -796,7 +798,7 @@ class SystemAbstractions {
             const allocatedSize = memResult.result.size;
             const limit17 = (allocatedSize - 1) & 0x1FFFF;
 
-            const labelPrefix = gtType === 3 ? 'ABS' : (gtType === 2 ? 'OUT' : (hasTuring ? 'DATA' : 'CAP'));
+            const labelPrefix = gtType === 2 ? 'ABS' : (hasTuring ? 'DATA' : 'CAP');
             const label = `${labelPrefix}[mint]`;
 
             const addResult = sim.abstractionRegistry.dispatchMethod(5, 'Add', sim, {
@@ -820,7 +822,7 @@ class SystemAbstractions {
             return {
                 ok: true,
                 result: { gt: gt, nsIndex: nsIndex, location: location, size: allocatedSize, version: newVersion, type: gtType, typeName: typeNames[gtType] },
-                message: `Mint.Create: ${typeNames[gtType]} GT v${newVersion} -> NS[${nsIndex}] perms=${permBits.toString(2).padStart(6,'0')} B=${bFlag} F=${fFlag} (via Navana.Add)`
+                message: `Mint.Create: ${typeNames[gtType]} GT seq${newVersion} -> NS[${nsIndex}] perms=${permBits.toString(2).padStart(7,'0')} F=${fFlag} (via Navana.Add)`
             };
         });
 
