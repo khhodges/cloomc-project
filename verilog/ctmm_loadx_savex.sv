@@ -186,7 +186,7 @@ module ctmm_loadx_savex
     // ========================================================================
     
     logic bounds_ok;
-    assign bounds_ok = ({20'h0, offset} < base_reg_latched.word2_limit[31:0]);
+    assign bounds_ok = ({11'h0, offset} < {11'h0, base_reg_latched.word2_w2.limit_offset});
     
     // ========================================================================
     // State Register
@@ -218,8 +218,8 @@ module ctmm_loadx_savex
                 end
                 LOADX_FETCH_W0: if (mem_rd_valid) fetched_cap.word0_gt <= mem_rd_data;
                 LOADX_FETCH_W1: if (mem_rd_valid) fetched_cap.word1_location <= mem_rd_data;
-                LOADX_FETCH_W2: if (mem_rd_valid) fetched_cap.word2_limit <= mem_rd_data;
-                LOADX_FETCH_W3: if (mem_rd_valid) fetched_cap.word3_seals <= mem_rd_data;
+                LOADX_FETCH_W2: if (mem_rd_valid) fetched_cap.word2_w2 <= mem_rd_data;
+                LOADX_FETCH_W3: if (mem_rd_valid) fetched_cap.word3_w3 <= mem_rd_data;
                 default: ;
             endcase
             

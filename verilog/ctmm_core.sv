@@ -122,7 +122,7 @@ module ctmm_core
     // GC unit signals
     logic [31:0] gc_ns_addr;
     logic        gc_ns_rd_en;
-    golden_token_t gc_ns_wr_data;
+    namespace_entry_t gc_ns_wr_data;
     logic        gc_ns_wr_en;
     logic [31:0] gc_marked_count;
     logic        gc_done;
@@ -279,7 +279,7 @@ module ctmm_core
         .gc_done        (gc_done),
         .ns_addr        (gc_ns_addr),
         .ns_rd_en       (gc_ns_rd_en),
-        .ns_rd_data     (clist_rd_data), // Reuse C-List interface for GC
+        .ns_rd_data     (ns_rd_data),    // Namespace memory for GC
         .ns_wr_data     (gc_ns_wr_data),
         .ns_wr_en       (gc_ns_wr_en),
         .ns_start_addr  (32'h0),
@@ -492,11 +492,8 @@ module ctmm_core
                             6'h0;
     assign perm_check_valid = exec_enable && is_church_op;
     assign access_index = {24'h0, clist_index};
-    assign limit = ns_rd_data.word2_limit;
+    assign limit = ns_rd_data.word2_w2.limit_offset[15:0];
     assign check_bounds = 1'b1;
-    assign calculated_mac = 64'h0; // Simplified - would compute MAC in real impl
-    assign stored_mac = ns_rd_data.word3_seals;
-    assign check_mac = 1'b0; // Disabled for now
     
     // CR write for LOAD operation
     assign cr_wr_addr = cr_dst;

@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import View
 
 from .hw_types import *
-from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, NS_ENTRY_LAYOUT, NS_LIMIT_LAYOUT, SEALS_LAYOUT
+from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, NS_ENTRY_LAYOUT, WORD2_LAYOUT, WORD3_LAYOUT
 
 
 class ChurchMLoad(Elaboratable):
@@ -71,42 +71,46 @@ class ChurchMLoad(Elaboratable):
         m.d.comb += src_is_null.eq(src_gt.gt_type == GT_TYPE_NULL)
 
         bounds_ok = Signal()
-        m.d.comb += bounds_ok.eq(index_reg < src_view.word2_limit[:16])
+        ns_w2 = View(WORD2_LAYOUT, src_view.word2_w2)
+        m.d.comb += bounds_ok.eq(index_reg < ns_w2.limit_offset[:16])
 
         clist_gt_addr = Signal(32)
         m.d.comb += clist_gt_addr.eq(src_view.word1_location + (index_reg << 2))
 
         ns_entry_addr = Signal(32)
-        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (result_gt.slot_id << 3) + (result_gt.slot_id << 2))
+        ns_ns_w2 = View(WORD2_LAYOUT, ns_view.word2_w2)
+        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (result_gt.slot_id << 4))
 
         ns_index_in_bounds = Signal()
-        m.d.comb += ns_index_in_bounds.eq(result_gt.slot_id < ns_view.word2_limit[:16])
+        m.d.comb += ns_index_in_bounds.eq(result_gt.slot_id < ns_ns_w2.limit_offset[:16])
 
-        ns_w1_saved = Signal(32)
-        ns_w1_view = View(NS_LIMIT_LAYOUT, ns_w1_saved)
+        ns_w3_saved = Signal(32)
 
         if self.enable_seal_check:
-            result_seals = View(SEALS_LAYOUT, result_view.word3_seals)
+            result_w2 = View(WORD2_LAYOUT, result_view.word2_w2)
+            result_w3 = View(WORD3_LAYOUT, result_view.word3_w3)
 
             gt_seq_match = Signal()
-            m.d.comb += gt_seq_match.eq(result_gt.gt_seq == result_seals.gt_seq)
+            m.d.comb += gt_seq_match.eq(result_gt.gt_seq == result_w2.gt_seq)
 
-            crc_stages = [Signal(16, name=f"crc16_{i}") for i in range(65)]
+            crc_stages = [Signal(16, name=f"crc16_{i}") for i in range(90)]
             m.d.comb += crc_stages[0].eq(0xFFFF)
-            for i in range(64):
-                if i < 32:
-                    data_bit = result_view.word1_location[31 - i]
+            for i in range(89):
+                if i < 25:
+                    data_bit = result_view.word0_gt[24 - i]
+                elif i < 57:
+                    data_bit = result_view.word1_location[56 - i]
                 else:
-                    data_bit = result_view.word2_limit[63 - i]
+                    data_bit = result_view.word2_w2[88 - i]
                 top_bit = Signal(name=f"crc16_top_{i}")
                 shifted = Signal(16, name=f"crc16_sh_{i}")
                 m.d.comb += top_bit.eq(crc_stages[i][15] ^ data_bit)
                 m.d.comb += shifted.eq(Cat(Const(0, 1), crc_stages[i][:15]))
                 m.d.comb += crc_stages[i + 1].eq(shifted ^ Mux(top_bit, 0x1021, 0))
             crc16_result = Signal(16, name="crc16_result")
-            m.d.comb += crc16_result.eq(crc_stages[64])
+            m.d.comb += crc16_result.eq(crc_stages[89])
             seal_ok = Signal()
-            m.d.comb += seal_ok.eq(crc16_result == result_seals.seal)
+            m.d.comb += seal_ok.eq(crc16_result == result_w3.crc)
 
         with m.FSM(name="mload") as fsm:
             with m.State("IDLE"):
@@ -171,31 +175,31 @@ class ChurchMLoad(Elaboratable):
                 ]
                 with m.If(self.mem_rd_valid):
                     m.d.sync += result_view.word1_location.eq(self.mem_rd_data)
-                    m.next = "FETCH_LIMIT"
+                    m.next = "FETCH_W2"
 
-            with m.State("FETCH_LIMIT"):
+            with m.State("FETCH_W2"):
                 m.d.comb += [
-                    self.mem_addr.eq(ns_entry_addr + 4),
+                    self.mem_addr.eq(ns_entry_addr + 8),
                     self.mem_rd_en.eq(1),
                 ]
                 with m.If(self.mem_rd_valid):
-                    m.d.sync += [
-                        result_view.word2_limit.eq(self.mem_rd_data),
-                        ns_w1_saved.eq(self.mem_rd_data),
-                    ]
+                    m.d.sync += result_view.word2_w2.eq(self.mem_rd_data)
                     if self.enable_seal_check:
-                        m.next = "FETCH_SEALS"
+                        m.next = "FETCH_W3"
                     else:
                         m.next = "UPDATE_THREAD"
 
             if self.enable_seal_check:
-                with m.State("FETCH_SEALS"):
+                with m.State("FETCH_W3"):
                     m.d.comb += [
-                        self.mem_addr.eq(ns_entry_addr + 8),
+                        self.mem_addr.eq(ns_entry_addr + 12),
                         self.mem_rd_en.eq(1),
                     ]
                     with m.If(self.mem_rd_valid):
-                        m.d.sync += result_view.word3_seals.eq(self.mem_rd_data)
+                        m.d.sync += [
+                            result_view.word3_w3.eq(self.mem_rd_data),
+                            ns_w3_saved.eq(self.mem_rd_data),
+                        ]
                         m.next = "CHECK_VERSION"
 
                 with m.State("CHECK_VERSION"):
@@ -209,19 +213,18 @@ class ChurchMLoad(Elaboratable):
                         m.next = "RESET_GBIT"
 
                 with m.State("RESET_GBIT"):
-                    gbit_cleared_w1 = Signal(32)
-                    gbit_cleared_view = View(NS_LIMIT_LAYOUT, gbit_cleared_w1)
+                    gbit_cleared_w3 = Signal(32)
+                    gbit_cleared_view = View(WORD3_LAYOUT, gbit_cleared_w3)
+                    ns_w3_view = View(WORD3_LAYOUT, ns_w3_saved)
                     m.d.comb += [
-                        gbit_cleared_view.limit.eq(ns_w1_view.limit),
-                        gbit_cleared_view.reserved.eq(ns_w1_view.reserved),
+                        gbit_cleared_view.crc.eq(ns_w3_view.crc),
                         gbit_cleared_view.g_bit.eq(0),
-                        gbit_cleared_view.f_flag.eq(ns_w1_view.f_flag),
-                        gbit_cleared_view.b_flag.eq(ns_w1_view.b_flag),
+                        gbit_cleared_view.spare.eq(ns_w3_view.spare),
                     ]
                     m.d.comb += [
-                        self.mem_addr.eq(ns_entry_addr + 4),
+                        self.mem_addr.eq(ns_entry_addr + 12),
                         self.mem_wr_en.eq(1),
-                        self.mem_wr_data.eq(gbit_cleared_w1),
+                        self.mem_wr_data.eq(gbit_cleared_w3),
                         self.ns_entry_addr_out.eq(ns_entry_addr),
                         self.gbit_reset_done.eq(1),
                     ]

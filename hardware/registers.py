@@ -70,9 +70,9 @@ class ChurchRegisters(Elaboratable):
             with m.Case(1):
                 m.d.comb += self.cr_word_rd_data.eq(View(CAP_REG_LAYOUT, cap_regs[self.cr_word_rd_addr]).word1_location)
             with m.Case(2):
-                m.d.comb += self.cr_word_rd_data.eq(View(CAP_REG_LAYOUT, cap_regs[self.cr_word_rd_addr]).word2_limit)
+                m.d.comb += self.cr_word_rd_data.eq(View(CAP_REG_LAYOUT, cap_regs[self.cr_word_rd_addr]).word2_w2)
             with m.Case(3):
-                m.d.comb += self.cr_word_rd_data.eq(View(CAP_REG_LAYOUT, cap_regs[self.cr_word_rd_addr]).word3_seals)
+                m.d.comb += self.cr_word_rd_data.eq(View(CAP_REG_LAYOUT, cap_regs[self.cr_word_rd_addr]).word3_w3)
 
         m.d.comb += [
             self.cr6_clist.eq(cap_regs[CR_CLIST]),
@@ -99,9 +99,9 @@ class ChurchRegisters(Elaboratable):
                     with m.Case(1):
                         m.d.sync += wr_view.word1_location.eq(self.cr_word_wr_data)
                     with m.Case(2):
-                        m.d.sync += wr_view.word2_limit.eq(self.cr_word_wr_data)
+                        m.d.sync += wr_view.word2_w2.eq(self.cr_word_wr_data)
                     with m.Case(3):
-                        m.d.sync += wr_view.word3_seals.eq(self.cr_word_wr_data)
+                        m.d.sync += wr_view.word3_w3.eq(self.cr_word_wr_data)
 
             for i in range(NUM_CAP_REGS):
                 with m.If(self.cr_gt_wr_en[i]):

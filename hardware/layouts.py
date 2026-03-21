@@ -12,28 +12,39 @@ GT_LAYOUT = StructLayout({
 CAP_REG_LAYOUT = StructLayout({
     "word0_gt":       GT_LAYOUT,
     "word1_location": unsigned(32),
-    "word2_limit":    unsigned(32),
-    "word3_seals":    unsigned(32),
+    "word2_w2":       unsigned(32),
+    "word3_w3":       unsigned(32),
+})
+
+WORD2_LAYOUT = StructLayout({
+    "limit_offset": unsigned(21),
+    "gt_seq":       unsigned(7),
+    "spare":        unsigned(4),
+})
+
+WORD3_LAYOUT = StructLayout({
+    "crc":   unsigned(16),
+    "g_bit": unsigned(1),
+    "spare": unsigned(15),
+})
+
+LUMP_HEADER_LAYOUT = StructLayout({
+    "r":         unsigned(1),
+    "c":         unsigned(1),
+    "h":         unsigned(1),
+    "mw":        unsigned(6),
+    "typ":       unsigned(2),
+    "cc":        unsigned(8),
+    "n_minus_6": unsigned(4),
+    "ver":       unsigned(4),
+    "magic":     unsigned(5),
 })
 
 NS_ENTRY_LAYOUT = StructLayout({
     "word0_location": unsigned(32),
-    "word1_limit":    unsigned(32),
-    "word2_seals":    unsigned(32),
-})
-
-NS_LIMIT_LAYOUT = StructLayout({
-    "limit":    unsigned(17),
-    "reserved": unsigned(12),
-    "g_bit":    unsigned(1),
-    "f_flag":   unsigned(1),
-    "b_flag":   unsigned(1),
-})
-
-SEALS_LAYOUT = StructLayout({
-    "seal":     unsigned(16),
-    "reserved": unsigned(9),
-    "gt_seq":   unsigned(7),
+    "word1_location": unsigned(32),
+    "word2_w2":       unsigned(32),
+    "word3_w3":       unsigned(32),
 })
 
 COND_FLAGS_LAYOUT = StructLayout({

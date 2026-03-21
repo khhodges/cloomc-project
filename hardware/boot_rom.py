@@ -3,10 +3,14 @@ from amaranth import *
 from .hw_types import *
 
 
-def crc16_ccitt(word_a, word_b, poly=0x1021, init=0xFFFF):
-    """CRC-16/CCITT over two 32-bit words (MSB first), poly=0x1021, init=0xFFFF."""
+def crc16_ccitt(word0_gt25, word1, word2, poly=0x1021, init=0xFFFF):
+    """CRC-16/CCITT over GT[24:0] (25 bits, MSB first) + word1 (32 bits) + word2 (32 bits).
+    Total: 89 bits, poly=0x1021, init=0xFFFF."""
     crc = init
-    for word in (word_a, word_b):
+    for bit in range(24, -1, -1):
+        top = ((crc >> 15) ^ ((word0_gt25 >> bit) & 1)) & 1
+        crc = ((crc << 1) & 0xFFFF) ^ (poly if top else 0)
+    for word in (word1, word2):
         for bit in range(31, -1, -1):
             top = ((crc >> 15) ^ ((word >> bit) & 1)) & 1
             crc = ((crc << 1) & 0xFFFF) ^ (poly if top else 0)
@@ -53,14 +57,29 @@ while len(BOOT_PROGRAM) < 256:
     BOOT_PROGRAM.append(0x00000000)
 
 
+def _make_ns_entry(gt_type, perms, slot_id, gt_seq, location, size):
+    """Build a 4-word NS entry: [location, word1_rsv, word2_w2, word3_w3].
+
+    word2_w2: limit_offset[20:0] | gt_seq[6:0] | spare[3:0]
+    word3_w3: crc[15:0] | g_bit[0] | spare[14:0]
+    """
+    gt_word0 = make_gt(gt_type, perms, slot_id, gt_seq)
+    word0_gt25 = gt_word0 & 0x1FFFFFF
+    word1 = location
+    limit_offset = size & 0x1FFFFF
+    word2 = (gt_seq & 0x7F) << 21 | limit_offset
+    crc = crc16_ccitt(word0_gt25, word1, word2)
+    word3 = crc & 0xFFFF
+    return [word0_gt25, word1, word2, word3]
+
+
 DEMO_NAMESPACE = []
 for _i in range(16):
     _location = NS_TABLE_BASE if _i == 0 else _i * 0x100
-    _limit = 0x80000000 | 8
-    _seal = crc16_ccitt(_location, _limit)
+    _size = 8
     _gt_seq = 0
-    _seal_word = (_gt_seq << 25) | (_seal & CRC_SEAL_MASK)
-    DEMO_NAMESPACE.extend([_location, _limit, _seal_word])
+    _entry = _make_ns_entry(GT_TYPE_REAL, PERM_MASK_R | PERM_MASK_W, _i, _gt_seq, _location, _size)
+    DEMO_NAMESPACE.extend(_entry)
 
 
 DEMO_CLIST = [

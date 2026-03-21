@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import View
 
 from .hw_types import *
-from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, NS_LIMIT_LAYOUT, SEALS_LAYOUT
+from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, WORD2_LAYOUT, WORD3_LAYOUT
 
 
 class ChurchMSave(Elaboratable):
@@ -40,50 +40,52 @@ class ChurchMSave(Elaboratable):
 
         dst_view = View(CAP_REG_LAYOUT, dst_cap_reg)
         dst_gt = View(GT_LAYOUT, dst_view.word0_gt)
-        dst_limit = View(NS_LIMIT_LAYOUT, dst_view.word2_limit)
+        dst_w2 = View(WORD2_LAYOUT, dst_view.word2_w2)
         src_gt_view = View(GT_LAYOUT, src_gt_reg)
 
         ns_view = View(CAP_REG_LAYOUT, self.cr15_namespace)
 
         dst_has_s_perm = dst_gt.perms[PERM_S]
-        dst_has_bind = dst_limit.b_flag
+        dst_has_bind = dst_gt.b_flag
         index_in_bounds = Signal()
-        m.d.comb += index_in_bounds.eq(index_reg < dst_limit.limit)
+        m.d.comb += index_in_bounds.eq(index_reg < dst_w2.limit_offset[:16])
 
         write_addr = Signal(32)
         m.d.comb += write_addr.eq(dst_view.word1_location + (index_reg << 2))
 
+        ns_ns_w2 = View(WORD2_LAYOUT, ns_view.word2_w2)
         ns_entry_addr = Signal(32)
-        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (src_gt_view.slot_id << 3) + (src_gt_view.slot_id << 2))
+        m.d.comb += ns_entry_addr.eq(ns_view.word1_location + (src_gt_view.slot_id << 4))
 
         ns_location_reg = Signal(32)
-        ns_limit_reg = Signal(32)
-        ns_limit_view = View(NS_LIMIT_LAYOUT, ns_limit_reg)
-        target_f_bit = ns_limit_view.f_flag
+        ns_w2_reg = Signal(32)
+        ns_w2_view = View(WORD2_LAYOUT, ns_w2_reg)
 
         if self.enable_seal_check:
-            ns_seals_reg = Signal(32)
-            ns_seals_view = View(SEALS_LAYOUT, ns_seals_reg)
+            ns_w3_reg = Signal(32)
+            ns_w3_view = View(WORD3_LAYOUT, ns_w3_reg)
 
             gt_seq_match = Signal()
-            m.d.comb += gt_seq_match.eq(src_gt_view.gt_seq == ns_seals_view.gt_seq)
+            m.d.comb += gt_seq_match.eq(src_gt_view.gt_seq == ns_w2_view.gt_seq)
 
-            crc_stages = [Signal(16, name=f"crc16_{i}") for i in range(65)]
+            crc_stages = [Signal(16, name=f"crc16_{i}") for i in range(90)]
             m.d.comb += crc_stages[0].eq(0xFFFF)
-            for i in range(64):
-                if i < 32:
-                    data_bit = ns_location_reg[31 - i]
+            for i in range(89):
+                if i < 25:
+                    data_bit = src_gt_reg[24 - i]
+                elif i < 57:
+                    data_bit = ns_location_reg[56 - i]
                 else:
-                    data_bit = ns_limit_reg[63 - i]
+                    data_bit = ns_w2_reg[88 - i]
                 top_bit = Signal(name=f"crc16_top_{i}")
                 shifted = Signal(16, name=f"crc16_sh_{i}")
                 m.d.comb += top_bit.eq(crc_stages[i][15] ^ data_bit)
                 m.d.comb += shifted.eq(Cat(Const(0, 1), crc_stages[i][:15]))
                 m.d.comb += crc_stages[i + 1].eq(shifted ^ Mux(top_bit, 0x1021, 0))
             crc16_result = Signal(16, name="crc16_result")
-            m.d.comb += crc16_result.eq(crc_stages[64])
+            m.d.comb += crc16_result.eq(crc_stages[89])
             seal_ok = Signal()
-            m.d.comb += seal_ok.eq(crc16_result == ns_seals_view.seal)
+            m.d.comb += seal_ok.eq(crc16_result == ns_w3_view.crc)
 
         with m.FSM(name="msave") as fsm:
             with m.State("IDLE"):
@@ -124,28 +126,28 @@ class ChurchMSave(Elaboratable):
                 ]
                 with m.If(self.mem_rd_valid):
                     m.d.sync += ns_location_reg.eq(self.mem_rd_data)
-                    m.next = "FETCH_NS_LIMIT"
+                    m.next = "FETCH_NS_W2"
 
-            with m.State("FETCH_NS_LIMIT"):
+            with m.State("FETCH_NS_W2"):
                 m.d.comb += [
-                    self.mem_rd_addr.eq(ns_entry_addr + 4),
+                    self.mem_rd_addr.eq(ns_entry_addr + 8),
                     self.mem_rd_en.eq(1),
                 ]
                 with m.If(self.mem_rd_valid):
-                    m.d.sync += ns_limit_reg.eq(self.mem_rd_data)
+                    m.d.sync += ns_w2_reg.eq(self.mem_rd_data)
                     if self.enable_seal_check:
-                        m.next = "FETCH_NS_SEALS"
+                        m.next = "FETCH_NS_W3"
                     else:
-                        m.next = "CHECK_F_BIT"
+                        m.next = "WRITE_GT"
 
             if self.enable_seal_check:
-                with m.State("FETCH_NS_SEALS"):
+                with m.State("FETCH_NS_W3"):
                     m.d.comb += [
-                        self.mem_rd_addr.eq(ns_entry_addr + 8),
+                        self.mem_rd_addr.eq(ns_entry_addr + 12),
                         self.mem_rd_en.eq(1),
                     ]
                     with m.If(self.mem_rd_valid):
-                        m.d.sync += ns_seals_reg.eq(self.mem_rd_data)
+                        m.d.sync += ns_w3_reg.eq(self.mem_rd_data)
                         m.next = "CHECK_VERSION"
 
                 with m.State("CHECK_VERSION"):
@@ -156,14 +158,7 @@ class ChurchMSave(Elaboratable):
                         m.d.sync += fault_type_reg.eq(FaultType.SEAL)
                         m.next = "FAULT"
                     with m.Else():
-                        m.next = "CHECK_F_BIT"
-
-            with m.State("CHECK_F_BIT"):
-                with m.If(target_f_bit):
-                    m.d.sync += fault_type_reg.eq(FaultType.F_BIT)
-                    m.next = "FAULT"
-                with m.Else():
-                    m.next = "WRITE_GT"
+                        m.next = "WRITE_GT"
 
             with m.State("WRITE_GT"):
                 m.d.comb += [

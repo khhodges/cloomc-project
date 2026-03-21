@@ -58,8 +58,8 @@ class ChurchReturn(Elaboratable):
         m.d.comb += is_null_cap.eq(ret_gt.gt_type == GT_TYPE_NULL)
 
         saved_nia = ret_view.word1_location
-        saved_cr6_gt = ret_view.word2_limit
-        saved_cr7_gt = ret_view.word3_seals
+        saved_cr6_gt = ret_view.word2_w2
+        saved_cr7_gt = ret_view.word3_w3
 
         saved_cr6_gt_view = View(GT_LAYOUT, saved_cr6_gt)
 

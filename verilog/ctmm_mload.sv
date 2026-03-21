@@ -6,16 +6,17 @@
 //
 // Sequence:
 //   1. (optional) Check CRn has L permission and not null
-//   2. Check bounds: index < CRn.word2_limit[15:0]
+//   2. Check bounds: index < CRn.word2_w2.limit_offset[15:0]
 //   3. Fetch GT (32 bits) from CRn[index] in C-List memory
-//   4. Check GT.slot_id < CR15.word2_limit[15:0]  (namespace bounds)
-//   5. Fetch word1_location from NS[slot_id]
-//   6. Fetch word2_limit    from NS[slot_id] + 4
-//   7. Fetch word3_seals    from NS[slot_id] + 8
-//   8. Validate: GT.gt_seq == seals.gt_seq  (version check)
-//   9. Validate: CRC-16/CCITT(location, limit) == seals.seal
-//  10. Reset G-bit in namespace entry if set
-//  11. Write result capability to CRd
+//   4. Check GT.slot_id < CR15.word2_w2.limit_offset[15:0]  (namespace bounds)
+//   5. Fetch word0_gt25     from NS[slot_id << 4]      (+0)
+//   6. Fetch word1_location from NS[slot_id << 4]      (+4)
+//   7. Fetch word2_w2       from NS[slot_id << 4]      (+8)
+//   8. Fetch word3_w3       from NS[slot_id << 4]      (+12)
+//   9. Validate: GT.gt_seq == word2_w2.gt_seq          (version check)
+//  10. Validate: CRC-16/CCITT(GT[24:0]+word1+word2_w2) == word3_w3.crc
+//  11. Reset G-bit in namespace entry if set
+//  12. Write result capability to CRd
 // ============================================================================
 
 module ctmm_mload
@@ -161,9 +162,9 @@ module ctmm_mload
                 SUB_FETCH_LOC:
                     if (mem_rd_valid) result_cap.word1_location <= mem_rd_data;
                 SUB_FETCH_LIMIT:
-                    if (mem_rd_valid) result_cap.word2_limit <= mem_rd_data;
+                    if (mem_rd_valid) result_cap.word2_w2 <= mem_rd_data;
                 SUB_FETCH_SEALS:
-                    if (mem_rd_valid) result_cap.word3_seals <= mem_rd_data;
+                    if (mem_rd_valid) result_cap.word3_w3 <= mem_rd_data;
                 default: ;
             endcase
         end
@@ -180,8 +181,8 @@ module ctmm_mload
 
     assign has_l_perm   = src_cap.word0_gt.perms[PERM_L];
     assign src_is_null  = (src_cap.word0_gt.gt_type == GT_TYPE_NULL);
-    assign bounds_ok    = (index_reg < src_cap.word2_limit[15:0]);
-    assign ns_bounds_ok = (result_cap.word0_gt.slot_id < cr15_namespace.word2_limit[15:0]);
+    assign bounds_ok    = (index_reg < src_cap.word2_w2.limit_offset[15:0]);
+    assign ns_bounds_ok = (result_cap.word0_gt.slot_id < cr15_namespace.word2_w2.limit_offset[15:0]);
 
     // ========================================================================
     // CList address: base + index*4 (32-bit word addressed)
@@ -191,30 +192,34 @@ module ctmm_mload
     assign clist_gt_addr = src_cap.word1_location + {14'h0, index_reg, 2'b00};
 
     // ========================================================================
-    // Namespace entry address: base + slot_id*12
+    // Namespace entry address: base + slot_id*16
     // ========================================================================
 
     logic [31:0] ns_entry_addr;
     assign ns_entry_addr = cr15_namespace.word1_location +
-                           {16'h0, result_cap.word0_gt.slot_id} * 32'd12;
+                           ({16'h0, result_cap.word0_gt.slot_id} << 4);
 
     // ========================================================================
-    // CRC-16/CCITT over word1_location + word2_limit (64 bits, MSB first)
+    // CRC-16/CCITT over GT[24:0] + word1_location + word2_w2 (89 bits, MSB first)
     // ========================================================================
-    // Combinational 64-stage unrolled CRC for seal validation
+    // Stages 0..24  : GT bits [24..0]  (25 bits)
+    // Stages 25..56 : word1_location bits [31..0] (32 bits)
+    // Stages 57..88 : word2_w2 bits [31..0] (32 bits)
 
-    logic [15:0] crc_stage [0:64];
+    logic [15:0] crc_stage [0:89];
     genvar gi;
     assign crc_stage[0] = CRC16_INIT;
     generate
-        for (gi = 0; gi < 64; gi++) begin : crc_loop
+        for (gi = 0; gi < 89; gi++) begin : crc_loop
             logic data_bit;
             logic top_bit;
             logic [15:0] shifted;
-            if (gi < 32) begin
-                assign data_bit = result_cap.word1_location[31 - gi];
+            if (gi < 25) begin
+                assign data_bit = result_cap.word0_gt[24 - gi];
+            end else if (gi < 57) begin
+                assign data_bit = result_cap.word1_location[56 - gi];
             end else begin
-                assign data_bit = result_cap.word2_limit[63 - gi];
+                assign data_bit = result_cap.word2_w2[88 - gi];
             end
             assign top_bit = crc_stage[gi][15] ^ data_bit;
             assign shifted  = {crc_stage[gi][14:0], 1'b0};
@@ -224,10 +229,8 @@ module ctmm_mload
 
     logic gt_seq_match;
     logic seal_ok;
-    seals_t seals_view;
-    assign seals_view   = result_cap.word3_seals;
-    assign gt_seq_match = (result_cap.word0_gt.gt_seq == seals_view.gt_seq);
-    assign seal_ok      = (crc_stage[64] == seals_view.seal);
+    assign gt_seq_match = (result_cap.word0_gt.gt_seq == result_cap.word2_w2.gt_seq);
+    assign seal_ok      = (crc_stage[89] == result_cap.word3_w3.crc);
 
     // ========================================================================
     // State Register
@@ -322,10 +325,10 @@ module ctmm_mload
         mem_addr = 32'h0;
         mem_rd_en = 1'b0;
         case (state)
-            SUB_FETCH_W0:     begin mem_addr = clist_gt_addr;     mem_rd_en = 1'b1; end
-            SUB_FETCH_LOC:    begin mem_addr = ns_entry_addr;     mem_rd_en = 1'b1; end
-            SUB_FETCH_LIMIT:  begin mem_addr = ns_entry_addr + 4; mem_rd_en = 1'b1; end
-            SUB_FETCH_SEALS:  begin mem_addr = ns_entry_addr + 8; mem_rd_en = 1'b1; end
+            SUB_FETCH_W0:     begin mem_addr = clist_gt_addr;      mem_rd_en = 1'b1; end
+            SUB_FETCH_LOC:    begin mem_addr = ns_entry_addr + 4;  mem_rd_en = 1'b1; end
+            SUB_FETCH_LIMIT:  begin mem_addr = ns_entry_addr + 8;  mem_rd_en = 1'b1; end
+            SUB_FETCH_SEALS:  begin mem_addr = ns_entry_addr + 12; mem_rd_en = 1'b1; end
             default: ;
         endcase
     end

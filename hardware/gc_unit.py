@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import View
 
 from .hw_types import *
-from .layouts import NS_ENTRY_LAYOUT, NS_LIMIT_LAYOUT, SEALS_LAYOUT
+from .layouts import NS_ENTRY_LAYOUT, WORD2_LAYOUT, WORD3_LAYOUT
 
 
 class ChurchGCUnit(Elaboratable):
@@ -15,8 +15,8 @@ class ChurchGCUnit(Elaboratable):
 
         self.ns_addr = Signal(32)
         self.ns_rd_en = Signal()
-        self.ns_rd_data = Signal(32 * 3)
-        self.ns_wr_data = Signal(32 * 3)
+        self.ns_rd_data = Signal(32 * 4)
+        self.ns_wr_data = Signal(32 * 4)
         self.ns_wr_en = Signal()
 
         self.ns_start_index = Signal(16)
@@ -36,13 +36,12 @@ class ChurchGCUnit(Elaboratable):
         mark_counter = Signal(32)
         garbage_counter = Signal(32)
 
-        latched_entry = Signal(32 * 3)
-        latched_w0 = latched_entry.word_select(0, 32)
-        latched_w1 = latched_entry.word_select(1, 32)
+        latched_entry = Signal(32 * 4)
         latched_w2 = latched_entry.word_select(2, 32)
+        latched_w3 = latched_entry.word_select(3, 32)
 
-        w1_view = View(NS_LIMIT_LAYOUT, latched_w1)
-        w2_view = View(SEALS_LAYOUT, latched_w2)
+        w2_view = View(WORD2_LAYOUT, latched_w2)
+        w3_view = View(WORD3_LAYOUT, latched_w3)
 
         next_version = Signal(7)
         m.d.comb += next_version.eq(w2_view.gt_seq + 1)
@@ -73,11 +72,11 @@ class ChurchGCUnit(Elaboratable):
                 m.next = "MARK_WRITE"
 
             with m.State("MARK_WRITE"):
-                wr_entry = Signal(32 * 3)
-                wr_w1 = wr_entry.word_select(1, 32)
-                wr_w1_view = View(NS_LIMIT_LAYOUT, wr_w1)
+                wr_entry = Signal(32 * 4)
+                wr_w3 = wr_entry.word_select(3, 32)
+                wr_w3_view = View(WORD3_LAYOUT, wr_w3)
                 m.d.comb += wr_entry.eq(latched_entry)
-                m.d.comb += wr_w1_view.g_bit.eq(1)
+                m.d.comb += wr_w3_view.g_bit.eq(1)
 
                 m.d.comb += [
                     self.ns_addr.eq(current_index),
@@ -85,7 +84,7 @@ class ChurchGCUnit(Elaboratable):
                     self.ns_wr_en.eq(1),
                 ]
 
-                with m.If(~w1_view.g_bit):
+                with m.If(~w3_view.g_bit):
                     m.d.sync += mark_counter.eq(mark_counter + 1)
 
                 m.d.sync += current_index.eq(current_index + 1)
@@ -108,7 +107,7 @@ class ChurchGCUnit(Elaboratable):
                 m.next = "SWEEP_CHECK"
 
             with m.State("SWEEP_CHECK"):
-                with m.If(w1_view.g_bit):
+                with m.If(w3_view.g_bit):
                     m.d.sync += garbage_counter.eq(garbage_counter + 1)
                     m.next = "SWEEP_WRITE"
                 with m.Else():
@@ -119,13 +118,12 @@ class ChurchGCUnit(Elaboratable):
                         m.next = "SWEEP_READ"
 
             with m.State("SWEEP_WRITE"):
-                swept_entry = Signal(32 * 3)
+                swept_entry = Signal(32 * 4)
                 swept_w2 = swept_entry.word_select(2, 32)
-                swept_w2_view = View(SEALS_LAYOUT, swept_w2)
+                swept_w2_view = View(WORD2_LAYOUT, swept_w2)
                 m.d.comb += [
                     swept_entry.eq(0),
                     swept_w2_view.gt_seq.eq(next_version),
-                    swept_w2_view.seal.eq(0),
                 ]
                 m.d.comb += [
                     self.ns_addr.eq(current_index),

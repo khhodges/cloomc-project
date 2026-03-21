@@ -117,8 +117,8 @@ module ctmm_registers
             case (cr_word_rd_sel)
                 2'd0: cr_word_rd_data = cap_regs[cr_word_rd_addr].word0_gt;
                 2'd1: cr_word_rd_data = cap_regs[cr_word_rd_addr].word1_location;
-                2'd2: cr_word_rd_data = cap_regs[cr_word_rd_addr].word2_limit;
-                2'd3: cr_word_rd_data = cap_regs[cr_word_rd_addr].word3_seals;
+                2'd2: cr_word_rd_data = cap_regs[cr_word_rd_addr].word2_w2;
+                2'd3: cr_word_rd_data = cap_regs[cr_word_rd_addr].word3_w3;
             endcase
         end
     end
@@ -145,8 +145,8 @@ module ctmm_registers
                 case (cr_word_sel)
                     2'd0: cap_regs[cr_word_wr_addr].word0_gt <= cr_word_wr_data;
                     2'd1: cap_regs[cr_word_wr_addr].word1_location <= cr_word_wr_data;
-                    2'd2: cap_regs[cr_word_wr_addr].word2_limit <= cr_word_wr_data;
-                    2'd3: cap_regs[cr_word_wr_addr].word3_seals <= cr_word_wr_data;
+                    2'd2: cap_regs[cr_word_wr_addr].word2_w2 <= cr_word_wr_data;
+                    2'd3: cap_regs[cr_word_wr_addr].word3_w3 <= cr_word_wr_data;
                 endcase
             end
             

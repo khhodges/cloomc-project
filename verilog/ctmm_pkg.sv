@@ -66,18 +66,32 @@ package ctmm_pkg;
     };
 
     // ========================================================================
-    // Seals Word (Word 3 of CR / Word 2 of NS entry) - 32 bits
+    // Word 2 of CR / NS entry - 32 bits
     // ========================================================================
-    // Bits [15:0]  - seal:     CRC-16/CCITT over word1_location + word2_limit
-    // Bits [24:16] - reserved: Must be zero
-    // Bits [31:25] - gt_seq:   Generation sequence (must match GT.gt_seq)
+    // Bits [20:0]  - limit_offset: Size/bounds of namespace region (21 bits)
+    // Bits [27:21] - gt_seq:       Generation sequence counter (7 bits)
+    // Bits [31:28] - spare:        Reserved, must be zero
     // ========================================================================
 
     typedef struct packed {
-        logic [6:0]  gt_seq;    // Bits [31:25] - GT generation sequence
-        logic [8:0]  reserved;  // Bits [24:16] - Reserved
-        logic [15:0] seal;      // Bits [15:0]  - CRC-16/CCITT seal
-    } seals_t;
+        logic [3:0]  spare;        // Bits [31:28] - Reserved
+        logic [6:0]  gt_seq;       // Bits [27:21] - GT generation sequence
+        logic [20:0] limit_offset; // Bits [20:0]  - Region size/limit
+    } word2_t;
+
+    // ========================================================================
+    // Word 3 of CR / NS entry - 32 bits
+    // ========================================================================
+    // Bits [15:0]  - crc:   CRC-16/CCITT over GT[24:0] + word1 + word2 (89 bits)
+    // Bit  [16]    - g_bit: GC mark bit (1 = not yet touched since last mark)
+    // Bits [31:17] - spare: Reserved, must be zero
+    // ========================================================================
+
+    typedef struct packed {
+        logic [14:0] spare; // Bits [31:17] - Reserved
+        logic        g_bit; // Bit  [16]    - GC mark bit
+        logic [15:0] crc;   // Bits [15:0]  - CRC-16/CCITT seal
+    } word3_t;
 
     // CRC-16/CCITT constants (poly=0x1021, init=0xFFFF)
     localparam logic [15:0] CRC16_POLY = 16'h1021;
@@ -93,16 +107,16 @@ package ctmm_pkg;
     // ========================================================================
 
     typedef struct packed {
-        logic [31:0]   word3_seals;    // Word 3: CRC-16 seal word
-        logic [31:0]   word2_limit;    // Word 2: Size limit for bounds checking
+        word3_t        word3_w3;       // Word 3: GC g_bit + CRC-16 seal
+        word2_t        word2_w2;       // Word 2: gt_seq + limit_offset
         logic [31:0]   word1_location; // Word 1: Physical location/base address
         golden_token_t word0_gt;       // Word 0: Golden Token (32 bits)
     } capability_reg_t;
 
     // Null Capability Register (all zeros)
     localparam capability_reg_t CR_NULL = '{
-        word3_seals:    32'h0,
-        word2_limit:    32'h0,
+        word3_w3:       '{spare: 15'h0, g_bit: 1'b0, crc: 16'h0},
+        word2_w2:       '{spare: 4'h0, gt_seq: 7'h0, limit_offset: 21'h0},
         word1_location: 32'h0,
         word0_gt:       GT_NULL
     };
@@ -120,21 +134,23 @@ package ctmm_pkg;
     localparam logic [3:0] CR_NAMESPACE = 4'd15;  // CR15: Namespace root
 
     // ========================================================================
-    // Namespace Entry - 3 x 32-bit words (96 bits) in memory
+    // Namespace Entry - 4 x 32-bit words (128 bits) in memory
     // ========================================================================
-    // Word 0: Location - physical address/pointer (32 bits)
-    // Word 1: Limit - size/bounds for access checking (32 bits)
-    // Word 2: Seals - CRC-16 validation word (32 bits)
+    // Word 0: word0_gt25   - GT bits [24:0] (padded to 32 bits)
+    // Word 1: Location     - physical address/pointer (32 bits)
+    // Word 2: word2_w2     - gt_seq + limit_offset (WORD2_T)
+    // Word 3: word3_w3     - g_bit + CRC-16 seal (WORD3_T)
     // ========================================================================
 
     typedef struct packed {
-        logic [31:0] word2_seals;    // CRC-16 seal word
-        logic [31:0] word1_limit;    // Size limit for bounds checking
-        logic [31:0] word0_location; // Physical location
+        word3_t      word3_w3;     // CRC-16 seal + GC g_bit
+        word2_t      word2_w2;     // gt_seq + limit_offset
+        logic [31:0] word1_location; // Physical location
+        logic [31:0] word0_gt25;   // GT bits [24:0], upper 7 bits unused
     } namespace_entry_t;
 
-    // Namespace entry stride = 12 bytes (3 x 32-bit words)
-    localparam int NS_ENTRY_STRIDE = 12;
+    // Namespace entry stride = 16 bytes (4 x 32-bit words)
+    localparam int NS_ENTRY_STRIDE = 16;
 
     // ========================================================================
     // Condition Codes (ARM-style)

@@ -150,8 +150,8 @@ module ctmm_return
     golden_token_t saved_cr7_gt;
     
     assign saved_nia = return_cap.word1_location;
-    assign saved_cr6_gt = return_cap.word2_limit;
-    assign saved_cr7_gt = return_cap.word3_seals;
+    assign saved_cr6_gt = return_cap.word2_w2;
+    assign saved_cr7_gt = return_cap.word3_w3;
     
     // ========================================================================
     // Saved CR6 GT E Permission Check

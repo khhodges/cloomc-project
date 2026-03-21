@@ -204,8 +204,8 @@ class ChurchCall(Elaboratable):
                     b_dst.word0_gt.perms.eq(b_src.word0_gt.perms),
                     b_dst.word0_gt.b_flag.eq(0),
                     b_dst.word1_location.eq(b_src.word1_location),
-                    b_dst.word2_limit.eq(b_src.word2_limit),
-                    b_dst.word3_seals.eq(b_src.word3_seals),
+                    b_dst.word2_w2.eq(b_src.word2_w2),
+                    b_dst.word3_w3.eq(b_src.word3_w3),
                     b_clear_wr_en.eq(1),
                     b_clear_wr_addr.eq(b_idx),
                 ]
