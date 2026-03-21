@@ -160,8 +160,26 @@ module ctmm_call
     lump_header_t lump_view;
     assign lump_view = lump_reg;
 
+    // Latched lump fields (set when lump_reg captures mem_rd_data in FETCH_LUMP)
+    logic [5:0]  mw_latched;        // max-word: argument count
+    logic [7:0]  cc_latched;        // calling-convention flags
+    logic [3:0]  n_minus_6_latched; // frame-words minus 6
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            mw_latched        <= 6'd0;
+            cc_latched        <= 8'd0;
+            n_minus_6_latched <= 4'd0;
+        end else if (state == CALL_FETCH_LUMP && mem_rd_valid) begin
+            mw_latched        <= lump_view.mw;
+            cc_latched        <= lump_view.cc;
+            n_minus_6_latched <= lump_view.n_minus_6;
+        end
+    end
+
     // NIA = code_base + (1 + mw) * 4  (skip over the prologue header word)
-    // mw is 6 bits from lump_view.mw (bits [8:3] of word3_lump)
+    // Uses lump_view.mw (combinational decode of lump_reg) before it is registered
+    // so NIA is available the same cycle lump_reg is latched.
     logic [31:0] nia_computed;
     assign nia_computed = cr14_latched.word1_location
                         + ({26'd0, lump_view.mw} + 32'd1) * 32'd4;

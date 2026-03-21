@@ -136,6 +136,11 @@ class ChurchCall(Elaboratable):
         lump_reg = Signal(32)
         lump_view = View(LUMP_HEADER_LAYOUT, lump_reg)
 
+        # Latched fields from LUMP_HEADER (set after FETCH_LUMP completes)
+        mw_reg        = Signal(6)   # max-word (arg count)
+        cc_reg        = Signal(8)   # calling-convention flags
+        n_minus_6_reg = Signal(4)   # total frame words minus 6
+
         nia_computed = Signal(32)
         m.d.comb += nia_computed.eq(
             cr14_view.word1_location + ((1 + lump_view.mw) << 2)
@@ -207,13 +212,18 @@ class ChurchCall(Elaboratable):
                     m.next = "FETCH_LUMP"
 
             with m.State("FETCH_LUMP"):
-                # Fetch NS word3_lump (+12) for callee to extract mw for NIA
+                # Fetch NS word3_lump (+12) for callee; extract mw/cc/n_minus_6 for NIA
                 m.d.comb += [
                     self.mem_rd_addr.eq(callee_ns_entry_addr + 12),
                     self.mem_rd_en.eq(1),
                 ]
                 with m.If(self.mem_rd_valid):
                     m.d.sync += lump_reg.eq(self.mem_rd_data)
+                    m.d.sync += [
+                        mw_reg.eq(View(LUMP_HEADER_LAYOUT, self.mem_rd_data).mw),
+                        cc_reg.eq(View(LUMP_HEADER_LAYOUT, self.mem_rd_data).cc),
+                        n_minus_6_reg.eq(View(LUMP_HEADER_LAYOUT, self.mem_rd_data).n_minus_6),
+                    ]
                     m.next = "CLEAR_B_INIT"
 
             with m.State("CLEAR_B_INIT"):
