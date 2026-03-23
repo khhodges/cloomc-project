@@ -581,7 +581,7 @@ Then import the EDIF into Efinity for P&R.
 3. In the IDE: select **Board: Efinix Ti60 F225** in Settings
 4. Click **Deploy to Ti60** to send your program via WebSerial at 115200 baud
 
-## LED Pinout (active-low, Ti60 F225 Dev Board)
+## LED Pinout (active-high, Ti60 F225 Dev Board)
 
 | LED | Ball | Signal            |
 |-----|------|-------------------|
@@ -596,8 +596,6 @@ Then import the EDIF into Efinity for P&R.
 - **Clock**: 50 MHz on-board crystal oscillator (pin B8)
 - **UART**: 115200 baud via FTDI FT232H USB bridge
 """
-
-BUILD_MD_TEMPLATE = BUILD_MD_TANG
 
 
 @app.route("/api/download/fpga-package")

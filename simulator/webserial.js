@@ -100,7 +100,7 @@ const TangSerial = (function() {
         const status = onStatus || function() {};
 
         if (!isConnected()) {
-            throw new Error('Not connected. Call connect() first — make sure your Tang Nano 20K is plugged in via USB-C.');
+            throw new Error(`Not connected. Call connect() first — make sure your ${_boardLabel} is plugged in via USB.`);
         }
 
         await drainInput();
@@ -130,7 +130,7 @@ const TangSerial = (function() {
             w.releaseLock();
         }
 
-        status('Data sent to BL616. Waiting for FPGA response...');
+        status(`Data sent to ${_boardLabel}. Waiting for FPGA response...`);
 
         const rxBytes = [];
         const deadline = Date.now() + 5000;

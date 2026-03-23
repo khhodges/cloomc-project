@@ -14,11 +14,11 @@ class ChurchTi60F225(Elaboratable):
 
     Differences from Tang Nano 20K:
       - clk_freq = 50 MHz (on-board crystal, pin B8)
-      - 4 LEDs, active-low (USER_LED[3:0])
-      - Push button active-low (USER_PB)
+      - 4 LEDs, active-HIGH (USER_LED[3:0]; logic 1 = LED on)
+      - Push button active-low (USER_PB, with external pull-up)
       - Memory uses plain Amaranth Memory (Yosys infers Efinix EBR tiles)
       - No BSRAM init FSM — Memory init= handles pre-loading directly
-      - UART via FTDI USB-UART bridge at 115200 baud
+      - UART via FTDI FT232H USB-UART bridge at 115200 baud
     """
 
     def __init__(self, clk_freq=50_000_000, baud=115200, sim_mode=False):
