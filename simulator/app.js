@@ -1,4 +1,4 @@
-const POPUPS_DISABLED = true;
+const POPUPS_DISABLED = false;
 
 let sim = null;
 let assembler = null;
@@ -10927,6 +10927,18 @@ function addCopyButton(pre) {
         const text = clone.textContent;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(function() {
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+            }).catch(function() {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch(_) {}
+                document.body.removeChild(ta);
                 btn.textContent = 'Copied!';
                 btn.classList.add('copied');
                 setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);

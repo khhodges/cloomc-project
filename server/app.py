@@ -121,6 +121,10 @@ def index():
 def health():
     return jsonify({"status": "ok"})
 
+@app.route("/favicon.ico")
+def favicon():
+    return make_response('', 204)
+
 @app.route("/api/boot-id")
 def boot_id():
     return jsonify({"bootId": BOOT_ID})
