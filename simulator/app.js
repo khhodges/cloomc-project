@@ -6647,6 +6647,19 @@ function nativeShare() {
     }
 }
 
+function getSelectedBoard() {
+    return localStorage.getItem('fpga_board_target') || 'tang-nano-20k';
+}
+
+function setSelectedBoard(board) {
+    localStorage.setItem('fpga_board_target', board);
+}
+
+function getBoardLabel(board) {
+    if (board === 'ti60-f225') return 'Efinix Ti60 F225';
+    return 'Sipeed Tang Nano 20K';
+}
+
 function openSettings() {
     if (!requirePermission('settings', 'Change Settings')) return;
     const settings = getStudentSettings();
@@ -6657,6 +6670,8 @@ function openSettings() {
     const anyPerm = hasAnyPopupDismissedPerm();
     const showAllCheck = document.getElementById('showAllPopupsCheck');
     if (showAllCheck) showAllCheck.checked = !anyPerm;
+    const boardSel = document.getElementById('settingFPGABoard');
+    if (boardSel) boardSel.value = getSelectedBoard();
     document.getElementById('settingsModal').style.display = 'flex';
 }
 
@@ -6723,6 +6738,9 @@ function saveSettings() {
         familyMembers: collectFamilyMembers()
     };
     localStorage.setItem('church_student_settings', JSON.stringify(settings));
+
+    const boardSel = document.getElementById('settingFPGABoard');
+    if (boardSel) setSelectedBoard(boardSel.value);
 
     let fa = getFamilyAbstraction();
     const members = settings.familyMembers;
@@ -7617,11 +7635,15 @@ async function downloadFPGAPackage() {
     switchCodeTab('console');
     const con = document.getElementById('editorConsole');
     const btn = document.getElementById('btnFPGAPkg');
-    if (con) con.textContent = 'Generating FPGA build package...\nThis runs Amaranth elaboration + Yosys synthesis (typically 20-60 seconds).\n';
+    const board = getSelectedBoard();
+    const boardLabel = getBoardLabel(board);
+    const isTi60 = (board === 'ti60-f225');
+
+    if (con) con.textContent = `Generating FPGA build package for ${boardLabel}...\nThis runs Amaranth elaboration + Yosys synthesis (typically 20-60 seconds).\n`;
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Building...'; }
 
     try {
-        const resp = await fetch('/api/download/fpga-package');
+        const resp = await fetch(`/api/download/fpga-package?board=${encodeURIComponent(board)}`);
         if (!resp.ok) {
             let errMsg = `Server returned ${resp.status}`;
             try {
@@ -7636,25 +7658,40 @@ async function downloadFPGAPackage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'church-nano-package.zip';
+        const zipName = isTi60 ? 'church-ti60-package.zip' : 'church-nano-package.zip';
+        a.download = zipName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         if (con) {
-            con.textContent += `\nDownloaded church-nano-package.zip (${(blob.size / 1024).toFixed(0)} KB)\n`;
+            con.textContent += `\nDownloaded ${zipName} (${(blob.size / 1024).toFixed(0)} KB)\n`;
             con.textContent += '\nContents:\n';
-            con.textContent += '  church_tang_nano_20k.v    — Synthesisable Verilog\n';
-            con.textContent += '  church_tang_nano_20k.json — Yosys netlist\n';
-            con.textContent += '  tang_nano_20k.cst         — Pin constraints\n';
-            con.textContent += '  Makefile                  — Build targets\n';
-            con.textContent += '  BUILD.md                  — Instructions\n\n';
-            con.textContent += 'Next steps:\n';
-            con.textContent += '  1. Unzip the package\n';
-            con.textContent += '  2. Install OSS CAD Suite (oss-cad-suite-build on GitHub)\n';
-            con.textContent += '  3. Run: make pnr pack\n';
-            con.textContent += '  4. Run: make prog\n';
-            con.textContent += '  5. Upload to Tang Nano 20K via Deploy to Tang in this IDE\n';
+            if (isTi60) {
+                con.textContent += '  church_ti60_f225.v    — Synthesisable Verilog\n';
+                con.textContent += '  church_ti60_f225.edif — Yosys EDIF netlist (synth_efinix)\n';
+                con.textContent += '  ti60_f225.isf         — Pin constraints (Efinity IDE)\n';
+                con.textContent += '  BUILD.md              — Instructions\n\n';
+                con.textContent += 'Next steps:\n';
+                con.textContent += '  1. Unzip the package\n';
+                con.textContent += '  2. Open Efinity IDE, create Titanium project (Ti60F225)\n';
+                con.textContent += '  3. Add church_ti60_f225.v as source\n';
+                con.textContent += '  4. Interface Editor -> Import ti60_f225.isf\n';
+                con.textContent += '  5. Run Synthesis -> P&R -> Generate Bitstream\n';
+                con.textContent += '  6. Program via Efinity Programmer (JTAG/USB)\n';
+            } else {
+                con.textContent += '  church_tang_nano_20k.v    — Synthesisable Verilog\n';
+                con.textContent += '  church_tang_nano_20k.json — Yosys netlist\n';
+                con.textContent += '  tang_nano_20k.cst         — Pin constraints\n';
+                con.textContent += '  Makefile                  — Build targets\n';
+                con.textContent += '  BUILD.md                  — Instructions\n\n';
+                con.textContent += 'Next steps:\n';
+                con.textContent += '  1. Unzip the package\n';
+                con.textContent += '  2. Install OSS CAD Suite (oss-cad-suite-build on GitHub)\n';
+                con.textContent += '  3. Run: make pnr pack\n';
+                con.textContent += '  4. Run: make prog\n';
+                con.textContent += '  5. Upload via Deploy button in this IDE\n';
+            }
         }
     } catch (e) {
         if (con) con.textContent += '\nError: ' + e.message + '\n';
@@ -7670,13 +7707,16 @@ async function uploadToTang() {
     const con = document.getElementById('editorConsole');
     if (!con) return;
 
+    const board = getSelectedBoard();
+    const boardLabel = getBoardLabel(board);
+
     if (typeof TangSerial === 'undefined') {
         con.textContent = 'Error: WebSerial module not loaded (webserial.js missing)';
         return;
     }
 
     if (!TangSerial.isSupported()) {
-        con.textContent = 'WebSerial is not supported in this browser.\nUse Chrome or Edge to upload to Tang Nano 20K.';
+        con.textContent = `WebSerial is not supported in this browser.\nUse Chrome or Edge to deploy to ${boardLabel}.`;
         return;
     }
 
@@ -7695,7 +7735,7 @@ async function uploadToTang() {
 
         if (!TangSerial.isConnected()) {
             con.textContent += 'Select the FPGA UART port when prompted...\n';
-            con.textContent += '(Choose the Tang Nano 20K serial port)\n\n';
+            con.textContent += `(Choose the ${boardLabel} serial port)\n\n`;
             try {
                 await TangSerial.connect();
             } catch(e) {
@@ -7708,12 +7748,12 @@ async function uploadToTang() {
                     con.textContent += 'that does not allow hardware access.\n\n';
                     con.textContent += 'SOLUTION: Open the app directly in a browser tab:\n\n';
                     con.textContent += '  ' + directUrl() + '\n\n';
-                    con.textContent += 'Then click "Deploy to Tang" from that tab. Chrome or Edge required.\n';
+                    con.textContent += `Then click "Deploy to FPGA" from that tab. Chrome or Edge required.\n`;
                     return;
                 }
                 con.textContent += 'Could not open port: ' + e.message + '\n\n';
                 con.textContent += 'TROUBLESHOOTING:\n';
-                con.textContent += '1. Check that the Tang Nano 20K is connected via USB\n';
+                con.textContent += `1. Check that the ${boardLabel} is connected via USB\n`;
                 con.textContent += '2. Close any serial monitor that might have the port open\n';
                 con.textContent += '3. Try again\n';
                 return;

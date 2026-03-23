@@ -1,0 +1,86 @@
+# Efinix Titanium Ti60 F225 Development Board
+# Interface Setup File (ISF) for Church Machine
+# Device: Ti60F225 (59,904 LEs, F225 FBGA package)
+# Clock:  50 MHz on-board oscillator
+# UART:   FTDI FT232H USB-UART bridge at 115200 baud
+# LEDs:   USER_LED[3:0] active-low
+# Button: USER_PB active-low with external pull-up
+#
+# NOTE: Verify all pin locations against the official Ti60 F225
+# Development Board schematic before running P&R in Efinity IDE.
+# The pin numbers below are from the Efinix Ti60 F225 Dev Kit User Guide.
+#
+# Efinity IDE workflow:
+#   1. Open Efinity IDE, create a new Titanium project
+#   2. Set device: Ti60F225
+#   3. Add Verilog sources: church_ti60_f225.v
+#   4. Import this ISF (Interface -> Import Interface Design)
+#   5. Run Synthesis -> Place & Route -> Generate Bitstream
+#   6. Program via Efinity Programmer (JTAG/USB)
+
+[device]
+family  = Titanium
+device  = Ti60F225
+package = F225
+
+[io]
+# 50 MHz system clock (on-board crystal oscillator)
+pin      = B8
+name     = clk
+type     = input
+standard = 3.3 V LVCMOS
+slewrate = slow
+
+# UART TX — FPGA transmits to FTDI RX pin
+pin      = B1
+name     = uart_tx
+type     = output
+standard = 3.3 V LVCMOS
+drive    = 4
+slewrate = slow
+
+# UART RX — FPGA receives from FTDI TX pin
+pin      = A1
+name     = uart_rx
+type     = input
+standard = 3.3 V LVCMOS
+pullup   = yes
+
+# USER_LED[0] — active-low — Boot: lit while boot sequence runs
+pin      = A13
+name     = led0
+type     = output
+standard = 3.3 V LVCMOS
+drive    = 4
+slewrate = slow
+
+# USER_LED[1] — active-low — Running: lit when executing normally
+pin      = B13
+name     = led1
+type     = output
+standard = 3.3 V LVCMOS
+drive    = 4
+slewrate = slow
+
+# USER_LED[2] — active-low — Fault: lit on machine fault
+pin      = A14
+name     = led2
+type     = output
+standard = 3.3 V LVCMOS
+drive    = 4
+slewrate = slow
+
+# USER_LED[3] — active-low — Boot complete indicator
+pin      = B14
+name     = led3
+type     = output
+standard = 3.3 V LVCMOS
+drive    = 4
+slewrate = slow
+
+# USER_PB — Push button S1, active-low (step single instruction)
+pin      = F14
+name     = push_button
+type     = input
+standard = 3.3 V LVCMOS
+pullup   = yes

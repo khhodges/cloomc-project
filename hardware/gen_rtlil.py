@@ -3,9 +3,10 @@ import sys
 from amaranth import ClockSignal
 from amaranth.back.rtlil import convert
 from .tang_nano_20k import ChurchTangNano20K
+from .ti60_f225 import ChurchTi60F225
 
 
-def generate_rtlil(output_dir="build"):
+def generate_rtlil_tang_nano(output_dir="build"):
     os.makedirs(output_dir, exist_ok=True)
 
     top = ChurchTangNano20K(clk_freq=27_000_000, baud=115200, sim_mode=False)
@@ -28,10 +29,43 @@ def generate_rtlil(output_dir="build"):
     return output_path
 
 
+def generate_rtlil_ti60(output_dir="build"):
+    os.makedirs(output_dir, exist_ok=True)
+
+    top = ChurchTi60F225(clk_freq=50_000_000, baud=115200, sim_mode=False)
+
+    ports = [
+        top.uart_tx, top.uart_rx, top.push_button,
+        ClockSignal("sync"),
+    ] + top.led
+
+    rtlil_text = convert(top, ports=ports)
+
+    output_path = os.path.join(output_dir, "church_ti60_f225.il")
+    with open(output_path, "w") as f:
+        f.write(rtlil_text)
+
+    print(f"Generated: {output_path}")
+    print(f"  File size: {len(rtlil_text):,} bytes")
+    print(f"  Lines: {rtlil_text.count(chr(10)):,}")
+
+    return output_path
+
+
+def generate_rtlil(output_dir="build"):
+    return generate_rtlil_tang_nano(output_dir)
+
+
 if __name__ == "__main__":
     output_dir = "build"
+    board = "tang-nano-20k"
     for arg in sys.argv[1:]:
         if not arg.startswith("--"):
             output_dir = arg
+        elif arg == "--ti60":
+            board = "ti60-f225"
 
-    generate_rtlil(output_dir)
+    if board == "ti60-f225":
+        generate_rtlil_ti60(output_dir)
+    else:
+        generate_rtlil_tang_nano(output_dir)

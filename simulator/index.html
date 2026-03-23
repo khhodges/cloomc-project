@@ -146,7 +146,7 @@
                         <button class="btn btn-primary" onclick="showSaveToNamespace()" id="btnSaveNS" disabled data-tooltip="Save to NS — Save the assembled program as a namespace entry">Save to NS</button>
                         <button class="btn btn-deploy" onclick="downloadHardwareImage()" data-tooltip="Download .bin — Download binary image for Tang Nano 20K hardware">Download .bin</button>
                         <button class="btn btn-deploy" onclick="downloadFPGAPackage()" id="btnFPGAPkg" data-tooltip="Download FPGA Package — Verilog + synthesis + build files for Tang Nano 20K">Download FPGA Package</button>
-                        <button class="btn btn-deploy" onclick="uploadToTang()" data-tooltip="Deploy to Tang — Upload to Tang Nano 20K via WebSerial (Chrome/Edge)">Deploy to Tang</button>
+                        <button class="btn btn-deploy" onclick="uploadToTang()" data-tooltip="Deploy to FPGA — Upload to the selected FPGA board via WebSerial (Chrome/Edge)">Deploy to FPGA</button>
                     </div>
                 </div>
                 <div class="example-tabs-row">
@@ -531,6 +531,20 @@
                     <div class="settings-section">
                         <div class="settings-section-title">Subjects</div>
                         <div id="subjectsGrid" class="subjects-grid"></div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Hardware Target</div>
+                        <label class="settings-label">FPGA Board
+                            <select id="settingFPGABoard" class="modal-input">
+                                <option value="tang-nano-20k">Sipeed Tang Nano 20K (Gowin GW2AR-18)</option>
+                                <option value="ti60-f225">Efinix Ti60 F225 (Titanium, 50 MHz)</option>
+                            </select>
+                        </label>
+                        <div style="color:#888;font-size:0.78rem;margin-top:0.3rem;">
+                            Selects the synthesis target for Download FPGA Package and Deploy to FPGA.
+                            Tang Nano 20K uses Yosys/nextpnr + OSS CAD Suite.
+                            Ti60 F225 uses Yosys synth_efinix + Efinity IDE for P&amp;R.
+                        </div>
                     </div>
                 </div>
                 <div class="settings-page-col">
