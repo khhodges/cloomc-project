@@ -127,10 +127,11 @@ class SlideRuleTutorial {
 +&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+
 &#x2502; 0x1F [5] &#x2502; <span style="color:#f85149">n-6[4]</span> &#x2502;     <span style="color:#7ee787">cw [13]</span>      &#x2502;typ[2]&#x2502;    <span style="color:var(--church-gold)">cc [8]</span>      &#x2502;
 +&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+</pre>
+<p style="font-size:0.8rem;margin:0.25rem 0 0.5rem"><span style="color:#f85149"><strong>n-6</strong></span> is a 4-bit field encoding total lump size minus&nbsp;6 (n&nbsp;=&nbsp;6&ndash;21&nbsp;words). <span style="color:#7ee787"><strong>cw</strong></span> (13&nbsp;bit, max&nbsp;8&thinsp;191&nbsp;words) sets the code region; <span style="color:var(--church-gold)"><strong>cc</strong></span> (8&nbsp;bit, max&nbsp;255&nbsp;entries) sets the c-list region.</p>
 <div class="sr-lump-diagram" style="border-color:#f85149">
-<div class="sr-lump-region sr-lump-code">Code (Turing domain, X) &larr; CR14</div>
+<div class="sr-lump-region sr-lump-code">Code (Turing domain, X) &larr; CR14 &nbsp;&middot;&nbsp; max 8&thinsp;191 words</div>
 <div class="sr-lump-region sr-lump-free">FREESPACE (inaccessible)</div>
-<div class="sr-lump-region sr-lump-clist">C-list (Church domain, L) &larr; CR6</div>
+<div class="sr-lump-region sr-lump-clist">C-list (Church domain, L) &larr; CR6 &nbsp;&middot;&nbsp; max 255 entries</div>
 </div>
 <p>When CALL enters an abstraction, it reads <code>clistCount</code> from word1 and splits the lump:</p>
 <ul>
