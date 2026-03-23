@@ -1429,7 +1429,12 @@ function getMethodPurposes(abs) {
         'Editor': { 'Open': 'Editor.Open(file_GT) — load DATA object into editor buffer', 'Save': 'Editor.Save() — DWRITE buffer to NS slot, recompute seal', 'Load': 'Editor.Load(nsIndex) — DREAD source from slot into buffer', 'Undo': 'Editor.Undo() — pop previous state from undo stack' },
         'Assembler': { 'Assemble': 'Assembler.Assemble(source_GT) — parse + encode to 32-bit instructions', 'Disassemble': 'Assembler.Disassemble(binary_GT) — decode instructions to text', 'Validate': 'Assembler.Validate(source_GT) — check syntax + register refs' },
         'Debugger': { 'Step': 'Debugger.Step() — fetch-decode-execute one instruction', 'Run': 'Debugger.Run() — execute until halt/breakpoint/fault', 'Breakpoint': 'Debugger.Breakpoint(address) — set/clear breakpoint', 'Inspect': 'Debugger.Inspect(address) — read and decode memory/NS entry' },
-        'Deployer': { 'Build': 'Deployer.Build(binary_GT) — package for Gowin GW2AR-18', 'Upload': 'Deployer.Upload() — send via UART to Tang Nano (S perm)', 'Verify': 'Deployer.Verify() — readback + checksum via UART (L perm)', 'Boot': 'Deployer.Boot() — send boot command, FPGA begins execution' },
+        'Deployer': (function() {
+            const b = getSelectedBoard();
+            const chip = b === 'ti60-f225' ? 'Efinix Ti60F225' : 'Gowin GW2AR-18';
+            const brd  = b === 'ti60-f225' ? 'Ti60 F225' : 'Tang Nano';
+            return { 'Build': `Deployer.Build(binary_GT) — package for ${chip}`, 'Upload': `Deployer.Upload() — send via UART to ${brd} (S perm)`, 'Verify': 'Deployer.Verify() — readback + checksum via UART (L perm)', 'Boot': 'Deployer.Boot() — send boot command, FPGA begins execution' };
+        })(),
         'Browser': { 'Navigate': 'Browser.Navigate(site_GT) — LOAD content via L perm (no URLs)', 'Back': 'Browser.Back() — pop previous site GT from history', 'Bookmark': 'Browser.Bookmark(site_GT) — SAVE GT to bookmark c-list', 'Search': 'Browser.Search(scope_GT) — search within GT scope only' },
         'Messenger': { 'Send': 'Messenger.Send(recipient_GT, msg_GT) — send to approved contact', 'Receive': 'Messenger.Receive() — dequeue from inbox c-list', 'Contacts': 'Messenger.Contacts() — list parent-approved contact GTs', 'Block': 'Messenger.Block(contact_GT) — Mint.Revoke contact GT' },
         'Photos': { 'View': 'Photos.View(photo_GT) — LOAD photo data via L perm', 'Share': 'Photos.Share(photo_GT, recipient_GT) — TPERM to L-only, transfer', 'Upload': 'Photos.Upload(data_GT) — Memory.Allocate + store photo', 'Album': 'Photos.Album() — walk album c-list, return count' },
@@ -2676,46 +2681,21 @@ CALL   CR1              ; Debugger.Inspect:
 ;   3. Return decoded view (GT fields, NS entry fields)
 ; DR0 <- value at inspected address`,
         },
-        'Deployer': {
-            'Build': `; Deployer.Build — compile binary for Tang Nano 20K
-LOAD   CR1, NS[36]      ; Load Deployer E-GT
-LOAD   CR2, NS[81]      ; Binary GT (DATA object)
-
-CALL   CR1              ; Deployer.Build:
-;   1. DREAD binary from CR2's location
-;   2. Add boot vector and NS table initialization
-;   3. Package for FPGA: Gowin GW2AR-18 bitstream
-;   4. Memory.Allocate for deployment image
-;   5. Mint.Create GT for image
-; CR2 <- deployment image GT`,
-            'Upload': `; Deployer.Upload — send to Tang via UART
-LOAD   CR1, NS[36]      ; Load Deployer E-GT
-
-CALL   CR1              ; Deployer.Upload:
-;   1. LOAD UART GT from c-list (NS[11])
-;   2. For each word in deployment image:
-;      SAVE word to UART (S perm on UART GT)
-;   3. UART TX on pin 69 -> BL616 USB bridge
-;   4. Wait for ACK after each block`,
-            'Verify': `; Deployer.Verify — verify upload integrity
-LOAD   CR1, NS[36]      ; Load Deployer E-GT
-
-CALL   CR1              ; Deployer.Verify:
-;   1. Request readback from Tang via UART
-;   2. LOAD bytes from UART (L perm)
-;   3. Compare against original image
-;   4. Compute checksum match
-; DR0 <- 1 if verified, 0 if mismatch`,
-            'Boot': `; Deployer.Boot — boot the FPGA
-LOAD   CR1, NS[36]      ; Load Deployer E-GT
-
-CALL   CR1              ; Deployer.Boot:
-;   1. Send boot command via UART
-;   2. Tang Nano begins executing from boot vector
-;   3. FPGA initializes NS table (slots 0-44)
-;   4. Boot -> Salvation -> Navana (same as simulator)
-;   5. 27MHz clock begins instruction execution`,
-        },
+        'Deployer': (function() {
+            const b = getSelectedBoard();
+            const isTi60 = b === 'ti60-f225';
+            const chip     = isTi60 ? 'Efinix Ti60F225' : 'Gowin GW2AR-18';
+            const brdName  = isTi60 ? 'Ti60 F225' : 'Tang Nano 20K';
+            const uartNote = isTi60 ? ';   3. UART via FTDI FT232H USB bridge (50MHz clock)' : ';   3. UART TX on pin 69 -> BL616 USB bridge';
+            const clkNote  = isTi60 ? ';   5. 50MHz clock begins instruction execution' : ';   5. 27MHz clock begins instruction execution';
+            const bootLine = isTi60 ? `;   2. ${brdName} begins executing from boot vector` : `;   2. ${brdName} begins executing from boot vector`;
+            return {
+                'Build': `; Deployer.Build — compile binary for ${brdName}\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\nLOAD   CR2, NS[81]      ; Binary GT (DATA object)\n\nCALL   CR1              ; Deployer.Build:\n;   1. DREAD binary from CR2's location\n;   2. Add boot vector and NS table initialization\n;   3. Package for FPGA: ${chip} bitstream\n;   4. Memory.Allocate for deployment image\n;   5. Mint.Create GT for image\n; CR2 <- deployment image GT`,
+                'Upload': `; Deployer.Upload — send to ${brdName} via UART\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Upload:\n;   1. LOAD UART GT from c-list (NS[11])\n;   2. For each word in deployment image:\n;      SAVE word to UART (S perm on UART GT)\n${uartNote}\n;   4. Wait for ACK after each block`,
+                'Verify': `; Deployer.Verify — verify upload integrity\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Verify:\n;   1. Request readback from ${brdName} via UART\n;   2. LOAD bytes from UART (L perm)\n;   3. Compare against original image\n;   4. Compute checksum match\n; DR0 <- 1 if verified, 0 if mismatch`,
+                'Boot': `; Deployer.Boot — boot the FPGA\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Boot:\n;   1. Send boot command via UART\n${bootLine}\n;   3. FPGA initializes NS table (slots 0-44)\n;   4. Boot -> Salvation -> Navana (same as simulator)\n${clkNote}`,
+            };
+        })(),
         'Browser': {
             'Navigate': `; Browser.Navigate — go to GT-addressed site
 ; No URLs, no DNS — only capability-addressed resources
@@ -7625,7 +7605,7 @@ function downloadHardwareImage() {
         con.textContent = `Downloaded church_image.bin (${4 + totalWords * 4} bytes)\n`;
         con.textContent += `  Namespace: ${image.namespace.length} words\n`;
         con.textContent += `  C-list: ${image.clist.length} words\n\n`;
-        con.textContent += `To upload to Tang Nano 20K, use the Deploy button or WebSerial.\n`;
+        con.textContent += `To upload to ${getBoardLabel(getSelectedBoard())}, use the Deploy to FPGA button or WebSerial.\n`;
     }
 }
 
@@ -7714,6 +7694,8 @@ async function uploadToTang() {
         con.textContent = 'Error: WebSerial module not loaded (webserial.js missing)';
         return;
     }
+
+    TangSerial.setBoardLabel(boardLabel);
 
     if (!TangSerial.isSupported()) {
         con.textContent = `WebSerial is not supported in this browser.\nUse Chrome or Edge to deploy to ${boardLabel}.`;
@@ -7818,8 +7800,8 @@ async function uploadToTang() {
         } else {
             con.textContent += '\nNo response from FPGA after sending data.\n\n';
             con.textContent += 'TIPS:\n';
-            con.textContent += '  1. Press the RESET button on the Tang Nano 20K\n';
-            con.textContent += '  2. Click "Deploy to Tang" within 1-2 seconds of releasing reset\n';
+            con.textContent += `  1. Press the RESET button on the ${boardLabel}\n`;
+            con.textContent += '  2. Click "Deploy to FPGA" within 1-2 seconds of releasing reset\n';
             con.textContent += '  3. Make sure no other app has the serial port open\n';
         }
 

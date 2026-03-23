@@ -164,10 +164,10 @@ class ChurchTi60F225(Elaboratable):
         led_fault = core.fault_valid
 
         m.d.comb += [
-            self.led[0].eq(~led_boot),
-            self.led[1].eq(~(led_run | led_halted_blink)),
-            self.led[2].eq(~led_fault),
-            self.led[3].eq(~core.boot_complete),
+            self.led[0].eq(led_boot),
+            self.led[1].eq(led_run | led_halted_blink),
+            self.led[2].eq(led_fault),
+            self.led[3].eq(core.boot_complete),
         ]
 
         boot_delay = Signal(4, init=0)

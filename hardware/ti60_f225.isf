@@ -3,7 +3,7 @@
 # Device: Ti60F225 (59,904 LEs, F225 FBGA package)
 # Clock:  50 MHz on-board oscillator
 # UART:   FTDI FT232H USB-UART bridge at 115200 baud
-# LEDs:   USER_LED[3:0] active-low
+# LEDs:   USER_LED[3:0] active-high
 # Button: USER_PB active-low with external pull-up
 #
 # NOTE: Verify all pin locations against the official Ti60 F225
@@ -46,7 +46,7 @@ type     = input
 standard = 3.3 V LVCMOS
 pullup   = yes
 
-# USER_LED[0] — active-low — Boot: lit while boot sequence runs
+# USER_LED[0] — active-high — Boot: lit while boot sequence runs
 pin      = A13
 name     = led0
 type     = output
@@ -54,7 +54,7 @@ standard = 3.3 V LVCMOS
 drive    = 4
 slewrate = slow
 
-# USER_LED[1] — active-low — Running: lit when executing normally
+# USER_LED[1] — active-high — Running: lit when executing normally
 pin      = B13
 name     = led1
 type     = output
@@ -62,7 +62,7 @@ standard = 3.3 V LVCMOS
 drive    = 4
 slewrate = slow
 
-# USER_LED[2] — active-low — Fault: lit on machine fault
+# USER_LED[2] — active-high — Fault: lit on machine fault
 pin      = A14
 name     = led2
 type     = output
@@ -70,7 +70,7 @@ standard = 3.3 V LVCMOS
 drive    = 4
 slewrate = slow
 
-# USER_LED[3] — active-low — Boot complete indicator
+# USER_LED[3] — active-high — Boot complete indicator
 pin      = B14
 name     = led3
 type     = output

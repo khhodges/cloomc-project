@@ -1,6 +1,7 @@
 const TangSerial = (function() {
     let port = null;
     let activeReader = null;
+    let _boardLabel = 'Tang Nano 20K';
 
     const BAUD = 115200;
     const NS_WORDS = 192;
@@ -25,9 +26,13 @@ const TangSerial = (function() {
         await port.open({ baudRate: BAUD, dataBits: 8, stopBits: 1, parity: 'none' });
     }
 
+    function setBoardLabel(label) {
+        _boardLabel = label || 'Tang Nano 20K';
+    }
+
     async function connect() {
         if (!isSupported()) {
-            throw new Error('WebSerial not supported. Use Chrome or Edge to connect to your Tang Nano 20K.');
+            throw new Error(`WebSerial not supported. Use Chrome or Edge to connect to your ${_boardLabel}.`);
         }
 
         if (port) {
@@ -116,7 +121,7 @@ const TangSerial = (function() {
             payload.set(wordToLE(w >>> 0), 4 + (NS_WORDS + i) * 4);
         }
 
-        status(`Sending ${payload.length} bytes (${totalWords} words) to Tang Nano 20K via BL616...`);
+        status(`Sending ${payload.length} bytes (${totalWords} words) to ${_boardLabel}...`);
 
         const w = port.writable.getWriter();
         try {
@@ -216,6 +221,7 @@ const TangSerial = (function() {
         disconnect,
         uploadToFPGA,
         parseReadback,
+        setBoardLabel,
         NS_WORDS,
         CLIST_WORDS,
         TOTAL_WORDS
