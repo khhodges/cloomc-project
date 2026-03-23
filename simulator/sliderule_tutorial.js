@@ -125,9 +125,9 @@ class SlideRuleTutorial {
 <p><strong>Header word (lump word&nbsp;0)</strong></p>
 <pre class="sr-encoding">31      27 26    23 22                10 9   8 7              0
 +&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+
-&#x2502; 0x1F [5] &#x2502; <span style="color:#7ee787">n-6[4]</span> &#x2502;     <span style="color:#7ee787">cw [13]</span>      &#x2502;typ[2]&#x2502;    <span style="color:var(--church-gold)">cc [8]</span>      &#x2502;
+&#x2502; 0x1F [5] &#x2502; <span style="color:#f85149">n-6[4]</span> &#x2502;     <span style="color:#7ee787">cw [13]</span>      &#x2502;typ[2]&#x2502;    <span style="color:var(--church-gold)">cc [8]</span>      &#x2502;
 +&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;+</pre>
-<div class="sr-lump-diagram">
+<div class="sr-lump-diagram" style="border-color:#f85149">
 <div class="sr-lump-region sr-lump-code">Code (Turing domain, X) &larr; CR14</div>
 <div class="sr-lump-region sr-lump-free">FREESPACE (inaccessible)</div>
 <div class="sr-lump-region sr-lump-clist">C-list (Church domain, L) &larr; CR6</div>
