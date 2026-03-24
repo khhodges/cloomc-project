@@ -1393,9 +1393,12 @@ function absSetMethodStatus(absIdx, mName, value) {
 
 let _statusDropdownCleanup = null;
 
-function absToggleStatusDropdown(absIdx, mi, mName, evt) {
+function absToggleStatusDropdown(absIdx, mi, evt) {
     evt.stopPropagation();
     _absCloseStatusDropdown();
+    const _abs = abstractionRegistry ? abstractionRegistry.getAbstraction(absIdx) : null;
+    const mName = _abs ? _abs.methods[mi] : null;
+    if (!mName) return;
     const mStatus = _implStatusGet(`${absIdx}:${mName}`);
     const dd = document.createElement('div');
     dd.className = 'abs-status-dropdown';
@@ -1572,7 +1575,7 @@ function showAbstractionDetail(index) {
                 const badgeLabel = IMPL_STATUS_SHORT[mStatus] || mStatus;
                 html += `<span class="abs-method-tab${active}" onclick="absSelectMethod(this,'abs-panel-${uid}-${mi}')">`;
                 html += `${m}`;
-                html += `<span class="abs-method-status-badge abs-method-status-badge-${mStatus}" onclick="event.stopPropagation();absToggleStatusDropdown(${uid},${mi},${JSON.stringify(m)},event)" title="Status: ${IMPL_STATUS_LABELS[mStatus]} — click to change">`;
+                html += `<span class="abs-method-status-badge abs-method-status-badge-${mStatus}" onclick="event.stopPropagation();absToggleStatusDropdown(${uid},${mi},event)" title="Status: ${IMPL_STATUS_LABELS[mStatus]} — click to change">`;
                 html += `<span class="abs-method-status-badge-dot"></span>${badgeLabel}`;
                 html += `</span>`;
                 html += `</span>`;
