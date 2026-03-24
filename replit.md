@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Church Machine is a capability-secured processor architecture with an educational IDE, designed for the Tang Nano 20K FPGA. Its primary purpose is to provide a web-based integrated development environment where children can write, compile, test, and deploy Church Machine programs. The architecture employs capability-based security with Golden Tokens, allowing for secure and scalable use from family/school settings to larger organizations. This platform aims to make computer architecture and secure programming accessible through a hands-on, interactive learning experience.
+The Church Machine is a capability-secured processor architecture with an educational IDE, designed for the Tang Nano 20K FPGA, with optional support for the Efinix Ti60 F225. Its primary purpose is to provide a web-based integrated development environment where children can write, compile, test, and deploy Church Machine programs. The architecture employs capability-based security with Golden Tokens, allowing for secure and scalable use from family/school settings to larger organizations. This platform aims to make computer architecture and secure programming accessible through a hands-on, interactive learning experience.
 
 ## User Preferences
 
@@ -47,7 +47,7 @@ The web IDE features ten views (Math, Code, Tutorial, Dashboard, Namespace, Abst
 - **Locator (Absent-Lump Protocol):** On-demand lump loading triggered by `LOAD` against an Outform GT (`typ=11`). Hardware fires the Absent event and invokes the Locator as a secure subroutine CALL in the same thread (no thread park, no scheduler transfer). The Locator fetches `lump.zip` via NetworkIO, reads the ZIP local file header to derive `n`, pre-allocates the lump region, inflates, verifies CRC-32, and calls `Mint.Lump(base, n)` to validate and write the Live NS slot. Outform NS slots (Words 1–3) hold a 96-bit IDE token; Live NS slots hold `base`, `gt_seq+limit_offset`, and `CRC-16`. Eviction restores the Outform state by writing the saved IDE token back. See `docs/locator.md`.
 - **Navana Master Controller:** Acts as the sole writer for Namespace entries, managing abstraction creation, allocation, and secure deployment by validating uploads and enforcing security constraints. Implements PassKey access control for device drivers: threads present a PassKey (ABSTRACTION GT, type=3) to Navana, which validates it and returns an E-perm device driver abstraction. PassKey GT index field encodes device selector (bits 15:8) and permission mask (bits 7:4). Device registry built at Init by scanning NS slots 11-15 (UART, LED, Button, Timer, Display). LED driver E-perm abstraction dispatches Set/Clear/Pattern/Get via DR0/DR1. MintPassKey requires M-elevation. Full audit trail in Gate Log.
 - **Instruction Set:** Comprises 20 instructions, evenly split between Church (capability-focused) and Turing (data manipulation) sets, all supporting ARM-style conditional execution.
-- **Hardware Target:** The Tang Nano 20K FPGA (Gowin GW2AR-18) is the primary hardware target, with all features enabled (CHANGE/SWITCH, SEAL_CHECK, FUSED_OPS, GC). It uses specific pins for UART, LEDs, and buttons.
+- **Hardware Target:** The Tang Nano 20K FPGA (Gowin GW2AR-18) is the primary hardware target, with optional Efinix Ti60 F225 support, and all features enabled (CHANGE/SWITCH, SEAL_CHECK, FUSED_OPS, GC). It uses specific pins for UART, LEDs, and buttons.
 - **WebSerial:** Used for deploying compiled programs to the Tang Nano 20K FPGA.
 
 ## GitHub Integration — Two-Repo Structure
