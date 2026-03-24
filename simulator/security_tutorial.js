@@ -160,7 +160,7 @@ class SecurityTutorial {
                 content: `<div class="sr-tutorial-steps">
 <div class="sr-tut-step">
 <span class="sr-tut-num">1</span>
-<div><strong>Choose a language.</strong> Open the <strong>Code</strong> tab. You can write the same abstraction in any of the four languages:</div>
+<div><strong>Choose a language.</strong> Open the <strong>Code</strong> tab. You can write the same abstraction in any of the six languages:</div>
 </div>
 <div class="sr-tut-step">
 <span class="sr-tut-num">2</span>
@@ -207,6 +207,44 @@ class SecurityTutorial {
 </div>
 <div class="sr-tut-step">
 <span class="sr-tut-num">5</span>
+<div><strong>Ada's Symbolic Math</strong> &mdash; Ada-inspired syntax with strong typing and formal <code>begin/end</code> blocks:</div>
+<pre class="sr-code sr-code-sym">abstraction MyMath {
+    capabilities { Constants }
+
+    function Double(n : Integer) return Integer is
+    begin
+        return n + n;
+    end Double;
+
+    function Square(n : Integer) return Integer is
+        acc : Integer := 0;
+        i   : Integer := n;
+    begin
+        while i &gt; 0 loop
+            acc := acc + n;
+            i   := i - 1;
+        end loop;
+        return acc;
+    end Square;
+}</pre>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">6</span>
+<div><strong>Lambda Calculus</strong> &mdash; pure anonymous functions; recursion via self-application (Z-combinator pattern):</div>
+<pre class="sr-code sr-code-lc">abstraction MyMath {
+    capabilities { Constants }
+
+    Double &equiv; &lambda;n &rarr; n + n
+
+    Square &equiv; &lambda;n &rarr;
+        let go = &lambda;self acc i &rarr;
+            if i = 0 then acc
+            else self self (acc + n) (i - 1)
+        in go go 0 n
+}</pre>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">7</span>
 <div><strong>Machine code</strong> &mdash; direct 32-bit hex words, no compiler needed:</div>
 <pre class="sr-code sr-code-asm">"methods": [
   { "name": "Double", "code": [
@@ -228,24 +266,24 @@ class SecurityTutorial {
 ]</pre>
 </div>
 <div class="sr-tut-step">
-<span class="sr-tut-num">6</span>
-<div><strong>Compile.</strong> Click the gold <strong>CLOOMC++</strong> button. The compiler auto-detects the language (English, JavaScript, or Haskell). Machine code bypasses the compiler entirely.</div>
-</div>
-<div class="sr-tut-step">
-<span class="sr-tut-num">7</span>
-<div><strong>Inspect.</strong> Verify each method ends with RETURN, branch targets are in bounds, and capability count matches declarations. All four languages produce the same secure output format.</div>
-</div>
-<div class="sr-tut-step">
 <span class="sr-tut-num">8</span>
-<div><strong>Save.</strong> Click the blue <strong>Save Upload JSON</strong> button to download the upload file. The JSON format is identical regardless of source language.</div>
+<div><strong>Compile.</strong> Click the gold <strong>CLOOMC++</strong> button. The compiler auto-detects the language (English, JavaScript, Haskell, Ada, or Lambda Calculus). Machine code bypasses the compiler entirely.</div>
 </div>
 <div class="sr-tut-step">
 <span class="sr-tut-num">9</span>
-<div><strong>Create.</strong> Click <strong>Boot</strong>, then <strong>Create Abstraction</strong>. Navana validates the upload, allocates a lump, writes code + c-list, and forges an E-GT back to the creator.</div>
+<div><strong>Inspect.</strong> Verify each method ends with RETURN, branch targets are in bounds, and capability count matches declarations. All six languages produce the same secure output format.</div>
 </div>
 <div class="sr-tut-step">
 <span class="sr-tut-num">10</span>
-<div><strong>Test.</strong> Switch to the <strong>Pure Math</strong> tab and call your methods. The results are identical whichever language you chose &mdash; the hardware enforces the same security model on all four.</div>
+<div><strong>Save.</strong> Click the blue <strong>Save Upload JSON</strong> button to download the upload file. The JSON format is identical regardless of source language.</div>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">11</span>
+<div><strong>Create.</strong> Click <strong>Boot</strong>, then <strong>Create Abstraction</strong>. Navana validates the upload, allocates a lump, writes code + c-list, and forges an E-GT back to the creator.</div>
+</div>
+<div class="sr-tut-step">
+<span class="sr-tut-num">12</span>
+<div><strong>Test.</strong> Switch to the <strong>Pure Math</strong> tab and call your methods. The results are identical whichever language you chose &mdash; the hardware enforces the same security model on all six.</div>
 </div>
 </div>`
             },
