@@ -1204,10 +1204,15 @@ function renderBootNSImage() {
 }
 
 // Thread slot layout constants (words within a 256-word slot)
+// Word 0 is the lump header (0xF900_020C: magic=0x1F, n-6=2, cw=0, typ=10, cc=12).
+// All five zones are offset by +1 to make room for the header word.
+// Freespace is 131 words (not 132) — the header consumes 1 word.
 const THREAD_LAYOUT = {
-    CAPS_START:   0,   CAPS_END:   11,  CAPS_WORDS:   12,
-    STACK_START: 12,   STACK_END:  43,  STACK_WORDS:  32,
-    FREE_START:  44,   FREE_END:  175,  FREE_WORDS:  132,
+    HEADER_WORD:  0,
+    THREAD_HEADER: 0xF900_020C,
+    CAPS_START:   1,   CAPS_END:   12,  CAPS_WORDS:   12,
+    STACK_START: 13,   STACK_END:  44,  STACK_WORDS:  32,
+    FREE_START:  45,   FREE_END:  175,  FREE_WORDS:  131,
     HEAP_START: 176,   HEAP_END:  239,  HEAP_WORDS:   64,
     DR_START:   240,   DR_END:    255,  DR_WORDS:     16,
     TOTAL:      256,
@@ -1231,8 +1236,17 @@ function renderThreadMemoryLayout(nsIndex) {
     // Header
     html += `<div class="thread-layout-header">${label} — Thread Memory Layout<span style="color:#6b7280;font-weight:400;font-size:0.75rem;margin-left:0.6rem;">NS Slot ${nsIndex} · base ${addrOf(0)} · 256 words (1 024 bytes)</span></div>`;
 
+    // ── Word 0: Lump Header ───────────────────────────────────────────────
+    const headerWord = sim.memory[slotBase + TL.HEADER_WORD] || TL.THREAD_HEADER;
+    html += secHdr('', 'Lump Header', 'word 0 · magic=0x1F · n-6=2 (256w) · cw=0 · typ=10 (clist-only) · cc=12', '#94a3b8');
+    html += `<div style="font-family:monospace;font-size:0.78rem;color:#94a3b8;padding:0.3rem 0.6rem 0.5rem;border-left:2px solid #334155;">`;
+    html += `<span style="color:#555;">+0 &nbsp;${addrOf(0)} &nbsp;</span>`;
+    html += `<span style="color:rgba(206,145,120,0.9);">${hexOf(headerWord)}</span>`;
+    html += ` &nbsp;<span style="color:#64748b;">0xF900_020C — never executed · traps if PC reaches word 0</span>`;
+    html += `</div>`;
+
     // ── Zone ①: Capabilities ──────────────────────────────────────────────
-    html += secHdr('①', 'Capabilities', '12 words · CR0–CR11 · saved/restored on context switch', '#f4b942');
+    html += secHdr('①', 'Capabilities', `12 words · CR0–CR11 · offset +1 … +12 · saved/restored on context switch`, '#f4b942');
     html += '<table class="ns-mem-table thread-zone-table"><thead><tr><th>CR</th><th>Offset</th><th>Addr</th><th>Hex</th><th>Decoded (GT)</th></tr></thead><tbody>';
     for (let i = 0; i < TL.CAPS_WORDS; i++) {
         const off  = TL.CAPS_START + i;
@@ -1254,7 +1268,7 @@ function renderThreadMemoryLayout(nsIndex) {
     // ── Zone ②: LIFO Stack ────────────────────────────────────────────────
     const stackWords = sim.memory.slice(slotBase + TL.STACK_START, slotBase + TL.STACK_END + 1);
     const stackUsed  = stackWords.filter(Boolean).length;
-    html += secHdr('②', 'LIFO Stack ↓', `32 words · grows down from word 12 · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8');
+    html += secHdr('②', 'LIFO Stack ↓', `32 words · grows down from word 13 · offset +13 … +44 · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8');
     html += '<table class="ns-mem-table thread-zone-table"><thead><tr><th>Off</th><th>Addr</th><th>Hex</th><th>Decoded</th></tr></thead><tbody>';
     for (let i = 0; i < TL.STACK_WORDS; i++) {
         const off  = TL.STACK_START + i;
@@ -1283,9 +1297,9 @@ function renderThreadMemoryLayout(nsIndex) {
     for (let i = TL.FREE_START; i <= TL.FREE_END; i++) {
         if (sim.memory[slotBase + i]) freeNonZero++;
     }
-    html += secHdr('③', 'Freespace', `132 words · offset +44 … +175 · ${freeNonZero} non-zero · shrinks as stack grows ↓ and heap grows ↑`, '#6b7280');
+    html += secHdr('③', 'Freespace', `131 words · offset +45 … +175 · ${freeNonZero} non-zero · shrinks as stack grows ↓ and heap grows ↑`, '#6b7280');
     if (freeNonZero === 0) {
-        html += '<div class="thread-free-empty">All 132 words are zero — region is unallocated.</div>';
+        html += '<div class="thread-free-empty">All 131 words are zero — region is unallocated.</div>';
     } else {
         html += '<table class="ns-mem-table thread-zone-table"><thead><tr><th>Off</th><th>Addr</th><th>Hex</th><th>Note</th></tr></thead><tbody>';
         for (let i = TL.FREE_START; i <= TL.FREE_END; i++) {
