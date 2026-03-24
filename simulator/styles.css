@@ -7508,3 +7508,94 @@ pre:hover .code-copy-btn {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+/* ── Implementation Status ─────────────────────────────────────── */
+:root {
+    --impl-pseudo:    #9ca3af;
+    --impl-js:        #60a5fa;
+    --impl-cloomc:    #c084fc;
+    --impl-installed: #2dd4bf;
+    --impl-tested:    #4ade80;
+    --impl-released:  #fbbf24;
+}
+
+.impl-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.impl-dot-pseudo    { background: var(--impl-pseudo); }
+.impl-dot-js        { background: var(--impl-js);        box-shadow: 0 0 4px var(--impl-js); }
+.impl-dot-cloomc    { background: var(--impl-cloomc);    box-shadow: 0 0 4px var(--impl-cloomc); }
+.impl-dot-installed { background: var(--impl-installed); box-shadow: 0 0 4px var(--impl-installed); }
+.impl-dot-tested    { background: var(--impl-tested);    box-shadow: 0 0 5px var(--impl-tested); }
+.impl-dot-released  { background: var(--impl-released);  box-shadow: 0 0 5px var(--impl-released); }
+
+/* abs-item: add third column for the status dot */
+.abs-item {
+    grid-template-columns: 1fr auto auto;
+}
+.abs-item-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    justify-self: center;
+    align-self: center;
+}
+
+/* Legend strip */
+.impl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 7px;
+    font-size: 0.6rem;
+    line-height: 1;
+}
+.impl-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.impl-legend-swatch {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Status select in method panel */
+.impl-status-select {
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 10px;
+    border: 1px solid;
+    background: transparent;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    outline: none;
+    transition: opacity 0.15s;
+    margin-left: auto;
+}
+.impl-status-select:hover { opacity: 0.75; }
+.impl-status-select option {
+    background: #1a1a2e;
+    color: #eaeaea;
+    text-transform: none;
+    font-weight: normal;
+    font-size: 0.75rem;
+}
+.impl-status-pseudo    { color: var(--impl-pseudo);    border-color: var(--impl-pseudo); }
+.impl-status-js        { color: var(--impl-js);        border-color: var(--impl-js); }
+.impl-status-cloomc    { color: var(--impl-cloomc);    border-color: var(--impl-cloomc); }
+.impl-status-installed { color: var(--impl-installed); border-color: var(--impl-installed); }
+.impl-status-tested    { color: var(--impl-tested);    border-color: var(--impl-tested); }
+.impl-status-released  { color: var(--impl-released);  border-color: var(--impl-released); }

@@ -189,6 +189,7 @@ function init() {
     sim.initAbstractions(abstractionRegistry, systemAbstractions, deviceAbstractions);
     sim.reset();
     _absMethodsLoad();
+    _implStatusLoad();
 
     if (typeof CLOOMCCompiler !== 'undefined') {
         cloomcCompiler = new CLOOMCCompiler();
@@ -1237,6 +1238,79 @@ let absCollapsedLayers = {};
 let userMethodData = {};
 let userMethodLists = {};
 
+// ── Implementation Status ──────────────────────────────────────────────────
+// Keys: "absIdx:methodName" (per method) or "abs:absIdx" (abstraction level)
+// Values: one of IMPL_STATUS_LEVELS
+let absImplStatus = {};
+const IMPL_STATUS_LEVELS = ['pseudo', 'js', 'cloomc', 'installed', 'tested', 'released'];
+const IMPL_STATUS_LABELS = {
+    pseudo:    'Pseudo Code',
+    js:        'Built-in JS',
+    cloomc:    'Compiled CLOOMC',
+    installed: 'Installed',
+    tested:    'Tested',
+    released:  'Released'
+};
+const IMPL_STATUS_COLORS = {
+    pseudo:    '#9ca3af',
+    js:        '#60a5fa',
+    cloomc:    '#c084fc',
+    installed: '#2dd4bf',
+    tested:    '#4ade80',
+    released:  '#fbbf24'
+};
+
+function _implStatusGet(key) {
+    return absImplStatus[key] || 'pseudo';
+}
+
+function _implStatusSet(key, value) {
+    absImplStatus[key] = value;
+    _implStatusSave();
+}
+
+function _implStatusSave() {
+    try { localStorage.setItem('cm_implStatus', JSON.stringify(absImplStatus)); } catch(e) {}
+}
+
+function _implStatusLoad() {
+    try {
+        const raw = localStorage.getItem('cm_implStatus');
+        if (raw) absImplStatus = JSON.parse(raw);
+    } catch(e) {}
+    _implStatusSeed();
+}
+
+function _implStatusSeed() {
+    if (localStorage.getItem('cm_implStatus')) return;
+    // Boot.NS (0), Boot.Thread (1), Boot.Abstr (2) — already installed in NS table
+    absImplStatus['abs:0'] = 'installed';
+    absImplStatus['abs:1'] = 'installed';
+    absImplStatus['abs:2'] = 'installed';
+    // GC (44) has a live JavaScript handler in simulator.js
+    for (const m of ['Scan', 'Identify', 'Clear', 'Flip']) {
+        absImplStatus[`44:${m}`] = 'js';
+    }
+    _implStatusSave();
+}
+
+function _implStatusBest(abs) {
+    const methods = abs.methods && abs.methods.length > 0 ? abs.methods : [];
+    let best = IMPL_STATUS_LEVELS.indexOf(_implStatusGet(`abs:${abs.index}`));
+    for (const m of methods) {
+        const lvl = IMPL_STATUS_LEVELS.indexOf(_implStatusGet(`${abs.index}:${m}`));
+        if (lvl > best) best = lvl;
+    }
+    return IMPL_STATUS_LEVELS[Math.max(0, best)] || 'pseudo';
+}
+
+function absSetMethodStatus(absIdx, mName, value) {
+    _implStatusSet(`${absIdx}:${mName}`, value);
+    showAbstractionDetail(absIdx);
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+
 function _absMethodsSave() {
     try {
         localStorage.setItem('cm_userMethodData', JSON.stringify(userMethodData));
@@ -1259,13 +1333,23 @@ function _absMethodsLoad() {
     } catch(e) {}
 }
 
+function _implLegendHtml() {
+    const items = IMPL_STATUS_LEVELS.map(s =>
+        `<span class="impl-legend-item">` +
+        `<span class="impl-legend-swatch" style="background:${IMPL_STATUS_COLORS[s]}"></span>` +
+        `${IMPL_STATUS_LABELS[s]}` +
+        `</span>`
+    ).join('');
+    return `<div class="impl-legend">${items}</div>`;
+}
+
 function renderAbstractions() {
     if (!abstractionRegistry) return;
     const listEl = document.getElementById('absLayerList');
     if (!listEl) return;
 
     const layerNames = abstractionRegistry.getLayerNames();
-    let html = '';
+    let html = _implLegendHtml();
 
     for (let layer = 0; layer <= 8; layer++) {
         const abstractions = abstractionRegistry.getLayer(layer);
@@ -1284,9 +1368,13 @@ function renderAbstractions() {
             html += `<div class="abs-layer-items">`;
             for (const abs of abstractions) {
                 const isActive = selectedAbsIndex === abs.index;
+                const best = _implStatusBest(abs);
+                const dotColor = IMPL_STATUS_COLORS[best] || '#9ca3af';
+                const dotTitle = IMPL_STATUS_LABELS[best] || best;
                 html += `<div class="abs-item${isActive ? ' active' : ''}" onclick="showAbstractionDetail(${abs.index})">`;
                 html += `<span class="abs-item-idx">${abs.index}</span>`;
                 html += `<span class="abs-item-name">${abs.name}</span>`;
+                html += `<span class="abs-item-dot" style="background:${dotColor};box-shadow:0 0 4px ${dotColor}80" title="${dotTitle}"></span>`;
                 html += `<span class="abs-item-desc">${abs.description}</span>`;
                 html += `</div>`;
             }
@@ -1339,7 +1427,13 @@ function showAbstractionDetail(index) {
         html += '<div class="abs-detail-label">Methods</div>';
         if (methods.length === 0) {
             html += '<div class="abs-method-empty">No methods registered \u2014 CALL enters the abstraction directly.</div>';
-            html += '<div class="abs-method-tabs abs-method-tabs-empty">';
+            const absLvlStatus = _implStatusGet(`abs:${uid}`);
+            const absStatusOpts = IMPL_STATUS_LEVELS.map(s =>
+                `<option value="${s}"${s === absLvlStatus ? ' selected' : ''}>${IMPL_STATUS_LABELS[s]}</option>`
+            ).join('');
+            html += `<div class="abs-method-tabs abs-method-tabs-empty" style="display:flex;align-items:center;gap:6px;margin-top:4px">`;
+            html += `<span style="font-size:0.65rem;color:var(--text-secondary)">Status:</span>`;
+            html += `<select class="impl-status-select impl-status-${absLvlStatus}" title="Abstraction implementation status" onchange="this.className='impl-status-select impl-status-'+this.value;_implStatusSet('abs:${uid}',this.value);renderAbstractions()">${absStatusOpts}</select>`;
             html += `<button class="btn abs-method-ctrl-btn" title="Add method" onclick="absShowAddForm(${uid})">+</button>`;
             html += '</div>';
         } else {
@@ -1359,10 +1453,15 @@ function showAbstractionDetail(index) {
                 const purpose = methodPurposes[m] || 'Dispatched via CALL';
                 const example = methodExamples[m] || null;
                 const display = mi === 0 ? '' : ' style="display:none"';
+                const mStatus = _implStatusGet(`${uid}:${m}`);
+                const statusOpts = IMPL_STATUS_LEVELS.map(s =>
+                    `<option value="${s}"${s === mStatus ? ' selected' : ''}>${IMPL_STATUS_LABELS[s]}</option>`
+                ).join('');
                 html += `<div class="abs-method-panel-item" id="abs-panel-${uid}-${mi}"${display}>`;
                 html += `<div class="abs-method-panel-header">`;
                 html += `<div class="abs-method-panel-name">${abs.name}.${m}</div>`;
                 html += `<button class="btn abs-method-ctrl-btn abs-method-edit-btn" title="Edit method" onclick="absShowEditForm(${uid},${JSON.stringify(m)})">&#9998;</button>`;
+                html += `<select class="impl-status-select impl-status-${mStatus}" title="Implementation status — click to change" onchange="this.className='impl-status-select impl-status-'+this.value;absSetMethodStatus(${uid},${JSON.stringify(m)},this.value)">${statusOpts}</select>`;
                 html += `</div>`;
                 html += `<div class="abs-method-panel-desc">${purpose}</div>`;
                 if (example) {
