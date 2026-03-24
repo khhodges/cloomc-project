@@ -4069,12 +4069,31 @@ a.next-step-link:hover {
     to   { opacity: 1; transform: translateY(0); }
 }
 
+.abs-method-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.3rem;
+}
+
 .abs-method-panel-name {
     font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--church-gold);
-    margin-bottom: 0.3rem;
+    flex: 1;
+}
+
+.abs-method-edit-btn {
+    opacity: 0.45;
+    font-size: 0.85rem;
+    transition: opacity 0.15s;
+}
+
+.abs-method-edit-btn:hover {
+    opacity: 1;
+    color: var(--church-gold);
+    border-color: var(--church-gold);
 }
 
 .abs-method-panel-desc {

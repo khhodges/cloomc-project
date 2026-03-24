@@ -1336,7 +1336,10 @@ function showAbstractionDetail(index) {
                 const example = methodExamples[m] || null;
                 const display = mi === 0 ? '' : ' style="display:none"';
                 html += `<div class="abs-method-panel-item" id="abs-panel-${uid}-${mi}"${display}>`;
+                html += `<div class="abs-method-panel-header">`;
                 html += `<div class="abs-method-panel-name">${abs.name}.${m}</div>`;
+                html += `<button class="btn abs-method-ctrl-btn abs-method-edit-btn" title="Edit method" onclick="absShowEditForm(${uid},${JSON.stringify(m)})">&#9998;</button>`;
+                html += `</div>`;
                 html += `<div class="abs-method-panel-desc">${purpose}</div>`;
                 if (example) {
                     html += `<pre class="abs-method-panel-code">${example}</pre>`;
@@ -1486,6 +1489,47 @@ function absShowDeleteForm(absIdx) {
 function absHideForm(absIdx) {
     const fc = document.getElementById(`abs-form-${absIdx}`);
     if (fc) { fc.innerHTML = ''; fc.dataset.mode = ''; }
+}
+
+function absShowEditForm(absIdx, mName) {
+    const fc = document.getElementById(`abs-form-${absIdx}`);
+    if (!fc) return;
+    if (fc.dataset.mode === 'edit' && fc.dataset.editTarget === mName) {
+        fc.innerHTML = ''; fc.dataset.mode = ''; fc.dataset.editTarget = ''; return;
+    }
+    const abs = abstractionRegistry && abstractionRegistry.getAbstraction(absIdx);
+    if (!abs) return;
+    const purposes = getMethodPurposes(abs);
+    const examples = getMethodExamples(abs);
+    const curDesc = purposes[mName] || '';
+    const curCode = examples[mName] || '';
+    const safe = mName.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    fc.dataset.mode = 'edit';
+    fc.dataset.editTarget = mName;
+    fc.innerHTML = `
+<div class="abs-method-form">
+  <div class="abs-method-form-title">Edit \u2014 ${safe}</div>
+  <label class="abs-method-form-label">Description</label>
+  <textarea class="abs-method-form-textarea" id="abs-edit-desc-${absIdx}" rows="2">${curDesc.replace(/</g,'&lt;')}</textarea>
+  <label class="abs-method-form-label">Pseudocode / Assembly</label>
+  <textarea class="abs-method-form-textarea abs-method-form-code" id="abs-edit-code-${absIdx}" rows="4" spellcheck="false">${curCode.replace(/</g,'&lt;')}</textarea>
+  <div class="abs-method-form-actions">
+    <button class="btn btn-sm" onclick="absUpdateMethod(${absIdx},${JSON.stringify(mName)})">Save</button>
+    <button class="btn btn-sm abs-method-form-cancel" onclick="absHideForm(${absIdx})">Cancel</button>
+  </div>
+</div>`;
+}
+
+function absUpdateMethod(absIdx, mName) {
+    const descEl = document.getElementById(`abs-edit-desc-${absIdx}`);
+    const codeEl = document.getElementById(`abs-edit-code-${absIdx}`);
+    if (!descEl) return;
+    const key = `${absIdx}:${mName}`;
+    userMethodData[key] = {
+        purpose: descEl.value.trim(),
+        example: codeEl ? codeEl.value.trim() : ''
+    };
+    showAbstractionDetail(absIdx);
 }
 
 function absSaveMethod(absIdx) {
