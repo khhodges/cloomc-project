@@ -141,10 +141,11 @@ ${this._memMap(null)}
 <tr><td>DR0</td><td>Return value \u00b7 first argument</td></tr>
 <tr><td>DR1\u2013DR3</td><td>Arguments 2\u20134</td></tr>
 <tr><td>DR4\u2013DR11</td><td>Local variables (caller-saved)</td></tr>
-<tr><td>DR12\u2013DR14</td><td>Temporaries</td></tr>
-<tr><td>DR15</td><td><strong>Stack-spill base pointer \u00b7 architecture-reserved.</strong> When the LIFO stack approaches its depth limit the hardware raises <code>STACK_OVERFLOW</code> and uses DR15 to record the base of the spill area so suspended frame words can be relocated safely. DR15 must not be used as a general-purpose register; the compiler leaves it alone and the runtime owns it exclusively.</td></tr>
+<tr><td>DR12\u2013DR15</td><td>Temporaries</td></tr>
 </table>
 <p>Because the Data Register file always occupies the <em>last 16 words</em> of the thread lump, the CPU derives their physical address at thread-creation time and never recalculates it: <code>lumpBase + allocSize \u2212 16</code>. This eliminates any runtime pointer arithmetic for register save/restore during CHANGE \u2014 CHANGE writes DR0\u2013DR15 directly to those fixed words and reads them back on resume without walking any indirection chain.</p>
+<div class="sr-key-concept"><div class="sr-concept-title">Stack Overrun Prevention \u2014 CR12 + TPERM</div>
+<p>Stack overrun is prevented not by a separate spill mechanism but by the <strong>Thread Identity GT in CR12</strong> together with the <strong>TPERM offset check</strong>. CR12 encodes the thread lump\u2019s base and total word count (allocSize). Every stack write goes through a TPERM check that validates the STO-derived offset against those bounds. If the offset would land outside the lump the instruction is blocked before the write occurs \u2014 no frame word is ever placed beyond the allocated region.</p></div>
 <div class="sr-key-concept"><div class="sr-concept-title">DREAD / DWRITE</div>
 <p>DR registers are addressed by the <strong>DREAD</strong> and <strong>DWRITE</strong> instructions using a Golden Token (like every other memory region). This means a TPERM check runs on every register access \u2014 no register can be read or written without the correct permission bits in the GT.</p></div>`
             },
