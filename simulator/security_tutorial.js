@@ -96,6 +96,11 @@ class SecurityTutorial {
 <p>Sqrt and Pow2 use conditional lookup tables rather than iterative Newton-Raphson or shift-and-multiply. Division is omitted entirely from the Haskell version.</p>
 <p class="sr-objection"><strong>Objection:</strong> The Haskell front-end compiles pure expressions without loop support. Lookup tables are correct within their defined range. The JS front-end handles the full iterative algorithms. Recursion support is future work.</p>
 </div>
+<div class="sr-con-item">
+<div class="sr-con-title">Networked distribution appears to add latency overhead</div>
+<p>Capability-checked atomic distribution requires every cross-node message to carry a validated Golden Token, which appears to add per-packet overhead compared to a raw OS socket.</p>
+<p class="sr-objection"><strong>Objection:</strong> The CM Tunnel eliminates the entire OS/IO stack. A conventional networked call traverses: user space → syscall → kernel TCP/IP → NIC driver → wire → reverse. The CM Tunnel replaces this with a direct abstraction-to-abstraction pipe — capability validation is a single word comparison in hardware, not a kernel round-trip. The result is dramatically lower latency and higher throughput for distributed atomic operations. Security is not the cost; the OS stack was the cost.</p>
+</div>
 </div>`
             },
             {
