@@ -822,37 +822,15 @@ at design time. Objects are allocated from base+17 upward using bump
 allocation; DR5 tracks the current frontier (offset from word 17 to the
 next free word).
 
-**Garbage collection.** The G bit in Word 3 of each live GT is the mark
-bit. The GC abstraction performs mark-and-sweep over Zone ④ using a
-two-part root set:
-
-- **Zone ① (c-list, CR0–CR11)** — the thread's live capability registers.
-  Each GT here that references a heap object is a direct root.
-- **Live CALL-frame E-GTs** — every CALL frame on the LIFO stack contains
-  the caller's E-GT as frame word 0 (SZ=1 frames only). The collector
-  walks all live frames from STO upward to the stack base (word 212),
-  extracting the E-GT word from each 2-word frame.
-
-**CR5 (Heap GT) is not traced.** CR5 is a region-coverage access token
-that covers Zone ④ as a whole. It has no object identity and carries no
-reachability information; it is irrelevant to the mark phase.
-
-1. **Mark** — from each root GT, the collector traces transitively through
-   every reachable heap object and sets its G bit.
-2. **Sweep** — any heap object whose G bit is clear after the mark phase is
-   unreachable and is reclaimed.
-3. **Compact** — the live set is moved toward the heap base (word 17),
-   closing gaps left by swept objects. All GT references inside the live
-   set are updated to reflect new locations.
-4. **DR5 reset** — after compaction the collector resets DR5 to the offset
-   of the word immediately following the compacted live set. This is
-   critical: DR5 would otherwise point into the middle of compacted data,
-   corrupting subsequent allocations.
-
-GC reads the stack to extract frame E-GTs but does not modify any stack
-word, Zone ① GT, or Data Register other than DR5. The heap ceiling
-(word 80) is never moved. Collection is triggered automatically on
-RETURN; the IDE also provides a manual trigger for interactive inspection.
+**Object garbage collection.** Zone ④ is not individually scanned by the
+hardware GC. The G-bit mark-and-sweep operates at the *Thread object*
+level: when the system GC marks the Thread GT as reachable, the entire
+lump — including Zone ④ — is considered live and is not examined further.
+If the Thread GT becomes unreachable, the whole lump is reclaimed at once.
+The hardware enforces only the outer boundary (the lump limit encoded in
+CR12); all heap memory management within Zone ④ — allocation, object
+layout, compaction, and freeing — is a software concern left to the
+thread's own code.
 
 ---
 
