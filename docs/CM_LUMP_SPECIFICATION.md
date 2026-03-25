@@ -311,7 +311,10 @@ issued or stored, the E-GT can only be shared if B=1.
 | CR6  (L) | Words lumpSize-cc..lumpSize-1  | L           | CR6 on CALL  | No — transient only |
 
 If `cc = 0`: CR6 is NULL GT after CALL; the derived X view still covers the
-full code section.
+full code section. The E-GT is pushed onto the stack frame if a CALL takes
+place; it is cached temporarily in CR16, and the M bit is set to allow the
+microcode to use CR6 with only E permissions. The L permission is never set
+in CR6 (a hardware requirement).
 
 ---
 
