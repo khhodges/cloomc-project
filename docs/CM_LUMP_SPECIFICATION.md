@@ -338,7 +338,7 @@ CALL reads the lump header word directly from `Mem[base]` to obtain
 ## CALL/RETURN and CHANGE Execution Flow
 
 ```
-CALL CR_s   (CR_s holds the E-GT for the target lump)
+If CALL CR_s   (CR_s holds the E-GT for the target lump), if RETURN (E-GT found from stack frame), otherwise if CHANGE (E-GT is restored from CR6 of new thread)
   1. Validate E-GT CRC — FAULT if mismatch
   2. Read object_id and gt_seq from E-GT Word 0
   3. Fetch NS[object_id] — 3 words: base, gt_seq_ns, limit_offset
