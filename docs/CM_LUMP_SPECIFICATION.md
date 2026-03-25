@@ -543,20 +543,7 @@ freespace. The Thread lump holds **live execution state** — capability
 registers, a call stack, heap, and data registers — rather than code.
 PC never enters the Thread lump. It is a static data structure of a suspended Thread registers, indicators, GTs, heap and stack saved and restored by the CHANGE instruction, not a program.
 
-The Church Machine has two lump types:
-
-| Property          | Function Abstraction lump          | Thread lump                          |
-|-------------------|------------------------------------|--------------------------------------|
-| Word 0            | Header (magic 0x1F, typ=00, lump)  | Header (magic 0x1F, typ=10, clist-only) |
-| cw field          | Number of code words               | 0 — no executable code               |
-| cc field          | Compiler-fixed c-list depth        | 12 — CR0..CR11 are the c-list        |
-| Entry point       | PC = 1 on every CALL               | Never — Thread is not called          |
-| Words 1..cw       | CLOOMC code (dispatcher + methods) | (absent — cw=0)                      |
-| Freespace zone    | Fixed at compile time, all-zero    | Dynamic — Stack ↓ and Heap ↑ collide |
-| C-list zone       | Tail, compiler-populated, LOAD-only| Tail (Zone ①), runtime LOAD/SAVE     |
-| Issued GT         | E-GT (B E) to caller               | E-GT (B E) to Scheduler + RW-GT to Thread |
-| Transient CR14    | Code view (X), words 1..cw         | Not derived — not callable            |
-| Transient CR6     | C-list view (L), tail words        | Derived from Zone ① on every CALL that thread makes |
+See Tutorial on Threads
 
 ---
 
