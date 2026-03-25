@@ -299,9 +299,10 @@ CRC recomputation.
 
 ## Mint.Lump — One E-GT, One NS Slot
 
-`Mint.Lump(base, n)` issues exactly **one E-GT** and writes **one NS slot**.
-Transient CR14 and CR6 are derived fresh on every CALL — they are never
-issued or stored.
+`Mint.Lump(base, n)` issues exactly **one E-GT** and writes **one NS slot**
+matching the E-GT of the downloaded LUMP. Transient CR14 and CR6 are derived
+fresh on every CALL, RETURN, and CHANGE instructions — CR14 and CR6 are never
+issued or stored, the E-GT can only be shared if B=1.
 
 | Token    | Region                         | Permissions | Mounted as   | Issued? |
 |----------|--------------------------------|-------------|--------------|---------|
