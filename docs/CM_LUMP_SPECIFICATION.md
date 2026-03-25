@@ -712,6 +712,19 @@ This follows the same pattern as DR0–DR15: the register is a transient
 holder; the durable home is the c-list (for GTs) or lump memory (for data).
 No numbered CR is permanently dedicated to any named system service.
 
+> **Important — Security is Programmable.**  By placing system GTs in
+> c-list slots rather than fixed registers, the architecture makes security
+> fully under the programmer's control. The programmer decides which system
+> services a thread can reach, when it loads those credentials, and how long
+> it retains them. A thread that never LOADs the Scheduler GT cannot invoke
+> the Scheduler — not by policy, but by capability absence. A thread that
+> LOADs a GT and then clears the CR holds the credential for exactly the
+> duration it chooses. There is no ambient authority, no implicit privilege
+> granted by register position, and no way for one thread to obtain a
+> system GT it was not given at birth (via the c-list) or passed explicitly
+> at runtime. Security is not a property of the register file; it is a
+> property of what the c-list contains.
+
 ### CR12–CR15 — Privileged Zone (Priv zone)
 
 CR12–CR15 are not stored in Zone ① of the Thread lump. They are held
