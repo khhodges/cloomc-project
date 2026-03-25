@@ -144,7 +144,7 @@ ${this._memMap(null)}
                 title: '\u2464 Data Registers \u2014 The Register File',
                 type: 'dr',
                 content: `${this._memMap('dr')}
-<p>The final 16 words of the thread lump hold the <strong>Data Register file</strong>: DR0\u2013DR15. These are 32-bit general-purpose registers used by Turing-domain instructions (IADD, ISUB, BFEXT, MCMP, SHL, SHR, DREAD, DWRITE).</p>
+<p>The <strong>first</strong> 16 words of the thread lump (words +1 \u2026 +16, immediately after the header) hold the <strong>Data Register file</strong>: DR0\u2013DR15. These are 32-bit general-purpose registers used by Turing-domain instructions (IADD, ISUB, BFEXT, MCMP, SHL, SHR, DREAD, DWRITE).</p>
 <table class="sr-table"><tr><th>Register</th><th>Conventional use</th></tr>
 <tr><td>DR0</td><td>Return value \u00b7 first argument</td></tr>
 <tr><td>DR1\u2013DR3</td><td>Arguments 2\u20134</td></tr>
@@ -153,7 +153,7 @@ ${this._memMap(null)}
 <tr><td>DR6\u2013DR11</td><td>Local variables (caller-saved)</td></tr>
 <tr><td>DR12\u2013DR15</td><td>Temporaries</td></tr>
 </table>
-<p>Because the Data Register file always occupies the <em>last 16 words</em> of the thread lump, the CPU derives their physical address at thread-creation time and never recalculates it: <code>lumpBase + allocSize \u2212 16</code>. This eliminates any runtime pointer arithmetic for register save/restore during CHANGE \u2014 CHANGE writes DR0\u2013DR15 directly to those fixed words and reads them back on resume without walking any indirection chain.</p>
+<p>Because the Data Register file always occupies a <strong>fixed position at the head</strong> of the thread lump (word offset +1, immediately after the header word), the CPU derives their physical address at thread-creation time and never recalculates it: <code>lumpBase + 1</code>. This eliminates any runtime pointer arithmetic for register save/restore during CHANGE \u2014 CHANGE writes DR0\u2013DR15 directly to those fixed words and reads them back on resume without walking any indirection chain.</p>
 <div class="sr-key-concept"><div class="sr-concept-title">Stack Overrun Prevention \u2014 CR12 + TPERM</div>
 <p>Stack overrun is prevented not by a separate spill mechanism but by the <strong>Thread Identity GT in CR12</strong> together with the <strong>TPERM offset check</strong>. CR12 encodes the thread lump\u2019s base and total word count (allocSize). Every stack write goes through a TPERM check that validates the STO-derived offset against those bounds. If the offset would land outside the lump the instruction is blocked before the write occurs \u2014 no frame word is ever placed beyond the allocated region.</p></div>
 <div class="sr-key-concept"><div class="sr-concept-title">DREAD / DWRITE</div>
@@ -175,7 +175,7 @@ ${this._memMap(null)}
 <div class="sr-key-concept"><div class="sr-concept-title">CR12 \u2014 Thread Identity</div>
 <p>Boot step B:02 (INIT_THRD) loads <strong>one</strong> register from NS Slot 1:</p>
 <ul>
-<li><strong>CR12 \u2014 Thread Identity GT</strong> (Inform-type, zero perms, Priv zone CR12\u2013CR15). Loaded from NS Slot 1 via mLoad at B:02. Its <code>word0_location</code> gives the lump base address; <code>word0_limit + 1</code> gives the total lump word count (allocSize). CR12 is the self-identity marker \u2014 it tells this thread where its own lump lives and encodes the bounds from which the stack region (words\u202f12\u202f\u2192\u202fheap) is derived. The actual stack position within that region is tracked by the hidden <strong>STO register</strong> (0\u20134095 words from word\u202f12). CR12 is per-thread and is saved / restored on every CHANGE alongside STO, DR0\u2013DR15, PC, FLAGS, CR14, and CR15.</li>
+<li><strong>CR12 \u2014 Thread Identity GT</strong> (Inform-type, zero perms, Priv zone CR12\u2013CR15). Loaded from NS Slot 1 via mLoad at B:02. Its <code>word0_location</code> gives the lump base address; <code>word0_limit + 1</code> gives the total lump word count (allocSize). CR12 is the self-identity marker \u2014 it tells this thread where its own lump lives and encodes the bounds from which the stack region (words\u202f212\u202f\u2192\u202fword 81) is derived. The actual stack position within that region is tracked by the hidden <strong>STO register</strong> (0\u20134095 words from word\u202f212). CR12 is per-thread and is saved / restored on every CHANGE alongside STO, DR0\u2013DR15, PC, FLAGS, CR14, and CR15.</li>
 <li>CR8 is programmer-defined (Prog zone CR7\u2013CR11) and carries no architecture-assigned role.</li>
 </ul></div>`
             },

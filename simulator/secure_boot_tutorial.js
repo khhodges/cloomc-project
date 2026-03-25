@@ -96,10 +96,12 @@ INIT_THRD:  CHANGE  AL, CR8, CR8, #1   ; B:02 \u2014 switch to thread context</p
 <div class="sr-key-concept"><div class="sr-concept-title">Thread Lump Memory Map (Slot\u202f1)</div>
 <table class="sr-table">
 <tr><th>Offset (words)</th><th>Zone</th><th>Description</th></tr>
-<tr><td>0\u202f\u2013\u202f11</td><td>GT Zone</td><td>Per-thread C-List GTs (CR0\u2013CR11 initial values)</td></tr>
-<tr><td>12\u202f\u2013\u202fallocEnd</td><td>LIFO Stack</td><td>CALL/RETURN frames grow downward from word 12</td></tr>
-<tr><td>mid\u202f\u2013\u202fallocEnd</td><td>Heap</td><td>Dynamic allocation (grows downward)</td></tr>
-<tr><td>last 16</td><td>DR shadow</td><td>Data register spill area (compiler-managed)</td></tr>
+<tr><td>0</td><td>Lump Header</td><td><code>0xF900_020C</code> \u2014 never executed; encodes lump shape</td></tr>
+<tr><td>+1 \u2026 +16</td><td>\u2464 Data Registers</td><td>DR0\u2013DR15 shadow; fixed at the head, just after the header</td></tr>
+<tr><td>+17 \u2026 +80</td><td>\u2463 Heap</td><td>Fixed 64-word heap; objects allocated from heap base upward</td></tr>
+<tr><td>+81 \u2026 +211</td><td>\u2462 Freespace</td><td>Dynamic gap between heap top \u2191 and stack bottom \u2193</td></tr>
+<tr><td>+212 \u2026 +243</td><td>\u2461 LIFO Stack</td><td>CALL/RETURN frames; STO initial\u202f=\u202f212 (empty), grows downward</td></tr>
+<tr><td>+244 \u2026 +255</td><td>\u2460 Capabilities</td><td>GT Word\u202f0 \u00d7 12 (CR0\u2013CR11); c-list tail; saved/restored by mLoad</td></tr>
 </table>
 </div>`
             },
