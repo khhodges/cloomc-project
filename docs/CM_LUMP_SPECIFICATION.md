@@ -564,7 +564,7 @@ field `0x1F` as every other lump. The `typ` field is set to `10`
 | Field | Value | Meaning |
 |-------|-------|---------|
 | magic | 0x1F  | Traps if accidentally executed |
-| n-6   | 2     | lumpSize = 2^(2+6) = 256 words |
+| n-6   | n     | typically lumpSize = 2^(2+6) = 256 words |
 | cw    | 0     | No code section |
 | typ   | 10    | clist-only — Mint does not scan for an executable code region |
 | cc    | 12    | C-list = CR0..CR11, 12 slots at the tail |
