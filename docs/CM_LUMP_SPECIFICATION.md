@@ -308,7 +308,7 @@ issued or stored, the E-GT can only be shared if B=1.
 |----------|--------------------------------|-------------|--------------|---------|
 | **E-GT** | Entire lump (word 0..size-1)   | B E         | held by caller | Yes — only issued GT |
 | CR14 (X) | Words 1..lumpSize-cc-1         | X           | CR14 on CALL | No — transient only |
-| CR6  (L) | Words lumpSize-cc..lumpSize-1  | L           | CR6 on CALL  | No — transient only |
+| CR6  (E) | Words lumpSize-cc..lumpSize-1  | M           | CR6 on CALL  | Saved on stack on CALL/CHANGE reused by RETURN/CHANGE |
 
 If `cc = 0`: CR6 is NULL GT after CALL; the derived X view still covers the
 full code section. The E-GT is pushed onto the stack frame if a CALL takes
