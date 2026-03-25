@@ -335,7 +335,7 @@ CALL reads the lump header word directly from `Mem[base]` to obtain
 
 ---
 
-## CALL Execution Flow
+## CALL/RETURN and CHANGE Execution Flow
 
 ```
 CALL CR_s   (CR_s holds the E-GT for the target lump)
