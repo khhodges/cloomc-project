@@ -144,8 +144,9 @@ ${this._memMap(null)}
 <table class="sr-table"><tr><th>Register</th><th>Conventional use</th></tr>
 <tr><td>DR0</td><td>Return value \u00b7 first argument</td></tr>
 <tr><td>DR1\u2013DR3</td><td>Arguments 2\u20134</td></tr>
-<tr><td>DR4\u2013DR11</td><td>Local variables (caller-saved)</td></tr>
+<tr><td>DR4</td><td>Local variable (caller-saved)</td></tr>
 <tr><td>DR5</td><td><strong>Heap allocation pointer</strong> (by convention) \u00b7 offset from Zone \u2463 base to next free word \u00b7 pairs with CR5 (Heap GT)</td></tr>
+<tr><td>DR6\u2013DR11</td><td>Local variables (caller-saved)</td></tr>
 <tr><td>DR12\u2013DR15</td><td>Temporaries</td></tr>
 </table>
 <p>Because the Data Register file always occupies the <em>last 16 words</em> of the thread lump, the CPU derives their physical address at thread-creation time and never recalculates it: <code>lumpBase + allocSize \u2212 16</code>. This eliminates any runtime pointer arithmetic for register save/restore during CHANGE \u2014 CHANGE writes DR0\u2013DR15 directly to those fixed words and reads them back on resume without walking any indirection chain.</p>
