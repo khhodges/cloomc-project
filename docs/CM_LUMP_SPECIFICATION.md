@@ -742,6 +742,16 @@ position; the first pushed word lands at word 211 (Zone ② base, STO -= 1).
 CR12 is saved and restored on every CHANGE alongside STO, DR0–DR15, PC,
 FLAGS, CR14, and CR15 (see §CHANGE Context Save below).
 
+The Zone ④ **Heap** (words 17..80) is entirely absent from the hardware
+save/restore path. It is private to its thread — no other thread holds a GT
+that spans those words — and is managed entirely by software running within
+the thread. The allocator, GC policy, object layout, and compaction strategy
+are all programmer-chosen. The hardware enforces only the outer boundary
+(the lump limit encoded in CR12); everything inside Zone ④ is a software
+concern. This makes heap behaviour fully programmable on a per-thread basis:
+two threads in the same application may use completely different allocation
+strategies without any conflict or coordination at the hardware level.
+
 ---
 
 ## Zone ② — LIFO Stack
