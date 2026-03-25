@@ -954,31 +954,6 @@ install time and rejects the binary if any freespace word is non-zero.
 
 ---
 
-## Thread Lump vs Function Abstraction — Summary
-
-| Property | Function Abstraction | Thread |
-|----------|---------------------|--------|
-| Word 0 | Header (magic 0x1F, typ=00) | Header (magic 0x1F, typ=10) |
-| typ field | `00` = lump (callable) | `10` = clist-only (not callable) |
-| cw | Code word count > 0 | Always 0 |
-| cc | Compiler-chosen c-list depth | Always 12 (CR0..CR11) |
-| `Mint` entry | `Mint.Lump(base, n)` | `Mint.Thread(base, n)` |
-| Freespace scan | Words cw+1..lumpSize-cc-1 | Zone ③ only (words 81..211) |
-| Zone ① scan | Not applicable | Skipped — pre-populated |
-| Entry point | PC = 1 on every CALL | Never — not callable |
-| Transient CR14 | Code view (X) derived on CALL | Loaded into CR12 |
-| Transient CR6 | C-list view (L) derived on CALL | Reconstructed on SWITCH |
-| Issued GTs | One E-GT (caller holds) | E-GT (Scheduler) + RW-GT (Thread) |
-| GC interaction | G bit in lump's NS slot | G bits in all live CRs in Zone ① |
-| CHANGE saves | Not applicable | CR12 · STO · DR0–DR15 · PC · FLAGS · CR14 · CR15 |
-| Zip format | `*.lump.zip` | `*.thread.zip` |
-| lumpSize | 2^n, compiler-chosen | IDE defined 2^n (< 1024 words) |
-| Header word | 0xF8xx_xxxx (typ=00) | 0xF900_020C (typ=10, cw=0, cc=12) |
-
----
-
----
-
 # Appendix B — Namespace LUMP
 
 ## Overview
