@@ -51,7 +51,9 @@ class ThreadTutorial {
 <p>At boot (B:02) the machine loads a Thread Identity GT into <strong>CR12</strong> from NS Slot 1 (zero perms, Inform-type). CR12 tells the running thread where its own lump lives; its metadata defines the lump base, total size, and heap limit. The stack region occupies lump words 212 \u2192 word 80 (below freespace); its current position is tracked by the hidden <strong>STO register</strong> (initial value = 212).</p>
 ${this._memMap(null)}
 <div class="sr-key-concept"><div class="sr-concept-title">Five Regions, One Lump</div>
-<p>Reading top-to-bottom (word 0 \u2192 base): <strong>Header \u2192 \u2464 Data Registers \u2192 \u2463 Heap \u2192 \u2462 Freespace \u2192 \u2461 Stack \u2192 \u2460 Capabilities</strong>. Every region lives inside the same protected lump; the hardware enforces bounds on every access. The Capabilities zone at the tail (words 244\u2013255) is the c-list, eliminating any overlap.</p></div>`
+<p>Reading top-to-bottom (word 0 \u2192 base): <strong>Header \u2192 \u2464 Data Registers \u2192 \u2463 Heap \u2192 \u2462 Freespace \u2192 \u2461 Stack \u2192 \u2460 Capabilities</strong>. Every region lives inside the same protected lump; the hardware enforces bounds on every access. The Capabilities zone at the tail (words 244\u2013255) is the c-list, eliminating any overlap.</p></div>
+<div class="sr-key-concept"><div class="sr-concept-title">Object Garbage Collection</div>
+<p>Zone \u2463 (Heap) is <strong>not individually scanned</strong> by the hardware GC. The G-bit mark-and-sweep operates at the <em>Thread object</em> level: when the system GC marks the Thread GT as reachable, the <strong>entire lump</strong> \u2014 all five zones \u2014 is considered live and left untouched. If the Thread GT becomes unreachable, the whole lump is reclaimed at once. All heap memory management within Zone \u2463 \u2014 allocation, compaction, and freeing \u2014 is a <strong>software concern</strong> left to the thread\u2019s own code.</p></div>`
             },
             {
                 title: '\u2460 Capabilities \u2014 GT Zone for CR0\u2013CR11',
