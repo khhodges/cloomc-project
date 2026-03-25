@@ -674,7 +674,7 @@ lump memory by SAVE/LOAD.
 +247  CR3    — General-purpose
 +248  CR4    — General-purpose
 +249  CR5    — General-purpose
-+250  CR6    — C-list view (E=M-only) — set by CALL, cleared by RETURN  [hardware-defined]
++250  CR6    — C-list view (E+M+B?-only) — set by CALL, cleared by RETURN  [hardware-defined]
 +251  CR7    — General-purpose
 +252  CR8    — General-purpose
 +253  CR9    — General-purpose
