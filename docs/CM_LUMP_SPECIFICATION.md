@@ -668,23 +668,49 @@ hardware CR file, not in lump memory. Only Word 0 is written to / read from
 lump memory by SAVE/LOAD.
 
 ```
-+244  CR0    — Thread's own E-GT (self-reference for context switch)
-+245  CR1    — caller's return capability (CALL pushes here)
-+246  CR2    — Scheduler E-GT
-+247  CR3    — Mint E-GT
-+248  CR4    — NS write authority
-+249  CR5    — (general — working capability)
-+250  CR6    — transient C-list view (set by CALL, not stored permanently)
-+251  CR7    — Prog zone · programmer-defined (no arch role · not set at boot)
-+252  CR8    — Prog zone · programmer-defined (no arch role · not set at boot)
-+253  CR9    — Prog zone · programmer-defined (no arch role · not set at boot)
-+254  CR10   — Prog zone · programmer-defined (no arch role · not set at boot)
-+255  CR11   — Prog zone · programmer-defined (no arch role · not set at boot)
++244  CR0    — General-purpose
++245  CR1    — CALL/RETURN ABI — argument GT in; return GT out  [hardware-defined]
++246  CR2    — General-purpose
++247  CR3    — General-purpose
++248  CR4    — General-purpose
++249  CR5    — General-purpose
++250  CR6    — C-list view (L-only) — set by CALL, cleared by RETURN  [hardware-defined]
++251  CR7    — General-purpose
++252  CR8    — General-purpose
++253  CR9    — General-purpose
++254  CR10   — General-purpose
++255  CR11   — General-purpose
 ```
 
-CR7–CR11 form the **Prog zone** — five slots with no architecture-assigned
-role. The IDE and application programmer use them freely. They are not
-touched by the boot sequence and are not saved on CHANGE.
+CR0 and CR2–CR11 are all **general-purpose** capability registers — exactly
+as DR0–DR15 are general-purpose data registers. The architecture assigns no
+fixed semantic to any of them. The same rule applies to both domains: a
+register is a holder; the programmer decides what it holds.
+
+Only **CR1** and **CR6** carry hardware-defined roles in this zone:
+
+- **CR1** — the CALL/RETURN ABI register. The caller places the first
+  argument GT here before CALL; RETURN deposits the result GT here.
+  Hardware reads CR1 by name during these instructions.
+- **CR6** — the transient c-list view. Hardware sets this from the callee's
+  NS slot on every CALL and clears it on RETURN. Its GT Word 0 is not
+  persistently stored in Zone ①; it is re-derived on each CALL.
+
+### System GTs — C-list Slots, Not Fixed CRs
+
+Capabilities for system services (Scheduler, Mint, NS write authority, etc.)
+are held in **c-list slots** — the lump's pre-populated GT store at the
+tail. A thread loads them into any convenient general-purpose CR with LOAD
+immediately before use, then discards (or retains) them as needed.
+
+```
+LOAD  CR2, CR6[SCHED_SLOT]   ; fetch Scheduler E-GT from c-list
+CALL  CR2, method             ; invoke Scheduler
+```
+
+This follows the same pattern as DR0–DR15: the register is a transient
+holder; the durable home is the c-list (for GTs) or lump memory (for data).
+No numbered CR is permanently dedicated to any named system service.
 
 ### CR12–CR15 — Privileged Zone (Priv zone)
 
@@ -858,12 +884,14 @@ passes `(base, 8)` to `Mint.Thread` for validation and GT issuance.
 
 ### What the IDE Writes at Compile Time
 
-The IDE populates Zone ① (Words 1..12) with the initial GT Word 0 values
+The IDE populates Zone ① (words 244..255) with the initial GT Word 0 values
 that the Thread will hold in CR0..CR11 on first context-load. These are the
-thread's birth capabilities — typically the Thread's own E-GT (CR0),
-Scheduler E-GT (CR2), Mint E-GT (CR3), and any application-specific
-capabilities (CR4 onward). All other zones are all-zero in the distributed
-binary; runtime activity populates Stack, Heap, and DR.
+thread's birth capabilities — whatever the application requires. The
+architecture does not prescribe which system GTs go in which CR slot;
+system GTs (Scheduler, Mint, NS write authority, etc.) live in c-list slots
+and are LOADed into general-purpose CRs as needed at runtime. All other
+zones are all-zero in the distributed binary; runtime activity populates
+Stack, Heap, and DR.
 
 Zone ③ must be all-zero in the zip binary. `Mint.Thread` verifies this at
 install time and rejects the binary if any freespace word is non-zero.

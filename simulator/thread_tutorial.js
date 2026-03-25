@@ -57,23 +57,26 @@ ${this._memMap(null)}
                 title: '\u2460 Capabilities \u2014 GT Zone for CR0\u2013CR11',
                 type: 'capabilities',
                 content: `${this._memMap('cap')}
-<p>The top 12 words of the thread lump are the <strong>GT zone</strong>: one 32-bit Golden Token word for each of CR0\u2013CR11. Three of these are <em>architecture-defined</em>; the remaining nine are freely allocated by the programmer.</p>
-<table class="sr-table"><tr><th>Word</th><th>CR</th><th>Role</th><th>Controlled by</th></tr>
-<tr><td>0</td><td>CR0</td><td>Return value \u00b7 first return GT</td><td><strong>Architecture</strong></td></tr>
-<tr><td>1</td><td>CR1</td><td>First argument GT</td><td><strong>Architecture</strong></td></tr>
-<tr><td>2</td><td>CR2</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>3</td><td>CR3</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>4</td><td>CR4</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>5</td><td>CR5</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>6</td><td>CR6</td><td>C-list (L-only) \u00b7 set by CALL/RETURN</td><td><strong>Architecture</strong></td></tr>
-<tr><td>7</td><td>CR7</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>8</td><td>CR8</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>9</td><td>CR9</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>10</td><td>CR10</td><td>Programmer-defined</td><td>Programmer</td></tr>
-<tr><td>11</td><td>CR11</td><td>Programmer-defined</td><td>Programmer</td></tr>
+<p>The tail 12 words of the thread lump (words 244\u2013255) are the <strong>GT zone</strong>: one 32-bit Golden Token word for each of CR0\u2013CR11. Only <em>two</em> of these are hardware-defined; the remaining ten are general-purpose \u2014 exactly as DR0\u2013DR15 are general-purpose data registers.</p>
+<table class="sr-table"><tr><th>Offset</th><th>CR</th><th>Role</th><th>Controlled by</th></tr>
+<tr><td>+244</td><td>CR0</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+245</td><td>CR1</td><td>CALL/RETURN ABI \u00b7 argument GT in; return GT out</td><td><strong>Architecture</strong></td></tr>
+<tr><td>+246</td><td>CR2</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+247</td><td>CR3</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+248</td><td>CR4</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+249</td><td>CR5</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+250</td><td>CR6</td><td>C-list view (L-only) \u00b7 set by CALL, cleared by RETURN</td><td><strong>Architecture</strong></td></tr>
+<tr><td>+251</td><td>CR7</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+252</td><td>CR8</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+253</td><td>CR9</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+254</td><td>CR10</td><td>General-purpose</td><td>Programmer</td></tr>
+<tr><td>+255</td><td>CR11</td><td>General-purpose</td><td>Programmer</td></tr>
 </table>
+<div class="sr-key-concept"><div class="sr-concept-title">System GTs Live in C-list Slots</div>
+<p>Capabilities for system services \u2014 Scheduler, Mint, NS write authority, etc. \u2014 are held in <strong>c-list slots</strong>, not in fixed CRs. A thread LOADs the GT it needs into any free general-purpose CR immediately before use. This is identical to how data registers work: the register is a transient holder; the durable home is the c-list.</p>
+<p>The architecture assigns no permanent role to CR0 or CR2\u2013CR11. Only <strong>CR1</strong> (CALL/RETURN ABI) and <strong>CR6</strong> (hardware-managed c-list view) are hardware-defined within Zone \u2460.</p></div>
 <div class="sr-key-concept"><div class="sr-concept-title">mLoad Keeps the GT Zone in Sync</div>
-<p>Every time mLoad executes it <strong>writes the loaded GT back into the corresponding GT-zone word</strong> (word N for CR_N). This guarantees the lump\u2019s GT zone always mirrors the live CR registers. When CHANGE suspends a thread, DR0\u2013DR15 are saved into the thread image along with PC, FLAGS, STO, CR12, CR14, and CR15. Because mLoad already kept the GT zone in sync during execution, no separate save step is needed for CR0\u2013CR11.</p></div>`
+<p>Every time mLoad executes it <strong>writes the loaded GT back into the corresponding GT-zone word</strong> (word 244+N for CR_N). This guarantees the lump\u2019s GT zone always mirrors the live CR registers. When CHANGE suspends a thread, DR0\u2013DR15 are saved into the thread image along with PC, FLAGS, STO, CR12, CR14, and CR15. Because mLoad already kept the GT zone in sync during execution, no separate save step is needed for CR0\u2013CR11.</p></div>`
             },
             {
                 title: '\u2461 LIFO Stack \u2014 Grows Downward',
