@@ -476,7 +476,7 @@ class ChurchCore(Elaboratable):
             u_change.index.eq(cap_index),
             u_change.change_mask.eq(u_decoder.call_mask),
             u_change.cr_rd_data.eq(u_regs.cr_rd_data),
-            u_change.cr8_thread.eq(u_regs.cr8_thread),
+            u_change.cr12_thread.eq(u_regs.cr12_thread),
             u_change.cr15_namespace.eq(u_regs.cr15_namespace),
             u_change.mem_rd_data.eq(self.dmem_rd_data),
             u_change.mem_rd_valid.eq(1),

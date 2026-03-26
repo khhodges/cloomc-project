@@ -49,7 +49,7 @@ def make_gt(gt_type=GT_TYPE_NULL, perms=0, slot_id=0, gt_seq=0):
 # BOOT_PROGRAM — the instruction ROM executed from reset
 #
 # CLOOMC listing cross-ref: simulator/secure_boot_tutorial.js
-#   §B:02 INIT_THRD    → BOOT_PROGRAM[0]  CHANGE AL, CR8, CR8, #1
+#   §B:02 INIT_THRD    → BOOT_PROGRAM[0]  CHANGE AL, CR12, CR12, #1
 #   §B:03 INIT_ABSTR   → BOOT_PROGRAM[1]  LOAD  AL, CR1, CR6[0]   ; code/constants GT (R|X, Slot 3) → CR1
 #                      → BOOT_PROGRAM[2]  LOAD  AL, CR2, CR6[1]   ; boot code GT (X, Slot 4) → CR2
 #                      → BOOT_PROGRAM[3]  TPERM AL, CR2, #X       ; restrict to X only
@@ -66,9 +66,9 @@ def make_gt(gt_type=GT_TYPE_NULL, perms=0, slot_id=0, gt_seq=0):
 BOOT_PROGRAM = []
 if ENABLE_CHANGE_SWITCH:
     # B:02 INIT_THRD — switch to thread context
-    # CLOOMC: CHANGE AL, CR8, CR8, #1
+    # CLOOMC: CHANGE AL, CR12, CR12, #1
     BOOT_PROGRAM.append(
-        encode_church(ChurchOpcode.CHANGE, CondCode.AL, cr_dst=8, cr_src=8, imm=1))
+        encode_church(ChurchOpcode.CHANGE, CondCode.AL, cr_dst=12, cr_src=12, imm=1))
 
 BOOT_PROGRAM += [
     # B:03 INIT_ABSTR — load code/constants GT into CR1 from c-list[0]

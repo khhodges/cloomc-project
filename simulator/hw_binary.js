@@ -1,5 +1,5 @@
 const HW_BOOT_PROGRAM = [
-    0x27440001, // PC=0  CHANGE CR8, CR8, 1
+    0x27660001, // PC=0  CHANGE CR12, CR12, 1
     0x070B0003, // PC=1  LOAD CR1, [CR6 + 3]  (Boot.Abstr E-GT — self-reference)
     0x07130001, // PC=2  LOAD CR2, [CR6 + 1]
     0x37100003, // PC=3  TPERM CR2, X

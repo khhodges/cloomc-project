@@ -88,11 +88,11 @@ LOAD_NS:                          ; hardware boot step B:01 \u2014 no user instr
 ;   DR0\u2013DR15 are still zero from the reset
 
 ; First CLOOMC user instruction \u2014 emitted by boot ROM:
-;   CHANGE AL, CR8, CR8, #1
-; This switches to thread mode and records the thread lump in CR8.
+;   CHANGE AL, CR12, CR12, #1
+; This switches to thread mode and records the thread lump in CR12.
 ; (ENABLE_CHANGE_SWITCH = True in hw_types.py)
 
-INIT_THRD:  CHANGE  AL, CR8, CR8, #1   ; B:02 \u2014 switch to thread context</pre>
+INIT_THRD:  CHANGE  AL, CR12, CR12, #1   ; B:02 \u2014 switch to thread context</pre>
 <div class="sr-key-concept"><div class="sr-concept-title">Thread Lump Memory Map (Slot\u202f1)</div>
 <table class="sr-table">
 <tr><th>Offset (words)</th><th>Zone</th><th>Description</th></tr>
@@ -258,7 +258,7 @@ LOAD_NUC:
 
 ; ---- B:02 INIT_THRD -------------------------------------
 ; First user instruction emitted by boot ROM:
-    CHANGE  AL, CR8, CR8, #1   ; switch to thread context (ENABLE_CHANGE_SWITCH)
+    CHANGE  AL, CR12, CR12, #1   ; switch to thread context (ENABLE_CHANGE_SWITCH)
 
 ; ---- B:03 INIT_ABSTR ------------------------------------
 ; Load boot C-List entries and establish boot code identity
@@ -400,7 +400,7 @@ USER_ENTRY:
                 content: `<p>The Amaranth HDL boot ROM (<code>hardware/boot_rom.py</code>) encodes the same sequence in 32-bit machine words. This slide maps each BOOT_PROGRAM word to the CLOOMC listing above.</p>
 <table class="sr-table">
 <tr><th>BOOT_PROGRAM index</th><th>Encoded instruction</th><th>Listing step</th></tr>
-<tr><td>[0]</td><td><code>CHANGE AL, CR8, CR8, #1</code></td><td>B:02 INIT_THRD \u2014 thread context switch</td></tr>
+<tr><td>[0]</td><td><code>CHANGE AL, CR12, CR12, #1</code></td><td>B:02 INIT_THRD \u2014 thread context switch</td></tr>
 <tr><td>[1]</td><td><code>LOAD AL, CR1, CR6[0]</code></td><td>B:03 \u2014 load code/constants GT (R|X, Slot 3) into CR1</td></tr>
 <tr><td>[2]</td><td><code>LOAD AL, CR2, CR6[1]</code></td><td>B:03 \u2014 load boot code GT (X, Slot 4) into CR2</td></tr>
 <tr><td>[3]</td><td><code>TPERM AL, CR2, #X</code></td><td>B:03 \u2014 restrict CR2 to X only (no seal check)</td></tr>

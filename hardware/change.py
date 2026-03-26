@@ -23,7 +23,7 @@ class ChurchChange(Elaboratable):
         self.cr_wr_data = Signal(CAP_REG_LAYOUT)
         self.cr_wr_en = Signal()
 
-        self.cr8_thread = Signal(CAP_REG_LAYOUT)
+        self.cr12_thread = Signal(CAP_REG_LAYOUT)
         self.cr15_namespace = Signal(CAP_REG_LAYOUT)
 
         self.mem_rd_addr = Signal(32)
@@ -75,17 +75,17 @@ class ChurchChange(Elaboratable):
         crn_gt = View(GT_LAYOUT, crn_view.word0_gt)
         crn_has_l_perm = crn_gt.perms[PERM_L]
 
-        cr8_view = View(CAP_REG_LAYOUT, self.cr8_thread)
-        cr8_gt = View(GT_LAYOUT, cr8_view.word0_gt)
+        cr12_view = View(CAP_REG_LAYOUT, self.cr12_thread)
+        cr12_gt = View(GT_LAYOUT, cr12_view.word0_gt)
 
-        thread_base = cr8_view.word1_location
+        thread_base = cr12_view.word1_location
 
         cr7_base = Signal(32)
 
         fetched_gt_latched = Signal(32)
 
-        DR_OFFSET = 0
-        PACKED_PC_OFFSET = 16
+        DR_OFFSET = 1
+        PACKED_PC_OFFSET = 17
 
         pc_offset = Signal(32)
         packed_pc_word = Signal(32)
