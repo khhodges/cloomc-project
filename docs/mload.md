@@ -20,6 +20,17 @@ Every security property of the Church Machine is enforced in mLoad:
 | GC always knows which slots are live | RESET\_GBIT to match GC cycle (0→1 or 1→0) |
 | Thread lump always mirrors live CRs | UPDATE\_THREAD stage |
 
+**The eight properties in brief:**
+
+1. **Absent Outform Detection** — Lazy-load events triggered when accessing unloaded resources
+2. **L-permission Control** — Only L-holders can unlock access rights to a GT
+3. **Bounds Enforcement** — No GT can be read beyond its index range
+4. **Revocation Prevention** — Stale tokens (version mismatch) are rejected
+5. **Forgery Detection** — CRC-16/CCITT seal validates GT authenticity
+6. **GC Liveness Tracking** — g-bit toggles during GC cycle to mark reachability
+7. **Thread Shadow Sync** — Thread lump capability zone kept in sync with live CRs
+8. **Outform Lazy-Load** — Absent remote objects trigger download and registration
+
 Because all eight properties collapse to a single code path, the attack
 surface is a small, formally verifiable FSM rather than a distributed set
 of per-instruction permission checks.
