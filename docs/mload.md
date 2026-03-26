@@ -45,7 +45,7 @@ Because all eight properties collapse to a single code path, the attack surface 
 | **CHANGE** | Load target thread + restore CRs | Switch thread context; restore per-thread capability set and Reload caller's CR6 and CR14 from the return frame E-GT using the same rules for CALL in conjunction with the Thread Abstraction |
 | **SWITCH** | Context switch to new Namespace Table in CR15 | in conjunction with the Namespace Abstraction |
 | **TPERM** | Permission transfer phase | Check the permission of a CR against the instruction conditions and index and set the capability indicators true or false for use by the next instruction |
-| **LAMBDA** | Closure capture | Load the closed-over GT into the lambda's internal CR slot |
+| **LAMBDA** | Closure capture | Change the NIA (next instruction address) to the lambda code location and save the current location for a return. On CALL save the Return IA as a one word offset frame |
 | **ELOADCALL** | Extended load-and-call | Load GT and immediately populate CRs for the callee entry point |
 | **XLOADLAMBDA** | Cross-domain lambda invocation | Load the lambda GT across a domain boundary into the target CR |
 
