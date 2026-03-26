@@ -16,7 +16,7 @@ Every security property of the Church Machine is enforced in mLoad:
 | Only L-perm holders can unlock the permitted access right(s) to the object or resource defined by a GT in their posession | CHECK\_L stage |
 | No capability can be read beyond its index range | CHECK\_BOUNDS stage |
 | No revoked GT can be re-used | CHECK\_VERSION stage (gt\_seq match) |
-| No forged GT can ever load | CHECK\_VERSION + seal stage (CRC-16) |
+| No forged GT can ever load | CHECK\_VERSION + seal stage (CRC-16/CCITT) |
 | GC always knows which slots are live | RESET\_GBIT stage |
 | Thread lump always mirrors live CRs | UPDATE\_THREAD stage |
 
@@ -145,7 +145,7 @@ FETCH_W3                      [memory read: NS base + slot_id×16 + 8]
 
 CHECK_VERSION
   ├── gt_seq mismatch ────────────► FAULT  (VERSION)
-  ├── CRC-16 mismatch ────────────► FAULT  (SEAL)
+  ├── CRC-16/CCITT mismatch ──────► FAULT  (SEAL)
   └── pass ──────────────────────► RESET_GBIT
 
 RESET_GBIT                    [memory write: NS +8 with g_bit cleared to 0]
