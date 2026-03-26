@@ -34,12 +34,12 @@ class ChurchCall(Elaboratable):
         self.mload_fault = Signal()
         self.mload_fault_type = Signal(4)
 
+        # Kept for core.py interface compatibility; CALL does not snapshot CR5.
+        # Always outputs 0 (no special significance for CALL per architecture).
         self.saved_cr5_gt = Signal(32)
 
         self.nia_set = Signal()
         self.nia_value = Signal(32)
-        self.dr_clear_mask = Signal(16)
-        self.cr_clear_mask = Signal(16)
 
         # Direct memory read for NS lump header fetch (post Phase 2)
         self.mem_rd_addr = Signal(32)
@@ -56,11 +56,9 @@ class ChurchCall(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        CR6_CLIST = 6
-        CR14_CODE = 14
-        MAX_SRC_REG = 5
-        B_BIT_POS = 31
-        LIMIT_WIDTH = 32
+        CR6_CLIST   = 6
+        CR14_CODE   = 14
+        MAX_SRC_REG = 10   # cr_src must be in CR0–CR10
 
         phase = Signal()
         src_reg_latched = Signal(CAP_REG_LAYOUT)
@@ -73,7 +71,7 @@ class ChurchCall(Elaboratable):
 
         local_cr_rd_addr = Signal(4)
 
-        b_idx = Signal(3)
+        b_idx = Signal(4)          # 4 bits: counts 0–11 for CR0–CR11 sweep
         b_cr_data = Signal(CAP_REG_LAYOUT)
         b_clear_wr_en = Signal()
         b_clear_wr_addr = Signal(4)
@@ -95,6 +93,9 @@ class ChurchCall(Elaboratable):
             mload_index.eq(Mux(phase, 0, self.index)),
         ]
 
+        # M-elevation (sub_m_elevated) is permanently asserted: CALL's FSM
+        # validates E-perm in CHECK_PERM before any mLoad fires, so the
+        # CHECK_L stage inside mLoad is externalised to this FSM.
         m.d.comb += [
             self.mload_start.eq(sub_start_reg),
             self.mload_cr_src.eq(mload_src),
@@ -113,17 +114,7 @@ class ChurchCall(Elaboratable):
 
         m.d.comb += self.cr_rd_addr.eq(local_cr_rd_addr)
 
-        cr_preserve = mask_latched[5:11]
-        dr1_5_preserve = mask_latched[0:5]
-
-        dr_clear_computed = Signal(16)
-        cr_clear_computed = Signal(16)
-        m.d.comb += [
-            dr_clear_computed.eq(Cat(Const(0, 1), ~dr1_5_preserve, Const(0x3FF, 10))),
-            cr_clear_computed.eq(Cat(~cr_preserve, Const(0, 10))),
-        ]
-
-        # NS lump header fetch state
+        # NS lump header fetch
         cr14_view = View(CAP_REG_LAYOUT, self.cr14_code)
         cr14_gt = View(GT_LAYOUT, cr14_view.word0_gt)
         cr15_view = View(CAP_REG_LAYOUT, self.cr15_namespace)
@@ -136,15 +127,14 @@ class ChurchCall(Elaboratable):
         lump_reg = Signal(32)
         lump_view = View(LUMP_HEADER_LAYOUT, lump_reg)
 
-        # Latched fields from LUMP_HEADER (set after FETCH_LUMP completes)
+        # Latched fields from LUMP_HEADER
         mw_reg        = Signal(6)   # max-word (arg count)
         cc_reg        = Signal(8)   # calling-convention flags
         n_minus_6_reg = Signal(4)   # total frame words minus 6
 
+        # NIA: code starts at word offset +1 after the lump header (size = cw)
         nia_computed = Signal(32)
-        m.d.comb += nia_computed.eq(
-            cr14_view.word1_location + ((1 + lump_view.mw) << 2)
-        )
+        m.d.comb += nia_computed.eq(cr14_view.word1_location + 4)
 
         with m.FSM(name="call") as fsm:
             with m.State("IDLE"):
@@ -172,15 +162,8 @@ class ChurchCall(Elaboratable):
                     m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_E)]
                     m.next = "FAULT"
                 with m.Else():
-                    m.d.comb += local_cr_rd_addr.eq(5)
-                    m.next = "READ_CR5"
-
-            with m.State("READ_CR5"):
-                m.d.comb += local_cr_rd_addr.eq(5)
-                cr5_view = View(CAP_REG_LAYOUT, self.cr_rd_data)
-                m.d.sync += self.saved_cr5_gt.eq(cr5_view.word0_gt)
-                m.d.sync += sub_start_reg.eq(1)
-                m.next = "PHASE1"
+                    m.d.sync += sub_start_reg.eq(1)
+                    m.next = "PHASE1"
 
             with m.State("PHASE1"):
                 m.d.sync += sub_start_reg.eq(0)
@@ -212,7 +195,7 @@ class ChurchCall(Elaboratable):
                     m.next = "FETCH_LUMP"
 
             with m.State("FETCH_LUMP"):
-                # Fetch NS word3_lump (+12) for callee; extract mw/cc/n_minus_6 for NIA
+                # Fetch NS word3_lump (+12) for callee; latch mw/cc/n_minus_6
                 m.d.comb += [
                     self.mem_rd_addr.eq(callee_ns_entry_addr + 12),
                     self.mem_rd_en.eq(1),
@@ -231,13 +214,12 @@ class ChurchCall(Elaboratable):
                 m.next = "CLEAR_B_CHECK"
 
             with m.State("CLEAR_B_CHECK"):
-                with m.If(b_idx > 5):
+                # Strip b_flag from every CR0–CR11 unconditionally
+                with m.If(b_idx > 11):
                     m.next = "COMPLETE"
-                with m.Elif(cr_preserve.bit_select(b_idx, 1)):
+                with m.Else():
                     m.d.comb += local_cr_rd_addr.eq(b_idx)
                     m.next = "CLEAR_B_READ"
-                with m.Else():
-                    m.d.sync += b_idx.eq(b_idx + 1)
 
             with m.State("CLEAR_B_READ"):
                 m.d.comb += local_cr_rd_addr.eq(b_idx)
@@ -275,8 +257,6 @@ class ChurchCall(Elaboratable):
             self.fault_type.eq(fault_type_latched),
             self.nia_set.eq(fsm.ongoing("COMPLETE")),
             self.nia_value.eq(nia_computed),
-            self.dr_clear_mask.eq(Mux(fsm.ongoing("COMPLETE"), dr_clear_computed, 0)),
-            self.cr_clear_mask.eq(Mux(fsm.ongoing("COMPLETE"), cr_clear_computed, 0)),
         ]
 
         return m
