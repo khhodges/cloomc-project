@@ -21,9 +21,9 @@ class ThreadTutorial {
             cap:   'lumpSize\u221212 \u2192',
         };
         let html = '<div style="display:flex;gap:8px;margin:12px 0 4px 0;align-items:stretch;">';
-        html += '<div style="display:flex;flex-direction:column;justify-content:flex-start;width:88px;flex-shrink:0;font-size:0.68rem;color:#666;font-family:monospace;">';
+        html += '<div style="display:flex;flex-direction:column;justify-content:flex-start;width:140px;flex-shrink:0;font-size:0.68rem;color:#666;font-family:monospace;">';
         for (const s of sections) {
-            html += `<div style="height:${heights[s.id]}px;display:flex;align-items:flex-start;padding-top:6px;justify-content:flex-end;padding-right:4px;box-sizing:border-box;">${addrLabels[s.id]}</div>`;
+            html += `<div style="height:${heights[s.id]}px;display:flex;align-items:flex-start;padding-top:6px;justify-content:flex-end;padding-right:4px;box-sizing:border-box;white-space:nowrap;">${addrLabels[s.id]}</div>`;
         }
         html += '</div>';
         html += '<div style="flex:1;display:flex;flex-direction:column;">';
