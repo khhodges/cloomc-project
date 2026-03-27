@@ -84,7 +84,7 @@ class NamespaceTutorial {
             bootstrap: `0x0000 \u2191`,
             resident:  `${h(B)} \u2191`,
             freespace: `${h(B+R)} \u2195`,
-            nstable:   `${h(NS)} \u2193`,
+            nstable:   `${h(this.TOTAL_WORDS - 1)} \u2193`,
         };
 
         let html = '<div style="display:flex;gap:8px;margin:12px 0 4px 0;align-items:stretch;">';
@@ -128,7 +128,7 @@ ${this._memMap(null)}
 <tr><td><strong>\u2460 Bootstrap</strong></td><td><code>0x0000</code> \u2191</td><td>IDE-set</td><td>NS root + boot thread + boot abstraction (fixed slots)</td></tr>
 <tr><td><strong>\u2461 Resident Lumps</strong></td><td>${hex(this.BOOTSTRAP_WORDS)} \u2191</td><td>IDE-set</td><td>Always-loaded abstractions \u2014 never evicted</td></tr>
 <tr><td><strong>\u2462 Freespace</strong></td><td>${hex(this.BOOTSTRAP_WORDS + this.RESIDENT_WORDS)} \u2195</td><td>IDE-set</td><td>Cache for lazy-loaded lumps \u2014 dynamic, grows from both ends</td></tr>
-<tr><td><strong>\u2463 NS Table</strong></td><td>${NS} \u2193</td><td>cw words</td><td>3-word metadata entry per slot \u2014 grows downward from 2^cc</td></tr>
+<tr><td><strong>\u2463 NS Table</strong></td><td>0xFFFF \u2193</td><td>cw words</td><td>3-word metadata entry per slot \u2014 entries written from 2^cc\u22121 (0xFFFF) downward; base = 2^cc\u2212cw</td></tr>
 </table></div>`
             },
             {
