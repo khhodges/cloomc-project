@@ -9,18 +9,30 @@ OUTFORM_FAULT_CRC32  = 0x15
 OUTFORM_FAULT_ALLOC  = 0x16
 OUTFORM_FAULT_MINT   = 0x17
 
-# ZIP Local File Header constants
+# Custom 32-byte tunnel header (task-spec; CRC-32 at byte offset 16)
+# Byte layout:
+#  0-3:  signature (0x04034B50)
+#  4-5:  version needed
+#  6-7:  general purpose bit flag  (bit 3 = streaming — rejected)
+#  8-9:  compression method        (0=STORE, 8=DEFLATE)
+# 10-13: mod time + mod date
+# 14-15: (protocol-reserved)
+# 16-19: CRC-32
+# 20-23: compressed size
+# 24-27: uncompressed size
+# 28-29: filename length (L)
+# 30-31: extra field length (E)
 ZIP_SIGNATURE  = 0x04034B50
 METHOD_STORE   = 0
 METHOD_DEFLATE = 8
-ZIP_HDR_LEN    = 30       # fixed region bytes
+HDR_LEN        = 32    # total header bytes per task spec
 
-# CRC-32 (IEEE 802.3, reflected poly 0xEDB88320)
+# CRC-32 IEEE 802.3, reflected poly 0xEDB88320
 CRC32_POLY  = 0xEDB88320
 CRC32_INIT  = 0xFFFFFFFF
 CRC32_FINAL = 0xFFFFFFFF
 
-TUNNEL_REQ_LEN = 6        # gt_raw[31:0] LE + slot_id[15:0] LE
+TUNNEL_REQ_LEN = 6   # gt_raw[31:0] LE + slot_id[15:0] LE
 
 
 class ChurchOutform(Elaboratable):
@@ -29,6 +41,10 @@ class ChurchOutform(Elaboratable):
     FSM: IDLE -> TUNNEL_CONNECT -> RECV_HDR -> CHECK_SIG -> CHECK_FLAGS ->
          READ_UCSIZE -> DERIVE_N -> ALLOC -> SKIP_FNAME -> SKIP_EXTRA ->
          INFLATE -> CHECK_CRC32 -> MINT -> MINT_WAIT -> COMPLETE / FAULT
+
+    INFLATE sub-states:
+         INFLATE_DEFLATE  (TODO: Huffman+LZ77 sub-FSM)
+         INFLATE_RLE      (TODO: custom RLE sub-FSM)
     """
 
     def __init__(self):
@@ -67,14 +83,14 @@ class ChurchOutform(Elaboratable):
         self.mint_n         = Signal(5)
         self.mint_done      = Signal()
         self.mint_fault     = Signal()
-        self.mint_result_gt = Signal(32)
+        self.mint_result_gt = Signal(32)  # E-GT issued by Mint (valid when mint_done=1)
 
         # result (valid when outform_done)
         self.result_gt = Signal(32)
 
     @staticmethod
     def _crc32_byte(m, crc_in, byte_in, crc_out):
-        """8-stage combinatorial CRC-32 update (IEEE 802.3, LSB-first)."""
+        """8-stage combinatorial CRC-32 byte update (IEEE 802.3, LSB-first)."""
         stage = crc_in
         for i in range(8):
             xb  = Signal(name=f"_cxb{i}")
@@ -87,10 +103,10 @@ class ChurchOutform(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        hdr_byte_cnt = Signal(5)
+        hdr_byte_cnt = Signal(6)    # 0..31
         tx_byte_cnt  = Signal(3)
-        fname_cnt    = Signal(16)
-        extra_cnt    = Signal(16)
+        fname_cnt    = Signal(16)   # L-counter (independent)
+        extra_cnt    = Signal(16)   # E-counter (independent)
 
         sig_reg        = Signal(32)
         flags_reg      = Signal(16)
@@ -107,7 +123,7 @@ class ChurchOutform(Elaboratable):
 
         base_reg       = Signal(32)
         wr_word_cnt    = Signal(32)
-        byte_buf       = Signal(24)   # holds bytes 0..2 of the current inflate word
+        byte_buf       = Signal(24)  # bytes 0..2 of current inflate word
         byte_buf_cnt   = Signal(2)
 
         crc_acc        = Signal(32, init=CRC32_INIT)
@@ -116,7 +132,7 @@ class ChurchOutform(Elaboratable):
 
         self._crc32_byte(m, crc_acc, self.rx_data, crc_next)
 
-        # tunnel TX byte mux
+        # tunnel TX byte mux: gt_raw[31:0] LE, slot_id[15:0] LE
         tx_byte = Signal(8)
         with m.Switch(tx_byte_cnt):
             with m.Case(0): m.d.comb += tx_byte.eq(self.gt_raw[ 0: 8])
@@ -127,7 +143,7 @@ class ChurchOutform(Elaboratable):
             with m.Case(5): m.d.comb += tx_byte.eq(self.slot_id[8:16])
             with m.Default(): m.d.comb += tx_byte.eq(0)
 
-        # complete 32-bit word for STORE write: bytes 0-2 from byte_buf, byte 3 from rx_data
+        # full 32-bit word: bytes 0-2 from byte_buf, byte 3 from rx_data (combinatorial)
         inflate_word = Signal(32)
         m.d.comb += inflate_word.eq(Cat(byte_buf, self.rx_data))
 
@@ -178,6 +194,9 @@ class ChurchOutform(Elaboratable):
                 with m.Else():
                     m.d.sync += tx_byte_cnt.eq(tx_byte_cnt + 1)
 
+            # Receive 32-byte custom header; fields assigned by byte offset.
+            # Signature at 0-3, flags 6-7, method 8-9, CRC-32 at 16-19,
+            # comp_size 20-23, ucomp_size 24-27, fname_len 28-29, extra_len 30-31.
             with m.State("RECV_HDR"):
                 m.d.comb += self.outform_busy.eq(1)
                 with m.If(self.rx_valid):
@@ -190,24 +209,24 @@ class ChurchOutform(Elaboratable):
                         with m.Case( 7): m.d.sync += flags_reg[ 8:16].eq(self.rx_data)
                         with m.Case( 8): m.d.sync += method_reg[ 0: 8].eq(self.rx_data)
                         with m.Case( 9): m.d.sync += method_reg[ 8:16].eq(self.rx_data)
-                        with m.Case(14): m.d.sync += crc32_stored[ 0: 8].eq(self.rx_data)
-                        with m.Case(15): m.d.sync += crc32_stored[ 8:16].eq(self.rx_data)
-                        with m.Case(16): m.d.sync += crc32_stored[16:24].eq(self.rx_data)
-                        with m.Case(17): m.d.sync += crc32_stored[24:32].eq(self.rx_data)
-                        with m.Case(18): m.d.sync += comp_size_reg[ 0: 8].eq(self.rx_data)
-                        with m.Case(19): m.d.sync += comp_size_reg[ 8:16].eq(self.rx_data)
-                        with m.Case(20): m.d.sync += comp_size_reg[16:24].eq(self.rx_data)
-                        with m.Case(21): m.d.sync += comp_size_reg[24:32].eq(self.rx_data)
-                        with m.Case(22): m.d.sync += ucomp_size_reg[ 0: 8].eq(self.rx_data)
-                        with m.Case(23): m.d.sync += ucomp_size_reg[ 8:16].eq(self.rx_data)
-                        with m.Case(24): m.d.sync += ucomp_size_reg[16:24].eq(self.rx_data)
-                        with m.Case(25): m.d.sync += ucomp_size_reg[24:32].eq(self.rx_data)
-                        with m.Case(26): m.d.sync += fname_len_reg[ 0: 8].eq(self.rx_data)
-                        with m.Case(27): m.d.sync += fname_len_reg[ 8:16].eq(self.rx_data)
-                        with m.Case(28): m.d.sync += extra_len_reg[ 0: 8].eq(self.rx_data)
-                        with m.Case(29): m.d.sync += extra_len_reg[ 8:16].eq(self.rx_data)
+                        with m.Case(16): m.d.sync += crc32_stored[ 0: 8].eq(self.rx_data)
+                        with m.Case(17): m.d.sync += crc32_stored[ 8:16].eq(self.rx_data)
+                        with m.Case(18): m.d.sync += crc32_stored[16:24].eq(self.rx_data)
+                        with m.Case(19): m.d.sync += crc32_stored[24:32].eq(self.rx_data)
+                        with m.Case(20): m.d.sync += comp_size_reg[ 0: 8].eq(self.rx_data)
+                        with m.Case(21): m.d.sync += comp_size_reg[ 8:16].eq(self.rx_data)
+                        with m.Case(22): m.d.sync += comp_size_reg[16:24].eq(self.rx_data)
+                        with m.Case(23): m.d.sync += comp_size_reg[24:32].eq(self.rx_data)
+                        with m.Case(24): m.d.sync += ucomp_size_reg[ 0: 8].eq(self.rx_data)
+                        with m.Case(25): m.d.sync += ucomp_size_reg[ 8:16].eq(self.rx_data)
+                        with m.Case(26): m.d.sync += ucomp_size_reg[16:24].eq(self.rx_data)
+                        with m.Case(27): m.d.sync += ucomp_size_reg[24:32].eq(self.rx_data)
+                        with m.Case(28): m.d.sync += fname_len_reg[ 0: 8].eq(self.rx_data)
+                        with m.Case(29): m.d.sync += fname_len_reg[ 8:16].eq(self.rx_data)
+                        with m.Case(30): m.d.sync += extra_len_reg[ 0: 8].eq(self.rx_data)
+                        with m.Case(31): m.d.sync += extra_len_reg[ 8:16].eq(self.rx_data)
                     m.d.sync += hdr_byte_cnt.eq(hdr_byte_cnt + 1)
-                    with m.If(hdr_byte_cnt == ZIP_HDR_LEN - 1):
+                    with m.If(hdr_byte_cnt == HDR_LEN - 1):
                         m.next = "CHECK_SIG"
 
             with m.State("CHECK_SIG"):
@@ -244,7 +263,7 @@ class ChurchOutform(Elaboratable):
                 )
                 n_computed = Signal(5)
                 with m.Switch(word_count_reg):
-                    for bit in range(6, 15):        # 2^6=64 .. 2^14=16384
+                    for bit in range(6, 15):
                         with m.Case(1 << bit):
                             m.d.comb += n_computed.eq(bit)
                     with m.Default():
@@ -279,7 +298,7 @@ class ChurchOutform(Elaboratable):
                     ]
                     m.next = "SKIP_FNAME"
 
-            # L-counter: independent Signal(16), never referenced in E arithmetic
+            # L-counter: independent Signal(16); not referenced in E arithmetic
             with m.State("SKIP_FNAME"):
                 m.d.comb += self.outform_busy.eq(1)
                 with m.If(fname_cnt == 0):
@@ -288,7 +307,7 @@ class ChurchOutform(Elaboratable):
                 with m.Elif(self.rx_valid):
                     m.d.sync += fname_cnt.eq(fname_cnt - 1)
 
-            # E-counter: independent Signal(16), never referenced in L arithmetic
+            # E-counter: independent Signal(16); not referenced in L arithmetic
             with m.State("SKIP_EXTRA"):
                 m.d.comb += self.outform_busy.eq(1)
                 with m.If(extra_cnt == 0):
@@ -296,13 +315,13 @@ class ChurchOutform(Elaboratable):
                 with m.Elif(self.rx_valid):
                     m.d.sync += extra_cnt.eq(extra_cnt - 1)
 
+            # Method dispatch: STORE inline; DEFLATE/RLE enter stub states
             with m.State("INFLATE"):
                 m.d.comb += self.outform_busy.eq(1)
                 with m.If(method_reg == METHOD_STORE):
                     with m.If(self.rx_valid):
                         m.d.sync += crc_acc.eq(crc_next)
                         with m.If(byte_buf_cnt == 3):
-                            # build full word from registered bytes 0-2 and incoming byte 3
                             m.d.comb += [
                                 self.mem_wr_addr.eq(base_reg + (wr_word_cnt << 2)),
                                 self.mem_wr_data.eq(inflate_word),
@@ -324,13 +343,19 @@ class ChurchOutform(Elaboratable):
                 with m.Elif(method_reg == METHOD_DEFLATE):
                     m.next = "INFLATE_DEFLATE"
                 with m.Else():
-                    # unrecognised method code
-                    m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_METHOD)
-                    m.next = "FAULT"
+                    m.next = "INFLATE_RLE"
 
             # TODO: Huffman+LZ77 sub-FSM (separate hardware task)
             with m.State("INFLATE_DEFLATE"):
                 m.d.comb += self.outform_busy.eq(1)
+                m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_METHOD)
+                m.next = "FAULT"
+
+            # TODO: custom RLE sub-FSM (method code TBD; separate hardware task)
+            with m.State("INFLATE_RLE"):
+                m.d.comb += self.outform_busy.eq(1)
+                m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_METHOD)
+                m.next = "FAULT"
 
             with m.State("CHECK_CRC32"):
                 m.d.comb += self.outform_busy.eq(1)
@@ -342,7 +367,7 @@ class ChurchOutform(Elaboratable):
                 with m.Else():
                     m.next = "MINT"
 
-            # single-cycle mint_call pulse
+            # single-cycle mint_call pulse then wait in MINT_WAIT
             with m.State("MINT"):
                 m.d.comb += [
                     self.outform_busy.eq(1),
