@@ -784,8 +784,8 @@ stack: the effective stack zone spans `stack_min` (= `lumpSize−cc−sw`,
 example: 212) up to `sp_max` (= `lumpSize−cc−1`, example: 243), with the
 hidden **STO** (Stack Top Offset) register tracking the current top.
 `Mint.Thread` sets STO = `sp_max` (example: 243) at Thread creation — this
-is the empty-stack sentinel; the first pushed word lands at `sp_max−1`
-(Zone ② base, STO -= 1).
+is the empty-stack sentinel; the first word pushed onto the stack occupies
+`sp_max−1` (cursor STO field decreases by 1 for LAMBDA, by 2 for CALL).
 CR12 is saved and restored on every CHANGE alongside STO, DR0–DR15, PC,
 FLAGS, CR14, and CR15 (see §CHANGE Context Save below).
 
