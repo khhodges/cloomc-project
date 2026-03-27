@@ -4,6 +4,36 @@ class ThreadTutorial {
         this.currentStep = -1;
     }
 
+    _headerRef() {
+        const fields = [
+            { bits: '[31:27]', name: 'magic',  val: '0x1F',  note: 'Trap-on-execute guard',              w: 5,  bg: '#2a2a2a', border: '#555',    text: '#888'    },
+            { bits: '[26:23]', name: 'n\u22126', val: 'IDE',   note: 'lumpSize = 2^(val+6)',               w: 4,  bg: '#3a2000', border: '#c86000', text: '#f09040' },
+            { bits: '[22:10]', name: 'sw',     val: 'IDE',   note: 'Stack words (cw reused, typ=10)',    w: 13, bg: '#002a40', border: '#2080c0', text: '#60b8f0' },
+            { bits: '[9:8]',   name: 'typ',    val: '10',    note: 'clist-only = Thread abstraction',    w: 2,  bg: '#2a2a2a', border: '#555',    text: '#888'    },
+            { bits: '[7:0]',   name: 'cc',     val: '12',    note: 'C-list slots \u2014 always 12 for Thread', w: 8,  bg: '#3a2c00', border: '#c8a020', text: '#f0d060' },
+        ];
+        const total = 32;
+        let bar = '<div style="display:flex;width:100%;border-radius:3px;overflow:hidden;margin-bottom:2px;">';
+        for (const f of fields) {
+            bar += `<div style="flex:${f.w};background:${f.bg};border:1px solid ${f.border};padding:2px 3px;text-align:center;overflow:hidden;min-width:0;" title="${f.bits} ${f.name}=${f.val} \u2014 ${f.note}">`;
+            bar += `<span style="color:${f.text};font-size:0.62rem;font-weight:700;font-family:monospace;white-space:nowrap;">${f.name}</span><br>`;
+            bar += `<span style="color:${f.text};font-size:0.58rem;font-family:monospace;opacity:0.8;">${f.val}</span>`;
+            bar += '</div>';
+        }
+        bar += '</div>';
+        let meta = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">';
+        for (const f of fields) {
+            meta += `<span style="font-size:0.65rem;font-family:monospace;color:#777;">`
+                  + `<span style="color:${f.text}">${f.bits}&nbsp;${f.name}=${f.val}</span>`
+                  + `&nbsp;\u00b7&nbsp;${f.note}</span>`;
+        }
+        meta += '</div>';
+        return `<div style="background:#111;border:1px solid #333;border-radius:4px;padding:6px 8px 4px 8px;margin-bottom:8px;">`
+             + `<div style="font-size:0.62rem;color:#555;font-family:monospace;margin-bottom:4px;">Header[0] \u2014 Thread Lump (typ=10) \u00b7 32 bits</div>`
+             + bar + meta
+             + `</div>`;
+    }
+
     _memMap(highlighted) {
         const sections = [
             { id: 'dr',    label: '\u2464 Data Registers',    sub: 'DR0\u2013DR15  (16 \u00d7 32-bit, fixed)',        bg: '#1e0840', border: '#8040c0', text: '#b080f0' },
@@ -39,7 +69,7 @@ class ThreadTutorial {
             if (s.id !== 'dr') html += '<div style="height:2px;background:#111;"></div>';
         }
         html += '</div></div>';
-        return html;
+        return this._headerRef() + html;
     }
 
     _buildSteps() {
