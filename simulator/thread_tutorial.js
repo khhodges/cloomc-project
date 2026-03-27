@@ -7,9 +7,9 @@ class ThreadTutorial {
     _memMap(highlighted) {
         const sections = [
             { id: 'dr',    label: '\u2464 Data Registers',    sub: 'DR0\u2013DR15  (16 \u00d7 32-bit, fixed)',        bg: '#1e0840', border: '#8040c0', text: '#b080f0' },
-            { id: 'heap',  label: '\u2463 Heap \u2191',       sub: 'Fixed size \u00b7 defined by IDE slot metadata',bg: '#002a10', border: '#20a040', text: '#60d080' },
+            { id: 'heap',  label: '\u2463 Heap \u2193',       sub: 'Fixed size \u00b7 defined by IDE slot metadata',bg: '#002a10', border: '#20a040', text: '#60d080' },
             { id: 'free',  label: '\u2462 Freespace',         sub: 'Dynamic gap \u00b7 shrinks as stack/heap grow',bg: '#181818', border: '#404040', text: '#888'    },
-            { id: 'stack', label: '\u2461 LIFO Stack \u2193', sub: 'Expands down \u00b7 limit set by NS slot',     bg: '#002a40', border: '#2080c0', text: '#60b8f0' },
+            { id: 'stack', label: '\u2461 LIFO Stack \u2191', sub: 'Expands up \u00b7 bounds from IDE sw field',   bg: '#002a40', border: '#2080c0', text: '#60b8f0' },
             { id: 'cap',   label: '\u2460 Capabilities',     sub: 'GT for CR0\u2013CR11  (12 words, at tail)',      bg: '#3a2c00', border: '#c8a020', text: '#f0d060' },
         ];
         const heights = { dr: 64, heap: 72, free: 56, stack: 96, cap: 72 };
