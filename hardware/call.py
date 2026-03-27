@@ -60,17 +60,15 @@ class ChurchCall(Elaboratable):
         self.cr14_code = Signal(CAP_REG_LAYOUT)
 
         # CR5 heap capability — live view; word1_location is the heap base address
-        # (SP is stored at Heap[0] = Mem[CR5.word1_location])
+        # (STO is stored at Heap[0] = Mem[CR5.word1_location]; initial value = 212)
         self.cr5_heap = Signal(CAP_REG_LAYOUT)
 
-        # LAMBDA hidden hardware register — holds the caller's return frame word
-        # TODO: exact bit encoding of frame word (NIA offset + machine indicators)
-        #       is not yet fully specified; this is a placeholder until confirmed.
-        self.lambda_frame_reg = Signal(32)
+        # Word offset of the CALL instruction itself (nia_reg >> 2, lower 15 bits).
+        # Frame word encodes return_PC = caller_pc + 1 (next instruction after CALL).
+        self.caller_pc = Signal(15)
 
-        # Thread base byte address and IDE-defined stack word limit
-        self.thread_base  = Signal(32)
-        self.stack_limit  = Signal(16)
+        # Thread lump byte base address (CR12.word1_location)
+        self.thread_base = Signal(32)
 
     def elaborate(self, platform):
         m = Module()
@@ -97,10 +95,20 @@ class ChurchCall(Elaboratable):
         local_mem_wr_data = Signal(32)
         local_mem_wr_en = Signal()
 
-        sp_latched = Signal(32)    # current stack pointer (word offset) read from Heap[0]
+        sp_latched = Signal(32)    # STO read from Heap[0] = Mem[CR5.word1_location]
         # Callee E-GT: the raw 32-bit GT deposited into CR6 by Phase 1 mLoad.
         # Latched in PHASE1_DONE (while cr_rd_addr == CR6, combinatorial read-back).
         callee_egt_latched = Signal(32)
+
+        # CALL frame word (spec §"Zone ② — LIFO Stack"):
+        #   bit[31]    = SZ = 1  (CALL frame tag)
+        #   bits[30:16] = return_PC = caller_pc + 1  (word offset after CALL)
+        #   bits[15:0]  = prev_STO = sp_latched[15:0]
+        # Written to thread_base + STO*4 (STO+0); E-GT written to STO-1.
+        frame_word = Signal(32)
+        m.d.comb += frame_word.eq(
+            Cat(sp_latched[:16], (self.caller_pc + 1)[:15], Const(1, 1))
+        )
 
         cr5_heap_view = View(CAP_REG_LAYOUT, self.cr5_heap)
 
@@ -433,8 +441,8 @@ class ChurchCall(Elaboratable):
                     m.d.sync += n_idx.eq(n_idx + 1)
 
             with m.State("STACK_READ_SP"):
-                # Read the stack pointer from Heap[0] = Mem[CR5.word1_location]
-                # SP is a word offset; the stack grows upward (SP+2 per CALL frame)
+                # Read STO from Heap[0] = Mem[CR5.word1_location].
+                # STO is a word offset; the stack grows downward (STO -= 2 per CALL).
                 m.d.comb += [
                     self.mem_rd_addr.eq(cr5_heap_view.word1_location),
                     self.mem_rd_en.eq(1),
@@ -444,8 +452,9 @@ class ChurchCall(Elaboratable):
                     m.next = "STACK_CHECK"
 
             with m.State("STACK_CHECK"):
-                # Overflow: sp + 2 > stack_limit means no room for the 2-word frame
-                with m.If((sp_latched + 2) > self.stack_limit):
+                # Overflow: STO-2 would reach below Zone ③ base (offset +81).
+                # Hardware fires when STO < 83  (spec §"Zone ② — LIFO Stack").
+                with m.If(sp_latched < 83):
                     m.d.sync += [
                         fault_latched.eq(1),
                         fault_type_latched.eq(FaultType.STACK_OVERFLOW),
@@ -455,35 +464,32 @@ class ChurchCall(Elaboratable):
                     m.next = "STACK_WRITE_EGT"
 
             with m.State("STACK_WRITE_EGT"):
-                # Push word 0 of frame: raw E-GT fetched from callee c-list by Phase 1
-                # mLoad and deposited into CR6.  callee_egt_latched holds CR6.word0_gt
-                # as read back in PHASE1_DONE — exactly the GT the return instruction
-                # needs to restore the callee's identity.
-                # Byte address = thread_base + sp * 4
+                # Spec: STO-1 holds E-GT Word 0 of the callee.
+                # callee_egt_latched = CR6.word0_gt as read back in PHASE1_DONE.
+                # Byte address = thread_base + (STO-1)*4
                 m.d.comb += [
-                    local_mem_wr_addr.eq(self.thread_base + (sp_latched << 2)),
+                    local_mem_wr_addr.eq(self.thread_base + ((sp_latched - 1) << 2)),
                     local_mem_wr_data.eq(callee_egt_latched),
                     local_mem_wr_en.eq(1),
                 ]
                 m.next = "STACK_WRITE_FRAME"
 
             with m.State("STACK_WRITE_FRAME"):
-                # Push word 1 of frame: LAMBDA hidden register (caller return frame word)
-                # TODO: exact bit encoding of lambda_frame_reg (NIA offset + machine
-                #       indicators) is not yet fully specified — placeholder until confirmed
-                # Byte address = thread_base + (sp + 1) * 4
+                # Spec: STO+0 holds the frame word: SZ[1] | return_PC[15] | prev_STO[16].
+                # frame_word is a combinatorial signal computed above.
+                # Byte address = thread_base + STO*4
                 m.d.comb += [
-                    local_mem_wr_addr.eq(self.thread_base + ((sp_latched + 1) << 2)),
-                    local_mem_wr_data.eq(self.lambda_frame_reg),
+                    local_mem_wr_addr.eq(self.thread_base + (sp_latched << 2)),
+                    local_mem_wr_data.eq(frame_word),
                     local_mem_wr_en.eq(1),
                 ]
                 m.next = "STACK_WRITE_SP"
 
             with m.State("STACK_WRITE_SP"):
-                # Update SP: write sp + 2 back to Heap[0] = Mem[CR5.word1_location]
+                # STO -= 2: write STO-2 back to Heap[0] = Mem[CR5.word1_location].
                 m.d.comb += [
                     local_mem_wr_addr.eq(cr5_heap_view.word1_location),
-                    local_mem_wr_data.eq(sp_latched + 2),
+                    local_mem_wr_data.eq(sp_latched - 2),
                     local_mem_wr_en.eq(1),
                 ]
                 m.next = "COMPLETE"

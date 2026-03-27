@@ -1,13 +1,19 @@
 """
 Focused simulation test for ChurchCall stack push states.
 
-Scenarios:
-  1. Normal push  — sp+2 well within limit → correct frame writes + SP update
-  2. Boundary     — sp+2 == limit exactly  → should succeed
-  3. Overflow     — sp+2 > limit           → FaultType.STACK_OVERFLOW
+Spec (CM_LUMP_SPECIFICATION.md §"Zone ② — LIFO Stack"):
+  CALL frame (SZ=1 — 2 words):      STO -= 2 after push
+    STO+0:  Frame word: SZ[1] | return_PC[15] | prev_STO[16]
+    STO-1:  E-GT Word 0 of the callee
 
-Uses an event-driven helper loop that auto-responds to mload_start and
-mem_rd_en so the test is not fragile to exact tick counts.
+  Stack grows downward; STO stored at Heap[0] = Mem[CR5.word1_location].
+  Initial STO = 212 (empty-stack sentinel).
+  Overflow when STO < 83 (STO-2 would underflow below Zone ③ base at +81).
+
+Scenarios:
+  1. Normal push  — STO=212 (initial): frame word at STO*4, E-GT at (STO-1)*4, STO → 210
+  2. Boundary     — STO=83: STO-2=81 exactly at Zone ③ base — should succeed
+  3. Overflow     — STO=82: STO < 83 → FaultType.STACK_OVERFLOW
 """
 
 import sys
@@ -27,10 +33,10 @@ from hardware.layouts import GT_LAYOUT, CAP_REG_LAYOUT
 
 
 # Fixed test constants
-THREAD_BASE   = 0x4000   # u_call.thread_base (byte base of thread stack zone)
-SP_STORE_ADDR = 0x3000   # CR5.word1_location (where SP word-offset is stored)
-LAMBDA_FRAME  = 0x11223344   # u_call.lambda_frame_reg value
+THREAD_BASE   = 0x4000   # u_call.thread_base (byte base of thread lump)
+SP_STORE_ADDR = 0x3000   # CR5.word1_location (where STO word-offset is stored)
 CALLEE_EGT    = 0x40800001   # E-GT deposited into CR6 by Phase 1 mLoad
+CALLER_PC     = 42           # word offset of the CALL instruction (15-bit)
 
 
 def _build_gt(slot_id=0, gt_seq=0, gt_type=GT_TYPE_REAL, perms=0, b_flag=0):
@@ -66,7 +72,14 @@ def _build_lump(n_minus_6=0, cc=4, cw=8, magic=0x5):
     return h
 
 
-def _run_scenario(initial_sp, stack_limit, expect_overflow):
+def _expected_frame_word(sto, caller_pc):
+    """Compute expected frame word: SZ[1] | return_PC[15] | prev_STO[16]."""
+    return_pc = (caller_pc + 1) & 0x7FFF   # 15-bit
+    prev_sto  = sto & 0xFFFF
+    return (1 << 31) | (return_pc << 16) | prev_sto
+
+
+def _run_scenario(initial_sto, expect_overflow, caller_pc=CALLER_PC):
     dut = ChurchCall()
     errors = []
 
@@ -84,8 +97,7 @@ def _run_scenario(initial_sp, stack_limit, expect_overflow):
 
     def process():
         # ── static inputs ──────────────────────────────────────────────────────
-        yield dut.stack_limit.eq(stack_limit)
-        yield dut.lambda_frame_reg.eq(LAMBDA_FRAME)
+        yield dut.caller_pc.eq(caller_pc)
         yield dut.thread_base.eq(THREAD_BASE)
         yield dut.cr5_heap.eq(cr5_cap)
         yield dut.cr15_namespace.eq(ns_cap)
@@ -106,10 +118,9 @@ def _run_scenario(initial_sp, stack_limit, expect_overflow):
         yield dut.call_start.eq(0)
 
         # ── event-driven loop ──────────────────────────────────────────────────
-        # Track simulation state to serve correct responses.
         phase1_done = False
         phase2_done = False
-        mload_ack_pending = False   # True after mload_start seen, pulse done next cycle
+        mload_ack_pending = False
         lump_served = False
 
         MAX_TICKS = 120
@@ -134,39 +145,32 @@ def _run_scenario(initial_sp, stack_limit, expect_overflow):
                 yield dut.mload_done.eq(0)
                 mload_ack_pending = False
                 if not phase1_done:
-                    # PHASE1 just completed — next cycle is PHASE1_DONE which
-                    # combinatorially reads CR6; supply the callee E-GT there.
                     yield dut.cr_rd_data.eq(cr6_cap)
                     phase1_done = True
                 else:
-                    # PHASE2 just completed — SET_M_READ will read CR14.
                     yield dut.cr_rd_data.eq(code_cap)
                     phase2_done = True
 
             if ml_start:
-                # Acknowledge mLoad one cycle later
                 yield dut.mload_done.eq(1)
                 mload_ack_pending = True
 
             # ── auto-respond to memory reads ──────────────────────────────────
             if rd_en and not lump_served and rd_addr != SP_STORE_ADDR:
-                # FETCH_LUMP read (not the SP read)
                 yield dut.mem_rd_data.eq(lump_hdr)
                 yield dut.mem_rd_valid.eq(1)
                 lump_served = True
             elif rd_en and rd_addr == SP_STORE_ADDR:
-                # STACK_READ_SP read
-                yield dut.mem_rd_data.eq(initial_sp)
+                yield dut.mem_rd_data.eq(initial_sto)
                 yield dut.mem_rd_valid.eq(1)
             else:
                 yield dut.mem_rd_valid.eq(0)
 
             if comp or fault:
-                # Verify outcomes
                 if expect_overflow:
                     if not fault:
                         errors.append(
-                            f"Expected STACK_OVERFLOW fault, got comp=1 with no fault"
+                            "Expected STACK_OVERFLOW fault, got comp=1 with no fault"
                         )
                     elif ftype != FaultType.STACK_OVERFLOW:
                         errors.append(
@@ -189,8 +193,7 @@ def _run_scenario(initial_sp, stack_limit, expect_overflow):
 
     # ── verify write sequence for non-overflow cases ───────────────────────────
     if not expect_overflow:
-        # Filter to only the three stack writes (last 3 entries).
-        # Other writes go to CR registers (addr 0..15), so filter by addr > 15.
+        # Filter to only stack/memory writes (addr > 15 filters out CR register writes).
         stack_writes = [(a, d) for a, d in wr_ops if a > 15]
 
         if len(stack_writes) < 3:
@@ -198,49 +201,57 @@ def _run_scenario(initial_sp, stack_limit, expect_overflow):
                 f"Expected ≥3 stack memory writes, got {len(stack_writes)}: {stack_writes}"
             )
 
-        # Frame word 0: callee E-GT at thread_base + sp*4
-        exp0_addr = THREAD_BASE + initial_sp * 4
+        # Stack write order: STACK_WRITE_EGT fires first, STACK_WRITE_FRAME second,
+        # STACK_WRITE_SP third.
+
+        # Write 0: E-GT at thread_base + (STO-1)*4  (spec: STO-1)
+        exp_egt_addr = THREAD_BASE + (initial_sto - 1) * 4
         a0, d0 = stack_writes[0]
-        assert a0 == exp0_addr, (
-            f"STACK_WRITE_EGT addr: expected 0x{exp0_addr:08x}, got 0x{a0:08x}"
+        assert a0 == exp_egt_addr, (
+            f"STACK_WRITE_EGT addr: expected 0x{exp_egt_addr:08x} (thread_base+(STO-1)*4),"
+            f" got 0x{a0:08x}"
         )
         assert d0 == CALLEE_EGT, (
             f"STACK_WRITE_EGT data: expected 0x{CALLEE_EGT:08x}, got 0x{d0:08x}"
         )
 
-        # Frame word 1: LAMBDA frame reg at thread_base + (sp+1)*4
-        exp1_addr = THREAD_BASE + (initial_sp + 1) * 4
+        # Write 1: frame word at thread_base + STO*4  (spec: STO+0)
+        exp_fw_addr = THREAD_BASE + initial_sto * 4
+        exp_fw_data = _expected_frame_word(initial_sto, caller_pc)
         a1, d1 = stack_writes[1]
-        assert a1 == exp1_addr, (
-            f"STACK_WRITE_FRAME addr: expected 0x{exp1_addr:08x}, got 0x{a1:08x}"
+        assert a1 == exp_fw_addr, (
+            f"STACK_WRITE_FRAME addr: expected 0x{exp_fw_addr:08x} (thread_base+STO*4),"
+            f" got 0x{a1:08x}"
         )
-        assert d1 == LAMBDA_FRAME, (
-            f"STACK_WRITE_FRAME data: expected 0x{LAMBDA_FRAME:08x}, got 0x{d1:08x}"
+        assert d1 == exp_fw_data, (
+            f"STACK_WRITE_FRAME data: expected 0x{exp_fw_data:08x}"
+            f" (SZ=1|return_PC={caller_pc+1}|prev_STO={initial_sto}),"
+            f" got 0x{d1:08x}"
         )
 
-        # SP update: sp+2 written back to SP_STORE_ADDR
+        # Write 2: STO-2 written back to SP_STORE_ADDR
         a2, d2 = stack_writes[2]
         assert a2 == SP_STORE_ADDR, (
             f"STACK_WRITE_SP addr: expected 0x{SP_STORE_ADDR:08x}, got 0x{a2:08x}"
         )
-        assert d2 == initial_sp + 2, (
-            f"STACK_WRITE_SP data: expected {initial_sp + 2}, got {d2}"
+        assert d2 == initial_sto - 2, (
+            f"STACK_WRITE_SP data: expected STO-2={initial_sto - 2}, got {d2}"
         )
 
 
 def test_normal_push():
-    """SP=10, limit=256: frame at correct addresses, SP incremented by 2."""
-    _run_scenario(initial_sp=10, stack_limit=256, expect_overflow=False)
+    """STO=212 (initial empty-stack value): full frame push, STO decrements to 210."""
+    _run_scenario(initial_sto=212, expect_overflow=False)
 
 
 def test_boundary_push():
-    """SP=254, limit=256: sp+2==limit is valid (condition is strictly >)."""
-    _run_scenario(initial_sp=254, stack_limit=256, expect_overflow=False)
+    """STO=83: STO-2=81 exactly at Zone ③ base — should succeed (not overflow)."""
+    _run_scenario(initial_sto=83, expect_overflow=False)
 
 
 def test_overflow():
-    """SP=255, limit=256: sp+2=257>256 => STACK_OVERFLOW fault."""
-    _run_scenario(initial_sp=255, stack_limit=256, expect_overflow=True)
+    """STO=82: 82 < 83 → STACK_OVERFLOW fault (STO-2 would hit 80, below Zone ③)."""
+    _run_scenario(initial_sto=82, expect_overflow=True)
 
 
 if __name__ == "__main__":
