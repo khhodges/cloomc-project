@@ -144,6 +144,13 @@ ${this._memMap(null)}
 <tr><td>clistCount (bits 25\u201317)</td><td>Number of heap words reserved</td></tr>
 <tr><td>limit (bits 16\u20130)</td><td>Total lump word count \u2212 1</td></tr>
 </table>
+<div class="sr-key-concept"><div class="sr-concept-title">How Is the Heap Limit Enforced? \u2014 CR5</div>
+<p><strong>CR5</strong> is the Heap Golden Token. It is installed by CHANGE each time this thread is resumed. Its two key fields set the hardware boundary:</p>
+<table class="sr-table"><tr><th>CR5 field</th><th>Value</th><th>Effect</th></tr>
+<tr><td>word1_location</td><td>lumpBase + 17\u00d74 (byte addr)</td><td>Heap base \u2014 first valid byte of Zone \u2463</td></tr>
+<tr><td>limit_offset</td><td>heapWords \u2212 1</td><td>Inclusive word count; last valid index from base</td></tr>
+</table>
+<p>Every <code>DREAD</code> and <code>DWRITE</code> instruction that uses CR5 runs a <strong>TPERM bounds check</strong> before touching memory: <code>offset \u2264 CR5.limit_offset</code>. A write beyond word <code>17+heapWords\u22121</code> faults immediately \u2014 the heap can never silently overflow into freespace or the stack. The IDE sets <code>heapWords</code> (via the NS <code>clistCount</code> field); CHANGE loads the correct CR5 on every resume; the hardware enforces the ceiling on every access.</p></div>
 <div class="sr-key-concept"><div class="sr-concept-title">Why Fixed at Design Time?</div>
 <p>The IDE declares heap size as part of the thread\u2019s capability contract. A thread cannot silently consume unbounded memory \u2014 it must declare its maximum heap at upload time, and Navana enforces that limit at allocation. This makes memory usage auditable before the program runs.</p></div>
 <div class="sr-key-concept"><div class="sr-concept-title">Object Garbage Collection</div>
