@@ -867,7 +867,7 @@ words in this zone are zero.
 
 At runtime, Heap objects above heap base and Stack frames below `sp_max`
 both consume words from this zone. The sum of live Heap allocation and live
-Stack depth must not exceed `sp_max − 17 − heapWords` words (example: 163).
+Stack depth must not exceed `sp_max − 17 − heapWords + 1` words (example: 163).
 
 This is the only zone in any Church Machine lump that is dynamically
 variable at runtime. Function abstraction freespace is fixed at compile
