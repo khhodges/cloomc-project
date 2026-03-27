@@ -86,6 +86,26 @@ ${this._memMap(null)}
 <p>Zone \u2463 (Heap) is <strong>not individually scanned</strong> by the hardware GC. The G-bit mark-and-sweep operates at the <em>Thread object</em> level: when the system GC marks the Thread GT as reachable, the <strong>entire lump</strong> \u2014 all five zones \u2014 is considered live and left untouched. If the Thread GT becomes unreachable, the whole lump is reclaimed at once. All heap memory management within Zone \u2463 \u2014 allocation, compaction, and freeing \u2014 is a <strong>software concern</strong> left to the thread\u2019s own code.</p></div>`
             },
             {
+                title: 'Header[0] \u2014 Thread Lump Bit Fields',
+                type: 'header',
+                content: `${this._headerRef()}
+<p>Word 0 of every lump is a <strong>32-bit header word</strong>. For Thread lumps (<code>typ=10</code>) the five packed fields encode the lump\u2019s geometry and the IDE\u2019s resource allocation. Hover any field box above to read its bit range and note.</p>
+<table class="sr-table">
+<tr><th>Field</th><th>Bits</th><th>Width</th><th>Thread value</th><th>Meaning</th></tr>
+<tr><td><code style="color:#888">magic</code></td><td>[31:27]</td><td>5&nbsp;b</td><td><code>0x1F</code></td><td>Trap-on-execute guard \u2014 executing word&nbsp;0 always faults</td></tr>
+<tr><td><code style="color:#f09040">n\u22126</code></td><td>[26:23]</td><td>4&nbsp;b</td><td>IDE</td><td><code>lumpSize = 2^(val+6)</code>; e.g. val=2 \u2192 2^8 = 256 words</td></tr>
+<tr><td><code style="color:#60b8f0">sw</code></td><td>[22:10]</td><td>13&nbsp;b</td><td>IDE</td><td><strong>Stack words</strong> \u2014 <code>cw</code> field reinterpreted for typ=10; max CALL frames&nbsp;= sw\u00f72</td></tr>
+<tr><td><code style="color:#888">typ</code></td><td>[9:8]</td><td>2&nbsp;b</td><td><code>10</code></td><td>clist-only \u2014 identifies this lump as a Thread (no executable code)</td></tr>
+<tr><td><code style="color:#60d080">cc</code></td><td>[7:0]</td><td>8&nbsp;b</td><td>IDE</td><td><strong>heapWords</strong> \u2014 IDE-set max heap words; caps zone always 12 words (architecture-fixed)</td></tr>
+</table>
+<div class="sr-key-concept"><div class="sr-concept-title">Encoding Formula</div>
+<p><code>(0x1F &lt;&lt; 27) | (n_minus_6 &lt;&lt; 23) | (sw &lt;&lt; 10) | (0b10 &lt;&lt; 8) | heapWords</code></p>
+<p>Example \u2014 256-word thread, sw=32 stack words, heapWords=64:</p>
+<p><code style="color:#60d080;font-size:1rem;">0xF900_8240</code>&nbsp;&nbsp;(magic=0x1F, n\u22126=2, sw=32, typ=10, cc=64)</p></div>
+<div class="sr-key-concept"><div class="sr-concept-title">Why Reinterpret <code>cw</code> and <code>cc</code>?</div>
+<p>A Thread carries <em>no executable code</em>, so the 13-bit <code>cw</code> (code-word count) field is otherwise wasted. The hardware and Mint reinterpret it as <code>sw</code> (stack words) when <code>typ=10</code>. Likewise, the 8-bit <code>cc</code> (c-list count) is repurposed as <code>heapWords</code> because the Thread caps zone is <strong>always exactly 12 words</strong> (CR0\u2013CR11, architecture-fixed) \u2014 it never needs to be stored. Both repurposings are lossless: no information is discarded, only reused.</p></div>`,
+            },
+            {
                 title: '\u2460 Capabilities \u2014 GT Zone for CR0\u2013CR11',
                 type: 'capabilities',
                 content: `${this._memMap('cap')}
