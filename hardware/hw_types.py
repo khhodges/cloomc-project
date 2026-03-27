@@ -167,6 +167,7 @@ class FaultType(IntEnum):
     DOMAIN_PURITY = 0xD
     BIND          = 0xE
     F_BIT         = 0xF
+    STACK_OVERFLOW = 0x10   # CALL stack depth exceeded IDE-defined limit
 
 
 class BootState(IntEnum):

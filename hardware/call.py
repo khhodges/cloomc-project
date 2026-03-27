@@ -14,7 +14,7 @@ class ChurchCall(Elaboratable):
         self.call_busy = Signal()
         self.call_complete = Signal()
         self.call_fault = Signal()
-        self.fault_type = Signal(4)
+        self.fault_type = Signal(5)      # 5 bits: FaultType 0x0–0x10
 
         self.cr_rd_addr = Signal(4)
         self.cr_rd_data = Signal(CAP_REG_LAYOUT)
@@ -37,17 +37,35 @@ class ChurchCall(Elaboratable):
         self.nia_set = Signal()
         self.nia_value = Signal(32)
 
-        # Direct memory read for NS lump header fetch (post Phase 2)
+        # Direct memory read (NS lump header fetch + stack SP read)
         self.mem_rd_addr = Signal(32)
         self.mem_rd_en = Signal()
         self.mem_rd_data = Signal(32)
         self.mem_rd_valid = Signal()
+
+        # Direct memory write (stack frame push)
+        self.mem_wr_addr = Signal(32)
+        self.mem_wr_data = Signal(32)
+        self.mem_wr_en = Signal()
 
         # CR15 namespace for computing NS entry address of callee
         self.cr15_namespace = Signal(CAP_REG_LAYOUT)
 
         # CR14 code cap for NIA base (populated after Phase 2 mload)
         self.cr14_code = Signal(CAP_REG_LAYOUT)
+
+        # CR5 heap capability — live view; word1_location is the heap base address
+        # (SP is stored at Heap[0] = Mem[CR5.word1_location])
+        self.cr5_heap = Signal(CAP_REG_LAYOUT)
+
+        # LAMBDA hidden hardware register — holds the caller's return frame word
+        # TODO: exact bit encoding of frame word (NIA offset + machine indicators)
+        #       is not yet fully specified; this is a placeholder until confirmed.
+        self.lambda_frame_reg = Signal(32)
+
+        # Thread base byte address and IDE-defined stack word limit
+        self.thread_base  = Signal(32)
+        self.stack_limit  = Signal(16)
 
     def elaborate(self, platform):
         m = Module()
@@ -60,7 +78,7 @@ class ChurchCall(Elaboratable):
         src_reg_latched = Signal(CAP_REG_LAYOUT)
         mask_latched = Signal(16)
         fault_latched = Signal()
-        fault_type_latched = Signal(4)
+        fault_type_latched = Signal(5)      # 5 bits to cover FaultType.STACK_OVERFLOW=0x10
         sub_start_reg = Signal()
         sub_done_latched = Signal()
         sub_fault_latched = Signal()
@@ -69,6 +87,14 @@ class ChurchCall(Elaboratable):
         local_cr_wr_en = Signal()
         local_cr_wr_addr = Signal(4)
         local_cr_wr_data = Signal(CAP_REG_LAYOUT)
+
+        local_mem_wr_addr = Signal(32)
+        local_mem_wr_data = Signal(32)
+        local_mem_wr_en = Signal()
+
+        sp_latched = Signal(32)    # current stack pointer (word offset) read from Heap[0]
+
+        cr5_heap_view = View(CAP_REG_LAYOUT, self.cr5_heap)
 
         b_idx = Signal(4)          # 4 bits: counts 0–11 for b-flag sweep
         b_cr_data = Signal(CAP_REG_LAYOUT)
@@ -113,6 +139,9 @@ class ChurchCall(Elaboratable):
             self.cr_wr_data.eq(local_cr_wr_data),
             self.cr_wr_en.eq(local_cr_wr_en),
             self.cr_rd_addr.eq(local_cr_rd_addr),
+            self.mem_wr_addr.eq(local_mem_wr_addr),
+            self.mem_wr_data.eq(local_mem_wr_data),
+            self.mem_wr_en.eq(local_mem_wr_en),
         ]
 
         # NS lump header fetch
@@ -374,7 +403,7 @@ class ChurchCall(Elaboratable):
 
             with m.State("NULL_WRITE_CHECK"):
                 with m.If(n_idx > 11):
-                    m.next = "COMPLETE"
+                    m.next = "STACK_READ_SP"
                 with m.Elif(mask_latched.bit_select(n_idx, 1)):
                     m.d.comb += [
                         local_cr_wr_en.eq(1),
@@ -384,6 +413,59 @@ class ChurchCall(Elaboratable):
                     m.d.sync += n_idx.eq(n_idx + 1)
                 with m.Else():
                     m.d.sync += n_idx.eq(n_idx + 1)
+
+            with m.State("STACK_READ_SP"):
+                # Read the stack pointer from Heap[0] = Mem[CR5.word1_location]
+                # SP is a word offset; the stack grows upward (SP+2 per CALL frame)
+                m.d.comb += [
+                    self.mem_rd_addr.eq(cr5_heap_view.word1_location),
+                    self.mem_rd_en.eq(1),
+                ]
+                with m.If(self.mem_rd_valid):
+                    m.d.sync += sp_latched.eq(self.mem_rd_data)
+                    m.next = "STACK_CHECK"
+
+            with m.State("STACK_CHECK"):
+                # Overflow: sp + 2 > stack_limit means no room for the 2-word frame
+                with m.If((sp_latched + 2) > self.stack_limit):
+                    m.d.sync += [
+                        fault_latched.eq(1),
+                        fault_type_latched.eq(FaultType.STACK_OVERFLOW),
+                    ]
+                    m.next = "FAULT"
+                with m.Else():
+                    m.next = "STACK_WRITE_EGT"
+
+            with m.State("STACK_WRITE_EGT"):
+                # Push word 0 of frame: raw E-GT of callee (32-bit GT word from src CR)
+                # Byte address = thread_base + sp * 4
+                m.d.comb += [
+                    local_mem_wr_addr.eq(self.thread_base + (sp_latched << 2)),
+                    local_mem_wr_data.eq(src_reg_latched.as_value()[:32]),   # raw 32-bit GT word
+                    local_mem_wr_en.eq(1),
+                ]
+                m.next = "STACK_WRITE_FRAME"
+
+            with m.State("STACK_WRITE_FRAME"):
+                # Push word 1 of frame: LAMBDA hidden register (caller return frame word)
+                # TODO: exact bit encoding of lambda_frame_reg (NIA offset + machine
+                #       indicators) is not yet fully specified — placeholder until confirmed
+                # Byte address = thread_base + (sp + 1) * 4
+                m.d.comb += [
+                    local_mem_wr_addr.eq(self.thread_base + ((sp_latched + 1) << 2)),
+                    local_mem_wr_data.eq(self.lambda_frame_reg),
+                    local_mem_wr_en.eq(1),
+                ]
+                m.next = "STACK_WRITE_SP"
+
+            with m.State("STACK_WRITE_SP"):
+                # Update SP: write sp + 2 back to Heap[0] = Mem[CR5.word1_location]
+                m.d.comb += [
+                    local_mem_wr_addr.eq(cr5_heap_view.word1_location),
+                    local_mem_wr_data.eq(sp_latched + 2),
+                    local_mem_wr_en.eq(1),
+                ]
+                m.next = "COMPLETE"
 
             with m.State("COMPLETE"):
                 m.next = "IDLE"
