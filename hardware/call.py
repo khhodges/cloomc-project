@@ -96,6 +96,22 @@ class ChurchCall(Elaboratable):
         local_mem_wr_en = Signal()
 
         sp_latched = Signal(32)    # STO read from Heap[0] = Mem[CR5.word1_location]
+
+        # Thread header fields — latched by FETCH_THREAD_HDR from thread_base+0
+        thr_sw_reg  = Signal(13)   # stack words (cw field reinterpreted for typ=10)
+        thr_cc_reg  = Signal(8)    # cap-list slot count (always 12 for Thread)
+        thr_n6_reg  = Signal(4)    # n-6 field from thread header
+        thr_lump_sz = Signal(15)   # 1 << (thr_n6_reg + 6), latched in FETCH_THREAD_HDR
+
+        # sp_max = thr_lump_sz − thr_cc_reg − 1      (top of Stack zone, initial STO)
+        # sp_min = thr_lump_sz − thr_cc_reg − sw + 2 (CALL needs 2 words: STO >= sp_min)
+        sp_max = Signal(15)
+        sp_min = Signal(15)
+        m.d.comb += [
+            sp_max.eq(thr_lump_sz - thr_cc_reg - 1),
+            sp_min.eq(thr_lump_sz - thr_cc_reg - thr_sw_reg + 2),
+        ]
+
         # Callee E-GT: the raw 32-bit GT deposited into CR6 by Phase 1 mLoad.
         # Latched in PHASE1_DONE (while cr_rd_addr == CR6, combinatorial read-back).
         callee_egt_latched = Signal(32)
@@ -429,7 +445,7 @@ class ChurchCall(Elaboratable):
 
             with m.State("NULL_WRITE_CHECK"):
                 with m.If(n_idx > 11):
-                    m.next = "STACK_READ_SP"
+                    m.next = "FETCH_THREAD_HDR"
                 with m.Elif(mask_latched.bit_select(n_idx, 1)):
                     m.d.comb += [
                         local_cr_wr_en.eq(1),
@@ -439,6 +455,25 @@ class ChurchCall(Elaboratable):
                     m.d.sync += n_idx.eq(n_idx + 1)
                 with m.Else():
                     m.d.sync += n_idx.eq(n_idx + 1)
+
+            with m.State("FETCH_THREAD_HDR"):
+                # Read the Thread's own lump header word at thread_base+0.
+                # Extracts sw (cw field reinterpreted for typ=10), cc, n_minus_6,
+                # and derives thr_lump_sz = 1 << (n_minus_6 + 6).
+                # From these, sp_max and sp_min are derived combinatorially.
+                m.d.comb += [
+                    self.mem_rd_addr.eq(self.thread_base),
+                    self.mem_rd_en.eq(1),
+                ]
+                with m.If(self.mem_rd_valid):
+                    _thdr = View(LUMP_HEADER_LAYOUT, self.mem_rd_data)
+                    m.d.sync += [
+                        thr_sw_reg.eq(_thdr.cw),
+                        thr_cc_reg.eq(_thdr.cc),
+                        thr_n6_reg.eq(_thdr.n_minus_6),
+                        thr_lump_sz.eq(Const(1, 15) << (_thdr.n_minus_6 + 6)),
+                    ]
+                    m.next = "STACK_READ_SP"
 
             with m.State("STACK_READ_SP"):
                 # Read STO from Heap[0] = Mem[CR5.word1_location].
@@ -452,9 +487,18 @@ class ChurchCall(Elaboratable):
                     m.next = "STACK_CHECK"
 
             with m.State("STACK_CHECK"):
-                # Overflow: STO-2 would reach below Zone ③ base (offset +81).
-                # Hardware fires when STO < 83  (spec §"Zone ② — LIFO Stack").
-                with m.If(sp_latched < 83):
+                # Upper bound: STO > sp_max means the pointer is corrupted or
+                # the header is wrong (STO was never at most lumpSize−cc−1).
+                # Lower bound: STO < sp_min means a CALL would push the frame
+                # below the stack zone floor (lumpSize−cc−sw+2).
+                # Both bounds are IDE-set via the thread header sw field.
+                with m.If(sp_latched > sp_max):
+                    m.d.sync += [
+                        fault_latched.eq(1),
+                        fault_type_latched.eq(FaultType.STACK_CORRUPT),
+                    ]
+                    m.next = "FAULT"
+                with m.Elif(sp_latched < sp_min):
                     m.d.sync += [
                         fault_latched.eq(1),
                         fault_type_latched.eq(FaultType.STACK_OVERFLOW),

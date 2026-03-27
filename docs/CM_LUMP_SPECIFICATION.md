@@ -587,30 +587,36 @@ field `0x1F` as every other lump. The `typ` field is set to `10`
 ```
 31      27 26    23 22                10 9   8 7              0
 +──────────+────────+──────────────────+──────+────────────────+
-│ 0x1F [5] │ n-6[4] │     cw=0 [13]    │10[2] │   cc=12 [8]    │
+│ 0x1F [5] │ n-6[4] │      sw [13]     │10[2] │   cc=12 [8]    │
 +──────────+────────+──────────────────+──────+────────────────+
 ```
 
 | Field | Value | Meaning |
 |-------|-------|---------|
 | magic | 0x1F  | Traps if accidentally executed |
-| n-6   | n     | typically lumpSize = 2^(2+6) = 256 words |
-| cw    | 0     | No code section |
+| n-6   | IDE   | lumpSize = 2^(val+6); e.g. val=2 → 256 words |
+| sw    | IDE   | **Stack words** — `cw` field reinterpreted for `typ=10`; set by IDE at thread creation, validated by Mint |
 | typ   | 10    | clist-only — Mint does not scan for an executable code region |
-| cc    | 12    | C-list = CR0..CR11, 12 slots at the tail |
+| cc    | 12    | C-list = CR0..CR11, 12 slots at the tail (architecture-fixed for Thread) |
 
-**Encoding:**
+> **`cw` → `sw` reinterpretation:** For `typ=10` (Thread/clist-only) lumps,
+> the 13-bit `cw` (code word count) field is otherwise wasted — a Thread
+> carries no executable code. The hardware and Mint **reinterpret** it as `sw`
+> (stack words). The IDE sets `sw` at thread-creation time; Mint validates
+> that `sw > 0` and `17 + heapWords + sw ≤ lumpSize − cc`. All zone
+> boundaries are then derived from `sw` at CALL time — no literals in the FSM.
+
+**Encoding example** (256-word thread, 32 stack words):
 
 ```
-(0x1F << 27) | (2 << 23) | (0 << 10) | (0b10 << 8) | 12
-= 0xF900_020C
+(0x1F << 27) | (2 << 23) | (sw << 10) | (0b10 << 8) | 12
 
-Boot.Thread   (n=8, cw=0, cc=12, typ=10):  0xF900_020C
-Thread        (n=8, cw=0, cc=12, typ=10):  0xF900_020C
+Boot.Thread   (n-6=2, sw=32, cc=12, typ=10):  0xF908_020C
+Thread        (n-6=2, sw=32, cc=12, typ=10):  0xF908_020C
 ```
 
-All Thread lumps share the same header word — the Thread abstraction is not
-versioned in the header; version is carried in the NS slot `gt_seq` field.
+Thread lumps of the same geometry share the same header word. Version is
+carried in the NS slot `gt_seq` field, not the header.
 
 ---
 
@@ -620,49 +626,58 @@ Word 0 is the header. The five live-state zones occupy Words 1..255.
 Word addresses increase downward from the base.
 
 ```
-┌─────────────────────────────────────────────┐  ← base  (+0)   ← Word 0
-│  Header word  0xF900_020C                   │  [1 word]
-│  magic=0x1F · n-6=2 · cw=0 · typ=10 · cc=12│  never executed
-├─────────────────────────────────────────────┤  ← base  (+1)   ← DR base
-│  ⑤ Data Registers                           │  [16 words]
-│     DR0 … DR15 — 32-bit registers           │  Fixed zone
-├─────────────────────────────────────────────┤  ← base  (+17)  ← heap base
-│  ④ Heap  ↑                                  │  [64 words]
-│     Fixed size — set by IDE at design time  │
+┌─────────────────────────────────────────────┐  ← base  (+0)            ← Word 0
+│  Header  magic=0x1F · n-6 · sw · typ=10 · cc│  [1 word]  never executed
+├─────────────────────────────────────────────┤  ← base  (+1)            ← DR base
+│  ⑤ Data Registers                           │  [16 words]  fixed
+│     DR0 … DR15 — 32-bit registers           │
+├─────────────────────────────────────────────┤  ← base  (+17)           ← heap base
+│  ④ Heap  ↑                                  │  [heapWords]  IDE-defined
+│     Size = heapWords · NS clistCount field  │
 │     Objects allocated from heap base upward │
 │     Grows toward Freespace                  │
-├─────────────────────────────────────────────┤  ← base  (+81)  ← FREE base
-│  ③ Freespace                                │  [131 words]
-│     Unallocated — dynamic                   │
-│     Shrinks as Stack grows ↓                │
-│     Shrinks as Heap grows ↑                 │
+├─────────────────────────────────────────────┤  ← 17+heapWords →        ← FREE base
+│  ③ Freespace                                │  [dynamic]
+│     Unallocated — shrinks as Stack/Heap grow│
 │     Mint verifies all-zero at creation time │
-├─────────────────────────────────────────────┤  ← base  (+212) ← STO initial = 212 (empty)
-│  ② LIFO Stack  ↓                            │  [32 words]
-│     CALL: 2-word frame  [E-GT · frame word] │  STO -= 2  (first CALL: words 211–210)
-│     LAMBDA: 1-word frame  [frame word]      │  STO -= 1  (first LAMBDA: word 211)
-│     Grows downward; STO hidden register     │
-├─────────────────────────────────────────────┤  ← base  (+244) ← c-list base
-│  ① Capabilities                             │  [12 words]
-│     CR0 … CR11 — Golden Token words         │  (one 32-bit GT Word 0 per slot)
-│     Fixed zone — mLoad keeps this zone      │  = the c-list tail (cc=12)
-└─────────────────────────────────────────────┘  ← base  (+255)
+├─────────────────────────────────────────────┤  ← sp_max →              ← STO_initial (empty)
+│  ② LIFO Stack  ↓                            │  [sw words]  IDE-defined
+│     CALL: 2-word frame  [E-GT · frame word] │  STO -= 2
+│     LAMBDA: 1-word frame  [frame word]      │  STO -= 1
+│     Grows downward; STO hidden register     │  sp_max = lumpSize−cc−1
+│     sp_min = lumpSize−cc−sw+2               │  CALL fault if STO < sp_min
+├─────────────────────────────────────────────┤  ← lumpSize−cc →         ← c-list base
+│  ① Capabilities                             │  [cc=12 words]  fixed
+│     CR0 … CR11 — Golden Token words         │  one 32-bit GT Word 0 per slot
+│     Fixed zone — mLoad keeps this zone      │  = c-list tail (cc=12)
+└─────────────────────────────────────────────┘  ← lumpSize−1 →
 ```
 
-### Zone Constants (all offsets from Thread lump base)
+**Stack bound formulas** (all in word offsets from lump base, IDE-controlled via `sw`):
 
-| Zone | Identifier | Offset range | Words | Bytes | Notes |
-|------|-----------|--------------|-------|-------|-------|
-| Header        | HDR   | +0          | 1   | 4    | `0xF900_020C` — never executed |
-| ⑤ Data Regs    | DR    | +1 … +16   | 16  | 64   | DR0…DR15 (16 × 32-bit) |
-| ④ Heap         | HEAP  | +17 … +80  | 64  | 256  | Fixed size; grows upward |
-| ③ Freespace    | FREE  | +81 … +211 | 131 | 524  | Dynamic gap; collision zone |
-| ② LIFO Stack   | STACK | +212 … +243| 32  | 128  | Grows downward (STO decreases) |
-| ① Capabilities | CAPS  | +244 … +255| 12  | 48   | GT Word 0 × 12; c-list tail (cc=12) |
-| **Total**      |       | 0 … 255    | **256** | **1 024** | = 2^8 words |
+| Signal | Formula | Example (sw=32, cc=12, lumpSize=256) |
+|--------|---------|--------------------------------------|
+| `sp_max` | `lumpSize − cc − 1` | 243 (initial STO, empty stack) |
+| `stack_min` | `lumpSize − cc − sw` | 212 (bottom of Stack zone) |
+| `sp_min` | `lumpSize − cc − sw + 2` | 214 (CALL minimum: needs 2 slots) |
 
-All five zones fit in the standard 256-word layout. The Capabilities zone at
-the tail (words +244..+255) is identical to the lump c-list tail, eliminating
+The CALL FSM reads the thread header at `thread_base` to recover `sw`, `cc`,
+and `n_minus_6` before checking the stack pointer. Both bounds are enforced
+in hardware — no literals in the FSM.
+
+### Zone Constants (all offsets from Thread lump base, IDE-parameterised)
+
+| Zone | Identifier | Offset range | Words | Notes |
+|------|-----------|--------------|-------|-------|
+| Header        | HDR   | +0                               | 1        | Header word — never executed |
+| ⑤ Data Regs    | DR    | +1 … +16                        | 16       | DR0…DR15 (16 × 32-bit, fixed) |
+| ④ Heap         | HEAP  | +17 … +17+heapWords−1           | heapWords | IDE-defined; grows upward |
+| ③ Freespace    | FREE  | +17+heapWords … +sp_max          | dynamic  | Collision zone; all-zero at creation |
+| ② LIFO Stack   | STACK | +stack_min … +sp_max            | sw       | IDE-defined; grows downward |
+| ① Capabilities | CAPS  | +lumpSize−cc … +lumpSize−1      | cc=12    | GT Word 0 × 12; c-list tail |
+
+All five zones fit within `lumpSize` words. The Capabilities zone at
+the tail (last `cc` words) is identical to the lump c-list tail, eliminating
 the overlap from the previous layout.
 
 ---
@@ -800,11 +815,12 @@ heap objects without any further indirection.
 
 ## Zone ② — LIFO Stack
 
-32 words at offsets +212..+243. The stack grows downward (toward lower
-offsets). **STO** (Stack Top Offset, a hidden per-thread register) tracks
-the current top. `Mint.Thread` initialises STO = 212 at Thread creation
-(the empty-stack sentinel just below Freespace); the first word
-pushed lands at word 211 (STO -= 1 for LAMBDA, -= 2 for CALL).
+`sw` words at offsets `lumpSize−cc−sw .. lumpSize−cc−1` (IDE-defined).
+The stack grows downward (toward lower offsets). **STO** (Stack Top Offset,
+a hidden per-thread register) tracks the current top. `Mint.Thread`
+initialises STO = `lumpSize−cc−1` = **sp_max** at Thread creation (the
+empty-stack sentinel at the top of Zone ②); the first word pushed lands at
+`sp_max−1` (STO -= 1 for LAMBDA, -= 2 for CALL).
 
 ### Frame Formats
 
@@ -821,11 +837,22 @@ The RETURN instruction pops the frame, restores STO to the saved
 `prev_STO` value, and jumps to `return_PC` in the caller's code section.
 No kernel involvement.
 
-### Stack Depth
+### Stack Depth and Hardware Bounds
 
-With 32 words and 2-word CALL frames, the maximum call depth is **16
-nested calls** before the stack overflows into Freespace. The hardware
-detects overflow when STO would reach offset +81 (Zone ③ base).
+The maximum call depth is `sw ÷ 2` nested CALL frames (each frame is 2
+words). For `sw=32` that is **16 nested calls**.
+
+The CALL FSM reads the thread header to obtain `sw`, `cc`, and `n_minus_6`
+before each stack push and enforces two bounds in hardware:
+
+| Fault | Condition | Meaning |
+|-------|-----------|---------|
+| `STACK_OVERFLOW` | `STO < sp_min` | Pushing 2 words would land below Zone ② floor |
+| `STACK_CORRUPT`  | `STO > sp_max` | STO pointer is above the initial sentinel — corrupted |
+
+Both bounds are **IDE-defined** via `sw` in the thread header; neither is a
+literal constant in the FSM. Increasing `sw` widens the stack zone and
+relaxes the overflow threshold automatically.
 
 ---
 

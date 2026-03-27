@@ -7,13 +7,23 @@ Spec (CM_LUMP_SPECIFICATION.md §"Zone ② — LIFO Stack"):
     STO-1:  E-GT Word 0 of the callee
 
   Stack grows downward; STO stored at Heap[0] = Mem[CR5.word1_location].
-  Initial STO = 212 (empty-stack sentinel).
-  Overflow when STO < 83 (STO-2 would underflow below Zone ③ base at +81).
+  Thread header (at thread_base) encodes:
+    n_minus_6, sw (cw field for typ=10), cc
+  Derived bounds (hardware, IDE-set via sw):
+    lumpSize = 1 << (n_minus_6 + 6)
+    sp_max   = lumpSize - cc - 1        (initial STO, empty stack)
+    sp_min   = lumpSize - cc - sw + 2   (CALL needs 2 words: STO >= sp_min)
 
-Scenarios:
-  1. Normal push  — STO=212 (initial): frame word at STO*4, E-GT at (STO-1)*4, STO → 210
-  2. Boundary     — STO=83: STO-2=81 exactly at Zone ③ base — should succeed
-  3. Overflow     — STO=82: STO < 83 → FaultType.STACK_OVERFLOW
+  STACK_OVERFLOW  fault when STO < sp_min
+  STACK_CORRUPT   fault when STO > sp_max
+
+Scenarios (256-word thread: n_minus_6=2, sw=32, cc=12):
+  lumpSize=256, sp_max=243, sp_min=214
+
+  1. Normal push   — STO=243 (empty sentinel, sp_max): full frame push → STO=241
+  2. Boundary low  — STO=214 (= sp_min): STO-2=212 at stack_min — should succeed
+  3. Overflow      — STO=213 (< sp_min): STACK_OVERFLOW fault
+  4. Corrupt       — STO=244 (> sp_max): STACK_CORRUPT fault
 """
 
 import sys
@@ -31,24 +41,21 @@ from hardware.hw_types import (
 )
 from hardware.layouts import GT_LAYOUT, CAP_REG_LAYOUT
 
+THREAD_BASE   = 0x4000
+SP_STORE_ADDR = 0x3000
+CALLEE_EGT    = 0x40800001
+CALLER_PC     = 42
 
-# Fixed test constants
-THREAD_BASE   = 0x4000   # u_call.thread_base (byte base of thread lump)
-SP_STORE_ADDR = 0x3000   # CR5.word1_location (where STO word-offset is stored)
-CALLEE_EGT    = 0x40800001   # E-GT deposited into CR6 by Phase 1 mLoad
-CALLER_PC     = 42           # word offset of the CALL instruction (15-bit)
+THR_N6  = 2    # n_minus_6 for 256-word thread
+THR_SW  = 32   # stack words (cw field reinterpreted for typ=10)
+THR_CC  = 12   # cap-list slots (architecture-fixed for Thread)
+
+LUMP_SIZE = 1 << (THR_N6 + 6)          # 256
+SP_MAX    = LUMP_SIZE - THR_CC - 1     # 243
+SP_MIN    = LUMP_SIZE - THR_CC - THR_SW + 2  # 214
 
 
 def _build_gt(slot_id=0, gt_seq=0, gt_type=GT_TYPE_REAL, perms=0, b_flag=0):
-    """Build a 32-bit GT word matching GT_LAYOUT bit positions.
-
-    GT_LAYOUT (layouts.py):
-        slot_id  unsigned(16)  [15:0]
-        gt_seq   unsigned(7)   [22:16]
-        gt_type  unsigned(2)   [24:23]
-        perms    unsigned(6)   [30:25]
-        b_flag   unsigned(1)   [31]
-    """
     gt  = (slot_id & 0xFFFF)
     gt |= (gt_seq  & 0x7F) << 16
     gt |= (gt_type & 0x03) << 23
@@ -58,12 +65,11 @@ def _build_gt(slot_id=0, gt_seq=0, gt_type=GT_TYPE_REAL, perms=0, b_flag=0):
 
 
 def _build_cap(slot_id=0, perms=0, location=0):
-    """128-bit CAP_REG_LAYOUT value: word0_gt | word1_location<<32."""
     gt = _build_gt(slot_id=slot_id, perms=perms)
     return gt | (location << 32)
 
 
-def _build_lump(n_minus_6=0, cc=4, cw=8, magic=0x5):
+def _build_lump_hdr(n_minus_6=0, cc=4, cw=8, magic=0x5):
     """LUMP_HEADER_LAYOUT: cc[7:0] | typ[9:8] | cw[22:10] | n_minus_6[26:23] | magic[31:27]"""
     h  = (cc         & 0xFF)
     h |= (cw         & 0x1FFF) << 10
@@ -73,36 +79,41 @@ def _build_lump(n_minus_6=0, cc=4, cw=8, magic=0x5):
 
 
 def _expected_frame_word(sto, caller_pc):
-    """Compute expected frame word: SZ[1] | return_PC[15] | prev_STO[16]."""
-    return_pc = (caller_pc + 1) & 0x7FFF   # 15-bit
+    return_pc = (caller_pc + 1) & 0x7FFF
     prev_sto  = sto & 0xFFFF
     return (1 << 31) | (return_pc << 16) | prev_sto
 
 
-def _run_scenario(initial_sto, expect_overflow, caller_pc=CALLER_PC):
+def _run_scenario(initial_sto, expect_fault=None):
+    """
+    expect_fault: None (expect success), FaultType.STACK_OVERFLOW, or
+                  FaultType.STACK_CORRUPT.
+    """
     dut = ChurchCall()
     errors = []
 
-    # Stimuli chosen once per scenario
-    callee_cap  = _build_cap(slot_id=1, perms=PERM_MASK_E, location=0x2000)
-    cr6_cap     = CALLEE_EGT           # low 32 bits = E-GT, upper 96 bits = 0
-    ns_cap      = _build_cap(slot_id=0, perms=0, location=0x8000)
-    # code cap: location = NS_base + 4 (i.e. NS_base = 0x9000)
-    code_cap    = _build_cap(slot_id=2, perms=PERM_MASK_E, location=0x9004)
-    cr5_cap     = _build_cap(slot_id=5, perms=0, location=SP_STORE_ADDR)
-    lump_hdr    = _build_lump(n_minus_6=0, cc=4, cw=8)
+    callee_cap = _build_cap(slot_id=1, perms=PERM_MASK_E, location=0x2000)
+    cr6_cap    = CALLEE_EGT
+    ns_cap     = _build_cap(slot_id=0, perms=0, location=0x8000)
+    code_cap   = _build_cap(slot_id=2, perms=PERM_MASK_E, location=0x9004)
+    cr5_cap    = _build_cap(slot_id=5, perms=0, location=SP_STORE_ADDR)
 
-    # Collected memory write ops: list of (addr, data)
+    # Callee lump header (for FETCH_LUMP, callee ns entry word3):
+    callee_lump_hdr = _build_lump_hdr(n_minus_6=0, cc=4, cw=8, magic=0x5)
+
+    # Thread lump header (for FETCH_THREAD_HDR, at thread_base):
+    #   typ field not encoded by _build_lump_hdr but hardware only reads cw/cc/n_minus_6/magic
+    thr_hdr = _build_lump_hdr(n_minus_6=THR_N6, cc=THR_CC, cw=THR_SW, magic=0x1F)
+
     wr_ops = []
 
     def process():
-        # ── static inputs ──────────────────────────────────────────────────────
-        yield dut.caller_pc.eq(caller_pc)
+        yield dut.caller_pc.eq(CALLER_PC)
         yield dut.thread_base.eq(THREAD_BASE)
         yield dut.cr5_heap.eq(cr5_cap)
         yield dut.cr15_namespace.eq(ns_cap)
         yield dut.cr14_code.eq(code_cap)
-        yield dut.mask.eq(0)       # no null-GT writes
+        yield dut.mask.eq(0)
         yield dut.index.eq(0)
         yield dut.cr_src.eq(0)
         yield dut.mload_done.eq(0)
@@ -110,37 +121,33 @@ def _run_scenario(initial_sto, expect_overflow, caller_pc=CALLER_PC):
         yield dut.mload_fault_type.eq(0)
         yield dut.mem_rd_valid.eq(0)
         yield dut.mem_rd_data.eq(0)
-        yield dut.cr_rd_data.eq(callee_cap)   # READ_SRC latches this
+        yield dut.cr_rd_data.eq(callee_cap)
 
-        # ── start CALL ─────────────────────────────────────────────────────────
         yield dut.call_start.eq(1)
         yield Tick()
         yield dut.call_start.eq(0)
 
-        # ── event-driven loop ──────────────────────────────────────────────────
         phase1_done = False
-        phase2_done = False
         mload_ack_pending = False
-        lump_served = False
+        callee_lump_served = False
+        thread_hdr_served = False
 
-        MAX_TICKS = 120
+        MAX_TICKS = 140
         for t in range(MAX_TICKS):
-            busy   = yield dut.call_busy
-            comp   = yield dut.call_complete
-            fault  = yield dut.call_fault
-            ftype  = yield dut.fault_type
-            rd_en  = yield dut.mem_rd_en
-            rd_addr= yield dut.mem_rd_addr
-            wr_en  = yield dut.mem_wr_en
-            wr_addr= yield dut.mem_wr_addr
-            wr_data= yield dut.mem_wr_data
-            ml_start = yield dut.mload_start
+            busy      = yield dut.call_busy
+            comp      = yield dut.call_complete
+            fault     = yield dut.call_fault
+            ftype     = yield dut.fault_type
+            rd_en     = yield dut.mem_rd_en
+            rd_addr   = yield dut.mem_rd_addr
+            wr_en     = yield dut.mem_wr_en
+            wr_addr   = yield dut.mem_wr_addr
+            wr_data   = yield dut.mem_wr_data
+            ml_start  = yield dut.mload_start
 
-            # ── collect memory writes ──────────────────────────────────────────
             if wr_en:
                 wr_ops.append((wr_addr, wr_data))
 
-            # ── auto-respond to mLoad ──────────────────────────────────────────
             if mload_ack_pending:
                 yield dut.mload_done.eq(0)
                 mload_ack_pending = False
@@ -149,34 +156,47 @@ def _run_scenario(initial_sto, expect_overflow, caller_pc=CALLER_PC):
                     phase1_done = True
                 else:
                     yield dut.cr_rd_data.eq(code_cap)
-                    phase2_done = True
 
             if ml_start:
                 yield dut.mload_done.eq(1)
                 mload_ack_pending = True
 
-            # ── auto-respond to memory reads ──────────────────────────────────
-            if rd_en and not lump_served and rd_addr != SP_STORE_ADDR:
-                yield dut.mem_rd_data.eq(lump_hdr)
-                yield dut.mem_rd_valid.eq(1)
-                lump_served = True
-            elif rd_en and rd_addr == SP_STORE_ADDR:
-                yield dut.mem_rd_data.eq(initial_sto)
-                yield dut.mem_rd_valid.eq(1)
+            # Respond to memory reads by address:
+            if rd_en:
+                if rd_addr == THREAD_BASE and not thread_hdr_served:
+                    # FETCH_THREAD_HDR: thread's own lump header at word 0
+                    yield dut.mem_rd_data.eq(thr_hdr)
+                    yield dut.mem_rd_valid.eq(1)
+                    thread_hdr_served = True
+                elif not callee_lump_served and rd_addr != SP_STORE_ADDR and rd_addr != THREAD_BASE:
+                    # FETCH_LUMP: callee lump header from NS entry word3
+                    yield dut.mem_rd_data.eq(callee_lump_hdr)
+                    yield dut.mem_rd_valid.eq(1)
+                    callee_lump_served = True
+                elif rd_addr == SP_STORE_ADDR:
+                    # STACK_READ_SP: STO value
+                    yield dut.mem_rd_data.eq(initial_sto)
+                    yield dut.mem_rd_valid.eq(1)
+                else:
+                    yield dut.mem_rd_valid.eq(0)
             else:
                 yield dut.mem_rd_valid.eq(0)
 
             if comp or fault:
-                if expect_overflow:
+                if expect_fault is not None:
                     if not fault:
                         errors.append(
-                            "Expected STACK_OVERFLOW fault, got comp=1 with no fault"
+                            f"Expected fault {expect_fault!r}, got comp=1 with no fault"
                         )
-                    elif ftype != FaultType.STACK_OVERFLOW:
+                    elif ftype != expect_fault:
                         errors.append(
-                            f"Wrong fault type: expected STACK_OVERFLOW=0x{FaultType.STACK_OVERFLOW:x},"
+                            f"Wrong fault: expected {expect_fault.name}=0x{int(expect_fault):x},"
                             f" got 0x{ftype:x}"
                         )
+                elif fault:
+                    errors.append(
+                        f"Unexpected fault 0x{ftype:x} for STO={initial_sto}"
+                    )
                 break
 
             yield Tick()
@@ -191,9 +211,7 @@ def _run_scenario(initial_sto, expect_overflow, caller_pc=CALLER_PC):
     if errors:
         raise AssertionError("\n".join(errors))
 
-    # ── verify write sequence for non-overflow cases ───────────────────────────
-    if not expect_overflow:
-        # Filter to only stack/memory writes (addr > 15 filters out CR register writes).
+    if expect_fault is None:
         stack_writes = [(a, d) for a, d in wr_ops if a > 15]
 
         if len(stack_writes) < 3:
@@ -201,35 +219,25 @@ def _run_scenario(initial_sto, expect_overflow, caller_pc=CALLER_PC):
                 f"Expected ≥3 stack memory writes, got {len(stack_writes)}: {stack_writes}"
             )
 
-        # Stack write order: STACK_WRITE_EGT fires first, STACK_WRITE_FRAME second,
-        # STACK_WRITE_SP third.
-
-        # Write 0: E-GT at thread_base + (STO-1)*4  (spec: STO-1)
         exp_egt_addr = THREAD_BASE + (initial_sto - 1) * 4
         a0, d0 = stack_writes[0]
         assert a0 == exp_egt_addr, (
-            f"STACK_WRITE_EGT addr: expected 0x{exp_egt_addr:08x} (thread_base+(STO-1)*4),"
-            f" got 0x{a0:08x}"
+            f"STACK_WRITE_EGT addr: expected 0x{exp_egt_addr:08x}, got 0x{a0:08x}"
         )
         assert d0 == CALLEE_EGT, (
             f"STACK_WRITE_EGT data: expected 0x{CALLEE_EGT:08x}, got 0x{d0:08x}"
         )
 
-        # Write 1: frame word at thread_base + STO*4  (spec: STO+0)
         exp_fw_addr = THREAD_BASE + initial_sto * 4
-        exp_fw_data = _expected_frame_word(initial_sto, caller_pc)
+        exp_fw_data = _expected_frame_word(initial_sto, CALLER_PC)
         a1, d1 = stack_writes[1]
         assert a1 == exp_fw_addr, (
-            f"STACK_WRITE_FRAME addr: expected 0x{exp_fw_addr:08x} (thread_base+STO*4),"
-            f" got 0x{a1:08x}"
+            f"STACK_WRITE_FRAME addr: expected 0x{exp_fw_addr:08x}, got 0x{a1:08x}"
         )
         assert d1 == exp_fw_data, (
-            f"STACK_WRITE_FRAME data: expected 0x{exp_fw_data:08x}"
-            f" (SZ=1|return_PC={caller_pc+1}|prev_STO={initial_sto}),"
-            f" got 0x{d1:08x}"
+            f"STACK_WRITE_FRAME data: expected 0x{exp_fw_data:08x}, got 0x{d1:08x}"
         )
 
-        # Write 2: STO-2 written back to SP_STORE_ADDR
         a2, d2 = stack_writes[2]
         assert a2 == SP_STORE_ADDR, (
             f"STACK_WRITE_SP addr: expected 0x{SP_STORE_ADDR:08x}, got 0x{a2:08x}"
@@ -240,21 +248,27 @@ def _run_scenario(initial_sto, expect_overflow, caller_pc=CALLER_PC):
 
 
 def test_normal_push():
-    """STO=212 (initial empty-stack value): full frame push, STO decrements to 210."""
-    _run_scenario(initial_sto=212, expect_overflow=False)
+    """STO=sp_max=243 (empty sentinel): full frame push, STO → 241."""
+    _run_scenario(initial_sto=SP_MAX, expect_fault=None)
 
 
 def test_boundary_push():
-    """STO=83: STO-2=81 exactly at Zone ③ base — should succeed (not overflow)."""
-    _run_scenario(initial_sto=83, expect_overflow=False)
+    """STO=sp_min=214: STO-2=212 = stack_min, exactly at Zone ② floor — should succeed."""
+    _run_scenario(initial_sto=SP_MIN, expect_fault=None)
 
 
 def test_overflow():
-    """STO=82: 82 < 83 → STACK_OVERFLOW fault (STO-2 would hit 80, below Zone ③)."""
-    _run_scenario(initial_sto=82, expect_overflow=True)
+    """STO=213 (< sp_min=214): STACK_OVERFLOW — push would land below Zone ② floor."""
+    _run_scenario(initial_sto=SP_MIN - 1, expect_fault=FaultType.STACK_OVERFLOW)
+
+
+def test_corrupt():
+    """STO=244 (> sp_max=243): STACK_CORRUPT — STO above empty-stack sentinel."""
+    _run_scenario(initial_sto=SP_MAX + 1, expect_fault=FaultType.STACK_CORRUPT)
 
 
 if __name__ == "__main__":
     test_normal_push();   print("test_normal_push:   PASS")
     test_boundary_push(); print("test_boundary_push: PASS")
     test_overflow();      print("test_overflow:      PASS")
+    test_corrupt();       print("test_corrupt:       PASS")
