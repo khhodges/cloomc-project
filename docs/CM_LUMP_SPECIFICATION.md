@@ -787,8 +787,9 @@ hidden **STO** (Stack Top Offset) register tracking the current top.
 is the empty-stack sentinel; the first word pushed onto the stack occupies
 `sp_max−1` (cursor STO field decreases by 1 for LAMBDA, by 2 for CALL).
 CR12 is saved and restored on every CHANGE alongside STO, DR0–DR15, PC,
-and FLAGS (see §CHANGE Context Save below). CR13, CR14, and CR15 are not
-touched by CHANGE — they are system-wide registers shared across all threads.
+and FLAGS (see §CHANGE Context Save below). CR13 and CR15 are system-wide
+registers not touched by CHANGE. CR14 is also not touched by CHANGE — it is
+transient and re-derived by cLoad on the next CALL.
 
 The Zone ④ **Heap** (words 17..17+heapWords−1, example: 17..80) is entirely absent from the hardware
 save/restore path. It is private to its thread — no other thread holds a GT
