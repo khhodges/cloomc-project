@@ -414,7 +414,7 @@ class ChurchSimulator {
                 E: (permBits >>> 0) & 1,
             },
             type,
-            typeName: ['NULL','Real','Abstract','???'][type & 3],
+            typeName: ['NULL','Inform','Outform','Abstract'][type & 3],
         };
     }
 
@@ -1198,7 +1198,7 @@ class ChurchSimulator {
             const cr1GT = this.cr[1].word0;
             if (cr1GT !== 0) {
                 const cr1Parsed = this.parseGT(cr1GT);
-                if (cr1Parsed.type === 2) {
+                if (cr1Parsed.type === 3) {  // Type 3 = Abstract GT (PassKey)
                     const desc = `CALL CR${d.crDst} -> Navana.ValidatePassKey [PassKey in CR1]`;
                     this.output += desc + '\n';
 
