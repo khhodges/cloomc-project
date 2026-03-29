@@ -543,8 +543,11 @@
                 </div>
             </div>
             <div class="settings-section" style="margin:0 0 1rem 0;">
-                <div class="settings-section-title">Release Update</div>
-                <div class="settings-release-note">Locator rename completed, namespace docs refreshed, and the CLOOMC++ tutorials updated.</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                    <div class="settings-section-title">Release Update</div>
+                    <button class="btn btn-sm" onclick="showReleaseHistory()" data-tooltip="View all releases — See the complete release history and changelog">History</button>
+                </div>
+                <div class="settings-release-note" id="settingsReleaseNote">Consistency audits complete, simulator GT type mapping fixed, and hardware deployment plan created.</div>
                 <div class="settings-release-meta">Published: <span id="settingsReleasePublishedAt"></span></div>
             </div>
             <div class="settings-page-grid">

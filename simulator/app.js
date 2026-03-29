@@ -7490,7 +7490,7 @@ function openSettings() {
     renderProgressReport();
     renderFamilyIntroQR();
     const releaseEl = document.getElementById('settingsReleasePublishedAt');
-    if (releaseEl) releaseEl.textContent = '2026-03-24 00:00 UTC';
+    if (releaseEl) releaseEl.textContent = '2026-03-29 22:15 UTC';
     const anyPerm = hasAnyPopupDismissedPerm();
     const showAllCheck = document.getElementById('showAllPopupsCheck');
     if (showAllCheck) showAllCheck.checked = !anyPerm;
@@ -7554,6 +7554,39 @@ function closeSettings() {
     if (!hasAnyPopupDismissedPerm() && isWelcomeNeeded()) {
         showWelcomePopup();
     }
+}
+
+function showReleaseHistory() {
+    const history = [
+        { date: '2026-03-29 22:15 UTC', title: 'Consistency & Hardware Updates', changes: ['Consistency audits completed', 'Simulator GT type mapping fixed (Inform/Outform/Abstract)', 'Hardware deployment plan for Efinix Ti60 F225 created', 'Settings button order corrected', 'Lump size specification unified (64-word minimum)'] },
+        { date: '2026-03-24 00:00 UTC', title: 'Locator & Docs', changes: ['Locator rename completed', 'Namespace docs refreshed', 'CLOOMC++ tutorials updated'] }
+    ];
+    let html = '<div style="max-height:60vh;overflow-y:auto;font-size:0.85rem;">';
+    history.forEach(rel => {
+        html += `<div style="margin-bottom:1.5rem;border-bottom:1px solid #444;padding-bottom:0.5rem;">`;
+        html += `<div style="color:var(--church-gold);font-weight:bold;margin-bottom:0.3rem;">${rel.date}</div>`;
+        html += `<div style="color:#bbb;font-size:0.9rem;margin-bottom:0.5rem;">${rel.title}</div>`;
+        html += `<ul style="margin:0;padding-left:1.5rem;color:#999;">`;
+        rel.changes.forEach(change => {
+            html += `<li>${change}</li>`;
+        });
+        html += `</ul></div>`;
+    });
+    html += '</div>';
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const dialog = document.createElement('div');
+    dialog.className = 'modal-dialog';
+    dialog.style.maxWidth = '600px';
+    dialog.innerHTML = `
+        <div class="modal-title">Release History</div>
+        ${html}
+        <div class="modal-buttons" style="margin-top:1rem;">
+            <button class="btn btn-warning" onclick="this.parentElement.parentElement.parentElement.remove()">Close</button>
+        </div>
+    `;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
 }
 
 function saveSettings() {
