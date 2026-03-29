@@ -53,7 +53,17 @@ When a capability must be revoked (access withdrawn, resource deallocated, sessi
 The NULL type allows the GC scanner to unambiguously distinguish empty registers from valid capabilities. A register holding all zeros could be confused with an Inform GT pointing to namespace index 0 with version 0 and no permissions — but Type = 10 (NULL) is unambiguous. The scanner knows immediately the register does not reference any namespace entry.
 
 ### Abstract (Type = 11)
-An unforgeable constant value — a hardware-protected token encoding an immutable value such as a mathematical or physical constant (e.g., pi, e, c). Abstract GTs require no namespace dereference; the value is encoded directly in the token. They cannot be forged, modified, or confused with capabilities. The Constants abstraction provides Abstract GTs as its output.
+An unforgeable, self-describing token whose `word1_location` field holds a **hardware-routed Abstract Address** — a 32-bit value in the reserved I/O and network range. Abstract GTs require no namespace dereference and no NS slot; the address *is* the identity.
+
+Abstract GTs serve three roles in the architecture:
+
+1. **Immutable constants** — mathematical or physical constants (e.g., pi, e, c) encoded as Abstract GTs by the Constants abstraction. No namespace dereference; the value is fixed in the token.
+2. **SWITCH PassKeys** — `word1_location = 0xFFFFFFFF` (CR15) or `0xFFFFFFFE` (CR13). Hardware validates both the Abstract GT type and the exact sentinel before permitting SWITCH into a system register.
+3. **I/O and network capability tokens** — Abstract GTs whose `word1_location` falls in the IDE-owned Abstract Address Space (0xFE000000–0xFFFFFFFD). Hardware routes operations (R / W / E) to the appropriate I/O peripheral, local device, or remote tunnel. The **Home Base tunnel** (`word1_location = 0xFF000000`) is the root network gateway: all outbound connections to the IDE and cloud flow through it.
+
+Abstract GTs are provisioned exclusively by the IDE at boot — software cannot forge one with a reserved address. They cannot be modified or confused with capabilities that require namespace validation.
+
+See [Abstract GT I/O and Network Addressing](abstract-io-addressing.md) for the full Abstract Address Space layout and IDE provisioning protocol.
 
 ---
 

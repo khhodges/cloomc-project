@@ -157,6 +157,12 @@ SWITCH enforces two mandatory checks on the source register **CRs** before insta
    - Tgt = CR13 (IRQ Thread): sentinel = `0xFFFFFFFE` (all-1s − 1)
    - Tgt = CR15 (Namespace): sentinel = `0xFFFFFFFF` (all-1s)
 
-The sentinel values occupy the same reserved address range as I/O peripherals — a range no real RAM lump can occupy — so there is no ambiguity between a PassKey and a live capability. Presenting a CR13 PassKey to the CR15 target (or vice versa) is a sentinel mismatch and faults immediately.
+The sentinel values occupy the top of the 32-bit Abstract Address Space — a range no real RAM lump can occupy — so there is no ambiguity between a PassKey and a live capability. Presenting a CR13 PassKey to the CR15 target (or vice versa) is a sentinel mismatch and faults immediately.
 
 Only code that already holds the appropriate PassKey in an instruction-addressable register (CR0–CR7) can install it into a system register. This makes SWITCH a one-way privilege gate: without the right PassKey, no code can overwrite a live system register regardless of what other permissions it holds.
+
+### SWITCH PassKeys as Abstract GT I/O Tokens
+
+The two SWITCH PassKeys are the first two entries in the **Abstract Address Space** — the 32-bit `word1_location` range that the IDE owns for all hardware-routed I/O and remote network addressing. Abstract GTs whose `word1_location` falls in this reserved range are the general mechanism for I/O peripherals, encrypted tunnels, and remote services, with the Home Base tunnel (`0xFF000000`) as the primary network gateway.
+
+See [Abstract GT I/O and Network Addressing](abstract-io-addressing.md) for the full Abstract Address Space layout and IDE provisioning protocol.

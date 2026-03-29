@@ -243,6 +243,8 @@ ARM-style condition flags: N (negative), Z (zero), C (carry), V (overflow). Set 
 
 ### Unified Address Space
 
+The 16-bit physical address space is accessed through the GT gate via mLoad:
+
 ```
 0x0000 – 0xFCFF    General memory (code + data objects)
 0xFD00 – 0xFDFF    Namespace table (NS entries)
@@ -250,7 +252,25 @@ ARM-style condition flags: N (negative), Z (zero), C (carry), V (overflow). Set 
 0xFF00 – 0xFFFF    Machine registers (read-only inspection)
 ```
 
-All segments are accessed through the same GT gate via mLoad.
+### Abstract Address Space (32-bit word1_location)
+
+Abstract GTs (`gt_type = 11₂`) bypass the 16-bit physical map entirely. Their
+`word1_location` is a 32-bit **Abstract Address** — a hardware-routed sentinel in
+the IDE-owned reserved range. No real RAM lump can occupy these addresses.
+
+```
+0x00000000 – 0xFDFFFFFF    Real RAM — never an Abstract GT address
+0xFE000000 – 0xFEFFFFFF    Local hardware peripheral Abstract GTs (UART, GPIO, Timer…)
+0xFF000000                 Home Base tunnel — primary outbound network gateway
+0xFF000001 – 0xFF0000FE    IDE-allocated tunnel channels (named remote services)
+0xFF0000FF – 0xFFFEFFFF    Reserved for future IDE-defined Abstract resources
+0xFFFF0000 – 0xFFFFFFFD    Reserved for future system Abstract GTs
+0xFFFFFFFE                 SWITCH PassKey for CR13 (IRQ Thread)
+0xFFFFFFFF                 SWITCH PassKey for CR15 (Namespace)
+```
+
+See [Abstract GT I/O and Network Addressing](abstract-io-addressing.md) for the
+provisioning protocol and security model.
 
 ### Namespace Entries
 

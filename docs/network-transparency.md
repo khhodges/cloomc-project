@@ -3,6 +3,10 @@
 > **Status**: Architectural design document. The GT Type field (NULL, Inform, Outform, Abstract) exists in the simulator's 32-bit GT format. Tunnel messaging proof-of-concept exists (see [Tunnel Messaging Example](tunnel-messaging-example.md)). TRAP handling and full tunnel operations are not yet implemented in the simulator. This document specifies the planned design.
 >
 > See also: [GT Type Field and Domain Separation](gt-literals.md) for the Type field specification and the [LAMBDA Instruction Specification](lambda-instruction.md) for the lightweight code application mechanism.
+>
+> **Two complementary network mechanisms exist in this architecture:**
+> - **Outform GT network transparency** (this document) — application-level remote object access and RPC. An Outform GT's namespace entry encodes the remote URL; access goes through HTTPS or an encrypted point-to-point RPC tunnel. Managed by the NS table; revocable via version bump.
+> - **Abstract GT I/O and network addressing** ([Abstract GT I/O and Network Addressing](abstract-io-addressing.md)) — hardware-routed I/O and tunnel capability tokens provisioned by the IDE at boot. The **Home Base tunnel** (`word1_location = 0xFF000000`) is the root physical network connection that all Outform tunnels ultimately run over. No NS entry; revocable by nullifying the c-list slot.
 
 ## Overview
 
