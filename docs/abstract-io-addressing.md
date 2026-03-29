@@ -462,3 +462,96 @@ tokens and **Outform GTs** ([Network Transparency](network-transparency.md)) for
 actual remote object representation once a connection is established. The Abstract GT
 is the door key; the Outform GT is the object reference fetched through the door.
 Neither can be forged; neither can be used by code that was not given it.
+
+---
+
+## Guaranteed Crime-Free Business Services
+
+The capability architecture described in this document is not merely a technical
+improvement — it is the foundation for a new class of verifiably safe, focused
+business services. Because security is structural rather than policy-enforced, the
+guarantees it provides are architectural facts, not promises that can be violated by
+a sufficiently determined attacker.
+
+### Why "guaranteed" is the right word
+
+In conventional systems, security is enforced by layers of software that can
+themselves be compromised: antivirus, firewalls, content filters, age verification
+forms, jurisdiction checks. Every one of these is a policy layer running on a
+privileged substrate that an attacker can target. The result is that no conventional
+system can truly guarantee that its filtering cannot be bypassed.
+
+In the Church Machine architecture:
+- There is **no privileged substrate** for an attacker to capture.
+- There is **no ambient authority** for injected code to exploit.
+- Access to any service is a **GT** — unforgeable, hardware-enforced, provisioned
+  only at boot by the IDE. Code that was not given a GT for a service has no path
+  to it, regardless of what it does.
+
+This means service scoping is not a filter applied on top of access — it is the
+access. A user whose abstraction holds no GT for a service cannot reach it. This
+is as close to a structural guarantee as computing can provide.
+
+### Scoping by profession
+
+Each professional domain is a distinct set of GTs provisioned by the IDE into a
+professional abstraction. A medical professional's CTMM holds GTs for medical
+databases, clinical references, and regulated communication channels. A legal
+professional's CTMM holds GTs for court records, legal databases, and bar-accredited
+services. No code running inside a professional abstraction can reach services outside
+its provisioned GT set — not because those services are filtered, but because the
+abstraction was never given a GT for them.
+
+Professional scoping is therefore enforceable at the hardware level without any
+ongoing software policing.
+
+### Scoping by language
+
+Tunnel channel GTs (`0xFF000001–0xFF0000FE`) are allocated per service by the IDE.
+A language-specific service is simply a distinct tunnel channel GT. An abstraction
+provisioned for French-language services holds the French-service GT; it does not
+hold the English-service GT. The language boundary is a GT boundary — it requires
+no runtime translation layer, no content inspection, and no privileged filter that
+could be bypassed or confused.
+
+### Scoping by nationality and jurisdiction
+
+Jurisdictional compliance (data residency, legal authority, regulatory boundary) is
+enforced by provisioning jurisdiction-specific tunnel channels. A CTMM registered
+in one jurisdiction receives GTs for the services and data stores licensed in that
+jurisdiction. Cross-jurisdictional access requires a GT for the foreign service —
+which is provisioned (or withheld) by the IDE in accordance with the applicable
+legal framework. The hardware enforces what the IDE provisions; no software running
+on the CTMM can circumvent it.
+
+### Scoping by age group, including children
+
+Child safety in conventional systems depends on content filters: software that
+inspects traffic and blocks prohibited content. Filters can be bypassed, fooled by
+encoding tricks, or circumvented by VPNs. None of these attacks are possible in the
+Church Machine architecture.
+
+A child's CTMM is provisioned at boot with GTs only for age-appropriate services.
+There is no GT for adult content, no GT for unmoderated communication, no GT for
+gambling or financial services. No code running on the child's CTMM — including
+injected scripts, malicious links, or peer-to-peer messages — can obtain a GT it was
+never given. The child's abstraction has no path to prohibited services, structurally
+and permanently, for as long as the IDE controls provisioning.
+
+This is a qualitatively stronger guarantee than any filter-based child protection
+system: it does not inspect content after the fact — it prevents the capability to
+reach the content from ever existing.
+
+### Summary
+
+| Scoping dimension | Conventional mechanism | CTMM mechanism |
+|:------------------|:-----------------------|:---------------|
+| Profession | Role-based access control, policy enforcement | Profession-specific GT set provisioned at boot |
+| Language | Content negotiation, server-side localisation | Language-specific tunnel channel GT |
+| Nationality / jurisdiction | Geolocation, legal compliance software | Jurisdiction-specific GT set; hardware enforces what IDE provisions |
+| Age group / children | Content filters, age verification forms | Child GT set excludes prohibited services structurally; no filter to bypass |
+
+In each case, the scoping is a property of the GT structure — defined by the IDE,
+enforced by hardware, and inaccessible to any software running on the CTMM. This is
+what makes the service guarantee structural rather than policy-based, and what
+distinguishes the Church Machine from all conventional security architectures.
