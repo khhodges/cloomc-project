@@ -91,13 +91,23 @@ if (cr7Parsed.type === 1) {
 
 ---
 
-## Hardware Check Required
+## Hardware Type Validation Found
 
-Need to verify if **hardware/call.py** has the same type validation bug:
-- Does hardware allow types 1 and 2? (WRONG)
-- Or types 1 and 3? (CORRECT)
+**hardware/cload.py line 168** enforces:
+```python
+with m.If(e_gt_view.gt_type != GT_TYPE_INFORM):
+    m.d.sync += fault_type_reg.eq(FaultType.PERM_E)  # FAULT
+```
 
-**File**: hardware/call.py (likely around mLoad gate implementation)
+**This means CLOAD (code loading) ONLY accepts Inform (type 1)** — rejects Outform(2) and Abstract(3).
+
+### Issue
+- ✅ CLOAD correctly rejects non-Inform types for code loading
+- ❓ **BUT**: Does CALL instruction pre-validate GT types before invoking CLOAD?
+  - If CALL passes Abstract (type 3) to CLOAD directly → CLOAD will FAULT incorrectly
+  - **Need to verify**: Does CALL bypass CLOAD for Abstract GTs, or validate type first?
+
+**Files to check**: `hardware/call.py` (instruction decode path before CLOAD invocation)
 
 ---
 
