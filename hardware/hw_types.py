@@ -60,6 +60,19 @@ CRC16_POLY    = 0x1021
 CRC16_INIT    = 0xFFFF
 CRC_SEAL_MASK = (1 << SEAL_BITS) - 1
 
+# Reserved hardware sentinel addresses used in word1_location of SWITCH PassKeys.
+# These values occupy the I/O peripheral address space — a range no real RAM
+# lump base address can occupy — ensuring no ambiguity with live capabilities.
+#   0xFFFFFFFF  (all-1s)      →  PassKey for CR15 (Namespace)
+#   0xFFFFFFFE  (all-1s − 1)  →  PassKey for CR13 (IRQ Thread)
+SWITCH_PASSKEY_SENTINEL_CR15 = 0xFFFFFFFF
+SWITCH_PASSKEY_SENTINEL_CR13 = 0xFFFFFFFE
+
+# SWITCH Tgt field values — the 3-bit field maps to CR8 + Tgt.
+# Only these two are valid SWITCH targets; all others produce INVALID_OP.
+SWITCH_TGT_CR13 = 5   # 101₂  →  CR13  (IRQ Thread)
+SWITCH_TGT_CR15 = 7   # 111₂  →  CR15  (Namespace)
+
 
 class ChurchOpcode(IntEnum):
     LOAD        = 0b0000

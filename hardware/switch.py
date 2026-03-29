@@ -57,7 +57,28 @@ class ChurchSwitch(Elaboratable):
 
         src_view = View(CAP_REG_LAYOUT, src_reg_latched)
         src_gt = View(GT_LAYOUT, src_view.word0_gt)
-        src_has_l_perm = src_gt.perms[PERM_L]
+
+        # PassKey type check: CRs must be an Abstract GT (gt_type == 11₂).
+        src_is_abstract = Signal()
+        m.d.comb += src_is_abstract.eq(src_gt.gt_type == GT_TYPE_ABSTRACT)
+
+        # Sentinel address check: CRs.word1_location must equal the reserved
+        # hardware sentinel for the chosen target register.
+        expected_sentinel = Signal(32)
+        m.d.comb += expected_sentinel.eq(
+            Mux(self.target == SWITCH_TGT_CR13,
+                SWITCH_PASSKEY_SENTINEL_CR13,
+                SWITCH_PASSKEY_SENTINEL_CR15)
+        )
+
+        sentinel_ok = Signal()
+        m.d.comb += sentinel_ok.eq(src_view.word1_location == expected_sentinel)
+
+        # Target validity: only CR13 (Tgt=5) and CR15 (Tgt=7) are permitted.
+        target_valid = Signal()
+        m.d.comb += target_valid.eq(
+            (self.target == SWITCH_TGT_CR13) | (self.target == SWITCH_TGT_CR15)
+        )
 
         m.d.comb += [
             u_mload.sub_start.eq(sub_start),
@@ -90,12 +111,21 @@ class ChurchSwitch(Elaboratable):
             with m.State("IDLE"):
                 m.d.sync += [fault_latched.eq(0), fault_type_latched.eq(FaultType.NONE)]
                 with m.If(self.switch_start):
+                    m.next = "CHECK_TARGET"
+
+            with m.State("CHECK_TARGET"):
+                # Only CR13 (Tgt=5) and CR15 (Tgt=7) are valid SWITCH targets.
+                # All other Tgt values fault immediately with INVALID_OP.
+                with m.If(~target_valid):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.INVALID_OP)]
+                    m.next = "IDLE"
+                with m.Else():
                     m.next = "CHECK_SRC"
 
             with m.State("CHECK_SRC"):
                 m.d.comb += [local_cr_rd_en.eq(1), local_cr_rd_addr.eq(Cat(self.cr_src, Const(0, 1)))]
                 with m.If(~src_in_range):
-                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_L)]
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.INVALID_OP)]
                     m.next = "IDLE"
                 with m.Else():
                     m.next = "READ_SRC"
@@ -103,11 +133,23 @@ class ChurchSwitch(Elaboratable):
             with m.State("READ_SRC"):
                 m.d.comb += [local_cr_rd_en.eq(1), local_cr_rd_addr.eq(Cat(self.cr_src, Const(0, 1)))]
                 m.d.sync += src_reg_latched.eq(self.cr_rd_data)
-                m.next = "CHECK_PERM"
+                m.next = "CHECK_PASSKEY_TYPE"
 
-            with m.State("CHECK_PERM"):
-                with m.If(~src_has_l_perm):
-                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_L)]
+            with m.State("CHECK_PASSKEY_TYPE"):
+                # CRs must be an Abstract GT (gt_type == GT_TYPE_ABSTRACT == 11₂).
+                # Any Inform, Outform, or NULL capability faults here.
+                with m.If(~src_is_abstract):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.INVALID_OP)]
+                    m.next = "IDLE"
+                with m.Else():
+                    m.next = "CHECK_PASSKEY_SENTINEL"
+
+            with m.State("CHECK_PASSKEY_SENTINEL"):
+                # CRs.word1_location must equal the reserved hardware sentinel for
+                # the target register.  A mismatch (e.g. presenting a CR13 PassKey
+                # to the CR15 target) faults with INVALID_OP.
+                with m.If(~sentinel_ok):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.INVALID_OP)]
                     m.next = "IDLE"
                 with m.Else():
                     m.next = "START_SUB"

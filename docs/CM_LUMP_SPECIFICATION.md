@@ -1432,7 +1432,7 @@ already owns.
 
 | Property | Function Abstraction | Thread | Namespace LUMP |
 |----------|---------------------|--------|----------------|
-| **Purpose** | CALL & RETURN code unit (one abstraction, several methods) | Live execution context (one thread) · Full machine state save on suspension using CHANGE | SWITCH into CR12 · NS Address-space root + NS Table + lazy-load host |
+| **Purpose** | CALL & RETURN code unit (one abstraction, several methods) | Live execution context (one thread) · Full machine state save on suspension using CHANGE | SWITCH into CR15 · NS Address-space root + NS Table + lazy-load host |
 | **Word 0** | Header `0x1F` | Header `0x1F` | Header `0x1F` |
 | **`typ` field** | `00` — callable · Enter only | `10` — clist-only | `10` NS table directory only |
 | **`cw` field** | Code word count (≥ 0) | Always `0` | Always `0` |

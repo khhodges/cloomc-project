@@ -162,26 +162,32 @@ All Church instructions that access the namespace route through the **mLoad mast
 
 ---
 
-### 6. SWITCH — Copy Capability to System Register
+### 6. SWITCH — Install PassKey into System Register
 
-**Purpose**: Write a capability into one of the privileged registers CR12-CR15. This is the only instruction that can modify privileged registers, making it the privilege gate.
+**Purpose**: Write a PassKey capability into system register CR13 (IRQ Thread) or CR15 (Namespace root). This is the only instruction that can modify these system-wide registers, making it the privilege gate for namespace and interrupt management. CR12 (Thread Identity) and CR14 (transient code-view) cannot be SWITCH targets.
 
-**Validation Path**: Routes through mLoad — full validation with G-bit reset.
+**Validation Path**: Two mandatory hardware checks before the write; namespace access via mLoad with G-bit reset.
 
 **Operation**:
-1. Check M permission on the source capability → FAULT if not
-2. Determine the target privileged register from the 2-bit target field
-3. Copy the capability into the target privileged register
-4. Reset G=0 on accessed namespace entries
+1. Decode the 3-bit `Tgt` field; FAULT if Tgt is not CR13 (101₂) or CR15 (111₂)
+2. Check source register is CR0–CR7 (3-bit encoding); FAULT if out of range
+3. **PassKey type check** — CRs.word0_gt.gt_type must equal `11₂` (Abstract GT); FAULT if not
+4. **Sentinel address check** — CRs.word1_location must equal the reserved hardware sentinel for the chosen target; FAULT on mismatch:
+   - Tgt = CR13: sentinel = `0xFFFFFFFE` (all-1s − 1)
+   - Tgt = CR15: sentinel = `0xFFFFFFFF` (all-1s)
+5. Install CRs into the target system register via mLoad; reset G=0 on accessed namespace entries
 
 **Mnemonic**: `SWITCH CRs, target`
 
 | Aspect | Detail |
 |--------|--------|
-| **Permission Check** | M (Machine) on source CR |
-| **Target Field** | 2-bit: 0=CR12(fault), 1=CR13(interrupt), 2=CR14(code), 3=CR15(namespace) |
+| **Valid Targets** | CR13 (Tgt=101₂, IRQ Thread), CR15 (Tgt=111₂, Namespace) — all others FAULT |
+| **PassKey type** | CRs.word0_gt.gt_type must be Abstract (11₂); any other type → FAULT |
+| **Sentinel for CR13** | CRs.word1_location == `0xFFFFFFFE` (all-1s − 1) |
+| **Sentinel for CR15** | CRs.word1_location == `0xFFFFFFFF` (all-1s) |
+| **Sentinel mismatch** | CRs sentinel does not match chosen target → FAULT |
 | **G-bit Reset** | Yes — via mLoad on namespace access |
-| **Bounds Check** | Target must map to CR12-CR15 |
+| **Not writable by SWITCH** | CR12 (Thread Identity, managed by CHANGE), CR14 (transient cLoad output) |
 
 ---
 

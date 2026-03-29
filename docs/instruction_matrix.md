@@ -194,26 +194,35 @@ After boot completes:
 
 | I | Source | Example |
 |:--|:-------|:--------|
-| 0 | Register | `SWITCH CR2, CR9` - Copy GT from CR2 to CR9 |
-| 1 | C-List | `SWITCH CR6[5], CR15` - Lookup entry 5 in CR6's C-List, copy to CR15 |
+| 0 | Register | `SWITCH CR2, CR15` - Install PassKey in CR2 into CR15 (Namespace) |
+| 1 | C-List | `SWITCH CR6[5], CR15` - Lookup entry 5 in CR6's C-List, install to CR15 |
 
 ### Target Field Mapping
 
-| Target | Register | Purpose |
-|:-------|:---------|:--------|
-| 000 | CR8 | Thread identity (CHANGE always uses this) |
-| 001 | CR9 | Interrupt handler thread |
-| 010 | CR10 | Double fault recovery thread |
-| 011 | CR11 | Reserved (future virtual namespace) |
-| 100 | CR12 | Reserved (future virtual namespace) |
-| 101 | CR13 | Reserved (future virtual namespace) |
-| 110 | CR14 | Reserved (future virtual namespace) |
-| 111 | CR15 | Namespace root |
+Only **CR13** (Tgt=101₂) and **CR15** (Tgt=111₂) are valid SWITCH targets. All other values produce an INVALID_OP fault.
 
-### Permission Requirements
+| Tgt[2:0] | Register | SWITCH Validity | Notes |
+|:---------|:---------|:----------------|:------|
+| 000 | CR8 | FAULT — reserved | (CHANGE always targets CR8 implicitly) |
+| 001 | CR9 | FAULT — reserved | Reserved |
+| 010 | CR10 | FAULT — reserved | Reserved |
+| 011 | CR11 | FAULT — reserved | Reserved |
+| 100 | CR12 | FAULT — reserved | Thread Identity (managed by CHANGE only) |
+| 101 | CR13 | **Valid** — IRQ Thread | Required CRs.word1_location: `0xFFFFFFFE` |
+| 110 | CR14 | FAULT — reserved | Transient (re-derived by cLoad on each CALL) |
+| 111 | CR15 | **Valid** — Namespace | Required CRs.word1_location: `0xFFFFFFFF` |
 
-- **L (Load)**: Required on source capability to read GT
-- Source must be CR0-CR7 (3-bit encoding prevents direct access to CR8-CR15)
+### PassKey Requirements
+
+SWITCH replaces the old M-permission check with two mandatory PassKey checks on the source register **CRs**:
+
+1. **Abstract GT check**: CRs.word0_gt.gt_type must equal `11₂` (GT_TYPE_ABSTRACT). Any Inform, Outform, or NULL GT faults with INVALID_OP.
+2. **Sentinel address check**: CRs.word1_location must equal the reserved hardware sentinel for the target:
+   - CR13: `0xFFFFFFFE` (all-1s − 1)
+   - CR15: `0xFFFFFFFF` (all-1s)
+   A mismatch (e.g. presenting a CR13 PassKey to the CR15 target) faults with INVALID_OP.
+
+Source must be CR0–CR7 (3-bit encoding prevents direct access to CR8–CR15).
 
 ---
 

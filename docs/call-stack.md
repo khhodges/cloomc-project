@@ -133,18 +133,30 @@ The CHANGE instruction performs thread context switching by modifying the thread
 | **CR14 — Unchanged** | Transient code-view — re-derived by cLoad on the next CALL |
 | **CR15 — Unchanged** | Namespace root — system-wide, shared by all threads |
 
-CHANGE performs a full atomic swap of per-thread state: data registers DR0–DR15, CR12 (Thread Identity), the hidden STO (Stack Top Offset), PC, condition FLAGS, and LAMBDA state. CR5 (Heap GT) is re-installed automatically from the incoming thread's Zone ④ bounds. Three registers are system-wide and are never touched by CHANGE: CR13 (IRQ handler), CR14 (code register — transient, rebuilt by cLoad on the next CALL), and CR15 (Namespace root — all threads in the same application share one namespace). To write any of CR13–CR15, code must use SWITCH — the explicit privilege gate.
+CHANGE performs a full atomic swap of per-thread state: data registers DR0–DR15, CR12 (Thread Identity), the hidden STO (Stack Top Offset), PC, condition FLAGS, and LAMBDA state. CR5 (Heap GT) is re-installed automatically from the incoming thread's Zone ④ bounds. Three registers are system-wide and are never touched by CHANGE: CR13 (IRQ handler), CR14 (code register — transient, rebuilt by cLoad on the next CALL), and CR15 (Namespace root — all threads in the same application share one namespace). To write CR13 or CR15, code must use SWITCH — the explicit privilege gate — presenting the correct PassKey for the target register.
 
 ---
 
 ## SWITCH: The Privilege Gate
 
-The SWITCH instruction is the sole mechanism for writing to privileged registers CR12-CR15. It copies a capability from an instruction-addressable register into a privileged register.
+SWITCH is the sole mechanism for writing to the two system-wide registers **CR13** (IRQ Thread) and **CR15** (Namespace root). CR12 (Thread Identity) is managed automatically by CHANGE and cannot be written by user instructions. CR14 (transient code-view) is re-derived by cLoad on every CALL and is equally off-limits.
 
 | Aspect | Detail |
 |--------|--------|
 | **Mnemonic** | `SWITCH CRs, target` |
-| **Required Permission** | M (Machine) on source CR |
-| **Target Field** | 2-bit: 0=CR12(fault), 1=CR13(interrupt), 2=CR14(code), 3=CR15(namespace) |
+| **Valid Targets** | CR13 (Tgt=101₂) and CR15 (Tgt=111₂) only — all others FAULT |
+| **PassKey type check** | CRs.word0_gt.gt_type must equal `11₂` (Abstract GT); any other type → FAULT |
+| **Sentinel for CR13** | CRs.word1_location must equal `0xFFFFFFFE` (all-1s − 1) |
+| **Sentinel for CR15** | CRs.word1_location must equal `0xFFFFFFFF` (all-1s) |
+| **Sentinel mismatch** | CRs sentinel does not match the chosen target → FAULT |
 
-SWITCH is architecturally significant because it is the only way to escalate privilege. All other instructions are confined to CR0-CR11. To modify the namespace root (CR15), the fault handler (CR12), the interrupt handler (CR13), or the code register (CR14), code must possess a valid capability with the appropriate permission and use SWITCH to install it.
+SWITCH enforces two mandatory checks on the source register **CRs** before installing it into the target:
+
+1. **PassKey type check** — CRs.word0_gt.gt_type must equal `11₂` (Abstract GT). Any non-Abstract capability faults. Abstract GTs used as SWITCH tokens are called *PassKeys*.
+2. **Sentinel address check** — CRs.word1_location must equal the reserved hardware sentinel address for the target register:
+   - Tgt = CR13 (IRQ Thread): sentinel = `0xFFFFFFFE` (all-1s − 1)
+   - Tgt = CR15 (Namespace): sentinel = `0xFFFFFFFF` (all-1s)
+
+The sentinel values occupy the same reserved address range as I/O peripherals — a range no real RAM lump can occupy — so there is no ambiguity between a PassKey and a live capability. Presenting a CR13 PassKey to the CR15 target (or vice versa) is a sentinel mismatch and faults immediately.
+
+Only code that already holds the appropriate PassKey in an instruction-addressable register (CR0–CR7) can install it into a system register. This makes SWITCH a one-way privilege gate: without the right PassKey, no code can overwrite a live system register regardless of what other permissions it holds.
