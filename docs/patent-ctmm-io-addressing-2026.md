@@ -428,6 +428,205 @@ A trust isolation mechanism wherein each abstraction's identity is defined as th
 
 ---
 
+## DENIAL OF SERVICE PREVENTION AND CONTROL MECHANISMS (NOVEL)
+
+### The DoS Problem in Conventional Systems
+
+Denial of Service attacks exploit several fundamental weaknesses in contemporary architectures:
+
+1. **Unbounded Resource Access** — Any code can request arbitrary resources (file I/O, network bandwidth, memory allocation) without proving it holds the right to them.
+
+2. **Privilege Escalation via DoS** — A low-privilege process can exhaust system resources, forcing the OS to deny service to higher-privilege processes. The OS itself becomes the bottleneck.
+
+3. **No Per-Resource Rate Limiting** — All access to a resource goes through a shared bottleneck (e.g., the network stack, the filesystem). An attacker can saturate the bottleneck for all users.
+
+4. **Ambient Authority Sharing** — Multiple processes share TCP/IP stack, file descriptor table, memory allocator. An attack on any shared resource affects all processes.
+
+5. **Cascade Failures** — When one service is DoS'd, dependent services starve. The attack propagates through the system.
+
+### How CTMM Prevents DoS
+
+The Church Machine architecture prevents or drastically limits DoS attacks through structural mechanisms:
+
+#### Mechanism 1: Capability-Gated Resource Access
+
+Only code that holds an Abstract GT for a resource can access it. To launch a DoS attack on a resource, the attacker must first hold the capability.
+
+```
+Example: UART Service DoS Prevention
+- UART is provisioned as Abstract GT 0xFE000001 (local peripheral)
+- Only abstractions with GT for 0xFE000001 can access UART
+- Attacker code without the GT cannot request any UART operations
+- UART DoS is impossible without holding the capability
+```
+
+**Impact**: An attacker in one abstraction cannot DoS a resource that abstraction was not given access to.
+
+#### Mechanism 2: Per-Abstraction Isolation
+
+Each abstraction has its own c-list with its own GT set. Resources are not ambient or shared by default.
+
+```
+Two abstractions running concurrently:
+  Abstraction A: holds GT for Service X only
+  Abstraction B: holds GT for Service Y only
+
+If A is DoS'd by local attacker:
+  - B continues running normally (no shared resources exhausted)
+  - Service Y remains responsive
+  - Only Service X is affected
+
+The attack is contained to the attacker's own abstraction.
+```
+
+**Impact**: One compromised abstraction cannot cascade-DoS other abstractions.
+
+#### Mechanism 3: Hardware-Enforced mLoad Retry Limits
+
+All namespace access routes through mLoad, which has a maximum of 3 contention retries per instruction before raising `TRAP: MAX_RETRIES_EXCEEDED`.
+
+```
+mLoad retry sequence:
+  Attempt 1: LOAD instruction retries (contention)
+  Attempt 2: LOAD instruction retries again (contention)
+  Attempt 3: LOAD instruction retries once more (contention)
+  Attempt 4: TRAP: MAX_RETRIES_EXCEEDED (IRQ handler decides next action)
+```
+
+An attacker cannot hammer the namespace gate with unlimited retries. The attacker must explicitly wait (exponential backoff) before retrying.
+
+**Impact**: Rate-limited access prevents namespace gate exhaustion.
+
+#### Mechanism 4: Hardware-Enforced SWITCH Rate Limits
+
+SWITCH instruction (privilege gate for CR13/CR15) has the same 3-retry limit as mLoad.
+
+```
+SWITCH CR_passkey, CR15
+  Attempt 1: contention, retry
+  Attempt 2: contention, retry
+  Attempt 3: contention, retry
+  Attempt 4: TRAP: MAX_RETRIES_EXCEEDED
+```
+
+An attacker cannot force rapid privilege switching that could disrupt scheduling or timing.
+
+**Impact**: Prevents privilege escalation DoS attacks.
+
+#### Mechanism 5: MTBF Qualification Prevents DoS Propagation
+
+An abstraction that crashes or fails frequently (high failure_count) is marked Isolated by hardware and cannot be propagated to other CTMMs.
+
+```
+Malicious abstraction crashes 50% of the time:
+  MTBF score = 100 / 50 = 2.0
+  Threshold for User-tier: 0.99
+  Score 2.0 > 0.99 → Passes user-tier threshold initially
+
+After 1000 invocations, with 50% failure rate:
+  MTBF score = 1000 / 500 = 2.0
+  Score does not improve
+  IDE updates threshold: user_tier = 0.999 (tighten)
+  Score 2.0 > 0.999 → Still passes, but barely
+
+After 10,000 invocations:
+  If failure pattern holds: MTBF = 10000 / 5000 = 2.0
+  IDE updates: user_tier = 0.9999
+  Score 2.0 > 0.9999 → FAILS threshold
+  S bit locks to 0: no further propagation
+```
+
+A DoS-prone abstraction cannot escape its origin and infect other CTMMs.
+
+**Impact**: DoS attacks are quarantined to the originating CTMM.
+
+#### Mechanism 6: Local Peripheral Rate Limiting
+
+Hardware-controlled access to local peripherals (UART, GPIO, Timer, Display) can enforce per-abstraction bandwidth limits or operation counts.
+
+```
+UART rate limiting example:
+- Each abstraction holds a GT for the UART with R/W permissions
+- Hardware enforces per-abstraction quota: max 1000 bytes per second
+- If abstraction exceeds quota, further UART operations are deferred
+- Other abstractions continue UART access at normal rate
+```
+
+**Impact**: Local I/O DoS attacks are rate-limited per abstraction.
+
+#### Mechanism 7: Home Base Tunnel Flow Control
+
+The Home Base tunnel (single network gateway) implements flow control at the hardware level:
+
+```
+Home Base tunnel bandwidth management:
+- Per-CTMM outbound quota: X Mbps max
+- Per-abstraction outbound quota: Y Kbps max
+- Per-connection timeout: Z seconds
+- If quota exceeded, further sends are deferred (backpressured)
+```
+
+An attacking abstraction cannot starve other abstractions of network bandwidth because each abstraction has its own quota.
+
+**Impact**: Network DoS attacks are rate-limited per abstraction.
+
+#### Mechanism 8: GC Interval Safety Limits
+
+Garbage collection has a minimum interval (e.g., 1 second) between wraparound events. If GC tries to wrap the gt_seq counter too frequently, a TRAP fires.
+
+```
+gt_seq wraparound interval limit:
+  Last wraparound at time T
+  Next wraparound attempt at time T + 500ms
+  500ms < 1 second minimum
+  TRAP: GC_WRAPAROUND_TOO_FAST
+```
+
+An attacker cannot force rapid GC cycles to accelerate wraparound and confuse stale GTs with fresh ones.
+
+**Impact**: GC-based DoS attacks are prevented.
+
+#### Mechanism 9: Abstract Address Validation
+
+Every attempt to use an Abstract GT requires hardware validation of the address. Invalid addresses are TRAP'd:
+
+```
+Hardware validation on Abstract GT operation:
+  word1_location = 0x12345678  (not in reserved range)
+  Check: is 0x12345678 in Abstract Address Space?
+  No → TRAP: INVALID_ABSTRACT_ADDRESS
+```
+
+An attacker cannot cause DoS by constructing bogus Abstract Addresses.
+
+**Impact**: Malformed operations fail fast without consuming resources.
+
+### Claim 9: Capability-Gated DoS Prevention (Independent)
+
+A denial-of-service prevention mechanism wherein access to any resource is controlled exclusively through unforgeable capability tokens, such that an attacker without the capability token for a resource cannot even request operations on that resource, and thus cannot launch a DoS attack on that resource, with the constraint being structural and enforced at the hardware level rather than through rate-limiting or filtering.
+
+### Claim 10: Per-Abstraction Resource Isolation (Independent)
+
+A resource isolation mechanism wherein each Secure Abstraction has its own c-list with its own GT set, and resources (I/O, network, memory allocators, queues) are not shared by default, such that an attacking abstraction that exhausts its own resources affects only itself and does not cascade to other abstractions, enabling DoS containment at the abstraction boundary.
+
+### Claim 11: Hardware-Enforced Retry Limits on Critical Paths (Independent)
+
+A rate-limiting mechanism wherein critical paths (mLoad for namespace access, SWITCH for privilege gate, GC for garbage collection) enforce a maximum of three contention retries before raising a TRAP that returns control to the IRQ handler, and wherein the hardware counter resets only on successful completion or explicit FAULT, such that an attacker cannot hammer critical paths without explicit wait periods (exponential backoff), preventing saturation DoS attacks on the Trusted Security Base.
+
+### Claim 12: MTBF Qualification as DoS Containment (Dependent)
+
+An extension of Claim 4 wherein an abstraction that fails frequently (high failure_count) is automatically downgraded to Isolated tier and cannot be propagated to other CTMMs, such that DoS-prone or malicious abstractions cannot spread across the fleet through normal capability propagation, and fleet-wide policy updates further tighten MTBF thresholds to quarantine unreliable abstractions.
+
+### Claim 13: Per-Abstraction Bandwidth Quotas on Tunnel Access (Dependent)
+
+An extension of Claim 2 wherein the Home Base tunnel implements per-abstraction outbound bandwidth quotas (measured in bytes per second or operations per second), and wherein abstractions that exceed their quota are backpressured rather than dropped, such that one attacking abstraction cannot saturate the shared tunnel and starve other abstractions of network access.
+
+### Claim 14: Local Peripheral Access Rate Limiting (Dependent)
+
+An extension of Claim 3 wherein access to local peripherals (UART, GPIO, Timer, Display) is rate-limited per abstraction, either through hardware quotas or token-bucket mechanisms, such that an abstraction cannot monopolize peripheral bandwidth and DoS other abstractions' local I/O operations.
+
+---
+
 ## CONCLUSION
 
 The Abstract Golden Token I/O and Network Addressing architecture represents a fundamental shift in how computer systems integrate I/O, network access, and service provisioning. By making these capabilities unforgeable, hardware-routed, and locally autonomous (for peripherals) or IDE-provisioned-at-boot (for network), the architecture enables:
