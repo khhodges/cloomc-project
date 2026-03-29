@@ -26,6 +26,47 @@ Meta Machine's outbound network connection to the IDE and cloud infrastructure.
 
 ---
 
+## Security Goals
+
+The Abstract GT I/O addressing scheme exists to **eliminate the privileged superuser
+attack window entirely**.
+
+In conventional operating systems a privileged layer — ring 0, superuser, hypervisor,
+monitor — mediates all resource access. Any code that can reach that layer, impersonate
+a privileged caller, or confuse the supervisor into acting on its behalf gains arbitrary
+access to every resource on the machine. This is the root cause of:
+
+- **Confused deputy attacks** — a trusted intermediary (the OS, a privileged daemon, a
+  browser extension) is deceived into exercising its authority on behalf of an attacker
+  who does not hold that authority themselves.
+- **Cross-site scripting and cross-site request forgery** — ambient authority (session
+  cookies, shared privilege context) is stolen or exercised by code running in a
+  different trust domain.
+- **Monitor/hypervisor attacks** — a compromised supervisor can read or overwrite any
+  memory, any register, any capability belonging to any process it manages.
+
+The Abstract GT scheme removes the attack surface at the architectural level:
+
+1. **No superuser.** There is no privileged layer that holds authority on behalf of
+   others. Every abstraction holds only the GTs it was explicitly given. Capabilities
+   cannot be borrowed, impersonated, or forged.
+
+2. **Secure individuality.** Each abstraction's identity is the unique set of GTs in
+   its c-list. No two abstractions share ambient authority. An attacker who compromises
+   one abstraction gains only its GTs — it cannot escalate to another abstraction's
+   resources without holding that abstraction's GTs.
+
+3. **No confused deputy possible.** A deputy (any abstraction acting on behalf of a
+   caller) can only exercise permissions it holds in its own c-list. It cannot be tricked
+   into using a capability it was never given. The GT is the authority — not the identity
+   of the caller, not the call stack, not a session token.
+
+4. **No ambient authority.** There are no shared cookies, no global session state, no
+   OS-level file descriptors accessible by name. Every resource is a GT, and GTs are
+   not ambient — they must be explicitly held to be used.
+
+---
+
 ## Abstract GT Structure (recap)
 
 An Abstract GT is a 128-bit capability register with:
@@ -161,6 +202,45 @@ fast hardware routing without a full 32-bit address compare.
 
 ---
 
+## Local Peripheral Security (Autonomous Operation)
+
+**Each CTMM can identify and secure locally attached equipment independently —
+without any IDE connection, network access, or remote authority.**
+
+The local peripheral range (Abstract Addresses `0xFE000000–0xFEFFFFFF`) is populated
+entirely by the CTMM's own hardware boot sequence, based on equipment physically
+detected during startup. No IDE request is made. No network round-trip occurs. The
+CTMM is the sole authority for its own local peripherals.
+
+This has three important consequences:
+
+### Air-gapped and offline operation
+A CTMM with no network connection still enforces full capability-based I/O security.
+Peripherals (UART, GPIO, display, storage) are each represented by an Abstract GT
+provisioned locally. Code that has not been given the UART GT cannot access the UART —
+regardless of whether a network or IDE is present.
+
+### Local trust decisions made in hardware
+When a new peripheral is connected, the CTMM's hardware probe assigns it an Abstract
+Address from the local range and provisions an Abstract GT. The security decision —
+which abstractions receive the GT, with what permissions — is made by the local boot
+policy, not by any remote party. A remote IDE has no ability to override this.
+
+### Networked connections are the exception, not the rule
+The Home Base tunnel (`0xFF000000`) and IDE-allocated channels (`0xFF000001+`) are the
+only Abstract GTs that require IDE provisioning. Everything local is self-contained.
+This preserves security even when the Home Base tunnel is unavailable, unreachable, or
+deliberately absent:
+
+| Resource type | Provisioned by | Requires IDE / network? |
+|:--------------|:---------------|:------------------------|
+| Local peripherals (UART, GPIO, Timer, Display) | CTMM hardware boot | **No** |
+| SWITCH PassKeys (CR13, CR15) | CTMM hardware boot | **No** |
+| Home Base tunnel | IDE at boot | Yes |
+| IDE-allocated tunnel channels | IDE at boot | Yes |
+
+---
+
 ## Permission Semantics for Abstract GTs
 
 The 6 permission bits apply to Abstract GTs exactly as for Inform GTs, but the
@@ -236,3 +316,57 @@ resource addresses within the reserved ranges without hardware changes:
 The SWITCH mechanism documents the hardware validation pattern. New Abstract resources
 that require hardware-checked installation should follow the same pattern: a dedicated
 sentinel for each resource, validated by hardware before the GT is installed.
+
+---
+
+## Secure Network Browser Abstraction
+
+A **Secure Network Browser** is a Secure Abstraction that manages outbound network
+access on behalf of user code — but operates entirely locally, without any privileged
+OS network stack, shared session state, or ambient authority.
+
+### What it is
+
+The browser is an ordinary Secure Abstraction provisioned with a set of Abstract GTs,
+one per trusted network endpoint. It holds:
+
+- The Home Base tunnel GT (`0xFF000000`) — the outbound physical connection
+- One or more IDE-allocated channel GTs (`0xFF000001+`) — named trusted services
+- No other network capability
+
+User code that wishes to reach a network resource must call the browser abstraction
+(via E permission) and supply a GT identifying the desired endpoint. If the browser
+holds a GT for that endpoint with the required permissions, the call proceeds through
+the encrypted tunnel. If it does not hold that GT, the call FAULTs immediately —
+there is no path to the network.
+
+### Why it is secure
+
+| Threat | Conventional browser | Secure Network Browser |
+|:-------|:---------------------|:-----------------------|
+| Cross-site scripting | Attacker injects code that reads cookies from another site | No shared cookies or session state — each site is a GT; code without that GT cannot reach it |
+| Cross-site request forgery | Ambient session cookie sent automatically with forged request | No ambient authority — a GT must be explicitly held and passed; it cannot be exercised by code that does not hold it |
+| Confused deputy | Browser extension or plugin abuses browser's network authority | No shared network privilege — the browser abstraction can only reach endpoints for which it holds a GT |
+| DNS spoofing / redirect | Attacker redirects DNS to point a trusted name at a malicious server | Endpoint identity is a GT, not a name — an attacker who cannot forge the GT cannot impersonate the endpoint |
+| TLS stripping | Man-in-the-middle downgrades to plain HTTP | Tunnel is Abstract GT routed — there is no fallback path; the hardware rejects operations without the GT |
+
+### Local operation
+
+The browser abstraction runs entirely on the local CTMM. It does not delegate security
+decisions to any remote server, cloud authority, or certificate authority. The GT for
+each trusted endpoint is the proof of trust — provisioned at boot, held in the
+browser's c-list, unforgeable by any code the browser might invoke on behalf of the
+user.
+
+This means the browser is as secure in an offline context (local peripherals, local
+services) as it is when connected to the Home Base tunnel. Security does not degrade
+when the network is slow, unreliable, or absent — the capability structure is local
+and hardware-enforced regardless.
+
+### Relationship to Outform GT network transparency
+
+The Secure Network Browser uses **Abstract GTs** (this document) for its capability
+tokens and **Outform GTs** ([Network Transparency](network-transparency.md)) for the
+actual remote object representation once a connection is established. The Abstract GT
+is the door key; the Outform GT is the object reference fetched through the door.
+Neither can be forged; neither can be used by code that was not given it.
