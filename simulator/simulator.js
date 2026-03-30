@@ -1456,7 +1456,7 @@ class ChurchSimulator {
             [],                ['R'],           ['R','W'],       ['X'],
             ['R','X'],         ['R','W','X'],   ['L'],           ['S'],
             ['E'],             ['L','S'],       ['L','E'],       ['S','E'],
-            ['L','S','E'],     ['R','W','X','L','S','E'],  null,  null,
+            ['L','S','E'],     null,  null,  null,
         ];
 
         if (presetMasks[presetCode] === null) {

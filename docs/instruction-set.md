@@ -237,10 +237,9 @@ ANDs the preset mask with CRd's current permissions. Permissions can only be rem
 | 10 | LE | L, E |
 | 11 | SE | S, E |
 | 12 | LSE | L, S, E |
-| 13 | RWXLSE | R, W, X, L, S, E (all-permissions check) |
-| 14–15 | (reserved) | Ignored — Z=0, no fault |
+| 13–15 | (reserved) | Ignored — Z=0, no fault |
 
-**B-modifier** (bit 4 of preset code): Adding B (0x10) clears the B-bit in the GT on a passing check — e.g. `TPERM CR5, EB` (code 0x18) checks E permission and, if it passes, clears the Bind bit. Named B-variants: RB, RWB, XB, RXB, RWXB, LB, SB, EB, LSB, LEB, SEB, LSEB, RWXLSEB.
+**B-modifier** (bit 4 of preset code): Adding B (0x10) clears the B-bit in the GT on a passing check — e.g. `TPERM CR5, EB` (code 0x18) checks E permission and, if it passes, clears the Bind bit. Named B-variants: RB, RWB, XB, RXB, RWXB, LB, SB, EB, LSB, LEB, SEB, LSEB.
 
 **NULL GT rule**: If the GT in CRd is NULL (word0=0), TPERM always sets Z=0 with no fault.
 

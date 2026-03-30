@@ -1481,12 +1481,12 @@ LOAD CR0, CR6, 7       ; CR0 = Constants (E only)
 LOAD CR1, CR6, 22      ; CR1 = TRUE (L only)
 LOAD CR2, CR6, 10      ; CR2 = SUCC (XLE)
 
-; --- ATTACK 1: Try to add X to Constants ---
-; Constants has E only. Request RWXLSE.
-; Result should be E only (AND gate).
-TPERM CR0, RWXLSE      ; Result: E (only bit in common)
-; Z=1 means non-zero result — E survived
-; But X,R,W,L,S were NOT added
+; --- ATTACK 1: Verify Constants cannot have X added ---
+; Constants has E only. Check if it has X (it does not — different domain).
+; TPERM checks if ALL listed bits are present. Cross-domain presets don't exist.
+TPERM CR0, E           ; Z=1 — E is present (passes)
+TPERM CR0, X           ; Z=0 — X is not present (fails — different domain)
+; Caller cannot elevate a Church GT to Turing domain; TPERM is read-only.
 
 ; --- ATTACK 2: Try to add E to TRUE ---
 ; TRUE has L only. Request LE.

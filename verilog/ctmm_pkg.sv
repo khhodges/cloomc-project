@@ -271,7 +271,7 @@ package ctmm_pkg;
         TPERM_LE     = 4'd10,   // Load + Enter
         TPERM_SE     = 4'd11,   // Save + Enter
         TPERM_LSE    = 4'd12,   // Load + Save + Enter (full capability)
-        TPERM_RWXLSE = 4'd13,   // All permissions
+        TPERM_RSV2   = 4'd13,   // Reserved — cross-domain (invalid)
         TPERM_RSV0   = 4'd14,   // RESERVED - causes FAULT
         TPERM_RSV1   = 4'd15    // RESERVED - causes FAULT
     } tperm_preset_t;
@@ -292,8 +292,7 @@ package ctmm_pkg;
             TPERM_LE:     return PERM_MASK_L | PERM_MASK_E;
             TPERM_SE:     return PERM_MASK_S | PERM_MASK_E;
             TPERM_LSE:    return PERM_MASK_L | PERM_MASK_S | PERM_MASK_E;
-            TPERM_RWXLSE: return 6'b111111;
-            default:      return 6'b000000;  // RSV - will fault
+            default:      return 6'b000000;  // RSV — cross-domain / reserved
         endcase
     endfunction
 
