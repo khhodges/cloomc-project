@@ -277,7 +277,7 @@ class ChurchSimulator {
     }
 
     _bootStep() {
-        // All boot CRs use type=1 (Real) GTs — they reference concrete NS slots with physical lumps.
+        // All boot CRs use type=1 (Inform) GTs — they reference concrete NS slots with physical lumps.
         // type=3 (Abstract) GTs are only created at runtime by Navana.Abstraction.Add and Navana.MintPassKey.
         if (this.bootComplete) return false;
 
@@ -346,7 +346,7 @@ class ChurchSimulator {
                     return false;
                 }
                 if (check2.parsed.type !== 1) {
-                    this.fault('BOOT', `LOAD_NUC: Boot.Abstr type is ${check2.parsed.typeName}, must be Real`);
+                    this.fault('BOOT', `LOAD_NUC: Boot.Abstr type is ${check2.parsed.typeName}, must be Inform`);
                     return false;
                 }
                 const base = abstrEntry.word0_location;
@@ -1455,8 +1455,8 @@ class ChurchSimulator {
         const presetMasks = [
             [],                ['R'],           ['R','W'],       ['X'],
             ['R','X'],         ['R','W','X'],   ['L'],           ['S'],
-            ['E'],             ['L','S'],       ['W'],           null,
-            null,              null,            null,            null,
+            ['E'],             ['L','S'],       ['L','E'],       ['S','E'],
+            ['L','S','E'],     null,            null,            null,
         ];
 
         if (presetMasks[presetCode] === null) {

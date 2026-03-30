@@ -620,7 +620,7 @@ function renderCListEntryDetail(nsIdx, entry) {
     const ver = (entry.word2_seals >>> 25) & 0x7F;
     const seal = entry.word2_seals & 0xFFFF;
     h += `<tr><td style="color:var(--church-blue);width:120px;">W0: Location</td><td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td></tr>`;
-    const typeNames = ['NULL','Real','Abstract','???'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
     h += `<tr><td style="color:var(--church-blue)">W1: Type</td><td>${typeNames[entry.gtType] || '?'} (${entry.gtType})</td></tr>`;
     h += `<tr><td style="color:var(--church-blue)">W1: F (Far)</td><td>${lim.f}</td></tr>`;
     h += `<tr><td style="color:var(--church-blue)">W1: G (GC)</td><td>${entry.gBit}</td></tr>`;
@@ -815,7 +815,7 @@ function updateCRDetail() {
             for (let j = 0; j < clistEntries.length; j++) {
                 const c = clistEntries[j];
                 const e = c.entry;
-                const typeNames = ['NULL','Real','Abstract','???'];
+                const typeNames = ['NULL','Inform','Outform','Abstract'];
                 const sealCRC = e.word2_seals & 0xFFFF;
                 const isExpanded = (clistExpandedIdx === c.idx);
                 html += `<tr class="cr-active clist-clickable${isExpanded ? ' clist-selected' : ''}" onclick="toggleCListEntry(${c.idx})" title="Click to inspect NS[${c.idx}]">`;
@@ -861,7 +861,7 @@ function updateCRDetail() {
             html += '<table class="cr-table"><thead><tr>';
             html += '<th>Idx</th><th>Label</th><th>W0: Location</th><th>W1: Type</th><th>W1: F</th><th>W1: G</th><th>W1: Chain</th>';
             html += '</tr></thead><tbody>';
-            const typeNames = ['NULL','Real','Abstract','???'];
+            const typeNames = ['NULL','Inform','Outform','Abstract'];
             for (let i = 0; i < sim.nsCount; i++) {
                 const e = sim.readNSEntry(i);
                 if (!e) continue;
@@ -917,7 +917,7 @@ function updateCRDetail() {
         const sealGtSeq = (entry.word2_seals >>> 25) & 0x7F;
         const sealCRC = entry.word2_seals & 0xFFFF;
         const gtPermStr = cr.perms;
-        const typeNames = ['NULL','Real','Abstract','???'];
+        const typeNames = ['NULL','Inform','Outform','Abstract'];
 
         html += '<table class="cr-table"><tbody>';
         html += `<tr><td>W0: Location</td><td>0x${loc.toString(16).toUpperCase().padStart(8,'0')}</td></tr>`;
@@ -1100,7 +1100,7 @@ function _bootHtmlEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'
 
 function renderBootNSImage() {
     const typeColors = ['#6b7280','#60a5fa','#c084fc','#34d399'];
-    const typeNames  = ['NULL','Real','Abstract','Outform'];
+    const typeNames  = ['NULL','Inform','Outform','Abstract'];
 
     let html = '<div class="boot-image-view">';
 
@@ -1414,7 +1414,7 @@ function updateNamespace() {
     html += '<th>Actions</th>';
     html += '</tr></thead><tbody>';
 
-    const typeNames = ['NULL','Real','Abstract','???'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
     for (let i = 0; i < sim.nsCount; i++) {
         const e = sim.readNSEntry(i);
         if (!e) continue;
@@ -1463,8 +1463,8 @@ function showNSEntryTooltip(evt, idx) {
     if (!e) { tt.classList.remove('visible'); return; }
 
     const lim = sim.parseNSWord1(e.word1_limit);
-    const typeNames = ['NULL','Real','Abstract','Outform'];
-    const badgeClass = ['ns-tt-badge-null','ns-tt-badge-real','ns-tt-badge-abstract','ns-tt-badge-outform'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
+    const badgeClass = ['ns-tt-badge-null','ns-tt-badge-inform','ns-tt-badge-outform','ns-tt-badge-abstract'];
     const typeName = typeNames[lim.gtType] || '?';
     const ver = (e.word2_seals >>> 25) & 0x7F;
     const seal = e.word2_seals & 0xFFFF;
@@ -1547,7 +1547,7 @@ const BOOT_SEQ_CODE = {
         '      M-Elevation ← ON          ; hardware supervisor mode enabled',
         '',
         'B:01  LOAD_NS',
-        '      GT15 ← createGT(Slot=0, perms=[none], type=Real)',
+        '      GT15 ← createGT(Slot=0, perms=[none], type=Inform)',
         '      entry ← mLoad(GT15)       ; load NS table entry for Slot 0',
         '      CR15 ← { word0=GT15, word1=base=0x0000,',
         '               word2=NS_TABLE_BASE, word3=seals }',
@@ -1558,7 +1558,7 @@ const BOOT_SEQ_CODE = {
         '; Boot.Thread — Initial Thread Identity (Slot 1)',
         '',
         'B:02  INIT_THRD',
-        '      GT12 ← createGT(Slot=1, perms=[none], type=Real)',
+        '      GT12 ← createGT(Slot=1, perms=[none], type=Inform)',
         '      entry ← mLoad(GT12)       ; load NS table entry for Slot 1',
         '      CR12 ← { word0=GT12, word1=entry.base,',
         '               word2=entry.word1_limit, word3=entry.seals }',
@@ -1570,14 +1570,14 @@ const BOOT_SEQ_CODE = {
         '; Boot.Abstr — Boot Code + C-List in one NS slot (Slot 2)',
         '',
         'B:03  INIT_ABSTR',
-        '      GT6a ← createGT(Slot=2, perms=[E], type=Real)',
+        '      GT6a ← createGT(Slot=2, perms=[E], type=Inform)',
         '      entry ← mLoad(GT6a, perm=E)   ; must have E permission',
         '      CR6  ← GT6a + entry            ; c-list pointer (temporary)',
         '',
         'B:04  LOAD_NUC',
-        '      GT2  ← createGT(Slot=2, perms=[E], type=Real)',
+        '      GT2  ← createGT(Slot=2, perms=[E], type=Inform)',
         '      entry ← mLoad(GT2, perm=E)',
-        '      ; Validate: F-bit must=0 (Near), type must=Real',
+        '      ; Validate: F-bit must=0 (Near), type must=Inform',
         '      base  = entry.word0_location',
         '      alloc = entry.word1_limit + 1',
         '      cN    = entry.clistCount       ; words allocated for c-list',
@@ -2207,7 +2207,7 @@ function getMethodExamples(abs) {
 ; mLoad 7-step: type check -> version match -> seal verify
 ;   -> bounds check -> perm check -> F-bit -> deliver
 LOAD   CR1, NS[4]       ; mLoad pipeline validates GT:
-                         ;   1. Type != NULL (00=NULL, 01=Real, 10=Abstract, 11=Outform)
+                         ;   1. Type != NULL (00=NULL, 01=Inform, 10=Outform, 11=Abstract)
                          ;   2. GT.gt_seq == NS[4].word2[31:25]
                          ;   3. CRC-16 seal(word0,word1) == word2[15:0]
                          ;   4. Index 4 within NS bounds
@@ -3747,7 +3747,7 @@ DWRITE DR0, lump[0]     ; store f_GT into new thread's GT zone word 0
 ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 B:02  INIT_THRD
-      GT12 ← createGT(Slot=1, perms=[none], type=Real)
+      GT12 ← createGT(Slot=1, perms=[none], type=Inform)
       entry ← mLoad(GT12)       ; load NS entry for Slot 1
       CR12 ← { word0=GT12, word1=entry.base,
                word2=entry.word1_limit, word3=entry.seals }
@@ -6906,7 +6906,7 @@ function confirmCreateNamespace() {
     }
 
     const r = addResult.result;
-    const typeNames = ['NULL', 'Real', 'Abstract', '???'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
     const clistStart = allocSize - clistCount;
     const freespace = allocSize - clistCount;
 
@@ -8285,7 +8285,7 @@ function exportEntryMemory(idx) {
         const sp = sim.parseGT(data.gt).permissions;
         permObj = { B: sp.B?1:0, R: sp.R?1:0, W: sp.W?1:0, X: sp.X?1:0, L: sp.L?1:0, S: sp.S?1:0, E: sp.E?1:0 };
     }
-    const typeNames = ['NULL','Real','Abstract','???'];
+    const typeNames = ['NULL','Inform','Outform','Abstract'];
     const exportObj = {
         label: data.label,
         index: idx,

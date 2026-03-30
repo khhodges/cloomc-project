@@ -1,7 +1,7 @@
 # Simulator ↔ Hardware Gaps Report
 
-**Date**: March 29, 2026  
-**Status**: CRITICAL GAPS FOUND
+**Date**: March 29, 2026 (updated March 30, 2026)  
+**Status**: ALL CRITICAL GAPS FIXED
 
 ---
 
@@ -111,14 +111,17 @@ with m.If(e_gt_view.gt_type != GT_TYPE_INFORM):
 
 ---
 
-## Summary of Fixes Needed
+## Summary of Fixes (All Applied)
 
-| Issue | File | Line | Severity | Fix |
-|-------|------|------|----------|-----|
-| CALL allows type 2 instead of type 3 | simulator.js | 1089 | 🔴 CRITICAL | Change `!== 1 && !== 2` to `!== 1 && !== 3` |
-| XLOADLAMBDA allows type 2 | simulator.js | 1580 | 🟠 HIGH | Change `=== 1 \|\| === 2` to `=== 1` only |
-| Type comments say 2=Abstract | simulator.js | 231,234,281 | 🟡 MEDIUM | Update comments to say 3=Abstract |
-| **Hardware type check** | hardware/call.py | ? | 🔴 CRITICAL | **Verify and fix if needed** |
+| Issue | File | Line | Severity | Status |
+|-------|------|------|----------|--------|
+| CALL allows type 2 instead of type 3 | simulator.js | 1089 | 🔴 CRITICAL | ✅ FIXED |
+| XLOADLAMBDA allows type 2 | simulator.js | 1580 | 🟠 HIGH | ✅ FIXED |
+| Type comments say 2=Abstract | simulator.js | 231,234,281 | 🟡 MEDIUM | ✅ FIXED |
+| TPERM presets 10-12 wrong (W vs LE/SE/LSE) | simulator.js, assembler.js | — | 🔴 CRITICAL | ✅ FIXED |
+| TPERM presets 11-14 wrongly null | simulator.js, assembler.js | — | 🟠 HIGH | ✅ FIXED |
+| "Real" GT type name throughout simulator/docs | all JS + docs | many | 🟡 MEDIUM | ✅ FIXED |
+| isa_encoding.md preset table wrong (W at 0x0A) | docs/isa_encoding.md | — | 🟡 MEDIUM | ✅ FIXED |
 
 ---
 

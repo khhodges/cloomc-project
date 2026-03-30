@@ -709,7 +709,7 @@ class SystemAbstractions {
                 }
             }
 
-            // User-uploaded abstractions are type=2 (Abstract) — they are not concrete boot lumps (type=1/Real)
+            // User-uploaded abstractions are type=3 (Abstract) — they are not concrete boot lumps (type=1/Inform)
             // but higher-order callable objects identified by their E-GT without direct memory ownership.
             const addResult = sim.abstractionRegistry.dispatchMethod(5, 'Add', sim, {
                 location: location,
@@ -779,9 +779,9 @@ class SystemAbstractions {
             }
 
             const gtType = (args.gtType !== undefined) ? args.gtType : (args.type !== undefined ? args.type : 1);
-            const typeNames = ['NULL','Real','Abstract','???'];
-            if (gtType < 0 || gtType > 2) {
-                return { ok: false, fault: 'TYPE', message: `Mint.Create: invalid type ${gtType} — valid types are 1=Real, 2=Abstract` };
+            const typeNames = ['NULL','Inform','Outform','Abstract'];
+            if (gtType < 0 || gtType > 3) {
+                return { ok: false, fault: 'TYPE', message: `Mint.Create: invalid type ${gtType} — valid types are 1=Inform, 3=Abstract` };
             }
             if (gtType === 0) {
                 return { ok: false, fault: 'TYPE', message: 'Mint.Create: cannot create NULL type GT — NULL is the zero/absent type' };

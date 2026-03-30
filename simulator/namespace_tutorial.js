@@ -248,13 +248,13 @@ ${this._memMap(null)}
                 type: 'cr15',
                 content: `<p>At boot B:01 (LOAD_NS) the hardware loads NS Slot\u202f0 into <strong>CR15</strong> (the Namespace register). CR15 gives the running thread a read-only view of the physical memory layout.</p>
 <table class="sr-table"><tr><th>CR15 word</th><th>Source</th><th>Value</th></tr>
-<tr><td>word0 (GT)</td><td>createGT(0, slot=0, zero perms)</td><td>Real-type GT, index=0, all perm bits clear</td></tr>
+<tr><td>word0 (GT)</td><td>createGT(0, slot=0, zero perms)</td><td>Inform-type GT, index=0, all perm bits clear</td></tr>
 <tr><td>word1</td><td>NS Slot\u202f0 word0_location</td><td>${hex(0)} \u2014 physical namespace base</td></tr>
 <tr><td>word2</td><td>NS Slot\u202f0 word1_limit</td><td>limit=${this.TOTAL_WORDS - 1} + clistCount=<em>N</em></td></tr>
 <tr><td>word3</td><td>NS Slot\u202f0 word2_seals</td><td>gt_seq + CRC-16 seal</td></tr>
 </table>
 <p>CR15 is in the <strong>privileged zone</strong> (CR12\u2013CR15) \u2014 it cannot be used as a source or destination for DREAD/DWRITE. It is loaded once at boot and is per-thread: saved and restored by CHANGE as part of per-thread context.</p>
-<div class="sr-key-concept"><div class="sr-concept-title">Zero Perms \u2014 Real-type Identity Token</div>
+<div class="sr-key-concept"><div class="sr-concept-title">Zero Perms \u2014 Inform-type Identity Token</div>
 <p>The GT in CR15 has no permission bits set (no R, W, X, L, S, E). It is purely structural: it proves to the hardware \u2014 via the CRC-16 seal \u2014 that the namespace description it carries is authentic and unmodified. Any code that attempts to use CR15 as a data or code capability will receive a <code>PERM</code> fault.</p></div>`
             },
             {

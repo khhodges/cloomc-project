@@ -26,7 +26,7 @@ class SecureBootTutorial {
 <tr><th>Bits</th><th>Field</th><th>Notes</th></tr>
 <tr><td>[15:0]</td><td>slot_id</td><td>16-bit namespace slot index</td></tr>
 <tr><td>[22:16]</td><td>gt_seq</td><td>7-bit revocation counter (must match NS entry word2[31:25])</td></tr>
-<tr><td>[24:23]</td><td>gt_type</td><td>00\u202f=\u202fNull &middot; 01\u202f=\u202fReal &middot; 10\u202f=\u202fAbstract</td></tr>
+<tr><td>[24:23]</td><td>gt_type</td><td>00\u202f=\u202fNULL &middot; 01\u202f=\u202fInform &middot; 10\u202f=\u202fOutform &middot; 11\u202f=\u202fAbstract</td></tr>
 <tr><td>[30:25]</td><td>perms</td><td>R\u202fW\u202fX\u202fL\u202fS\u202fE (1\u202fbit each)</td></tr>
 <tr><td>[31]</td><td>b_flag</td><td>Bindable override (set by IDE, not by program)</td></tr>
 </table>
@@ -236,7 +236,7 @@ LOAD_NUC:
 ; GT Word 0 format (current):
 ;   [15:0]  slot_id   \u2014 16-bit NS slot index
 ;   [22:16] gt_seq    \u2014 7-bit revocation counter
-;   [24:23] gt_type   \u2014 00=Null 01=Real 10=Abstract
+;   [24:23] gt_type   \u2014 00=NULL 01=Inform 10=Outform 11=Abstract
 ;   [30:25] perms     \u2014 R W X L S E (1 bit each, LSB=R)
 ;   [31]    b_flag    \u2014 bindable override (IDE-set)
 ;
@@ -262,15 +262,15 @@ LOAD_NUC:
 
 ; ---- B:03 INIT_ABSTR ------------------------------------
 ; Load boot C-List entries and establish boot code identity
-    LOAD    AL, CR1, CR6[0]    ; CR1 = code/constants GT (Real, R|X, Slot 3, gt_seq=0)
-    LOAD    AL, CR2, CR6[1]    ; CR2 = boot code GT     (Real, X,   Slot 4, gt_seq=0)
+    LOAD    AL, CR1, CR6[0]    ; CR1 = code/constants GT (Inform, R|X, Slot 3, gt_seq=0)
+    LOAD    AL, CR2, CR6[1]    ; CR2 = boot code GT     (Inform, X,   Slot 4, gt_seq=0)
     TPERM   AL, CR2, #X        ; restrict to X only (TPERM does not check seal)
     LAMBDA  AL, CR2            ; enter boot code via 1-word LAMBDA frame
                                ; \u21d2 SEAL_MISMATCH fault if NS Slot 4 tampered
 
 ; ---- B:04 LOAD_NUC --------------------------------------
 ; Load the first user abstraction E-GT and CALL into it
-    LOAD    AL, CR0, CR6[6]    ; CR0 = User E-GT (Real, E, Slot 4, gt_seq=0)
+    LOAD    AL, CR0, CR6[6]    ; CR0 = User E-GT (Inform, E, Slot 4, gt_seq=0)
     TPERM   AL, CR0, #E        ; restrict to E \u2014 prepare for CALL
     CALL    AL, CR0, CR0       ; \u21d2 hardware validates seal of NS Slot 4
                                ;    derives CR14 (code GT, base=0x0400, limit=0xFF, perm=XR)
@@ -289,14 +289,14 @@ LOAD_NUC:
 
 ; ---- C-List contents at boot (DEMO_CLIST in boot_rom.py) --
 ; Index  GT                                       Role
-;   0    make_gt(Real, R|X, slot_id=3, gt_seq=0) Code/constants read+exec
-;   1    make_gt(Real, X,   slot_id=4, gt_seq=0) Boot code exec-only
-;   2    make_gt(Null, 0,   0,         0)         Empty (filled by SAVE above)
-;   3    make_gt(Real, E,   slot_id=2, gt_seq=0) Boot.Abstr E-GT
-;   4    make_gt(Real, E,   slot_id=5, gt_seq=0) Secondary abstraction E-GT
-;   5    make_gt(Real, L,   slot_id=6, gt_seq=0) C-List L-GT (for BIND)
-;   6    make_gt(Real, E,   slot_id=4, gt_seq=0) First user abstraction E-GT
-;   7    make_gt(Null, 0,   0,         0)         Reserved</pre>
+;   0    make_gt(Inform, R|X, slot_id=3, gt_seq=0) Code/constants read+exec
+;   1    make_gt(Inform, X,   slot_id=4, gt_seq=0) Boot code exec-only
+;   2    make_gt(NULL,   0,   0,         0)         Empty (filled by SAVE above)
+;   3    make_gt(Inform, E,   slot_id=2, gt_seq=0) Boot.Abstr E-GT
+;   4    make_gt(Inform, E,   slot_id=5, gt_seq=0) Secondary abstraction E-GT
+;   5    make_gt(Inform, L,   slot_id=6, gt_seq=0) C-List L-GT (for BIND)
+;   6    make_gt(Inform, E,   slot_id=4, gt_seq=0) First user abstraction E-GT
+;   7    make_gt(NULL,   0,   0,         0)         Reserved</pre>
 <div class="sr-key-concept"><div class="sr-concept-title">Two Security Checkpoints</div>
 <ol style="margin:4px 0 0 0;padding-left:1.2em;line-height:1.9;">
 <li><strong>LAMBDA AL, CR2</strong> (B:03) \u2014 validates the CRC-16 seal of NS Slot\u202f4 (boot code lump). Any in-flight modification of the boot code\u2019s NS entry causes an immediate <code>SEAL_MISMATCH</code> fault before a single user instruction executes.</li>
@@ -418,7 +418,7 @@ USER_ENTRY:
 <p>The boot ROM also defines <code>DEMO_NAMESPACE</code> (16 NS entries with stub metadata) and <code>DEMO_CLIST</code> (8 GTs). These are the C-List contents that CR6 points to when boot execution begins. The seven real GTs at indices 0\u202f\u2013\u202f6 correspond to the c-list[idx] references in the listing above. See <code>hardware/boot_rom.py</code> lines 102\u2013114.</p>
 </div>
 <div class="sr-key-concept"><div class="sr-concept-title">make_gt() and _make_ns_entry() Helper Functions</div>
-<p><code>make_gt(gt_type, perms, slot_id, gt_seq)</code> encodes the 32-bit GT word: <code>(perms &lt;&lt; 25) | (gt_type &lt;&lt; 23) | (gt_seq &lt;&lt; 16) | slot_id</code>. <code>_make_ns_entry()</code> builds the full 4-word NS table entry including the CRC-16 seal over <code>(GT[24:0], location, word1_w2)</code>. Both functions use the current field names \u2014 <code>slot_id</code>, <code>gt_seq</code>, Real/Abstract type codes \u2014 matching the GT Word\u202f0 format shown on the overview slide.</p>
+<p><code>make_gt(gt_type, perms, slot_id, gt_seq)</code> encodes the 32-bit GT word: <code>(perms &lt;&lt; 25) | (gt_type &lt;&lt; 23) | (gt_seq &lt;&lt; 16) | slot_id</code>. <code>_make_ns_entry()</code> builds the full 4-word NS table entry including the CRC-16 seal over <code>(GT[24:0], location, word1_w2)</code>. Both functions use the current field names \u2014 <code>slot_id</code>, <code>gt_seq</code>, Inform/Abstract type codes \u2014 matching the GT Word\u202f0 format shown on the overview slide.</p>
 </div>`
             },
             {
@@ -480,7 +480,7 @@ USER_ENTRY:
             html += '<div class="sr-step-container sr-type-intro">';
             html += '<div class="sr-step-title">Secure Boot \u2014 CLOOMC Assembly Listing</div>';
             html += '<div class="sr-step-content">';
-            html += '<p>This tutorial presents the canonical CLOOMC assembly listing for secure startup on the Church Machine. It covers LOAD_NS, GT seal validation, C-List wiring, and the first CALL into user code \u2014 using the current GT Word\u202f0 format (slot_id, gt_seq, CRC-16 seal, Real/Abstract type codes).</p>';
+            html += '<p>This tutorial presents the canonical CLOOMC assembly listing for secure startup on the Church Machine. It covers LOAD_NS, GT seal validation, C-List wiring, and the first CALL into user code \u2014 using the current GT Word\u202f0 format (slot_id, gt_seq, CRC-16 seal, Inform/Abstract type codes).</p>';
             html += '<p>Click <strong>Next</strong> to begin.</p>';
             html += '</div></div>';
         }

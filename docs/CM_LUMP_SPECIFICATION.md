@@ -227,7 +227,7 @@ When `mLoad` validation encounters a NULL slot in the NS table, the GT
 used in the instruction is set to NULL — causing any subsequent CALL,
 LOAD, or DREAD on that register to fault.
 
-### Real GT (typ = 01)
+### Inform GT (typ = 01)
 
 Issued by Mint. References a physical memory region. The R/W/X or L/S/E
 permission bits describe what the holder may do with that region.
