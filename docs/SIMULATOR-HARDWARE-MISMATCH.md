@@ -1,7 +1,7 @@
 # Simulator ↔ Hardware Mismatch Report
 
-**Status**: CRITICAL — Simulator GT type names do not match hardware definitions  
-**Date**: March 29, 2026  
+**Status**: ✅ FIXED — All GT type names corrected to match hardware definitions  
+**Date**: March 29, 2026 (fixed March 30, 2026)  
 **Files**: `simulator/simulator.js` vs `hardware/hw_types.py`
 
 ---
@@ -150,12 +150,18 @@ Simulator was written before complete GT type system was defined. It used placeh
 
 ---
 
-## Files to Update
+## Files Updated
 
-- [ ] `simulator/simulator.js` — Fix typeName array and type comparisons
-- [ ] `simulator/app.js` — Check for any hardcoded type values (unlikely)
-- [ ] `simulator/assembler.js` — Check for type constants (if any)
-- [ ] `simulator/secure_boot_tutorial.js` — Verify it uses type 3 for Abstract GTs
+- [x] `simulator/simulator.js` — Fixed typeName array and type comparisons
+- [x] `simulator/app.js` — Fixed all typeNames arrays and boot text strings
+- [x] `simulator/assembler.js` — Fixed TPERM preset map (LE/SE/LSE) and disassembly names
+- [x] `simulator/secure_boot_tutorial.js` — All GT type references updated to Inform
+- [x] `simulator/system_abstractions.js` — Type guard and error messages fixed
+- [x] `simulator/sliderule_tutorial.js` / `namespace_tutorial.js` — Type table updated
+- [x] `hardware/boot_rom.py` — Comment cross-refs updated to Inform
+- [x] `verilog/ctmm_pkg.sv` — GT_TYPE_REAL renamed to GT_TYPE_INFORM; type table corrected
+- [x] `verilog/ctmm_core.sv` / `ctmm_tb.sv` — GT_TYPE_REAL → GT_TYPE_INFORM
+- [x] `docs/CM_LUMP_SPECIFICATION.md` / `isa_encoding.md` — Type descriptions updated
 
 ---
 

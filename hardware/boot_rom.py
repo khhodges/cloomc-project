@@ -185,14 +185,14 @@ for _i in range(16):
 # DEMO_CLIST — initial C-List for the boot abstraction (Slot 2)
 #
 # CLOOMC listing cross-ref: simulator/secure_boot_tutorial.js §"Full Secure Boot CLOOMC Listing"
-#   idx 0: make_gt(Real, R|X, slot_id=3, gt_seq=0) — code/constants read+exec GT
-#   idx 1: make_gt(Real, X,   slot_id=4, gt_seq=0) — Boot code exec-only GT
-#   idx 2: make_gt(Null, 0,   0,         0)         — empty; filled by SAVE epilogue (Thread GT)
-#   idx 3: make_gt(Real, E,   slot_id=2, gt_seq=0) — Boot.Abstr E-GT (return channel)
-#   idx 4: make_gt(Real, E,   slot_id=5, gt_seq=0) — secondary abstraction E-GT
-#   idx 5: make_gt(Real, L,   slot_id=6, gt_seq=0) — C-List L-GT (for BIND)
-#   idx 6: make_gt(Real, E,   slot_id=4, gt_seq=0) — first user abstraction E-GT  ← B:04 LOAD_NUC
-#   idx 7: make_gt(Null, 0,   0,         0)         — reserved
+#   idx 0: make_gt(Inform, R|X, slot_id=3, gt_seq=0) — code/constants read+exec GT
+#   idx 1: make_gt(Inform, X,   slot_id=4, gt_seq=0) — Boot code exec-only GT
+#   idx 2: make_gt(NULL,   0,   0,         0)         — empty; filled by SAVE epilogue (Thread GT)
+#   idx 3: make_gt(Inform, E,   slot_id=2, gt_seq=0) — Boot.Abstr E-GT (return channel)
+#   idx 4: make_gt(Inform, E,   slot_id=5, gt_seq=0) — secondary abstraction E-GT
+#   idx 5: make_gt(Inform, L,   slot_id=6, gt_seq=0) — C-List L-GT (for BIND)
+#   idx 6: make_gt(Inform, E,   slot_id=4, gt_seq=0) — first user abstraction E-GT  ← B:04 LOAD_NUC
+#   idx 7: make_gt(NULL,   0,   0,         0)         — reserved
 # ---------------------------------------------------------------------------
 DEMO_CLIST = [
     make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_X, 3, 0),  # idx 0: code/constants R|X, Slot 3

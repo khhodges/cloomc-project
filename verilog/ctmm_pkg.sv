@@ -42,10 +42,10 @@ package ctmm_pkg;
     localparam logic [5:0] CAP_PERMS = PERM_MASK_L | PERM_MASK_S | PERM_MASK_E;
 
     // GT type encoding
-    localparam logic [1:0] GT_TYPE_NULL     = 2'b00;  // Null/invalid token
-    localparam logic [1:0] GT_TYPE_REAL     = 2'b01;  // Real (concrete) object
-    localparam logic [1:0] GT_TYPE_ABSTRACT = 2'b10;  // Abstract (lambda) object
-    localparam logic [1:0] GT_TYPE_RSV      = 2'b11;  // Reserved
+    localparam logic [1:0] GT_TYPE_NULL     = 2'b00;  // NULL/invalid token
+    localparam logic [1:0] GT_TYPE_INFORM   = 2'b01;  // Inform (concrete local object)
+    localparam logic [1:0] GT_TYPE_OUTFORM  = 2'b10;  // Outform (remote/abstract-library object)
+    localparam logic [1:0] GT_TYPE_ABSTRACT = 2'b11;  // Abstract (PassKey/value)
 
     // Golden Token structure (Word 0) - 32 bits, packed LSB-first
     typedef struct packed {

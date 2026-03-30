@@ -151,12 +151,12 @@ Documentation does not explicitly state which GT bits are CRC'd.
 
 ### Issue: "Real" vs "Inform" GT Type (throughout tutorials)
 
-| Location | Current | Should Be | Impact |
-|----------|---------|-----------|--------|
-| `simulator/secure_boot_tutorial.js` | `GT_TYPE_REAL` | `GT_TYPE_INFORM` | Tutorial won't execute |
-| Comments referencing "Real" | "Real" | "Inform" | Confusion |
+| Location | Old (wrong) | Fixed | Impact |
+|----------|-------------|-------|--------|
+| `simulator/secure_boot_tutorial.js` | `GT_TYPE_REAL` | `GT_TYPE_INFORM` | ✅ Fixed |
+| Comments referencing "Real" | "Real" | "Inform" | ✅ Fixed |
 
-**Fix**: Replace all 6 occurrences in `secure_boot_tutorial.js`
+**Status**: ✅ FIXED (March 30, 2026) — All "Real" GT type references replaced with "Inform" across all simulator JS, hardware Python comments, verilog definitions, and documentation.
 
 ---
 

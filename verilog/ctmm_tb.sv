@@ -189,14 +189,14 @@ module ctmm_tb;
         end
         
         // Initialize Boot C-List entries
-        clist_mem[0] = '{b_flag: 1'b0, perms: PERM_MASK_X, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0001};  // Access.asm
-        clist_mem[1] = '{b_flag: 1'b0, perms: PERM_MASK_L, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0003};  // Kenneth
-        clist_mem[2] = '{b_flag: 1'b0, perms: PERM_MASK_L, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0004};  // Matthew
-        clist_mem[3] = '{b_flag: 1'b0, perms: PERM_MASK_L, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0005};  // Daniel
-        clist_mem[4] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0006};  // SlideRule
-        clist_mem[5] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0007};  // Abacus
-        clist_mem[6] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0008};  // Circle
-        clist_mem[7] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_REAL, gt_seq: 7'h0, slot_id: 16'h0009};  // CapabilityManager
+        clist_mem[0] = '{b_flag: 1'b0, perms: PERM_MASK_X, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0001};  // Access.asm
+        clist_mem[1] = '{b_flag: 1'b0, perms: PERM_MASK_L, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0003};  // Kenneth
+        clist_mem[2] = '{b_flag: 1'b0, perms: PERM_MASK_L, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0004};  // Matthew
+        clist_mem[3] = '{b_flag: 1'b0, perms: PERM_MASK_L, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0005};  // Daniel
+        clist_mem[4] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0006};  // SlideRule
+        clist_mem[5] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0007};  // Abacus
+        clist_mem[6] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0008};  // Circle
+        clist_mem[7] = '{b_flag: 1'b0, perms: PERM_MASK_E, gt_type: GT_TYPE_INFORM, gt_seq: 7'h0, slot_id: 16'h0009};  // CapabilityManager
         
         // Test program: MOV DR0, #42; ADD DR1, DR0, #10; CMP DR1, #52
         // MOV instruction: opcode=010000, dr_dst=0, imm=42, use_imm=1
@@ -259,8 +259,8 @@ module ctmm_tb;
         $display("------------------------------------------");
         
         // Set G bit on some entries
-        clist_mem[10] = '{b_flag: 1'b1, perms: PERM_MASK_R, gt_type: GT_TYPE_REAL, gt_seq: 7'h1, slot_id: 16'h000A};
-        clist_mem[11] = '{b_flag: 1'b1, perms: PERM_MASK_W, gt_type: GT_TYPE_REAL, gt_seq: 7'h1, slot_id: 16'h000B};
+        clist_mem[10] = '{b_flag: 1'b1, perms: PERM_MASK_R, gt_type: GT_TYPE_INFORM, gt_seq: 7'h1, slot_id: 16'h000A};
+        clist_mem[11] = '{b_flag: 1'b1, perms: PERM_MASK_W, gt_type: GT_TYPE_INFORM, gt_seq: 7'h1, slot_id: 16'h000B};
         
         gc_start = 1;
         #10;

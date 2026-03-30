@@ -379,7 +379,7 @@ module ctmm_core
                 cr15_wr_data = '{
                     b_flag:  1'b0,
                     perms:   PERM_MASK_L,
-                    gt_type: GT_TYPE_REAL,
+                    gt_type: GT_TYPE_INFORM,
                     gt_seq:  7'h0,
                     slot_id: 16'h0000
                 };
@@ -390,7 +390,7 @@ module ctmm_core
                 cr8_wr_data = '{
                     b_flag:  1'b0,
                     perms:   PERM_MASK_L,
-                    gt_type: GT_TYPE_REAL,
+                    gt_type: GT_TYPE_INFORM,
                     gt_seq:  7'h0,
                     slot_id: 16'h0003
                 };
@@ -401,7 +401,7 @@ module ctmm_core
                 cr6_wr_data = '{
                     b_flag:  1'b0,
                     perms:   PERM_MASK_L | PERM_MASK_S | PERM_MASK_E,
-                    gt_type: GT_TYPE_REAL,
+                    gt_type: GT_TYPE_INFORM,
                     gt_seq:  7'h0,
                     slot_id: 16'h0002
                 };
@@ -409,7 +409,7 @@ module ctmm_core
                 cr14_wr_data = '{
                     b_flag:  1'b0,
                     perms:   PERM_MASK_X,
-                    gt_type: GT_TYPE_REAL,
+                    gt_type: GT_TYPE_INFORM,
                     gt_seq:  7'h0,
                     slot_id: 16'h0001
                 };
