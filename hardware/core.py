@@ -17,17 +17,21 @@ from .mload import ChurchMLoad
 from .change import ChurchChange
 from .switch import ChurchSwitch
 from .fused_unit import ChurchELoadCall, ChurchXLoadLambda
+from .dread import ChurchDRead
+from .dwrite import ChurchDWrite
 
 
 class ChurchCore(Elaboratable):
-    """Pure Church Machine core — zero Turing-domain instructions.
+    """Church Machine core — 10 Church opcodes + 2 Turing-domain opcodes.
 
     Clean 32-bit instruction format matching patent Section 14:
     opcode[5] | cond[4] | dst[4] | src[4] | imm[15].
     10 Church opcodes: LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA,
     ELOADCALL (fused LOAD+TPERM(E)+CALL), XLOADLAMBDA (fused LOAD+TPERM(X)+LAMBDA).
-    Any invalid opcode faults immediately.
-    No ALU, no branches, no data memory load/store — pure capability security.
+    2 Turing opcodes:  DREAD (bounded data read), DWRITE (bounded data write).
+    DREAD/DWRITE use CR-cached base+limit; no NS table re-lookup needed.
+    MMIO access: top-level decodes dmem_addr[30]=1,dmem_addr[31]=0 → MMIO.
+    Any other invalid opcode faults immediately.
 
     All features enabled: GC, CHANGE/SWITCH, fused ops, seal checks.
     """
@@ -102,8 +106,13 @@ class ChurchCore(Elaboratable):
         m.submodules.u_shared_mload = u_shared_mload
         m.submodules.u_change = u_change
         m.submodules.u_switch = u_switch
+        u_dread = ChurchDRead()
+        u_dwrite = ChurchDWrite()
+
         m.submodules.u_eloadcall = u_eloadcall
         m.submodules.u_xloadlambda = u_xloadlambda
+        m.submodules.u_dread = u_dread
+        m.submodules.u_dwrite = u_dwrite
 
         nia_reg = Signal(32)
 
@@ -143,6 +152,8 @@ class ChurchCore(Elaboratable):
         ]
 
         is_church_op = u_decoder.is_church_op
+        is_dread_op  = u_decoder.is_dread_op
+        is_dwrite_op = u_decoder.is_dwrite_op
         church_op = u_decoder.church_op
         cr_src = u_decoder.cr_src
         cr_dst = u_decoder.cr_dst
@@ -159,7 +170,8 @@ class ChurchCore(Elaboratable):
             u_return.busy | u_save.save_busy | u_load.load_busy |
             u_gc.gc_busy |
             u_change.change_busy | u_switch.switch_busy |
-            u_eloadcall.busy | u_xloadlambda.busy
+            u_eloadcall.busy | u_xloadlambda.busy |
+            u_dread.busy | u_dwrite.busy
         )
         m.d.comb += any_unit_busy.eq(busy_expr)
 
@@ -173,7 +185,10 @@ class ChurchCore(Elaboratable):
         ret_start_sig = Signal()
 
         cr_rd_addr_default = Mux(u_eloadcall.busy, u_eloadcall.cr_rd_addr,
-                                 Mux(u_xloadlambda.busy, u_xloadlambda.cr_rd_addr, cr_src))
+                                 Mux(u_xloadlambda.busy, u_xloadlambda.cr_rd_addr,
+                                     Mux(u_dread.busy, u_dread.cr_rd_addr,
+                                         Mux(u_dwrite.busy, u_dwrite.cr_rd_addr,
+                                             cr_src))))
         cr_rd_addr_inner = Mux(u_change.change_busy, u_change.cr_rd_addr,
                                Mux(u_switch.switch_busy, u_switch.cr_rd_addr,
                                    cr_rd_addr_default))
@@ -249,10 +264,20 @@ class ChurchCore(Elaboratable):
             u_regs.flags_in.eq(0),
             u_regs.flags_wr_en.eq(0),
             u_regs.clear_all.eq(clear_all),
-            u_regs.dr_wr_addr.eq(0),
-            u_regs.dr_wr_data.eq(0),
-            u_regs.dr_wr_en.eq(0),
         ]
+
+        with m.If(u_dread.dr_wr_en):
+            m.d.comb += [
+                u_regs.dr_wr_addr.eq(u_dread.dr_wr_addr),
+                u_regs.dr_wr_data.eq(u_dread.dr_wr_data),
+                u_regs.dr_wr_en.eq(1),
+            ]
+        with m.Else():
+            m.d.comb += [
+                u_regs.dr_wr_addr.eq(0),
+                u_regs.dr_wr_data.eq(0),
+                u_regs.dr_wr_en.eq(0),
+            ]
 
         cr_wr_addr_default = Mux(u_eloadcall.busy, u_eloadcall.cr_wr_addr,
                                  Mux(u_xloadlambda.busy, u_xloadlambda.cr_wr_addr, 0))
@@ -465,6 +490,35 @@ class ChurchCore(Elaboratable):
             u_save.mem_rd_valid.eq(1),
         ]
 
+        dread_start_sig = Signal()
+        m.d.comb += dread_start_sig.eq(
+            cond_exec_enable & is_dread_op & ~any_unit_busy
+        )
+        m.d.comb += [
+            u_dread.start.eq(dread_start_sig),
+            u_dread.cr_src.eq(cr_src),
+            u_dread.dr_dst.eq(cr_dst),
+            u_dread.imm.eq(u_decoder.immediate),
+            u_dread.cr_rd_data.eq(u_regs.cr_rd_data),
+            u_dread.dmem_rd_data.eq(self.dmem_rd_data),
+        ]
+
+        dwrite_start_sig = Signal()
+        m.d.comb += dwrite_start_sig.eq(
+            cond_exec_enable & is_dwrite_op & ~any_unit_busy
+        )
+        m.d.comb += [
+            u_dwrite.start.eq(dwrite_start_sig),
+            u_dwrite.cr_src.eq(cr_src),
+            u_dwrite.dr_src.eq(cr_dst),
+            u_dwrite.imm.eq(u_decoder.immediate),
+            u_dwrite.cr_rd_data.eq(u_regs.cr_rd_data),
+            u_dwrite.dr_rd_data.eq(u_regs.dr_rd_data2),
+        ]
+        m.d.comb += u_regs.dr_rd_addr2.eq(
+            Mux(u_dwrite.busy, u_dwrite.dr_rd_addr, 0)
+        )
+
         load_start_sig = Signal()
         m.d.comb += load_start_sig.eq(
             cond_exec_enable & is_church_op & (church_op == ChurchOpcode.LOAD) & ~any_unit_busy
@@ -603,6 +657,10 @@ class ChurchCore(Elaboratable):
             m.d.comb += [self.fault.eq(u_eloadcall.fault_type), self.fault_valid.eq(1)]
         with m.Elif(u_xloadlambda.fault):
             m.d.comb += [self.fault.eq(u_xloadlambda.fault_type), self.fault_valid.eq(1)]
+        with m.Elif(u_dread.fault):
+            m.d.comb += [self.fault.eq(u_dread.fault_type), self.fault_valid.eq(1)]
+        with m.Elif(u_dwrite.fault):
+            m.d.comb += [self.fault.eq(u_dwrite.fault_type), self.fault_valid.eq(1)]
         with m.Else():
             m.d.comb += [self.fault.eq(FaultType.NONE), self.fault_valid.eq(0)]
 
@@ -696,6 +754,17 @@ class ChurchCore(Elaboratable):
             m.d.comb += [
                 self.dmem_addr.eq(u_save.mem_rd_addr),
                 self.dmem_rd_en.eq(1),
+            ]
+        with m.Elif(u_dread.dmem_rd_en):
+            m.d.comb += [
+                self.dmem_addr.eq(u_dread.dmem_addr),
+                self.dmem_rd_en.eq(1),
+            ]
+        with m.Elif(u_dwrite.dmem_wr_en):
+            m.d.comb += [
+                self.dmem_addr.eq(u_dwrite.dmem_addr),
+                self.dmem_wr_data.eq(u_dwrite.dmem_wr_data),
+                self.dmem_wr_en.eq(1),
             ]
 
         m.d.comb += [

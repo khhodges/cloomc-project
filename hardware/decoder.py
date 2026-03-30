@@ -6,16 +6,20 @@ from .layouts import COND_FLAGS_LAYOUT
 
 
 class ChurchDecoder(Elaboratable):
-    """Pure Church Machine decoder — clean 32-bit instruction format.
+    """Church Machine decoder — clean 32-bit instruction format.
 
     Instruction format (32 bits) — matches patent Section 14:
-        [31:27]  opcode    — 5 bits (10 Church opcodes + 22 reserved)
+        [31:27]  opcode    — 5 bits (10 Church opcodes + 2 Turing + 20 reserved)
         [26:23]  condition — 4 bits (ARM-style conditional execution)
-        [22:19]  cr_dst    — 4 bits (destination capability register)
+        [22:19]  cr_dst    — 4 bits (destination CR / DR index for Turing ops)
         [18:15]  cr_src    — 4 bits (source capability register)
-        [14:0]   immediate — 15 bits (index / preset / mask / target)
+        [14:0]   immediate — 15 bits (index / preset / mask / target / word offset)
 
     No RISC-V encoding. No wasted bits. Every field at a fixed position.
+
+    Turing ops implemented: DREAD (0b10000), DWRITE (0b10001).
+    For Turing ops, cr_dst field is a DR index (0-15); cr_src is the CR
+    holding the data GT; immediate is the word offset into the region.
     """
 
     def __init__(self):
@@ -25,6 +29,8 @@ class ChurchDecoder(Elaboratable):
 
         self.exec_enable = Signal()
         self.is_church_op = Signal()
+        self.is_dread_op  = Signal()
+        self.is_dwrite_op = Signal()
 
         self.church_op = Signal(5)
         self.cr_dst = Signal(4)
@@ -101,9 +107,22 @@ class ChurchDecoder(Elaboratable):
 
         m.d.comb += self.exec_enable.eq(self.instr_valid & cond_pass)
 
+        is_dread  = Signal()
+        is_dwrite = Signal()
+        m.d.comb += [
+            is_dread.eq(opcode_field == TuringOpcode.DREAD),
+            is_dwrite.eq(opcode_field == TuringOpcode.DWRITE),
+        ]
+
         valid_opcode = Signal()
-        m.d.comb += valid_opcode.eq(opcode_field <= ChurchOpcode.XLOADLAMBDA)
-        m.d.comb += self.is_church_op.eq(valid_opcode & self.instr_valid)
+        m.d.comb += valid_opcode.eq(
+            (opcode_field <= ChurchOpcode.XLOADLAMBDA) | is_dread | is_dwrite
+        )
+        m.d.comb += [
+            self.is_church_op.eq((opcode_field <= ChurchOpcode.XLOADLAMBDA) & self.instr_valid),
+            self.is_dread_op.eq(is_dread  & self.instr_valid),
+            self.is_dwrite_op.eq(is_dwrite & self.instr_valid),
+        ]
 
         m.d.comb += [
             self.fault_valid.eq(0),

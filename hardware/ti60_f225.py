@@ -98,7 +98,61 @@ class ChurchTi60F225(Elaboratable):
             mem_rd_data.eq(dmem_rd.data),
         ]
 
-        m.d.comb += core.dmem_rd_data.eq(mem_rd_data)
+        # ── MMIO decode ─────────────────────────────────────────────────────
+        # MMIO range: address[31:30] == 0b01  →  bit-30 decode (ARM convention)
+        # Registers (word-addressed via bits[4:2]):
+        #   0x40000000  [0]  LED        — 4-bit write/read (active-HIGH)
+        #   0x40000004  [1]  UART_TX    — 8-bit write-only  (115200 baud)
+        #   0x40000008  [2]  UART_STATUS— 32-bit read-only  {30'b0, rx_valid, tx_ready}
+        #   0x4000000C  [3]  UART_RX    — 8-bit read-only
+        #   0x40000010  [4]  BTN        — 1-bit read-only   (push button)
+        #   0x40000014  [5]  TIMER      — 32-bit read-only  (cycle counter)
+        is_mmio = Signal()
+        m.d.comb += is_mmio.eq(core.dmem_addr[30] & ~core.dmem_addr[31])
+        mmio_reg_sel = Signal(3)
+        m.d.comb += mmio_reg_sel.eq(core.dmem_addr[2:5])
+
+        mmio_led_reg    = Signal(4)
+        mmio_uart_tx_wr = Signal()
+        mmio_uart_tx_data = Signal(8)
+        timer_ctr       = Signal(32)
+        m.d.sync += timer_ctr.eq(timer_ctr + 1)
+
+        is_mmio_write = Signal()
+        m.d.comb += is_mmio_write.eq(is_mmio & core.dmem_wr_en)
+
+        with m.If(is_mmio_write):
+            with m.Switch(mmio_reg_sel):
+                with m.Case(0):
+                    m.d.sync += mmio_led_reg.eq(core.dmem_wr_data[:4])
+                with m.Case(1):
+                    m.d.comb += [
+                        mmio_uart_tx_wr.eq(1),
+                        mmio_uart_tx_data.eq(core.dmem_wr_data[:8]),
+                    ]
+
+        is_mmio_read = Signal()
+        m.d.comb += is_mmio_read.eq(is_mmio & core.dmem_rd_en)
+
+        mmio_rd_data = Signal(32)
+        with m.Switch(mmio_reg_sel):
+            with m.Case(0):
+                m.d.comb += mmio_rd_data.eq(mmio_led_reg)
+            with m.Case(1):
+                m.d.comb += mmio_rd_data.eq(0)
+            with m.Case(2):
+                m.d.comb += mmio_rd_data.eq(Cat(C(1, 1), C(0, 31)))
+            with m.Case(3):
+                m.d.comb += mmio_rd_data.eq(0)
+            with m.Case(4):
+                m.d.comb += mmio_rd_data.eq(Cat(self.push_button, C(0, 31)))
+            with m.Case(5):
+                m.d.comb += mmio_rd_data.eq(timer_ctr)
+            with m.Default():
+                m.d.comb += mmio_rd_data.eq(0)
+        # ── end MMIO decode ──────────────────────────────────────────────────
+
+        m.d.comb += core.dmem_rd_data.eq(Mux(is_mmio_read, mmio_rd_data, mem_rd_data))
         m.d.comb += [
             core.ns_rd_data.eq(Cat(mem_rd_data, C(0, 64))),
             core.clist_rd_data.eq(mem_rd_data),
@@ -110,7 +164,7 @@ class ChurchTi60F225(Elaboratable):
             m.d.comb += [wr_data.eq(core.ns_wr_data[:32]), wr_en.eq(1)]
         with m.Elif(core.clist_wr_en):
             m.d.comb += [wr_data.eq(core.clist_wr_data), wr_en.eq(1)]
-        with m.Else():
+        with m.Elif(~is_mmio):
             m.d.comb += [wr_data.eq(core.dmem_wr_data), wr_en.eq(core.dmem_wr_en)]
 
         m.d.comb += [
@@ -163,11 +217,13 @@ class ChurchTi60F225(Elaboratable):
         led_halted_blink = core.boot_complete & halted & ~core.fault_valid & heartbeat_blink
         led_fault = core.fault_valid
 
+        # Post-boot: software controls LEDs via DWRITE to 0x40000000 (mmio_led_reg).
+        # Pre-boot:  show hardware status (boot, run, fault, heartbeat).
         m.d.comb += [
-            self.led[0].eq(led_boot),
-            self.led[1].eq(led_run | led_halted_blink),
-            self.led[2].eq(led_fault),
-            self.led[3].eq(core.boot_complete),
+            self.led[0].eq(Mux(core.boot_complete, mmio_led_reg[0], led_boot)),
+            self.led[1].eq(Mux(core.boot_complete, mmio_led_reg[1], led_run | led_halted_blink)),
+            self.led[2].eq(Mux(core.boot_complete, mmio_led_reg[2], led_fault)),
+            self.led[3].eq(Mux(core.boot_complete, mmio_led_reg[3], core.boot_complete)),
         ]
 
         boot_delay = Signal(4, init=0)

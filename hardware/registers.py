@@ -125,7 +125,7 @@ class ChurchRegisters(Elaboratable):
                     m.d.sync += cap_regs[i].eq(0)
                 with m.Elif(self.cr_b_clear_mask[i]):
                     cr_view = View(CAP_REG_LAYOUT, cap_regs[i])
-                    m.d.sync += cr_view.word0_gt[31].eq(0)
+                    m.d.sync += cr_view.word0_gt.b_flag.eq(0)
 
             with m.If(self.dr_wr_en & (self.dr_wr_addr != 0)):
                 m.d.sync += data_regs[self.dr_wr_addr].eq(self.dr_wr_data)
