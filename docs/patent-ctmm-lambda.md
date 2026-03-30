@@ -282,7 +282,7 @@ Every frame on the capability stack carries a **1-bit tag** identifying its type
 
 | Tag | Frame Type | Contents | RETURN Behavior |
 |-----|-----------|----------|----------------|
-| 0 | CALL frame | CR5, CR6, CR14, PC, LAMBDA state | Full domain restoration: restore CRs, switch C-List, revalidate via mLoad |
+| 0 | CALL frame | [E-GT · machine word] — 2 words | Full domain restoration: re-derive CR5/CR6/CR14 from NS, switch C-List, revalidate via mLoad |
 | 1 | LAMBDA frame | PC only | Simple PC restoration: pop return address, resume |
 
 LAMBDA frames appear on the stack only when a CALL intervenes during a LAMBDA body and the LAMBDA state must be saved. In the common case (no CALL intervention), no LAMBDA frame is ever pushed — the machine-status fast path handles everything.
@@ -319,7 +319,7 @@ The LAMBDA instruction and the CALL instruction serve fundamentally different pu
 |----------|--------|------|
 | Permission required | X (Execute) | E (Enter) |
 | Protection domain | Same (no C-List change) | Crosses to new domain |
-| Stack frame (common case) | None (machine status registers) | Full (CR5/CR6/CR14 + PC + LAMBDA state) |
+| Stack frame (common case) | None (machine status registers) | 2-word frame [E-GT · machine word]; CR5/CR6/CR14 re-derived via mLoad on RETURN |
 | mLoad validation | None (body already validated) | Full path for new C-List |
 | CR6 (C-List) | Unchanged | Switched to callee's C-List |
 | Arguments/results | Data registers (x0-x31) | Data registers (x0-x31) |
@@ -740,7 +740,7 @@ The key performance insight is that in the common case (LAMBDA → body → RETU
 
 | Step | LAMBDA Path | CALL Path |
 |------|-------------|-----------|
-| Entry | Verify X perm, save PC to status reg (2 cycles) | Push CR5/CR6/CR14/PC to stack, switch C-List (5+ cycles) |
+| Entry | Verify X perm, save PC to status reg (2 cycles) | Push 2-word frame [E-GT + machine word] to stack, switch C-List (5+ cycles) |
 | Body | Execute code (N cycles) | Execute code (N cycles) |
 | Return | Check flag, restore PC from status reg (1 cycle) | Pop frame, revalidate CRs via mLoad (5+ cycles) |
 | **Total overhead** | **3 cycles** | **10+ cycles** |
@@ -865,7 +865,7 @@ Flow diagram showing LAMBDA entry (save PC+4 to LAMBDA_PC register, set LAMBDA-a
 
 ### Figure 4: Self-Describing Stack Frames
 
-Diagram showing the capability stack with interleaved CALL frames (tag=0, full context: CR5/CR6/CR14/PC/LAMBDA state) and LAMBDA frames (tag=1, minimal: PC only). Shows RETURN inspecting the tag to determine the restoration path.
+Diagram showing the capability stack with interleaved CALL frames (tag=0, 2-word frame: [E-GT · machine word]; RETURN re-derives CR5/CR6/CR14 via mLoad) and LAMBDA frames (tag=1, 1-word frame: machine word only). Shows RETURN inspecting the tag to determine the restoration path.
 
 ### Figure 5: Non-Nestable LAMBDA with CALL-Mediated Nesting
 

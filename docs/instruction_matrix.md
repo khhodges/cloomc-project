@@ -108,34 +108,30 @@ This document maps each instruction across all implementation layers for verific
 
 | Register | Purpose           | Instruction Addressable | Notes |
 |:---------|:------------------|:------------------------|:------|
-| CR0-CR7  | User capabilities | Yes (3-bit encoding)    | Normal instruction access |
-| CR8      | Thread identity   | Boot only               | Hardwired GT at offset 3, M permission |
-| CR9-CR14 | Reserved          | No                      | Future use |
-| CR15     | Namespace root    | Boot only               | Hardwired GT at offset 0, M permission |
-| CR6      | Current C-List    | Read via LOAD/SWITCH    | Modified by SWITCH |
-| CR14     | Nucleus           | Read via LOAD           | Boot-time initialization |
+| CR0-CR11 | General-purpose   | Yes (4-bit encoding)    | Programmer registers; CR6=C-List, CR8-CR11=free GP |
+| CR12     | Thread/Fault      | Privileged zone         | Thread identity + per-thread fault handler |
+| CR13     | Interrupt         | Privileged zone         | System-wide interrupt handler; unchanged by CHANGE |
+| CR14     | Code/CLOOMC       | Privileged zone         | Per-thread code GT; re-derived by CALL via mLoad |
+| CR15     | Namespace root    | Privileged zone         | Hardwired at boot; defines system security boundary |
 
-### Boot Sequence CR8/CR15 Initialization
+### Boot Sequence — Privileged Register Initialization
 
-The boot sequence is the **only** time CR8 and CR15 can be addressed:
+The five-phase boot sequence initializes the privileged zone (CR12–CR15):
 
-1. **CR15 (Namespace)**: Loaded from hardwired boot GT at offset 0
-   - Permissions: M only (Meta-machine access)
-   - Points to the root Namespace table
+1. **CR15 (Namespace)**: Loaded at B:00 from hardwired boot GT — M permission only; points to the NS table
+2. **CR12 (Thread Identity)**: Loaded at B:02 via mLoad from NS Slot 1 — zero perms, Inform-type; encodes lump base and bounds
+3. **CR14 (Code/CLOOMC)**: Derived at B:04 from NS Slot 2 metadata — X permission; instruction fetch source
+4. **CR13 (Interrupt)**: Loaded at B:03 or by SWITCH from a PassKey capability — system-wide, unchanged by CHANGE
 
-2. **CR8 (Thread)**: Loaded from hardwired boot GT at offset 3
-   - Permissions: M only (Meta-machine access)
-   - Identifies the current thread
-
-After boot completes:
-- CR8 can only be modified via CHANGE instruction
-- CR15 is immutable (root namespace)
-- 3-bit instruction encoding physically prevents addressing CR8-CR15
+After boot:
+- CR12–CR15 are the privileged zone; only accessible via CALL (re-derives CR6/CR14), CHANGE (saves/restores CR12/CR14/CR15), or SWITCH (CR13/CR15 only, with PassKey)
+- CR0–CR11 are the programmer-accessible GP registers (4-bit instruction field)
+- SWITCH uses a 3-bit Tgt field (CR8–CR15 address range); only Tgt=101₂ (CR13) and Tgt=111₂ (CR15) are valid
 
 ### Verification Points
 
-- [ ] JS: Check CR index validation in LOAD/SAVE/LDM/STM (must be 0-7 after boot)
-- [ ] JS: Verify boot sequence loads CR8/CR15 with M-only permissions
+- [ ] JS: Check CR index validation in LOAD/SAVE — normal instructions must not address CR12-CR15
+- [ ] JS: Verify boot sequence initializes CR15, CR12, CR14 in correct phase order
 - [ ] Verilog: Check CRd/CRn field width (3 bits) in decoder
 - [ ] Tutorial: Verify explanation of CR8-15 protection
 
@@ -162,7 +158,7 @@ After boot completes:
 | CR8/CR15 access | JS Simulator | LOAD allows writing to CR8/CR15 - OK for boot, but should be restricted after | DOCUMENTED |
 | Boot GT permissions | JS Simulator | Boot GTs for CR8/CR15 should have M permission only | VERIFY |
 | Boot offsets | JS Simulator | CR15=offset 0, CR8=offset 3 (hardwired) | VERIFY |
-| SWITCH target field | All | Added 3-bit target for CR8-CR15: 0=CR8, 1=CR9, 2=CR10, 7=CR15 | IMPLEMENTED |
+| SWITCH target field | All | 3-bit Tgt field addresses CR8-CR15 (Tgt+8); valid targets: CR13 (Tgt=101₂) and CR15 (Tgt=111₂) only | IMPLEMENTED |
 
 ---
 
@@ -203,10 +199,10 @@ Only **CR13** (Tgt=101₂) and **CR15** (Tgt=111₂) are valid SWITCH targets. A
 
 | Tgt[2:0] | Register | SWITCH Validity | Notes |
 |:---------|:---------|:----------------|:------|
-| 000 | CR8 | FAULT — reserved | (CHANGE always targets CR8 implicitly) |
-| 001 | CR9 | FAULT — reserved | Reserved |
-| 010 | CR10 | FAULT — reserved | Reserved |
-| 011 | CR11 | FAULT — reserved | Reserved |
+| 000 | CR8 | FAULT — not a valid SWITCH target | CR8 is a GP register; not addressable via SWITCH |
+| 001 | CR9 | FAULT — not a valid SWITCH target | GP register |
+| 010 | CR10 | FAULT — not a valid SWITCH target | GP register |
+| 011 | CR11 | FAULT — not a valid SWITCH target | GP register |
 | 100 | CR12 | FAULT — reserved | Thread Identity (managed by CHANGE only) |
 | 101 | CR13 | **Valid** — IRQ Thread | Required CRs.word1_location: `0xFFFFFFFE` |
 | 110 | CR14 | FAULT — reserved | Transient (re-derived by cLoad on each CALL) |

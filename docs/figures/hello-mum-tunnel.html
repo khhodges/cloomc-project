@@ -313,7 +313,7 @@
   <rect x="60" y="1270" width="50" height="30" rx="15" fill="#5dade2"/>
   <text class="cell-b" x="85" y="1285" fill="#0a0e17">2</text>
   <rect x="120" y="1270" width="920" height="30" rx="6" fill="#0f1a2a" stroke="#3a4a5a" stroke-width="1"/>
-  <text class="lt" x="135" y="1285" fill="#e8e8e8">CALL pushes stack frame (CR5, CR6, CR14, PC, LAMBDA flags) &mdash; 5 words</text>
+  <text class="lt" x="135" y="1285" fill="#e8e8e8">CALL pushes 2-word frame [E-GT &middot; machine word]; re-derives CR5/CR6/CR14 via mLoad on RETURN</text>
 
   <!-- Step 3 -->
   <rect x="60" y="1310" width="50" height="30" rx="15" fill="#5dade2"/>
