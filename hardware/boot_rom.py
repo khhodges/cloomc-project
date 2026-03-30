@@ -111,7 +111,7 @@ BOOT_PROGRAM += [
     # CLOOMC: LOAD AL, CR7, CR6[1]
     encode_church(ChurchOpcode.LOAD, CondCode.AL, cr_dst=7, cr_src=6, imm=1),
 
-    # Epilogue — restrict CR7 to X permission only
+    # Epilogue — restrict CR14 to X permission only
     # CLOOMC: TPERM AL, CR7, #X
     encode_church(ChurchOpcode.TPERM, CondCode.AL, cr_dst=7, imm=TpermPreset.X),
 

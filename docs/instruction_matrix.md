@@ -113,7 +113,7 @@ This document maps each instruction across all implementation layers for verific
 | CR9-CR14 | Reserved          | No                      | Future use |
 | CR15     | Namespace root    | Boot only               | Hardwired GT at offset 0, M permission |
 | CR6      | Current C-List    | Read via LOAD/SWITCH    | Modified by SWITCH |
-| CR7      | Nucleus           | Read via LOAD           | Boot-time initialization |
+| CR14     | Nucleus           | Read via LOAD           | Boot-time initialization |
 
 ### Boot Sequence CR8/CR15 Initialization
 

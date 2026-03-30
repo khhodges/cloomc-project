@@ -183,7 +183,7 @@ These registers are protected from direct instruction access. The only way to wr
 | Register | Name | Role |
 |----------|------|------|
 | **CR6**  | C-List | Current capability list — the set of capabilities available to running code |
-| **CR7**  | CLOOMC | Current code object — instruction fetch source (privileged, per-thread) |
+| **CR14** | CLOOMC | Current code object — instruction fetch source (privileged, per-thread) |
 | **CR9**  | Interrupt | Interrupt handler capability |
 | **CR10** | DFault | Data fault handler capability |
 | **CR12** | Thread | Current thread identity |

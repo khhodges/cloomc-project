@@ -122,7 +122,7 @@ NS Entry:
 
 Lump Layout:
   +---------------------------+ offset 0
-  | Code (Turing domain, X)   |  <- CR7 (code region)
+  | Code (Turing domain, X)   |  <- CR14 (code region)
   +---------------------------+ codeEnd
   |      FREESPACE            |  inaccessible
   +---------------------------+ clistStart
@@ -132,7 +132,7 @@ Lump Layout:
 
 When a CALL instruction enters an abstraction, it reads the `clistCount` field from word1 and splits the lump into two regions:
 
-- **CR7 (code):** Base address, limit = clistStart - 1, permissions = X only
+- **CR14 (code): Base address, limit = clistStart - 1, permissions = X only
 - **CR6 (c-list):** Base address + clistStart, limit = clistCount - 1, permissions = L only
 
 These permissions are architecturally hardcoded by the CALL instruction. The calling code cannot influence them. This ensures that code cannot read its own capabilities (no GT leakage) and capabilities cannot be executed as code (no code injection).
@@ -544,9 +544,9 @@ The CLOOMC++ compiler operates within the Church Machine's security model. Regar
 
 1. **Forge a Golden Token.** Tokens are created only by Mint.Create (via Navana). The compiler produces Turing-domain code words — it has no access to Church-domain token creation.
 
-2. **Escape the lump.** The CALL instruction hardcodes CR7 (code region) boundaries. A branch instruction can only target addresses within the lump's code region. Out-of-bounds branches trigger a hardware fault.
+2. **Escape the lump.** The CALL instruction hardcodes CR14 (code region) boundaries. A branch instruction can only target addresses within the lump's code region. Out-of-bounds branches trigger a hardware fault.
 
-3. **Read its own capabilities.** CR6 (c-list) has L-only permission. The code in CR7 has X-only permission. The compiler can emit LOAD instructions that read from the c-list into a capability register, but it cannot emit DREAD instructions that read c-list contents into a data register.
+3. **Read its own capabilities.** CR6 (c-list) has L-only permission. The code in CR14 has X-only permission. The compiler can emit LOAD instructions that read from the c-list into a capability register, but it cannot emit DREAD instructions that read c-list contents into a data register.
 
 4. **Access undeclared abstractions.** The c-list contains exactly the capabilities declared in the `capabilities { }` block. If the source code does not declare Memory, no instruction sequence can reach the Memory abstraction.
 

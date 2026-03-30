@@ -127,13 +127,11 @@ The CHANGE instruction performs thread context switching by modifying the thread
 | **Mnemonic** | `CHANGE CRs` |
 | **Required Permission** | E (Enter) on source CR |
 | **Operation** | Full atomic thread swap via thread table |
-| **Context Saved** | DR0-DR15, CR0-CR11, CR12, STO, PC, FLAGS, LAMBDA state |
-| **Context Loaded** | Incoming thread's DR0-DR15, CR12, STO, PC, FLAGS, LAMBDA state; CR5 re-installed from incoming Zone ④ bounds |
+| **Context Saved** | DR0-DR15, CR0-CR12, CR14, CR15, STO, PC, FLAGS, LAMBDA state |
+| **Context Loaded** | Incoming thread's DR0-DR15, CR0-CR12, CR14, CR15, STO, PC, FLAGS, LAMBDA state; CR5 re-installed from incoming Zone ④ bounds |
 | **CR13 — Unchanged** | IRQ handler — system-wide, shared by all threads |
-| **CR14 — Unchanged** | Transient code-view — re-derived by cLoad on the next CALL |
-| **CR15 — Unchanged** | Namespace root — system-wide, shared by all threads |
 
-CHANGE performs a full atomic swap of per-thread state: data registers DR0–DR15, CR12 (Thread Identity), the hidden STO (Stack Top Offset), PC, condition FLAGS, and LAMBDA state. CR5 (Heap GT) is re-installed automatically from the incoming thread's Zone ④ bounds. Three registers are system-wide and are never touched by CHANGE: CR13 (IRQ handler), CR14 (code register — transient, rebuilt by cLoad on the next CALL), and CR15 (Namespace root — all threads in the same application share one namespace). To write CR13 or CR15, code must use SWITCH — the explicit privilege gate — presenting the correct PassKey for the target register.
+CHANGE performs a full atomic swap of per-thread state: data registers DR0–DR15, CR0–CR12 (including CR12 Thread Identity), CR14 (code register), CR15 (namespace root), the hidden STO (Stack Top Offset), PC, condition FLAGS, and LAMBDA state. CR5 (Heap GT) is re-installed automatically from the incoming thread's Zone ④ bounds. Only CR13 (IRQ handler) is system-wide and is never touched by CHANGE. To write CR13, code must use SWITCH — the explicit privilege gate — presenting the correct PassKey.
 
 ### THREAD_HDR — Hidden Per-Thread Machine Register
 

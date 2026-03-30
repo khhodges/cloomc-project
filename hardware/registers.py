@@ -35,8 +35,8 @@ class ChurchRegisters(Elaboratable):
 
         self.cr5_heap = Signal(CAP_REG_LAYOUT)
         self.cr6_clist = Signal(CAP_REG_LAYOUT)
-        self.cr7_cloomc = Signal(CAP_REG_LAYOUT)
         self.cr12_thread = Signal(CAP_REG_LAYOUT)
+        self.cr13_interrupt = Signal(CAP_REG_LAYOUT)
         self.cr14_code = Signal(CAP_REG_LAYOUT)
         self.cr15_namespace = Signal(CAP_REG_LAYOUT)
 
@@ -86,9 +86,9 @@ class ChurchRegisters(Elaboratable):
         m.d.comb += [
             self.cr5_heap.eq(cap_regs[CR_HEAP]),
             self.cr6_clist.eq(cap_regs[CR_CLIST]),
-            self.cr7_cloomc.eq(cap_regs[CR_CLOOMC]),
             self.cr12_thread.eq(cap_regs[CR_THREAD]),
-            self.cr14_code.eq(cap_regs[14]),
+            self.cr13_interrupt.eq(cap_regs[CR_INTERRUPT]),
+            self.cr14_code.eq(cap_regs[CR_CODE]),
             self.cr15_namespace.eq(cap_regs[CR_NAMESPACE]),
         ]
 

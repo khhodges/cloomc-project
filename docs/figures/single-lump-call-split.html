@@ -37,7 +37,7 @@
 <div class="nav"><a href="/church/">&#8592; Church Machine</a></div>
 
 <h1>Figure 25 &mdash; Single-Lump CALL Split</h1>
-<p class="subtitle">A single Inform E-GT points to one namespace entry describing a contiguous memory lump. The CALL instruction reads clistCount from word1 and splits the lump into two domain-pure regions: CR7 (code, X-only) and CR6 (c-list, L-only), with inaccessible freespace between them.</p>
+<p class="subtitle">A single Inform E-GT points to one namespace entry describing a contiguous memory lump. The CALL instruction reads clistCount from word1 and splits the lump into two domain-pure regions: CR14 (code, X-only) and CR6 (c-list, L-only), with inaccessible freespace between them.</p>
 
 <svg viewBox="0 0 1100 960" width="1100" height="960" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -99,7 +99,7 @@
   <text x="570" y="82" font-size="11" fill="#333">1. mLoad: type &#x2192; version &#x2192; seal &#x2192; bounds &#x2192; E-perm &#x2192; F-bit &#x2192; deliver</text>
   <text x="570" y="100" font-size="11" fill="#333">2. Parse word1: extract clistCount and limit</text>
   <text x="570" y="118" font-size="11" fill="#c62828" font-weight="bold">3. clistStart = (limit + 1) - clistCount = 256 - 3 = 253</text>
-  <text x="570" y="136" font-size="11" fill="#333">4. Create CR7 (code) + CR6 (c-list), set PC = 0</text>
+  <text x="570" y="136" font-size="11" fill="#333">4. Create CR14 (code) + CR6 (c-list), set PC = 0</text>
 
   <!-- Arrow from CALL to the split diagram -->
   <line x1="790" y1="150" x2="790" y2="195" stroke="#c62828" stroke-width="2" marker-end="url(#ah-red)"/>
@@ -130,7 +130,7 @@
   <rect x="540" y="380" width="260" height="160" fill="rgba(240,240,240,0.7)" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
   <text x="670" y="445" text-anchor="middle" font-size="14" font-weight="bold" fill="#999">FREESPACE</text>
   <text x="670" y="465" text-anchor="middle" font-size="11" fill="#aaa">Inaccessible</text>
-  <text x="670" y="485" text-anchor="middle" font-size="10" fill="#aaa">Beyond CR7 limit,</text>
+  <text x="670" y="485" text-anchor="middle" font-size="10" fill="#aaa">Beyond CR14 limit,</text>
   <text x="670" y="500" text-anchor="middle" font-size="10" fill="#aaa">before CR6 base</text>
   <text x="670" y="520" text-anchor="middle" font-size="10" fill="#bbb">Growth room for code updates</text>
 
@@ -156,10 +156,10 @@
   <line x1="520" y1="540" x2="810" y2="540" stroke="#c62828" stroke-width="2" stroke-dasharray="6,3"/>
   <text x="815" y="544" font-size="11" font-weight="bold" fill="#c62828">clistStart = 253</text>
 
-  <!-- ===== CR7 arrow and box ===== -->
+  <!-- ===== CR14 arrow and box ===== -->
   <line x1="800" y1="290" x2="870" y2="290" stroke="#2c5f8a" stroke-width="2.5" marker-end="url(#ah-blue)"/>
   <rect x="875" y="250" width="200" height="100" rx="8" fill="#e3f2fd" stroke="#2c5f8a" stroke-width="2.5"/>
-  <text x="975" y="278" text-anchor="middle" font-size="15" font-weight="bold" fill="#2c5f8a">CR7</text>
+  <text x="975" y="278" text-anchor="middle" font-size="15" font-weight="bold" fill="#2c5f8a">CR14</text>
   <text x="975" y="298" text-anchor="middle" font-size="12" fill="#333">Code Region</text>
   <line x1="895" y1="308" x2="1055" y2="308" stroke="#2c5f8a" stroke-width="0.5" opacity="0.3"/>
   <text x="975" y="325" text-anchor="middle" font-size="11" font-family="'Courier New', monospace" fill="#2c5f8a">loc=base, lim=252</text>
@@ -205,7 +205,7 @@
   <rect x="60" y="660" width="400" height="110" rx="8" fill="#fff9f9" stroke="#c62828" stroke-width="1.5"/>
   <text x="260" y="685" text-anchor="middle" font-size="13" font-weight="bold" fill="#c62828">Domain Purity Enforced by CALL</text>
   <line x1="80" y1="693" x2="440" y2="693" stroke="#c62828" stroke-width="0.5" opacity="0.3"/>
-  <text x="80" y="712" font-size="11" fill="#333">&#x2717; Code cannot LOAD GTs from CR7 (X-only, no L)</text>
+  <text x="80" y="712" font-size="11" fill="#333">&#x2717; Code cannot LOAD GTs from CR14 (X-only, no L)</text>
   <text x="80" y="730" font-size="11" fill="#333">&#x2717; C-list cannot execute as code (L-only, no X)</text>
   <text x="80" y="748" font-size="11" fill="#333">&#x2717; Neither can read/write data across boundary</text>
   <text x="80" y="766" font-size="11" fill="#c62828">&#x2713; Security enforced by hardware, not compiler</text>
@@ -246,7 +246,7 @@
 
 <div class="legend">
   <div class="legend-item"><div class="legend-swatch" style="background:#b8860b;"></div>Golden Token / NS Entry</div>
-  <div class="legend-item"><div class="legend-swatch" style="background:#2c5f8a;"></div>Code Region (CR7, X-only)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#2c5f8a;"></div>Code Region (CR14, X-only)</div>
   <div class="legend-item"><div class="legend-swatch" style="background:#6b4c9a;"></div>C-List Region (CR6, L-only)</div>
   <div class="legend-item"><div class="legend-swatch" style="background:#c62828;"></div>CALL Instruction / Security</div>
   <div class="legend-item"><div class="legend-swatch" style="background:#e65100;"></div>clistCount (split key)</div>

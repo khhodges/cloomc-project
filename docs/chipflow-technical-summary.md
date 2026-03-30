@@ -151,7 +151,7 @@ All instructions use a **32-bit fixed-width format** with a 4-bit condition code
 | CTMMMSave | msave.py | 90 | Complete | Namespace write path with permission check |
 | CTMMLoad | load.py | 96 | Complete | LOAD instruction — CR write via mLoad |
 | CTMMSave | save.py | 124 | Complete | SAVE instruction — data write via capability |
-| CTMMCall | call.py | 205 | Complete | CALL — push frame, validate E, switch CR6/CR7 |
+| CTMMCall | call.py | 205 | Complete | CALL — push frame, validate E, switch CR6/CR14 |
 | CTMMReturn | ret.py | 245 | Complete | RETURN — pop frame, revalidate, restore context |
 | CTMMChange | change.py | 256 | Complete | Thread creation into CR8 |
 | CTMMSwitch | switch.py | 140 | Complete | Capability copy to system registers CR8-15 |
@@ -372,7 +372,7 @@ Five-phase hardware boot:
 | 1 | FAULT_RST | Clear all CRs, DRs, flags, exclusive monitors |
 | 2 | LOAD_NS | Load namespace GT into CR15 (the one wired GT) |
 | 3 | INIT_THRD | Initialize thread GT into CR8, services into CR5 |
-| 4 | LOAD_NUC | Load nucleus code reference into CR7 |
+| 4 | LOAD_NUC | Load nucleus code reference into CR14 |
 | 5 | COMPLETE | Begin instruction fetch at NIA |
 
 ---

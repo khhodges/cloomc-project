@@ -100,7 +100,7 @@ PC  Instruction              Description
 
  7  CALL CR0, 0xF           Enter the Salvation abstraction (direct mode: CR0 is E-GT)
                               Full 7-step security pipeline:
-                              E-GT validated → mLoad → CR6 set → X-GT loaded → CR7 set → PC=0
+                              E-GT validated → mLoad → CR6 set → X-GT loaded → CR14 set → PC=0
                               The callee sees only what it was granted
                               >>> Transfers to Salvation code (see below) <<<
                               >>> RETURN from Salvation resumes here at PC=8 <<<
@@ -158,7 +158,7 @@ PC  Instruction              Description
 
 2. **LAMBDA** (instructions 3-4, 9-10): The fast path. Set X permission with TPERM, then execute directly via LAMBDA. No call stack involved — the abstraction runs in the current scope. Used for performance-critical code application.
 
-3. **CALL** (instructions 5-7): The full security pipeline. Load an E-only GT from c-list slot 6 (separated from the X-only slot 1 to enforce domain purity), set E permission with TPERM, then enter via CALL. The machine validates the GT, sets up the callee's c-list in CR6, loads the entry point code GT into CR7, and begins execution at PC=0. The callee cannot see or access anything it wasn't explicitly granted.
+3. **CALL** (instructions 5-7): The full security pipeline. Load an E-only GT from c-list slot 6 (separated from the X-only slot 1 to enforce domain purity), set E permission with TPERM, then enter via CALL. The machine validates the GT, sets up the callee's c-list in CR6, loads the entry point code GT into CR14, and begins execution at PC=0. The callee cannot see or access anything it wasn't explicitly granted.
 
 4. **SAVE** (instruction 12): Writing a capability back into the c-list. The source GT must have B=1 (bindable) and the target c-list must have valid bounds. This is how capabilities are transferred between domains.
 
@@ -238,31 +238,31 @@ The c-list occupies **64 words** in SPRAM (addresses 0x0C0 through 0x0FF).
 
 In the simulator, all memory access — including instruction fetch — goes through Golden Token validation. There is no separate instruction memory path; the instruction stream is just another memory region protected by a GT.
 
-### Instruction fetch through CR7
+### Instruction fetch through CR14
 
-After boot completes, instruction fetch uses CR7 (the code register):
+After boot completes, instruction fetch uses CR14 (the code register):
 
 ```
-fetchAddr = CR7.entry.location + PC
+fetchAddr = CR14.entry.location + PC
 ```
 
-- CR7 must hold a valid GT with X permission
+- CR14 must hold a valid GT with X permission
 - PC is an offset within the current code object, not an absolute memory address
-- Bounds check: `PC < CR7.entry.limit` — faults if exceeded
-- The NS entry referenced by CR7's GT index provides the location and limit
+- Bounds check: `PC < CR14.entry.limit` — faults if exceeded
+- The NS entry referenced by CR14's GT index provides the location and limit
 
-This is the same `mLoad` gate that protects all other memory access. The instruction stream is no different from a DATA object read — it requires a valid capability (X permission on CR7) and respects the same bounds and version checks.
+This is the same `mLoad` gate that protects all other memory access. The instruction stream is no different from a DATA object read — it requires a valid capability (X permission on CR14) and respects the same bounds and version checks.
 
 ### How instruction flow changes
 
-| Operation | PC behavior | CR7 behavior |
+| Operation | PC behavior | CR14 behavior |
 |---|---|---|
-| Boot completes (LOAD_NUC) | PC = 0 | CR7 = X-GT from c-list slot 0 of the CALL target |
-| Sequential execution | PC++ | CR7 unchanged |
-| CALL | PC = 0 | CR7 = callee's CLOOMC X-GT |
-| LAMBDA | PC = 0 (target's code offset) | CR7 unchanged (fast-path) |
+| Boot completes (LOAD_NUC) | PC = 0 | CR14 = X-GT from c-list slot 0 of the CALL target |
+| Sequential execution | PC++ | CR14 unchanged |
+| CALL | PC = 0 | CR14 = callee's CLOOMC X-GT |
+| LAMBDA | PC = 0 (target's code offset) | CR14 unchanged (fast-path) |
 | RETURN | PC = saved caller PC | CR7 = saved caller CR7 |
-| Bounds fault | FAULT | PC exceeded CR7.entry.limit |
+| Bounds fault | FAULT | PC exceeded CR14.entry.limit |
 
 ### Pre-boot instruction fetch
 
@@ -281,7 +281,7 @@ The canonical pattern for Church Machine programs is to execute CHANGE as the ve
 After boot, the machine has:
 - CR8 set to the Thread identity GT (from INIT_THRD boot phase, M-elevated)
 - CR6 set to the c-list (from INIT_CLIST boot phase)
-- CR7 set to the CLOOMC code GT (from LOAD_NUC boot phase)
+- CR14 set to the CLOOMC code GT (from LOAD_NUC boot phase)
 - All other CRs are NULL
 
 The CHANGE instruction switches CR8 to a target thread entry (NS index 1 in the demo), which configures the full capability environment. After CHANGE, the thread has GTs covering code (X), data regions (R/W via DATA objects), and other abstractions (E).

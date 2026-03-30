@@ -31,15 +31,15 @@ The M (Meta/Microcode) permission is a **transient hardware elevation** — set 
 - **CR elevation: M added by microcode**
 - Dynamic — switches on every CALL/RETURN.
 - CALL hardcodes CR6 to L-only (Church domain) as an architectural invariant. The GT grants only L (Load), which allows the LOAD instruction to extract capabilities from the C-List into destination CRs via the mLoad validation path. The microcode temporarily elevates M on the CR during LOAD operations for internal access. This enforces the rule that users can only access C-List contents through the controlled mLoad path. No Turing permissions (R, W, X) are permitted on the C-List — domain purity is maintained.
-- CR6 contains **symbolic method names** — these are capability entries, not code references. The implementation details of each method are hidden behind the abstraction's nucleus (CR7).
+- CR6 contains **symbolic method names** — these are capability entries, not code references. The implementation details of each method are hidden behind the abstraction's nucleus (CR14).
 
-### CR7 — Active Nucleus (Method Code)
+### CR14 — Active Nucleus (Method Code)
 
 - **GT permission: X (Execute)**
 - **Optional: R if the code region contains constants**
 - Dynamic — switches on every CALL/RETURN.
-- CR7 holds the currently executing method/code of the active abstraction. X permission allows the processor to fetch and execute instructions from this region. R may be added when the code segment includes inline read-only constants. No L, S, or E — the Nucleus is code, not a capability container.
-- CR7 resolves symbolic method names from CR6 into executable code blocks. The dispatch mechanism depends on the abstraction's chosen style: symbolic resolver (high-security), LAMBDA fast-path, or traditional compiled binary. See `docs/dispatch-styles.md`.
+- CR14 holds the currently executing method/code of the active abstraction. X permission allows the processor to fetch and execute instructions from this region. R may be added when the code segment includes inline read-only constants. No L, S, or E — the Nucleus is code, not a capability container.
+- CR14 resolves symbolic method names from CR6 into executable code blocks. The dispatch mechanism depends on the abstraction's chosen style: symbolic resolver (high-security), LAMBDA fast-path, or traditional compiled binary. See `docs/dispatch-styles.md`.
 
 ## The M Elevation Rule
 
@@ -57,7 +57,7 @@ The M (Meta/Microcode) permission is a **transient hardware elevation** — set 
 | CR8  | Thread           | —        | M            | Stable    | Pure metadata, no user access                     |
 | CR5  | Services C-List  | L+S      | M (transient)| Stable    | Thread's services gateway, needs Load+Save        |
 | CR6  | Active C-List    | L        | M (transient)| Dynamic   | Current abstraction's capability list              |
-| CR7  | Active Nucleus   | X (+R)   | —            | Dynamic   | Current method code, resolves CR6 symbols to code |
+| CR14 | Active Nucleus   | X (+R)   | —            | Dynamic   | Current method code, resolves CR6 symbols to code |
 
 The architecture defines two mutually exclusive permission domains: **Turing** (R, W, X) for data and code operations, and **Church** (L, S, E) for capability operations through C-Lists and abstraction entry. M is a transient microcode elevation, never stored in the GT. B (Bind) and F (Far/Foreign) are namespace entry metadata, not GT permission bits.
 
@@ -66,7 +66,7 @@ The architecture defines two mutually exclusive permission domains: **Turing** (
 1. **Step 1 (Fault Restart)**: Clear all registers. Cold restart.
 2. **Step 2 (Load Namespace)**: Microcode writes CR15 with M elevation. GT has zero RWXLSE.
 3. **Step 3 (Switch Thread)**: Microcode writes CR8 with M elevation. GT has zero RWXLSE. Also writes CR5 with the Thread's Services C-List (GT has L+S).
-4. **Step 4 (Call Boot)**: Microcode writes CR6 (GT has L only, CR gets M during LOAD operations) and CR7 (GT has X, optionally R). NIA set to 0.
+4. **Step 4 (Call Boot)**: Microcode writes CR6 (GT has L only, CR gets M during LOAD operations) and CR14 (GT has X, optionally R). NIA set to 0.
 
 ## Thread Creation via Mint
 

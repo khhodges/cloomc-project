@@ -23,7 +23,7 @@
 <body>
 
 <h1>Figure 9 &mdash; Three Dispatch Styles: Same CALL, Three Resolutions</h1>
-<p class="subtitle">The caller always writes CALL(Abstraction.Method(args)). How CR7 resolves the method is an implementation detail hidden inside the abstraction. Three styles trade security for speed.</p>
+<p class="subtitle">The caller always writes CALL(Abstraction.Method(args)). How CR14 resolves the method is an implementation detail hidden inside the abstraction. Three styles trade security for speed.</p>
 
 <svg viewBox="0 0 1100 1520" width="1100" height="1520" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -101,13 +101,13 @@
   <text class="tag" x="100" y="213" fill="#e74c3c">SECURITY</text>
   <text class="cell-b" x="240" y="213" fill="#e74c3c">&#9608;&#9608;&#9608;&#9608;&#9608; HIGHEST</text>
 
-  <!-- CR6 and CR7 -->
+  <!-- CR6 and CR14 -->
   <rect x="45" y="235" width="290" height="55" rx="6" fill="#141a28" stroke="#3a4a5a" stroke-width="1"/>
   <text class="col-hdr" x="190" y="252" fill="#f39c12">CR6 (Active C-List)</text>
   <text class="inst" x="60" y="272" fill="#c8d6e5">Symbolic entries: "Mint", "GC", "Lookup"</text>
 
   <rect x="45" y="298" width="290" height="55" rx="6" fill="#141a28" stroke="#e74c3c" stroke-width="1"/>
-  <text class="col-hdr" x="190" y="315" fill="#e74c3c">CR7 (Active Nucleus)</text>
+  <text class="col-hdr" x="190" y="315" fill="#e74c3c">CR14 (Active Nucleus)</text>
   <text class="inst" x="60" y="335" fill="#e74c3c">Dispatcher / Resolver code</text>
 
   <!-- Flow steps -->
@@ -138,7 +138,7 @@
   <circle cx="55" cy="517" r="10" fill="#e74c3c"/>
   <text class="step-num" x="55" y="517">5</text>
   <text class="lt" x="72" y="517" fill="#c8d6e5" font-size="11">RETURN &#8594; full stack unwind</text>
-  <text class="lt" x="72" y="532" fill="#8899aa" font-size="10">(mLoad revalidates CR5/CR6/CR7)</text>
+  <text class="lt" x="72" y="532" fill="#8899aa" font-size="10">(mLoad revalidates CR5/CR6/CR14)</text>
 
   <!-- Code example -->
   <rect x="45" y="550" width="290" height="145" rx="6" fill="#0a1015" stroke="#3a4a5a" stroke-width="1"/>
@@ -146,7 +146,7 @@
 
   <text class="inst" x="55" y="590" fill="#8899aa">; Caller:</text>
   <text class="inst" x="55" y="607" fill="#c8d6e5">CALL(Thread.Mint(type,sz,acc))</text>
-  <text class="inst" x="55" y="630" fill="#8899aa">; CR7 dispatcher internally:</text>
+  <text class="inst" x="55" y="630" fill="#8899aa">; CR14 dispatcher internally:</text>
   <text class="inst" x="55" y="647" fill="#e74c3c">  resolve "Mint" from CR6</text>
   <text class="inst" x="55" y="664" fill="#e74c3c">  check budget, delegate</text>
   <text class="inst" x="55" y="681" fill="#e74c3c">  &#8594; Namespace.Mint()</text>
@@ -162,7 +162,7 @@
   <text class="lr" x="320" y="765" fill="#e74c3c" font-weight="bold" font-family="Consolas,monospace">2 (push+pop)</text>
 
   <text class="lt" x="60" y="785" fill="#a0b0c0">mLoad calls on RETURN:</text>
-  <text class="lr" x="320" y="785" fill="#e74c3c" font-weight="bold" font-family="Consolas,monospace">3 (CR5+CR6+CR7)</text>
+  <text class="lr" x="320" y="785" fill="#e74c3c" font-weight="bold" font-family="Consolas,monospace">3 (CR5+CR6+CR14)</text>
 
   <text class="lt" x="60" y="805" fill="#a0b0c0">Caller visibility:</text>
   <text class="lr" x="320" y="805" fill="#2ecc71" font-weight="bold" font-family="Consolas,monospace">Zero &#x2714;</text>
@@ -188,13 +188,13 @@
   <text class="tag" x="450" y="213" fill="#2ecc71">SECURITY</text>
   <text class="cell-b" x="590" y="213" fill="#2ecc71">&#9608;&#9608;&#9608;&#9608;&#9601; MEDIUM</text>
 
-  <!-- CR6 and CR7 -->
+  <!-- CR6 and CR14 -->
   <rect x="395" y="235" width="290" height="55" rx="6" fill="#141a28" stroke="#3a4a5a" stroke-width="1"/>
   <text class="col-hdr" x="540" y="252" fill="#f39c12">CR6 (Active C-List)</text>
   <text class="inst" x="410" y="272" fill="#c8d6e5">Method GTs with X permission</text>
 
   <rect x="395" y="298" width="290" height="55" rx="6" fill="#141a28" stroke="#2ecc71" stroke-width="1"/>
-  <text class="col-hdr" x="540" y="315" fill="#2ecc71">CR7 (Active Nucleus)</text>
+  <text class="col-hdr" x="540" y="315" fill="#2ecc71">CR14 (Active Nucleus)</text>
   <text class="inst" x="410" y="335" fill="#2ecc71">Code with LAMBDA instructions</text>
 
   <!-- Flow steps -->
@@ -280,13 +280,13 @@
   <text class="tag" x="800" y="213" fill="#5dade2">SECURITY</text>
   <text class="cell-b" x="940" y="213" fill="#5dade2">&#9608;&#9608;&#9608;&#9601;&#9601; STANDARD</text>
 
-  <!-- CR6 and CR7 -->
+  <!-- CR6 and CR14 -->
   <rect x="745" y="235" width="290" height="55" rx="6" fill="#141a28" stroke="#3a4a5a" stroke-width="1"/>
   <text class="col-hdr" x="890" y="252" fill="#f39c12">CR6 (Active C-List)</text>
   <text class="inst" x="760" y="272" fill="#c8d6e5">Method entries (data / metadata)</text>
 
   <rect x="745" y="298" width="290" height="55" rx="6" fill="#141a28" stroke="#5dade2" stroke-width="1"/>
-  <text class="col-hdr" x="890" y="315" fill="#5dade2">CR7 (Active Nucleus)</text>
+  <text class="col-hdr" x="890" y="315" fill="#5dade2">CR14 (Active Nucleus)</text>
   <text class="inst" x="760" y="335" fill="#5dade2">Compiled binary (offset table)</text>
 
   <!-- Flow steps -->
@@ -317,13 +317,13 @@
   <circle cx="755" cy="517" r="10" fill="#5dade2"/>
   <text class="step-num" x="755" y="517">5</text>
   <text class="lt" x="772" y="517" fill="#c8d6e5" font-size="11">RETURN &#8594; full stack unwind</text>
-  <text class="lt" x="772" y="532" fill="#8899aa" font-size="10">(mLoad revalidates CR5/CR6/CR7)</text>
+  <text class="lt" x="772" y="532" fill="#8899aa" font-size="10">(mLoad revalidates CR5/CR6/CR14)</text>
 
   <!-- Code example -->
   <rect x="745" y="550" width="290" height="145" rx="6" fill="#0a1015" stroke="#3a4a5a" stroke-width="1"/>
   <text class="col-hdr" x="890" y="568" fill="#5dade2">Example: Access.asm</text>
 
-  <text class="inst" x="755" y="590" fill="#8899aa">; CR7 = compiled code object</text>
+  <text class="inst" x="755" y="590" fill="#8899aa">; CR14 = compiled code object</text>
   <text class="inst" x="755" y="607" fill="#8899aa">; Methods at known offsets</text>
   <text class="inst" x="755" y="630" fill="#5dade2">entry:</text>
   <text class="inst" x="755" y="647" fill="#c8d6e5">  MOV  DR0, 42</text>
@@ -341,7 +341,7 @@
   <text class="lr" x="1020" y="765" fill="#f39c12" font-weight="bold" font-family="Consolas,monospace">2 (push+pop)</text>
 
   <text class="lt" x="760" y="785" fill="#a0b0c0">mLoad calls on RETURN:</text>
-  <text class="lr" x="1020" y="785" fill="#f39c12" font-weight="bold" font-family="Consolas,monospace">3 (CR5+CR6+CR7)</text>
+  <text class="lr" x="1020" y="785" fill="#f39c12" font-weight="bold" font-family="Consolas,monospace">3 (CR5+CR6+CR14)</text>
 
   <text class="lt" x="760" y="805" fill="#a0b0c0">Caller visibility:</text>
   <text class="lr" x="1020" y="805" fill="#2ecc71" font-weight="bold" font-family="Consolas,monospace">Zero &#x2714;</text>
@@ -371,9 +371,9 @@
   <rect x="765" y="1020" width="270" height="28" rx="4" fill="#0f1a2a" stroke="#5dade2" stroke-width="1"/>
   <text class="col-hdr" x="900" y="1034" fill="#5dade2">Traditional Binary</text>
 
-  <!-- Row 1: CR7 contains -->
+  <!-- Row 1: CR14 contains -->
   <rect x="25" y="1052" width="170" height="28" rx="0" fill="#0f1520" stroke="#1a2a3a" stroke-width="0.5"/>
-  <text class="lt" x="35" y="1066" fill="#c8d6e5" font-size="11">CR7 contains</text>
+  <text class="lt" x="35" y="1066" fill="#c8d6e5" font-size="11">CR14 contains</text>
 
   <rect x="205" y="1052" width="270" height="28" rx="0" fill="#1a0f0f" stroke="#1a2a3a" stroke-width="0.5"/>
   <text class="cell" x="340" y="1066" fill="#e74c3c">Dispatcher / resolver code</text>
@@ -441,13 +441,13 @@
   <text class="lt" x="35" y="1206" fill="#c8d6e5" font-size="11">Domain crossing</text>
 
   <rect x="205" y="1192" width="270" height="28" rx="0" fill="#1a0f0f" stroke="#1a2a3a" stroke-width="0.5"/>
-  <text class="cell" x="340" y="1206" fill="#e74c3c">Yes (new CR6+CR7)</text>
+  <text class="cell" x="340" y="1206" fill="#e74c3c">Yes (new CR6+CR14)</text>
 
   <rect x="485" y="1192" width="270" height="28" rx="0" fill="#0d1a15" stroke="#1a2a3a" stroke-width="0.5"/>
   <text class="cell" x="620" y="1206" fill="#2ecc71">No (same domain)</text>
 
   <rect x="765" y="1192" width="270" height="28" rx="0" fill="#0f1520" stroke="#1a2a3a" stroke-width="0.5"/>
-  <text class="cell" x="900" y="1206" fill="#5dade2">Yes (new CR6+CR7)</text>
+  <text class="cell" x="900" y="1206" fill="#5dade2">Yes (new CR6+CR14)</text>
 
   <!-- ========== KEY INSIGHT ========== -->
 
@@ -455,8 +455,8 @@
   <text class="ph" x="550" y="1265" text-anchor="middle" fill="#f5c842">KEY INSIGHTS</text>
 
   <text class="lt" x="50" y="1295" fill="#f5c842" font-size="13" font-weight="bold">Same caller interface, three internal mechanisms:</text>
-  <text class="lt" x="50" y="1315" fill="#a0b0c0" font-size="12">The caller always writes CALL(Abstraction.Method(args)). The CALL ceremony switches CR6 and CR7 identically</text>
-  <text class="lt" x="50" y="1333" fill="#a0b0c0" font-size="12">in all three cases. What differs is how CR7 resolves the method name to executable code. The caller never</text>
+  <text class="lt" x="50" y="1315" fill="#a0b0c0" font-size="12">The caller always writes CALL(Abstraction.Method(args)). The CALL ceremony switches CR6 and CR14 identically</text>
+  <text class="lt" x="50" y="1333" fill="#a0b0c0" font-size="12">in all three cases. What differs is how CR14 resolves the method name to executable code. The caller never</text>
   <text class="lt" x="50" y="1351" fill="#a0b0c0" font-size="12">knows which style is used — that's the power of encapsulation through capabilities.</text>
 
   <text class="lt" x="50" y="1381" fill="#2ecc71" font-size="13" font-weight="bold">LAMBDA is unique — it eliminates the CALL/RETURN overhead within a domain:</text>

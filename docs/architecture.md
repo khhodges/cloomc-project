@@ -224,11 +224,9 @@ Offset +2   Word 2 — crc       [31:17]  spare
 Special assignments (from `hardware/hw_types.py`):
 - **CR5**:  Heap pointer (CR_HEAP) — bump-allocation frontier
 - **CR6**:  Current capability list (CR_CLIST) — entered via CALL (programmer-accessible)
-- **CR7**:  CLOOMC (CR_CLOOMC) — instruction fetch source from callee's code object
-- **CR9**:  Interrupt handler (CR_INTERRUPT) — privileged, system-wide
-- **CR10**: Data fault handler (CR_DFAULT) — privileged, system-wide
-- **CR12**: Thread identity (CR_THREAD) — updated by CHANGE
-- **CR14**: Code (CR_CODE) — current code object, X-only (privileged, per-thread)
+- **CR12**: Data fault handler (CR_DFAULT) — privileged, per-thread
+- **CR13**: Interrupt handler (CR_INTERRUPT) — privileged, system-wide (unchanged by CHANGE)
+- **CR14**: CLOOMC / Code (CR_CLOOMC / CR_CODE) — instruction fetch source, X-only (privileged, per-thread)
 - **CR15**: Namespace root (CR_NAMESPACE) — privileged, per-thread
 
 ### Data Registers (DR0–DR15)

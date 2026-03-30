@@ -663,7 +663,7 @@ class ChurchSimulator {
         }
         if (this.callStack) {
             for (const frame of this.callStack) {
-                for (const crKey of ['cr5', 'cr6', 'cr7']) {
+                for (const crKey of ['cr5', 'cr6', 'cr14']) {
                     if (frame[crKey]) {
                         const gt32 = frame[crKey].word0;
                         if (gt32 === 0) continue;
@@ -881,17 +881,17 @@ class ChurchSimulator {
             return { ok: true, word: this.memory[this.pc], addr: this.pc };
         }
 
-        const cr7 = this.cr[7];
-        if (!cr7 || cr7.word0 === 0) {
+        const cr14 = this.cr[14];
+        if (!cr14 || cr14.word0 === 0) {
             return { ok: false, fault: 'NULL_CAP', message: 'CR14 (code register) is NULL — no code capability' };
         }
-        const cr7Parsed = this.parseGT(cr7.word0);
-        if (!cr7Parsed.permissions.X) {
+        const cr14Parsed = this.parseGT(cr14.word0);
+        if (!cr14Parsed.permissions.X) {
             return { ok: false, fault: 'PERM_X', message: 'CR14 lacks X permission for instruction fetch' };
         }
-        const entry = this.readNSEntry(cr7Parsed.index);
+        const entry = this.readNSEntry(cr14Parsed.index);
         if (!entry) {
-            return { ok: false, fault: 'BOUNDS', message: `CR14 NS entry ${cr7Parsed.index} not found` };
+            return { ok: false, fault: 'BOUNDS', message: `CR14 NS entry ${cr14Parsed.index} not found` };
         }
         const w1 = this.parseNSWord1(entry.word1_limit);
         if (this.pc >= w1.limit) {
@@ -1140,12 +1140,12 @@ class ChurchSimulator {
             const allocSize = limit + 1;
             const clistStart = allocSize - clistCount;
 
-            const cr7GT = this.createGT(srcParsed.gt_seq, check.index, {R:1,W:0,X:1,L:0,S:0,E:0}, 1);
-            const cr7Word1 = this.packNSWord1(clistStart - 1, 0, 0, 0, 0, 1, 0);
-            this.cr[7] = {
-                word0: cr7GT,
+            const cr14GT = this.createGT(srcParsed.gt_seq, check.index, {R:1,W:0,X:1,L:0,S:0,E:0}, 1);
+            const cr14Word1 = this.packNSWord1(clistStart - 1, 0, 0, 0, 0, 1, 0);
+            this.cr[14] = {
+                word0: cr14GT,
                 word1: base,
-                word2: cr7Word1,
+                word2: cr14Word1,
                 word3: nsEntry.word2_seals,
                 m: this.mElevation ? 1 : 0
             };
@@ -1165,18 +1165,18 @@ class ChurchSimulator {
             this._writeCR(6, sourceGT, nsEntry);
 
             const clistLoc = nsEntry.word0_location;
-            const cr7GT = this.memory[clistLoc];
-            if (cr7GT !== 0) {
-                const cr7Parsed = this.parseGT(cr7GT);
-                if (cr7Parsed.type === 1 && cr7Parsed.permissions.X) {
-                    const cr7Entry = this.readNSEntry(cr7Parsed.index);
-                    if (cr7Entry) {
-                        const cr7Word1p = this.parseNSWord1(cr7Entry.word1_limit);
-                        if (cr7Word1p.f !== 1) {
-                            const cr7Check = this.mLoad(cr7GT, 'X', undefined);
-                            if (cr7Check.ok) {
-                                this._writeCR(7, cr7GT, cr7Check.entry);
-                                cr7Desc = `, CR14 <- X-GT(Slot ${cr7Parsed.index})`;
+            const cr14GTVal = this.memory[clistLoc];
+            if (cr14GTVal !== 0) {
+                const cr14Parsed = this.parseGT(cr14GTVal);
+                if (cr14Parsed.type === 1 && cr14Parsed.permissions.X) {
+                    const cr14Entry = this.readNSEntry(cr14Parsed.index);
+                    if (cr14Entry) {
+                        const cr14Word1p = this.parseNSWord1(cr14Entry.word1_limit);
+                        if (cr14Word1p.f !== 1) {
+                            const cr14Check = this.mLoad(cr14GTVal, 'X', undefined);
+                            if (cr14Check.ok) {
+                                this._writeCR(14, cr14GTVal, cr14Check.entry);
+                                cr7Desc = `, CR14 <- X-GT(Slot ${cr14Parsed.index})`;
                             }
                         }
                     }

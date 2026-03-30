@@ -170,7 +170,7 @@
   <text class="col-hdr" x="780" y="437" fill="#5dade2">Actions</text>
 
   <rect x="675" y="450" width="210" height="40" rx="4" fill="#0f1a2a" stroke="#5dade2" stroke-width="1.5"/>
-  <text class="cr-tag" x="685" y="465" fill="#5dade2">CR7</text>
+  <text class="cr-tag" x="685" y="465" fill="#5dade2">CR14</text>
   <text class="lt" x="720" y="465" fill="#c8d6e5">&#8594; Nucleus code GT</text>
   <text class="perm" x="780" y="483" fill="#5dade2">GT: X (+R) | CR: &#8212;</text>
 
@@ -196,7 +196,7 @@
   <!-- COMPLETE detail box -->
   <rect x="360" y="420" width="250" height="65" rx="6" fill="#0f2620" stroke="#2ecc71" stroke-width="1"/>
   <text class="col-hdr" x="485" y="437" fill="#2ecc71">Machine State</text>
-  <text class="lt" x="375" y="457" fill="#c8d6e5">Fetch from CR7 at NIA = 0</text>
+  <text class="lt" x="375" y="457" fill="#c8d6e5">Fetch from CR14 at NIA = 0</text>
   <text class="lt" x="375" y="475" fill="#2ecc71" font-weight="bold">Boot code begins execution</text>
 
   <!-- Fault arrow back -->
@@ -333,9 +333,9 @@
   <rect x="930" y="778" width="140" height="34" rx="0" fill="#0f1520" stroke="#1a2a3a" stroke-width="0.5"/>
   <text class="cell" x="1000" y="795" fill="#e8b86d">Dynamic</text>
 
-  <!-- CR7 row -->
+  <!-- CR14 row -->
   <rect x="30" y="812" width="90" height="34" rx="0" fill="#0f1520" stroke="#1a2a3a" stroke-width="0.5"/>
-  <text class="cell-b" x="75" y="829" fill="#5dade2">CR7</text>
+  <text class="cell-b" x="75" y="829" fill="#5dade2">CR14</text>
 
   <rect x="120" y="812" width="140" height="34" rx="0" fill="#1a0f0f" stroke="#1a2a3a" stroke-width="0.5"/>
   <text class="cell mono" x="190" y="829" fill="#e74c3c">NULL</text>
@@ -396,7 +396,7 @@
 
   <!-- mLoad for everything else -->
   <rect x="55" y="1018" width="990" height="42" rx="6" fill="#0f2620" stroke="#2ecc71" stroke-width="1.5"/>
-  <text class="col-hdr" x="550" y="1035" fill="#2ecc71">CR8, CR5, CR6, CR7: All loaded through mLoad validation</text>
+  <text class="col-hdr" x="550" y="1035" fill="#2ecc71">CR8, CR5, CR6, CR14: All loaded through mLoad validation</text>
   <text class="ls" x="550" y="1052" fill="#2ecc71">Permission &#8594; Bounds &#8594; MAC &#8594; G-bit reset &#8594; Thread table shadow update</text>
 
   <text class="lr" x="1020" y="978" fill="#f39c12">chicken-and-egg bootstrap.</text>
@@ -438,7 +438,7 @@
   <!-- Execution domain -->
   <rect x="735" y="1345" width="320" height="80" rx="8" fill="#0f1a2a" stroke="#5dade2" stroke-width="1.5"/>
   <text class="col-hdr" x="895" y="1365" fill="#5dade2">Execution Domain (X)</text>
-  <text class="lt" x="750" y="1388" fill="#c8d6e5" font-size="11">CR7 (Active Nucleus): dynamic</text>
+  <text class="lt" x="750" y="1388" fill="#c8d6e5" font-size="11">CR14 (Active Nucleus): dynamic</text>
   <text class="lt" x="750" y="1408" fill="#c8d6e5" font-size="11">X = execute, optional R for constants</text>
 
   <!-- Domain separation note -->

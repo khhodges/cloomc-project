@@ -79,7 +79,7 @@ Three GTs. Three capability validations through mLoad. Three MAC checks. Three v
 
 | Zero | Why |
 |------|-----|
-| **Zero operating system** | No kernel. No monolithic OS. Atomic abstractions composed through capabilities. The Nucleus (CR7) is a service, not a god. |
+| **Zero operating system** | No kernel. No monolithic OS. Atomic abstractions composed through capabilities. The Nucleus (CR14) is a service, not a god. |
 | **Zero virtual memory** | No page tables. No TLB. No Meltdown/Spectre. Namespace entries *are* the memory model, validated by mLoad on every access. |
 | **Zero privileged hardware** | No ring 0. No supervisor mode. No trap-to-kernel. Every instruction runs at the same hardware privilege level. Security comes from capabilities, not privilege. |
 | **Zero superuser** | No root. No admin. No god mode. Nobody bypasses mLoad. The Golden Rule is absolute. |
@@ -611,7 +611,7 @@ STEP 9: "me" receives response
 | **File system** | The Inbox is a namespace entry accessed via GT. Not a file. Not a path. Not a string name. |
 | **Socket layer** | Tunnel I/O is hardware-level, keyed by namespace entries. No BSD sockets. No OS networking stack. |
 | **Privilege escalation** | No privilege levels exist to escalate between. Every instruction runs at the same level. |
-| **Superuser** | Nobody has bypass authority. The Nucleus (CR7) has capabilities, not omnipotence. It cannot read "me"'s tunnel key without a GT granting R permission on entry 4. |
+| **Superuser** | Nobody has bypass authority. The Nucleus (CR14) has capabilities, not omnipotence. It cannot read "me"'s tunnel key without a GT granting R permission on entry 4. |
 
 ### The Proof
 
@@ -738,7 +738,7 @@ A processor architecture for secure computation, comprising:
 - a single microcode validation path (mLoad) as the exclusive mechanism for writing to capability registers, wherein mLoad performs MAC integrity verification, version cross-check, permission validation, and bounds checking on every capability register write;
 - namespace entries accessed exclusively through said mLoad path as the memory addressing model, each entry comprising Location, Limit, and Seals fields with a hardware-computed MAC;
 - no hardware privilege levels, privilege rings, supervisor mode, or trap-to-kernel mechanism — all instructions execute at a single hardware privilege level;
-- system services (including the Nucleus referenced by CR7) implemented as capability-protected abstractions accessed through Golden Tokens with specific permissions, rather than as privileged kernel code;
+- system services (including the Nucleus referenced by CR14) implemented as capability-protected abstractions accessed through Golden Tokens with specific permissions, rather than as privileged kernel code;
 - wherein the elimination of privilege levels removes the attack surface exploited by privilege escalation attacks, and the mLoad-only validation path ensures that no software entity — including system services — can access resources without holding a valid, MAC-verified Golden Token with the required permission bits.
 
 ### Claim E: Value-Only Network Tunnel with Local Capability Confinement

@@ -162,7 +162,7 @@ Address Range    Contents
 
 1. BSRAM initialization writes namespace table and c-list entries
 2. Boot delay (15 cycles in simulation, 3 seconds on hardware)
-3. Boot sequence initializes CR6, CR7, CR8, CR15
+3. Boot sequence initializes CR6, CR14, CR8, CR15
 4. Banner message sent via UART
 5. Machine enters HALTED state, awaiting button press
 

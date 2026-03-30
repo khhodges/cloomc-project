@@ -282,7 +282,7 @@ Every frame on the capability stack carries a **1-bit tag** identifying its type
 
 | Tag | Frame Type | Contents | RETURN Behavior |
 |-----|-----------|----------|----------------|
-| 0 | CALL frame | CR5, CR6, CR7, PC, LAMBDA state | Full domain restoration: restore CRs, switch C-List, revalidate via mLoad |
+| 0 | CALL frame | CR5, CR6, CR14, PC, LAMBDA state | Full domain restoration: restore CRs, switch C-List, revalidate via mLoad |
 | 1 | LAMBDA frame | PC only | Simple PC restoration: pop return address, resume |
 
 LAMBDA frames appear on the stack only when a CALL intervenes during a LAMBDA body and the LAMBDA state must be saved. In the common case (no CALL intervention), no LAMBDA frame is ever pushed — the machine-status fast path handles everything.
@@ -319,7 +319,7 @@ The LAMBDA instruction and the CALL instruction serve fundamentally different pu
 |----------|--------|------|
 | Permission required | X (Execute) | E (Enter) |
 | Protection domain | Same (no C-List change) | Crosses to new domain |
-| Stack frame (common case) | None (machine status registers) | Full (CR5/CR6/CR7 + PC + LAMBDA state) |
+| Stack frame (common case) | None (machine status registers) | Full (CR5/CR6/CR14 + PC + LAMBDA state) |
 | mLoad validation | None (body already validated) | Full path for new C-List |
 | CR6 (C-List) | Unchanged | Switched to callee's C-List |
 | Arguments/results | Data registers (x0-x31) | Data registers (x0-x31) |
@@ -585,21 +585,21 @@ The NULL type integrates cleanly with garbage collection:
 
 ### 10. Three Dispatch Styles
 
-The architecture provides three distinct styles for how an abstraction's nucleus (CR7) resolves method calls from its C-List (CR6). The abstraction's creator chooses the style based on security and performance requirements. Different abstractions in the same system can use different styles. Critically, the caller cannot distinguish which style is used — they always invoke via `CALL(Abstraction.Method(args))`.
+The architecture provides three distinct styles for how an abstraction's nucleus (CR14) resolves method calls from its C-List (CR6). The abstraction's creator chooses the style based on security and performance requirements. Different abstractions in the same system can use different styles. Critically, the caller cannot distinguish which style is used — they always invoke via `CALL(Abstraction.Method(args))`.
 
 #### 10.1 Symbolic Resolver (High-Security)
 
-CR7 contains a dispatcher that reads symbolic method names from CR6's C-List and resolves them to code blocks at runtime. The method names in CR6 are capability entries with symbolic names (e.g., "Mint", "GC", "Lookup"), not code addresses. The caller never sees code addresses or internal structure — maximum isolation.
+CR14 contains a dispatcher that reads symbolic method names from CR6's C-List and resolves them to code blocks at runtime. The method names in CR6 are capability entries with symbolic names (e.g., "Mint", "GC", "Lookup"), not code addresses. The caller never sees code addresses or internal structure — maximum isolation.
 
 This style is used by the Hello Mum canonical example for `CALL(Thread.Mint(type, size, access))`, where the caller has no visibility into whether Mint is local code, a delegation to the Namespace, or a chain of three abstraction calls.
 
 #### 10.2 LAMBDA Fast-Path
 
-CR7 contains code that uses the LAMBDA instruction to jump directly to method bodies. LAMBDA uses X permission (not E), operates in the same protection domain, and uses machine-status registers instead of the stack. Near-zero overhead (~2-3 cycles per invocation). This style is used by the SlideRule, Abacus, and Circle compute abstractions.
+CR14 contains code that uses the LAMBDA instruction to jump directly to method bodies. LAMBDA uses X permission (not E), operates in the same protection domain, and uses machine-status registers instead of the stack. Near-zero overhead (~2-3 cycles per invocation). This style is used by the SlideRule, Abacus, and Circle compute abstractions.
 
 #### 10.3 Traditional Compiled Binary
 
-CR7 contains a conventional compiled code object — a single binary with standard method offsets. Methods are reached via computed offsets from the code base address. This is the familiar programming model. The capability framework wraps it, but the internal dispatch is traditional. This style is used by the Access.asm example.
+CR14 contains a conventional compiled code object — a single binary with standard method offsets. Methods are reached via computed offsets from the code base address. This is the familiar programming model. The capability framework wraps it, but the internal dispatch is traditional. This style is used by the Access.asm example.
 
 #### 10.4 Significance for the LAMBDA Invention
 
@@ -679,7 +679,7 @@ The architecture boots through a five-phase hardware sequence:
 | 1 | FAULT_RST | Clear all CRs, DRs, flags, exclusive monitors |
 | 2 | LOAD_NS | Load namespace GT into CR15 (the one wired GT — hardwired into the boot ROM) |
 | 3 | INIT_THRD | Initialize thread GT into CR8, services C-List into CR5 |
-| 4 | LOAD_NUC | Load nucleus code reference into CR7, active C-List into CR6 |
+| 4 | LOAD_NUC | Load nucleus code reference into CR14, active C-List into CR6 |
 | 5 | COMPLETE | Begin instruction fetch at NIA |
 
 Phase 1 (FAULT_RST) sets all capability registers to NULL type, providing the clean initialization guaranteed by Claim 2(a). Only phases 2-4 load valid GTs into specific CRs, and these loads go through mLoad validation (except CR15, which is the one hardwired bootstrap GT).
@@ -694,7 +694,7 @@ Each context register receives specific permissions at boot, enforcing the princ
 | CR8 (Thread) | None (zero RWXLSE) | M only | Pure metadata — identity, shadow, scheduling |
 | CR5 (Services) | E only | M added by microcode | Thread's gateway to available services |
 | CR6 (Active C-List) | E only | M added by microcode | Current abstraction's method names |
-| CR7 (Active Nucleus) | X (+R if constants) | — | Currently executing code |
+| CR14 (Active Nucleus) | X (+R if constants) | — | Currently executing code |
 | CR0-CR4 | NULL | — | Available for user code |
 
 The key insight is that the Namespace (CR15) and Thread (CR8) carry **zero user-visible permissions** — they are pure metadata objects accessible only through M elevation during microcode execution. This means no user instruction can read, write, load, save, or enter the Namespace or Thread directly. All access is mediated by the microcode's trusted path.
@@ -740,7 +740,7 @@ The key performance insight is that in the common case (LAMBDA → body → RETU
 
 | Step | LAMBDA Path | CALL Path |
 |------|-------------|-----------|
-| Entry | Verify X perm, save PC to status reg (2 cycles) | Push CR5/CR6/CR7/PC to stack, switch C-List (5+ cycles) |
+| Entry | Verify X perm, save PC to status reg (2 cycles) | Push CR5/CR6/CR14/PC to stack, switch C-List (5+ cycles) |
 | Body | Execute code (N cycles) | Execute code (N cycles) |
 | Return | Check flag, restore PC from status reg (1 cycle) | Pop frame, revalidate CRs via mLoad (5+ cycles) |
 | **Total overhead** | **3 cycles** | **10+ cycles** |
@@ -811,13 +811,13 @@ The architecture of Claim 3, wherein the LAMBDA instruction enables a code body 
 
 ### Claim 11 — Three Dispatch Styles for Abstraction Method Resolution
 
-The architecture of Claims 3 and 4, wherein an abstraction's nucleus code (held in CR7) may resolve method calls from the abstraction's C-List (held in CR6) using any of three dispatch styles, selected by the abstraction's creator and invisible to the caller:
+The architecture of Claims 3 and 4, wherein an abstraction's nucleus code (held in CR14) may resolve method calls from the abstraction's C-List (held in CR6) using any of three dispatch styles, selected by the abstraction's creator and invisible to the caller:
 
-(a) a symbolic resolver style, wherein CR7 contains a dispatcher that reads symbolic method names from CR6 and resolves them to code blocks at runtime, providing maximum isolation because the caller never sees code addresses;
+(a) a symbolic resolver style, wherein CR14 contains a dispatcher that reads symbolic method names from CR6 and resolves them to code blocks at runtime, providing maximum isolation because the caller never sees code addresses;
 
-(b) a LAMBDA fast-path style, wherein CR7 uses the LAMBDA instruction to jump directly to method bodies with X permission, zero stack access, and near-zero overhead;
+(b) a LAMBDA fast-path style, wherein CR14 uses the LAMBDA instruction to jump directly to method bodies with X permission, zero stack access, and near-zero overhead;
 
-(c) a traditional compiled binary style, wherein CR7 contains a conventional code object with method offsets;
+(c) a traditional compiled binary style, wherein CR14 contains a conventional code object with method offsets;
 
 wherein all three styles present the same interface to the caller (`CALL(Abstraction.Method(args))`), and the caller cannot determine which dispatch style is used; and wherein Style (b) is made possible exclusively by the LAMBDA instruction of Claim 3.
 
@@ -835,7 +835,7 @@ The architecture of Claims 1 and 12, wherein the mLoad validation path performs 
 
 ### Claim 15 — Five-Phase Hardware Boot with NULL Initialization
 
-The architecture of Claims 1 and 2, wherein the processor boots through a five-phase hardware sequence: (0) IDLE, awaiting boot signal; (1) FAULT_RST, clearing all CRs to NULL type, all DRs to zero, all flags and exclusive monitors to initial state; (2) LOAD_NS, loading the namespace GT into CR15 from a hardwired bootstrap source; (3) INIT_THRD, initializing the thread GT into CR8 and the services C-List into CR5; (4) LOAD_NUC, loading the nucleus code reference into CR7 and the active C-List into CR6; (5) COMPLETE, beginning instruction fetch; wherein Phase 1 sets all capability registers to NULL type as guaranteed by Claim 2(a), and Phases 2-4 load valid GTs through the mLoad validation path (except CR15, the one hardwired bootstrap GT).
+The architecture of Claims 1 and 2, wherein the processor boots through a five-phase hardware sequence: (0) IDLE, awaiting boot signal; (1) FAULT_RST, clearing all CRs to NULL type, all DRs to zero, all flags and exclusive monitors to initial state; (2) LOAD_NS, loading the namespace GT into CR15 from a hardwired bootstrap source; (3) INIT_THRD, initializing the thread GT into CR8 and the services C-List into CR5; (4) LOAD_NUC, loading the nucleus code reference into CR14 and the active C-List into CR6; (5) COMPLETE, beginning instruction fetch; wherein Phase 1 sets all capability registers to NULL type as guaranteed by Claim 2(a), and Phases 2-4 load valid GTs through the mLoad validation path (except CR15, the one hardwired bootstrap GT).
 
 ### Claim 16 — Mint as Domain-Pure Namespace Method with Abstraction Nesting
 
@@ -865,7 +865,7 @@ Flow diagram showing LAMBDA entry (save PC+4 to LAMBDA_PC register, set LAMBDA-a
 
 ### Figure 4: Self-Describing Stack Frames
 
-Diagram showing the capability stack with interleaved CALL frames (tag=0, full context: CR5/CR6/CR7/PC/LAMBDA state) and LAMBDA frames (tag=1, minimal: PC only). Shows RETURN inspecting the tag to determine the restoration path.
+Diagram showing the capability stack with interleaved CALL frames (tag=0, full context: CR5/CR6/CR14/PC/LAMBDA state) and LAMBDA frames (tag=1, minimal: PC only). Shows RETURN inspecting the tag to determine the restoration path.
 
 ### Figure 5: Non-Nestable LAMBDA with CALL-Mediated Nesting
 
@@ -893,7 +893,7 @@ Diagram contrasting conventional architecture (OS kernel, virtual memory, privil
 
 ### Figure 11: Five-Phase Boot Sequence
 
-State machine diagram showing IDLE → FAULT_RST (clear all CRs to NULL) → LOAD_NS (hardwired GT into CR15) → INIT_THRD (thread GT into CR8, services into CR5) → LOAD_NUC (nucleus into CR7, C-List into CR6) → COMPLETE (begin fetch). Annotated with which CRs are written at each phase and their boot permissions.
+State machine diagram showing IDLE → FAULT_RST (clear all CRs to NULL) → LOAD_NS (hardwired GT into CR15) → INIT_THRD (thread GT into CR8, services into CR5) → LOAD_NUC (nucleus into CR14, C-List into CR6) → COMPLETE (begin fetch). Annotated with which CRs are written at each phase and their boot permissions.
 
 ### Figure 12: mLoad Five-Check Validation Sequence
 

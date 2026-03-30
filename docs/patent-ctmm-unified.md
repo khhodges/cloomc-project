@@ -470,11 +470,11 @@ RPC tunnel keys are stored in standard namespace entries accessed via CAP.LOAD w
 
 Abstractions can resolve method calls via:
 
-**(a) Symbolic Resolver** (high-security): CR7 contains a dispatcher that reads symbolic method names from CR6 and resolves them at runtime. Maximum isolation — the caller never sees code addresses.
+**(a) Symbolic Resolver** (high-security): CR14 contains a dispatcher that reads symbolic method names from CR6 and resolves them at runtime. Maximum isolation — the caller never sees code addresses.
 
-**(b) LAMBDA Fast-Path** (performance): CR7 uses the LAMBDA instruction to jump directly to method bodies with X permission. Near-zero overhead (~2-3 cycles per invocation).
+**(b) LAMBDA Fast-Path** (performance): CR14 uses the LAMBDA instruction to jump directly to method bodies with X permission. Near-zero overhead (~2-3 cycles per invocation).
 
-**(c) Traditional Compiled Binary** (fastest): CR7 contains a conventional code object with method offsets.
+**(c) Traditional Compiled Binary** (fastest): CR14 contains a conventional code object with method offsets.
 
 All three styles present the same interface to the caller. The caller cannot determine which style is used.
 
@@ -517,7 +517,7 @@ Five-phase hardware boot:
 | 1 FAULT_RST | Clear all CRs to NULL, all DRs to zero |
 | 2 LOAD_NS | Load namespace GT into CR15 (one hardwired GT) |
 | 3 INIT_THRD | Initialize CR8 (thread), CR5 (services) |
-| 4 LOAD_NUC | Load CR7 (nucleus), CR6 (C-List) |
+| 4 LOAD_NUC | Load CR14 (nucleus), CR6 (C-List) |
 | 5 COMPLETE | Begin instruction fetch |
 
 Phase 1 sets all capability registers to NULL, providing clean initialization. Phases 2-4 load valid GTs through mLoad (except CR15, the one hardwired bootstrap GT).
@@ -660,7 +660,7 @@ The architecture of Claims 1, 3, and 9, wherein the processor operates without a
 
 ### Claim 15 — Five-Phase Hardware Boot with NULL Initialization
 
-The architecture of Claims 1 and 2, wherein the processor boots through a five-phase hardware sequence: (0) IDLE; (1) FAULT_RST, clearing all CRs to NULL type, all DRs to zero; (2) LOAD_NS, loading the namespace GT into CR15 from a hardwired bootstrap source; (3) INIT_THRD, initializing CR8 and CR5; (4) LOAD_NUC, loading CR7 and CR6; (5) COMPLETE, beginning instruction fetch; wherein Phase 1 sets all capability registers to NULL type, and Phases 2-4 load valid GTs through mLoad.
+The architecture of Claims 1 and 2, wherein the processor boots through a five-phase hardware sequence: (0) IDLE; (1) FAULT_RST, clearing all CRs to NULL type, all DRs to zero; (2) LOAD_NS, loading the namespace GT into CR15 from a hardwired bootstrap source; (3) INIT_THRD, initializing CR8 and CR5; (4) LOAD_NUC, loading CR14 and CR6; (5) COMPLETE, beginning instruction fetch; wherein Phase 1 sets all capability registers to NULL type, and Phases 2-4 load valid GTs through mLoad.
 
 ### Claim 16 — Mint as Domain-Pure Namespace Method
 

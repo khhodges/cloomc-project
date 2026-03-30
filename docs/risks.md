@@ -4,18 +4,18 @@ The goal: each namespace protects itself. A private digital shadow is achieved w
 external actor can reach inside a namespace without holding a valid, unrevoked Inform GT
 with sufficient permissions. Every risk below is tracked to resolution.
 
-## R001: CALL Must Hardcode CR7 and CR6 Permissions When Splitting Lump
+## R001: CALL Must Hardcode CR14 and CR6 Permissions When Splitting Lump
 - **Severity**: CRITICAL
 - **New**: Yes — introduced by single-NS-entry CALL split
 - **Layer**: CALL instruction (simulator.js _execCall)
-- **Risk**: CALL derives CR7 (code) and CR6 (c-list) from one NS entry. If CALL copies
+- **Risk**: CALL derives CR14 (code) and CR6 (c-list) from one NS entry. If CALL copies
   permissions from the NS entry into both CRs, domain purity breaks — code could read GTs,
   or c-list could be executed as code.
-- **Fix**: CALL hardcodes CR7 permissions to RWX (Turing domain) and CR6 permissions to
+- **Fix**: CALL hardcodes CR14 permissions to RWX (Turing domain) and CR6 permissions to
   L-only (Church domain). These are architectural invariants, not derived from the GT or NS
-  entry. CR7 gets R and W in addition to X because Boot.CLOOMC uses DREAD to load constants
+  entry. CR14 gets R and W in addition to X because Boot.CLOOMC uses DREAD to load constants
   from data tables appended after HALT in the code region (e.g., Ada Note G's .org/.word
-  constants). Domain purity is maintained: CR7 has no Church permissions (L/S/E) and CR6 has
+  constants). Domain purity is maintained: CR14 has no Church permissions (L/S/E) and CR6 has
   no Turing permissions (R/W/X). The simulator confirms this: `createGT(... {L:1} ...)` for
   CR6 (simulator.js line 352).
 - **Task**: T002
@@ -28,7 +28,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
 - **Layer**: NS Table seal (word2 bits 0-24)
 - **Risk**: The FNV seal is 25 bits (33 million values). A brute-force search is feasible
   on fast hardware. If an attacker finds a collision, they could forge an NS entry with a
-  manipulated clistCount, extending CR7's limit into the c-list region (capability theft).
+  manipulated clistCount, extending CR14's limit into the c-list region (capability theft).
 - **Fix**: On Tang Nano 20K at 27MHz, brute-force takes hours — acceptable for the target.
   In the simulator (JavaScript at GHz speed), consider rate-limiting seal checks or using
   a stronger hash. Long-term: increase seal to 32 bits by repurposing word2 layout.
@@ -140,7 +140,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
   Revoking a GT (incrementing version) instantly cuts access — all copies become invalid.
 - **How it holds under new changes**:
   - Single NS entry model: each abstraction's lump is bounded by sealed NS entry — safe
-  - CALL split: CR7 and CR6 have hardcoded domain permissions — safe (R001 RESOLVED)
+  - CALL split: CR14 and CR6 have hardcoded domain permissions — safe (R001 RESOLVED)
   - CLOOMC++ compiler: cannot forge GTs, cannot escape lump bounds — safe
   - Upload validation: Navana validates all capability delegation — safe (R007 RESOLVED)
   - Boot: one raw write for Navana, all else through Navana.Add — safe (R003 RESOLVED)
