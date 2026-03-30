@@ -20,7 +20,7 @@
 ## ISSUE #1: GT_TYPE Naming — ✅ FIXED (March 30, 2026)
 
 ### Problem (resolved)
-Tutorials previously used `GT_TYPE_REAL`; hardware defines `GT_TYPE_INFORM`.
+Tutorials used a stale GT type constant name; hardware defines `GT_TYPE_INFORM`.
 
 ### Current State (all sources aligned)
 
@@ -204,7 +204,7 @@ This is **correct** (64 words = 2^6). No contradiction found elsewhere.
 
 | Item | Checked | Status | Notes |
 |------|---------|--------|-------|
-| GT type definitions | ✅ | ✅ PASS | Fixed: `GT_TYPE_INFORM` used everywhere (was: `GT_TYPE_REAL`) |
+| GT type definitions | ✅ | ✅ PASS | `GT_TYPE_INFORM` used everywhere — naming aligned with hardware |
 | Permission bits (R,W,X,L,S,E) | ✅ | ✅ PASS | Hardware matches docs |
 | CALL frame size (2 words) | ✅ | ✅ PASS | All sources agree |
 | LAMBDA frame size (1 word) | ✅ | ✅ PASS | All sources agree |

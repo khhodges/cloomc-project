@@ -103,8 +103,8 @@ Simulator was written before the complete GT type system was defined, using an i
 - [x] `simulator/system_abstractions.js` — Type guard and error messages fixed
 - [x] `simulator/sliderule_tutorial.js` / `namespace_tutorial.js` — Type table updated
 - [x] `hardware/boot_rom.py` — Comment cross-refs updated to Inform
-- [x] `verilog/ctmm_pkg.sv` — GT_TYPE_REAL renamed to GT_TYPE_INFORM; type table corrected
-- [x] `verilog/ctmm_core.sv` / `ctmm_tb.sv` — GT_TYPE_REAL → GT_TYPE_INFORM
+- [x] `verilog/ctmm_pkg.sv` — GT_TYPE_INFORM applied; type table corrected (NULL/Inform/Outform/Abstract)
+- [x] `verilog/ctmm_core.sv` / `ctmm_tb.sv` — GT_TYPE_INFORM naming applied
 - [x] `docs/CM_LUMP_SPECIFICATION.md` / `isa_encoding.md` — Type descriptions updated
 
 ---

@@ -36,7 +36,7 @@ from amaranth.sim import Simulator, Tick
 
 from hardware.call import ChurchCall
 from hardware.hw_types import (
-    FaultType, PERM_MASK_E, PERM_MASK_X, GT_TYPE_REAL,
+    FaultType, PERM_MASK_E, PERM_MASK_X, GT_TYPE_INFORM,
     PERM_E,
 )
 from hardware.layouts import GT_LAYOUT, CAP_REG_LAYOUT
@@ -55,7 +55,7 @@ SP_MAX    = LUMP_SIZE - THR_CC - 1     # 243
 SP_MIN    = LUMP_SIZE - THR_CC - THR_SW + 2  # 214
 
 
-def _build_gt(slot_id=0, gt_seq=0, gt_type=GT_TYPE_REAL, perms=0, b_flag=0):
+def _build_gt(slot_id=0, gt_seq=0, gt_type=GT_TYPE_INFORM, perms=0, b_flag=0):
     gt  = (slot_id & 0xFFFF)
     gt |= (gt_seq  & 0x7F) << 16
     gt |= (gt_type & 0x03) << 23
