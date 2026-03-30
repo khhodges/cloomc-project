@@ -49,6 +49,11 @@ class ChurchSimulator {
         this.bootStep = 0;
         this.lastCapability = null;
 
+        this.simLED   = 0;
+        this.simTimer = 0;
+        this.simBTN   = 0;
+        this.mmioDevices = new Map();
+
         this._initNamespaceTable();
         this.output += '--- HARD RESET: all registers zeroed ---\n';
         this.output += 'Boot microcode ready. Step or Run to begin boot sequence.\n';
@@ -201,6 +206,22 @@ class ChurchSimulator {
         }
         const clooomcGT = this.createGT(0, 3, {R:0,W:0,X:1,L:0,S:0,E:0}, 0);
         this.memory[bootAbstrLoc] = clooomcGT;
+
+        const mmioBase = abstractions.length;
+        const mmioSlotDefs = [
+            { type: 'led',   label: 'LED_DEV',   perms: {R:1,W:1,X:0,L:0,S:0,E:0}, lim17: 0 },
+            { type: 'uart',  label: 'UART_DEV',  perms: {R:1,W:1,X:0,L:0,S:0,E:0}, lim17: 2 },
+            { type: 'btn',   label: 'BTN_DEV',   perms: {R:1,W:0,X:0,L:0,S:0,E:0}, lim17: 0 },
+            { type: 'timer', label: 'TIMER_DEV', perms: {R:1,W:0,X:0,L:0,S:0,E:0}, lim17: 0 },
+        ];
+        for (let i = 0; i < mmioSlotDefs.length; i++) {
+            const slotIdx = mmioBase + i;
+            const dev = mmioSlotDefs[i];
+            const loc = 0xF000 + slotIdx;
+            this.writeNSEntry(slotIdx, loc, dev.lim17, 0, 0, 0, 0, 0, 0);
+            this.nsLabels[slotIdx] = dev.label;
+            this.mmioDevices.set(slotIdx, { type: dev.type, label: dev.label });
+        }
     }
 
     _bootStep() {
@@ -1277,6 +1298,38 @@ class ChurchSimulator {
         return { pc: this.pc - 1, instr: d, desc, pipeline: this._xloadlambdaPipeline(d, label) };
     }
 
+    _readMMIO(devType, offset) {
+        switch (devType) {
+            case 'led':   return this.simLED >>> 0;
+            case 'uart':
+                if (offset === 0) return 0;
+                if (offset === 1) return 1;
+                if (offset === 2) return 0;
+                return 0;
+            case 'btn':   return this.simBTN >>> 0;
+            case 'timer': return (this.simTimer++) >>> 0;
+            default:      return 0;
+        }
+    }
+
+    _writeMMIO(devType, offset, value) {
+        switch (devType) {
+            case 'led':
+                this.simLED = value >>> 0;
+                this.emit('ledChange', { value: this.simLED });
+                break;
+            case 'uart':
+                if (offset === 0) {
+                    const ch = String.fromCharCode(value & 0xFF);
+                    this.output += ch;
+                    this.emit('uartTx', { byte: value & 0xFF, char: ch });
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
     _execDread(d) {
         const drIdx = d.crDst;
         const dataGT = this.cr[d.crSrc].word0;
@@ -1297,9 +1350,15 @@ class ChurchSimulator {
             this.fault('BOUNDS', `DREAD: offset ${offset} exceeds DATA limit ${lim.limit}`);
             return null;
         }
-        const value = this.memory[loc + offset];
-        this.dr[drIdx] = value >>> 0;
         const label = this.nsLabels[check.index] || 'data';
+        let value;
+        const mmio = this.mmioDevices.get(check.index);
+        if (mmio) {
+            value = this._readMMIO(mmio.type, offset);
+        } else {
+            value = this.memory[loc + offset];
+        }
+        this.dr[drIdx] = value >>> 0;
         const desc = `DREAD DR${drIdx}, [CR${d.crSrc} + ${offset}] → 0x${(value >>> 0).toString(16).toUpperCase().padStart(8,'0')} (${label})`;
         this.output += desc + '\n';
         this.pc++;
@@ -1329,8 +1388,13 @@ class ChurchSimulator {
             return null;
         }
         const value = this.dr[drIdx] >>> 0;
-        this.memory[loc + offset] = value;
         const label = this.nsLabels[check.index] || 'data';
+        const mmio = this.mmioDevices.get(check.index);
+        if (mmio) {
+            this._writeMMIO(mmio.type, offset, value);
+        } else {
+            this.memory[loc + offset] = value;
+        }
         const desc = `DWRITE DR${drIdx}, [CR${d.crSrc} + ${offset}] ← 0x${value.toString(16).toUpperCase().padStart(8,'0')} (${label})`;
         this.output += desc + '\n';
         this.pc++;

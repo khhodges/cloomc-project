@@ -116,7 +116,7 @@ class ChurchTangNano20K(Elaboratable):
             with m.Case(0):
                 m.d.comb += mmio_rd_data.eq(mmio_led_reg)
             with m.Case(2):
-                m.d.comb += mmio_rd_data.eq(Cat(C(1, 1), C(0, 31)))
+                m.d.comb += mmio_rd_data.eq(Cat(~debug.busy, C(0, 31)))
             with m.Case(4):
                 m.d.comb += mmio_rd_data.eq(Cat(self.push_button, C(0, 31)))
             with m.Case(5):
@@ -288,6 +288,24 @@ class ChurchTangNano20K(Elaboratable):
 
         m.d.comb += self.uart_tx.eq(debug.tx)
 
+        # MMIO UART TX arbitration —————————————————————————————————————————
+        mmio_uart_pending  = Signal()
+        mmio_uart_byte_reg = Signal(8)
+        fsm_send_byte      = Signal()
+        fsm_byte_data      = Signal(8)
+
+        with m.If(mmio_uart_tx_wr):
+            m.d.sync += [mmio_uart_pending.eq(1),
+                         mmio_uart_byte_reg.eq(mmio_uart_tx_data)]
+
+        with m.If(fsm_send_byte):
+            m.d.comb += [debug.send_byte.eq(1), debug.byte_data.eq(fsm_byte_data)]
+        with m.Elif(mmio_uart_pending & ~debug.busy):
+            m.d.comb += [debug.send_byte.eq(1),
+                         debug.byte_data.eq(mmio_uart_byte_reg)]
+            m.d.sync += mmio_uart_pending.eq(0)
+        # ——————————————————————————————————————————————————————————————————
+
         m.d.comb += [
             self.dbg_nia.eq(core.nia),
             self.dbg_fault.eq(core.fault),
@@ -382,8 +400,8 @@ class ChurchTangNano20K(Elaboratable):
                 with m.If(~debug.busy):
                     with m.If(banner_idx < len(BANNER)):
                         m.d.comb += [
-                            debug.byte_data.eq(banner_byte),
-                            debug.send_byte.eq(1),
+                            fsm_byte_data.eq(banner_byte),
+                            fsm_send_byte.eq(1),
                         ]
                         m.d.sync += banner_idx.eq(banner_idx + 1)
                     with m.Else():
@@ -401,8 +419,8 @@ class ChurchTangNano20K(Elaboratable):
                 with m.If(~debug.busy):
                     with m.If(halt_idx < len(HALT_MSG)):
                         m.d.comb += [
-                            debug.byte_data.eq(halt_byte),
-                            debug.send_byte.eq(1),
+                            fsm_byte_data.eq(halt_byte),
+                            fsm_send_byte.eq(1),
                         ]
                         m.d.sync += halt_idx.eq(halt_idx + 1)
                     with m.Else():
@@ -429,8 +447,8 @@ class ChurchTangNano20K(Elaboratable):
                 with m.If(~debug.busy):
                     with m.If(step_idx < len(STEP_MSG)):
                         m.d.comb += [
-                            debug.byte_data.eq(step_byte),
-                            debug.send_byte.eq(1),
+                            fsm_byte_data.eq(step_byte),
+                            fsm_send_byte.eq(1),
                         ]
                         m.d.sync += step_idx.eq(step_idx + 1)
                     with m.Else():
@@ -454,8 +472,8 @@ class ChurchTangNano20K(Elaboratable):
                 with m.If(~debug.busy):
                     with m.If(fault_msg_idx < len(FAULT_MSG)):
                         m.d.comb += [
-                            debug.byte_data.eq(fault_byte),
-                            debug.send_byte.eq(1),
+                            fsm_byte_data.eq(fault_byte),
+                            fsm_send_byte.eq(1),
                         ]
                         m.d.sync += fault_msg_idx.eq(fault_msg_idx + 1)
                     with m.Else():

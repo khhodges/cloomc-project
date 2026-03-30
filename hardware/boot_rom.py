@@ -163,21 +163,56 @@ def _make_ns_entry(gt_type, perms, slot_id, gt_seq, location, alloc_size, cw=0, 
 
 
 # ---------------------------------------------------------------------------
+# MMIO device GT slot assignments — first available slots after boot/system
+#
+#   Slot 0:  NS root
+#   Slot 1:  Thread Abstraction lump
+#   Slot 2:  Boot.Abstr lump
+#   Slots 3–6: Programmer abstractions (boot-loaded)
+#   Slot 7:  LED_DEV    — 0x40000000, RW, limit=0 (1 word)
+#   Slot 8:  UART_DEV   — 0x40000004, RW, limit=2 (3 words: TX, STATUS, RX)
+#   Slot 9:  BTN_DEV    — 0x40000010, R,  limit=0 (1 word)
+#   Slot 10: TIMER_DEV  — 0x40000014, R,  limit=0 (1 word)
+#   Slots 11–15: reserved for future device GTs
+# ---------------------------------------------------------------------------
+MMIO_LED_SLOT   = 7
+MMIO_UART_SLOT  = 8
+MMIO_BTN_SLOT   = 9
+MMIO_TIMER_SLOT = 10
+
+MMIO_LED_ADDR   = 0x40000000
+MMIO_UART_ADDR  = 0x40000004   # TX=+0, STATUS=+4, RX=+8 bytes → offsets 0,1,2 words
+MMIO_BTN_ADDR   = 0x40000010
+MMIO_TIMER_ADDR = 0x40000014
+
+_MMIO_ENTRIES = {
+    MMIO_LED_SLOT:   (MMIO_LED_ADDR,   1,  GT_TYPE_ABSTRACT, PERM_MASK_R | PERM_MASK_W),
+    MMIO_UART_SLOT:  (MMIO_UART_ADDR,  3,  GT_TYPE_ABSTRACT, PERM_MASK_R | PERM_MASK_W),
+    MMIO_BTN_SLOT:   (MMIO_BTN_ADDR,   1,  GT_TYPE_ABSTRACT, PERM_MASK_R),
+    MMIO_TIMER_SLOT: (MMIO_TIMER_ADDR, 1,  GT_TYPE_ABSTRACT, PERM_MASK_R),
+}
+
+# ---------------------------------------------------------------------------
 # DEMO_NAMESPACE — stub NS table entries (16 slots) used during simulation
 #
 # CLOOMC listing cross-ref: simulator/secure_boot_tutorial.js §"Boot ROM Cross-Reference"
 #   Slot 0: NS root (location=NS_TABLE_BASE, limit encodes full physical space)
 #   Slot 1: Thread Abstraction lump (base = 1 × 0x100 = 0x0100)
 #   Slot 2: Boot.Abstr lump      (base = 2 × 0x100 = 0x0200)
-#   Slot 3+: Programmer-uploaded abstractions
+#   Slots 3–6: Programmer-uploaded abstractions
+#   Slots 7–10: MMIO device GTs (LED, UART, BTN, TIMER)  ← set by boot namespace
+#   Slots 11–15: reserved
 # ---------------------------------------------------------------------------
 DEMO_NAMESPACE = []
 for _i in range(16):
-    _location = NS_TABLE_BASE if _i == 0 else _i * 0x100
-    _alloc_size = 64  # FPGA minimum: 2^6 = 64 words per spec. Demo uses 8 words in simulation.
-    _gt_seq = 0
-    _entry = _make_ns_entry(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, _i, _gt_seq,
-                            _location, _alloc_size)
+    if _i in _MMIO_ENTRIES:
+        _loc, _sz, _gtype, _perms = _MMIO_ENTRIES[_i]
+        _entry = _make_ns_entry(_gtype, _perms, _i, 0, _loc, _sz)
+    else:
+        _location = NS_TABLE_BASE if _i == 0 else _i * 0x100
+        _alloc_size = 64  # FPGA min: 64 words per spec; demo uses 8 in simulation
+        _entry = _make_ns_entry(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, _i, 0,
+                                _location, _alloc_size)
     DEMO_NAMESPACE.extend(_entry)
 
 

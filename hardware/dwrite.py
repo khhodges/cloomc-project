@@ -68,7 +68,7 @@ class ChurchDWrite(Elaboratable):
             gt_null.eq(cr_view.word0_gt.as_value() == 0),
             has_w.eq(cr_gt.perms[PERM_W]),
             limit.eq(cr_w2.limit_offset[:16]),
-            in_bounds.eq(imm_reg < limit),
+            in_bounds.eq(imm_reg <= limit),
         ]
 
         m.d.comb += [

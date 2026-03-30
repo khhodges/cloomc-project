@@ -69,7 +69,7 @@ class ChurchDRead(Elaboratable):
             gt_null.eq(cr_view.word0_gt.as_value() == 0),
             has_r.eq(cr_gt.perms[PERM_R]),
             limit.eq(cr_w2.limit_offset[:16]),
-            in_bounds.eq(imm_reg < limit),
+            in_bounds.eq(imm_reg <= limit),
         ]
 
         m.d.comb += self.cr_rd_addr.eq(Mux(self.busy, cr_src_reg, self.cr_src))
