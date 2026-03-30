@@ -85,7 +85,7 @@ with m.If(e_gt_view.gt_type != GT_TYPE_INFORM):
 | Type comments say 2=Abstract | simulator.js | 231,234,281 | 🟡 MEDIUM | ✅ FIXED |
 | TPERM presets 10-12 wrong (W vs LE/SE/LSE) | simulator.js, assembler.js | — | 🔴 CRITICAL | ✅ FIXED |
 | TPERM presets 11-14 wrongly null | simulator.js, assembler.js | — | 🟠 HIGH | ✅ FIXED |
-| "Real" GT type name throughout simulator/docs | all JS + docs | many | 🟡 MEDIUM | ✅ FIXED |
+| GT type naming (Inform/Outform/Abstract) not consistently applied | all JS + docs | many | 🟡 MEDIUM | ✅ FIXED |
 | isa_encoding.md preset table wrong (W at 0x0A) | docs/isa_encoding.md | — | 🟡 MEDIUM | ✅ FIXED |
 
 ---

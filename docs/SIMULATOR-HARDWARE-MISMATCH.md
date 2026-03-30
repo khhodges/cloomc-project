@@ -65,7 +65,7 @@ After fixing, verify:
    - Should correctly validate Abstract GT gates
 
 2. **Tutorials**: All GT_TYPE_INFORM usage (type 1)
-   - Should show 'Inform' in UI, not 'Real'
+   - Should show 'Inform' in GT type display
    - Should behave correctly in CALL/LOAD operations
 
 3. **Device abstractions**: Any type 2 (Outform) usage
@@ -90,7 +90,7 @@ After fixing, verify:
 
 ## Root Cause
 
-Simulator was written before complete GT type system was defined. It used placeholder "Real" and "Abstract" without the full 4-type taxonomy. Now that hardware defines all 4 types, simulator is out of sync.
+Simulator was written before the complete GT type system was defined, using an incomplete 2-type taxonomy. Hardware defines all 4 types (NULL/Inform/Outform/Abstract). Simulator has been updated to match.
 
 ---
 

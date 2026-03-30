@@ -139,14 +139,15 @@ Documentation does not explicitly state which GT bits are CRC'd.
 
 ## HIGH PRIORITY (Minor): Naming Inconsistencies
 
-### Issue: GT Type Naming — "Inform" (was: "Real")
+### Issue: GT Type Naming Consistency — ✅ FIXED
 
-| Location | Old (wrong) | Fixed | Impact |
-|----------|-------------|-------|--------|
-| `simulator/secure_boot_tutorial.js` | `GT_TYPE_REAL` | `GT_TYPE_INFORM` | ✅ Fixed |
-| Comments referencing "Real" | "Real" | "Inform" | ✅ Fixed |
+| Location | Status |
+|----------|--------|
+| `simulator/secure_boot_tutorial.js` | ✅ GT_TYPE_INFORM applied |
+| All simulator JS type comments | ✅ Inform/Outform/Abstract naming used |
+| verilog/ctmm_pkg.sv | ✅ GT_TYPE_INFORM defined correctly |
 
-**Status**: ✅ FIXED (March 30, 2026) — All "Real" GT type references replaced with "Inform" across all simulator JS, hardware Python comments, verilog definitions, and documentation.
+**Status**: ✅ FIXED (March 30, 2026) — All GT type references use Inform/Outform/Abstract naming across simulator JS, hardware Python, verilog definitions, and documentation.
 
 ---
 
@@ -239,7 +240,7 @@ This is **correct** (64 words = 2^6). No contradiction found elsewhere.
    - **Time**: 15 minutes
    - **Risk**: LOW — documentation only, hardware is correct
 
-4. ✅ **Updated all tutorial references from "Inform" (was: "Real")** — DONE March 30, 2026
+4. ✅ **GT type naming unified: Inform/Outform/Abstract used throughout** — DONE March 30, 2026
    - **Files**: All simulator JS, hardware Python comments, verilog definitions, docs
    - **Risk**: LOW — naming consistency only
 
