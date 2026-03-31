@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<efx:project xmlns:efx="http://www.efinixinc.com/enf_proj"
+             name="church_ti60_f225"
+             description="Church Machine for Efinix Titanium Ti60 F225"
+             location="."
+             sw_version="2025.2">
+
+  <efx:device_info>
+    <efx:family name="Titanium"/>
+    <efx:device name="Ti60F225"/>
+    <efx:timing_model name="C3"/>
+  </efx:device_info>
+
+  <efx:design_info top_module="top" language="verilog">
+    <efx:hdl_source path="../build/church_ti60_f225.v"/>
+  </efx:design_info>
+
+  <efx:constraint_info>
+    <efx:isf_source path="ti60_f225.isf"/>
+  </efx:constraint_info>
+
+  <efx:place_and_route_options>
+    <efx:param name="work_dir" value="../build/work_pnr"/>
+    <efx:param name="seed"     value="1"/>
+    <efx:param name="max_threads" value="4"/>
+    <efx:param name="clock_pin"   value="B8"/>
+    <efx:param name="clock_freq"  value="50.0"/>
+  </efx:place_and_route_options>
+
+  <efx:bitstream_generation_options>
+    <efx:param name="mode" value="active"/>
+  </efx:bitstream_generation_options>
+
+</efx:project>
