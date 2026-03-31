@@ -106,18 +106,17 @@ python3 -c "from hardware.tang_nano_20k import ChurchTangNano20K; print('OK')"
 ### Complete one-liner
 
 ```bash
-cd hardware && \
-  python3 -m ..hardware.gen_rtlil > church_tang_nano_20k.rtlil && \
-  yosys -p "read_rtlil church_tang_nano_20k.rtlil; synth_gowin -json church_tang_nano_20k.json" && \
+python3 -m hardware.gen_rtlil > build/church_tang_nano_20k.rtlil && \
+  yosys -p "read_rtlil build/church_tang_nano_20k.rtlil; synth_gowin -json build/church_tang_nano_20k.json" && \
   nextpnr-himbaechel \
     --device GW2AR-LV18QN88C8/I7 \
-    --json church_tang_nano_20k.json \
-    --write church_tang_nano_20k_pnr.json \
+    --json build/church_tang_nano_20k.json \
+    --write build/church_tang_nano_20k_pnr.json \
     -o family=GW2A-18C \
-    -o cst=tang_nano_20k.cst \
+    -o cst=hardware/tang_nano_20k.cst \
     --freq 27 && \
-  gowin_pack -d GW2A-18C -o church_tang_nano_20k.fs church_tang_nano_20k_pnr.json && \
-  openFPGALoader -b tangnano20k church_tang_nano_20k.fs
+  gowin_pack -d GW2A-18C -o build/church_tang_nano_20k.fs build/church_tang_nano_20k_pnr.json && \
+  openFPGALoader -b tangnano20k build/church_tang_nano_20k.fs
 ```
 
 Or using the project Makefile:
@@ -274,7 +273,7 @@ The MMIO register selector is `addr[5:2]` (4-bit word index).
 | 5 | `0x40000014` | `UART_TX` | W | 8 | `0x43A4` |
 | 6 | `0x40000018` | `UART_STATUS` | R | 8 | — |
 | 7 | `0x4000001C` | `UART_RX` | R | 8 | — |
-| 8 | `0x40000020` | `BTN` | R | 9 | `0x0F00` |
+| 8 | `0x40000028` | `BTN` | R | 9 | `0x0F00` |
 | 9–10 | — | *(reserved)* | — | — | — |
 | 11 | `0x4000002C` | `TIMER.TICKS_LO` | R | 10 | `0xEBC6` |
 | 12 | `0x40000030` | `TIMER.TICKS_HI` | R | 10 | — |
