@@ -1,9 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
-<efx:project xmlns:efx="http://www.efinixinc.com/enf_proj"
-             name="church_ti60_f225"
+<?xml version="1.0" encoding="UTF-8"?>
+<efx:project name="church_ti60_f225"
              description="Church Machine for Efinix Titanium Ti60 F225"
+             last_change_date=""
              location="."
-             sw_version="2025.2">
+             sw_version="2025.2"
+             xmlns:efx="http://www.efinixinc.com/enf_proj"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.efinixinc.com/enf_proj enf_proj.xsd">
 
   <efx:device_info>
     <efx:family name="Titanium"/>
@@ -11,24 +14,57 @@
     <efx:timing_model name="C3"/>
   </efx:device_info>
 
-  <efx:design_info top_module="top" language="verilog">
-    <efx:hdl_source path="../build/church_ti60_f225.v"/>
+  <efx:design_info def_veri_version="verilog_2k" def_vhdl_version="vhdl_2008" unified_flow="false">
+    <efx:top_module name="top"/>
+    <efx:design_file name="../build/church_ti60_f225.v" version="verilog_2k"/>
+    <efx:top_vhdl_arch name=""/>
   </efx:design_info>
 
+  <efx:package_info>
+    <efx:package name="F225"/>
+  </efx:package_info>
+
   <efx:constraint_info>
-    <efx:isf_source path="ti60_f225.isf"/>
+    <efx:isf_source name="ti60_f225.isf"/>
   </efx:constraint_info>
 
-  <efx:place_and_route_options>
-    <efx:param name="work_dir" value="../build/work_pnr"/>
-    <efx:param name="seed"     value="1"/>
-    <efx:param name="max_threads" value="4"/>
-    <efx:param name="clock_pin"   value="B8"/>
-    <efx:param name="clock_freq"  value="50.0"/>
-  </efx:place_and_route_options>
+  <efx:sim_info/>
+  <efx:misc_info/>
+  <efx:ip_info/>
 
-  <efx:bitstream_generation_options>
-    <efx:param name="mode" value="active"/>
-  </efx:bitstream_generation_options>
+  <efx:synthesis tool_name="efx_map">
+    <efx:param name="work_dir" value="work_syn" value_type="e_string"/>
+    <efx:param name="write_efx_verilog" value="on" value_type="e_bool"/>
+  </efx:synthesis>
+
+  <efx:place_and_route tool_name="efx_pnr">
+    <efx:param name="work_dir" value="work_pnr" value_type="e_string"/>
+    <efx:param name="verbose" value="off" value_type="e_bool"/>
+  </efx:place_and_route>
+
+  <efx:bitstream_generation tool_name="efx_pgm">
+    <efx:param name="mode" value="active" value_type="e_string"/>
+    <efx:param name="width" value="1" value_type="e_string"/>
+    <efx:param name="enable_roms" value="smart" value_type="e_option"/>
+    <efx:param name="spi_low_power_mode" value="on" value_type="e_bool"/>
+    <efx:param name="io_weak_pullup" value="on" value_type="e_bool"/>
+    <efx:param name="oscillator_clock_divider" value="DIV8" value_type="e_option"/>
+    <efx:param name="bitstream_compression" value="on" value_type="e_bool"/>
+    <efx:param name="enable_external_master_clock" value="off" value_type="e_bool"/>
+    <efx:param name="active_capture_clk_edge" value="posedge" value_type="e_option"/>
+    <efx:param name="jtag_usercode" value="0xFFFFFFFF" value_type="e_string"/>
+    <efx:param name="release_tri_then_reset" value="on" value_type="e_bool"/>
+  </efx:bitstream_generation>
+
+  <efx:debugger>
+    <efx:param name="work_dir" value="work_dbg" value_type="e_string"/>
+    <efx:param name="auto_instantiation" value="off" value_type="e_bool"/>
+    <efx:param name="profile" value="NONE" value_type="e_string"/>
+  </efx:debugger>
+
+  <efx:security>
+    <efx:param name="randomize_iv_value" value="on" value_type="e_bool"/>
+    <efx:param name="iv_value" value="" value_type="e_string"/>
+  </efx:security>
 
 </efx:project>
