@@ -121,7 +121,7 @@ python3 -m hardware.gen_rtlil > build/church_tang_nano_20k.rtlil && \
 
 Or using the project Makefile:
 ```bash
-cd hardware && make all && make prog
+cd hardware && make pnr pack prog
 ```
 
 ### Step by step
@@ -172,14 +172,14 @@ Troubleshooting:
 
 | Target | Command | Output |
 |:-------|:--------|:-------|
-| Verilog generation | `make verilog` | `build/church_tang_nano_20k.v` |
-| Synthesis | `make synth` | `build/church_tang_nano_20k.json` |
-| Place & Route | `make pnr` | `build/church_tang_nano_20k_pnr.json` |
-| Pack bitstream | `make pack` | `build/church_tang_nano_20k.fs` |
+| Place & Route | `make pnr` | `church_tang_nano_20k_pnr.json` |
+| Pack bitstream | `make pack` | `church_tang_nano_20k.fs` |
 | Flash | `make prog` | Programmed to FPGA |
-| Full build | `make all` | synth + pnr + pack |
-| Clean | `make clean` | Removes build artefacts |
-| Resource report | `make report` | LUT / DFF / BSRAM usage |
+| Clean | `make clean` | Removes generated files |
+
+> **Note**: RTL and synthesis steps are run separately (Amaranth `gen_rtlil` → Yosys).
+> The Makefile covers only PnR onward. Run `python3 -m hardware.gen_rtlil` and Yosys
+> before `make pnr`.
 
 ---
 
@@ -273,8 +273,8 @@ The MMIO register selector is `addr[5:2]` (4-bit word index).
 | 5 | `0x40000014` | `UART_TX` | W | 8 | `0x43A4` |
 | 6 | `0x40000018` | `UART_STATUS` | R | 8 | — |
 | 7 | `0x4000001C` | `UART_RX` | R | 8 | — |
-| 8 | `0x40000028` | `BTN` | R | 9 | `0x0F00` |
-| 9–10 | — | *(reserved)* | — | — | — |
+| 8–9 | — | *(reserved)* | — | — | — |
+| 10 | `0x40000028` | `BTN` | R | 9 | `0x0F00` |
 | 11 | `0x4000002C` | `TIMER.TICKS_LO` | R | 10 | `0xEBC6` |
 | 12 | `0x40000030` | `TIMER.TICKS_HI` | R | 10 | — |
 | 13 | `0x40000034` | `TIMER.TOD_EPOCH` | R/W | 10 | — |

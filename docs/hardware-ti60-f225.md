@@ -201,8 +201,8 @@ The MMIO register selector is `addr[5:2]` (4-bit word index within the MMIO rang
 | 5 | `0x40000014` | `UART_TX` | W | 8 | `0x43A4` |
 | 6 | `0x40000018` | `UART_STATUS` | R | 8 | — |
 | 7 | `0x4000001C` | `UART_RX` | R | 8 | — |
-| 8 | `0x40000028` | `BTN` | R | 9 | `0x0F00` |
-| 9–10 | — | *(reserved)* | — | — | — |
+| 8–9 | — | *(reserved)* | — | — | — |
+| 10 | `0x40000028` | `BTN` | R | 9 | `0x0F00` |
 | 11 | `0x4000002C` | `TIMER.TICKS_LO` | R | 10 | `0xEBC6` |
 | 12 | `0x40000030` | `TIMER.TICKS_HI` | R | 10 | — |
 | 13 | `0x40000034` | `TIMER.TOD_EPOCH` | R/W | 10 | — |
