@@ -106,7 +106,7 @@ design.create_output_gpio("led2")
 design.create_output_gpio("led3")
 
 # Properties
-design.set_property("clk","CONN_TYPE","CLKIN")
+design.set_property("clk","CONN_TYPE","GCLK")
 design.set_property("push_button","PULL_OPTION","WEAK_PULLUP")
 
 # Pin assignments (ball locations from Ti60 F225 Dev Kit schematic)
