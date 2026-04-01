@@ -272,6 +272,30 @@ def docs_read(filename):
         content = f.read()
     return jsonify({"name": filename, "content": content})
 
+BUILD_DIR = os.path.join(BASE_DIR, "build")
+
+_ALLOWED_BUILD_FILES = {
+    "church_ti60_f225.v":  "text/plain",
+    "church_ti60_f225.il": "text/plain",
+    "church_tang_nano_20k.v":  "text/plain",
+    "church_tang_nano_20k.il": "text/plain",
+}
+
+@app.route("/download/<filename>")
+def download_build_file(filename):
+    if filename not in _ALLOWED_BUILD_FILES:
+        return make_response("Not found", 404)
+    filepath = os.path.join(BUILD_DIR, filename)
+    if not os.path.isfile(filepath):
+        return make_response("File not yet generated", 404)
+    ct = _ALLOWED_BUILD_FILES[filename]
+    with open(filepath, "rb") as f:
+        data = f.read()
+    resp = make_response(data, 200)
+    resp.headers["Content-Type"] = ct
+    resp.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return resp
+
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_LIBRARY_REPO = os.environ.get("GITHUB_LIBRARY_REPO", "khhodges/cloomc-project")
 GITHUB_FOUNDATION_REPO = "khhodges/cloomc-foundation"
