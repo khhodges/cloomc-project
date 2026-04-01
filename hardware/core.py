@@ -601,6 +601,10 @@ class ChurchCore(Elaboratable):
             u_return.cr_rd_data.eq(u_regs.cr_rd_data),
             u_return.lambda_active.eq(lambda_active_reg),
             u_return.lambda_pc.eq(lambda_pc_reg),
+            u_return.cr5_heap.eq(u_regs.cr5_heap),
+            u_return.cr12_thread.eq(u_regs.cr12_thread),
+            u_return.mem_rd_data.eq(self.dmem_rd_data),
+            u_return.mem_rd_valid.eq(1),
         ]
 
         with m.If(ret_start_sig):
@@ -1148,6 +1152,17 @@ class ChurchCore(Elaboratable):
             m.d.comb += [
                 self.dmem_addr.eq(u_outform.mem_wr_addr),
                 self.dmem_wr_data.eq(u_outform.mem_wr_data),
+                self.dmem_wr_en.eq(1),
+            ]
+        with m.Elif(u_return.mem_rd_en):
+            m.d.comb += [
+                self.dmem_addr.eq(u_return.mem_rd_addr),
+                self.dmem_rd_en.eq(1),
+            ]
+        with m.Elif(u_return.mem_wr_en):
+            m.d.comb += [
+                self.dmem_addr.eq(u_return.mem_wr_addr),
+                self.dmem_wr_data.eq(u_return.mem_wr_data),
                 self.dmem_wr_en.eq(1),
             ]
 
