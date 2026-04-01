@@ -1,26 +1,18 @@
+(venv-church) sipantichijk@penguin:~$ cat ~/efinity/2025.2/examples/helloworld-dbg_GOLDEN/Ti60F225_kit.isf
 # Efinity Interface Configuration
-# Version: 2025.2
-# Date: 2026-04-01
+# Version: 2025.1.110.4.9
+# Date: 2025-09-05 16:12
 #
 # Copyright (C) 2013 - 2025 Efinix Inc. All rights reserved.
 #
 # Device: Ti60F225
 # Package: 225-ball FBGA (final)
-# Project: church_ti60_f225
+# Project: new_tutorial
 # Configuration mode: active (x1)
-# Timing Model: C3 (final)
-#
-# Church Machine signals:
-#   clk         B8  = GPIOT_P_07_CLK4_P  50 MHz on-board crystal
-#   uart_tx     H14 = GPIOR_P_11_CLK8_P  FTDI FT232H UART TX (FPGA→host)
-#   uart_rx     M14 = GPIOR_P_02_CDI24   FTDI FT232H UART RX (host→FPGA)
-#   push_button A7  = GPIOT_N_06         USER_PB, active-low, ext pull-up
-#   led0        K14 = GPIOR_P_19         USER_LED[0]
-#   led1        J15 = GPIOR_N_13         USER_LED[1]
-#   led2        H10 = GPIOR_N_18         USER_LED[2]
-#   led3        J14 = GPIOR_P_13         USER_LED[3]
+# Timing Model: C4 (final)
 
-# Device setting — all banks at 1.8 V; corner banks (BL/BR/TL/TR) at 3.3 V
+
+# Device setting
 design.set_device_property("1A","DYNAMIC_VOLTAGE","0","IOBANK")
 design.set_mode_sel_name("1A","1A_MODE_SEL","1A")
 design.set_device_property("1A","VOLTAGE","1.8","IOBANK")
@@ -77,7 +69,7 @@ design.set_device_property("Left","CORE2_PIN","","CLKMUX")
 design.set_device_property("Left","CORE3_PIN","","CLKMUX")
 design.set_device_property("Left","DYN_MUX0_EN","0","CLKMUX")
 design.set_device_property("Left","DYN_MUX7_EN","0","CLKMUX")
-design.set_device_property("Right","CORE0_PIN","clk","CLKMUX")
+design.set_device_property("Right","CORE0_PIN","","CLKMUX")
 design.set_device_property("Right","CORE1_PIN","","CLKMUX")
 design.set_device_property("Right","CORE2_PIN","","CLKMUX")
 design.set_device_property("Right","CORE3_PIN","","CLKMUX")
@@ -90,31 +82,65 @@ design.set_device_property("Top","CORE3_PIN","","CLKMUX")
 design.set_device_property("Top","DYN_MUX0_EN","0","CLKMUX")
 design.set_device_property("Top","DYN_MUX7_EN","0","CLKMUX")
 
-# Create GPIO instances
-# Clock — 50 MHz crystal, ball B8 — routed as global clock via CLKMUX_R CORE0
-design.create_input_gpio("clk")
-# UART TX — FPGA → FTDI FT232H RX, ball H14
-design.create_output_gpio("uart_tx")
-# UART RX — FTDI FT232H TX → FPGA, ball M14
-design.create_input_gpio("uart_rx")
-# Push button — active-low, ball A7
-design.create_input_gpio("push_button")
-# LEDs — active-high, balls K14 J15 H10 J14 (USER_LED[0..3] on dev kit)
-design.create_output_gpio("led0")
-design.create_output_gpio("led1")
-design.create_output_gpio("led2")
-design.create_output_gpio("led3")
+# Create instance
+design.create_output_gpio("led",5,0)
+design.create_pll_input_clock_gpio("pll_refclk")
+design.create_input_gpio("reverse")
+design.create_input_gpio("rstn")
+design.create_block("pll_inst1","PLL")
+design.create_block("jtag_inst1","JTAG")
 
-# Properties
-design.set_property("clk","CONN_TYPE","CLKIN")
-design.set_property("push_button","PULL_OPTION","WEAK_PULLUP")
+# Set property, non-defaults
+design.set_property("reverse","PULL_OPTION","WEAK_PULLUP")
+design.set_property("rstn","PULL_OPTION","WEAK_PULLUP")
+design.set_property("pll_inst1","CLKOUT0_EN","1","PLL")
+design.set_property("pll_inst1","CLKOUT1_EN","0","PLL")
+design.set_property("pll_inst1","CLKOUT2_EN","0","PLL")
+design.set_property("pll_inst1","CLKOUT3_EN","0","PLL")
+design.set_property("pll_inst1","CLKOUT4_EN","0","PLL")
+design.set_property("pll_inst1","REFCLK_SOURCE","EXTERNAL","PLL")
+design.set_property("pll_inst1","CLKOUT0_CONN_TYPE","gclk","PLL")
+design.set_property("pll_inst1","CLKOUT0_DIV","27","PLL")
+design.set_property("pll_inst1","CLKOUT0_DYNPHASE_EN","0","PLL")
+design.set_property("pll_inst1","CLKOUT0_PHASE_STEP","0","PLL")
+design.set_property("pll_inst1","CLKOUT0_PIN","clk","PLL")
+design.set_property("pll_inst1","EXT_CLK","EXT_CLK0","PLL")
+design.set_property("pll_inst1","IS_CLKOUT0_INVERTED","0","PLL")
+design.set_property("pll_inst1","LOCKED_PIN","","PLL")
+design.set_property("pll_inst1","M","4","PLL")
+design.set_property("pll_inst1","N","1","PLL")
+design.set_property("pll_inst1","O","2","PLL")
+design.set_property("pll_inst1","PHASE_SHIFT_ENA_PIN","","PLL")
+design.set_property("pll_inst1","PHASE_SHIFT_PIN","","PLL")
+design.set_property("pll_inst1","PHASE_SHIFT_SEL_PIN","","PLL")
+design.set_property("pll_inst1","REFCLK_FREQ","25.0","PLL")
+design.set_property("pll_inst1","RSTN_PIN","","PLL")
+design.set_property("pll_inst1","FEEDBACK_MODE","LOCAL","PLL")
+design.set_property("pll_inst1","FEEDBACK_CLK","CLK0","PLL")
+design.set_property("jtag_inst1","NAME","jtag_inst1","JTAG")
+design.set_property("jtag_inst1","RESOURCE","JTAG_USER1","JTAG")
+design.set_property("jtag_inst1","CAPTURE","jtag_inst1_CAPTURE","JTAG")
+design.set_property("jtag_inst1","DRCK","jtag_inst1_DRCK","JTAG")
+design.set_property("jtag_inst1","RESET","jtag_inst1_RESET","JTAG")
+design.set_property("jtag_inst1","RUNTEST","jtag_inst1_RUNTEST","JTAG")
+design.set_property("jtag_inst1","SEL","jtag_inst1_SEL","JTAG")
+design.set_property("jtag_inst1","SHIFT","jtag_inst1_SHIFT","JTAG")
+design.set_property("jtag_inst1","TCK","jtag_inst1_TCK","JTAG")
+design.set_property("jtag_inst1","TDI","jtag_inst1_TDI","JTAG")
+design.set_property("jtag_inst1","TMS","jtag_inst1_TMS","JTAG")
+design.set_property("jtag_inst1","UPDATE","jtag_inst1_UPDATE","JTAG")
+design.set_property("jtag_inst1","TDO","jtag_inst1_TDO","JTAG")
 
-# Pin assignments (ball locations from Ti60 F225 Dev Kit schematic)
-design.assign_pkg_pin("clk","B8")
-design.assign_pkg_pin("uart_tx","H14")
-design.assign_pkg_pin("uart_rx","M14")
-design.assign_pkg_pin("push_button","A7")
-design.assign_pkg_pin("led0","K14")
-design.assign_pkg_pin("led1","J15")
-design.assign_pkg_pin("led2","H10")
-design.assign_pkg_pin("led3","J14")
+# Set resource assignment
+design.assign_pkg_pin("led[0]","K14")
+design.assign_pkg_pin("led[1]","J15")
+design.assign_pkg_pin("led[2]","H10")
+design.assign_pkg_pin("led[3]","J14")
+design.assign_pkg_pin("led[4]","H15")
+design.assign_pkg_pin("led[5]","H11")
+design.assign_pkg_pin("pll_refclk","B2")
+design.assign_pkg_pin("reverse","K13")
+design.assign_pkg_pin("rstn","J13")
+design.assign_resource("pll_inst1","PLL_TL0","PLL")
+design.assign_resource("jtag_inst1","JTAG_USER1","JTAG")
+(venv-church) sipantichijk@penguin:~$ 
