@@ -97,13 +97,21 @@ The Dashboard view has a "Push to GitHub" button that triggers `POST /api/github
 
 ## Ti60 F225 Hardware Build — Status & Workflow
 
-**Full bitstream successfully generated and flashed** (April 2026).
+**Full bitstream successfully generated, flashed, and running** (April 2026).
+
+### Confirmed working on real silicon (April 2026)
+- **50 MHz PLL clock** running correctly (B2 crystal → PLL_TL0 M=4/N=1/O=2 → 50 MHz GCLK).
+- **Boot sequence** completes: `boot_start` fires after 16 cycles; `boot_complete` asserted; FSM enters HALTED.
+- **1 Hz heartbeat** visible on led[1] (J15): 50 000 000-cycle counter proven to be ticking.
+- **All four LED register→pin paths** confirmed via post-boot demo: led0 (K14) → led1 (J15) → led2 (H10) → led3 (J14) cycle at 0.5 s each. This exercises the same mmio_led_reg[i][0] → physical-pin path that CPU DWRITE uses.
+- **Verilog download route**: `/download/church_ti60_f225.v` served by the Flask IDE so Chromebook can `curl` the pre-built file without needing local Amaranth.
 
 ### Critical board facts (confirmed from Ti60F225_kit.isf)
 - **Clock**: 25 MHz crystal at ball **B2** → PLL_TL0 (M=4, N=1, O=2) → **50 MHz GCLK "clk"**. There is NO clock oscillator at B8. Previous designs that used B8 had a floating/undriven clock.
 - **UART**: The Ti60F225 devkit has **NO UART connection from the FPGA to the FT4232H**. The FT4232H is used exclusively for JTAG programming (Channel A) and JTAG debug (Channel B, protocol-based). uart_tx (H14) and uart_rx (M14) are bare GPIO balls — an external USB-UART adapter is required.
-- **Debug output**: Use JTAG_USER1 protocol (helloworld-dbg style) or route UART to a header/PMOD pin with an external adapter.
-- **LEDs**: 4 user LEDs at K14/J15/H10/J14 (led0–3); board also has 2 more at H15/H11 (not connected in our design).
+- **Debug output**: Connect an external USB-UART adapter to H14 (TX) and M14 (RX) at 115200 baud to see the boot banner, NIA dumps, and HALT messages.
+- **LEDs**: 4 user LEDs at K14/J15/H10/J14 (led0–3); H15/H11 not driven (float high = cyan on RGB2); actual RGB channel colours differ from silkscreen labelling — J15 drives red, not green.
+- **Next milestone**: Connect USB-UART adapter → see boot banner → press push button → single-step CPU → execute first DWRITE from software.
 
 ### Build steps (run from `~/church-efinity/church_ti60_f225/` on Chromebook)
 0. Re-run peri.xml setup (only needed when pin config changes):
