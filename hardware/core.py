@@ -159,6 +159,11 @@ class ChurchCore(Elaboratable):
         is_iadd_op    = u_decoder.is_iadd_op
         is_isub_op    = u_decoder.is_isub_op
         is_branch_op  = u_decoder.is_branch_op
+        is_shl_op     = u_decoder.is_shl_op
+        is_shr_op     = u_decoder.is_shr_op
+        is_bfext_op   = u_decoder.is_bfext_op
+        is_bfins_op   = u_decoder.is_bfins_op
+        is_mcmp_op    = u_decoder.is_mcmp_op
         church_op = u_decoder.church_op
         cr_src = u_decoder.cr_src
         cr_dst = u_decoder.cr_dst
@@ -174,6 +179,11 @@ class ChurchCore(Elaboratable):
         iadd_busy_reg   = Signal()
         isub_busy_reg   = Signal()
         branch_busy_reg = Signal()
+        shl_busy_reg    = Signal()
+        shr_busy_reg    = Signal()
+        bfext_busy_reg  = Signal()
+        bfins_busy_reg  = Signal()
+        mcmp_busy_reg   = Signal()
 
         any_unit_busy = Signal()
         busy_expr = (
@@ -183,7 +193,8 @@ class ChurchCore(Elaboratable):
             u_change.change_busy | u_switch.switch_busy |
             u_eloadcall.busy | u_xloadlambda.busy |
             u_dread.busy | u_dwrite.busy |
-            iadd_busy_reg | isub_busy_reg | branch_busy_reg
+            iadd_busy_reg | isub_busy_reg | branch_busy_reg |
+            shl_busy_reg | shr_busy_reg | bfext_busy_reg | bfins_busy_reg | mcmp_busy_reg
         )
         m.d.comb += any_unit_busy.eq(busy_expr)
 
@@ -281,10 +292,25 @@ class ChurchCore(Elaboratable):
         # Forward-declare Turing-op signals (logic connected after dwrite section)
         iadd_start_sig  = Signal()
         isub_start_sig  = Signal()
+        shl_start_sig   = Signal()
+        shr_start_sig   = Signal()
+        bfext_start_sig = Signal()
+        bfins_start_sig = Signal()
+        mcmp_start_sig  = Signal()
         iadd_result     = Signal(33)
         isub_result     = Signal(33)
+        shl_result      = Signal(32)
+        shr_result      = Signal(32)
+        bfext_result    = Signal(32)
+        bfins_result    = Signal(32)
+        mcmp_result     = Signal(33)
         iadd_flags_sig  = Signal(COND_FLAGS_LAYOUT)
         isub_flags_sig  = Signal(COND_FLAGS_LAYOUT)
+        shl_flags_sig   = Signal(COND_FLAGS_LAYOUT)
+        shr_flags_sig   = Signal(COND_FLAGS_LAYOUT)
+        bfext_flags_sig = Signal(COND_FLAGS_LAYOUT)
+        bfins_flags_sig = Signal(COND_FLAGS_LAYOUT)
+        mcmp_flags_sig  = Signal(COND_FLAGS_LAYOUT)
         branch_taken    = Signal()
         branch_sx32     = Signal(32)
 
@@ -308,6 +334,47 @@ class ChurchCore(Elaboratable):
                 u_regs.dr_wr_data.eq(isub_result[:32]),
                 u_regs.dr_wr_en.eq(1),
                 u_regs.flags_in.eq(isub_flags_sig),
+                u_regs.flags_wr_en.eq(1),
+            ]
+        with m.Elif(shl_start_sig):
+            m.d.comb += [
+                u_regs.dr_wr_addr.eq(cr_dst),
+                u_regs.dr_wr_data.eq(shl_result),
+                u_regs.dr_wr_en.eq(1),
+                u_regs.flags_in.eq(shl_flags_sig),
+                u_regs.flags_wr_en.eq(1),
+            ]
+        with m.Elif(shr_start_sig):
+            m.d.comb += [
+                u_regs.dr_wr_addr.eq(cr_dst),
+                u_regs.dr_wr_data.eq(shr_result),
+                u_regs.dr_wr_en.eq(1),
+                u_regs.flags_in.eq(shr_flags_sig),
+                u_regs.flags_wr_en.eq(1),
+            ]
+        with m.Elif(bfext_start_sig):
+            m.d.comb += [
+                u_regs.dr_wr_addr.eq(cr_dst),
+                u_regs.dr_wr_data.eq(bfext_result),
+                u_regs.dr_wr_en.eq(1),
+                u_regs.flags_in.eq(bfext_flags_sig),
+                u_regs.flags_wr_en.eq(1),
+            ]
+        with m.Elif(bfins_start_sig):
+            m.d.comb += [
+                u_regs.dr_wr_addr.eq(cr_dst),
+                u_regs.dr_wr_data.eq(bfins_result),
+                u_regs.dr_wr_en.eq(1),
+                u_regs.flags_in.eq(bfins_flags_sig),
+                u_regs.flags_wr_en.eq(1),
+            ]
+        with m.Elif(mcmp_start_sig):
+            # MCMP: flags-only compare, no DR write
+            m.d.comb += [
+                u_regs.dr_wr_addr.eq(0),
+                u_regs.dr_wr_data.eq(0),
+                u_regs.dr_wr_en.eq(0),
+                u_regs.flags_in.eq(mcmp_flags_sig),
                 u_regs.flags_wr_en.eq(1),
             ]
         with m.Else():
@@ -583,8 +650,10 @@ class ChurchCore(Elaboratable):
             u_dwrite.cr_rd_data.eq(u_regs.cr_rd_data),
             u_dwrite.dr_rd_data.eq(u_regs.dr_rd_data2),
         ]
+        # dr_rd_addr2: BFINS needs the existing DR[cr_dst] value on port 2
         m.d.comb += u_regs.dr_rd_addr2.eq(
-            Mux(u_dwrite.busy, u_dwrite.dr_rd_addr, 0)
+            Mux(u_dwrite.busy, u_dwrite.dr_rd_addr,
+                Mux(bfins_start_sig, cr_dst, 0))
         )
 
         # ── IADD / ISUB ──────────────────────────────────────────────────────
@@ -612,9 +681,12 @@ class ChurchCore(Elaboratable):
             Cat(u_decoder.immediate, u_decoder.immediate[14].replicate(17))
         )
 
-        # Source DR read (port 1 — CHANGE uses this too but reads DR0 by default)
+        # Source DR read port 1 — shared by IADD/ISUB/SHL/SHR/BFEXT/BFINS/MCMP
         m.d.comb += u_regs.dr_rd_addr1.eq(
-            Mux(iadd_start_sig | isub_start_sig, cr_src, 0)
+            Mux(iadd_start_sig | isub_start_sig |
+                shl_start_sig | shr_start_sig |
+                bfext_start_sig | bfins_start_sig | mcmp_start_sig,
+                cr_src, 0)
         )
 
         # 33-bit results (bit 32 = carry for IADD, borrow for ISUB)
@@ -634,6 +706,119 @@ class ChurchCore(Elaboratable):
             isub_flags_view.Z.eq(isub_result[:32] == 0),
             isub_flags_view.C.eq(isub_result[32]),
             isub_flags_view.V.eq(0),
+        ]
+
+        # ── SHL / SHR ────────────────────────────────────────────────────────
+        # Logical shift on data registers.
+        # DR[dst] = DR[src] << imm[4:0]   (SHL — shift left)
+        # DR[dst] = DR[src] >> imm[4:0]   (SHR — shift right, zero-fill)
+        # Flags: N = result[31], Z = (result==0), C = 0, V = 0.
+        # Shift amount: imm[4:0] (0-31).
+
+        m.d.comb += [
+            shl_start_sig.eq(cond_exec_enable & is_shl_op & ~any_unit_busy),
+            shr_start_sig.eq(cond_exec_enable & is_shr_op & ~any_unit_busy),
+        ]
+        m.d.sync += [
+            shl_busy_reg.eq(shl_start_sig & ~shl_busy_reg),
+            shr_busy_reg.eq(shr_start_sig & ~shr_busy_reg),
+        ]
+
+        shift_amt = Signal(5)
+        m.d.comb += shift_amt.eq(u_decoder.immediate[0:5])
+
+        m.d.comb += [
+            shl_result.eq(u_regs.dr_rd_data1 << shift_amt),
+            shr_result.eq(u_regs.dr_rd_data1 >> shift_amt),
+        ]
+
+        shl_flags_view = View(COND_FLAGS_LAYOUT, shl_flags_sig)
+        shr_flags_view = View(COND_FLAGS_LAYOUT, shr_flags_sig)
+        m.d.comb += [
+            shl_flags_view.N.eq(shl_result[31]),
+            shl_flags_view.Z.eq(shl_result == 0),
+            shl_flags_view.C.eq(0),
+            shl_flags_view.V.eq(0),
+            shr_flags_view.N.eq(shr_result[31]),
+            shr_flags_view.Z.eq(shr_result == 0),
+            shr_flags_view.C.eq(0),
+            shr_flags_view.V.eq(0),
+        ]
+
+        # ── BFEXT ────────────────────────────────────────────────────────────
+        # Bit-field extract.
+        # DR[dst] = (DR[src] >> offset) & ((1 << width) - 1)
+        # imm[4:0]  = offset (0-31)
+        # imm[9:5]  = width  (1-32, encoded as 0-31 where 0 means 32)
+        # Flags: N = result[31], Z = (result==0), C = 0, V = 0.
+
+        m.d.comb += bfext_start_sig.eq(cond_exec_enable & is_bfext_op & ~any_unit_busy)
+        m.d.sync += bfext_busy_reg.eq(bfext_start_sig & ~bfext_busy_reg)
+
+        bf_offset = Signal(5)
+        bf_width  = Signal(5)
+        bf_mask   = Signal(32)
+        m.d.comb += [
+            bf_offset.eq(u_decoder.immediate[0:5]),
+            bf_width.eq(u_decoder.immediate[5:10]),
+            bf_mask.eq((1 << bf_width) - 1),
+            bfext_result.eq((u_regs.dr_rd_data1 >> bf_offset) & bf_mask),
+        ]
+
+        bfext_flags_view = View(COND_FLAGS_LAYOUT, bfext_flags_sig)
+        m.d.comb += [
+            bfext_flags_view.N.eq(bfext_result[31]),
+            bfext_flags_view.Z.eq(bfext_result == 0),
+            bfext_flags_view.C.eq(0),
+            bfext_flags_view.V.eq(0),
+        ]
+
+        # ── BFINS ────────────────────────────────────────────────────────────
+        # Bit-field insert.
+        # DR[dst] = (DR[dst] & ~mask_shifted) | ((DR[src] & mask) << offset)
+        # imm[4:0]  = offset (0-31)
+        # imm[9:5]  = width  (encoded same as BFEXT)
+        # dr_rd_data1 = DR[cr_src] (value to insert, read on port 1)
+        # dr_rd_data2 = DR[cr_dst] (existing destination, read on port 2)
+        # Flags: N = result[31], Z = (result==0), C = 0, V = 0.
+
+        m.d.comb += bfins_start_sig.eq(cond_exec_enable & is_bfins_op & ~any_unit_busy)
+        m.d.sync += bfins_busy_reg.eq(bfins_start_sig & ~bfins_busy_reg)
+
+        bfins_mask_shifted = Signal(32)
+        m.d.comb += [
+            bfins_mask_shifted.eq(bf_mask << bf_offset),
+            bfins_result.eq(
+                (u_regs.dr_rd_data2 & ~bfins_mask_shifted) |
+                ((u_regs.dr_rd_data1 & bf_mask) << bf_offset)
+            ),
+        ]
+
+        bfins_flags_view = View(COND_FLAGS_LAYOUT, bfins_flags_sig)
+        m.d.comb += [
+            bfins_flags_view.N.eq(bfins_result[31]),
+            bfins_flags_view.Z.eq(bfins_result == 0),
+            bfins_flags_view.C.eq(0),
+            bfins_flags_view.V.eq(0),
+        ]
+
+        # ── MCMP ─────────────────────────────────────────────────────────────
+        # Compare (flags-only subtract, no register write).
+        # flags = flags_of(DR[src] - sign_extend(imm))
+        # Equivalent to ISUB but discards the result.
+        # Flags: N = result[31], Z = (result==0), C = borrow-out, V = 0.
+
+        m.d.comb += mcmp_start_sig.eq(cond_exec_enable & is_mcmp_op & ~any_unit_busy)
+        m.d.sync += mcmp_busy_reg.eq(mcmp_start_sig & ~mcmp_busy_reg)
+
+        m.d.comb += mcmp_result.eq(u_regs.dr_rd_data1 - arith_imm_sx)
+
+        mcmp_flags_view = View(COND_FLAGS_LAYOUT, mcmp_flags_sig)
+        m.d.comb += [
+            mcmp_flags_view.N.eq(mcmp_result[31]),
+            mcmp_flags_view.Z.eq(mcmp_result[:32] == 0),
+            mcmp_flags_view.C.eq(mcmp_result[32]),
+            mcmp_flags_view.V.eq(0),
         ]
 
         # ── BRANCH ───────────────────────────────────────────────────────────

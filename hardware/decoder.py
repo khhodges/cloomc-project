@@ -17,9 +17,10 @@ class ChurchDecoder(Elaboratable):
 
     No RISC-V encoding. No wasted bits. Every field at a fixed position.
 
-    Turing ops implemented: DREAD (0b10000), DWRITE (0b10001).
+    Turing ops implemented: DREAD, DWRITE, BFEXT, BFINS, MCMP, IADD, ISUB,
+    BRANCH, SHL, SHR.
     For Turing ops, cr_dst field is a DR index (0-15); cr_src is the CR
-    holding the data GT; immediate is the word offset into the region.
+    holding the data GT or a second DR index; immediate meaning varies by op.
     """
 
     def __init__(self):
@@ -28,12 +29,17 @@ class ChurchDecoder(Elaboratable):
         self.flags = Signal(COND_FLAGS_LAYOUT)
 
         self.exec_enable = Signal()
-        self.is_church_op = Signal()
-        self.is_dread_op  = Signal()
-        self.is_dwrite_op = Signal()
-        self.is_iadd_op   = Signal()
-        self.is_isub_op   = Signal()
-        self.is_branch_op = Signal()
+        self.is_church_op  = Signal()
+        self.is_dread_op   = Signal()
+        self.is_dwrite_op  = Signal()
+        self.is_iadd_op    = Signal()
+        self.is_isub_op    = Signal()
+        self.is_branch_op  = Signal()
+        self.is_shl_op     = Signal()
+        self.is_shr_op     = Signal()
+        self.is_bfext_op   = Signal()
+        self.is_bfins_op   = Signal()
+        self.is_mcmp_op    = Signal()
 
         self.church_op = Signal(5)
         self.cr_dst = Signal(4)
@@ -115,18 +121,29 @@ class ChurchDecoder(Elaboratable):
         is_iadd   = Signal()
         is_isub   = Signal()
         is_branch = Signal()
+        is_shl    = Signal()
+        is_shr    = Signal()
+        is_bfext  = Signal()
+        is_bfins  = Signal()
+        is_mcmp   = Signal()
         m.d.comb += [
-            is_dread.eq(opcode_field == TuringOpcode.DREAD),
+            is_dread.eq(opcode_field  == TuringOpcode.DREAD),
             is_dwrite.eq(opcode_field == TuringOpcode.DWRITE),
-            is_iadd.eq(opcode_field == TuringOpcode.IADD),
-            is_isub.eq(opcode_field == TuringOpcode.ISUB),
+            is_iadd.eq(opcode_field   == TuringOpcode.IADD),
+            is_isub.eq(opcode_field   == TuringOpcode.ISUB),
             is_branch.eq(opcode_field == TuringOpcode.BRANCH),
+            is_shl.eq(opcode_field    == TuringOpcode.SHL),
+            is_shr.eq(opcode_field    == TuringOpcode.SHR),
+            is_bfext.eq(opcode_field  == TuringOpcode.BFEXT),
+            is_bfins.eq(opcode_field  == TuringOpcode.BFINS),
+            is_mcmp.eq(opcode_field   == TuringOpcode.MCMP),
         ]
 
         valid_opcode = Signal()
         m.d.comb += valid_opcode.eq(
             (opcode_field <= ChurchOpcode.XLOADLAMBDA) |
-            is_dread | is_dwrite | is_iadd | is_isub | is_branch
+            is_dread | is_dwrite | is_iadd | is_isub | is_branch |
+            is_shl | is_shr | is_bfext | is_bfins | is_mcmp
         )
         m.d.comb += [
             self.is_church_op.eq((opcode_field <= ChurchOpcode.XLOADLAMBDA) & self.instr_valid),
@@ -135,6 +152,11 @@ class ChurchDecoder(Elaboratable):
             self.is_iadd_op.eq(is_iadd     & self.instr_valid),
             self.is_isub_op.eq(is_isub     & self.instr_valid),
             self.is_branch_op.eq(is_branch & self.instr_valid),
+            self.is_shl_op.eq(is_shl       & self.instr_valid),
+            self.is_shr_op.eq(is_shr       & self.instr_valid),
+            self.is_bfext_op.eq(is_bfext   & self.instr_valid),
+            self.is_bfins_op.eq(is_bfins   & self.instr_valid),
+            self.is_mcmp_op.eq(is_mcmp     & self.instr_valid),
         ]
 
         m.d.comb += [
