@@ -23,7 +23,7 @@ The Church Machine takes a different approach, building on the capability-based 
 This paper serves as both a student tutorial and a comparative analysis. We present:
 
 1. The Church Machine architecture through the lens of a concrete example
-2. The CLOOMC++ compiler, which accepts both JavaScript and Haskell source code
+2. The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler, which accepts both JavaScript and Haskell source code
 3. A side-by-side comparison of the same mathematical abstraction in both languages
 4. Performance analysis on the target hardware (Tang Nano 20K FPGA, 27 MHz)
 5. An honest assessment of the architecture's strengths and limitations
@@ -139,15 +139,15 @@ These permissions are architecturally hardcoded by the CALL instruction. The cal
 
 ---
 
-## 3. The CLOOMC++ Compiler
+## 3. The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Compiler
 
 ### 3.1 Design Philosophy
 
-CLOOMC++ is a multi-language compiler with a single back-end. Both the JavaScript front-end and the Haskell front-end produce the same output: arrays of 32-bit Church Machine instruction words packaged in an `upload.json` format.
+[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ is a multi-language compiler with a single back-end. Both the JavaScript front-end and the Haskell front-end produce the same output: arrays of 32-bit Church Machine instruction words packaged in an `upload.json` format.
 
 ```
 JavaScript source ──┐
-                    ├──> CLOOMC++ compiler ──> 32-bit code words ──> upload.json
+                    ├──> [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler ──> 32-bit code words ──> upload.json
 Haskell source ─────┘          |
                                |
                      Resident Object Model:
@@ -540,7 +540,7 @@ The Haskell version is more concise and easier to reason about, but the JavaScri
 
 ### 6.1 What the Compiler Cannot Do
 
-The CLOOMC++ compiler operates within the Church Machine's security model. Regardless of language or compilation strategy, the compiler **cannot**:
+The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler operates within the Church Machine's security model. Regardless of language or compilation strategy, the compiler **cannot**:
 
 1. **Forge a Golden Token.** Tokens are created only by Mint.Create (via Navana). The compiler produces Turing-domain code words — it has no access to Church-domain token creation.
 
@@ -653,7 +653,7 @@ abstraction MyMath {
 
 ### Step 2: Compile
 
-Click the gold **CLOOMC++** button. The console shows each method with its instruction count and disassembled code. The compiler auto-detects the language: if any method uses `= expr` syntax (no braces), it uses the Haskell front-end; otherwise, JavaScript.
+Click the gold **[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++** button. The console shows each method with its instruction count and disassembled code. The compiler auto-detects the language: if any method uses `= expr` syntax (no braces), it uses the Haskell front-end; otherwise, JavaScript.
 
 ### Step 3: Inspect the output
 
@@ -712,4 +712,4 @@ The Church Machine's answer to "who can access my data?" is not a policy, not a 
 
 ---
 
-*This paper accompanies the Church Machine Educational Platform, an open-source capability-secured processor architecture targeting the Sipeed Tang Nano 20K FPGA. The web-based IDE, simulator, CLOOMC++ compiler, and Amaranth HDL source are available in the project repository.*
+*This paper accompanies the Church Machine Educational Platform, an open-source capability-secured processor architecture targeting the Sipeed Tang Nano 20K FPGA. The web-based IDE, simulator, [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler, and Amaranth HDL source are available in the project repository.*

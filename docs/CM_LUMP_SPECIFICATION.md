@@ -518,7 +518,7 @@ Header:  0xF881_AC00
 
 Layout (128 words):
   Word 0:         0xF881_AC00  [header]
-  Words 1..107:   CLOOMC code  [107 words]
+  Words 1..107:   [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) code  [107 words]
   Words 108..127: freespace    [20 zeros]
   C-list:         (none)
 
@@ -536,7 +536,7 @@ Header:  0xFA08_3401
 
 Layout (1024 words):
   Word 0:          0xFA08_3401  [header]
-  Words 1..525:    CLOOMC code  [525 words]
+  Words 1..525:    [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) code  [525 words]
   Words 526..1022: freespace    [497 zeros]
   Word 1023:       PI abstract GT (Word 0 only)  [c-list, cc=1]
 
@@ -574,7 +574,7 @@ capability-secured, power-of-2 memory region with a header word at Word 0
 and a c-list at its tail and freespace for stack and heap growth in between. The Thread GT occupies one Object NS slot and is assigned a single zero permissions GT by Mint at creation time. Access rights are under M (TSB microcode) control like the NS and CR6.
 
 What makes the Thread distinct is how the rest of the lump is used.
-A function abstraction lump holds executable CLOOMC code followed by
+A function abstraction lump holds executable [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) code followed by
 freespace. The Thread lump holds **live execution state** — capability
 registers, a call stack, heap, and data registers — rather than code.
 PC never enters the Thread lump. It is a static data structure of a suspended Thread registers, indicators, GTs, heap and stack saved and restored by the CHANGE instruction, not a program.
@@ -1445,7 +1445,7 @@ already owns.
 | **`cc` field** | Compiler-chosen GT count | **heapWords** (IDE-set; caps always 12, architecture-fixed) | None — NS Table only |
 | **Example header** | `0xF881_AC00` (Decimal, n=7 cw=107 cc=0) | `0xF900_8240` (n-6=2, sw=32, heapWords=cc=64) | Binary data |
 | **Entry point** | PC = 1 on every CALL | Never — not callable | Never — not callable |
-| **Words 1..cw** | CLOOMC code (dispatcher + methods) | Absent — `cw = 0` | Boot / init microcode and SWITCH |
+| **Words 1..cw** | [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) code (dispatcher + methods) | Absent — `cw = 0` | Boot / init microcode and SWITCH |
 | **Freespace zone** | Compile-time fixed · all-zero · immutable per release | Dynamic 131 words — Stack ↓ and Heap ↑ collide | Between init code and NS Table · all-zero |
 | **C-list zone** | Last `cc` words · list E-GTs · compiler-set | Last 12 words · CR0–CR11 + LIFO Stack | BINARY DATA |
 | **Unique body** | Code and C-List | 5 zones: Header · Caps · Stack · Free · Heap · DR | NS Table (N × 3-word entries: Inform GT) |

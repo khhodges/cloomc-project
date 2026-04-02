@@ -126,7 +126,7 @@ The CALL at PC=7 enters the Salvation abstraction — the first user-level code 
 ```
 PC  Instruction              Description
 ──  ───────────────────────  ──────────────────────────────────────
- 0  LOAD CR1, [CR6 + 0]     Load own CLOOMC GT from c-list slot 0
+ 0  LOAD CR1, [CR6 + 0]     Load own [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) GT from c-list slot 0
                               (CR6 now points to Salvation's c-list at 0x0400)
                               (Slot 0 = X-only Inform GT → NS idx 5)
 
@@ -135,7 +135,7 @@ PC  Instruction              Description
 
  2  TPERM CR1, X            Set X permission on CR1
 
- 3  LAMBDA CR1              Apply CLOOMC via LAMBDA
+ 3  LAMBDA CR1              Apply [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) via LAMBDA
                               Proves: LAMBDA works inside a CALL domain
                               The sword inside the armor, inside the armor
 
@@ -149,7 +149,7 @@ PC  Instruction              Description
 
 | Slot | GT Value     | Perms | Target | Purpose |
 |------|-------------|-------|--------|---------|
-| 0    | 0x00000510  | X     | NS 5   | CLOOMC (Salvation code) |
+| 0    | 0x00000510  | X     | NS 5   | [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) (Salvation code) |
 | 1    | 0x00000680  | E     | NS 6   | Reference (for future use) |
 
 ### Four operations demonstrated
@@ -166,7 +166,7 @@ PC  Instruction              Description
 
 The boot program enforces strict c-list permission rules (also enforced by the simulator via `_validateClistSlotPerms()`):
 
-- **Slot 0 (CLOOMC)**: Must have X or RX permissions only. This is the code entry point — it is executed via LAMBDA, never entered via CALL.
+- **Slot 0 ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html))**: Must have X or RX permissions only. This is the code entry point — it is executed via LAMBDA, never entered via CALL.
 - **Slots 1+**: No mixed XE permissions. A slot can have X (for LAMBDA), E (for CALL), L, R, or other individual permissions, but never X and E together on the same slot.
 
 This separation prevents a single GT from being used as both a LAMBDA target (X) and a CALL target (E), enforcing domain purity. In the demo c-list, slot 1 has X-only (LAMBDA target) and slot 6 has E-only (CALL target), both pointing to the same NS index 4.
@@ -220,7 +220,7 @@ Types: Inform(00) Outform(01) NULL(10) Abstract(11)
 
 | Slot | Hex Value | Type | Permissions | Target NS Index | Purpose |
 |---|---|---|---|---|---|
-| 0 | 0x00000314 | Inform | R, X | 3 | CLOOMC: Read+Execute access to NS slot 3 (Boot.CLOOMC) |
+| 0 | 0x00000314 | Inform | R, X | 3 | [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html): Read+Execute access to NS slot 3 (Boot.[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)) |
 | 1 | 0x00000410 | Inform | X | 4 | Execute-only access to NS slot 4 (LAMBDA target) |
 | 2 | 0x00000002 | NULL | — | — | Empty (SAVE target in boot program) |
 | 3 | 0x00000280 | Inform | E | 2 | Enter-only access to NS slot 2 (Boot.Abstraction) |
@@ -259,7 +259,7 @@ This is the same `mLoad` gate that protects all other memory access. The instruc
 |---|---|---|
 | Boot completes (LOAD_NUC) | PC = 0 | CR14 = X-GT from c-list slot 0 of the CALL target |
 | Sequential execution | PC++ | CR14 unchanged |
-| CALL | PC = 0 | CR14 = callee's CLOOMC X-GT |
+| CALL | PC = 0 | CR14 = callee's [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) X-GT |
 | LAMBDA | PC = 0 (target's code offset) | CR14 unchanged (fast-path) |
 | RETURN | PC = saved caller PC | CR7 = saved caller CR7 |
 | Bounds fault | FAULT | PC exceeded CR14.entry.limit |
@@ -281,7 +281,7 @@ The canonical pattern for Church Machine programs is to execute CHANGE as the ve
 After boot, the machine has:
 - CR8 set to the Thread identity GT (from INIT_THRD boot phase, M-elevated)
 - CR6 set to the c-list (from INIT_CLIST boot phase)
-- CR14 set to the CLOOMC code GT (from LOAD_NUC boot phase)
+- CR14 set to the [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) code GT (from LOAD_NUC boot phase)
 - All other CRs are NULL
 
 The CHANGE instruction switches CR8 to a target thread entry (NS index 1 in the demo), which configures the full capability environment. After CHANGE, the thread has GTs covering code (X), data regions (R/W via DATA objects), and other abstractions (E).

@@ -183,7 +183,7 @@ Namespace entries also serve as containers for transparent login credentials, se
 
 ## Example: CALL(CONNECT(me, mymother))
 
-This example demonstrates how a single CLOOMC instruction establishes a cryptographically secured connection between two namespaces and invokes a remote service.
+This example demonstrates how a single [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) instruction establishes a cryptographically secured connection between two namespaces and invokes a remote service.
 
 ### Namespace Setup
 
@@ -217,7 +217,7 @@ Two Meta Machines ("me" and "mymother") each have their own namespace:
 
 ```asm
 ; CALL(CONNECT(me, mymother))
-; One fail-safe CLOOMC instruction sequence:
+; One fail-safe [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) instruction sequence:
 
 ; Step 1: Load the RPC tunnel key from our C-List
 CAP.LOAD  CR0, CR6, 4      ; CR0 = TunnelKey_Mother (Inform GT with R perm, index 4)

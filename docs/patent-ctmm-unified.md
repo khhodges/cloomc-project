@@ -181,7 +181,7 @@ The CTMM is a processor architecture built on the principle that every computati
 
 - **Church's model**: Capability registers hold Golden Tokens that name, protect, and mediate access to every resource. Capability registers hold capabilities — and only capabilities.
 
-The synthesis is expressed as the Church-Lambda-Object-Oriented-Meta-Calculus (CLOOMC), which organizes GT permissions into two mutually exclusive domains:
+The synthesis is expressed as the Church-Lambda-Object-Oriented-Meta-Calculus ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)), which organizes GT permissions into two mutually exclusive domains:
 
 | Domain | Permissions | Purpose |
 |--------|------------|---------|

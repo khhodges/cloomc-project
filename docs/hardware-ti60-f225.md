@@ -179,7 +179,7 @@ S:<NIA as hex>F:<fault code as hex>HALT
 ## Boot sequence
 
 1. 16-cycle boot delay on power-up
-2. Boot ROM initialises CR6 (c-list), CR14 (CLOOMC/code), CR8, CR15
+2. Boot ROM initialises CR6 (c-list), CR14 ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)/code), CR8, CR15
 3. Boot namespace (NS) and c-list entries written to EBR at init time
 4. 3-second startup delay (hardware) → UART banner sent
 5. Machine enters HALTED state; press USER_PB to single-step

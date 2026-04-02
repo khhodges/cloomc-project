@@ -13,7 +13,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
   or c-list could be executed as code.
 - **Fix**: CALL hardcodes CR14 permissions to RWX (Turing domain) and CR6 permissions to
   L-only (Church domain). These are architectural invariants, not derived from the GT or NS
-  entry. CR14 gets R and W in addition to X because Boot.CLOOMC uses DREAD to load constants
+  entry. CR14 gets R and W in addition to X because Boot.[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) uses DREAD to load constants
   from data tables appended after HALT in the code region (e.g., Ada Note G's .org/.word
   constants). Domain purity is maintained: CR14 has no Church permissions (L/S/E) and CR6 has
   no Turing permissions (R/W/X). The simulator confirms this: `createGT(... {L:1} ...)` for
@@ -48,10 +48,10 @@ with sufficient permissions. Every risk below is tracked to resolution.
 - **Task**: T009
 - **Status**: RESOLVED
 
-## R004: CLOOMC++ Compiler — Incorrect Code Generation
+## R004: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Compiler — Incorrect Code Generation
 - **Severity**: HIGH (correctness), LOW (security)
 - **New**: Yes — compiler is entirely new
-- **Layer**: CLOOMC++ compiler (cloomc_compiler.js)
+- **Layer**: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler (cloomc_compiler.js)
 - **Risk**: Compiler bugs could produce code with wrong c-list offsets (capability confusion),
   incorrect branch targets (arbitrary execution within lump), misallocated registers (data
   corruption), or invalid instruction encodings.
@@ -68,7 +68,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
 - **Task**: T005, T006
 - **Status**: RESOLVED (Phase 1 JS; Phase 1b Haskell deferred)
 
-## R005: CLOOMC++ C-List Offset Mismatch
+## R005: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ C-List Offset Mismatch
 - **Severity**: MEDIUM
 - **New**: Yes — compiler maps abstraction names to c-list slots
 - **Layer**: Resident Object Model (cloomc_compiler.js)
@@ -85,7 +85,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
 ## R006: Haskell Closure Variable Capture
 - **Severity**: MEDIUM
 - **New**: Yes — Haskell front-end compiles closures
-- **Layer**: CLOOMC++ Haskell front-end (cloomc_compiler.js)
+- **Layer**: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Haskell front-end (cloomc_compiler.js)
 - **Risk**: Lambda closures capture variables from enclosing scope. If the compiler
   incorrectly captures a reference to a capability register (CRn) instead of a data
   register (DRn), the closure could leak a GT to unprivileged code.
@@ -117,7 +117,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
 ## R008: Register Spilling / Calling Convention Collision
 - **Severity**: MEDIUM
 - **New**: Yes — compiler allocates registers
-- **Layer**: CLOOMC++ code generator (cloomc_compiler.js)
+- **Layer**: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ code generator (cloomc_compiler.js)
 - **Risk**: The Church Machine has 16 DRs. If the compiler uses DR5 for a local variable
   but DR5 is also used by the calling convention to pass arguments to a CALL, the value
   is silently corrupted. No fault — just wrong computation.
@@ -141,7 +141,7 @@ with sufficient permissions. Every risk below is tracked to resolution.
 - **How it holds under new changes**:
   - Single NS entry model: each abstraction's lump is bounded by sealed NS entry — safe
   - CALL split: CR14 and CR6 have hardcoded domain permissions — safe (R001 RESOLVED)
-  - CLOOMC++ compiler: cannot forge GTs, cannot escape lump bounds — safe
+  - [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler: cannot forge GTs, cannot escape lump bounds — safe
   - Upload validation: Navana validates all capability delegation — safe (R007 RESOLVED)
   - Boot: one raw write for Navana, all else through Navana.Add — safe (R003 RESOLVED)
 - **Status**: SECURE (all contingencies resolved)

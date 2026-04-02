@@ -146,7 +146,7 @@ The IDE populates Zone ① (the capabilities tail) at compile time with the thre
 
 ### 3 — Function Abstraction Lump (typ = 00)
 
-The Function lump is the callable abstraction — a CLOOMC code section followed by freespace and a c-list. This is the standard lump type. CALL validates the E-GT, reads the header word, derives `cw` and `cc`, and splits the lump into CR14 (code, X-only) and CR6 (c-list, L-only).
+The Function lump is the callable abstraction — a [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) code section followed by freespace and a c-list. This is the standard lump type. CALL validates the E-GT, reads the header word, derives `cw` and `cc`, and splits the lump into CR14 (code, X-only) and CR6 (c-list, L-only).
 
 ```
 31      27 26    23 22                10 9   8 7              0
@@ -214,7 +214,7 @@ Hardware-initialized entries, always present after reset.
 | 0 | Boot.NS | — | Namespace root. Location = NS_TABLE_BASE (0xFD00). The root of the capability tree. |
 | 1 | Boot.Thread | — | Initial thread identity, loaded into CR8. Identifies the boot thread. |
 | 2 | Boot.CList | E | Boot abstraction c-list, loaded into CR6. Contains the boot code and initial capabilities. |
-| 3 | Boot.CLOOMC | X | Boot code entry point, loaded into CR14 (privileged). First instruction executes from here. |
+| 3 | Boot.[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) | X | Boot code entry point, loaded into CR14 (privileged). First instruction executes from here. |
 
 **Rationale**: Boot entries establish the minimum viable secure state. The processor cannot execute any instruction until CR6 (c-list), CR14 (code, privileged), and CR15 (namespace) are initialized. Boot sequence writes these entries to the namespace table, then triggers execution.
 

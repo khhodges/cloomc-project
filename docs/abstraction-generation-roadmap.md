@@ -21,7 +21,7 @@ Hardware-initialized, non-callable.
 | 0 | Boot.NS | Namespace root | — |
 | 1 | Boot.Thread | Thread identity | — |
 | 2 | Boot.CList | Boot c-list | — |
-| 3 | Boot.CLOOMC | Boot code entry | — |
+| 3 | Boot.[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) | Boot code entry | — |
 
 **Status**: ✅ Complete (firmware/hardware setup only)
 
@@ -277,7 +277,7 @@ Deterministic GC with PP250 bidirectional G-bit.
 
 **Team 2**: Church numerals as DATA code objects (9 abstractions, 9 methods)
 
-- Define SUCC, PRED, ADD, SUB, MUL in CLOOMC (3 days)
+- Define SUCC, PRED, ADD, SUB, MUL in [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) (3 days)
 - ISZERO, TRUE, FALSE (2 days)
 - PAIR constructor + tests (2 days)
 
@@ -458,7 +458,7 @@ Phase 0 (Unblock) ──→ Phase 1 (Hardware) ──→ Phase 2 (Concurrency) �
 ### Software Stack
 - Amaranth HDL (already in place)
 - Flask + SQLite (server)
-- CLOOMC++ compiler (5 front-ends)
+- [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler (5 front-ends)
 - ZLIB + ZIP handling
 - Resend email/SMS API (for Home Base tunnel)
 - pytest for integration tests

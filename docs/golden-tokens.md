@@ -185,7 +185,7 @@ These registers are protected from direct instruction access. The only way to wr
 | **CR6**  | C-List | Current capability list — the set of capabilities available to running code |
 | **CR12** | Thread/Fault | Thread identity GT + per-thread fault handler (privileged, per-thread; loaded at boot B:02) |
 | **CR13** | Interrupt | System-wide interrupt handler capability (privileged, unchanged by CHANGE) |
-| **CR14** | Code/CLOOMC | Current code GT — instruction fetch source (privileged, per-thread; re-derived by CALL) |
+| **CR14** | Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) | Current code GT — instruction fetch source (privileged, per-thread; re-derived by CALL) |
 | **CR15** | Namespace | Namespace root — defines the security boundary of the entire system |
 
 CR6 and CR14 are re-derived by CALL/RETURN via mLoad. CR12 is saved and restored by CHANGE (thread switching). CR13 and CR15 are system-wide and unchanged by CHANGE. The privileged zone (CR12–CR15) cannot be addressed by normal programmer instructions.

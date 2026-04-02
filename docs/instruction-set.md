@@ -100,7 +100,7 @@ RETURN [mask]
 3. Restore PC from NIA and machine indicators from Word 1
 4. Apply mask — all marked CRs written to NULL in **one parallel clock edge** (mask bits fan into CR register-file write enables; zero overhead regardless of how many bits are set)
 
-**Why the mask is programmer-declared**: GTs are first-class values — a callee may legitimately return a GT in CR0. Only the programmer knows which CRs carry return values vs. internal working state. The mask is emitted as a compile-time literal by the CLOOMC compiler from a `clear:` annotation; the hardware enforces it.
+**Why the mask is programmer-declared**: GTs are first-class values — a callee may legitimately return a GT in CR0. Only the programmer knows which CRs carry return values vs. internal working state. The mask is emitted as a compile-time literal by the [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) compiler from a `clear:` annotation; the hardware enforces it.
 
 DRs and non-masked CRs retain whatever values the callee left. Shared between Church and Turing domains.
 

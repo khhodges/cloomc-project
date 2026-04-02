@@ -65,7 +65,7 @@ CR6 and CR14 are recomputed from the caller's E-GT rather than stored directly �
 
 **Bit 6 reserved**: CR6 is always restored from the frame E-GT by the hardware; its write enable is not connected to the mask bus.
 
-**Programmer-declared**: GTs are first-class values — a callee may legitimately return a GT in CR0. Only the programmer knows which CRs carry return values vs. internal working state. The CLOOMC compiler emits the mask as a compile-time literal from a `clear:` annotation.
+**Programmer-declared**: GTs are first-class values — a callee may legitimately return a GT in CR0. Only the programmer knows which CRs carry return values vs. internal working state. The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) compiler emits the mask as a compile-time literal from a `clear:` annotation.
 
 | Example | Effect |
 |---------|--------|

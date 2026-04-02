@@ -56,7 +56,7 @@ The parent CTMM application discloses 20 instructions divided into two domains: 
 
 The present invention recognizes that this 20-instruction set is not merely "sufficient" for computation — it is a **universal computation target** in the following precise sense: source programs from fundamentally different programming paradigms (imperative and functional) compile to the same instruction set, producing semantically equivalent machine code, while the hardware security model (capability validation, domain purity, bounds checking) applies identically regardless of source language.
 
-This has been demonstrated by reduction to practice: the CLOOMC++ compiler compiles both JavaScript (imperative, C-like syntax, explicit control flow) and Haskell (functional, lambda calculus, pattern matching) to the same 20 instructions, producing identical upload objects processed by the same namespace authority. The instruction `IADD DR4, DR0, #1` is emitted for both `result = who + 1` (JavaScript) and `successor(n) = n + 1` (Haskell). The hardware cannot distinguish the source language — and does not need to.
+This has been demonstrated by reduction to practice: the [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler compiles both JavaScript (imperative, C-like syntax, explicit control flow) and Haskell (functional, lambda calculus, pattern matching) to the same 20 instructions, producing identical upload objects processed by the same namespace authority. The instruction `IADD DR4, DR0, #1` is emitted for both `result = who + 1` (JavaScript) and `successor(n) = n + 1` (Haskell). The hardware cannot distinguish the source language — and does not need to.
 
 ### The Compiler-Security Separation
 
@@ -103,9 +103,9 @@ All instructions share a uniform 32-bit encoding: `opcode[5] | cond[4] | dst[4] 
 
 ARM-style condition codes (EQ, NE, CS, CC, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE, AL, NV) apply to every instruction, providing conditional execution without separate branch-and-execute sequences.
 
-### The Multi-Language Compiler (CLOOMC++)
+### The Multi-Language Compiler ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++)
 
-The CLOOMC++ compiler is a multi-front-end, single-back-end compiler targeting the 20-instruction Church Machine ISA. Each front-end parses a different source language; all front-ends share the same Resident Object Model and code generator.
+The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler is a multi-front-end, single-back-end compiler targeting the 20-instruction Church Machine ISA. Each front-end parses a different source language; all front-ends share the same Resident Object Model and code generator.
 
 #### Front-End Architecture
 
@@ -219,7 +219,7 @@ When the CALL instruction processes an Inform E-GT with clistCount > 0:
 ```
 ┌──────────────────────────────────────┐ offset 0
 │ Method table + compiled code         │ → CR14 (Turing domain, X-only)
-│ (produced by CLOOMC++ compiler)      │
+│ (produced by [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler)      │
 ├──────────────────────────────────────┤ codeEnd
 │ FREESPACE (power-of-2 padding)       │ inaccessible (beyond code limit)
 ├──────────────────────────────────────┤ clistStart = allocSize - clistCount
@@ -306,7 +306,7 @@ The upload protocol, the namespace authority model, and the capability validatio
 
 ### Multi-Language Compilation Proof
 
-The CLOOMC++ compiler has been implemented as a working system (simulator/cloomc_compiler.js) with both JavaScript and Haskell front-ends. The following abstractions have been compiled and executed:
+The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler has been implemented as a working system (simulator/cloomc_compiler.js) with both JavaScript and Haskell front-ends. The following abstractions have been compiled and executed:
 
 **JavaScript front-end — 7 resident objects**:
 1. **Hello**: Single method (Greet) — IADD + RETURN (3 instructions)
@@ -336,7 +336,7 @@ The boot sequence processes an upload array of 11 abstractions through the follo
 5. CALL Salvation → Salvation validates security pipeline → Transition to Navana
 6. Navana runs forever (no RETURN)
 
-All Phase 1 abstractions (Memory, Mint, Navana) run real CLOOMC++-compiled code. Phase 2-4 abstractions (Scheduler, Stack, DijkstraFlag, hardware attachments, math, lambda, social, IDE, internet, GC) have stub methods (RETURN-only) until compiled.
+All Phase 1 abstractions (Memory, Mint, Navana) run real [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++-compiled code. Phase 2-4 abstractions (Scheduler, Stack, DijkstraFlag, hardware attachments, math, lambda, social, IDE, internet, GC) have stub methods (RETURN-only) until compiled.
 
 ### Security Risk Register
 
@@ -534,7 +534,7 @@ Diagram showing the trust boundary: compiler produces code words (correctness do
 
 ### Figure 27: Upload-Driven Lifecycle
 
-Diagram showing the lifecycle: source code → CLOOMC++ compiler → upload.json → Navana.Abstraction.Add (validation) → Memory.Allocate (power-of-2 lump) → code write + c-list populate → NS entry creation → E-GT forge → return to creator.
+Diagram showing the lifecycle: source code → [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler → upload.json → Navana.Abstraction.Add (validation) → Memory.Allocate (power-of-2 lump) → code write + c-list populate → NS entry creation → E-GT forge → return to creator.
 
 ### Figure 28: Scale-Free Security Model
 

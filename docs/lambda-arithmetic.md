@@ -291,7 +291,7 @@ isEqual(9, 18, 1, 2) = if (9×2) == (1×18) then 1 else 0
 
 ### Why Separate Num/Den Methods?
 
-The current CLOOMC++ compiler convention maps one method to one return value in a single data register. So each fraction operation is split into two method calls: one for the numerator, one for the denominator. The caller tracks both values. [*]
+The current [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler convention maps one method to one return value in a single data register. So each fraction operation is split into two method calls: one for the numerator, one for the denominator. The caller tracks both values. [*]
 
 This is how many real hardware fraction libraries work: you store the numerator and denominator in separate registers and call the appropriate method for each component. But this is a **compiler convention**, not a hardware limitation — see the footnote below.
 
@@ -299,7 +299,7 @@ This is how many real hardware fraction libraries work: you store the numerator 
 
 **[*] Footnote — Tuples on the Church Machine: compiler convention vs. hardware capability**
 
-The statement that "each fraction operation is split into two method calls" deserves careful qualification. This is a limitation of the current CLOOMC++ compiler's calling convention, **not** a limitation of the Church Machine hardware.
+The statement that "each fraction operation is split into two method calls" deserves careful qualification. This is a limitation of the current [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler's calling convention, **not** a limitation of the Church Machine hardware.
 
 The hardware is fully capable of returning multiple values from a single method call. Here is why, and how it could work:
 
@@ -309,7 +309,7 @@ The hardware is fully capable of returning multiple values from a single method 
 
 **3. Register-pair conventions are standard in real hardware.** This is not an unusual idea. ARM's 32-bit architecture returns 64-bit results across R0:R1. The x86 DIV instruction writes the quotient to EAX and the remainder to EDX simultaneously. The MIPS `mult` instruction writes its 64-bit result to HI:LO. In each case, a single instruction produces a multi-register result, and the calling convention defines which registers carry which components. The Church Machine could adopt the same approach — for example, "fraction methods return numerator in DR1 and denominator in DR2."
 
-**4. What the CLOOMC++ compiler would need.** To support multi-value returns, three things would change in the compiler, none in the hardware:
+**4. What the [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler would need.** To support multi-value returns, three things would change in the compiler, none in the hardware:
 
 - **Syntax**: A way to express tuple returns, e.g., `method addFrac(n1, d1, n2, d2) = ((n1 * d2) + (n2 * d1), d1 * d2)` returning both components at once.
 - **Calling convention**: A defined mapping — "the first return value goes to DR1, the second to DR2" — so the caller knows where to find each component after RETURN.
@@ -325,7 +325,7 @@ method divFrac(n1, d1, n2, d2) = (n1 * d2, d1 * n2)
 
 Each operation would be a single method call returning both the numerator and denominator, halving the number of calls the caller needs to make.
 
-**6. This is a natural future extension.** The split Num/Den pattern used in this document is correct and works today. It is not a workaround for broken hardware — it is a pragmatic choice within the current compiler's single-return convention. When the CLOOMC++ compiler gains tuple-return support, the rational arithmetic abstraction can be simplified without any hardware changes. The instructions, the registers, and the capability model are already sufficient.
+**6. This is a natural future extension.** The split Num/Den pattern used in this document is correct and works today. It is not a workaround for broken hardware — it is a pragmatic choice within the current compiler's single-return convention. When the [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler gains tuple-return support, the rational arithmetic abstraction can be simplified without any hardware changes. The instructions, the registers, and the capability model are already sufficient.
 
 ---
 
@@ -457,7 +457,7 @@ DR6 = RationalArith.addDen(DR2, DR4)              → 18
 
 The real power comes from **composing** abstractions. One abstraction can hold a **capability** (a Golden Token) to another abstraction in its C-List, and then call its methods using `CALL`. This is the "supercall" pattern — cross-abstraction method invocation, secured by the capability system.
 
-In CLOOMC++, this looks like:
+In [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++, this looks like:
 
 ```
 abstraction FixedPointWallet {

@@ -218,7 +218,7 @@ S:<NIA as hex>F:<fault code as hex>HALT
 1. GowinBSRAM initialisation FSM writes the namespace table and c-list entries
    (this runs before `boot_gate` is asserted; takes ~256 + 64 write cycles)
 2. 16-cycle boot delay after `init_done`
-3. Boot ROM executes: initialises CR6 (c-list), CR14 (CLOOMC/code), CR8, CR15
+3. Boot ROM executes: initialises CR6 (c-list), CR14 ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)/code), CR8, CR15
 4. 3-second startup delay (hardware) → UART banner sent
 5. Machine enters HALTED state; press KEY0 / S1 to single-step
 

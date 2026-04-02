@@ -6,7 +6,7 @@
 
 ## Part 1: Session Record — What We Built and Why
 
-This session made Navana the master controller of the Church Machine namespace, built the CLOOMC++ compiler with JavaScript and Haskell front-ends, fixed the critical R001 security vulnerability, and proved the architecture works end-to-end. Every task below documents the problem, the solution chosen, and the outcome.
+This session made Navana the master controller of the Church Machine namespace, built the [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler with JavaScript and Haskell front-ends, fixed the critical R001 security vulnerability, and proved the architecture works end-to-end. Every task below documents the problem, the solution chosen, and the outcome.
 
 ---
 
@@ -44,7 +44,7 @@ Each risk has a severity rating, a description of the fix, a reference to the ta
 - CALL split arrows showing CR14 (code, X-only) and CR6 (c-list, L-only)
 - The E-GT format: Version(7) | Index(17) | Perms=E(6) | Type=01(2)
 - GT type legend: NULL(00), Inform(01), Outform(10), Abstract(11)
-- CLOOMC++ compiler flow: source → Resident Object Model → code words → upload.json
+- [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler flow: source → Resident Object Model → code words → upload.json
 
 **Outcome:** Church Gold (#C89B3C) on dark (#141414) SVG, viewable in the IDE's Docs tab and in any browser. Every label matches the implemented code.
 
@@ -108,7 +108,7 @@ The permissions are not copied from the source GT. They are not read from the NS
 
 ---
 
-### T005: CLOOMC++ Compiler — JavaScript Front-End
+### T005: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Compiler — JavaScript Front-End
 
 **Problem:** Children need to write programs in a language they know. JavaScript is the most accessible first language. The compiler must translate a JS subset into Church Machine 32-bit code words — the same binary format the hardware executes.
 
@@ -137,7 +137,7 @@ The permissions are not copied from the source GT. They are not read from the NS
 
 ---
 
-### T006: CLOOMC++ Compiler — Haskell Front-End
+### T006: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Compiler — Haskell Front-End
 
 **Problem:** The Church Machine's instruction set includes LAMBDA — it is literally a lambda calculus machine. A Haskell front-end proves the architecture is a universal computation target for functional as well as imperative languages.
 
@@ -157,11 +157,11 @@ The same calling convention applies. The same c-list mapping applies. The same 3
 
 ---
 
-### T007: System Abstractions — Compiled from CLOOMC++ Source
+### T007: System Abstractions — Compiled from [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Source
 
 **Problem:** The Phase 1 system abstractions (Memory, Mint, Navana, and all boot-time entries) needed compiled code and capability wiring so the boot sequence could load them.
 
-**Solution:** Wrote CLOOMC++ source files for the core abstractions:
+**Solution:** Wrote [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ source files for the core abstractions:
 
 - `simulator/cloomc/memory.cloomc` — Allocate (power-of-2 block allocation) and Free (return block to pool)
 - `simulator/cloomc/mint.cloomc` — Create (forge new GT via Navana.Add) and Revoke (increment version to kill all copies)
@@ -175,7 +175,7 @@ Built `simulator/boot_uploads.js` with the BOOT_UPLOADS array containing 11 Phas
 | 0 | Boot.NS (Namespace) | E |
 | 1 | Boot.Thread | E |
 | 2 | Boot.CList | E |
-| 3 | Boot.CLOOMC | R, W, X |
+| 3 | Boot.[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) | R, W, X |
 | 4 | Salvation | E |
 | 5 | Navana | E |
 | 6 | Mint | E |
@@ -264,8 +264,8 @@ Mint still forges the GT (that is Mint's unique role — only Mint can create ne
 
 **Solution:** Added to `simulator/index.html` and `simulator/app.js`:
 
-- **Language selector:** `<select id="langSelector">` with three options: Assembly, JS (CLOOMC++), Haskell (CLOOMC++)
-- **Unified Compile button:** `smartCompile()` routes to the assembler or CLOOMC++ compiler based on the selector
+- **Language selector:** `<select id="langSelector">` with three options: Assembly, JS ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++), Haskell ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++)
+- **Unified Compile button:** `smartCompile()` routes to the assembler or [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler based on the selector
 - **Draft button:** `compileDraft()` shows a full compilation preview:
   - Methods list with instruction counts
   - Capabilities list with c-list slot assignments
@@ -273,7 +273,7 @@ Mint still forges the GT (that is Mint's unique role — only Mint can create ne
   - clistCount, code size, lump size (power-of-2), freespace
   - CALL split preview: CR14 base/limit and CR6 base/limit
   - Full instruction listing with disassembly
-- **Example loading:** `loadExample()` and `loadCLOOMCExample()` auto-set the language selector
+- **Example loading:** `loadExample()` and `load[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)Example()` auto-set the language selector
 
 **Outcome:** Students can write in any of three languages, preview the compilation output to understand the lump layout, and create abstractions — all from one interface.
 
@@ -281,13 +281,13 @@ Mint still forges the GT (that is Mint's unique role — only Mint can create ne
 
 ### T013: Documentation Updates
 
-**Problem:** The architecture documentation needed to reflect all the changes from this session — single-NS-entry model, clistCount-based lump splitting, calling convention, Navana as sole NS writer, CLOOMC++ dual-language compiler.
+**Problem:** The architecture documentation needed to reflect all the changes from this session — single-NS-entry model, clistCount-based lump splitting, calling convention, Navana as sole NS writer, [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ dual-language compiler.
 
 **Solution:** Updated four files:
 
 - **docs/architecture.md** — Enhanced CALL/RETURN section with lump layout details, added Navana.Abstraction.Add validation description, added Calling Convention section (DR0-3 args, DR4-11 locals callee-saved, DR12-15 temps caller-saved)
 - **docs/abstractions.md** — Updated namespace entry description to reflect single-lump model with clistCount split, added Lump Structure subsection with ASCII layout diagram, updated Navana's Abstraction.Add with validation rules
-- **replit.md** — Added Lump Layout subsection, updated CLOOMC++ Compiler section with auto-detection and calling convention details, added Navana.Abstraction.Add validation parameters
+- **replit.md** — Added Lump Layout subsection, updated [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Compiler section with auto-detection and calling convention details, added Navana.Abstraction.Add validation parameters
 - **simulator/app.js** — Updated Reference tab content with CALL lump-split semantics and example
 
 **Outcome:** All documentation reflects the current architecture. A developer reading any of these files gets an accurate picture of the system.
@@ -321,7 +321,7 @@ Mint still forges the GT (that is Mint's unique role — only Mint can create ne
 
 ### T015: Symbolic Math Front-End (Ada Lovelace Notation)
 
-**Problem:** The CLOOMC++ compiler supported JavaScript and Haskell but not the notation that started it all — Ada Lovelace's 1843 symbolic mathematics from Note G. The Analytical Engine's "machine code" (V-variables, one operation per line, explicit result assignment) was not a first-class language.
+**Problem:** The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler supported JavaScript and Haskell but not the notation that started it all — Ada Lovelace's 1843 symbolic mathematics from Note G. The Analytical Engine's "machine code" (V-variables, one operation per line, explicit result assignment) was not a first-class language.
 
 **Solution:**
 

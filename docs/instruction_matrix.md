@@ -111,7 +111,7 @@ This document maps each instruction across all implementation layers for verific
 | CR0-CR11 | General-purpose   | Yes (4-bit encoding)    | Programmer registers; CR6=C-List, CR8-CR11=free GP |
 | CR12     | Thread/Fault      | Privileged zone         | Thread identity + per-thread fault handler |
 | CR13     | Interrupt         | Privileged zone         | System-wide interrupt handler; unchanged by CHANGE |
-| CR14     | Code/CLOOMC       | Privileged zone         | Per-thread code GT; re-derived by CALL via mLoad |
+| CR14     | Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)       | Privileged zone         | Per-thread code GT; re-derived by CALL via mLoad |
 | CR15     | Namespace root    | Privileged zone         | Hardwired at boot; defines system security boundary |
 
 ### Boot Sequence — Privileged Register Initialization
@@ -120,7 +120,7 @@ The five-phase boot sequence initializes the privileged zone (CR12–CR15):
 
 1. **CR15 (Namespace)**: Loaded at B:00 from hardwired boot GT — M permission only; points to the NS table
 2. **CR12 (Thread Identity)**: Loaded at B:02 via mLoad from NS Slot 1 — zero perms, Inform-type; encodes lump base and bounds
-3. **CR14 (Code/CLOOMC)**: Derived at B:04 from NS Slot 2 metadata — X permission; instruction fetch source
+3. **CR14 (Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html))**: Derived at B:04 from NS Slot 2 metadata — X permission; instruction fetch source
 4. **CR13 (Interrupt)**: Loaded at B:03 or by SWITCH from a PassKey capability — system-wide, unchanged by CHANGE
 
 After boot:

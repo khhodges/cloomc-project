@@ -87,7 +87,7 @@ Word 3: Seals/MAC (64 bits)
 |----------|----------------|-----------------------------------|
 | CR0-CR5  | General        | General purpose capability storage |
 | CR6      | C-List         | Current Capability List pointer   |
-| CR7      | CLOOMC Nucleus | Function Abstraction Code         |
+| CR7      | [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) Nucleus | Function Abstraction Code         |
 | CR8      | Thread         | Suspended Thread State            |
 | CR9      | Interrupt      | Interrupt Thread                  |
 | CR10     | Double Fault   | Double Fault Recovery Thread      |

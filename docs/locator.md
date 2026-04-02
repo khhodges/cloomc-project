@@ -319,7 +319,7 @@ with a code identifying the failure mode (fetch / zip format / Mint rejection).
 | `lump.zip` | Standard ZIP archive containing the raw lump binary image. The Locator reads the ZIP local file header directly to derive `n` and inflate. | After Navana.Abstraction.Add processes upload.json |
 | Lump Library | Remote store of `lump.zip` archives, addressed by the 96-bit IDE token in the Outform NS slot. | Always available (GitHub-backed or DHT) |
 
-The CLOOMC++ compiler produces `upload.json`. `Navana.Abstraction.Add`
+The [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler produces `upload.json`. `Navana.Abstraction.Add`
 processes it, allocates the lump, writes code and c-list, calls `Mint.Lump()`
 to create the Live NS entry, and packages the result as `lump.zip` for
 archival in the Lump Library.
@@ -330,7 +330,7 @@ archival in the Lump Library.
 
 ```
 Compile time:
-  CLOOMC++ ──► upload.json ──► Navana.Abstraction.Add ──► Mint.Lump()
+  [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ ──► upload.json ──► Navana.Abstraction.Add ──► Mint.Lump()
                                         │
                                ┌────────┴──────────────────────┐
                                │  NS slot created (Outform)     │

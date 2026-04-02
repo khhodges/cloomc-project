@@ -409,7 +409,7 @@ Five-phase hardware boot:
 - Fastest integration path (~2-3 weeks)
 - Note: CTMMCore currently exposes raw memory interfaces (addr/rd_en/wr_en/data); a thin bus adapter module (~200 lines) would bridge to Wishbone
 
-### Option B: Replace RV32I Pipeline (Pure CLOOMC)
+### Option B: Replace RV32I Pipeline (Pure [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html))
 
 ```
 ┌─────────────────────────────────────────────────┐

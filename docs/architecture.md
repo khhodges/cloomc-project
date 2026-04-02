@@ -17,14 +17,14 @@ The instruction set is split into two domains:
 - **Church domain** (10 instructions): Capability manipulation — LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA, ELOADCALL, XLOADLAMBDA. (The 10/10 split is the architectural model; specific implementations may fuse or extend instructions.)
 - **Turing domain** (10 instructions + shared RETURN): Data processing — DREAD, DWRITE, BFEXT, BFINS, MCMP, IADD, ISUB, BRANCH, SHL, SHR. (Church Machine uses ARM-style mnemonics: MOV, ADD, SUB, MUL, DIV, AND, ORR, EOR, LSL, LSR, ASR, CMP, TST, LDI, B, BL.)
 
-A code object (CLOOMC) belongs to the DATA domain — it is data stored in memory, accessed via X permission. Code is never a Church-domain entity. The Church domain handles capabilities (GTs, c-lists); the Turing domain handles computation. A code object may contain Church instructions or Turing instructions, but the object itself is always data. This separation is enforced in hardware.
+A code object ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)) belongs to the DATA domain — it is data stored in memory, accessed via X permission. Code is never a Church-domain entity. The Church domain handles capabilities (GTs, c-lists); the Turing domain handles computation. A code object may contain Church instructions or Turing instructions, but the object itself is always data. This separation is enforced in hardware.
 
 ### Abstractions as Security Blocks
 
 An abstraction is a security block — a protected unit of functionality with measurable reliability. Each abstraction has:
 
 - A c-list (CR6 target) containing its capabilities
-- Code (CR14 target — CLOOMC) — a DATA-domain object implementing its methods
+- Code (CR14 target — [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)) — a DATA-domain object implementing its methods
 - Entry via CALL (E-GT); LAMBDA (X-GT) is a method within abstractions, not a separate security block
 - MTBF (Mean Time Between Failures) measured by fault reports over time in the namespace
 
@@ -226,7 +226,7 @@ Special assignments (from `hardware/hw_types.py`):
 - **CR6**:  Current capability list (CR_CLIST) — entered via CALL (programmer-accessible)
 - **CR12**: Data fault handler (CR_DFAULT) — privileged, per-thread
 - **CR13**: Interrupt handler (CR_INTERRUPT) — privileged, system-wide (unchanged by CHANGE)
-- **CR14**: CLOOMC / Code (CR_CLOOMC / CR_CODE) — instruction fetch source, X-only (privileged, per-thread)
+- **CR14**: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) / Code (CR_[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) / CR_CODE) — instruction fetch source, X-only (privileged, per-thread)
 - **CR15**: Namespace root (CR_NAMESPACE) — privileged, per-thread
 
 ### Data Registers (DR0–DR15)
@@ -292,7 +292,7 @@ The boot sequence follows a deterministic flow:
 2. **LOAD_NS**: CR15 initialized with GT to Namespace Root (Slot 0).
 3. **INIT_THRD**: CR12 initialized with Thread Identity (Slot 1).
 4. **INIT_CLIST**: CR6 loaded with Boot C-List (Slot 2).
-5. **LOAD_NUC**: CR14 loaded with Boot Code (CLOOMC from Slot 3, privileged). PC = 0.
+5. **LOAD_NUC**: CR14 loaded with Boot Code ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) from Slot 3, privileged). PC = 0.
 6. **COMPLETE**: M-Elevation OFF. Machine begins executing boot code.
 
 After boot, the code CALLs Salvation (NS[4]) to verify the security pipeline. Salvation proves LOAD, TPERM, and LAMBDA work correctly, then transitions to Navana (NS[5]). Navana does not RETURN — it becomes the permanent namespace controller, managing all abstractions, intrusion detection (IDS), and system lifecycle indefinitely.
@@ -322,11 +322,11 @@ The B flag travels with the GT in bit [31] of the 32-bit token word. CALL automa
 
 ## Instruction Fetch
 
-Instruction fetch uses CR14 (CLOOMC, privileged):
+Instruction fetch uses CR14 ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html), privileged):
 
 - PC is an offset within the current code object, not an absolute address
 - Bounds checked against CR14's limit
-- CALL sets PC=0 and CR14 to callee's CLOOMC
+- CALL sets PC=0 and CR14 to callee's [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)
 - RETURN restores saved CR14 and PC
 
 ## CALL / RETURN
@@ -421,7 +421,7 @@ The one exception: boot writes Navana's own NS entry via mElevation (raw write).
 
 Navana.Abstraction.Add validates: `codeSize + cc <= lumpSize`, each capability target exists and creator holds sufficient permissions, `cc <= 255` (8-bit field), `lumpSize` is power-of-2 (minimum 64 words). The lump header (`cc`, `n_minus_6`) is written at offset 0, method table and code words follow, and c-list GTs are placed at `lumpSize - cc`.
 
-## CLOOMC++ Compiler
+## [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ Compiler
 
 Multi-language compiler targeting Church Machine 20-instruction set:
 

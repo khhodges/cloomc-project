@@ -417,7 +417,7 @@ Arguments arrived in x10-x13. It stored them in the Inbox. It returned an acknow
 TUNNEL PAYLOAD (encrypted):
 ┌─────────────────────────────────────────────────────┐
 │ Header (16 bytes)                                   │
-│   magic:        0x434C4F4F4D430000  ("CLOOMC\0\0")  │
+│   magic:        0x434C4F4F4D430000  ("[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)\0\0")  │
 │   version:      0x0001                              │
 │   num_args:     4 (number of argument slots used)   │
 │   num_rets:     0 (request) or 2 (response)         │

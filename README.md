@@ -77,7 +77,7 @@ Every capability is a 32-bit Golden Token:
 
 - **CR0–CR15** — 128-bit Context Registers holding Golden Tokens
   - CR6: Current c-list (capability list)
-  - CR7: Current code object (CLOOMC)
+  - CR7: Current code object ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html))
   - CR8: Thread identity
   - CR15: Namespace root
 - **DR0–DR15** — 32-bit Data Registers (DR0 is hardwired to zero)
@@ -100,7 +100,7 @@ The system organizes 44 abstractions across 9 layers:
 
 | Layer | Name | Examples |
 |-------|------|----------|
-| 0 | Boot | NS root, Thread, CList, CLOOMC |
+| 0 | Boot | NS root, Thread, CList, [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) |
 | 1 | System Services | Salvation, Mint, Memory, Scheduler, Stack |
 | 2 | Hardware | UART, LED, Button, Timer, Display |
 | 3 | Mathematics | SlideRule, Abacus, Constants, Circle |

@@ -155,7 +155,7 @@ The Church-Turing Meta-Machine (CTMM) is a processor architecture built on the p
 
 This clean separation is fundamental: CRs never hold raw values, DRs never hold capabilities. The LAMBDA instruction bridges the two domains by using a capability (the GT with X permission in a CR) to execute code that operates on values (arguments and results in DRs).
 
-The synthesis is expressed as the **Church-Lambda-Object-Oriented-Meta-Calculus (CLOOMC)**, which organizes GT permissions into three domains:
+The synthesis is expressed as the **Church-Lambda-Object-Oriented-Meta-Calculus ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html))**, which organizes GT permissions into three domains:
 
 | Domain | Permissions | Purpose |
 |--------|------------|---------|
