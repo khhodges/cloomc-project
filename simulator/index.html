@@ -88,6 +88,7 @@
                     <button class="btn btn-success" onclick="runSim()" data-tooltip="Run — Execute all instructions until halt or fault">Run</button>
                     <button class="btn btn-warning" onclick="resetSim()" data-tooltip="Boot — Reset the machine and run the boot sequence">Boot</button>
                     <button class="btn btn-view btn-share-icon" onclick="openShareLink()" data-tooltip="Share — Copy link to open on another device">&#x1F517;</button>
+                    <button class="btn btn-view btn-help-icon" onclick="showWelcomePopup(true)" data-tooltip="About — Why the Church Machine? What is the Lambda Calculus?">?</button>
                     <button class="btn btn-view btn-settings-icon" onclick="openSettings()" data-tooltip="Settings — Configure student profile, subjects, and family">&#9881;</button>
                 </div>
             </nav>
@@ -350,6 +351,8 @@
                     <button class="math-mode-tab" id="mathTabAbacus" onclick="switchMathMode('abacus')" data-tooltip="Abacus — Traditional bead calculator for place-value arithmetic">Abacus</button>
                     <button class="math-mode-tab" id="mathTabSlideRule" onclick="switchMathMode('sliderule')" data-tooltip="Slide Rule — Analogue computing with logarithmic scales">Slide Rule</button>
                     <button class="math-mode-tab" id="mathTabInteractive" onclick="switchMathMode('interactive')" data-tooltip="Pure Math — Interactive REPL for lambda calculus expressions">Pure Math</button>
+                    <button class="btn btn-sm view-help-btn" onclick="openCurrentToolGuide()" data-tooltip="Tool Guide — About this calculator and how it relates to the Church Machine">?</button>
+                    <button class="btn btn-sm view-help-btn" onclick="showMathGuidePopup(true)" data-tooltip="Mind &amp; Body — How symbols and physical mechanisms relate">&#x2026;</button>
                 </div>
                 <div id="interactiveMathContent">
                     <div class="math-tool-history">

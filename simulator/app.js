@@ -5534,11 +5534,11 @@ function showChallengeExplanation(el, c) {
     el.innerHTML = html;
 }
 
-function showMathGuidePopup() {
+function showMathGuidePopup(force) {
     if (POPUPS_DISABLED) return;
-    if (localStorage.getItem('churchMachine_mathGuideDismissed_perm')) return;
-    if (localStorage.getItem('churchMachine_mathGuideDismissed')) return;
-    if (!localStorage.getItem('church_welcome_dismissed')) return;
+    if (!force && localStorage.getItem('churchMachine_mathGuideDismissed_perm')) return;
+    if (!force && localStorage.getItem('churchMachine_mathGuideDismissed')) return;
+    if (!force && !localStorage.getItem('church_welcome_dismissed')) return;
 
     const modal = document.getElementById('mathGuideModal');
     const body = document.getElementById('mathGuideBody');
@@ -5763,14 +5763,19 @@ const TOOL_GUIDES = {
 };
 
 let currentToolGuide = null;
+let currentMathMode = 'hp35';
 
-function showToolGuide(tool) {
+function openCurrentToolGuide() {
+    showToolGuide(currentMathMode, true);
+}
+
+function showToolGuide(tool, force) {
     if (POPUPS_DISABLED) return;
     if (!TOOL_GUIDES[tool]) return;
-    if (localStorage.getItem('churchMachine_toolGuide_' + tool + '_perm')) return;
-    if (localStorage.getItem('churchMachine_toolGuide_' + tool)) return;
-    if (!localStorage.getItem('church_welcome_dismissed')) return;
-    if (!localStorage.getItem('churchMachine_mathGuideDismissed')) return;
+    if (!force && localStorage.getItem('churchMachine_toolGuide_' + tool + '_perm')) return;
+    if (!force && localStorage.getItem('churchMachine_toolGuide_' + tool)) return;
+    if (!force && !localStorage.getItem('church_welcome_dismissed')) return;
+    if (!force && !localStorage.getItem('churchMachine_mathGuideDismissed')) return;
 
     const modal = document.getElementById('toolGuideModal');
     const title = document.getElementById('toolGuideTitle');
@@ -5929,6 +5934,7 @@ function replExecute(cmdOverride) {
 }
 
 function switchMathMode(mode) {
+    currentMathMode = mode;
     const containers = {
         interactive: document.getElementById('interactiveMathContent'),
         hp35: document.getElementById('hp35Container'),
@@ -7768,9 +7774,9 @@ function isWelcomeNeeded() {
     return !localStorage.getItem('church_welcome_dismissed');
 }
 
-function showWelcomePopup() {
+function showWelcomePopup(force) {
     if (POPUPS_DISABLED) return;
-    if (!isWelcomeNeeded()) return;
+    if (!force && !isWelcomeNeeded()) return;
 
     const body = document.getElementById('welcomeBody');
     if (!body) return;

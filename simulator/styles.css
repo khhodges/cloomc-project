@@ -872,6 +872,40 @@ header h1 {
     color: var(--church-gold);
 }
 
+.btn-help-icon {
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.1rem;
+    line-height: 1;
+    opacity: 0.65;
+    transition: opacity 0.15s, color 0.15s;
+    color: var(--church-gold);
+    border: 1px solid rgba(218,165,32,0.3);
+}
+.btn-help-icon:hover {
+    opacity: 1;
+    color: var(--church-gold);
+    border-color: var(--church-gold);
+}
+
+.view-help-btn {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    margin-left: 0.25rem;
+    opacity: 0.6;
+    color: var(--church-gold);
+    border: 1px solid rgba(218,165,32,0.25);
+    background: transparent;
+    transition: opacity 0.15s, border-color 0.15s;
+}
+.view-help-btn:hover {
+    opacity: 1;
+    border-color: var(--church-gold);
+    background: rgba(218,165,32,0.06);
+}
+
 .btn-info {
     background: #164e63;
     border-color: #22d3ee;
