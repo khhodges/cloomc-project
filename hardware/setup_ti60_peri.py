@@ -36,30 +36,35 @@ from api_service.design import DesignAPI
 
 PERI_XML = "church_ti60_f225.peri.xml"
 
+# ── Write a clean minimal peri.xml so DesignAPI always starts from a known-good state.
+# This avoids "corrupted" errors from stale or hand-crafted template files.
+_MINIMAL = '''<?xml version="1.0" encoding="UTF-8"?>
+<efxpt:design_db name="church_ti60_f225" device_def="Ti60F225" version="2025.2.0" db_version="20241001" last_change_date="Tue Apr 01 00:00:00 2026" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+    <efxpt:device_info>
+        <efxpt:iobank_info>
+            <efxpt:iobank name="1A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="1A_MODE_SEL"/>
+            <efxpt:iobank name="1B" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="1B_MODE_SEL"/>
+            <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
+            <efxpt:iobank name="2B" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2B_MODE_SEL"/>
+            <efxpt:iobank name="3A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="3A_MODE_SEL"/>
+            <efxpt:iobank name="3B" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="3B_MODE_SEL"/>
+            <efxpt:iobank name="4A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="4A_MODE_SEL"/>
+            <efxpt:iobank name="4B" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="4B_MODE_SEL"/>
+            <efxpt:iobank name="BL" iostd="3.3 V LVCMOS" is_dyn_voltage="false" mode_sel_name="BL_MODE_SEL"/>
+            <efxpt:iobank name="BR" iostd="3.3 V LVCMOS" is_dyn_voltage="false" mode_sel_name="BR_MODE_SEL"/>
+            <efxpt:iobank name="TL" iostd="3.3 V LVCMOS" is_dyn_voltage="false" mode_sel_name="TL_MODE_SEL"/>
+            <efxpt:iobank name="TR" iostd="3.3 V LVCMOS" is_dyn_voltage="false" mode_sel_name="TR_MODE_SEL"/>
+        </efxpt:iobank_info>
+    </efxpt:device_info>
+    <efxpt:gpio_info/>
+</efxpt:design_db>
+'''
+with open(PERI_XML, "w", encoding="UTF-8") as _f:
+    _f.write(_MINIMAL)
+print(f"  wrote clean template → {PERI_XML}")
+
 design = DesignAPI(is_verbose=True)
 design.load(PERI_XML)
-
-# ── Strip stale GPIOs / PLLs left over from template peri.xml ────────────────
-import xml.etree.ElementTree as _ET
-_NS = "http://www.efinixinc.com/peri_design_db"
-_KEEP = {"uart_tx", "uart_rx", "push_button",
-         "led0", "led1", "led2", "led3"}
-_tree = _ET.parse(PERI_XML)
-_root = _tree.getroot()
-for _sec in _root.findall(f"{{{_NS}}}gpio_info"):
-    for _g in _sec.findall(f"{{{_NS}}}comp_gpio"):
-        if _g.get("name") not in _KEEP:
-            print(f"  cleanup: removing GPIO {_g.get('name')!r}")
-            _sec.remove(_g)
-for _sec in _root.findall(f"{{{_NS}}}pll_info"):
-    for _p in _sec.findall(f"{{{_NS}}}pll"):
-        print(f"  cleanup: removing PLL {_p.get('name')!r}")
-        _sec.remove(_p)
-_ET.register_namespace("efxpt", _NS)
-_ET.register_namespace("xsi",   "http://www.w3.org/2001/XMLSchema-instance")
-_tree.write(PERI_XML, xml_declaration=True, encoding="UTF-8")
-design.load(PERI_XML)   # reload after cleanup
-# ─────────────────────────────────────────────────────────────────────────────
 
 for bank in ["1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B"]:
     design.set_device_property(bank, "DYNAMIC_VOLTAGE", "0", "IOBANK")
