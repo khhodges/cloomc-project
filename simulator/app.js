@@ -11305,6 +11305,7 @@ async function loadDocsView() {
         docsData = await resp.json();
         renderDocsFileList();
         docsLoaded = true;
+        loadDoc('prologue.md');
     } catch (e) {
         const body = document.getElementById('docsContentBody');
         if (body) body.innerHTML = '<div class="docs-placeholder">Failed to load document list.</div>';
