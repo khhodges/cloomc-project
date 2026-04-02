@@ -7500,7 +7500,7 @@ function _setBuildStatus(state, label, board) {
 function _buildLogScroll() {
     const area = document.getElementById('buildLogArea');
     if (!area) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; }));
+    setTimeout(() => { area.scrollTop = area.scrollHeight; }, 50);
 }
 
 function _buildLogAppend(text) {
