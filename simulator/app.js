@@ -5171,35 +5171,39 @@ CALL CR2, 0xF          ; FAULT: direct mode but CR2 lacks E permission
 HALT
 `,
         'led_blink': `; ============================================
-; LED Blink — Ti60 F225 Nucleus Program
-; The exact code running on the real FPGA
+; LED Blink — Ti60 F225 Hardware Nucleus Code
+; Reference only — this is HARDWARE code, not
+; simulator-executable as-is.
 ; ============================================
 ;
-; This is the first abstraction ever executed
-; by the Church Machine on real silicon.
+; This is the exact binary burned into the
+; Ti60 F225 FPGA. It produces the 1 Hz LED
+; blink you can see on the board right now.
 ;
-; The nucleus uses the Turing ISA's DWRITE to
-; toggle LED0 through a capability (CR3) loaded
-; from the c-list. No raw memory address is ever
-; touched — every I/O goes through a gate.
+; WHY IT DIFFERS FROM THE SIMULATOR:
+; The hardware NUC_PROGRAM operates at bare
+; metal — it uses the DEMO_CLIST (not NS) and
+; writes directly to an MMIO address via DWRITE.
 ;
-; Instruction summary:
-;   LOAD  CR3, CR6, 8   — capability lookup
-;   DWRITE DR, CRs, off — device write via gate
-;   IADD / ISUB / BRANCH — integer arithmetic
+;   Hardware path (this code):
+;     LOAD CR3, CR6, 8    ; DEMO_CLIST[8] = LED_DEV
+;     DWRITE DR1, CR3, 0  ; raw MMIO write @ 0x40000000
 ;
-; On the FPGA (50 MHz): delay = 380 × 16383
-; ≈ 0.5 s per half-period → 1 Hz blink.
-; In the simulator: delay = 3 × 3 so you can
-; step through the whole loop interactively.
+;   Simulator path (NS-based LED abstraction):
+;     LOAD CR1, NS[12]    ; Namespace slot 12 = LED
+;     SAVE CR1, DR0       ; S-perm device write
 ;
-; Note: DWRITE may show a fault in the simulator
-; if the LED device is not mapped at slot 8 —
-; that is expected. On the FPGA it is wired.
+; The simulator will FAULT at DWRITE because
+; DEMO_CLIST[8] (bare MMIO) doesn't exist there.
+; See the LED snippets in the autocomplete panel
+; for the simulator-runnable version.
+;
+; On the FPGA (50 MHz): 380 × 16383 iters ≈ 0.5 s
+; per phase → 1 Hz blink total.
 ; ============================================
 
-; --- Load LED device capability into CR3 ---
-LOAD CR3, CR6, 8          ; c-list slot 8 = LED_DEV
+; --- Load LED MMIO capability from DEMO_CLIST ---
+LOAD CR3, CR6, 8          ; DEMO_CLIST[8] = LED_DEV (hardware only)
 
 ; --- DR1 = 1 (the "on" value) ---
 IADD DR1, DR0, #1
