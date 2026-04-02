@@ -744,6 +744,8 @@ function updateCRDetail() {
     const parsedPerms = sim.parseGT(sim.cr[crIdx].word0).permissions;
     const hasX = parsedPerms.X;
     const hasL = parsedPerms.L;
+    const hasR = parsedPerms.R;
+    const hasW = parsedPerms.W;
     const crMbit = sim.cr[crIdx].m;
     const nsIdx = cr.gtIndex;
 
@@ -755,6 +757,7 @@ function updateCRDetail() {
     const showCList = hasL || (crMbit && clistRegs.includes(crIdx));
     const showThread = crMbit && threadRegs.includes(crIdx);
     const showNS = crMbit && nsRegs.includes(crIdx);
+    const showData = (hasR || hasW) && !showCode && !showCList;
 
     let html = '';
     html += '<div class="crd-tabs">';
@@ -885,10 +888,63 @@ function updateCRDetail() {
         html += '</div>';
     }
 
-    if (!showCode && !showCList && !showThread && !showNS) {
+    if (showData) {
+        const dataBase = cr.word1_location >>> 0;
+        const dataLimit = cr.limit17;
+        const wordCount = Math.min(dataLimit + 1, 64);
+        const nsEntryD = sim.readNSEntry(nsIdx);
+        const nsLabel = nsEntryD ? (nsEntryD.label || `NS[${nsIdx}]`) : `NS[${nsIdx}]`;
+        const permDesc = [hasR ? 'R' : '', hasW ? 'W' : ''].filter(Boolean).join('|');
+
+        const DEVICE_SLOTS = { 12: 'LED', 11: 'UART', 13: 'Button', 14: 'Timer' };
+        const isDevice = nsIdx in DEVICE_SLOTS;
+
+        html += '<div class="cr-detail-section">';
+        html += `<div class="cr-detail-heading">Data View \u2014 ${nsLabel} (NS[${nsIdx}]) [${permDesc}]</div>`;
+
+        html += '<table class="cr-table cr-detail-words"><tbody>';
+        html += `<tr><td style="color:var(--church-blue)">Target</td><td>NS[${nsIdx}] \u2014 <strong>${nsLabel}</strong></td></tr>`;
+        html += `<tr><td style="color:var(--church-blue)">Permissions</td><td class="cr-perms">[${permDesc}]</td></tr>`;
+        html += `<tr><td style="color:var(--church-blue)">Base address</td><td>0x${dataBase.toString(16).toUpperCase().padStart(8,'0')}</td></tr>`;
+        html += `<tr><td style="color:var(--church-blue)">Size</td><td>${wordCount} word${wordCount !== 1 ? 's' : ''} (limit ${dataLimit})</td></tr>`;
+        if (isDevice) {
+            html += `<tr><td style="color:var(--church-blue)">Kind</td><td style="color:var(--church-yellow)">Hardware Device \u2014 ${DEVICE_SLOTS[nsIdx]}</td></tr>`;
+        }
+        html += '</tbody></table>';
+
+        if (isDevice && nsIdx === 12) {
+            const bits = sim.ledBits || 0;
+            html += '<div class="cr-detail-heading" style="margin-top:0.75rem;">LED State</div>';
+            html += '<div style="display:flex;gap:6px;padding:0.4rem 0;">';
+            for (let b = 5; b >= 0; b--) {
+                const on = (bits >>> b) & 1;
+                html += `<div style="width:28px;height:28px;border-radius:50%;background:${on ? '#22ff44' : '#1a2a1a'};border:2px solid ${on ? '#44ff66' : '#334433'};display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:${on ? '#000' : '#446644'};">${b}</div>`;
+            }
+            html += '</div>';
+        }
+
+        if (wordCount > 0) {
+            html += '<div class="cr-detail-heading" style="margin-top:0.75rem;">Memory Contents</div>';
+            html += '<table class="cr-table code-view-table"><thead><tr><th>Addr</th><th>Hex</th><th>Dec</th></tr></thead><tbody>';
+            for (let w = 0; w < wordCount; w++) {
+                const addr = dataBase + w;
+                if (addr >= sim.memory.length) break;
+                const val = sim.memory[addr] >>> 0;
+                html += '<tr>';
+                html += `<td class="cr-idx">+${w}</td>`;
+                html += `<td class="cr-gt">0x${val.toString(16).toUpperCase().padStart(8,'0')}</td>`;
+                html += `<td>${val}</td>`;
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+        }
+        html += '</div>';
+    }
+
+    if (!showCode && !showCList && !showThread && !showNS && !showData) {
         html += '<div class="cr-detail-section">';
         html += '<div class="cr-detail-heading">Capability Info</div>';
-        html += '<div style="color:var(--text-secondary);padding:0.5rem;">GT permissions control visibility. This capability does not grant viewable access (no R, X, or L). Run boot sequence to populate registers.</div>';
+        html += '<div style="color:var(--text-secondary);padding:0.5rem;">GT permissions control visibility. This capability does not grant viewable access (no R, W, X, or L). Run boot sequence to populate registers.</div>';
         html += '</div>';
     }
 
