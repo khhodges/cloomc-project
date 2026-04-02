@@ -805,42 +805,38 @@ function updateCRDetail() {
 
     if (showCList) {
         html += '<div class="cr-detail-section">';
-        html += '<div class="cr-detail-heading">C-List View \u2014 Accessible Entries</div>';
-        const clistEntries = [];
-        for (let i = 0; i < sim.nsCount; i++) {
-            const e = sim.readNSEntry(i);
-            if (!e) continue;
-            const eLoc = e.word0_location >>> 0;
-            const eLim = sim.parseNSWord1(e.word1_limit);
-            clistEntries.push({ idx: i, entry: e, loc: eLoc, lim: eLim });
-        }
-        if (clistEntries.length === 0) {
-            html += '<div style="color:var(--text-secondary);padding:0.5rem;">No namespace entries within this capability\'s range.</div>';
-        } else {
-            html += '<table class="cr-table"><thead><tr>';
-            html += '<th>Idx</th><th>Label</th><th>W0: Location</th><th>W1: Type</th><th>W1: F</th><th>W1: Limit</th><th>W2: CRC</th>';
-            html += '</tr></thead><tbody>';
-            for (let j = 0; j < clistEntries.length; j++) {
-                const c = clistEntries[j];
-                const e = c.entry;
-                const typeNames = ['NULL','Inform','Outform','Abstract'];
-                const sealCRC = e.word2_seals & 0xFFFF;
-                const isExpanded = (clistExpandedIdx === c.idx);
-                html += `<tr class="cr-active clist-clickable${isExpanded ? ' clist-selected' : ''}" onclick="toggleCListEntry(${c.idx})" title="Click to inspect NS[${c.idx}]">`;
-                html += `<td class="cr-idx">${c.idx}</td>`;
-                html += `<td class="cr-name">${e.label || ''}</td>`;
-                html += `<td>0x${c.loc.toString(16).toUpperCase().padStart(8,'0')}</td>`;
-                html += `<td>${typeNames[e.gtType] || '?'}</td>`;
-                html += `<td class="cr-flag">${c.lim.f}</td>`;
-                html += `<td>0x${c.lim.limit.toString(16).toUpperCase().padStart(5,'0')}</td>`;
-                html += `<td>0x${sealCRC.toString(16).toUpperCase().padStart(4,'0')}</td>`;
-                html += '</tr>';
-                if (isExpanded) {
-                    html += `<tr class="clist-detail-row"><td colspan="7">${renderCListEntryDetail(c.idx, e)}</td></tr>`;
+        html += '<div class="cr-detail-heading">C-List View \u2014 Capability Slots</div>';
+        const clistBase = cr.word1_location >>> 0;
+        const clistCount = cr.limit17 + 1;
+        html += '<table class="cr-table"><thead><tr>';
+        html += '<th>Slot</th><th>GT Word</th><th>NS Idx</th><th>Type</th><th>Perms</th><th>Label</th>';
+        html += '</tr></thead><tbody>';
+        for (let i = 0; i < clistCount; i++) {
+            const addr = clistBase + i;
+            const gtWord = (addr < sim.memory.length) ? (sim.memory[addr] >>> 0) : 0;
+            const parsed = sim.parseGT(gtWord);
+            const permsStr = Object.entries(parsed.permissions).filter(([,v]) => v).map(([k]) => k).join('');
+            const nsLabel = (sim.nsLabels && sim.nsLabels[parsed.index]) ? sim.nsLabels[parsed.index] : '';
+            const isExpanded = (clistExpandedIdx === i);
+            const hasGT = gtWord !== 0;
+            html += `<tr class="${hasGT ? 'cr-active clist-clickable' : ''}${isExpanded ? ' clist-selected' : ''}" `;
+            html += hasGT ? `onclick="toggleCListEntry(${i})" title="Click to inspect NS[${parsed.index}]"` : '';
+            html += '>';
+            html += `<td class="cr-idx">${i}</td>`;
+            html += `<td class="cr-gt">0x${gtWord.toString(16).toUpperCase().padStart(8,'0')}</td>`;
+            html += `<td>${hasGT ? parsed.index : '\u2014'}</td>`;
+            html += `<td>${hasGT ? parsed.typeName : '\u2014'}</td>`;
+            html += `<td class="cr-perms">[${permsStr || '\u2014'}]</td>`;
+            html += `<td class="cr-name">${nsLabel}</td>`;
+            html += '</tr>';
+            if (isExpanded && hasGT) {
+                const nsEntry = sim.readNSEntry(parsed.index);
+                if (nsEntry) {
+                    html += `<tr class="clist-detail-row"><td colspan="6">${renderCListEntryDetail(parsed.index, nsEntry)}</td></tr>`;
                 }
             }
-            html += '</tbody></table>';
         }
+        html += '</tbody></table>';
         html += '</div>';
     }
 
@@ -4027,6 +4023,13 @@ function walkNext() {
 }
 
 let bootAnimating = false;
+let _defaultProgramLoaded = false;
+function _autoLoadDefaultProgram() {
+    if (_defaultProgramLoaded) return;
+    _defaultProgramLoaded = true;
+    loadExample('led_blink');
+    assembleAndLoad();
+}
 function slowBoot() {
     if (bootAnimating || sim.bootComplete) return;
     bootAnimating = true;
@@ -4041,6 +4044,7 @@ function slowBoot() {
                     con.scrollTop = con.scrollHeight;
                 }
                 if (pipelineViz) { pipelineViz.setNIA(null); pipelineViz.render(); }
+                _autoLoadDefaultProgram();
                 updateDashboard();
                 return;
             }
@@ -4077,6 +4081,7 @@ function runSim() {
             return;
         }
     }
+    _autoLoadDefaultProgram();
     let steps;
     try {
         steps = sim.run(10000);
@@ -4100,6 +4105,7 @@ function runSim() {
 }
 
 function faultClear() {
+    _defaultProgramLoaded = false;
     sim.reset();
     pipelineViz.reset();
     const con = document.getElementById('editorConsole');
@@ -4188,6 +4194,7 @@ function faultModalDismiss() {
 function faultModalReboot() {
     faultModalDismiss();
     if (pipelineViz) pipelineViz.setNIA(null);
+    _defaultProgramLoaded = false;
     sim.reset();
     pipelineViz.reset();
     bootAnimating = false;
@@ -4204,6 +4211,7 @@ function faultModalInvestigate() {
 
 function resetSim() {
     if (pipelineViz) pipelineViz.setNIA(null);
+    _defaultProgramLoaded = false;
     sim.reset();
     pipelineViz.reset();
     bootAnimating = false;
