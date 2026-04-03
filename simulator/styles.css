@@ -8780,3 +8780,114 @@ pre:hover .code-copy-btn {
     white-space: pre-wrap;
     word-break: break-all;
 }
+
+/* ── GC View (standalone page) ──────────────────────────────────────────── */
+.gc-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.2rem 1.4rem 1rem;
+    gap: 1rem;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.gc-topbar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border, #1e2040);
+    padding-bottom: 0.9rem;
+}
+.gc-topbar-left { flex: 1; min-width: 0; }
+.gc-title {
+    font-family: Georgia, serif;
+    font-size: 1.1rem;
+    color: var(--church-gold, #daa520);
+    font-weight: 600;
+}
+.gc-sub {
+    font-size: 0.72rem;
+    color: var(--text-secondary, #888);
+    margin-top: 0.2rem;
+}
+.gc-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+.gc-stat-grid {
+    grid-template-columns: repeat(4, auto) !important;
+    gap: 0.5rem !important;
+}
+/* Horizontal phase cards — override the previous flex-column */
+#gc .tgc-phase-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.8rem;
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+}
+#gc .tgc-card {
+    display: flex;
+    flex-direction: column;
+}
+#gc .tgc-card-report {
+    flex: 1;
+    overflow-y: auto;
+    padding-left: 0.7rem;
+    padding-bottom: 0.6rem;
+}
+.gc-last-run {
+    font-size: 0.72rem;
+    color: var(--text-secondary, #888);
+    font-style: italic;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+/* ── GitHub View (standalone page) ─────────────────────────────────────── */
+.github-layout {
+    padding: 2rem 2.5rem;
+    max-width: 860px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+.gh-full-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+.gh-full-card {
+    background: var(--panel-bg, #10101e);
+    border: 1px solid var(--border, #1e2040);
+    border-radius: 12px;
+    padding: 2rem 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.2s;
+}
+.gh-full-card:hover { border-color: #38bdf8; }
+.gh-full-icon {
+    font-size: 2.2rem;
+    color: #38bdf8;
+    line-height: 1;
+}
+.gh-full-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+.gh-full-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary, #888);
+    line-height: 1.6;
+    flex: 1;
+}
+.gh-full-btn {
+    align-self: flex-start;
+    margin-top: 0.5rem;
+}

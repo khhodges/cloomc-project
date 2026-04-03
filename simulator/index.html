@@ -90,7 +90,8 @@
                             <button class="ham-item" id="hamItem-reference" onclick="switchView('reference');closeHamburger()">Reference</button>
                             <button class="ham-item" id="hamItem-builder" onclick="switchView('builder');closeHamburger()">Builder</button>
                             <button class="ham-item" id="hamItem-docs" onclick="switchView('docs');closeHamburger()">Docs</button>
-                            <button class="ham-item" id="hamItem-tools" onclick="switchView('tools');closeHamburger()">Tools</button>
+                            <button class="ham-item" id="hamItem-gc" onclick="switchView('gc');closeHamburger()">GC</button>
+                            <button class="ham-item" id="hamItem-github" onclick="switchView('github');closeHamburger()">GitHub</button>
                         </div>
                     </div>
                 </div>
@@ -548,124 +549,117 @@
         </div>
     </div>
 
-    <div id="tools" class="view">
-        <div class="tools-layout">
+    <div id="gc" class="view">
+        <div class="gc-layout">
 
-            <div class="tools-panel">
-                <div class="tools-panel-header">
-                    <div class="tools-panel-icon">♻</div>
-                    <div>
-                        <div class="tools-panel-title">Garbage Collection</div>
-                        <div class="tools-panel-sub">PP250 four-phase deterministic GC</div>
-                    </div>
-                    <button class="tools-btn tools-btn-primary tgc-run-btn" id="tgcRunBtn" onclick="runGCFromTools()">
-                        ♻ Run GC
-                    </button>
+            <div class="gc-topbar">
+                <div class="gc-topbar-left">
+                    <div class="gc-title">♻ Garbage Collection</div>
+                    <div class="gc-sub">PP250 four-phase deterministic GC — click once per phase to step through</div>
                 </div>
-
-                <div class="tgc-phase-cards" id="tgcPhaseCards">
-
-                    <div class="tgc-card" id="tgcCard1" data-state="idle">
-                        <div class="tgc-card-hdr">
-                            <span class="tgc-card-num">1</span>
-                            <div class="tgc-card-title-col">
-                                <span class="tgc-card-name">Mark</span>
-                                <span class="tgc-card-static-desc">Set G=garbage on every valid NS entry — pessimistic assumption</span>
-                            </div>
-                            <span class="tgc-card-badge" id="tgcBadge1"></span>
+                <div class="gc-topbar-right">
+                    <div class="tools-stat-grid gc-stat-grid" id="toolsGCStats">
+                        <div class="tools-stat-card">
+                            <div class="tools-stat-val" id="tgcNSEntries">—</div>
+                            <div class="tools-stat-label">NS entries</div>
                         </div>
-                        <div class="tgc-card-report" id="tgcReport1"></div>
-                    </div>
-
-                    <div class="tgc-card" id="tgcCard2" data-state="idle">
-                        <div class="tgc-card-hdr">
-                            <span class="tgc-card-num">2</span>
-                            <div class="tgc-card-title-col">
-                                <span class="tgc-card-name">Scan</span>
-                                <span class="tgc-card-static-desc">Walk all CR roots + call stack; mark reachable entries live</span>
-                            </div>
-                            <span class="tgc-card-badge" id="tgcBadge2"></span>
+                        <div class="tools-stat-card">
+                            <div class="tools-stat-val" id="tgcFreedSlots">—</div>
+                            <div class="tools-stat-label">Freed slots</div>
                         </div>
-                        <div class="tgc-card-report" id="tgcReport2"></div>
-                    </div>
-
-                    <div class="tgc-card" id="tgcCard3" data-state="idle">
-                        <div class="tgc-card-hdr">
-                            <span class="tgc-card-num">3</span>
-                            <div class="tgc-card-title-col">
-                                <span class="tgc-card-name">Sweep</span>
-                                <span class="tgc-card-static-desc">Find entries still flagged garbage; build reclamation list</span>
-                            </div>
-                            <span class="tgc-card-badge" id="tgcBadge3"></span>
+                        <div class="tools-stat-card">
+                            <div class="tools-stat-val" id="tgcFreedWords">—</div>
+                            <div class="tools-stat-label">Freed words</div>
                         </div>
-                        <div class="tgc-card-report" id="tgcReport3"></div>
-                    </div>
-
-                    <div class="tgc-card" id="tgcCard4" data-state="idle">
-                        <div class="tgc-card-hdr">
-                            <span class="tgc-card-num">4</span>
-                            <div class="tgc-card-title-col">
-                                <span class="tgc-card-name">Clear</span>
-                                <span class="tgc-card-static-desc">Zero NS entries + object words; bump version; flip GC polarity</span>
-                            </div>
-                            <span class="tgc-card-badge" id="tgcBadge4"></span>
+                        <div class="tools-stat-card">
+                            <div class="tools-stat-val" id="tgcLiveCount">—</div>
+                            <div class="tools-stat-label">Live entries</div>
                         </div>
-                        <div class="tgc-card-report" id="tgcReport4"></div>
                     </div>
-
-                </div>
-
-                <div class="tools-stat-grid" id="toolsGCStats">
-                    <div class="tools-stat-card">
-                        <div class="tools-stat-val" id="tgcNSEntries">—</div>
-                        <div class="tools-stat-label">NS entries</div>
-                    </div>
-                    <div class="tools-stat-card">
-                        <div class="tools-stat-val" id="tgcFreedSlots">—</div>
-                        <div class="tools-stat-label">Freed slots</div>
-                    </div>
-                    <div class="tools-stat-card">
-                        <div class="tools-stat-val" id="tgcFreedWords">—</div>
-                        <div class="tools-stat-label">Freed words</div>
-                    </div>
-                    <div class="tools-stat-card">
-                        <div class="tools-stat-val" id="tgcLiveCount">—</div>
-                        <div class="tools-stat-label">Live entries</div>
-                    </div>
-                </div>
-
-                <div class="tools-last-run" id="toolsGCLastRun"></div>
-            </div>
-
-            <div class="tools-panel">
-                <div class="tools-panel-header">
-                    <div class="tools-panel-icon">⇅</div>
-                    <div>
-                        <div class="tools-panel-title">GitHub Sync</div>
-                        <div class="tools-panel-sub">Mum Tunnel Library — push and browse abstractions</div>
-                    </div>
-                </div>
-
-                <div class="tools-gh-cards">
-                    <div class="tools-gh-card">
-                        <div class="tools-gh-card-icon">↑</div>
-                        <div class="tools-gh-card-title">Push to GitHub</div>
-                        <div class="tools-gh-card-desc">Export the current simulator source (JS, HTML, CSS) to your connected GitHub repository. Every file is updated in a single commit.</div>
-                        <button class="tools-btn tools-btn-secondary" onclick="exportSimulatorToGitHub()">Push Now</button>
-                    </div>
-                    <div class="tools-gh-card">
-                        <div class="tools-gh-card-icon">↓</div>
-                        <div class="tools-gh-card-title">Browse Library</div>
-                        <div class="tools-gh-card-desc">Fetch shared abstractions from the Mum Tunnel Library. Search by language or author and install directly into your namespace.</div>
-                        <button class="tools-btn tools-btn-secondary" onclick="showLibrary()">Open Library</button>
-                    </div>
-                </div>
-
-                <div class="tools-gh-note">
-                    GitHub integration requires a personal access token. Configure it in <button class="tools-link-btn" onclick="openSettings()">Settings</button>.
+                    <button class="tools-btn tools-btn-primary tgc-run-btn" id="tgcRunBtn" onclick="runGCFromTools()">♻ Run GC</button>
                 </div>
             </div>
 
+            <div class="tgc-phase-cards" id="tgcPhaseCards">
+
+                <div class="tgc-card" id="tgcCard1" data-state="idle">
+                    <div class="tgc-card-hdr">
+                        <span class="tgc-card-num">1</span>
+                        <div class="tgc-card-title-col">
+                            <span class="tgc-card-name">Mark</span>
+                            <span class="tgc-card-static-desc">Set G=garbage on every valid NS entry — pessimistic assumption</span>
+                        </div>
+                        <span class="tgc-card-badge" id="tgcBadge1"></span>
+                    </div>
+                    <div class="tgc-card-report" id="tgcReport1"></div>
+                </div>
+
+                <div class="tgc-card" id="tgcCard2" data-state="idle">
+                    <div class="tgc-card-hdr">
+                        <span class="tgc-card-num">2</span>
+                        <div class="tgc-card-title-col">
+                            <span class="tgc-card-name">Scan</span>
+                            <span class="tgc-card-static-desc">Walk all CR roots + call stack; mark reachable entries live</span>
+                        </div>
+                        <span class="tgc-card-badge" id="tgcBadge2"></span>
+                    </div>
+                    <div class="tgc-card-report" id="tgcReport2"></div>
+                </div>
+
+                <div class="tgc-card" id="tgcCard3" data-state="idle">
+                    <div class="tgc-card-hdr">
+                        <span class="tgc-card-num">3</span>
+                        <div class="tgc-card-title-col">
+                            <span class="tgc-card-name">Sweep</span>
+                            <span class="tgc-card-static-desc">Find entries still flagged garbage; build reclamation list</span>
+                        </div>
+                        <span class="tgc-card-badge" id="tgcBadge3"></span>
+                    </div>
+                    <div class="tgc-card-report" id="tgcReport3"></div>
+                </div>
+
+                <div class="tgc-card" id="tgcCard4" data-state="idle">
+                    <div class="tgc-card-hdr">
+                        <span class="tgc-card-num">4</span>
+                        <div class="tgc-card-title-col">
+                            <span class="tgc-card-name">Clear</span>
+                            <span class="tgc-card-static-desc">Zero NS entries + object words; bump version; flip GC polarity</span>
+                        </div>
+                        <span class="tgc-card-badge" id="tgcBadge4"></span>
+                    </div>
+                    <div class="tgc-card-report" id="tgcReport4"></div>
+                </div>
+
+            </div>
+
+            <div class="tools-last-run" id="toolsGCLastRun"></div>
+
+        </div>
+    </div>
+
+    <div id="github" class="view">
+        <div class="github-layout">
+            <div class="gc-title" style="margin-bottom:0.25rem;">⇅ GitHub Sync</div>
+            <div class="gc-sub" style="margin-bottom:1.5rem;">Mum Tunnel Library — push simulator source or browse shared abstractions</div>
+
+            <div class="gh-full-cards">
+                <div class="gh-full-card">
+                    <div class="gh-full-icon">↑</div>
+                    <div class="gh-full-title">Push to GitHub</div>
+                    <div class="gh-full-desc">Export the current simulator source (JS, HTML, CSS) to your connected GitHub repository. Every file is updated in a single commit.</div>
+                    <button class="tools-btn tools-btn-secondary gh-full-btn" onclick="exportSimulatorToGitHub()">Push Now</button>
+                </div>
+                <div class="gh-full-card">
+                    <div class="gh-full-icon">↓</div>
+                    <div class="gh-full-title">Browse Library</div>
+                    <div class="gh-full-desc">Fetch shared abstractions from the Mum Tunnel Library. Search by language or author, then install directly into your namespace.</div>
+                    <button class="tools-btn tools-btn-secondary gh-full-btn" onclick="showLibrary()">Open Library</button>
+                </div>
+            </div>
+
+            <div class="tools-gh-note" style="margin-top:2rem;">
+                GitHub integration requires a personal access token. Configure it in <button class="tools-link-btn" onclick="openSettings()">Settings</button>.
+            </div>
         </div>
     </div>
 

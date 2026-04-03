@@ -367,7 +367,7 @@ function switchView(viewId) {
     }
     if (viewId === 'reference') renderReference();
     if (viewId === 'docs') loadDocsView();
-    if (viewId === 'tools') renderToolsView();
+    if (viewId === 'gc') renderToolsView();
 }
 
 let _lastGCResult   = null;
@@ -4802,7 +4802,7 @@ function runGC() {
     sim.mElevation = false;
     sim.output += '[I/O] GC abstraction complete \u2014 RETURN\n';
     _lastGCResult = result;
-    if (currentView === 'tools') renderToolsView();
+    if (currentView === 'gc') renderToolsView();
 
     const lines = result.report.split('\n');
     const phases = [];
