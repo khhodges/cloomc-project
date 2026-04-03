@@ -41,7 +41,7 @@ class ChurchSimulator {
 
         this.pc = 0;
         this.flags = { N: false, Z: false, C: false, V: false };
-        this.sto = 0;
+        this.sto = 243;  // sp_max = lumpSize(256) − caps(12) − 1; hardware starts here, CALL decrements
         this.running = false;
         this.halted = false;
         this.stepCount = 0;
@@ -80,7 +80,7 @@ class ChurchSimulator {
         }
         this.dr.fill(0);
         this.flags = { N: false, Z: false, C: false, V: false };
-        this.sto = 0;
+        this.sto = 243;  // sp_max reset
         this.callStack = [];
         this.lambdaActive = false;
         this.lambdaReturnPC = 0;
@@ -444,7 +444,34 @@ class ChurchSimulator {
                     return false;
                 }
 
-                // CR14 (code, X) and CR6 (c-list, L) set simultaneously from single header read
+                // ── Sentinel CALL frame ────────────────────────────────────────────────
+                // Before overwriting CR6/CR14 with the callee's tokens, push a sentinel
+                // CALL frame exactly as the CALL microcode does:
+                //   STO+0 = frameWord (NIA=0x7FFF poison, sz=1, prev_STO=sp_max)
+                //   STO−1 = old CR6 E-GT (the E-type Inform token from step 3)
+                // Any RETURN from the root abstraction finds this sentinel and reboots.
+                const sp_max = 243;  // lumpSize(256) − caps(12) − 1
+                const oldCR6GT = this.cr[6].word0 >>> 0;  // E-type from INIT_ABSTR (step 3)
+                // Build sentinel frameWord: NIA=0x7FFF (all 15 bits = 1, poison marker)
+                const sentinelFrameWord = this._packFrameWordRaw(0x7FFF, 1, sp_max);
+                this.callStack.push({
+                    sentinel: true,
+                    returnPC: 0x7FFF,
+                    savedCRs: this.cr.map(c => ({...c})),
+                    savedDRs: [...this.dr],
+                    savedFlags: {...this.flags},
+                    savedSTO: sp_max,
+                    sz: 1,
+                    frameWord: sentinelFrameWord,
+                });
+                const threadBase = this.cr[12] && this.cr[12].word1;
+                if (threadBase) {
+                    this.memory[threadBase + sp_max]     = sentinelFrameWord;  // +243: frame word
+                    this.memory[threadBase + sp_max - 1] = oldCR6GT;           // +242: E-GT
+                }
+                this.sto = sp_max - 2;  // = 241
+
+                // ── CR14 (code, X) and CR6 (c-list, L) set simultaneously from header ─
                 const cr14GT = this.createGT(0, 2, {R:1,W:0,X:1,L:0,S:0,E:0}, 1);
                 const cr14Word1 = this.packNSWord1(lumpSz - cc - 2, 0, 0, 0, 0, 1, 0);
                 this.cr[14] = {
@@ -464,12 +491,11 @@ class ChurchSimulator {
                     word3: abstrEntry.word2_seals,
                     m: this.mElevation ? 1 : 0
                 };
-                // Persist CR6 GT to thread home slot (direct struct write bypasses _writeCR)
-                const tnBase6 = this.cr[12] && this.cr[12].word1;
-                if (tnBase6) this.memory[tnBase6 + THREAD_CAPS_OFFSET + 6] = cr6GT >>> 0;
+                // CR6 is NOT written to caps zone — it lives in the stack frame
 
                 this.pc = 0;
                 this.output += `[BOOT] LOAD_NUC — hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} (cw=${cw},cc=${cc},lumpSize=${lumpSz}); CR14+CR6 ← simultaneous from lump header; CR14(X,lim=${lumpSz-cc-2}) CR6(L,base=0x${(base+clistStart).toString(16).toUpperCase()},lim=${cc-1}), PC=0\n`;
+                this.output += `[BOOT] SENTINEL CALL — frame@+${sp_max}=0x${sentinelFrameWord.toString(16).toUpperCase().padStart(8,'0')} (NIA=0x7FFF,sz=1,prev_STO=${sp_max}), E-GT@+${sp_max-1}=0x${oldCR6GT.toString(16).toUpperCase().padStart(8,'0')}, STO=${this.sto}\n`;
                 this.bootStep++;
                 // B:04 LOAD_NUC and B:05 COMPLETE are indivisible — both execute in one Step
                 this.mElevation = false;
@@ -863,8 +889,9 @@ class ChurchSimulator {
         this.cr[crIdx].word2 = entry.word1_limit >>> 0;
         this.cr[crIdx].word3 = entry.word2_seals >>> 0;
         this.cr[crIdx].m = this.mElevation ? 1 : 0;
-        // Persist GT to thread lump home slot (caps zone, CR0-CR11 only)
-        if (crIdx <= 11) {
+        // Persist GT to thread lump home slot (caps zone, CR0-CR11 except CR6)
+        // CR6 is the c-list register — always managed via CALL stack frames, not the caps zone
+        if (crIdx <= 11 && crIdx !== 6) {
             const threadBase = this.cr[12] && this.cr[12].word1;
             if (threadBase) {
                 this.memory[threadBase + THREAD_CAPS_OFFSET + crIdx] = gt32 >>> 0;
@@ -875,8 +902,8 @@ class ChurchSimulator {
 
     _clearCR(crIdx) {
         this.cr[crIdx] = { word0: 0, word1: 0, word2: 0, word3: 0, m: 0 };
-        // Zero the home slot too
-        if (crIdx <= 11) {
+        // Zero the home slot too (CR6 excluded — lives in stack frames)
+        if (crIdx <= 11 && crIdx !== 6) {
             const threadBase = this.cr[12] && this.cr[12].word1;
             if (threadBase) {
                 this.memory[threadBase + THREAD_CAPS_OFFSET + crIdx] = 0;
@@ -928,8 +955,8 @@ class ChurchSimulator {
         };
     }
 
-    _packFrameWord(returnPC, sz, savedSTO) {
-        const { N, Z, C, V } = this.flags;
+    _packFrameWordRaw(returnPC, sz, savedSTO, flags = {}) {
+        const { N=false, Z=false, C=false, V=false } = flags;
         const flagBits = ((N ? 1 : 0) << 3) | ((Z ? 1 : 0) << 2) | ((C ? 1 : 0) << 1) | (V ? 1 : 0);
         return (
             ((flagBits & 0xF) << 28) |
@@ -937,6 +964,10 @@ class ChurchSimulator {
             ((sz & 1) << 12) |
             (savedSTO & 0xFFF)
         ) >>> 0;
+    }
+
+    _packFrameWord(returnPC, sz, savedSTO) {
+        return this._packFrameWordRaw(returnPC, sz, savedSTO, this.flags);
     }
 
     _unpackFrameWord(word) {
@@ -1218,6 +1249,7 @@ class ChurchSimulator {
         }
 
         const savedSTO = this.sto;
+        const oldCR6GT = this.cr[6].word0 >>> 0;  // capture before callee overwrites CR6
         const frameWord = this._packFrameWord(this.pc + 1, 1, savedSTO);
         this.callStack.push({
             returnPC:   this.pc + 1,
@@ -1228,7 +1260,15 @@ class ChurchSimulator {
             sz: 1,
             frameWord,
         });
-        this.sto = (savedSTO + 2) & 0xFFF;
+        // Write 2-word CALL frame to thread lump stack zone (hardware-accurate):
+        //   STO+0 = frameWord   (returnPC, flags, sz, prev_STO)
+        //   STO−1 = old CR6 GT  (caller's E-type c-list token, restored by RETURN)
+        const callThreadBase = this.cr[12] && this.cr[12].word1;
+        if (callThreadBase) {
+            this.memory[callThreadBase + savedSTO]     = frameWord;
+            this.memory[callThreadBase + savedSTO - 1] = oldCR6GT;
+        }
+        this.sto = (savedSTO - 2) & 0xFFF;
 
         const base = nsEntry.word0_location;
         const label = this.nsLabels[check.index] || 'abstraction';
@@ -1266,9 +1306,7 @@ class ChurchSimulator {
                 word3: nsEntry.word2_seals,
                 m: this.mElevation ? 1 : 0
             };
-            // Persist CR6 GT to thread home slot (direct struct write bypasses _writeCR)
-            const tnBase6c = this.cr[12] && this.cr[12].word1;
-            if (tnBase6c) this.memory[tnBase6c + THREAD_CAPS_OFFSET + 6] = cr6GT >>> 0;
+            // CR6 lives in the CALL stack frame (written above); NOT in the caps zone
 
             cr7Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(X,cw=${cw},lim=${lumpSz-cc-2}) CR6(L,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
         } else {
@@ -1494,12 +1532,21 @@ class ChurchSimulator {
         }
         const mask = d.imm & 0xFFF;
         const frame = this.callStack.pop();
+
+        // Sentinel frame: the boot pushed this as the first "call" — returning through it means
+        // the root abstraction has finished and there is no caller to return to.
+        if (frame.sentinel) {
+            this.output += `[PP250] RETURN from initial boot call — sentinel frame (NIA=0x7FFF) → reboot\n`;
+            this._returnToBoot();
+            return { pc: this.pc, instr: d, desc: 'RETURN (sentinel/boot frame) → reboot' };
+        }
+
         if (frame.savedCRs) {
             const tnBaseRet = this.cr[12] && this.cr[12].word1;
             for (let i = 0; i < frame.savedCRs.length; i++) {
                 this.cr[i] = {...frame.savedCRs[i]};
-                // Restore GT home slot for CR0-CR11
-                if (i <= 11 && tnBaseRet) {
+                // Restore GT home slot for CR0-CR11 except CR6 (CR6 lives in stack frames)
+                if (i <= 11 && i !== 6 && tnBaseRet) {
                     this.memory[tnBaseRet + THREAD_CAPS_OFFSET + i] = this.cr[i].word0 >>> 0;
                 }
             }
@@ -2314,7 +2361,7 @@ class ChurchSimulator {
         this.faultLog = [];
         this.stepCount = 0;
         this.callStack = [];
-        this.sto = 0;
+        this.sto = 243;  // sp_max reset
 
         this.emit('programLoaded', { addr: 0, length: hwProgram.length });
         this.emit('stateChange', this.getState());
@@ -2417,7 +2464,7 @@ class ChurchSimulator {
         this.faultLog = [];
         this.stepCount = 0;
         this.callStack = [];
-        this.sto = 0;
+        this.sto = 243;  // sp_max reset
 
         this.emit('programLoaded', { addr: 0, length: hwBoot ? hwBoot.length : 0 });
         this.emit('stateChange', this.getState());

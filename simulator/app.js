@@ -1494,7 +1494,7 @@ function renderThreadMemoryLayout(nsIndex) {
     // ── Zone ②: LIFO Stack (+212 … +243) ─────────────────────────────────
     const stackWords = sim.memory.slice(slotBase + TL.STACK_START, slotBase + TL.STACK_END + 1);
     const stackUsed  = stackWords.filter(Boolean).length;
-    html += secHdr('②', 'LIFO Stack ↓', `32 words · STO starts at 212 · first CALL: words 211–210 · offset +212 … +243 · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8');
+    html += secHdr('②', 'LIFO Stack ↓', `32 words · STO=sp_max=243 (empty) · grows ↓ · sentinel frame: E-GT@+242, fw@+243 (NIA=0x7FFF) · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8');
     html += '<table class="ns-mem-table thread-zone-table"><thead><tr><th>Off</th><th>Addr</th><th>Hex</th><th>Decoded</th></tr></thead><tbody>';
     for (let i = 0; i < TL.STACK_WORDS; i++) {
         const off  = TL.STACK_START + i;
@@ -1510,7 +1510,16 @@ function renderThreadMemoryLayout(nsIndex) {
                 const lbl = sim.nsLabels[gt.index] || '';
                 decoded = `GT → <span style="color:#38bdf8;">${gt.typeName}</span> Slot=${gt.index}${lbl?' <i style="color:#93c5fd;">('+lbl+')</i>':''} [${perms}]`;
             } else {
-                decoded = `<span style="color:#9ca3af;">frame word = 0x${word.toString(16).toUpperCase().padStart(8,'0')}</span>`;
+                // Check for sentinel frameWord: NIA field (bits 27:13) = 0x7FFF
+                const niaBits = (word >>> 13) & 0x7FFF;
+                const szBit   = (word >>> 12) & 1;
+                const prevSTO =  word & 0xFFF;
+                if (niaBits === 0x7FFF) {
+                    decoded = `<span style="color:#f97316;font-weight:600;">sentinel frameWord</span> <span style="color:#9ca3af;">(NIA=0x7FFF·poison, sz=${szBit}, prev_STO=${prevSTO})</span>`;
+                } else {
+                    const returnPC = niaBits;
+                    decoded = `<span style="color:#9ca3af;">frame word: returnPC=${returnPC}, sz=${szBit}, prev_STO=${prevSTO}</span>`;
+                }
             }
         }
         const rowStyle = word ? '' : ' style="opacity:0.25;"';
