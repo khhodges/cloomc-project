@@ -196,6 +196,10 @@ function init() {
     }
 
     sim.on('stateChange', () => { updateDashboard(); updateLedStrip(); });
+    sim.on('programLoaded', () => {
+        if (currentView === 'namespace') updateNamespace();
+        if (currentView === 'abstractions') renderAbstractions();
+    });
     sim.on('fault', (f) => { appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error'); showFaultModal(f); });
     sim.on('halt', () => appendOutput('Machine halted.', 'info'));
 
@@ -590,6 +594,7 @@ let selectedCR = null;
 
 function openCRDetail(crIdx) {
     selectedCR = crIdx;
+    crDetailTab = 'content';
     const detailTab = document.getElementById('dashTab-crdetail');
     if (detailTab) {
         const cr = sim.getFormattedCR(crIdx);
