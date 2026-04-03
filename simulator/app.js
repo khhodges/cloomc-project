@@ -11129,6 +11129,25 @@ function compileDraftAssembly(source, con) {
         if (con) { con.textContent = 'Draft — no code to draft. Enter assembly code first.'; con.scrollTop = 0; }
         return;
     }
+    if (/^\s*const\s+\w+\s*=\s*[\[{]/m.test(source) ||
+        /^\s*(?:export\s+)?(?:default\s+)?class\s+\w+/m.test(source)) {
+        if (con) {
+            con.textContent =
+                'This looks like a JavaScript source file, not Church assembly.\n\n' +
+                'To write a CLOOMC++ abstraction, use the JavaScript format:\n\n' +
+                '  abstraction Name {\n' +
+                '      method MethodName() {\n' +
+                '          instruction\n' +
+                '      }\n' +
+                '  }\n\n' +
+                'Or use the English format:\n\n' +
+                '  Create an abstraction called Name\n' +
+                '  Add a method called MethodName\n' +
+                '    Write 1 to the output register';
+            con.scrollTop = 0;
+        }
+        return;
+    }
     const result = assembler.assemble(source);
     if (result.errors.length > 0) {
         const errText = result.errors.map(e => `Line ${e.line}: ${e.message}`).join('\n');
