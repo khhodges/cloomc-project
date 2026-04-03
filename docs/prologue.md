@@ -136,7 +136,7 @@ The four decades following SOSP-6 demonstrated, at escalating scale, exactly wha
 
 Every entry in this table traces back to the architectural decision made in the late 1970s: to build on the von Neumann model with patches, rather than on capability hardware where the vulnerability classes do not exist.
 
-The centralised OS did not detect and prevent any error. It generated an unbounded supply of errors that no amount of patching, monitoring, or AI-powered defence can contain.
+The centralised OS did not detect and prevent any error. It generated an unbounded supply of errors that no amount of patching, monitoring, or AI-powered defence can contain and a single point of networking administration that can freeze critical networks and vital global applications on a click. It already happened by accident, wait till it is industrialised and a WMD (Weapon of Mass Destruction) honed by a CRINK nation (China, Russia, Iran, North Korea).
 
 ---
 
