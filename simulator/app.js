@@ -15,6 +15,7 @@ let secureBootTutorial = null;
 let activeTutorial = 'sliderule';
 let cloomcCompiler = null;
 let currentView = 'dashboard';
+let previousView = null;
 let lastAssembledWords = null;
 let abstractionRegistry = null;
 let systemAbstractions = null;
@@ -278,9 +279,16 @@ function checkBootId() {
         .catch(() => {});
 }
 
+function goBack() {
+    if (previousView) switchView(previousView);
+}
+
 function switchView(viewId) {
+    if (viewId !== currentView) previousView = currentView;
     currentView = viewId;
     window.location.hash = viewId;
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) backBtn.style.display = previousView ? 'inline-flex' : 'none';
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const el = document.getElementById(viewId);
     if (el) el.classList.add('active');

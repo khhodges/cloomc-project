@@ -72,6 +72,7 @@
             <h1>Church Machine</h1>
             <nav class="controls">
                 <div class="view-buttons">
+                    <button id="backBtn" class="btn btn-view back-arrow-btn" onclick="goBack()" style="display:none;" data-tooltip="Back — Return to the previous view">&#8592;</button>
                     <button onclick="switchView('repl')" class="btn btn-view active" id="viewBtn-repl" data-tooltip="Math — HP-35 calculator, abacus, slide rule, and pure math REPL">Math</button>
                     <button onclick="switchView('editor')" class="btn btn-view" id="viewBtn-editor" data-tooltip="Code — Write, compile, and deploy Church Machine programs">Code</button>
                     <button onclick="switchView('tutorial')" class="btn btn-view" id="viewBtn-tutorial" data-tooltip="Tutorial — Guided learning paths for Church Machine concepts">Tutorial</button>

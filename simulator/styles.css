@@ -100,6 +100,21 @@ header h1 {
     border-color: var(--accent);
 }
 
+.back-arrow-btn {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.55rem;
+    margin-right: 0.35rem;
+    border-right: 1px solid var(--border);
+    border-radius: 4px;
+    opacity: 0.75;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-arrow-btn:hover {
+    opacity: 1;
+}
+
 .sim-controls {
     display: flex;
     align-items: center;
