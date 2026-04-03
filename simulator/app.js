@@ -8108,7 +8108,7 @@ function checkPermission(permKey) {
     const activeGT = getActiveGT();
     if (!activeGT) return true;
     const entry = fa.clist.find(e => e.gtId === activeGT);
-    if (!entry) return false;
+    if (!entry) return true;
     return entry.permissions[permKey] !== false;
 }
 
