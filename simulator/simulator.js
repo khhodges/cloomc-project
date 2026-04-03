@@ -125,6 +125,34 @@ class ChurchSimulator {
         return this.parseNSWord1(word1);
     }
 
+    // Lump header at word 0 of every abstraction/thread lump.
+    // Format matches hardware LUMP_HEADER_LAYOUT in hardware/layouts.py:
+    //   [31:27] magic    = 0x1F  — always; traps if CPU tries to execute it
+    //   [26:23] n_minus_6        — lumpSize = 2^(val+6); 0 → 64 words (SLOT_SIZE)
+    //   [22:10] cw               — code word count (0..8191)
+    //   [ 9: 8] typ              — object type: 00=lump, 01=data, 10=Thread, 11=Outform
+    //   [ 7: 0] cc               — c-list slot count (0..255)
+    packLumpHeader(n_minus_6, cw, cc, typ = 0) {
+        return (
+            (0x1F              << 27) |
+            ((n_minus_6 & 0xF) << 23) |
+            ((cw & 0x1FFF)     << 10) |
+            ((typ & 0x3)       <<  8) |
+            (cc & 0xFF)
+        ) >>> 0;
+    }
+
+    parseLumpHeader(word) {
+        word = word >>> 0;
+        const magic     = (word >>> 27) & 0x1F;
+        const n_minus_6 = (word >>> 23) & 0xF;
+        const cw        = (word >>> 10) & 0x1FFF;
+        const typ       = (word >>>  8) & 0x3;
+        const cc        = word & 0xFF;
+        const lumpSize  = 1 << (n_minus_6 + 6);
+        return { magic, n_minus_6, lumpSize, cw, typ, cc, valid: magic === 0x1F };
+    }
+
     writeNSEntry(idx, location, limit17, bFlag, fFlag, gBit, chainable, gtType, version, clistCount) {
         const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
         this.memory[base + 0] = location >>> 0;
@@ -287,32 +315,40 @@ class ChurchSimulator {
             clistGTs[8 + i] = this.createGT(0, d.nsIdx, d.perms, 1);
         }
 
-        // Slot 2 (Boot.Abstr) lump layout — tight bound matching hardware:
-        //   Words 0–16: code region (NUC_CODE_WORDS = 17 instructions for LED blink demo)
-        //   Words 17–28: c-list (exactly 12 GT words, indices 0–11, matching DEMO_CLIST)
-        //   Physical backing: SLOT_SIZE = 64 words (FPGA minimum block-RAM allocation)
-        //   NS entry limit17 = 28 (= code + clist - 1, tight capability bound)
-        //   → CR14.lim = 16 (exec-only, exactly the 17 code words at offsets 0–16)
-        //   → CR6.lim  = 11 (list,  exactly the 12 clist words at offsets 17–28)
+        // Slot 2 (Boot.Abstr) lump layout — hardware-accurate with lump header at word 0:
+        //   Word  0:       Lump header (magic=0x1F, n_minus_6=0→lumpSize=64, cw=17, typ=0, cc=12)
+        //   Words 1–17:   Code region  (NUC_CODE_WORDS = 17 instructions; loaded by loadProgram)
+        //   Words 18–51:  Freespace    (34 words, always zero, internal to the lump)
+        //   Words 52–63:  C-list       (12 GT words, at physical end; matching hardware DEMO_CLIST)
+        //   Physical backing: SLOT_SIZE = 64 words = lumpSize (n_minus_6=0 → 2^6 = 64)
+        //   → CR14: base=lump_start, limit=lumpSize-cc-2=50 (code region, words 1..51 via +1 fetch)
+        //   → CR6:  base=lump_start+52, limit=cc-1=11  (c-list at physical end)
         const NUC_CODE_WORDS    = 17;
         const DEMO_CLIST_SIZE   = 12;  // hardware DEMO_CLIST has exactly 12 entries (idx 0–11)
-        const bootAbstrLoc      = 2 * this.SLOT_SIZE;
+        const bootAbstrLoc      = 2 * this.SLOT_SIZE;    // = 128
+        const N_MINUS_6         = 0;                      // lumpSize = 2^(0+6) = 64 = SLOT_SIZE
+        const lumpSize          = this.SLOT_SIZE;         // = 64
         // Truncate to hardware DEMO_CLIST size — entries beyond idx 11 are simulator-only abstractions
         // not present in the boot c-list on real hardware.
         clistGTs.length         = DEMO_CLIST_SIZE;
         const bootClistCount    = DEMO_CLIST_SIZE;
-        const clistStart        = NUC_CODE_WORDS;                    // c-list immediately after code
-        const bootLumpWords     = NUC_CODE_WORDS + bootClistCount;   // = 29 (tight, no padding)
+        const clistStart        = lumpSize - bootClistCount;  // = 52 (c-list at physical end)
 
+        // Word 0: lump header — hardware reads this to simultaneously derive CR14 and CR6
+        this.memory[bootAbstrLoc] = this.packLumpHeader(N_MINUS_6, NUC_CODE_WORDS, bootClistCount, 0);
+
+        // C-list at physical end (words 52–63); words 1–17 filled by loadProgram
         for (let i = 0; i < bootClistCount; i++) {
             this.memory[bootAbstrLoc + clistStart + i] = clistGTs[i];
         }
         this.memory[bootAbstrLoc + clistStart] = 0;  // GT[0] = null (filled by SAVE epilogue)
 
-        const bootNSBase = this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS;
-        const bootW1 = this.packNSWord1(bootLumpWords - 1, 0, 0, 0, 0, 1, bootClistCount);
+        // NS entry: limit17 = lumpSize - cc - 1 = 51  (valid PC range 0..50 via +1 fetch offset)
+        const codeRegionLimit   = lumpSize - bootClistCount - 1;  // = 51
+        const bootNSBase        = this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS;
+        const bootW1            = this.packNSWord1(codeRegionLimit, 0, 0, 0, 0, 1, bootClistCount);
         this.memory[bootNSBase + 1] = bootW1;
-        this.memory[bootNSBase + 2] = this.makeVersionSeals(0, bootAbstrLoc, bootLumpWords - 1);
+        this.memory[bootNSBase + 2] = this.makeVersionSeals(0, bootAbstrLoc, codeRegionLimit);
     }
 
     _bootStep() {
@@ -389,16 +425,25 @@ class ChurchSimulator {
                     return false;
                 }
                 const base = abstrEntry.word0_location;
-                const allocSize = abstrParsed.limit + 1;
-                const clistCount = abstrParsed.clistCount;
-                if (clistCount === 0) {
-                    this.fault('BOOT', 'LOAD_NUC: Boot.Abstr has clistCount=0 — no C-List');
+                // Read lump header at word 0 — hardware fetches this to simultaneously derive CR14+CR6
+                const hdrWord = this.memory[base] >>> 0;
+                const hdr = this.parseLumpHeader(hdrWord);
+                if (!hdr.valid) {
+                    this.fault('BOOT', `LOAD_NUC: lump header magic=0x${hdr.magic.toString(16)} (expected 0x1F)`);
                     return false;
                 }
-                const clistStart = allocSize - clistCount;
+                const cw        = hdr.cw;
+                const cc        = hdr.cc;
+                const lumpSz    = hdr.lumpSize;
+                const clistStart = lumpSz - cc;   // c-list at physical end of slot
+                if (cc === 0) {
+                    this.fault('BOOT', 'LOAD_NUC: lump header cc=0 — no C-List');
+                    return false;
+                }
 
+                // CR14 (code, X) and CR6 (c-list, L) set simultaneously from single header read
                 const cr14GT = this.createGT(0, 2, {R:1,W:0,X:1,L:0,S:0,E:0}, 1);
-                const cr14Word1 = this.packNSWord1(clistStart - 1, 0, 0, 0, 0, 1, 0);
+                const cr14Word1 = this.packNSWord1(lumpSz - cc - 2, 0, 0, 0, 0, 1, 0);
                 this.cr[14] = {
                     word0: cr14GT,
                     word1: base,
@@ -408,7 +453,7 @@ class ChurchSimulator {
                 };
 
                 const cr6GT = this.createGT(0, 2, {R:0,W:0,X:0,L:1,S:0,E:0}, 1);
-                const cr6Word1 = this.packNSWord1(clistCount - 1, 0, 0, 0, 0, 1, 0);
+                const cr6Word1 = this.packNSWord1(cc - 1, 0, 0, 0, 0, 1, 0);
                 this.cr[6] = {
                     word0: cr6GT,
                     word1: (base + clistStart) >>> 0,
@@ -418,7 +463,7 @@ class ChurchSimulator {
                 };
 
                 this.pc = 0;
-                this.output += `[BOOT] LOAD_NUC — CALL into Boot.Abstr (Slot 2); CR14(code,X,lim=${clistStart-1}), CR6(clist,L,base=0x${(base+clistStart).toString(16).toUpperCase()},lim=${clistCount-1}), PC=0\n`;
+                this.output += `[BOOT] LOAD_NUC — hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} (cw=${cw},cc=${cc},lumpSize=${lumpSz}); CR14+CR6 ← simultaneous from lump header; CR14(X,lim=${lumpSz-cc-2}) CR6(L,base=0x${(base+clistStart).toString(16).toUpperCase()},lim=${cc-1}), PC=0\n`;
                 this.bootStep++;
                 this.ledBits = 0b011111;
                 break;
@@ -936,7 +981,8 @@ class ChurchSimulator {
         if (this.pc >= w1.limit) {
             return { ok: false, fault: 'BOUNDS', message: `PC=${this.pc} exceeds CR14 code limit (${w1.limit})` };
         }
-        const fetchAddr = entry.word0_location + this.pc;
+        // +1: skip lump header at word 0; code region starts at word0_location + 1
+        const fetchAddr = entry.word0_location + 1 + this.pc;
         if (fetchAddr >= this.memory.length) {
             return { ok: false, fault: 'BOUNDS', message: `fetch address 0x${fetchAddr.toString(16)} out of memory` };
         }
@@ -1165,18 +1211,25 @@ class ChurchSimulator {
         });
         this.sto = (savedSTO + 2) & 0xFFF;
 
-        const clistCount = word1.clistCount;
-        const limit = word1.limit;
         const base = nsEntry.word0_location;
         const label = this.nsLabels[check.index] || 'abstraction';
         let cr7Desc = '';
 
-        if (clistCount > 0) {
-            const allocSize = limit + 1;
-            const clistStart = allocSize - clistCount;
+        // Read lump header at word 0 — hardware reads this to simultaneously derive CR14+CR6.
+        // Layout: magic(5) | n_minus_6(4) | cw(13) | typ(2) | cc(8)
+        const hdrWord = this.memory[base] >>> 0;
+        const hdr = this.parseLumpHeader(hdrWord);
+        const hasLumpHeader = hdr.valid && hdr.cc > 0;
 
+        if (hasLumpHeader) {
+            const cw       = hdr.cw;
+            const cc       = hdr.cc;
+            const lumpSz   = hdr.lumpSize;
+            const clistStart = lumpSz - cc;  // c-list at physical end
+
+            // CR14 (code, X) and CR6 (c-list, L) set simultaneously from single lump header read
             const cr14GT = this.createGT(srcParsed.gt_seq, check.index, {R:1,W:0,X:1,L:0,S:0,E:0}, 1);
-            const cr14Word1 = this.packNSWord1(clistStart - 1, 0, 0, 0, 0, 1, 0);
+            const cr14Word1 = this.packNSWord1(lumpSz - cc - 2, 0, 0, 0, 0, 1, 0);
             this.cr[14] = {
                 word0: cr14GT,
                 word1: base,
@@ -1186,7 +1239,7 @@ class ChurchSimulator {
             };
 
             const cr6GT = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:1,S:0,E:0}, 1);
-            const cr6Word1 = this.packNSWord1(clistCount - 1, 0, 0, 0, 0, 1, 0);
+            const cr6Word1 = this.packNSWord1(cc - 1, 0, 0, 0, 0, 1, 0);
             this.cr[6] = {
                 word0: cr6GT,
                 word1: (base + clistStart) >>> 0,
@@ -1195,7 +1248,7 @@ class ChurchSimulator {
                 m: this.mElevation ? 1 : 0
             };
 
-            cr7Desc = `, CR14(code,X,lim=${clistStart-1}), CR6(clist,L,lim=${clistCount-1})`;
+            cr7Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(X,cw=${cw},lim=${lumpSz-cc-2}) CR6(L,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
         } else {
             this._writeCR(6, sourceGT, nsEntry);
 
@@ -1219,7 +1272,7 @@ class ChurchSimulator {
             }
         }
 
-        const desc = `CALL CR${d.crDst} -> ${label}: clistCount=${clistCount}${cr7Desc}`;
+        const desc = `CALL CR${d.crDst} -> ${label}${cr7Desc}`;
         this.output += desc + '\n';
         const prevPC = this.pc;
         this.pc = 0;
@@ -2085,9 +2138,12 @@ class ChurchSimulator {
         const abstrBase = this.NS_TABLE_BASE + abstrSlot * this.NS_ENTRY_WORDS;
         const codeLoc = this.memory[abstrBase] || (abstrSlot * this.SLOT_SIZE);
         const baseAddr = this.bootComplete ? codeLoc : (startAddr || 0);
+        // +1: lump header occupies word 0 of the lump; code starts at word 1.
+        // _fetchInstruction also adds +1 so PC=0 maps to word 1.
+        const codeStart = this.bootComplete ? baseAddr + 1 : baseAddr;
         for (let i = 0; i < words.length; i++) {
-            if (baseAddr + i < this.memory.length) {
-                this.memory[baseAddr + i] = words[i] >>> 0;
+            if (codeStart + i < this.memory.length) {
+                this.memory[codeStart + i] = words[i] >>> 0;
             }
         }
         this.pc = 0;
@@ -2125,21 +2181,24 @@ class ChurchSimulator {
         const abstrSlot = 2;
         const abstrNSBase = this.NS_TABLE_BASE + abstrSlot * this.NS_ENTRY_WORDS;
         const abstrLoc = this.memory[abstrNSBase] || (abstrSlot * this.SLOT_SIZE);
-        const abstrW1 = this.memory[abstrNSBase + 1];
-        const abstrParsed = this.parseNSWord1(abstrW1);
-        const abstrAllocSize = abstrParsed.limit + 1;
-        const abstrClistCount = abstrParsed.clistCount || hwClist.length;
-        const abstrClistStart = abstrAllocSize - abstrClistCount;
-        const safeClistCopy = Math.min(hwClist.length, abstrClistCount);
 
-        for (let i = 0; i < safeClistCopy; i++) {
-            this.memory[abstrLoc + abstrClistStart + i] = hwClist[i] >>> 0;
-        }
-
+        // Write hardware program first (hwProgram[0] = lump header, hwProgram[1+] = code)
         for (let i = 0; i < hwProgram.length; i++) {
             if (hwProgram[i] !== 0) {
                 this.memory[abstrLoc + i] = hwProgram[i] >>> 0;
             }
+        }
+
+        // Derive c-list placement from lump header at word 0 (hardware-accurate)
+        const abstrHdrWord  = (abstrLoc < this.memory.length) ? (this.memory[abstrLoc] >>> 0) : 0;
+        const abstrHdr      = this.parseLumpHeader(abstrHdrWord);
+        const abstrLumpSize = abstrHdr.valid ? abstrHdr.lumpSize : (this.SLOT_SIZE || 64);
+        const abstrClistCount = abstrHdr.valid ? abstrHdr.cc : hwClist.length;
+        const abstrClistStart = abstrLumpSize - abstrClistCount;  // c-list at physical end
+        const safeClistCopy = Math.min(hwClist.length, abstrClistCount);
+
+        for (let i = 0; i < safeClistCopy; i++) {
+            this.memory[abstrLoc + abstrClistStart + i] = hwClist[i] >>> 0;
         }
 
         const clistChildren = [];

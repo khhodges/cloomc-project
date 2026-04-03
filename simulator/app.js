@@ -644,26 +644,38 @@ function renderCListEntryDetail(nsIdx, entry) {
         h += '<div class="clist-detail-title" style="margin-top:0.4rem;">Namespace Table Entries</div>';
         h += renderMemoryDump(loc, lim.limit + 1, nsIdx);
     } else {
-        const rawClistCount = lim.clistCount || 0;
-        const allocSize = lim.limit + 1;
-        const safeClistCount = Math.max(0, Math.min(rawClistCount, allocSize));
-        if (safeClistCount > 0) {
-            const codeEnd = allocSize - safeClistCount;
-            // Find the last non-zero word in the code region so trailing zeros
-            // are shown as a separate Freespace section, not inside the code table.
+        // ── Read lump header at word 0 to derive layout (hardware-accurate) ─────────
+        const hdrRaw  = (loc < sim.memory.length) ? (sim.memory[loc] >>> 0) : 0;
+        const hdr     = sim.parseLumpHeader(hdrRaw);
+        if (hdr.valid && hdr.cc > 0) {
+            const cw        = hdr.cw;          // declared code word count
+            const cc        = hdr.cc;          // c-list slot count
+            const lumpSize  = hdr.lumpSize;    // physical slot size (2^(n_minus_6+6))
+            const clistStart = lumpSize - cc;  // c-list at physical end
+            const hdrHex    = '0x' + (hdrRaw >>> 0).toString(16).toUpperCase().padStart(8,'0');
+            const typNames  = ['lump','data','Thread','Outform'];
+            // ── Lump Header ──────────────────────────────────────────────────
+            h += `<div class="clist-detail-title" style="margin-top:0.4rem;color:rgba(156,220,254,0.6);">Header`
+               + ` <span style="font-size:0.72rem;color:#3f3f46;">word 0 \u00b7 ${hdrHex}`
+               + ` \u00b7 magic=0x${hdr.magic.toString(16).toUpperCase()}`
+               + ` \u00b7 n\u22126=${hdr.n_minus_6}\u2192${lumpSize}w`
+               + ` \u00b7 cw=${cw} \u00b7 typ=${typNames[hdr.typ]||hdr.typ} \u00b7 cc=${cc}`
+               + `</span></div>`;
+            // ── CLOOMC Code (words 1..cw at loc+1..loc+cw) ──────────────────
+            // Scan for the last non-zero instruction to separate actual code from freespace.
             let actualCodeEnd = 0;
-            for (let w = 0; w < Math.min(codeEnd, wordCount); w++) {
-                if ((loc + w) < sim.memory.length && sim.memory[loc + w]) actualCodeEnd = w + 1;
+            for (let w = 0; w < cw; w++) {
+                const codeAddr = loc + 1 + w;
+                if (codeAddr < sim.memory.length && sim.memory[codeAddr]) actualCodeEnd = w + 1;
             }
-            // ── CLOOMC Code ──────────────────────────────────────────────────
-            h += '<div class="clist-detail-title" style="margin-top:0.4rem;">CLOOMC Code';
+            h += '<div class="clist-detail-title" style="margin-top:0.3rem;">CLOOMC Code';
             if (actualCodeEnd === 0) h += ' <span style="color:#555;font-size:0.72rem;">(empty \u2014 program not loaded)</span>';
             h += '</div>';
             if (actualCodeEnd > 0) {
                 const asm = new ChurchAssembler();
                 let codeHtml = '<table class="cr-table code-view-table"><thead><tr><th>Addr</th><th>Hex</th><th>Decode</th></tr></thead><tbody>';
                 for (let w = 0; w < actualCodeEnd; w++) {
-                    const addr = loc + w;
+                    const addr = loc + 1 + w;
                     if (addr >= sim.memory.length) break;
                     const word = sim.memory[addr] || 0;
                     const decoded = asm.disassemble(word);
@@ -676,23 +688,25 @@ function renderCListEntryDetail(nsIdx, entry) {
                 codeHtml += '</tbody></table>';
                 h += codeHtml;
             }
-            // ── Freespace (empty words between code end and c-list start) ────
-            const freeWords = codeEnd - actualCodeEnd;
-            if (freeWords > 0) {
-                const freeBase = loc + actualCodeEnd;
-                const freeEnd  = loc + codeEnd - 1;
+            // ── Freespace (words actualCodeEnd+1 .. clistStart-1 relative to word 1) ──
+            // Total freespace = (cw - actualCodeEnd) [trailing zeros in code region]
+            //                 + (clistStart - 1 - cw) [gap between code end and c-list]
+            const totalFreeWords = clistStart - 1 - actualCodeEnd;  // words between last code and c-list
+            if (totalFreeWords > 0) {
+                const freeBase = loc + 1 + actualCodeEnd;
+                const freeEnd  = loc + clistStart - 1;
                 h += `<div class="clist-detail-title" style="margin-top:0.3rem;color:#52525b;">Freespace`
                    + ` <span style="font-size:0.72rem;color:#3f3f46;">`
-                   + `offsets +${actualCodeEnd}\u2013+${codeEnd - 1}`
-                   + ` \u00b7 ${freeWords} unused words`
+                   + `words +${1 + actualCodeEnd}\u2013+${clistStart - 1}`
+                   + ` \u00b7 ${totalFreeWords} unused words`
                    + ` \u00b7 0x${freeBase.toString(16).toUpperCase().padStart(4,'0')}\u20130x${freeEnd.toString(16).toUpperCase().padStart(4,'0')}`
                    + `</span></div>`;
             }
-            // ── C-List ───────────────────────────────────────────────────────
-            h += `<div class="clist-detail-title" style="margin-top:0.4rem;">C-List (${safeClistCount} GT entries)</div>`;
+            // ── C-List (words lumpSize-cc .. lumpSize-1 at physical end) ─────
+            h += `<div class="clist-detail-title" style="margin-top:0.4rem;">C-List (${cc} GT entries)</div>`;
             let gtHtml = '<table class="cr-table code-view-table"><thead><tr><th>#</th><th>Addr</th><th>Hex</th><th>GT Decoded</th></tr></thead><tbody>';
-            for (let w = 0; w < safeClistCount; w++) {
-                const addr = loc + codeEnd + w;
+            for (let w = 0; w < cc; w++) {
+                const addr = loc + clistStart + w;
                 if (addr >= sim.memory.length) break;
                 const word = sim.memory[addr] || 0;
                 gtHtml += _renderGTRow(w, addr, word);
@@ -1252,11 +1266,15 @@ function renderBootNSImage() {
     // ── Section 3: Boot.Abstr C-list ──────────────────────────────────────
     const slot2Entry = sim.readNSEntry(2);
     if (slot2Entry) {
+        // Derive layout from lump header at word 0 (hardware-accurate)
+        const s2loc      = slot2Entry.word0_location;
+        const s2hdrWord  = (s2loc < sim.memory.length) ? (sim.memory[s2loc] >>> 0) : 0;
+        const s2hdr      = sim.parseLumpHeader(s2hdrWord);
         const s2lim      = sim.parseNSWord1(slot2Entry.word1_limit);
-        const clistCount = s2lim.clistCount;
-        const allocSize  = s2lim.limit + 1;
-        const clistStart = allocSize - clistCount;
-        const clistBase  = slot2Entry.word0_location + clistStart;
+        const clistCount = s2hdr.valid ? s2hdr.cc : (s2lim.clistCount || 0);
+        const lumpSzB    = s2hdr.valid ? s2hdr.lumpSize : (sim.SLOT_SIZE || 64);
+        const clistStart = lumpSzB - clistCount;  // c-list at physical end
+        const clistBase  = s2loc + clistStart;
         html += `<div class="boot-section-label">③ Boot.Abstr C-list &nbsp;<span class="boot-section-note">at 0x${clistBase.toString(16).toUpperCase().padStart(4,'0')} · ${clistCount} capability entries · one GT per NS slot</span></div>`;
         html += '<table class="ns-mem-table boot-clist-table"><thead><tr>';
         html += '<th>#</th><th>Addr</th><th>GT Word (32-bit)</th><th>Slot</th><th>Label</th><th>Perms</th><th>Type</th>';
@@ -1447,24 +1465,25 @@ function renderMemoryDump(location, limit, nsIndex) {
     html += '</tr></thead><tbody>';
 
     {
-        const nsEntry = sim.readNSEntry(nsIndex);
-        const parsedW1 = nsEntry ? sim.parseNSWord1(nsEntry.word1_limit) : null;
-        const rawClistCount = parsedW1 ? parsedW1.clistCount : 0;
-        const allocSize = limit;
-        const safeClistCount = Math.max(0, Math.min(rawClistCount, allocSize));
-        if (safeClistCount > 0) {
-            const codeEnd = allocSize - safeClistCount;
-            const codeShow = Math.min(codeEnd, wordCount);
-            // ── Lump Header (word 0 of the physical slot) ─────────────────────
-            const hdrWord    = (location < sim.memory.length) ? (sim.memory[location] || 0) : 0;
+        // ── Read lump header at word 0 to derive layout (hardware-accurate) ──────
+        const hdrWord    = (location < sim.memory.length) ? (sim.memory[location] >>> 0) : 0;
+        const hdr        = sim.parseLumpHeader(hdrWord);
+        if (hdr.valid && hdr.cc > 0) {
+            const cw         = hdr.cw;
+            const cc         = hdr.cc;
+            const lumpSize   = hdr.lumpSize;
+            const clistStart = lumpSize - cc;  // c-list at physical end
             const hdrHex     = '0x' + (hdrWord >>> 0).toString(16).toUpperCase().padStart(8, '0');
             const hdrAddrHex = '0x' + location.toString(16).toUpperCase().padStart(4, '0');
-            const typeNames  = ['NULL','Inform','Outform','Abstract'];
-            const lumpType   = parsedW1 ? (typeNames[parsedW1.gtType] || '?') : '?';
+            const typNames   = ['lump','data','Thread','Outform'];
+            const nsEntry    = sim.readNSEntry(nsIndex);
             const lumpVer    = nsEntry ? ((nsEntry.word2_seals >>> 25) & 0x7F) : 0;
             const lumpSeal   = nsEntry ? (nsEntry.word2_seals & 0xFFFF) : 0;
-            const lumpNote   = `typ=${lumpType} \u00b7 clistCount=${safeClistCount} \u00b7 limit17=${allocSize - 1}`
-                             + ` \u00b7 codeWords=${codeEnd} \u00b7 ver=${lumpVer} \u00b7 CRC=0x${lumpSeal.toString(16).toUpperCase().padStart(4,'0')}`;
+            const lumpNote   = `magic=0x${hdr.magic.toString(16).toUpperCase()}`
+                             + ` \u00b7 n\u22126=${hdr.n_minus_6}\u2192${lumpSize}w`
+                             + ` \u00b7 cw=${cw} \u00b7 typ=${typNames[hdr.typ]||hdr.typ} \u00b7 cc=${cc}`
+                             + ` \u00b7 ver=${lumpVer} \u00b7 CRC=0x${lumpSeal.toString(16).toUpperCase().padStart(4,'0')}`;
+            // ── Lump Header row ────────────────────────────────────────────────
             html = `<div style="color:rgba(156,220,254,0.5);font-size:0.75rem;padding:0.15rem 0.5rem;margin-top:0.2rem;">Header`
                  + ` <span style="color:#3f3f46;font-size:0.72rem;">word 0 of lump \u00b7 ${lumpNote}</span></div>`;
             html += '<table class="ns-mem-table"><thead><tr>'
@@ -1477,44 +1496,37 @@ function renderMemoryDump(location, limit, nsIndex) {
                   + `<td style="color:#60a5fa;font-size:0.72rem;">${lumpNote}</td>`
                   + `</tr>`;
             html += '</tbody></table>';
+            // ── CLOOMC Code (words 1..cw, skip header at word 0) ──────────────
             html += '<div style="color:rgba(156,220,254,0.7);font-size:0.75rem;padding:0.15rem 0.5rem;margin-top:0.2rem;">CLOOMC Code</div>';
             html += '<table class="ns-mem-table"><thead><tr><th>Offset</th><th>Address</th><th>Hex</th><th>Decoded</th></tr></thead><tbody>';
             var asm = new ChurchAssembler();
-            for (let i = 0; i < codeShow; i++) {
-                const addr = location + i;
+            for (let i = 0; i < cw; i++) {
+                const addr = location + 1 + i;
+                if (addr >= sim.memory.length) break;
                 const word = sim.memory[addr] || 0;
                 const hex = '0x' + (word >>> 0).toString(16).toUpperCase().padStart(8, '0');
                 let decoded = word === 0 ? '<span style="color:#666;">0 (empty)</span>' : asm.disassemble(word);
                 const addrHex = '0x' + addr.toString(16).toUpperCase().padStart(4, '0');
-                html += `<tr><td style="color:#666;">+${i}</td><td>${addrHex}</td><td style="color:rgba(206,145,120,0.6);">${hex}</td><td>${decoded}</td></tr>`;
+                html += `<tr><td style="color:#666;">+${1 + i}</td><td>${addrHex}</td><td style="color:rgba(206,145,120,0.6);">${hex}</td><td>${decoded}</td></tr>`;
             }
             html += '</tbody></table>';
-            html += '<div style="color:rgba(200,155,60,0.7);font-size:0.75rem;padding:0.15rem 0.5rem;margin-top:0.3rem;">C-List (' + safeClistCount + ' GT entries)</div>';
-            html += '<table class="ns-mem-table"><thead><tr><th>#</th><th>Address</th><th>Hex</th><th>GT Decoded</th></tr></thead><tbody>';
-            const clistShow = Math.min(safeClistCount, wordCount);
-            for (let i = 0; i < clistShow; i++) {
-                const addr = location + codeEnd + i;
-                const word = sim.memory[addr] || 0;
-                html += _renderGTRow(i, addr, word);
-            }
-            html += '</tbody></table>';
-            // ── Physical Freespace: FPGA block-RAM padding beyond logical lump ──
-            const physSlot = sim.SLOT_SIZE || 64;
-            const physFree = physSlot - allocSize;
-            if (physFree > 0) {
-                const freeBase = location + allocSize;
-                const freeEnd  = location + physSlot - 1;
+            // ── Freespace (words cw+1 .. clistStart-1, between code end and c-list) ──
+            const freeStart = 1 + cw;
+            const freeCount = clistStart - freeStart;
+            if (freeCount > 0) {
+                const freeBaseAbs = location + freeStart;
+                const freeEndAbs  = location + clistStart - 1;
                 html += `<div style="color:rgba(113,113,122,0.7);font-size:0.75rem;padding:0.15rem 0.5rem;margin-top:0.3rem;">Freespace`
                       + ` <span style="color:#3f3f46;font-size:0.72rem;">`
-                      + `offsets +${allocSize}\u2013+${physSlot - 1}`
-                      + ` \u00b7 ${physFree} words`
-                      + ` \u00b7 0x${freeBase.toString(16).toUpperCase().padStart(4,'0')}\u20130x${freeEnd.toString(16).toUpperCase().padStart(4,'0')}`
-                      + ` \u00b7 FPGA block-RAM padding (SLOT_SIZE=${physSlot})</span></div>`;
+                      + `words +${freeStart}\u2013+${clistStart - 1}`
+                      + ` \u00b7 ${freeCount} words`
+                      + ` \u00b7 0x${freeBaseAbs.toString(16).toUpperCase().padStart(4,'0')}\u20130x${freeEndAbs.toString(16).toUpperCase().padStart(4,'0')}`
+                      + `</span></div>`;
                 html += '<table class="ns-mem-table"><thead><tr>'
                       + '<th>Offset</th><th>Address</th><th>Hex</th><th>Note</th>'
                       + '</tr></thead><tbody>';
-                for (let i = 0; i < physFree; i++) {
-                    const off     = allocSize + i;
+                for (let i = 0; i < freeCount; i++) {
+                    const off     = freeStart + i;
                     const addr    = location + off;
                     const addrHex = '0x' + addr.toString(16).toUpperCase().padStart(4, '0');
                     const word    = (addr < sim.memory.length) ? (sim.memory[addr] || 0) : 0;
@@ -1523,11 +1535,21 @@ function renderMemoryDump(location, limit, nsIndex) {
                           + `<td style="color:#3f3f46;">+${off}</td>`
                           + `<td style="font-family:monospace;color:#3f3f46;">${addrHex}</td>`
                           + `<td style="font-family:monospace;color:#3f3f46;">${hexW}</td>`
-                          + `<td style="color:#3f3f46;font-style:italic;font-size:0.72rem;">FPGA pad \u2014 unused</td>`
+                          + `<td style="color:#3f3f46;font-style:italic;font-size:0.72rem;">freespace</td>`
                           + `</tr>`;
                 }
                 html += '</tbody></table>';
             }
+            // ── C-List (words clistStart..lumpSize-1, at physical end) ─────────
+            html += '<div style="color:rgba(200,155,60,0.7);font-size:0.75rem;padding:0.15rem 0.5rem;margin-top:0.3rem;">C-List (' + cc + ' GT entries)</div>';
+            html += '<table class="ns-mem-table"><thead><tr><th>#</th><th>Address</th><th>Hex</th><th>GT Decoded</th></tr></thead><tbody>';
+            for (let i = 0; i < cc; i++) {
+                const addr = location + clistStart + i;
+                if (addr >= sim.memory.length) break;
+                const word = sim.memory[addr] || 0;
+                html += _renderGTRow(i, addr, word);
+            }
+            html += '</tbody></table>';
             return html;
         } else {
             var asm = new ChurchAssembler();
