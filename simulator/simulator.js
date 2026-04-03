@@ -289,16 +289,20 @@ class ChurchSimulator {
 
         // Slot 2 (Boot.Abstr) lump layout — tight bound matching hardware:
         //   Words 0–16: code region (NUC_CODE_WORDS = 17 instructions for LED blink demo)
-        //   Words 17–28: c-list (bootClistCount = 12 GT words, indices 0–11)
+        //   Words 17–28: c-list (exactly 12 GT words, indices 0–11, matching DEMO_CLIST)
         //   Physical backing: SLOT_SIZE = 64 words (FPGA minimum block-RAM allocation)
         //   NS entry limit17 = 28 (= code + clist - 1, tight capability bound)
         //   → CR14.lim = 16 (exec-only, exactly the 17 code words at offsets 0–16)
         //   → CR6.lim  = 11 (list,  exactly the 12 clist words at offsets 17–28)
-        const NUC_CODE_WORDS = 17;
-        const bootAbstrLoc   = 2 * this.SLOT_SIZE;
-        const bootClistCount = clistGTs.length;
-        const clistStart     = NUC_CODE_WORDS;                       // c-list immediately after code
-        const bootLumpWords  = NUC_CODE_WORDS + bootClistCount;      // 29 (tight, no padding)
+        const NUC_CODE_WORDS    = 17;
+        const DEMO_CLIST_SIZE   = 12;  // hardware DEMO_CLIST has exactly 12 entries (idx 0–11)
+        const bootAbstrLoc      = 2 * this.SLOT_SIZE;
+        // Truncate to hardware DEMO_CLIST size — entries beyond idx 11 are simulator-only abstractions
+        // not present in the boot c-list on real hardware.
+        clistGTs.length         = DEMO_CLIST_SIZE;
+        const bootClistCount    = DEMO_CLIST_SIZE;
+        const clistStart        = NUC_CODE_WORDS;                    // c-list immediately after code
+        const bootLumpWords     = NUC_CODE_WORDS + bootClistCount;   // = 29 (tight, no padding)
 
         for (let i = 0; i < bootClistCount; i++) {
             this.memory[bootAbstrLoc + clistStart + i] = clistGTs[i];
