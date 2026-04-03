@@ -5511,7 +5511,7 @@ HALT
 ; HOW TO WATCH THIS IN THE SIMULATOR:
 ; 1. Boot the machine (click Boot, or Step x6).
 ; 2. Assemble this code, then click Step.
-; 3. Switch to Dashboard — watch the Ti60 F225
+; 3. Switch to Ti60 255 IDE — watch the Ti60 F225
 ;    LED strip: LED0 (green) toggles with each
 ;    DWRITE, exactly as on the physical board.
 ;
