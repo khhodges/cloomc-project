@@ -556,8 +556,63 @@
                     <div class="tools-panel-icon">♻</div>
                     <div>
                         <div class="tools-panel-title">Garbage Collection</div>
-                        <div class="tools-panel-sub">PP250 four-phase deterministic GC — scan, identify, clear, flip</div>
+                        <div class="tools-panel-sub">PP250 four-phase deterministic GC</div>
                     </div>
+                    <button class="tools-btn tools-btn-primary tgc-run-btn" id="tgcRunBtn" onclick="runGCFromTools()">
+                        ♻ Run GC
+                    </button>
+                </div>
+
+                <div class="tgc-phase-cards" id="tgcPhaseCards">
+
+                    <div class="tgc-card" id="tgcCard1" data-state="idle">
+                        <div class="tgc-card-hdr">
+                            <span class="tgc-card-num">1</span>
+                            <div class="tgc-card-title-col">
+                                <span class="tgc-card-name">Mark</span>
+                                <span class="tgc-card-static-desc">Set G=garbage on every valid NS entry — pessimistic assumption</span>
+                            </div>
+                            <span class="tgc-card-badge" id="tgcBadge1"></span>
+                        </div>
+                        <div class="tgc-card-report" id="tgcReport1"></div>
+                    </div>
+
+                    <div class="tgc-card" id="tgcCard2" data-state="idle">
+                        <div class="tgc-card-hdr">
+                            <span class="tgc-card-num">2</span>
+                            <div class="tgc-card-title-col">
+                                <span class="tgc-card-name">Scan</span>
+                                <span class="tgc-card-static-desc">Walk all CR roots + call stack; mark reachable entries live</span>
+                            </div>
+                            <span class="tgc-card-badge" id="tgcBadge2"></span>
+                        </div>
+                        <div class="tgc-card-report" id="tgcReport2"></div>
+                    </div>
+
+                    <div class="tgc-card" id="tgcCard3" data-state="idle">
+                        <div class="tgc-card-hdr">
+                            <span class="tgc-card-num">3</span>
+                            <div class="tgc-card-title-col">
+                                <span class="tgc-card-name">Sweep</span>
+                                <span class="tgc-card-static-desc">Find entries still flagged garbage; build reclamation list</span>
+                            </div>
+                            <span class="tgc-card-badge" id="tgcBadge3"></span>
+                        </div>
+                        <div class="tgc-card-report" id="tgcReport3"></div>
+                    </div>
+
+                    <div class="tgc-card" id="tgcCard4" data-state="idle">
+                        <div class="tgc-card-hdr">
+                            <span class="tgc-card-num">4</span>
+                            <div class="tgc-card-title-col">
+                                <span class="tgc-card-name">Clear</span>
+                                <span class="tgc-card-static-desc">Zero NS entries + object words; bump version; flip GC polarity</span>
+                            </div>
+                            <span class="tgc-card-badge" id="tgcBadge4"></span>
+                        </div>
+                        <div class="tgc-card-report" id="tgcReport4"></div>
+                    </div>
+
                 </div>
 
                 <div class="tools-stat-grid" id="toolsGCStats">
@@ -579,19 +634,7 @@
                     </div>
                 </div>
 
-                <div class="tools-phases">
-                    <div class="tools-phase"><span class="tools-phase-num">1</span><span class="tools-phase-name">Scan</span><span class="tools-phase-desc">Walk all roots from CR15 and mark reachable NS entries</span></div>
-                    <div class="tools-phase"><span class="tools-phase-num">2</span><span class="tools-phase-name">Identify</span><span class="tools-phase-desc">Locate unreachable entries; build the free-slot list</span></div>
-                    <div class="tools-phase"><span class="tools-phase-num">3</span><span class="tools-phase-name">Clear</span><span class="tools-phase-desc">Zero NS words for every unreachable entry</span></div>
-                    <div class="tools-phase"><span class="tools-phase-num">4</span><span class="tools-phase-name">Flip</span><span class="tools-phase-desc">Toggle the live bit — survivors are now marked valid</span></div>
-                </div>
-
-                <div class="tools-action-row">
-                    <button class="tools-btn tools-btn-primary" onclick="runGCFromTools()">
-                        ♻ Run GC Now
-                    </button>
-                    <div class="tools-last-run" id="toolsGCLastRun"></div>
-                </div>
+                <div class="tools-last-run" id="toolsGCLastRun"></div>
             </div>
 
             <div class="tools-panel">

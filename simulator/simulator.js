@@ -805,7 +805,9 @@ class ChurchSimulator {
         log.push(`GC polarity: G=${garbageValue} means GARBAGE, G=${liveValue} means LIVE`);
         log.push('');
 
-        log.push('--- Phase 1: MARK — set G=garbage on all valid entries ---');
+        // ── Phase 1: MARK ────────────────────────────────────────────────────
+        const p1Lines = [];
+        p1Lines.push(`Polarity: G=${garbageValue} = garbage, G=${liveValue} = live`);
         const priorCount = this.nsCount;
         let markCount = 0;
         for (let i = 0; i < priorCount; i++) {
@@ -813,10 +815,14 @@ class ChurchSimulator {
             this.markGarbage(i);
             markCount++;
         }
-        log.push(`Marked ${markCount} entries as garbage suspects (G=${garbageValue}).`);
+        p1Lines.push(`Marked ${markCount} valid NS entries as garbage suspects`);
+        p1Lines.push(`(Pessimistic assumption — every entry is suspect until proven live)`);
+        log.push('--- Phase 1: MARK ---');
+        log.push(...p1Lines);
         log.push('');
 
-        log.push('--- Phase 2: SCAN — walk CRs + call stack, confirm live entries ---');
+        // ── Phase 2: SCAN ────────────────────────────────────────────────────
+        const p2Lines = [];
         const liveSet = new Set();
         for (let cr = 0; cr < 16; cr++) {
             const gt32 = this.cr[cr].word0;
@@ -827,6 +833,7 @@ class ChurchSimulator {
                 this.markLive(idx);
                 liveSet.add(idx);
                 const label = this.nsLabels[idx] || '(unnamed)';
+                p2Lines.push(`CR${cr} → NS[${idx}] "${label}" LIVE`);
                 log.push(`  CR${cr} -> NS[${idx}] "${label}" — LIVE (G=${liveValue})`);
             }
         }
@@ -842,6 +849,7 @@ class ChurchSimulator {
                             this.markLive(idx);
                             liveSet.add(idx);
                             const label = this.nsLabels[idx] || '(unnamed)';
+                            p2Lines.push(`Stack ${crKey} → NS[${idx}] "${label}" LIVE`);
                             log.push(`  CallStack ${crKey} -> NS[${idx}] "${label}" — LIVE (G=${liveValue})`);
                         }
                     }
@@ -850,6 +858,7 @@ class ChurchSimulator {
         }
         const tracedFromClist = new Set();
         const traceQueue = [...liveSet];
+        let clistTraced = 0;
         while (traceQueue.length > 0) {
             const parentIdx = traceQueue.shift();
             if (tracedFromClist.has(parentIdx)) continue;
@@ -862,15 +871,20 @@ class ChurchSimulator {
                     this.markLive(childIdx);
                     liveSet.add(childIdx);
                     traceQueue.push(childIdx);
+                    clistTraced++;
                     const label = this.nsLabels[childIdx] || '(unnamed)';
                     log.push(`  C-List NS[${parentIdx}] -> NS[${childIdx}] "${label}" — LIVE (G=${liveValue})`);
                 }
             }
         }
+        if (clistTraced > 0) p2Lines.push(`C-list trace: ${clistTraced} additional entries reachable`);
+        p2Lines.push(`${liveSet.size} live entries confirmed — marked safe`);
+        log.push('--- Phase 2: SCAN ---');
         log.push(`Scan complete: ${liveSet.size} live entries confirmed.`);
         log.push('');
 
-        log.push(`--- Phase 3: SWEEP — find entries where G=${garbageValue} (garbage) ---`);
+        // ── Phase 3: SWEEP ───────────────────────────────────────────────────
+        const p3Lines = [];
         const candidates = [];
         for (let i = 0; i < priorCount; i++) {
             if (!this.isNSEntryValid(i)) continue;
@@ -879,16 +893,22 @@ class ChurchSimulator {
             const label = this.nsLabels[i] || '(unnamed)';
             const loc = entry ? (entry.word0_location >>> 0) : 0;
             candidates.push({ index: i, label, loc });
+            p3Lines.push(`NS[${i}] "${label}" @ 0x${loc.toString(16).toUpperCase().padStart(8,'0')}`);
             log.push(`  GARBAGE NS[${i}] "${label}" @ 0x${loc.toString(16).toUpperCase().padStart(8,'0')} — G=${garbageValue}`);
         }
+        if (candidates.length === 0) p3Lines.push('No garbage entries found — namespace is clean');
+        p3Lines.push(`${candidates.length} garbage ${candidates.length === 1 ? 'entry' : 'entries'} identified for reclamation`);
+        log.push('--- Phase 3: SWEEP ---');
         log.push(`Identified ${candidates.length} garbage entries.`);
         log.push('');
 
-        log.push(`--- Phase 4: CLEAR — zero NS entries + free object memory ---`);
+        // ── Phase 4: CLEAR + FLIP ────────────────────────────────────────────
+        const p4Lines = [];
         let freedSlots = 0;
         let freedWords = 0;
         for (const c of candidates) {
             if (c.index === 0) {
+                p4Lines.push(`SKIP NS[0] "Boot.NS" — namespace root protected`);
                 log.push(`  SKIP NS[0] "Boot.NS" — namespace root is protected`);
                 continue;
             }
@@ -908,6 +928,7 @@ class ChurchSimulator {
                 }
             }
             freedWords += wordsCleared;
+            p4Lines.push(`CLEAR NS[${c.index}] "${c.label}" — ${wordsCleared} words zeroed`);
             log.push(`  CLEAR NS[${c.index}] "${c.label}" — version ${oldVersion}->${newVersion}, ${wordsCleared} object words zeroed`);
 
             delete this.nsLabels[c.index];
@@ -924,7 +945,10 @@ class ChurchSimulator {
         this.nsCount = newCount;
 
         this.gcPolarity = this.gcPolarity ? 0 : 1;
+        p4Lines.push(`${freedSlots} ${freedSlots === 1 ? 'slot' : 'slots'} freed, ${freedWords} object words reclaimed`);
+        p4Lines.push(`GC polarity flipped → G=${this.gcPolarity} now means garbage`);
 
+        log.push('--- Phase 4: CLEAR ---');
         log.push('');
         log.push(`=== GC Complete: ${freedSlots} slots freed, ${freedWords} object memory words reclaimed ===`);
         log.push(`Namespace: ${priorCount} -> ${this.nsCount} entries (${freedSlots} swept)`);
@@ -934,7 +958,16 @@ class ChurchSimulator {
         const report = log.join('\n');
         this.output += report + '\n';
         this.emit('stateChange', this.getState());
-        return { freedSlots, freedWords, liveCount: liveSet.size, report };
+        return {
+            freedSlots, freedWords, liveCount: liveSet.size, report,
+            priorCount, newCount: this.nsCount,
+            phases: [
+                { num: 1, name: 'Mark',  desc: 'Pessimistic assumption — flag every NS entry as suspect', lines: p1Lines },
+                { num: 2, name: 'Scan',  desc: 'Walk all CR roots + call stack; mark reachable entries live', lines: p2Lines },
+                { num: 3, name: 'Sweep', desc: 'Identify entries still flagged as garbage; build reclaim list', lines: p3Lines },
+                { num: 4, name: 'Clear', desc: 'Zero NS entries + object words; bump version; flip polarity', lines: p4Lines },
+            ]
+        };
     }
 
 

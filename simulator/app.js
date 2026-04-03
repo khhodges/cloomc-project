@@ -373,7 +373,7 @@ function switchView(viewId) {
 let _lastGCResult = null;
 
 function renderToolsView() {
-    const nsEntryEl   = document.getElementById('tgcNSEntries');
+    const nsEntryEl    = document.getElementById('tgcNSEntries');
     const freedSlotsEl = document.getElementById('tgcFreedSlots');
     const freedWordsEl = document.getElementById('tgcFreedWords');
     const liveEl       = document.getElementById('tgcLiveCount');
@@ -385,7 +385,9 @@ function renderToolsView() {
         if (freedSlotsEl) freedSlotsEl.textContent = _lastGCResult.freedSlots;
         if (freedWordsEl) freedWordsEl.textContent = _lastGCResult.freedWords;
         if (liveEl)       liveEl.textContent       = _lastGCResult.liveCount;
-        if (lastRunEl)    lastRunEl.textContent     = 'Last run: freed ' + _lastGCResult.freedSlots + ' slot' + (_lastGCResult.freedSlots !== 1 ? 's' : '');
+        if (lastRunEl)    lastRunEl.textContent     = 'Last run: freed ' + _lastGCResult.freedSlots +
+            ' slot' + (_lastGCResult.freedSlots !== 1 ? 's' : '') +
+            ', ' + _lastGCResult.liveCount + ' live';
     } else {
         if (freedSlotsEl) freedSlotsEl.textContent = '—';
         if (freedWordsEl) freedWordsEl.textContent = '—';
@@ -394,12 +396,65 @@ function renderToolsView() {
     }
 }
 
-function runGCFromTools() {
-    runGC();
-    if (sim && sim.bootComplete) {
-        const result = _lastGCResult;
-        if (result) renderToolsView();
+function _tgcSetCardState(num, state, badge, lines) {
+    const card   = document.getElementById('tgcCard' + num);
+    const badgeEl = document.getElementById('tgcBadge' + num);
+    const reportEl = document.getElementById('tgcReport' + num);
+    if (!card) return;
+    card.dataset.state = state;
+    if (badgeEl) badgeEl.textContent = badge;
+    if (reportEl && lines) {
+        reportEl.innerHTML = lines.map(l => '<div class="tgc-line">' + l.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>').join('');
     }
+}
+
+function _tgcReset() {
+    for (let i = 1; i <= 4; i++) {
+        _tgcSetCardState(i, 'idle', '', null);
+        const r = document.getElementById('tgcReport' + i);
+        if (r) r.innerHTML = '';
+    }
+}
+
+function runGCFromTools() {
+    if (!sim || !sim.bootComplete) {
+        _tgcReset();
+        for (let i = 1; i <= 4; i++) _tgcSetCardState(i, 'error', 'Not booted', null);
+        const lastRunEl = document.getElementById('toolsGCLastRun');
+        if (lastRunEl) lastRunEl.textContent = 'Boot the machine first (top-right Boot button)';
+        return;
+    }
+
+    _tgcReset();
+    const btn = document.getElementById('tgcRunBtn');
+    if (btn) btn.disabled = true;
+
+    sim.output += '[I/O] GC button pressed (Tools view) — invoking GC safe abstraction\n';
+    sim.mElevation = true;
+    const result = sim.runGC();
+    sim.mElevation = false;
+    sim.output += '[I/O] GC abstraction complete — RETURN\n';
+    _lastGCResult = result;
+
+    const phases = result.phases || [];
+    const PHASE_MS = 550;
+
+    phases.forEach((phase, i) => {
+        const num = i + 1;
+        setTimeout(() => {
+            _tgcSetCardState(num, 'running', '…', null);
+        }, PHASE_MS * i);
+
+        setTimeout(() => {
+            _tgcSetCardState(num, 'done', '✓', phase.lines);
+        }, PHASE_MS * i + PHASE_MS * 0.75);
+    });
+
+    setTimeout(() => {
+        renderToolsView();
+        if (btn) btn.disabled = false;
+        if (currentView === 'tools') updateUI();
+    }, PHASE_MS * phases.length + 200);
 }
 
 function selectTutorial(which) {
