@@ -415,7 +415,7 @@ function hideLoadingOverlay() {
     setTimeout(() => { el.style.display = 'none'; }, 300);
 }
 
-const BOOT_STEP_NAMES = ['FAULT_RST','LOAD_NS','INIT_THRD','INIT_ABSTR','LOAD_NUC','COMPLETE'];
+const BOOT_STEP_NAMES = ['FAULT_RST','LOAD_NS','INIT_THRD','INIT_ABSTR','LOAD_NUC+COMPLETE'];
 
 function updateLedStrip() {
     if (!sim) return;
@@ -1151,7 +1151,7 @@ function updateFlagsDisplay() {
     const container = document.getElementById('flagsDisplay');
     if (!container) return;
     const f = sim.flags;
-    const bootLabel = !sim.bootComplete ? `BOOT ${sim.bootStep}/6` : '';
+    const bootLabel = !sim.bootComplete ? `BOOT ${sim.bootStep}/5` : '';
     const statusLabel = sim.halted ? 'HALTED' : (sim.bootComplete ? 'READY' : 'RESET');
     const cap = sim.lastCapability;
     let capHtml = '';
@@ -1784,6 +1784,7 @@ const BOOT_SEQ_CODE = {
         '      entry ← mLoad(GT6a, perm=E)   ; must have E permission',
         '      CR6  ← GT6a + entry            ; c-list pointer (temporary)',
         '',
+        '; ━━━ B:04 LOAD_NUC ⬤ COMPLETE — indivisible microprogram step ━━━',
         'B:04  LOAD_NUC',
         '      GT2  ← createGT(Slot=2, perms=[E], type=Inform)',
         '      entry ← mLoad(GT2, perm=E)',
@@ -1795,11 +1796,12 @@ const BOOT_SEQ_CODE = {
         '      CR14 ← { GT2, base=base,   limit=cStart-1, perms=[R,W,X] }',
         '      CR6  ← { GT2, base=base+cStart, limit=cN-1, perms=[L]    }',
         '      PC   ← 0                       ; enter Boot.Abstr code',
-        '',
+        '      ; — atomically continues into COMPLETE —',
         'B:05  COMPLETE',
         '      M-Elevation ← OFF',
         '      bootComplete ← true',
         '      ; All Layer 0–1 abstractions now initialized',
+        '; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
     ].join('\n'),
 };
 
@@ -4088,8 +4090,7 @@ const _BOOT_STEPS = [
     { addrStr: 'B:01', disasm: 'LOAD_NS',    label: 'CR15 \u2190 NS[0] Namespace (base=0x0000, full memory)',  offset: null, prog: 'boot' },
     { addrStr: 'B:02', disasm: 'INIT_THRD',  label: 'CR12 \u2190 NS[1] Thread Identity', offset: null, prog: 'boot' },
     { addrStr: 'B:03', disasm: 'INIT_ABSTR', label: 'CR6 \u2190 NS[2] Abstr',              offset: null, prog: 'boot' },
-    { addrStr: 'B:04', disasm: 'LOAD_NUC',   label: 'CR14 \u2190 code (CLOOMC)',           offset: null, prog: 'boot' },
-    { addrStr: 'B:05', disasm: 'COMPLETE',   label: 'Boot done',               offset: null, prog: 'boot' },
+    { addrStr: 'B:04', disasm: 'LOAD_NUC \u2b64 COMPLETE', label: 'CR14+CR6 \u2190 lump header; M-Elev OFF; boot done', offset: null, prog: 'boot' },
 ];
 
 function _bootNIARows(bootStep) {
@@ -4115,7 +4116,7 @@ function stepSim() {
         }
         const con = document.getElementById('editorConsole');
         if (con) {
-            con.textContent += `\n[boot ${sim.bootStep}/6] ${sim.output.split('\n').filter(l => l).pop()}`;
+            con.textContent += `\n[boot ${sim.bootStep}/5] ${sim.output.split('\n').filter(l => l).pop()}`;
             con.scrollTop = con.scrollHeight;
         }
         if (pipelineViz) {
@@ -4264,7 +4265,7 @@ function slowBoot() {
             const con = document.getElementById('editorConsole');
             if (con) {
                 const lastLine = (sim.output || '').split('\n').filter(l => l).pop() || '';
-                con.textContent += `\n[boot ${sim.bootStep}/6] ${lastLine}`;
+                con.textContent += `\n[boot ${sim.bootStep}/5] ${lastLine}`;
                 con.scrollTop = con.scrollHeight;
             }
             if (pipelineViz) {
@@ -10112,13 +10113,12 @@ Reserved slots:
 User abstractions:
   Slot 2+  IDE-assigned at compile time
 
-Boot sequence (B:00–B:05):
+Boot sequence (B:00–B:04, 5 steps):
   B:00  FAULT_RST — clear registers
   B:01  LOAD_NS   — load namespace GT into CR15
-  B:02  mLoad CR12 from NS Slot 1 (Thread identity)
-  B:03  mLoad CR6  from NS Slot 1 (C-List)
-  B:04  mLoad CR14 from NS Slot 1 (Code region)
-  B:05  CALL into kernel entry point
+  B:02  INIT_THRD — mLoad CR12 from NS Slot 1 (Thread identity)
+  B:03  INIT_ABSTR — mLoad CR6  from NS Slot 2 (Boot abstraction)
+  B:04  LOAD_NUC + COMPLETE — CR14+CR6 from lump header; M-Elev OFF (indivisible)
 
 Access: LOAD/SAVE instructions using a namespace-scoped GT with L/S perm.`,
         example: `; Assembly: load namespace entry for slot 3

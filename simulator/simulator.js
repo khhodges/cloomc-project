@@ -465,16 +465,14 @@ class ChurchSimulator {
                 this.pc = 0;
                 this.output += `[BOOT] LOAD_NUC — hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} (cw=${cw},cc=${cc},lumpSize=${lumpSz}); CR14+CR6 ← simultaneous from lump header; CR14(X,lim=${lumpSz-cc-2}) CR6(L,base=0x${(base+clistStart).toString(16).toUpperCase()},lim=${cc-1}), PC=0\n`;
                 this.bootStep++;
-                this.ledBits = 0b011111;
-                break;
-            }
-            case 5:
+                // B:04 LOAD_NUC and B:05 COMPLETE are indivisible — both execute in one Step
                 this.mElevation = false;
                 this.bootComplete = true;
                 this.ledBits = 0b111111;
                 this.ledMode = 'boot';
-                this.output += '[BOOT] COMPLETE — M-Elevation OFF. All Layer 0-1 abstractions initialized. Boot complete.\n';
+                this.output += '[BOOT] COMPLETE — M-Elevation OFF. All Layer 0–1 abstractions initialized. Boot complete.\n';
                 break;
+            }
         }
         this.emit('stateChange', this.getState());
         return true;
