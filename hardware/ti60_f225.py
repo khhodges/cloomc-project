@@ -59,6 +59,12 @@ class ChurchTi60F225(Elaboratable):
         debug = DebugPrinter(self.clk_freq, self.baud)
         m.submodules.debug = debug
 
+        uart_rx_mod = UartRx(self.clk_freq, self.baud)
+        m.submodules.uart_rx_mod = uart_rx_mod
+        m.d.comb += uart_rx_mod.rx.eq(self.uart_rx)
+        rx_valid = uart_rx_mod.valid
+        rx_data  = uart_rx_mod.data
+
         m.d.comb += [
             boot_rom.addr.eq(core.imem_addr[2:11]),
             core.imem_data.eq(boot_rom.data),
@@ -209,24 +215,55 @@ class ChurchTi60F225(Elaboratable):
             core.clist_rd_data.eq(mem_rd_data),
         ]
 
-        wr_data = Signal(32)
-        wr_en = Signal()
-        with m.If(core.ns_wr_en):
-            m.d.comb += [wr_data.eq(core.ns_wr_data[:32]), wr_en.eq(1)]
-        with m.Elif(core.clist_wr_en):
-            m.d.comb += [wr_data.eq(core.clist_wr_data), wr_en.eq(1)]
-        with m.Elif(~is_mmio):
-            m.d.comb += [wr_data.eq(core.dmem_wr_data), wr_en.eq(core.dmem_wr_en)]
-
-        m.d.comb += [
-            dmem_wr.addr.eq(mem_addr),
-            dmem_wr.data.eq(wr_data),
-            dmem_wr.en.eq(wr_en),
-        ]
-
         halted = Signal(init=1)
         stepping = Signal()
         fault_latched = Signal()  # sticky: set on any fault_valid, cleared only by reset
+
+        # ── PATCH_LUMP protocol registers (0xBEEF opcode, UART) ──────────────
+        # Frame:  [0xBE][0xEF][addrHi][addrLo][countHi][countLo][N×4 LE][crcHi][crcLo]
+        # ACK:    [addrHi][addrLo][countHi][countLo]
+        # Writes N words to BRAM starting at word address pl_addr.
+        # NOTE: instruction fetch still uses the boot ROM on hardware; PATCH_LUMP
+        # currently modifies NS / c-list entries in BRAM.  Patching executing code
+        # requires routing imem to BRAM post-boot (future work).
+        pl_wr_en       = Signal()         # comb: asserted for 1 cycle to write a word
+        pl_wr_addr     = Signal(11)       # BRAM word address for current write
+        pl_wr_data     = Signal(32)       # data for current write
+        pl_active      = Signal()         # held while patch is in progress
+        pl_addr        = Signal(16)       # base word address from protocol header
+        pl_total_count = Signal(16)       # total word count from protocol header (for ACK)
+        pl_count       = Signal(16)       # remaining words to receive
+        pl_word        = Signal(32)       # word accumulator (4 bytes, LE)
+        pl_cur_addr    = Signal(16)       # current BRAM word address being written
+        pl_crc_hi_buf  = Signal(8)        # latched CRC high byte (verification future work)
+        pl_ack         = Array([Signal(8, name=f"pl_ack{i}") for i in range(4)])
+        pl_ack_idx     = Signal(3)        # index into 4-byte ACK sequence
+
+        # Default PATCH_LUMP comb outputs — overridden only inside PL_WRITE_WORD state
+        m.d.comb += [pl_wr_en.eq(0), pl_wr_addr.eq(0), pl_wr_data.eq(0)]
+
+        cpu_wr_data = Signal(32)
+        cpu_wr_en   = Signal()
+        with m.If(core.ns_wr_en):
+            m.d.comb += [cpu_wr_data.eq(core.ns_wr_data[:32]), cpu_wr_en.eq(1)]
+        with m.Elif(core.clist_wr_en):
+            m.d.comb += [cpu_wr_data.eq(core.clist_wr_data), cpu_wr_en.eq(1)]
+        with m.Elif(~is_mmio):
+            m.d.comb += [cpu_wr_data.eq(core.dmem_wr_data), cpu_wr_en.eq(core.dmem_wr_en)]
+
+        # PATCH_LUMP writes take priority over CPU writes (CPU is halted during transfer)
+        with m.If(pl_wr_en):
+            m.d.comb += [
+                dmem_wr.addr.eq(pl_wr_addr),
+                dmem_wr.data.eq(pl_wr_data),
+                dmem_wr.en.eq(1),
+            ]
+        with m.Else():
+            m.d.comb += [
+                dmem_wr.addr.eq(mem_addr),
+                dmem_wr.data.eq(cpu_wr_data),
+                dmem_wr.en.eq(cpu_wr_en),
+            ]
 
         prev_nia = Signal(32)
         m.d.sync += prev_nia.eq(core.nia)
@@ -452,8 +489,12 @@ class ChurchTi60F225(Elaboratable):
                 # Paused / single-step mode.
                 # Button hold (~1 s): resume free-run.
                 # Short press: step one instruction.
+                # 0xBE received: start PATCH_LUMP (CPU already halted).
                 with m.If(btn_hold_done):
                     m.next = "ENTER_FREE_RUN"
+                with m.Elif(rx_valid & (rx_data == 0xBE)):
+                    m.d.sync += pl_active.eq(1)
+                    m.next = "PL_WAIT_EF"
                 with m.Elif(btn_press):
                     m.d.sync += stepping.eq(1)
                     m.next = "STEP_WAIT"
@@ -479,6 +520,14 @@ class ChurchTi60F225(Elaboratable):
                 with m.If(core.fault_valid):
                     # Any fault: freeze CPU and light fault LED.
                     m.next = "FAULT_HALT"
+                with m.Elif(core.halt_valid):
+                    # Zero word after boot = software HALT instruction.
+                    m.d.sync += [halted.eq(1), halt_idx.eq(0)]
+                    m.next = "USER_HALT"
+                with m.Elif(rx_valid & (rx_data == 0xBE)):
+                    # PATCH_LUMP preamble received — freeze CPU and start protocol.
+                    m.d.sync += [halted.eq(1), pl_active.eq(1)]
+                    m.next = "PL_WAIT_EF"
                 with m.Elif(btn_press):
                     # Button press: pause into single-step mode.
                     m.d.sync += halted.eq(1)
@@ -549,5 +598,126 @@ class ChurchTi60F225(Elaboratable):
                     ]
                     m.d.sync += halt_idx.eq(0)
                     m.next = "SEND_HALT"
+
+            # ── USER_HALT: zero instruction word fetched post-boot ────────────
+            # Sends "HALT\r\n" over UART then parks in HALTED.
+            with m.State("USER_HALT"):
+                with m.If(~debug.busy):
+                    with m.If(halt_idx < len(HALT_MSG)):
+                        m.d.comb += [
+                            fsm_byte_data.eq(halt_byte),
+                            fsm_send_byte.eq(1),
+                        ]
+                        m.d.sync += halt_idx.eq(halt_idx + 1)
+                    with m.Else():
+                        m.d.sync += halt_idx.eq(0)
+                        m.next = "HALTED"
+
+            # ── PATCH_LUMP protocol states (0xBEEF opcode) ───────────────────
+            # Frame: [0xBE][0xEF][addrHi][addrLo][countHi][countLo]
+            #        [N×4 bytes, little-endian] [crcHi][crcLo]
+            # ACK:   [addrHi][addrLo][countHi][countLo]
+            # ─────────────────────────────────────────────────────────────────
+            with m.State("PL_WAIT_EF"):
+                # Wait for 0xEF to confirm the BEEF header; abort on any other byte.
+                with m.If(rx_valid):
+                    with m.If(rx_data == 0xEF):
+                        m.next = "PL_RECV_ADDR_HI"
+                    with m.Else():
+                        m.d.sync += pl_active.eq(0)
+                        m.next = "HALTED"
+
+            with m.State("PL_RECV_ADDR_HI"):
+                with m.If(rx_valid):
+                    m.d.sync += pl_addr[8:16].eq(rx_data)
+                    m.next = "PL_RECV_ADDR_LO"
+
+            with m.State("PL_RECV_ADDR_LO"):
+                with m.If(rx_valid):
+                    m.d.sync += pl_addr[0:8].eq(rx_data)
+                    m.next = "PL_RECV_CNT_HI"
+
+            with m.State("PL_RECV_CNT_HI"):
+                with m.If(rx_valid):
+                    m.d.sync += [
+                        pl_total_count[8:16].eq(rx_data),
+                        pl_count[8:16].eq(rx_data),
+                    ]
+                    m.next = "PL_RECV_CNT_LO"
+
+            with m.State("PL_RECV_CNT_LO"):
+                with m.If(rx_valid):
+                    m.d.sync += [
+                        pl_total_count[0:8].eq(rx_data),
+                        pl_count[0:8].eq(rx_data),
+                        pl_cur_addr.eq(pl_addr),
+                    ]
+                    m.next = "PL_RECV_B0"
+
+            with m.State("PL_RECV_B0"):
+                with m.If(rx_valid):
+                    m.d.sync += pl_word[0:8].eq(rx_data)
+                    m.next = "PL_RECV_B1"
+
+            with m.State("PL_RECV_B1"):
+                with m.If(rx_valid):
+                    m.d.sync += pl_word[8:16].eq(rx_data)
+                    m.next = "PL_RECV_B2"
+
+            with m.State("PL_RECV_B2"):
+                with m.If(rx_valid):
+                    m.d.sync += pl_word[16:24].eq(rx_data)
+                    m.next = "PL_RECV_B3"
+
+            with m.State("PL_RECV_B3"):
+                with m.If(rx_valid):
+                    m.d.sync += pl_word[24:32].eq(rx_data)
+                    m.next = "PL_WRITE_WORD"
+
+            with m.State("PL_WRITE_WORD"):
+                # Write assembled word to BRAM, then advance to next word or CRC.
+                m.d.comb += [
+                    pl_wr_en.eq(1),
+                    pl_wr_addr.eq(pl_cur_addr[:11]),
+                    pl_wr_data.eq(pl_word),
+                ]
+                m.d.sync += pl_cur_addr.eq(pl_cur_addr + 1)
+                with m.If(pl_count == 1):
+                    m.d.sync += pl_count.eq(0)
+                    m.next = "PL_RECV_CRC_HI"
+                with m.Else():
+                    m.d.sync += pl_count.eq(pl_count - 1)
+                    m.next = "PL_RECV_B0"
+
+            with m.State("PL_RECV_CRC_HI"):
+                # Latch CRC high byte — hardware CRC verification is future work.
+                with m.If(rx_valid):
+                    m.d.sync += pl_crc_hi_buf.eq(rx_data)
+                    m.next = "PL_RECV_CRC_LO"
+
+            with m.State("PL_RECV_CRC_LO"):
+                # Receive final CRC byte; prepare ACK = [addrHi][addrLo][cntHi][cntLo].
+                with m.If(rx_valid):
+                    m.d.sync += [
+                        pl_ack[0].eq(pl_addr[8:16]),
+                        pl_ack[1].eq(pl_addr[0:8]),
+                        pl_ack[2].eq(pl_total_count[8:16]),
+                        pl_ack[3].eq(pl_total_count[0:8]),
+                        pl_ack_idx.eq(0),
+                    ]
+                    m.next = "PL_ACK"
+
+            with m.State("PL_ACK"):
+                # Send 4-byte ACK then release.
+                with m.If(~debug.busy):
+                    with m.If(pl_ack_idx < 4):
+                        m.d.comb += [
+                            fsm_byte_data.eq(pl_ack[pl_ack_idx]),
+                            fsm_send_byte.eq(1),
+                        ]
+                        m.d.sync += pl_ack_idx.eq(pl_ack_idx + 1)
+                    with m.Else():
+                        m.d.sync += pl_active.eq(0)
+                        m.next = "HALTED"
 
         return m

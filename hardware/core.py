@@ -71,6 +71,7 @@ class ChurchCore(Elaboratable):
 
         self.fault = Signal(5)   # widened: FaultType.STACK_OVERFLOW=0x10 needs 5 bits
         self.fault_valid = Signal()
+        self.halt_valid = Signal()   # pulses when a zero instruction word is fetched post-boot
 
         self.free_run_start = Signal()   # pulse high for 1 cycle to jump to free_run_nia
         self.free_run_nia   = Signal(32) # target byte address when free_run_start fires
@@ -213,6 +214,12 @@ class ChurchCore(Elaboratable):
             u_outform.outform_busy
         )
         m.d.comb += any_unit_busy.eq(busy_expr)
+
+        # Halt detection: zero instruction word fetched after boot, while no unit is busy.
+        # Matches the simulator's halted-on-zero-word behaviour.
+        m.d.comb += self.halt_valid.eq(
+            self.boot_complete & self.imem_valid & (self.imem_data == 0) & ~any_unit_busy
+        )
 
         lambda_start_sig = Signal()
         m.d.comb += lambda_start_sig.eq(
