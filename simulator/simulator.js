@@ -1291,9 +1291,16 @@ class ChurchSimulator {
         }
         const instrWord = fetch.word;
         if (instrWord === 0) {
-            this.output += `[PP250] Zero instruction at PC=${this.pc} (addr=0x${fetch.addr.toString(16)}) — no HALT, returning to boot sequence\n`;
-            this._returnToBoot();
-            return { pc: this.pc, instr: null, desc: 'PP250: zero instruction -> reboot' };
+            if (!this.bootComplete) {
+                this.output += `[PP250] Zero instruction at PC=${this.pc} (addr=0x${fetch.addr.toString(16)}) — pre-boot zero, returning to boot sequence\n`;
+                this._returnToBoot();
+                return { pc: this.pc, instr: null, desc: 'PP250: zero instruction -> reboot' };
+            }
+            this.output += `[PP250] HALT at PC=${this.pc} (addr=0x${fetch.addr.toString(16)}) — machine stopped.\n`;
+            this.halted = true;
+            this.running = false;
+            this.emit('stateChange', this.getState());
+            return { pc: this.pc, instr: null, desc: 'HALT: machine stopped' };
         }
 
         const d = this.decodeInstruction(instrWord);
