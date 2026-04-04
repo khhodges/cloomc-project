@@ -840,7 +840,7 @@ class CLOOMCCompiler {
         const text = stmt.text.trim().replace(/;$/, '');
         if (!text || text.startsWith('//')) return;
 
-        const returnMatch = text.match(/^return\s*\(\s*(.*?)\s*\)$/);
+        const returnMatch = text.match(/^(?:RETURN|return)\s*(?:\(\s*(.*?)\s*\))?$/);
         if (returnMatch) {
             if (returnMatch[1]) {
                 const parts = returnMatch[1].split(',').map(s => s.trim());
