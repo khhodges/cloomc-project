@@ -838,7 +838,7 @@ header h1 {
 .example-tab:hover { background: var(--bg-input); color: var(--text-primary); }
 .example-tab.active {
     background: var(--church-green);
-    color: #000;
+    color: #000 !important;
     border-color: var(--church-green);
     font-weight: 600;
 }
