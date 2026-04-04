@@ -487,10 +487,12 @@ class ChurchCore(Elaboratable):
             m.d.sync += nia_reg.eq(nia_reg + 4)
 
         # Code fence management — separate priority chain from nia update.
-        # Reboot clears fence (highest priority).
-        # Lambda / eloadcall / xloadlambda entering unknown code suspends fence.
+        # Reboot/RETURN/clear_all clears fence (highest priority).
+        #   - RETURN: after returning to caller, callee's bounds must not apply; caller
+        #             bounds are unknown (not saved in frame), so fence goes inactive.
+        #   - Lambda / eloadcall / xloadlambda entering unknown code: fence suspended.
         # CALL completing establishes (or re-establishes) the fence.
-        with m.If(u_return.reboot_request | clear_all):
+        with m.If(u_return.reboot_request | u_return.complete | clear_all):
             m.d.sync += [code_lo_reg.eq(0), code_hi_reg.eq(0)]
         with m.Elif(u_lambda.nia_set | u_eloadcall.nia_set | u_xloadlambda.nia_set):
             m.d.sync += [code_lo_reg.eq(0), code_hi_reg.eq(0)]
@@ -1037,7 +1039,13 @@ class ChurchCore(Elaboratable):
         with m.Elif(u_return.complete & ~u_return.fault_valid & ~cr5_stack_empty):
             m.d.sync += cr5_stack_ptr.eq(cr5_stack_ptr - 1)
 
-        with m.If(u_decoder.fault_valid):
+        with m.If(
+            self.boot_complete & ~any_unit_busy &
+            (code_lo_reg != code_hi_reg) &
+            ((nia_reg < code_lo_reg) | (nia_reg >= code_hi_reg))
+        ):
+            m.d.comb += [self.fault.eq(FaultType.BOUNDS), self.fault_valid.eq(1)]
+        with m.Elif(u_decoder.fault_valid):
             m.d.comb += [self.fault.eq(u_decoder.fault), self.fault_valid.eq(1)]
         with m.Elif(u_perm.fault_valid):
             m.d.comb += [self.fault.eq(u_perm.fault_type), self.fault_valid.eq(1)]
@@ -1069,12 +1077,6 @@ class ChurchCore(Elaboratable):
             m.d.comb += [self.fault.eq(u_cload.cload_fault_type), self.fault_valid.eq(1)]
         with m.Elif(u_outform.outform_fault):
             m.d.comb += [self.fault.eq(u_outform.outform_fault_type), self.fault_valid.eq(1)]
-        with m.Elif(
-            self.boot_complete & ~any_unit_busy &
-            (code_lo_reg != code_hi_reg) &
-            ((nia_reg < code_lo_reg) | (nia_reg >= code_hi_reg))
-        ):
-            m.d.comb += [self.fault.eq(FaultType.BOUNDS), self.fault_valid.eq(1)]
         with m.Else():
             m.d.comb += [self.fault.eq(FaultType.NONE), self.fault_valid.eq(0)]
 
