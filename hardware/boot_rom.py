@@ -243,6 +243,24 @@ while len(_NUC_PADDED) < 256:
     _NUC_PADDED.append(0x00000000)
 FULL_ROM = BOOT_PROGRAM + _NUC_PADDED
 
+# ---------------------------------------------------------------------------
+# NUC_PROGRAM lump header constants — derived entirely from NUC_PROGRAM contents.
+#
+# NUC_LUMP_BASE: DMEM byte address of the NUC_PROGRAM lump header.
+#   Placed at the last word of the NS table region (DMEM word 255 = byte 0x3FC),
+#   immediately before the NUC_PROGRAM instructions in IMEM (byte 0x400).
+#
+# NUC_LUMP_HEADER: 32-bit lump header word (LUMP_HEADER_LAYOUT).
+#   magic=0x1F, n_minus_6=0 (alloc=64 words), cw=len(NUC_PROGRAM), typ=0, cc=0
+#
+# NS slot 4 uses NUC_LUMP_BASE as word0_location so cload reads the header from
+# DMEM byte 0x3FC and derives CR14.word1_location = 0x3FC + 4 = 0x400 (first
+# NUC_PROGRAM instruction in IMEM).
+# ---------------------------------------------------------------------------
+NUC_PROGRAM_CW = len(NUC_PROGRAM)
+NUC_LUMP_BASE  = (len(BOOT_PROGRAM) - 1) * 4          # = 0x3FC (DMEM byte address of lump header)
+NUC_LUMP_HEADER = (0x1F << 27) | (NUC_PROGRAM_CW << 10)  # magic=0x1F, cw=17, n_minus_6=0, typ=0, cc=0
+
 
 def _make_ns_entry(gt_type, perms, slot_id, gt_seq, location, alloc_size, cw=0, cc=0, n_minus_6=0):
     """Build a 3-word NS entry (stride = slot_id * 12, i.e. 12 bytes per entry).
@@ -335,7 +353,12 @@ for _i in range(16):
         _loc, _sz, _gtype, _perms = _MMIO_ENTRIES[_i]
         _entry = _make_ns_entry(_gtype, _perms, _i, 0, _loc, _sz)
     else:
-        _location = NS_TABLE_BASE if _i == 0 else _i * 0x100
+        if _i == 0:
+            _location = NS_TABLE_BASE
+        elif _i == 4:
+            _location = NUC_LUMP_BASE   # 0x3FC: lump header immediately before NUC_PROGRAM in IMEM
+        else:
+            _location = _i * 0x100
         _alloc_size = 64  # FPGA min: 64 words per spec; demo uses 8 in simulation
         _entry = _make_ns_entry(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, _i, 0,
                                 _location, _alloc_size)

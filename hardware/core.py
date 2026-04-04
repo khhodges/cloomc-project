@@ -3,6 +3,7 @@ from amaranth.lib.data import View
 
 from .hw_types import *
 from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, WORD2_LAYOUT, COND_FLAGS_LAYOUT
+from .boot_rom import NUC_LUMP_BASE, NUC_PROGRAM_CW
 from .registers import ChurchRegisters
 from .decoder import ChurchDecoder
 from .perm_check import ChurchPermCheck
@@ -488,13 +489,14 @@ class ChurchCore(Elaboratable):
             m.d.sync += nia_reg.eq(u_call.nia_value)
         with m.Elif(u_eloadcall.nia_set):
             m.d.sync += nia_reg.eq(u_eloadcall.nia_value)
-        with m.Elif(branch_taken):
-            # PC-relative branch: nia += sign_extend(imm) * 4
-            # branch_sx32 is the 15-bit imm sign-extended to 32 bits (word offset).
-            # Cat(C(0,2), branch_sx32) = branch_sx32 << 2 as byte offset (34-bit, truncated to 32).
+        with m.Elif(branch_taken & ~fetch_bounds_fault):
+            # PC-relative branch: nia += sign_extend(imm) * 4.
+            # Gated by ~fetch_bounds_fault: if the *current* nia is already out-of-range
+            # the BOUNDS fault is raised instead; nia must not advance further.
             m.d.sync += nia_reg.eq(nia_reg + Cat(C(0, 2), branch_sx32))
-        with m.Elif(self.boot_complete & u_decoder.instr_valid & ~any_unit_busy):
-            # Advance PC for all instructions (including not-taken branches)
+        with m.Elif(self.boot_complete & u_decoder.instr_valid & ~any_unit_busy & ~fetch_bounds_fault):
+            # Advance PC for all instructions (including not-taken branches).
+            # ~fetch_bounds_fault ensures nia never advances on a BOUNDS-fault cycle.
             m.d.sync += nia_reg.eq(nia_reg + 4)
 
         # Code fence management — separate priority chain from nia update.
@@ -621,13 +623,13 @@ class ChurchCore(Elaboratable):
                 ]
                 m.d.comb += [boot_wr_en[7].eq(1), boot_wr_gt[7].eq(cr7_gt)]
 
-                # Boot fence: NUC_PROGRAM occupies IMEM byte addresses [0, NUC_PROGRAM_CW*4).
-                # nia_reg starts at 0 after reset; establishing the fence here (in the
-                # same cycle that transitions to COMPLETE) means BOUNDS enforcement is
-                # active from the very first post-boot instruction fetch.
+                # Boot fence: BOOT_PROGRAM occupies IMEM byte addresses [0, NUC_LUMP_BASE).
+                # NUC_LUMP_BASE is derived from len(BOOT_PROGRAM) in boot_rom.py —
+                # never a hardcoded magic number. Fence is cleared by LAMBDA mid-boot
+                # and re-established for the NUC_PROGRAM domain by CALL/cload.
                 m.d.sync += [
                     code_lo_reg.eq(0),
-                    code_hi_reg.eq(NUC_PROGRAM_CW * 4),
+                    code_hi_reg.eq(NUC_LUMP_BASE),
                 ]
 
         runtime_wr_en = [Signal(name=f"rt_cr{i}_wr_en") for i in range(16)]

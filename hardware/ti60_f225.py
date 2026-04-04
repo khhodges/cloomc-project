@@ -4,7 +4,7 @@ from amaranth.lib.data import View
 from .hw_types import *
 from .layouts import GT_LAYOUT, CAP_REG_LAYOUT
 from .core import ChurchCore
-from .boot_rom import BootRom, FULL_ROM, DEMO_NAMESPACE, DEMO_CLIST
+from .boot_rom import BootRom, FULL_ROM, DEMO_NAMESPACE, DEMO_CLIST, NUC_LUMP_HEADER
 from .uart_tx import DebugPrinter
 from .uart_rx import UartRx
 
@@ -74,8 +74,11 @@ class ChurchTi60F225(Elaboratable):
         for i in range(0, len(DEMO_NAMESPACE), 3):
             if i + 2 < len(DEMO_NAMESPACE):
                 ns_init.extend([DEMO_NAMESPACE[i], DEMO_NAMESPACE[i+1], DEMO_NAMESPACE[i+2]])
-        while len(ns_init) < 256:
+        # Pad to 255 words, then place the NUC_PROGRAM lump header at DMEM word 255 (byte 0x3FC).
+        # cload reads this header to obtain cw for CR14.word2 limit derivation.
+        while len(ns_init) < 255:
             ns_init.append(0)
+        ns_init.append(NUC_LUMP_HEADER)
 
         clist_init = list(DEMO_CLIST[:64])
         while len(clist_init) < 64:

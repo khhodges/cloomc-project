@@ -197,4 +197,3 @@ class BootState(IntEnum):
     COMPLETE   = 6
 
 
-NUC_PROGRAM_CW = 17
