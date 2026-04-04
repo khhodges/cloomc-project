@@ -51,11 +51,14 @@ class CLOOMCCompiler {
 
     compileJS(source, capabilities) {
         const errors = [];
-        // Auto-wrap code that has no abstraction declaration
+        // Auto-wrap code that has no abstraction/method declaration
         if (!/^\s*abstraction\s+\w+/m.test(source)) {
+            const hasMethod = /^\s*method\s+\w+/m.test(source);
             const nameMatch = source.match(/^\s*method\s+(\w+)/m);
             const autoName = nameMatch ? nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1) + 'Abstraction' : 'MyAbstraction';
-            source = `abstraction ${autoName} {\n${source}\n}`;
+            source = hasMethod
+                ? `abstraction ${autoName} {\n${source}\n}`
+                : `abstraction ${autoName} {\n    method run() {\n${source}\n    }\n}`;
         }
         const parsed = this._parseAbstraction(source, errors);
         if (errors.length > 0) {
@@ -510,11 +513,17 @@ class CLOOMCCompiler {
     }
 
     _parseAbstraction(source, errors) {
-        // Auto-wrap bare method code that has no abstraction declaration
+        // Auto-wrap code that has no abstraction declaration
         if (!/^\s*abstraction\s+\w+/m.test(source)) {
+            const hasMethod = /^\s*method\s+\w+/m.test(source);
             const nameMatch = source.match(/^\s*method\s+(\w+)/m);
             const autoName = nameMatch ? nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1) + 'Abstraction' : 'MyAbstraction';
-            source = `abstraction ${autoName} {\n${source}\n}`;
+            if (hasMethod) {
+                source = `abstraction ${autoName} {\n${source}\n}`;
+            } else {
+                // No method keyword either — wrap statements in method run()
+                source = `abstraction ${autoName} {\n    method run() {\n${source}\n    }\n}`;
+            }
         }
         const result = { name: '', capabilities: [], methods: [] };
         const lines = source.split('\n');
