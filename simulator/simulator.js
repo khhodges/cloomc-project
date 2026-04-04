@@ -618,10 +618,10 @@ class ChurchSimulator {
                     m: this.mElevation ? 1 : 0     // M-elevation is still ON at this point (cleared below)
                 };
 
-                const cr6GT = this.createGT(0, 2, {R:0,W:0,X:0,L:1,S:0,E:0}, 1);          // L-perm Inform GT for Slot 2 → CR6 is the c-list (capability-list) token
+                const cr6GT = this.createGT(0, 2, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);          // E-perm Inform GT for Slot 2 → CR6 is the c-list token (E allows recursive CALL via CR6)
                 const cr6Word1 = this.packNSWord1(cc - 1, 0, 0, 0, 0, 1, 0);               // NS word1 encodes limit = cc − 1 (covers all c-list words)
                 this.cr[6] = {
-                    word0: cr6GT,                   // Golden Token with L-perm (allows mLoad of c-list entries)
+                    word0: cr6GT,                   // Golden Token with E-perm (E allows CALL via CR6 for recursive abstraction)
                     word1: (base + clistStart) >>> 0, // physical base of c-list zone (= base + lumpSz − cc)
                     word2: cr6Word1,                // limit word for the c-list region
                     word3: abstrEntry.word2_seals,  // same seal field as CR14
@@ -632,7 +632,7 @@ class ChurchSimulator {
 
                 // ── Step 5: Set PC and emit log ───────────────────────────────────────
                 this.pc = 0;                        // first instruction of Boot Abstraction is at lump word 0 (offset from lump base)
-                this.output += `[BOOT] LOAD_NUC — hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} (cw=${cw},cc=${cc},lumpSize=${lumpSz}); CR14+CR6 ← simultaneous from lump header; CR14(X,cw=${cw},lim=0..${cw-1}) CR6(L,base=0x${(base+clistStart).toString(16).toUpperCase()},lim=${cc-1}), PC=0\n`;
+                this.output += `[BOOT] LOAD_NUC — hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} (cw=${cw},cc=${cc},lumpSize=${lumpSz}); CR14+CR6 ← simultaneous from lump header; CR14(X,cw=${cw},lim=0..${cw-1}) CR6(E,base=0x${(base+clistStart).toString(16).toUpperCase()},lim=${cc-1}), PC=0\n`;
                 this.output += `[BOOT] SENTINEL CALL — frame@+${sp_max}=0x${sentinelFrameWord.toString(16).toUpperCase().padStart(8,'0')} (NIA=0x7FFF,sz=1,prev_STO=${sp_max}), E-GT@+${sp_max-1}=0x${oldCR6GT.toString(16).toUpperCase().padStart(8,'0')}, STO=${this.sto}\n`;
 
                 // ── Step 6 (B:05): COMPLETE ───────────────────────────────────────────
@@ -1561,14 +1561,14 @@ class ChurchSimulator {
                 m: 1    // CALL Phase 1 mLoad is always M-elevated
             };
 
-            // CR6: L-only GT — same slot/seq/type as source, perms fixed to L alone.
-            // Matches boot LOAD_NUC convention (line 621): CR6 is always the c-list load token (L).
-            // Device GTs (L+S+E) must have all other perms stripped — only L is retained.
+            // CR6: E-only GT — same slot/seq/type as source, perms fixed to E alone.
+            // E allows recursive CALL via CR6 directly. Device GTs (L+S+E) have L/S stripped.
+            // Matches boot LOAD_NUC convention (line 624): CR6 always carries E perm.
             // M is recorded in cr.m = 1 (not in the GT perms field).
-            const cr6GT = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:1,S:0,E:0}, srcParsed.type);
+            const cr6GT = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:0,S:0,E:1}, srcParsed.type);
             const cr6Word1 = this.packNSWord1(cc - 1, 0, 0, 0, 0, 1, 0);
             this.cr[6] = {
-                word0: cr6GT,                       // L-only (c-list load access; matches boot LOAD_NUC CR6)
+                word0: cr6GT,                       // E-only (recursive CALL via CR6; matches boot LOAD_NUC CR6)
                 word1: (base + clistStart) >>> 0,
                 word2: cr6Word1,
                 word3: nsEntry.word2_seals,
@@ -1576,11 +1576,11 @@ class ChurchSimulator {
             };
             // CR6 lives in the CALL stack frame (written above); NOT in the caps zone
 
-            cr7Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(RX M=1,cw=${cw},lim=0..${cw-1}) CR6(L M=1,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
+            cr7Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(RX M=1,cw=${cw},lim=0..${cw-1}) CR6(E M=1,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
         } else {
-            // Non-lump-header path: write L-only GT to CR6 (strip all except L from source GT) + M.
-            // Matches boot LOAD_NUC convention: CR6 = c-list load token (L), not E.
-            const cr6GTnorm = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:1,S:0,E:0}, srcParsed.type);
+            // Non-lump-header path: write E-only GT to CR6 (strip L/S from device GT) + M.
+            // Matches boot LOAD_NUC convention: CR6 = E perm (recursive CALL via CR6).
+            const cr6GTnorm = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:0,S:0,E:1}, srcParsed.type);
             this._writeCR(6, cr6GTnorm, nsEntry);
             this.cr[6].m = 1;   // M set (CALL always M-elevated; _writeCR uses global mElevation which may be 0 post-boot)
 
