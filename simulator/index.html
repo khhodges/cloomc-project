@@ -99,8 +99,22 @@
                     <button class="btn btn-warning sim-icon-btn fault-idle" id="toolFaultBtn" onclick="faultClear()" data-tooltip="Fault — Clear the fault state and resume">&#x26A1;</button>
                     <button class="btn btn-success sim-icon-btn" onclick="stepSim()" data-tooltip="Step — Execute one instruction">&#x1F463;</button>
                     <button class="btn btn-walk sim-icon-btn" id="toolWalkBtn" onclick="walkToggle()" data-tooltip="Walk — Animate step-by-step execution">&#x1F6B6;</button>
-                    <button class="btn btn-success sim-icon-btn" onclick="runSim()" data-tooltip="Run — Execute until halt or fault">&#x1F3C3;</button>
+                    <div class="break-wrap" id="breakWrap">
+                        <button class="btn btn-break sim-icon-btn" id="toolBreakBtn" onclick="toggleBreakPopover()" data-tooltip="Breakpoint — Set/clear PC breakpoints for Run and Walk">&#x25CF;</button>
+                        <div class="break-popover" id="breakPopover" style="display:none;">
+                            <div class="break-popover-title">Breakpoints</div>
+                            <div id="breakList" class="break-list"></div>
+                            <div class="break-add-row">
+                                <input id="breakAddrInput" class="break-addr-input" type="text" placeholder="0x0100" maxlength="8" onkeydown="if(event.key==='Enter')addBreakpointFromInput()" />
+                                <button class="btn btn-sm btn-primary" onclick="addBreakpointFromInput()">Add</button>
+                            </div>
+                            <button class="btn btn-sm break-clear-btn" onclick="clearAllBreakpoints()">Clear All</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-success sim-icon-btn" onclick="runSim()" data-tooltip="Run — Execute until halt, fault, or breakpoint">&#x1F3C3;</button>
                     <button class="btn btn-warning sim-icon-btn" onclick="resetSim()" data-tooltip="Boot — Reset and run the boot sequence">&#x21BA;</button>
+                    <button class="btn btn-edit sim-icon-btn" id="toolEditBtn" onclick="editCRCodeInEditor()" data-tooltip="Edit — Load the selected code lump into the editor" style="display:none;">&#x270E;</button>
+                    <button class="btn btn-patch sim-icon-btn" id="toolPatchBtn" onclick="toolPatchSimulator()" data-tooltip="Patch — Assemble editor content and patch this code lump" style="display:none;">&#x21A9;</button>
                     <button class="btn btn-view btn-share-icon" onclick="openShareLink()" data-tooltip="Share — Copy link to open on another device">&#x1F517;</button>
 
                     <div class="help-menu-wrap" id="helpMenuWrap">

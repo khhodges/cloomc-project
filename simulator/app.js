@@ -1225,6 +1225,7 @@ function updateCRDetail() {
     if (cr.isNull) {
         titleEl.textContent = `CR${crIdx}${name ? ' \u2014 ' + name : ''} (NULL)`;
         contentEl.innerHTML = '<div style="color:var(--text-secondary);padding:1rem;">Register is empty (all words zero).</div>';
+        _setToolbarCodeBtns(false);
         return;
     }
 
@@ -1259,9 +1260,6 @@ function updateCRDetail() {
     html += `<button class="crd-tab${crDetailTab==='content'?' active':''}" id="crdTab-content" onclick="switchCRDetailTab('content')">Content</button>`;
     html += `<button class="crd-tab${crDetailTab==='register'?' active':''}" id="crdTab-register" onclick="switchCRDetailTab('register')">Register</button>`;
     html += `<button class="crd-tab${crDetailTab==='binary'?' active':''}" id="crdTab-binary" onclick="switchCRDetailTab('binary')">Binary</button>`;
-    if (showEditButton) {
-        html += `<button class="crd-tab crd-tab-action" onclick="editCRCodeInEditor()" title="Load this code lump into the assembly editor">Edit</button>`;
-    }
     html += '</div>';
 
     html += `<div class="crd-panel" id="crdPanel-content" style="display:${crDetailTab==='content'?'block':'none'}">`;
@@ -1313,12 +1311,14 @@ function updateCRDetail() {
             const isPC    = lumpHdr.valid
                 ? (addr === baseLoc + 1 + sim.pc)
                 : ((addr === (sim.programBaseAddr || 0) + sim.pc) || (addr === sim.pc));
-            const rowClass = isPC ? 'code-pc-row' : '';
+            const isBP    = simBreakpoints.has(addr);
+            const rowClass = isPC ? 'code-pc-row' : (isBP ? 'code-bp-row' : '');
             const decoded  = word === 0 ? 'NOP / HALT' : asm.disassemble(word);
+            const bpDot    = isBP ? '<span class="bp-dot" title="Breakpoint">&#x25CF;</span> ' : '';
             codeHtml += `<tr class="${rowClass}">`;
             codeHtml += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
             codeHtml += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
-            codeHtml += `<td class="code-disasm">${decoded}</td>`;
+            codeHtml += `<td class="code-disasm">${bpDot}${decoded}</td>`;
             codeHtml += '</tr>';
         }
         codeHtml += '</tbody></table>';
@@ -1336,16 +1336,8 @@ function updateCRDetail() {
             html += codeHtml;
         }
 
-        // Inject panel — only shown when a valid lump header is present
+        // Inject panel — FPGA patch only; Edit and Patch Simulator are in the toolbar
         html += `<div class="cr-inject-bar">`;
-        if (lumpHdr.valid) {
-            html += `<button class="btn btn-sm" onclick="editCRCodeInEditor()" title="Load this code lump into the assembly editor">&#x270E; Edit in Editor</button>`;
-        }
-        html += `<button class="btn btn-sm btn-primary" onclick="(function(){`;
-        html += `var el=document.getElementById('crInjectLog');`;
-        html += `el.style.display='block';el.textContent='';`;
-        html += `injectCRCode(el);`;
-        html += `})()" title="Assemble the editor content and patch this code lump in the simulator">&#x21A9; Patch Simulator</button>`;
         html += `<button class="btn btn-sm" onclick="(function(){`;
         html += `var el=document.getElementById('crInjectLog');`;
         html += `el.style.display='block';el.textContent='';`;
@@ -1592,6 +1584,22 @@ function updateCRDetail() {
     html += '</div></div>';
 
     contentEl.innerHTML = html;
+    _setToolbarCodeBtns(showEditButton);
+}
+
+function _setToolbarCodeBtns(visible) {
+    const editBtn  = document.getElementById('toolEditBtn');
+    const patchBtn = document.getElementById('toolPatchBtn');
+    if (editBtn)  editBtn.style.display  = visible ? 'inline-flex' : 'none';
+    if (patchBtn) patchBtn.style.display = visible ? 'inline-flex' : 'none';
+}
+
+function toolPatchSimulator() {
+    let el = document.getElementById('crInjectLog');
+    if (!el) return;
+    el.style.display = 'block';
+    el.textContent   = '';
+    injectCRCode(el);
 }
 
 function updateDRDisplay() {
@@ -4838,6 +4846,81 @@ function stepSim() {
 let walkRunning = false;
 let walkTimer = null;
 
+// ── Breakpoints ────────────────────────────────────────────────────────────
+const simBreakpoints = new Set();
+
+function updateBreakpointBtn() {
+    const btn = document.getElementById('toolBreakBtn');
+    if (!btn) return;
+    const n = simBreakpoints.size;
+    btn.textContent = n > 0 ? `\u25CF\u202F${n}` : '\u25CF';
+    btn.classList.toggle('break-active', n > 0);
+}
+
+function renderBreakList() {
+    const el = document.getElementById('breakList');
+    if (!el) return;
+    if (simBreakpoints.size === 0) {
+        el.innerHTML = '<div class="break-empty">No breakpoints set</div>';
+        return;
+    }
+    el.innerHTML = [...simBreakpoints].sort((a,b) => a-b).map(addr =>
+        `<div class="break-item">
+            <code class="break-addr-label">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</code>
+            <button class="btn break-remove-btn" onclick="removeBreakpoint(${addr})" title="Remove">&#x2715;</button>
+        </div>`
+    ).join('');
+}
+
+function toggleBreakPopover() {
+    const pop = document.getElementById('breakPopover');
+    if (!pop) return;
+    const open = pop.style.display !== 'none';
+    pop.style.display = open ? 'none' : 'block';
+    if (!open) renderBreakList();
+}
+
+function addBreakpoint(addr) {
+    simBreakpoints.add(addr >>> 0);
+    updateBreakpointBtn();
+    renderBreakList();
+    updateDashboard();
+}
+
+function removeBreakpoint(addr) {
+    simBreakpoints.delete(addr >>> 0);
+    updateBreakpointBtn();
+    renderBreakList();
+    updateDashboard();
+}
+
+function clearAllBreakpoints() {
+    simBreakpoints.clear();
+    updateBreakpointBtn();
+    renderBreakList();
+    updateDashboard();
+}
+
+function addBreakpointFromInput() {
+    const inp = document.getElementById('breakAddrInput');
+    if (!inp) return;
+    const raw = inp.value.trim().replace(/^0x/i, '');
+    const addr = parseInt(raw, 16);
+    if (isNaN(addr)) { inp.style.borderColor = '#ef4444'; return; }
+    inp.style.borderColor = '';
+    inp.value = '';
+    addBreakpoint(addr);
+}
+
+// Close breakpoint popover when clicking outside it
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('breakWrap');
+    if (wrap && !wrap.contains(e.target)) {
+        const pop = document.getElementById('breakPopover');
+        if (pop) pop.style.display = 'none';
+    }
+});
+
 function updateWalkBtn() {
     const btn = document.getElementById('toolWalkBtn');
     if (!btn) return;
@@ -4891,6 +4974,18 @@ function walkNext() {
     if (!result) {
         walkRunning = false;
         updateWalkBtn();
+        updateDashboard();
+        return;
+    }
+    // Check breakpoint: new PC after the step
+    if (simBreakpoints.size > 0 && !sim.halted && simBreakpoints.has(sim.pc)) {
+        walkRunning = false;
+        updateWalkBtn();
+        const con2 = document.getElementById('editorConsole');
+        if (con2) {
+            con2.textContent += `\n[BP] Breakpoint at PC=0x${sim.pc.toString(16).toUpperCase().padStart(4,'0')}`;
+            con2.scrollTop = con2.scrollHeight;
+        }
         updateDashboard();
         return;
     }
@@ -4995,7 +5090,7 @@ function runSim() {
     _autoLoadDefaultProgram();
     let steps;
     try {
-        steps = sim.run(10000);
+        steps = sim.run(10000, simBreakpoints.size > 0 ? simBreakpoints : null);
     } catch(e) {
         console.error('runSim run error:', e);
         updateDashboard();
@@ -5008,6 +5103,8 @@ function runSim() {
             status = 'PP250: Returned to boot sequence.';
         } else if (sim.halted) {
             status = 'Faulted.';
+        } else if (simBreakpoints.size > 0 && simBreakpoints.has(sim.pc)) {
+            status = `Breakpoint at PC=0x${sim.pc.toString(16).toUpperCase().padStart(4,'0')}.`;
         }
         con.textContent += `\nBoot complete. Ran ${steps} steps. ${status}`;
         con.scrollTop = con.scrollHeight;

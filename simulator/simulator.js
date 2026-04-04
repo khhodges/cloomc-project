@@ -2777,11 +2777,15 @@ class ChurchSimulator {
         return { namespace: nsWords, clist: clistWords };
     }
 
-    run(maxSteps) {
+    run(maxSteps, breakpoints) {
         maxSteps = maxSteps || 10000;
         this.running = true;
         let steps = 0;
         while (this.running && !this.halted && this.bootComplete && steps < maxSteps) {
+            // Check breakpoint before executing (skip on first step so we advance past a BP we're sitting on)
+            if (steps > 0 && breakpoints && breakpoints.has(this.pc >>> 0)) {
+                break;
+            }
             const result = this.step();
             if (!result || !this.bootComplete) break;
             steps++;
