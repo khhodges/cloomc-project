@@ -1509,11 +1509,10 @@ class ChurchSimulator {
             return null;
         }
         const savedSTO = this.sto;
-        // Hardware (call.py PHASE1_DONE → STACK_WRITE_EGT) saves the CALLEE'S E-GT
-        // (callee_egt_latched = CR6.word0 after Phase 1 mLoad = sourceGT with E perm),
-        // NOT the caller's old CR6 (which is L-type post-boot, not E-type).
-        // This E-GT at STO-1 is what RETURN's cload uses to restore the callee's context.
-        const calleeEGT = sourceGT >>> 0;
+        // STO-1 stores the CALLER'S old CR6 word0 (L-type post-boot).
+        // RETURN restores CR6 from savedCRs (not from memory); STO-1 is the
+        // hardware-accurate memory layout for the thread lump display.
+        const oldCR6GT = this.cr[6].word0 >>> 0;
         const frameWord = this._packFrameWord(this.pc + 1, 1, savedSTO);
         this.callStack.push({
             returnPC:   this.pc + 1,
@@ -1525,12 +1524,12 @@ class ChurchSimulator {
             frameWord,
         });
         // Write 2-word CALL frame to thread lump stack zone (hardware-accurate):
-        //   STO+0 = frameWord   (returnPC, flags, sz, prev_STO)
-        //   STO−1 = callee E-GT (sourceGT — the E-type token used to invoke this abstraction)
+        //   STO+0 = frameWord  (returnPC, flags, sz, prev_STO)
+        //   STO−1 = old CR6 GT (caller's L-type c-list token, saved before CALL overwrites CR6)
         const callThreadBase = this.cr[12] && this.cr[12].word1;
         if (callThreadBase) {
             this.memory[callThreadBase + savedSTO]     = frameWord;
-            this.memory[callThreadBase + savedSTO - 1] = calleeEGT;
+            this.memory[callThreadBase + savedSTO - 1] = oldCR6GT;
         }
         this.sto = (savedSTO - 2) & 0xFFF;
 
@@ -1562,14 +1561,14 @@ class ChurchSimulator {
                 m: 1    // CALL Phase 1 mLoad is always M-elevated
             };
 
-            // CR6: E-only GT — same slot/seq/type as source but perms stripped to E alone.
-            // Must NOT carry L (or any other perm from a device GT like L+S+E).
-            // E is kept so the callee can do recursive CALL via CR6 directly.
+            // CR6: L-only GT — same slot/seq/type as source, perms fixed to L alone.
+            // Matches boot LOAD_NUC convention (line 621): CR6 is always the c-list load token (L).
+            // Device GTs (L+S+E) must have all other perms stripped — only L is retained.
             // M is recorded in cr.m = 1 (not in the GT perms field).
-            const cr6GT = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:0,S:0,E:1}, srcParsed.type);
+            const cr6GT = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:1,S:0,E:0}, srcParsed.type);
             const cr6Word1 = this.packNSWord1(cc - 1, 0, 0, 0, 0, 1, 0);
             this.cr[6] = {
-                word0: cr6GT,                       // E-only (no L; enabling recursive CALL without leaking device perms)
+                word0: cr6GT,                       // L-only (c-list load access; matches boot LOAD_NUC CR6)
                 word1: (base + clistStart) >>> 0,
                 word2: cr6Word1,
                 word3: nsEntry.word2_seals,
@@ -1577,10 +1576,11 @@ class ChurchSimulator {
             };
             // CR6 lives in the CALL stack frame (written above); NOT in the caps zone
 
-            cr7Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(RX M=1,cw=${cw},lim=0..${cw-1}) CR6(E M=1,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
+            cr7Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(RX M=1,cw=${cw},lim=0..${cw-1}) CR6(L M=1,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
         } else {
-            // Non-lump-header path: write E-only GT to CR6 (strip L/other perms from source GT) + M.
-            const cr6GTnorm = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:0,S:0,E:1}, srcParsed.type);
+            // Non-lump-header path: write L-only GT to CR6 (strip all except L from source GT) + M.
+            // Matches boot LOAD_NUC convention: CR6 = c-list load token (L), not E.
+            const cr6GTnorm = this.createGT(srcParsed.gt_seq, check.index, {R:0,W:0,X:0,L:1,S:0,E:0}, srcParsed.type);
             this._writeCR(6, cr6GTnorm, nsEntry);
             this.cr[6].m = 1;   // M set (CALL always M-elevated; _writeCR uses global mElevation which may be 0 post-boot)
 

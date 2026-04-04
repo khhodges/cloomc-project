@@ -264,7 +264,9 @@ class ChurchCall(Elaboratable):
         cr6_lat_gt   = View(GT_LAYOUT, cr6_lat_view.word0_gt)
         cr6_lat_w2   = View(WORD2_LAYOUT, cr6_lat_view.word2_w2)
 
-        # CR6 with corrected base, limit; perms stripped to E-only (L and others removed) — written in SET_CR6_LIMIT
+        # CR6 with corrected base, limit; perms fixed to L-only — matching boot LOAD_NUC convention.
+        # CR6 is always the c-list load token (L perm), regardless of source GT perms.
+        # Device GTs (L+S+E) have S and E stripped; regular abstraction GTs have nothing added.
         # M-elevation for CR6 is implicit: CALL FSM always sets mload_m_elevated=1 (Phase 1).
         # It is NOT encoded as a perm bit — contrast with CR14 where PERM_X = M flag.
         cr6_adjusted = Signal(CAP_REG_LAYOUT)
@@ -275,7 +277,7 @@ class ChurchCall(Elaboratable):
             cr6_adj_gt.slot_id.eq(cr6_lat_gt.slot_id),
             cr6_adj_gt.gt_seq.eq(cr6_lat_gt.gt_seq),
             cr6_adj_gt.gt_type.eq(cr6_lat_gt.gt_type),
-            cr6_adj_gt.perms.eq(cr6_lat_gt.perms & PERM_MASK_E),   # keep E only — strip L (and any other perms a device GT may carry)
+            cr6_adj_gt.perms.eq(PERM_MASK_L),   # fixed L-only — CR6 is always the c-list load token (matches boot LOAD_NUC)
             cr6_adj_gt.b_flag.eq(cr6_lat_gt.b_flag),
             # base = NS_base + (lumpSize − cc) × 4  (byte address of c-list word 0)
             cr6_adj_view.word1_location.eq(
@@ -346,9 +348,10 @@ class ChurchCall(Elaboratable):
                     m.next = "PHASE1_DONE"
 
             with m.State("PHASE1_DONE"):
-                # Combinatorially read back CR6 — mLoad has just deposited the
-                # callee's cap entry there.  Latch word0_gt (the raw E-GT) so
-                # STACK_WRITE_EGT can store it unmodified in the return frame.
+                # Combinatorially read back CR6 — Phase 1 mLoad has just deposited
+                # the callee's cap entry there.  Latch word0_gt (pre-SET_CR6_LIMIT,
+                # original perms from cload.py Phase 1) for STACK_WRITE_EGT.
+                # Note: cr6_adjusted (PERM_MASK_L) is the *final* CR6 written later.
                 m.d.comb += local_cr_rd_addr.eq(CR6_CLIST)
                 m.d.sync += callee_egt_latched.eq(
                     View(CAP_REG_LAYOUT, self.cr_rd_data).word0_gt.as_value()
