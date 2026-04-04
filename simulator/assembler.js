@@ -152,6 +152,13 @@ class ChurchAssembler {
                 continue;
             }
 
+            // The disassembler emits ".header ..." for lump header words.
+            // Skip these in both passes — they are documentation artifacts, not
+            // code instructions, and must not shift label word offsets.
+            if (/^\.header\b/i.test(line)) {
+                continue;
+            }
+
             instructions.push({ line, lineNum: lineNum + 1 });
         }
 
