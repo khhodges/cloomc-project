@@ -787,7 +787,7 @@ class CLOOMCCompiler {
             return dr;
         }
 
-        const readMatch = expr.match(/^read\s*\(\s*(\w+)\s*,\s*(.+)\s*\)$/);
+        const readMatch = expr.match(/^(?:read|DREAD)\s*\(\s*(\w+)\s*,\s*(.+)\s*\)$/);
         if (readMatch) {
             const crName = readMatch[1].toUpperCase();
             const crIdx = this._parseCR(crName);
@@ -841,7 +841,7 @@ class CLOOMCCompiler {
             return;
         }
 
-        const writeMatch = text.match(/^write\s*\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(.+)\s*\)$/);
+        const writeMatch = text.match(/^(?:write|DWRITE)\s*\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(.+)\s*\)$/);
         if (writeMatch) {
             const crIdx = this._parseCR(writeMatch[1].toUpperCase());
             const offset = parseInt(writeMatch[2]) || 0;
