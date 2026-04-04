@@ -11104,6 +11104,7 @@ const SYNTAX_REF = {
             ]},
             { heading: "Calls & Returns", items: [
                 { syntax: "result = call(<em>Memory.Allocate</em>(<em>size</em>))", desc: "Call via c-list" },
+                { syntax: "recall()", desc: "Re-call self — CALL CR6 (current abstraction)" },
                 { syntax: "return(<em>result</em>)", desc: "Return value in DR0" },
             ]},
             { heading: "Memory & Bit Fields", items: [
@@ -12369,6 +12370,40 @@ abstraction StackOverflow {
     method run() {
         call(StackOverflow.run())
         RETURN
+    }
+}`,
+
+        'recall_demo': `// ── recall() — Re-call self via CR6 ──
+// recall() compiles to a single instruction: CALL CR6
+// CR6 always holds the current abstraction, so this
+// re-enters the same abstraction from its entry point.
+//
+// Architecturally this is the Church Machine's event-
+// loop primitive: the abstraction handles one event,
+// then calls itself to handle the next.
+//
+// NOTE: Each recall() pushes a new stack frame.
+// Without a matching return() first, the call stack
+// grows on every iteration and will eventually trigger
+// FAULT [STACK_OVERFLOW] — exactly as designed.
+// A production event loop would pair recall() with GC
+// to reclaim old frames between iterations.
+//
+// HOW TO RUN:
+//   1. Click Compile (or Ctrl+Enter)
+//   2. Click  Create Abstraction
+//   3. Step through in the Pipeline view
+//   4. Watch STO count down on every recall()
+
+abstraction Feedback {
+    capabilities {
+    }
+
+    // Re-enters itself after doing a unit of work.
+    // Replace the body with real logic (read, write, call)
+    // to build an event-driven feedback loop.
+    method run() {
+        recall()
     }
 }`,
     };

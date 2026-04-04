@@ -857,6 +857,24 @@ class CLOOMCCompiler {
             return;
         }
 
+        // recall() — re-call the current abstraction (CR6) directly → CALL CR6
+        const recallMatch = text.match(/^recall\s*\(\s*(.*?)\s*\)$/);
+        if (recallMatch) {
+            const argStr = recallMatch[1];
+            if (argStr) {
+                const args = argStr.split(',').map(s => s.trim()).filter(Boolean);
+                for (let a = 0; a < args.length && a <= this.DR_ARGS_END; a++) {
+                    const argDR = this._resolveExpr(args[a], code, locals, rom, errors, stmt.lineNum, method);
+                    if (argDR !== a) {
+                        code.push(this.encode(this.opcodes.IADD, 14, a, argDR, 0));
+                    }
+                }
+            }
+            manifest.push({ src: stmt.lineNum, addr: code.length, desc: 'CALL CR6 (recall self)' });
+            code.push(this.encode(this.opcodes.CALL, 14, 6, 0, 0));
+            return;
+        }
+
         const callMatch = text.match(/^(?:(\w+)\s*=\s*)?call\s*\(\s*(\w+)\.(\w+)\s*\(\s*(.*?)\s*\)\s*\)$/);
         if (callMatch) {
             const resultVar = callMatch[1] || null;
