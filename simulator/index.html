@@ -268,12 +268,12 @@
             <div class="editor-divider" id="editorDivider"></div>
             <div class="editor-panel console-panel">
                 <div class="sidebar-tabs">
-                    <button class="sidebar-tab" id="codeTabConsole" onclick="switchCodeTab('console')" data-tooltip="Console Output — View assembler output and execution results">Console Output</button>
+                    <button class="sidebar-tab active" id="codeTabConsole" onclick="switchCodeTab('console')" data-tooltip="Console Output — View assembler output and execution results">Console Output</button>
                     <button class="sidebar-tab" id="codeTabSyntax" onclick="switchCodeTab('syntax')" data-tooltip="Syntax — Quick reference for instruction syntax">Syntax</button>
-                    <button class="sidebar-tab active" id="codeTabHistory" onclick="switchCodeTab('history')" data-tooltip="History — Stories and context about Church Machine concepts">History</button>
+                    <button class="sidebar-tab" id="codeTabHistory" onclick="switchCodeTab('history')" data-tooltip="History — Stories and context about Church Machine concepts">History</button>
                     <button class="sidebar-tab" id="codeTabJs" onclick="switchCodeTab('js')" data-tooltip="JS Source — Browse the simulator JS files that implement the boot code">JS</button>
                 </div>
-                <div id="codeConsoleContent" style="display:none;">
+                <div id="codeConsoleContent" style="display:block;">
                     <div id="ledStrip" class="led-strip">
                         <div class="led-strip-leds">
                             <div class="led-wrap"><div class="led" id="led0"></div><span class="led-lbl">0</span></div>
@@ -295,7 +295,7 @@
                 <div id="codeSyntaxPanel" style="display:none;">
                     <div id="syntaxRefContent"></div>
                 </div>
-                <div id="codeHistoryPanel">
+                <div id="codeHistoryPanel" style="display:none;">
                     <div style="display:flex;justify-content:flex-end;gap:0.4rem;padding:0.3rem 0;">
                         <button class="btn" onclick="historyShowStepGuide()" style="padding:0.2rem 0.6rem;font-size:0.75rem;" data-tooltip="How to Step — Learn how to single-step through programs">How to Step</button>
                         <button class="btn btn-primary" onclick="historyNewCodeStory()" style="padding:0.2rem 0.6rem;font-size:0.75rem;" data-tooltip="Another Story — Generate a new story about this code">Another Story</button>
