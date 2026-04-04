@@ -443,6 +443,7 @@ class ChurchSimulator {
         // physical lumps.  Abstract GTs (type=3) are only minted at runtime by Navana.Abstraction.Add
         // and Navana.MintPassKey; the boot ROM never creates them.
         if (this.bootComplete) return false;   // nothing to do once boot has finished
+        if (this.halted) return false;         // stop re-entering after a boot fault (prevents infinite loop in runSim)
 
         switch (this.bootStep) {
 

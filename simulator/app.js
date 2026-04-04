@@ -298,7 +298,22 @@ function init() {
         if (currentView === 'namespace') updateNamespace();
         if (currentView === 'abstractions') renderAbstractions();
     });
-    sim.on('fault', (f) => { appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error'); faultAlertOn(); showFaultModal(f); });
+    sim.on('fault', (f) => {
+        appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error');
+        faultAlertOn();
+        try {
+            showFaultModal(f);
+        } catch(err) {
+            console.error('[fault] showFaultModal threw:', err);
+            // Retry outside the synchronous sim.run() call stack so the modal
+            // is not inside the try-catch that wraps sim.run().
+            setTimeout(() => {
+                try { showFaultModal(f); } catch(e2) {
+                    console.error('[fault] showFaultModal retry failed:', e2);
+                }
+            }, 0);
+        }
+    });
     sim.on('halt', () => appendOutput('Machine halted.', 'info'));
 
     loadUserTabs();
@@ -4922,20 +4937,24 @@ function _autoLoadDefaultProgram() {
     assembleAndLoad();
 }
 function slowBoot() {
-    if (bootAnimating || sim.bootComplete) return;
+    if (bootAnimating || sim.bootComplete || sim.halted) return;
     bootAnimating = true;
     const delay = 800;
     function nextPhase() {
         try {
-            if (sim.bootComplete) {
+            if (sim.bootComplete || sim.halted) {
                 bootAnimating = false;
                 const con = document.getElementById('editorConsole');
                 if (con) {
-                    con.textContent += '\n--- Boot sequence complete ---';
+                    if (sim.halted) {
+                        con.textContent += '\n--- Boot sequence FAULTED ---';
+                    } else {
+                        con.textContent += '\n--- Boot sequence complete ---';
+                    }
                     con.scrollTop = con.scrollHeight;
                 }
                 if (pipelineViz) { pipelineViz.setNIA(null); pipelineViz.render(); }
-                _autoLoadDefaultProgram();
+                if (!sim.halted) _autoLoadDefaultProgram();
                 updateDashboard();
                 return;
             }
@@ -4964,7 +4983,7 @@ function slowBoot() {
 
 function runSim() {
     switchView('dashboard');
-    while (!sim.bootComplete) {
+    while (!sim.bootComplete && !sim.halted) {
         try {
             sim._bootStep();
         } catch(e) {
