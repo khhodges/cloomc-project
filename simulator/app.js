@@ -1134,7 +1134,7 @@ function injectCRCode(logEl) {
         const oldW1 = sim.memory[nsBase + 1] >>> 0;
         const oldW2 = sim.memory[nsBase + 2] >>> 0;
         const w1f = sim.parseNSWord1(oldW1);
-        const newLimit17 = newCW;
+        const newLimit17 = newCW - 1;
         const newW1 = sim.packNSWord1(newLimit17, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, w1f.clistCount);
         sim.memory[nsBase + 1] = newW1;
 

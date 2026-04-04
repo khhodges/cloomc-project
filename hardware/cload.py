@@ -118,7 +118,7 @@ class ChurchCLoad(Elaboratable):
             cr14_gt_view.perms.eq(PERM_MASK_X),
             cr14_gt_view.b_flag.eq(0),
             cr14_view.word1_location.eq(raw_base + 4),
-            cr14_w2_view.limit_offset.eq(lump_size_reg - cc_reg - 2),
+            cr14_w2_view.limit_offset.eq(lump_size_reg - cc_reg - 1),    # cw-1 (inclusive last valid PC; cw = lump_size - cc)
             cr14_w2_view.gt_seq.eq(e_gt_view.gt_seq),
             cr14_w2_view.spare.eq(0),
             cr14_view.word3_w3.eq(raw_w3),

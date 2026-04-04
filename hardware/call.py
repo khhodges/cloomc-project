@@ -252,7 +252,7 @@ class ChurchCall(Elaboratable):
             cr14_wl_gt.perms.eq(cr14_wm_gt.perms),        # includes PERM_X (M=1)
             cr14_wl_gt.b_flag.eq(cr14_wm_gt.b_flag),
             cr14_wl_view.word1_location.eq(cr14_wm_view.word1_location),  # NS_base+4
-            cr14_wl_w2.limit_offset.eq(cw_reg),                           # cw (first invalid PC offset)
+            cr14_wl_w2.limit_offset.eq(cw_reg - 1),                       # cw-1 (inclusive last valid PC; matches NS format convention)
             cr14_wl_w2.gt_seq.eq(cr14_lat_w2.gt_seq),
             cr14_wl_w2.spare.eq(0),
             cr14_wl_view.word3_w3.eq(cr14_wm_view.word3_w3),

@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import View
 
 from .hw_types import *
-from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, COND_FLAGS_LAYOUT
+from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, WORD2_LAYOUT, COND_FLAGS_LAYOUT
 from .registers import ChurchRegisters
 from .decoder import ChurchDecoder
 from .perm_check import ChurchPermCheck
@@ -500,6 +500,18 @@ class ChurchCore(Elaboratable):
             m.d.sync += [
                 code_lo_reg.eq(u_call.code_lo_out),
                 code_hi_reg.eq(u_call.code_hi_out),
+            ]
+        with m.Elif(u_cload.cr_wr_en & (u_cload.cr_wr_addr == CR_CODE)):
+            # cload (triggered by cross-domain RETURN) writes CR14 with the caller's
+            # restored code cap.  Re-establish the fence from the new CR14 value.
+            cr14_cload_view = View(CAP_REG_LAYOUT, u_cload.cr_wr_data)
+            cr14_cload_w2   = View(WORD2_LAYOUT,   cr14_cload_view.word2_w2)
+            m.d.sync += [
+                code_lo_reg.eq(cr14_cload_view.word1_location),
+                code_hi_reg.eq(
+                    cr14_cload_view.word1_location +
+                    ((cr14_cload_w2.limit_offset + 1) << 2)   # limit_offset is inclusive (cw-1)
+                ),
             ]
 
         m.d.comb += [
