@@ -5623,27 +5623,58 @@ function updateFPGAStatusBtn() {
     }
 }
 
+function _fpgaLog(msg) {
+    // Write to the editor console so the user can see FPGA feedback
+    const con = document.getElementById('editorConsole');
+    if (con) {
+        con.textContent += '\n' + msg;
+        con.scrollTop = con.scrollHeight;
+        switchView('editor');
+    }
+}
+
 async function fpgaConnectToggle() {
     const btn = document.getElementById('fpgaConnBtn');
-    if (typeof TangSerial === 'undefined') return;
+    if (typeof TangSerial === 'undefined') {
+        _fpgaLog('FPGA: WebSerial driver not loaded.');
+        return;
+    }
     if (TangSerial.isConnected()) {
         try {
             await TangSerial.disconnect();
+            _fpgaLog('FPGA: Disconnected.');
         } catch(e) {
-            console.warn('FPGA disconnect error:', e.message);
+            _fpgaLog('FPGA disconnect error: ' + e.message);
         }
         updateFPGAStatusBtn();
         return;
     }
-    // Attempt connect
+    if (!TangSerial.isSupported()) {
+        _fpgaLog('FPGA: WebSerial not supported in this browser.\nUse Chrome or Edge, and open the app directly (not through the Replit preview iframe).');
+        updateFPGAStatusBtn();
+        return;
+    }
+    // Attempt connect — show connecting state on button
     if (btn) {
         btn.className = 'btn fpga-conn-btn fpga-connecting';
         btn.textContent = '⬡ FPGA …';
     }
+    _fpgaLog('FPGA: Connecting — select your FPGA serial port in the browser dialog…');
     try {
         await TangSerial.connect();
+        _fpgaLog('FPGA: Connected ✓');
     } catch(e) {
-        console.warn('FPGA connect failed:', e.message);
+        const msg = e.message || String(e);
+        if (msg.includes('permissions policy') || msg.includes('disallowed')) {
+            _fpgaLog('FPGA: WebSerial blocked by the browser permissions policy.\n' +
+                     'This happens in the Replit preview iframe.\n' +
+                     'To connect your FPGA: open the published/deployed app URL directly in Chrome,\n' +
+                     'or use the dedicated "Deploy to Tang" button in the Build tab.');
+        } else if (msg.includes('No port selected') || msg.includes('user cancelled') || msg.includes('AbortError')) {
+            _fpgaLog('FPGA: Port selection cancelled — no port chosen.');
+        } else {
+            _fpgaLog('FPGA connect failed: ' + msg);
+        }
     }
     updateFPGAStatusBtn();
 }
