@@ -160,6 +160,31 @@ header h1 {
     letter-spacing: 0;
 }
 
+.cr-cycle-btn {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.55rem;
+    font-family: var(--font-mono, monospace);
+    min-width: 2.5rem;
+    text-align: center;
+    border-color: rgba(100, 140, 200, 0.35);
+    color: #90b8f0;
+    position: relative;
+}
+
+.cr-cycle-btn:hover {
+    border-color: #90b8f0;
+    color: #c8e0ff;
+    background: rgba(58, 134, 255, 0.12);
+}
+
+.cr-cycle-btn.cr-cycle-detail {
+    background: rgba(58, 134, 255, 0.18);
+    border-color: #3a86ff;
+    color: #c8e0ff;
+}
+
 .ham-dropdown {
     position: absolute;
     top: calc(100% + 6px);

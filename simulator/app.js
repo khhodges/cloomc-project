@@ -864,6 +864,45 @@ function updateCRDisplay() {
 
 let selectedCR = null;
 
+// ── CR cycle button ───────────────────────────────────────────────────────────
+// Cycles through three dashboard views:
+//   0 → CR0-CR15  (register table)
+//   1 → CR14 CLOOMC  (detail)
+//   2 → CR12 Thread  (detail)
+let _crCycleState = 0;
+
+const _crCycleViews = [
+    { label: 'CRs',  title: 'CR0–CR15 — 128-bit Context Registers (4 × 32-bit words)' },
+    { label: 'CR14', title: 'CR14 — CLOOMC' },
+    { label: 'CR12', title: 'CR12 — Thread' },
+];
+
+function cycleCRView() {
+    _crCycleState = (_crCycleState + 1) % 3;
+    _applyCRCycleState();
+}
+
+function _applyCRCycleState() {
+    switchView('dashboard');
+    const cur  = _crCycleViews[_crCycleState];
+    const next = _crCycleViews[(_crCycleState + 1) % 3];
+    const btn  = document.getElementById('crCycleBtn');
+    if (btn) {
+        btn.textContent = cur.label;
+        btn.setAttribute('data-tooltip',
+            `${cur.title} · click for ${next.title}`);
+        btn.classList.toggle('cr-cycle-detail', _crCycleState !== 0);
+    }
+    if (_crCycleState === 0) {
+        switchDashTab('cr');
+    } else if (_crCycleState === 1) {
+        openCRDetail(14);
+    } else {
+        openCRDetail(12);
+    }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function openCRDetail(crIdx) {
     selectedCR = crIdx;
     crDetailTab = 'content';

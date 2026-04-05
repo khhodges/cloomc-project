@@ -94,6 +94,9 @@
                             <button class="ham-item" id="hamItem-github" onclick="switchView('github');closeHamburger()">GitHub</button>
                         </div>
                     </div>
+                    <button class="btn btn-view cr-cycle-btn" id="crCycleBtn"
+                            onclick="cycleCRView()"
+                            data-tooltip="CR0–15 — Context Registers · click to cycle: CR0-15 → CR14 CLOOMC → CR12 Thread">CRs</button>
                 </div>
                 <div class="sim-exec-btns">
                     <button class="btn btn-warning sim-icon-btn fault-idle" id="toolFaultBtn" onclick="faultClear()" data-tooltip="Fault — Clear the fault state and resume">&#x26A1;</button>
