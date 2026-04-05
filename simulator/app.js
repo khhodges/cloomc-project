@@ -1108,6 +1108,9 @@ function switchCRDetailTab(tab) {
 function scrollToThreadZone(zone) {
     switchCRDetailTab('content');
     const id = 'thread-zone-' + zone;
+    // Zone 2 (LIFO Stack) header is at the BOTTOM of the zone (adjacent to the sentinel frame).
+    // Scroll it into view at the BOTTOM of the visible area so the frames above it are visible.
+    const anchorAtEnd = (zone === 2);
     // Allow the panel to become visible before scrolling
     requestAnimationFrame(() => {
         const target = document.getElementById(id);
@@ -1124,15 +1127,23 @@ function scrollToThreadZone(zone) {
             // Account for sticky elements that sit on top of the scroll viewport:
             //   1. .crd-tabs   — sticky at top:0   (tab row with zone buttons)
             //   2. .thread-layout-sticky — sticky at top:tabsHeight (lump header block)
-            // Both live inside the same scroller so their offsetHeight gives the true coverage.
             const tabsEl   = scroller.querySelector('.crd-tabs');
             const stickyEl = scroller.querySelector('.thread-layout-sticky');
             const tabsH    = tabsEl   ? tabsEl.offsetHeight   : 46;
             const stickyH  = stickyEl ? stickyEl.offsetHeight : 0;
-            const stickyOffset = tabsH + stickyH + 6;  // +6px breathing room
-            scroller.scrollTo({ top: Math.max(0, targetTop - stickyOffset), behavior: 'smooth' });
+            const stickyOffset = tabsH + stickyH + 6;
+            let scrollTop;
+            if (anchorAtEnd) {
+                // Position the target near the BOTTOM of the visible area so the
+                // stack frames (rows just above the header banner) are in view.
+                const visibleH = scroller.clientHeight - stickyOffset;
+                scrollTop = Math.max(0, targetTop - visibleH + target.offsetHeight + 12);
+            } else {
+                scrollTop = Math.max(0, targetTop - stickyOffset);
+            }
+            scroller.scrollTo({ top: scrollTop, behavior: 'smooth' });
         } else {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            target.scrollIntoView({ behavior: 'smooth', block: anchorAtEnd ? 'end' : 'start' });
         }
     });
 }
