@@ -1262,6 +1262,7 @@ function updateCRDetail() {
     if (showEditButton) {
         html += `<button class="crd-tab crd-tab-action" onclick="editCRCodeInEditor()" title="Load this code lump into the assembly editor">&#x270E; Edit</button>`;
         html += `<button class="crd-tab crd-tab-action" onclick="(function(){var el=document.getElementById('crInjectLog');if(el){el.style.display='block';el.textContent='';}injectCRCode(el);})()" title="Assemble editor content and patch this code lump">&#x21A9; Patch</button>`;
+        html += `<button class="crd-tab crd-tab-action crd-tab-fpga" onclick="(function(){var el=document.getElementById('crInjectLog');if(el){el.style.display='block';el.textContent='';}injectCRCodeToFPGA(el);})()" title="Patch simulator then send the new code lump to the FPGA over UART">&#x21A9; Patch FPGA</button>`;
     }
     html += '</div>';
 
@@ -1339,14 +1340,6 @@ function updateCRDetail() {
             html += codeHtml;
         }
 
-        // Inject panel — FPGA patch only; Edit and Patch Simulator are in the toolbar
-        html += `<div class="cr-inject-bar">`;
-        html += `<button class="btn btn-sm" onclick="(function(){`;
-        html += `var el=document.getElementById('crInjectLog');`;
-        html += `el.style.display='block';el.textContent='';`;
-        html += `injectCRCodeToFPGA(el);`;
-        html += `})()" title="Patch simulator then send the new code lump to the FPGA over UART">&#x21A9; Patch FPGA</button>`;
-        html += `</div>`;
         html += `<pre id="crInjectLog" class="cr-inject-log" style="display:none;"></pre>`;
 
         html += '</div>';

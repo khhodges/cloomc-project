@@ -4099,7 +4099,6 @@ a.next-step-link:hover {
 }
 
 .crd-tab-action {
-    margin-left: auto;
     background: #1a3a1a;
     border-color: #4caf50;
     color: #4caf50;
@@ -4107,6 +4106,16 @@ a.next-step-link:hover {
 .crd-tab-action:hover {
     background: #4caf50;
     border-color: #4caf50;
+    color: white;
+}
+.crd-tab-fpga {
+    background: #1a2a3a;
+    border-color: #3a86ff;
+    color: #3a86ff;
+}
+.crd-tab-fpga:hover {
+    background: #3a86ff;
+    border-color: #3a86ff;
     color: white;
 }
 
