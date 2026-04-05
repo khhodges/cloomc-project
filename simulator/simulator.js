@@ -1561,9 +1561,11 @@ class ChurchSimulator {
             }
         }
 
-        // Stack overflow: need 2 words for frame (at sto and sto-1)
+        // Stack overflow: need 2 words for frame (at sto and sto-1).
+        // Hardware reports this as a RANGE fault on CR14 (the code-execution token),
+        // because the stack growing into the code region is detected as a bounds violation.
         if (this.sto < 2) {
-            this.fault('STACK_OVERFLOW', `CALL CR${d.crDst}: call stack overflow — STO=${this.sto}, stack exhausted after ${this.callStack.length} frame(s). Thread lump full.`);
+            this.fault('RANGE', `CALL CR${d.crDst}: stack overflow — STO=${this.sto} exhausted (${this.callStack.length} frame(s) deep); CR14 limit exceeded, thread lump full`);
             return null;
         }
         const savedSTO = this.sto;
@@ -2094,9 +2096,10 @@ class ChurchSimulator {
             }
         }
 
-        // Stack overflow: need 2 words for frame (at sto and sto-1)
+        // Stack overflow: need 2 words for frame (at sto and sto-1).
+        // Hardware reports this as a RANGE fault on CR14 (bounds violation in the code region).
         if (this.sto < 2) {
-            this.fault('STACK_OVERFLOW', `ELOADCALL CR${d.crDst}: call stack overflow — STO=${this.sto}, stack exhausted after ${this.callStack.length} frame(s). Thread lump full.`);
+            this.fault('RANGE', `ELOADCALL CR${d.crDst}: stack overflow — STO=${this.sto} exhausted (${this.callStack.length} frame(s) deep); CR14 limit exceeded, thread lump full`);
             return null;
         }
         const savedSTO_ec = this.sto;

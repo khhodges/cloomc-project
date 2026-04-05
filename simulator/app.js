@@ -5523,32 +5523,133 @@ function runSim() {
         }
     }
     _autoLoadDefaultProgram();
-    let runResult;
-    try {
-        runResult = sim.run(10000, simBreakpoints.size > 0 ? simBreakpoints : null);
-    } catch(e) {
-        console.error('runSim run error:', e);
-        updateDashboard();
-        return;
-    }
-    const { steps, stopReason, breakpointAddr } = runResult;
-    const con = document.getElementById('editorConsole');
+
+    const MAX_STEPS   = 10000;
+    const BATCH_SIZE  = 500;          // steps per chunk before yielding to the UI
+    const breakpoints = simBreakpoints.size > 0 ? simBreakpoints : null;
+    const con         = document.getElementById('editorConsole');
+    const runBtn      = document.getElementById('btnRunSim');
+
+    // Show "Running…" progress line in console and disable Run while executing
     if (con) {
-        let status = 'Stopped.';
-        if (stopReason === 'bootExit' || !sim.bootComplete) {
-            status = 'PP250: Returned to boot sequence.';
-        } else if (stopReason === 'halted' || sim.halted) {
-            status = 'Faulted.';
-        } else if (stopReason === 'breakpoint' && breakpointAddr !== null) {
-            status = `Breakpoint at 0x${breakpointAddr.toString(16).toUpperCase().padStart(4,'0')}.`;
-        } else if (stopReason === 'maxSteps') {
-            status = `Max steps (${steps}) reached.`;
-        }
-        con.textContent += `\nBoot complete. Ran ${steps} steps. ${status}`;
+        con.textContent += '\nRunning…';
         con.scrollTop = con.scrollHeight;
     }
-    updateDashboard();
+    if (runBtn) { runBtn.disabled = true; runBtn.style.opacity = '0.5'; }
+
+    let totalSteps = 0;
+
+    function runBatch() {
+        if (!sim.bootComplete || sim.halted || totalSteps >= MAX_STEPS) {
+            finishRun('stopped');
+            return;
+        }
+        try {
+            const batchMax = Math.min(BATCH_SIZE, MAX_STEPS - totalSteps);
+            const result   = sim.run(batchMax, breakpoints);
+            totalSteps += result.steps;
+
+            // Update the progress line live
+            if (con) {
+                // Replace the last line with updated step count + PC
+                const phys = sim.physicalPC;
+                const pcHex = '0x' + (phys >>> 0).toString(16).toUpperCase().padStart(4, '0');
+                const lines  = con.textContent.split('\n');
+                lines[lines.length - 1] = `Running… ${totalSteps} steps  PC=${pcHex}`;
+                con.textContent = lines.join('\n');
+                con.scrollTop = con.scrollHeight;
+            }
+
+            if (result.stopReason !== 'maxSteps') {
+                finishRun(result.stopReason, result.breakpointAddr);
+            } else if (totalSteps >= MAX_STEPS) {
+                finishRun('maxSteps');
+            } else {
+                // Yield to browser for a frame, then continue
+                setTimeout(runBatch, 0);
+            }
+        } catch(e) {
+            console.error('runSim batch error:', e);
+            finishRun('error');
+        }
+    }
+
+    function finishRun(stopReason, breakpointAddr) {
+        if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = ''; }
+        if (con) {
+            let status = 'Stopped.';
+            if (stopReason === 'bootExit' || !sim.bootComplete) {
+                status = 'PP250: Returned to boot sequence.';
+            } else if (stopReason === 'halted' || sim.halted) {
+                status = 'Faulted.';
+            } else if (stopReason === 'breakpoint' && breakpointAddr != null) {
+                status = `Breakpoint at 0x${breakpointAddr.toString(16).toUpperCase().padStart(4,'0')}.`;
+            } else if (stopReason === 'maxSteps') {
+                status = `Max steps (${totalSteps}) reached.`;
+            } else if (stopReason === 'error') {
+                status = 'Runtime error — see console.';
+            }
+            const lines = con.textContent.split('\n');
+            lines[lines.length - 1] = `Boot complete. Ran ${totalSteps} steps. ${status}`;
+            con.textContent = lines.join('\n');
+            con.scrollTop = con.scrollHeight;
+        }
+        updateDashboard();
+    }
+
+    // Kick off the first batch
+    setTimeout(runBatch, 0);
 }
+
+// ── FPGA connection status indicator ─────────────────────────────────────────
+
+function updateFPGAStatusBtn() {
+    const btn = document.getElementById('fpgaConnBtn');
+    if (!btn) return;
+    if (typeof TangSerial === 'undefined') {
+        btn.className = 'btn fpga-conn-btn';
+        btn.textContent = '⬡ FPGA';
+        btn.title = 'WebSerial not available';
+        return;
+    }
+    if (TangSerial.isConnected()) {
+        btn.className = 'btn fpga-conn-btn fpga-connected';
+        btn.textContent = '⬡ FPGA ✓';
+        btn.setAttribute('data-tooltip', 'FPGA Connected — click to disconnect');
+    } else {
+        btn.className = 'btn fpga-conn-btn fpga-disconnected';
+        btn.textContent = '⬡ FPGA';
+        btn.setAttribute('data-tooltip', 'FPGA Disconnected — click to connect');
+    }
+}
+
+async function fpgaConnectToggle() {
+    const btn = document.getElementById('fpgaConnBtn');
+    if (typeof TangSerial === 'undefined') return;
+    if (TangSerial.isConnected()) {
+        try {
+            await TangSerial.disconnect();
+        } catch(e) {
+            console.warn('FPGA disconnect error:', e.message);
+        }
+        updateFPGAStatusBtn();
+        return;
+    }
+    // Attempt connect
+    if (btn) {
+        btn.className = 'btn fpga-conn-btn fpga-connecting';
+        btn.textContent = '⬡ FPGA …';
+    }
+    try {
+        await TangSerial.connect();
+    } catch(e) {
+        console.warn('FPGA connect failed:', e.message);
+    }
+    updateFPGAStatusBtn();
+}
+
+// Poll FPGA status every 2 s so the indicator stays current
+setInterval(updateFPGAStatusBtn, 2000);
 
 function faultAlertOn() {
     const btn = document.getElementById('toolFaultBtn');
@@ -5580,6 +5681,7 @@ const _FAULT_COLORS = {
     BIND:         '#c0a030', FAR:         '#c08030', DOMAIN_PURITY:'#e05555',
     BOOT:         '#e05555', MATH_ERROR:  '#c0a030', DOMAIN_ERROR: '#c0a030',
     STACK_OVERFLOW:'#e05555', STACK_UNDERFLOW:'#e05555', TYPE: '#e05555',
+    RANGE:        '#e05555',
 };
 
 // Numeric fault codes matching hw_types.py FaultType enum (5-bit UART field).
@@ -5589,6 +5691,7 @@ const _FAULT_CODES = {
     NULL_CAP:0x07, BOUNDS:0x08, VERSION:0x09, SEAL:0x0A, INVALID_OP:0x0B,
     TPERM_RSV:0x0C, DOMAIN_PURITY:0x0D, BIND:0x0E, F_BIT:0x0F,
     STACK_OVERFLOW:0x10, ABSENT_OUTFORM:0x11, STACK_CORRUPT:0x12, STACK_UNDERFLOW:0x13,
+    RANGE:        0x10,   // stack overflow manifests as RANGE violation on CR14 (same code)
     // Software-only (no hardware code):
     PERM:null, FAR:null, BOOT:null, MATH_ERROR:null,
     DOMAIN_ERROR:null, HANDLER:null, PERMISSION:null, TYPE:null,
@@ -14303,6 +14406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initAllTabOverflows();
     adjustViewTop();
     initCodeCopyButtons();
+    updateFPGAStatusBtn();
 });
 
 function addCopyButton(pre) {

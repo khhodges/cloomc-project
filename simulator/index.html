@@ -114,8 +114,9 @@
                             <button class="btn btn-sm break-clear-btn" onclick="clearAllBreakpoints()">Clear All</button>
                         </div>
                     </div>
-                    <button class="btn btn-success sim-icon-btn" onclick="runSim()" data-tooltip="Run — Execute until halt, fault, or breakpoint">&#x1F3C3;</button>
+                    <button class="btn btn-success sim-icon-btn" id="btnRunSim" onclick="runSim()" data-tooltip="Run — Execute until halt, fault, or breakpoint">&#x1F3C3;</button>
                     <button class="btn btn-warning sim-icon-btn" onclick="resetSim()" data-tooltip="Boot — Reset and run the boot sequence">&#x21BA;</button>
+                    <button class="btn fpga-conn-btn" id="fpgaConnBtn" onclick="fpgaConnectToggle()" data-tooltip="FPGA — Click to connect or reconnect hardware">&#x26AC; FPGA</button>
                 </div>
                 <div class="sim-controls">
                     <button class="btn btn-view btn-share-icon" onclick="openShareLink()" data-tooltip="Share — Copy link to open on another device">&#x1F517;</button>
@@ -222,6 +223,7 @@
                             <option value="personal">My Programs</option>
                         </select>
                         <button class="btn" onclick="compileDraft()" style="background:#C89B3C;color:#141414;border:none;font-weight:bold;" data-tooltip="Draft — Show compilation draft: methods, capabilities, and lump layout">Draft</button>
+                        <button class="btn btn-compile-inline" id="btnToolbarCompile" onclick="smartCompile()" data-tooltip="Compile — Compile with auto-detected or selected language">Compile</button>
                     </div>
                 </div>
                 <div class="example-tabs-row">
