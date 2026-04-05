@@ -1319,7 +1319,7 @@ function updateCRDetail() {
             const rowClass = isPC ? 'code-pc-row' : (isBP ? 'code-bp-row' : '');
             const decoded  = word === 0 ? 'NOP / HALT' : asm.disassemble(word);
             const bpDot    = isBP ? '<span class="bp-dot" title="Breakpoint">&#x25CF;</span> ' : '';
-            codeHtml += `<tr class="${rowClass}">`;
+            codeHtml += `<tr class="${rowClass}" style="cursor:pointer;" title="Double-click to set breakpoint" ondblclick="openBreakPopoverAt(${addr})">`;
             codeHtml += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
             codeHtml += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
             codeHtml += `<td class="code-disasm">${bpDot}${decoded}</td>`;
@@ -4858,6 +4858,19 @@ function toggleBreakPopover() {
     const open = pop.style.display !== 'none';
     pop.style.display = open ? 'none' : 'block';
     if (!open) renderBreakList();
+}
+
+function openBreakPopoverAt(addr) {
+    const pop = document.getElementById('breakPopover');
+    if (!pop) return;
+    pop.style.display = 'block';
+    renderBreakList();
+    const inp = document.getElementById('breakAddrInput');
+    if (inp) {
+        inp.value = '0x' + (addr >>> 0).toString(16).toUpperCase().padStart(4, '0');
+        inp.focus();
+        inp.select();
+    }
 }
 
 function addBreakpoint(addr) {
