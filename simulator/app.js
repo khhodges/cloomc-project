@@ -2285,7 +2285,9 @@ function renderThreadMemoryLayout(nsIndex) {
     // ── Zone ②: LIFO Stack (+212 … +243) ─────────────────────────────────
     const stackWords = sim.memory.slice(slotBase + TL.STACK_START, slotBase + TL.STACK_END + 1);
     const stackUsed  = stackWords.filter(Boolean).length;
-    html += secHdr('②', 'LIFO Stack ↓', `32 words · STO=sp_max=243 (empty) · grows ↓ · sentinel frame: E-GT@+242, fw@+243 (NIA=0x7FFF) · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8', 'thread-zone-2');
+    const stoLive    = (sim.sto != null) ? sim.sto : TL.STACK_END;
+    // Scroll anchor at top; table first; zone header banner at bottom.
+    html += `<div id="thread-zone-2">`;
     html += '<table class="ns-mem-table thread-zone-table"><thead><tr><th>Off</th><th>Addr</th><th>Hex</th><th>Decoded</th></tr></thead><tbody>';
     for (let i = 0; i < TL.STACK_WORDS; i++) {
         const off  = TL.STACK_START + i;
@@ -2319,6 +2321,8 @@ function renderThreadMemoryLayout(nsIndex) {
         html += `<tr${rowStyle}><td style="color:#38bdf8;">+${off}</td><td style="font-family:monospace;">${addrOf(off)}</td><td style="color:rgba(206,145,120,0.85);font-family:monospace;">${hex}</td><td>${decoded}</td></tr>`;
     }
     html += '</tbody></table>';
+    html += secHdr('②', 'LIFO Stack ↑', `32 words · STO=${stoLive} · grows ↑ · sentinel: E-GT@+242, fw@+243 (NIA=0x7FFF) · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8');
+    html += '</div>';
 
     // ── Zone ①: Capabilities (+244 … +255) ───────────────────────────────
     html += secHdr('①', 'Capabilities', `12 words · CR0–CR11 · offset +244 … +255 · c-list tail · saved/restored on context switch`, '#f4b942', 'thread-zone-1');
