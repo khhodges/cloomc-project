@@ -5060,18 +5060,23 @@ function walkNext() {
         updateDashboard();
         return;
     }
-    // Check breakpoint: compare against physicalPC (the memory address of the next fetch),
-    // not sim.pc (which is a relative offset within the lump).
-    if (simBreakpoints.size > 0 && !sim.halted && simBreakpoints.has(sim.physicalPC >>> 0)) {
-        walkRunning = false;
-        updateWalkBtn();
-        const con2 = document.getElementById('editorConsole');
-        if (con2) {
-            con2.textContent += `\n[BP] Breakpoint at 0x${(sim.physicalPC >>> 0).toString(16).toUpperCase().padStart(4,'0')}`;
-            con2.scrollTop = con2.scrollHeight;
+    // Stop-before-execute breakpoint check: after the step, ask the simulator for the
+    // physical address of the NEXT instruction (current this.pc + CR14 lump base).
+    // This gives "stop before executing the instruction at the BP address" semantics,
+    // matching the run() loop in simulator.js.
+    if (simBreakpoints.size > 0 && !sim.halted) {
+        const nextAddr = sim._nextPhysicalAddr();
+        if (nextAddr >= 0 && simBreakpoints.has(nextAddr >>> 0)) {
+            walkRunning = false;
+            updateWalkBtn();
+            const con2 = document.getElementById('editorConsole');
+            if (con2) {
+                con2.textContent += `\n[BP] Breakpoint at 0x${(nextAddr >>> 0).toString(16).toUpperCase().padStart(4,'0')}`;
+                con2.scrollTop = con2.scrollHeight;
+            }
+            updateDashboard();
+            return;
         }
-        updateDashboard();
-        return;
     }
     const con = document.getElementById('editorConsole');
     if (con) {
@@ -5187,8 +5192,12 @@ function runSim() {
             status = 'PP250: Returned to boot sequence.';
         } else if (sim.halted) {
             status = 'Faulted.';
-        } else if (simBreakpoints.size > 0 && simBreakpoints.has(sim.physicalPC >>> 0)) {
-            status = `Breakpoint at 0x${(sim.physicalPC >>> 0).toString(16).toUpperCase().padStart(4,'0')}.`;
+        } else if (simBreakpoints.size > 0) {
+            // run() stopped because _nextPhysicalAddr() matched a BP (stop-before-execute).
+            const nextAddr = sim._nextPhysicalAddr();
+            if (nextAddr >= 0 && simBreakpoints.has(nextAddr >>> 0)) {
+                status = `Breakpoint at 0x${(nextAddr >>> 0).toString(16).toUpperCase().padStart(4,'0')}.`;
+            }
         }
         con.textContent += `\nBoot complete. Ran ${steps} steps. ${status}`;
         con.scrollTop = con.scrollHeight;

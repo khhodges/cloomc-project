@@ -238,6 +238,10 @@ class ChurchSimulator {
         const cw        = (word >>> 10) & 0x1FFF;
         const typ       = (word >>>  8) & 0x3;
         const cc        = word & 0xFF;
+        // lumpSize = 2^(n_minus_6+6): slot allocation in words (always a power of 2, ≥ 64).
+        // Matches call.py line 402: lumpSize_reg.eq(Const(1,15) << (_hdr.n_minus_6 + 6)).
+        // c-list starts at lumpBase + (lumpSize - cc), i.e. at the physical end of the slot
+        // (call.py line 282: base = NS_base + (lumpSize − cc) × 4).
         const lumpSize  = 1 << (n_minus_6 + 6);
         return { magic, n_minus_6, lumpSize, cw, typ, cc, valid: magic === 0x1F };
     }
@@ -1258,6 +1262,23 @@ class ChurchSimulator {
         this.emit('output', this.output);
     }
 
+    // Compute the physical memory address of the NEXT instruction to be fetched,
+    // from current this.pc + CR14 lump base, WITHOUT executing anything.
+    // Used by run() for stop-before-execute breakpoint semantics.
+    // Returns -1 if CR14 is invalid or the address cannot be determined.
+    _nextPhysicalAddr() {
+        if (!this.bootComplete) {
+            return this.pc;
+        }
+        const cr14 = this.cr[14];
+        if (!cr14 || cr14.word0 === 0) return -1;
+        const cr14Parsed = this.parseGT(cr14.word0);
+        if (!cr14Parsed.permissions.X) return -1;
+        const entry = this.readNSEntry(cr14Parsed.index);
+        if (!entry) return -1;
+        return (entry.word0_location + 1 + this.pc) >>> 0;
+    }
+
     _fetchInstruction() {
         if (!this.bootComplete) {
             if (this.pc >= this.memory.length) {
@@ -1552,7 +1573,10 @@ class ChurchSimulator {
             const cw       = hdr.cw;
             const cc       = hdr.cc;
             const lumpSz   = hdr.lumpSize;
-            const clistStart = lumpSz - cc;  // c-list at physical end
+            // clistStart = lumpSz - cc: c-list occupies the LAST cc words of the slot.
+            // Matches call.py line 282: base = NS_base + (lumpSize − cc) × 4 (byte addr of c-list[0]).
+            // lumpSz is always 2^(n_minus_6+6) (a power of 2, min 64 words) — NOT (1+cw+cc).
+            const clistStart = lumpSz - cc;
 
             // CR14 (code, RX, M=1) and CR6 (c-list, E+M=1) set simultaneously from single lump header read.
             // M=1 on both: CALL Phase 1 mLoad is always M-elevated (call.py: mload_m_elevated = 1).
@@ -2802,11 +2826,13 @@ class ChurchSimulator {
         this.running = true;
         let steps = 0;
         while (this.running && !this.halted && this.bootComplete && steps < maxSteps) {
-            // Check breakpoint before executing (skip on first step so we advance past a BP we're sitting on).
-            // physicalPC holds the actual memory address of the next instruction to fetch;
-            // simBreakpoints stores physical addresses so we must compare against physicalPC, not this.pc.
-            if (steps > 0 && breakpoints && breakpoints.has(this.physicalPC >>> 0)) {
-                break;
+            // Stop-before-execute breakpoint check: compute the physical address of the NEXT
+            // instruction to be fetched (from this.pc + CR14 lump base) and compare against
+            // the breakpoint set.  Skip on the very first step so we advance past any BP the
+            // simulator is already sitting on at entry to run().
+            if (steps > 0 && breakpoints) {
+                const nextAddr = this._nextPhysicalAddr();
+                if (nextAddr >= 0 && breakpoints.has(nextAddr >>> 0)) break;
             }
             const result = this.step();
             if (!result || !this.bootComplete) break;
