@@ -4161,6 +4161,7 @@ a.next-step-link:hover {
 .crd-tab {
     padding: 0.4rem 1rem;
     font-size: 0.8rem;
+    line-height: 1.2;
     background: #1b2d45;
     color: #e0e0e0;
     border: 2px solid #3a86ff;
@@ -4168,6 +4169,10 @@ a.next-step-link:hover {
     cursor: pointer;
     transition: all 0.2s;
     font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    box-sizing: border-box;
 }
 
 .crd-tab:hover {
