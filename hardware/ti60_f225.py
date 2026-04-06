@@ -553,8 +553,12 @@ class ChurchTi60F225(Elaboratable):
             with m.State("FAULT_HALT"):
                 # CPU faulted — hold halted, fault LED driven by core.fault_valid.
                 # Button press: resume single-step for diagnosis.
+                # 0xBE received: allow PATCH_LUMP / READ_BRAM even while faulted.
                 m.d.sync += halted.eq(1)
-                with m.If(btn_press):
+                with m.If(rx_valid & (rx_data == 0xBE)):
+                    m.d.sync += pl_active.eq(1)
+                    m.next = "PL_WAIT_EF"
+                with m.Elif(btn_press):
                     m.next = "HALTED"
 
             with m.State("STEP_WAIT"):
