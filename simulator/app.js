@@ -7094,65 +7094,55 @@ SAVE CR0, CR6, 28      ; FAULT: B=0, cannot bind
 HALT
 `,
         'tperm_halt': `; ============================================
-; TPERM + HALT — Pre-check Before CALL
+; TPERM + CALL + HALT
 ; ============================================
 ;
-; Demonstrates the defensive pattern:
-;   1. TPERM to test permissions BEFORE calling
-;   2. Conditional HALT if the check fails
-;   3. CALL only if TPERM passed (Z=1)
+; CALL warning case first:
+;   TPERM checks E before every CALL.
+;   If the check fails (Z=0), branch to HALT.
+;   If it passes (Z=1), CALL proceeds.
 ;
-; Also tests stack overflow: a recursive
-; CALL loop fills the 32-word stack (sw=32
-; in the thread header). The CALL at step
-; ~16 should fault with BOUNDS (sp_min=212).
+; Then: recursive CALL loop fills the
+; 32-word stack (sw=32). Frame ~16 faults
+; BOUNDS when STO < sp_min (212).
 ;
 ; HOW TO RUN:
-;   1. Boot the machine (Boot or Step x6)
+;   1. Boot (Step x6 or Boot button)
 ;   2. Assemble (Ctrl+Enter)
-;   3. Step or Run — watch the instruction
-;      trace in the Fault popup
+;   3. Step or Run
 ; ============================================
 
-; --- TEST 1: TPERM guard before CALL ---
-; Load Salvation from c-list, check E perm,
-; only CALL if the check passes.
+; --- CALL guard: TPERM E then CALL ---
+; Load Salvation, verify E perm, CALL if ok.
 
-LOAD CR0, CR6, 4          ; CR0 = Salvation (E perm)
-TPERM CR0, E              ; Check E — sets Z=1 (pass)
-BRANCHNE fail             ; If Z=0 (fail), skip to HALT
+LOAD CR0, CR6, 4          ; CR0 = Salvation
+TPERM CR0, E              ; has E? Z=1 yes, Z=0 no
+BRANCHNE halt             ; Z=0 → HALT (no E perm)
+CALL CR0                  ; Z=1 → safe to CALL
 
-; E-perm confirmed — safe to CALL
-CALL CR0
+; --- After CALL returns, test failure ---
+; Same GT but check W (Salvation has no W).
+; TPERM sets Z=0, we branch to HALT.
 
-; --- TEST 2: TPERM failure path ---
-; Load a known-good GT, then test a perm
-; it does NOT have. TPERM should set Z=0
-; and the conditional HALT fires.
+TPERM CR0, W              ; has W? Z=0 (no)
+BRANCHEQ skip_halt        ; Z=1 would skip (won't)
+BRANCH halt               ; W missing → HALT
 
-LOAD CR1, CR6, 4          ; CR1 = Salvation (E only)
-TPERM CR1, W              ; Check W — sets Z=0 (fail)
-BRANCHEQ pass_w           ; If Z=1 skip (won't happen)
-BRANCH fail               ; W check failed as expected
+skip_halt:
+HALT                      ; unreachable
 
-pass_w:
-HALT                      ; should NOT reach here
-
-; --- TEST 3: Recursive CALL — stack overflow ---
-; Calls self repeatedly. The 32-word stack
-; (sw=32) allows ~15 nested CALL frames
-; (each frame = 2 words). Frame 16 triggers
-; FAULT [BOUNDS]: STO < sp_min.
+; --- Recursive CALL — stack overflow ---
+; Each frame = 2 words on the 32-word stack.
+; ~15 frames fit before STO < sp_min (212).
 
 recurse:
 LOAD CR0, CR6, 4          ; CR0 = Salvation
 TPERM CR0, E              ; guard: has E?
-BRANCHNE fail             ; no E → HALT
+BRANCHNE halt             ; no E → HALT
 CALL CR0                  ; push 2-word frame
-BRANCH recurse            ; loop (RETURN lands here)
+BRANCH recurse            ; loop
 
-; --- HALT target ---
-fail:
+halt:
 HALT
 `,
     };
