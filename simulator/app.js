@@ -7093,6 +7093,68 @@ SAVE CR0, CR6, 28      ; FAULT: B=0, cannot bind
 ; --- If we get here, B-bit default failed ---
 HALT
 `,
+        'tperm_halt': `; ============================================
+; TPERM + HALT — Pre-check Before CALL
+; ============================================
+;
+; Demonstrates the defensive pattern:
+;   1. TPERM to test permissions BEFORE calling
+;   2. Conditional HALT if the check fails
+;   3. CALL only if TPERM passed (Z=1)
+;
+; Also tests stack overflow: a recursive
+; CALL loop fills the 32-word stack (sw=32
+; in the thread header). The CALL at step
+; ~16 should fault with BOUNDS (sp_min=212).
+;
+; HOW TO RUN:
+;   1. Boot the machine (Boot or Step x6)
+;   2. Assemble (Ctrl+Enter)
+;   3. Step or Run — watch the instruction
+;      trace in the Fault popup
+; ============================================
+
+; --- TEST 1: TPERM guard before CALL ---
+; Load Salvation from c-list, check E perm,
+; only CALL if the check passes.
+
+LOAD CR0, CR6, 4          ; CR0 = Salvation (E perm)
+TPERM CR0, E              ; Check E — sets Z=1 (pass)
+BRANCHNE fail             ; If Z=0 (fail), skip to HALT
+
+; E-perm confirmed — safe to CALL
+CALL CR0
+
+; --- TEST 2: TPERM failure path ---
+; Load a known-good GT, then test a perm
+; it does NOT have. TPERM should set Z=0
+; and the conditional HALT fires.
+
+LOAD CR1, CR6, 4          ; CR1 = Salvation (E only)
+TPERM CR1, W              ; Check W — sets Z=0 (fail)
+BRANCHEQ pass_w           ; If Z=1 skip (won't happen)
+BRANCH fail               ; W check failed as expected
+
+pass_w:
+HALT                      ; should NOT reach here
+
+; --- TEST 3: Recursive CALL — stack overflow ---
+; Calls self repeatedly. The 32-word stack
+; (sw=32) allows ~15 nested CALL frames
+; (each frame = 2 words). Frame 16 triggers
+; FAULT [BOUNDS]: STO < sp_min.
+
+recurse:
+LOAD CR0, CR6, 4          ; CR0 = Salvation
+TPERM CR0, E              ; guard: has E?
+BRANCHNE fail             ; no E → HALT
+CALL CR0                  ; push 2-word frame
+BRANCH recurse            ; loop (RETURN lands here)
+
+; --- HALT target ---
+fail:
+HALT
+`,
     };
 
     const code = examples[name];
@@ -12461,7 +12523,7 @@ function onLangChange(restoring) {
 
     const langExampleGroups = {
         english: ['cloomc_english_hello', 'cloomc_english_counter'],
-        assembly: ['ada_note_g', 'selftest', 'load_save', 'bernoulli', 'conditional', 'gc_test', 'turing_test', 'led_blink', 'salvation', 'perm_attack', 'bind_attack'],
+        assembly: ['ada_note_g', 'selftest', 'load_save', 'bernoulli', 'conditional', 'gc_test', 'turing_test', 'led_blink', 'salvation', 'perm_attack', 'bind_attack', 'tperm_halt'],
         javascript: ['cloomc_hello', 'cloomc_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_counter', 'cloomc_sliderule', 'cloomc_stack_overflow', 'cloomc_recall_demo'],
         haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_church_lambda', 'cloomc_sliderule_hs'],
         symbolic: ['cloomc_ada_note_g'],
@@ -13536,10 +13598,11 @@ abstraction RationalArith {
 }`,
         'stack_overflow': `// ── Stack Overflow Experiment ──
 // The Church Machine thread lump has 256 words.
-// The call stack grows downward from word 243.
+// The IDE sets sw=32 stack words in the thread
+// header. sp_max=243, sp_min=212 (= sp_max-sw+1).
 // Each CALL consumes 2 words (frame + CR6 save).
-// After ~120 nested calls, STO reaches 0 and the
-// machine raises a clean STACK_OVERFLOW fault.
+// After ~15 nested calls, STO reaches sp_min and
+// the machine raises a BOUNDS fault at the CALL.
 //
 // This abstraction lists itself as its own
 // capability (c-list[0] = self E-GT). The run()
@@ -13553,8 +13616,8 @@ abstraction RationalArith {
 //   3. Switch to the REPL or Pipeline view
 //   4. Step through — watch STO count down
 //      in the pipeline panel on every CALL
-//   5. When STO < 2 you'll see:
-//        FAULT [STACK_OVERFLOW]: ELOADCALL ...
+//   5. When STO < sp_min (212) you'll see:
+//        FAULT [BOUNDS]: stack overflow ...
 
 abstraction StackOverflow {
     capabilities {

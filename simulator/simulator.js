@@ -2188,11 +2188,15 @@ class ChurchSimulator {
         const savedSTO_ec = this.sto;
         const ecThreadBase = this.cr[12] && this.cr[12].word1;
         if (ecThreadBase) {
-            const cr12GT = this.cr[12].word0;
-            const lowestAddr = (ecThreadBase + savedSTO_ec - 1) >>> 0;
-            const boundsCheck = this.mLoad(cr12GT, null, undefined, lowestAddr);
-            if (!boundsCheck.ok) {
-                this.fault(boundsCheck.fault, `ELOADCALL CR${d.crDst}: stack overflow — STO=${savedSTO_ec}, address ${lowestAddr}: ${boundsCheck.message} (${this.callStack.length} frame(s) deep)`);
+            const newSTO_ec = (savedSTO_ec - 2) & 0xFFF;
+            const hdrWord_ec = this.memory[ecThreadBase] >>> 0;
+            const hdr_ec = this.parseLumpHeader(hdrWord_ec);
+            const lumpSize_ec = hdr_ec.valid ? hdr_ec.lumpSize : 256;
+            const sw_ec = (hdr_ec.valid && hdr_ec.typ === 2) ? hdr_ec.cw : 0;
+            const sp_max_ec = lumpSize_ec - 12 - 1;
+            const sp_min_ec = sp_max_ec - sw_ec + 1;
+            if (newSTO_ec < sp_min_ec) {
+                this.fault('BOUNDS', `ELOADCALL CR${d.crDst}: stack overflow — STO would become ${newSTO_ec}, sp_min=${sp_min_ec} (sw=${sw_ec}, ${this.callStack.length} frame(s) deep)`);
                 return null;
             }
         }
