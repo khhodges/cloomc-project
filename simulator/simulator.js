@@ -126,7 +126,7 @@ class ChurchSimulator {
         this.pc = 0;
         this.physicalPC = 0;
         this.flags = { N: false, Z: false, C: false, V: false };
-        this.sto = 11;   // sp_max (test value); hardware starts here, CALL decrements
+        this.sto = 243;  // sp_max = lumpSize(256) - caps(12) - 1; hardware starts here, CALL decrements
         this.running = false;
         this.halted = false;
         this.stepCount = 0;
@@ -165,7 +165,7 @@ class ChurchSimulator {
         }
         this.dr.fill(0);
         this.flags = { N: false, Z: false, C: false, V: false };
-        this.sto = 11;   // sp_max (test value)
+        this.sto = 243;  // sp_max reset
         this.callStack = [];
         this.lambdaActive = false;
         this.lambdaReturnPC = 0;
@@ -592,7 +592,7 @@ class ChurchSimulator {
                 // stack before overwriting CR6/CR14.  We replicate that here so that
                 // RETURN from the root abstraction sees a valid (sentinel) frame and
                 // reboots rather than crashing with an empty-stack fault.
-                const sp_max = 11;                                                   // stack ceiling (test value; was 243)
+                const sp_max = 243;                                                  // stack ceiling: lumpSize(256) - caps(12) - 1 = 243
                 const oldCR6GT = this.cr[6].word0 >>> 0;                            // snapshot E-type GT written by B:03 INIT_ABSTR
                 const sentinelFrameWord = this._packFrameWordRaw(0x7FFF, 1, sp_max); // frameWord: NIA=0x7FFF (poison, all 15 bits set), sz=1 (CALL frame), prev_STO=sp_max
                 this.callStack.push({               // push to JS call-stack mirror so RETURN handler can inspect it
@@ -2767,7 +2767,7 @@ class ChurchSimulator {
         this.faultLog = [];
         this.stepCount = 0;
         this.callStack = [];
-        this.sto = 11;   // sp_max (test value)
+        this.sto = 243;  // sp_max reset
 
         this.emit('programLoaded', { addr: 0, length: hwProgram.length });
         this.emit('stateChange', this.getState());
@@ -2870,7 +2870,7 @@ class ChurchSimulator {
         this.faultLog = [];
         this.stepCount = 0;
         this.callStack = [];
-        this.sto = 11;   // sp_max (test value)
+        this.sto = 243;  // sp_max reset
 
         this.emit('programLoaded', { addr: 0, length: hwBoot ? hwBoot.length : 0 });
         this.emit('stateChange', this.getState());
