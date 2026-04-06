@@ -7103,7 +7103,7 @@ HALT
 ;      CALL. Z=0 (fail) → HALT; Z=1 → CALL.
 ;
 ;   2. TPERM failure — after the first CALL
-;      returns, check W (Salvation has no W).
+;      returns, check RW (Salvation has no RW).
 ;      Z=0 confirms failure, fall through.
 ;
 ;   3. Recursive CALL — loop fills the
@@ -7124,12 +7124,12 @@ TPERM CR0, E              ; has E? Z=1 yes, Z=0 no
 BRANCHNE halt             ; Z=0 → HALT (no E perm)
 CALL CR0                  ; Z=1 → safe to CALL
 
-; --- TEST 2: TPERM failure (W check) ---
-; Salvation has E but NOT W. TPERM sets Z=0.
+; --- TEST 2: TPERM failure (RW check) ---
+; Salvation has E but NOT RW. TPERM sets Z=0.
 ; If Z=1 (unexpected pass) → HALT as error.
 ; Z=0 (expected fail) → fall through to test 3.
 
-TPERM CR0, W              ; has W? Z=0 (no)
+TPERM CR0, RW             ; has RW? Z=0 (no)
 BRANCHEQ halt             ; Z=1 → unexpected, HALT
 
 ; --- TEST 3: Recursive CALL — overflow ---
