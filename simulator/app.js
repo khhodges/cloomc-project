@@ -7869,7 +7869,7 @@ function switchCodeTab(tab) {
     if (tabJs) tabJs.classList.remove('active');
 
     if (tab === 'history') {
-        if (historyPanel) historyPanel.style.display = 'block';
+        if (historyPanel) historyPanel.style.display = 'flex';
         if (tabHistory) tabHistory.classList.add('active');
         const area = document.getElementById('codeHistoryContent');
         if (area && !area.innerHTML.trim() && typeof historyRefreshCode === 'function') historyRefreshCode();
@@ -7882,7 +7882,7 @@ function switchCodeTab(tab) {
         if (tabJs) tabJs.classList.add('active');
         renderJsTab();
     } else {
-        if (consoleContent) consoleContent.style.display = 'block';
+        if (consoleContent) consoleContent.style.display = 'flex';
         if (tabConsole) tabConsole.classList.add('active');
     }
 }
