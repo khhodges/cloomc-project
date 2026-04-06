@@ -393,6 +393,11 @@ class ChurchSimulator {
         }
         this.nsClistMap[2] = clistChildren;
 
+        const THREAD_SW = 32;
+        const THREAD_CC = 64;
+        const THREAD_N_MINUS_6 = 2;
+        this.memory[1 * this.SLOT_SIZE] = this.packLumpHeader(THREAD_N_MINUS_6, THREAD_SW, THREAD_CC, 2);
+
         // DEMO_CLIST hardware alignment: override C-List slots 8–11 with device GTs so
         // hardware code "LOAD CR3, CR6, 8" picks up the LED device, exactly as on Ti60 F225.
         //   [8]  LED_DEV   R|W → NS slot 12 (5 registers: LED0–LED4, bit[0]=R drives pin)
@@ -1644,16 +1649,12 @@ class ChurchSimulator {
             const newSTO = (savedSTO - 2) & 0xFFF;
             const hdrWord = this.memory[callThreadBase] >>> 0;
             const hdr = this.parseLumpHeader(hdrWord);
-            const heapFloor = 17 + (hdr.valid ? hdr.cc : 0);
-            if (newSTO < heapFloor) {
-                this.fault('BOUNDS', `CALL CR${d.crDst}: stack overflow — STO would become ${newSTO}, heap floor is ${heapFloor} (${this.callStack.length} frame(s) deep)`);
-                return null;
-            }
-            const cr12GT = this.cr[12].word0;
-            const lowestAddr = (callThreadBase + savedSTO - 1) >>> 0;
-            const boundsCheck = this.mLoad(cr12GT, null, undefined, lowestAddr);
-            if (!boundsCheck.ok) {
-                this.fault(boundsCheck.fault, `CALL CR${d.crDst}: stack overflow — STO=${savedSTO}, address ${lowestAddr}: ${boundsCheck.message} (${this.callStack.length} frame(s) deep)`);
+            const lumpSize = hdr.valid ? hdr.lumpSize : 256;
+            const sw = (hdr.valid && hdr.typ === 2) ? hdr.cw : 0;
+            const sp_max = lumpSize - 12 - 1;
+            const sp_min = sp_max - sw + 1;
+            if (newSTO < sp_min) {
+                this.fault('BOUNDS', `CALL CR${d.crDst}: stack overflow — STO would become ${newSTO}, sp_min=${sp_min} (sw=${sw}, ${this.callStack.length} frame(s) deep)`);
                 return null;
             }
         }

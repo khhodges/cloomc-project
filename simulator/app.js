@@ -2256,7 +2256,7 @@ function renderBootNSImage() {
 //   +244 … +255 Zone ① Capabilities — CR0..CR11 GT Word 0; c-list tail  (12 words)
 const THREAD_LAYOUT = {
     HEADER_WORD:  0,
-    THREAD_HEADER: 0xF900_020C,
+    THREAD_HEADER: 0xF900_8240,
     DR_START:     1,   DR_END:     16,  DR_WORDS:     16,
     HEAP_START:  17,   HEAP_END:   80,  HEAP_WORDS:   64,
     FREE_START:  81,   FREE_END:  211,  FREE_WORDS:  131,
@@ -2286,7 +2286,7 @@ function renderThreadMemoryLayout(nsIndex) {
     html += `<div class="thread-layout-header">${label} — Thread Memory Layout<span class="thread-layout-subhead">NS Slot ${nsIndex} · base ${addrOf(0)} · 256 words (1\u202F024 bytes)</span></div>`;
     html += `<div class="thread-lump-hdr-block">`;
     html += `<span class="thread-lump-hdr-label">Lump Header</span>`;
-    html += `<span class="thread-lump-hdr-note">word 0 · magic=0x1F · n\u22126=2 (256w) · cw=0 · typ=10 (clist-only) · cc=12</span>`;
+    html += `<span class="thread-lump-hdr-note">word 0 · magic=0x1F · n\u22126=2 (256w) · sw=32 · typ=10 (Thread) · cc=64</span>`;
     html += `<div class="thread-lump-hdr-row">`;
     html += `<span class="thread-lump-off">+0</span>`;
     html += `<span class="thread-lump-addr">${addrOf(0)}</span>`;
