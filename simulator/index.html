@@ -87,6 +87,7 @@
                             <button class="ham-item" id="hamItem-namespace" onclick="switchView('namespace');closeHamburger()">Namespace</button>
                             <button class="ham-item" id="hamItem-abstractions" onclick="switchView('abstractions');closeHamburger()">Abstractions</button>
                             <button class="ham-item" id="hamItem-pipeline" onclick="switchView('pipeline');closeHamburger()">Pipeline</button>
+                            <button class="ham-item" id="hamItem-trace" onclick="switchView('trace');closeHamburger()">Trace</button>
                             <button class="ham-item" id="hamItem-reference" onclick="switchView('reference');closeHamburger()">Reference</button>
                             <button class="ham-item" id="hamItem-builder" onclick="switchView('builder');closeHamburger()">Builder</button>
                             <button class="ham-item" id="hamItem-docs" onclick="switchView('docs');closeHamburger()">Docs</button>
@@ -386,6 +387,36 @@
     <div id="pipeline" class="view">
         <div class="panel">
             <div id="pipelineContainer"></div>
+        </div>
+    </div>
+
+    <div id="trace" class="view">
+        <div class="trace-toolbar">
+            <span class="trace-title">Execution Trace</span>
+            <span class="trace-row-count" id="traceRowCount">0 rows</span>
+            <button class="btn trace-clear-btn" id="traceClearBtn" onclick="clearTrace()">Clear</button>
+        </div>
+        <div class="trace-table-wrap" id="traceTableWrap">
+            <table class="trace-table" id="traceTable">
+                <thead>
+                    <tr>
+                        <th class="trace-th-step">#</th>
+                        <th class="trace-th-pc">PC</th>
+                        <th class="trace-th-op">Op</th>
+                        <th class="trace-th-cond">Cond</th>
+                        <th class="trace-th-dst">Dst</th>
+                        <th class="trace-th-src">Src</th>
+                        <th class="trace-th-desc">Description</th>
+                        <th>DR0</th><th>DR1</th><th>DR2</th><th>DR3</th>
+                        <th>DR4</th><th>DR5</th><th>DR6</th><th>DR7</th>
+                        <th>DR8</th><th>DR9</th><th>DR10</th><th>DR11</th>
+                        <th>DR12</th><th>DR13</th><th>DR14</th><th>DR15</th>
+                        <th>N</th><th>Z</th><th>C</th><th>V</th>
+                        <th>STO</th>
+                    </tr>
+                </thead>
+                <tbody id="traceTableBody"></tbody>
+            </table>
         </div>
     </div>
 

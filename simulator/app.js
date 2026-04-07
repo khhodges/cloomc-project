@@ -294,9 +294,12 @@ function init() {
     }
 
     sim.on('stateChange', () => { updateDashboard(); updateLedStrip(); });
+    sim.on('step', _traceRecordStep);
+    sim.on('reset', clearTrace);
     sim.on('programLoaded', () => {
         if (currentView === 'namespace') updateNamespace();
         if (currentView === 'abstractions') renderAbstractions();
+        clearTrace();
     });
     sim.on('fault', (f) => {
         appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error');
@@ -344,7 +347,7 @@ function init() {
     updateLineNumbers();
     loadNamespaceState();
     checkBootId();
-    const views = ['repl','editor','tutorial','dashboard','namespace','abstractions','pipeline','reference','docs','builder'];
+    const views = ['repl','editor','tutorial','dashboard','namespace','abstractions','pipeline','trace','reference','docs','builder'];
     const hash = window.location.hash.replace('#', '');
     let startView = views.includes(hash) ? hash : null;
     if (!startView) {
@@ -496,6 +499,7 @@ function switchView(viewId) {
             if (area && !area.innerHTML.trim()) historyRefresh();
         }
     }
+    if (viewId === 'trace') renderTraceView();
     if (viewId === 'reference') renderReference();
     if (viewId === 'docs') loadDocsView();
     if (viewId === 'gc') renderToolsView();
@@ -14705,6 +14709,129 @@ function addCopyButton(pre) {
         }
     });
     pre.appendChild(btn);
+}
+
+const _traceData = [];
+const _TRACE_MAX = 50000;
+let _traceRenderedCount = 0;
+let _tracePendingRAF = false;
+
+function _traceRecordStep(result) {
+    if (!result) return;
+    const state = sim.getState();
+    const instr = result.instr;
+    const entry = {
+        step: state.stepCount,
+        pc: result.pc,
+        opName: instr ? sim.opName(instr.opcode) : '',
+        cond: instr ? sim.condName(instr.cond) : '',
+        dst: instr ? instr.crDst : '',
+        src: instr ? instr.crSrc : '',
+        desc: result.desc || '',
+        skipped: !!result.skipped,
+        dr: state.dr.slice(),
+        flags: { N: state.flags.N, Z: state.flags.Z, C: state.flags.C, V: state.flags.V },
+        sto: state.sto,
+    };
+    if (_traceData.length >= _TRACE_MAX) {
+        const removeCount = _traceData.length - _TRACE_MAX + 1000;
+        _traceData.splice(0, removeCount);
+        const tbody = document.getElementById('traceTableBody');
+        if (tbody) {
+            const rows = tbody.children;
+            const domRemove = Math.min(removeCount, rows.length);
+            for (let r = 0; r < domRemove; r++) tbody.removeChild(rows[0]);
+        }
+        _traceRenderedCount = Math.max(0, _traceRenderedCount - removeCount);
+    }
+    _traceData.push(entry);
+    if (!_tracePendingRAF) {
+        _tracePendingRAF = true;
+        requestAnimationFrame(_traceFlushRender);
+    }
+}
+
+function _traceFlushRender() {
+    _tracePendingRAF = false;
+    if (_traceRenderedCount >= _traceData.length) return;
+    const tbody = document.getElementById('traceTableBody');
+    if (!tbody) return;
+    const frag = document.createDocumentFragment();
+    const start = _traceRenderedCount;
+    for (let i = start; i < _traceData.length; i++) {
+        frag.appendChild(_traceBuildRow(i));
+    }
+    tbody.appendChild(frag);
+    _traceRenderedCount = _traceData.length;
+    const countEl = document.getElementById('traceRowCount');
+    if (countEl) countEl.textContent = _traceData.length.toLocaleString() + ' rows';
+    if (currentView === 'trace') {
+        const wrap = document.getElementById('traceTableWrap');
+        if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    }
+}
+
+function _traceBuildRow(idx) {
+    const entry = _traceData[idx];
+    const prev = idx > 0 ? _traceData[idx - 1] : null;
+    const tr = document.createElement('tr');
+    if (entry.skipped) tr.className = 'trace-row-skipped';
+
+    const cells = [
+        entry.step,
+        entry.pc,
+        entry.opName,
+        entry.cond,
+        entry.dst,
+        entry.src,
+        entry.desc,
+    ];
+    for (let c = 0; c < cells.length; c++) {
+        const td = document.createElement('td');
+        td.textContent = cells[c];
+        tr.appendChild(td);
+    }
+    for (let d = 0; d < 16; d++) {
+        const td = document.createElement('td');
+        td.textContent = entry.dr[d] >>> 0;
+        if (prev && (entry.dr[d] >>> 0) !== (prev.dr[d] >>> 0)) {
+            td.className = 'trace-td-changed';
+        }
+        tr.appendChild(td);
+    }
+    const flagKeys = ['N', 'Z', 'C', 'V'];
+    for (const fk of flagKeys) {
+        const td = document.createElement('td');
+        td.textContent = entry.flags[fk] ? '1' : '0';
+        if (prev && entry.flags[fk] !== prev.flags[fk]) {
+            td.className = 'trace-td-changed';
+        }
+        tr.appendChild(td);
+    }
+    const stoTd = document.createElement('td');
+    stoTd.textContent = entry.sto;
+    if (prev && entry.sto !== prev.sto) {
+        stoTd.className = 'trace-td-changed';
+    }
+    tr.appendChild(stoTd);
+    return tr;
+}
+
+function clearTrace() {
+    _traceData.length = 0;
+    _traceRenderedCount = 0;
+    const tbody = document.getElementById('traceTableBody');
+    if (tbody) tbody.innerHTML = '';
+    const countEl = document.getElementById('traceRowCount');
+    if (countEl) countEl.textContent = '0 rows';
+}
+
+function renderTraceView() {
+    if (_traceRenderedCount < _traceData.length) {
+        _traceFlushRender();
+    }
+    const wrap = document.getElementById('traceTableWrap');
+    if (wrap) wrap.scrollTop = wrap.scrollHeight;
 }
 
 function initCodeCopyButtons() {
