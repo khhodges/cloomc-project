@@ -7,6 +7,10 @@
 -- the Analytical Engine's native language,
 -- now a Church Machine front-end.
 --
+-- For production use, SlideRule.Bernoulli(n) computes
+-- any B(n) in a single CALL instruction. This program
+-- preserves Ada's algorithm for historical fidelity.
+--
 -- Variable mapping follows Ada's original:
 --   V1  = 1 (constant)
 --   V2  = 2 (constant)

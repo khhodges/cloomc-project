@@ -2037,10 +2037,16 @@ class CLOOMCCompiler {
 
             expr = expr.replace(/×/g, '*').replace(/÷/g, '/');
 
-            const funcMatch = expr.match(/^(multiply|divide|add|subtract|succ|pred|negate|abs)\s*\(\s*(.+)\s*\)$/i);
+            const funcMatch = expr.match(/^(multiply|divide|add|subtract|succ|pred|negate|abs|bernoulli)\s*\(\s*(.+)\s*\)$/i);
             if (funcMatch) {
                 const func = funcMatch[1].toLowerCase();
                 const argStr = funcMatch[2];
+                if (func === 'bernoulli') {
+                    const arg = parseExprValue(argStr);
+                    const srcDR = loadToReg(arg, this.DR_TEMP_START, lineNum);
+                    emitSlideRuleCall('Bernoulli', srcDR, 0, dstDR, lineNum, `bernoulli(${argStr})`);
+                    return dstDR;
+                }
                 if (func === 'succ') {
                     const arg = parseExprValue(argStr);
                     const srcDR = loadToReg(arg, this.DR_TEMP_START, lineNum);
@@ -2146,7 +2152,7 @@ class CLOOMCCompiler {
             return 14;
         };
 
-        const slideRuleMethodIndex = { Multiply: 0, Divide: 1, Sqrt: 2, Mod: 3 };
+        const slideRuleMethodIndex = { Multiply: 0, Divide: 1, Sqrt: 2, Mod: 3, Bernoulli: 12 };
 
         let slideRuleCR0Loaded = false;
 

@@ -111,6 +111,7 @@ class SystemAbstractions {
         this._bindDijkstraFlag();
         this._bindSlideRuleArithmetic();
         this._bindSlideRuleTrig();
+        this._bindSlideRuleBernoulli();
     }
 
     _bindSalvation() {
@@ -1339,6 +1340,64 @@ class SystemAbstractions {
             const degrees = args.degrees !== undefined ? args.degrees : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = degrees * (Math.PI / 180);
             return { ok: true, result: result, message: `SlideRule.ToRadians(${degrees}) = ${result}` };
+        });
+    }
+
+    _bindSlideRuleBernoulli() {
+        this.registry.bindMethod(16, 'Bernoulli', function(sim, args) {
+            const n = args.dr0 !== undefined ? args.dr0 : 0;
+            if (n < 0 || !Number.isInteger(n)) {
+                return { ok: true, result: 0, message: `SlideRule.Bernoulli(${n}) = 0 (invalid index)` };
+            }
+            if (n === 0) {
+                return { ok: true, result: 1, message: `SlideRule.Bernoulli(0) = 1/1` };
+            }
+            if (n === 1) {
+                return { ok: true, result: -1, message: `SlideRule.Bernoulli(1) = -1/2` };
+            }
+            if (n > 1 && n % 2 === 1) {
+                return { ok: true, result: 0, message: `SlideRule.Bernoulli(${n}) = 0/1` };
+            }
+
+            const gcd = (a, c) => {
+                a = Math.abs(a); c = Math.abs(c);
+                while (c) { [a, c] = [c, a % c]; }
+                return a;
+            };
+            const simplify = (num, den) => {
+                if (den < 0) { num = -num; den = -den; }
+                if (num === 0) return [0, 1];
+                const g = gcd(Math.abs(num), den);
+                return [num / g, den / g];
+            };
+
+            const bNum = [1];
+            const bDen = [1];
+
+            for (let m = 1; m <= n; m++) {
+                let sNum = 0, sDen = 1;
+                for (let k = 0; k < m; k++) {
+                    let comb = 1;
+                    for (let i = 0; i < k; i++) {
+                        comb = comb * (m + 1 - i) / (i + 1);
+                    }
+                    comb = Math.round(comb);
+                    const termNum = comb * bNum[k];
+                    const termDen = bDen[k];
+                    sNum = sNum * termDen + termNum * sDen;
+                    sDen = sDen * termDen;
+                    const g = gcd(Math.abs(sNum), Math.abs(sDen));
+                    if (g > 1) { sNum /= g; sDen /= g; }
+                }
+                bNum[m] = -sNum;
+                bDen[m] = sDen * (m + 1);
+                const g2 = gcd(Math.abs(bNum[m]), Math.abs(bDen[m]));
+                if (g2 > 1) { bNum[m] /= g2; bDen[m] /= g2; }
+                if (bDen[m] < 0) { bNum[m] = -bNum[m]; bDen[m] = -bDen[m]; }
+            }
+
+            const [rn, rd] = simplify(bNum[n], bDen[n]);
+            return { ok: true, result: rn, message: `SlideRule.Bernoulli(${n}) = ${rn}/${rd}` };
         });
     }
 }
