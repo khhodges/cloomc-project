@@ -38,6 +38,7 @@ The web IDE offers ten views (Math, Code, Tutorial, Dashboard, Namespace, Abstra
 - **Locator (Absent-Lump Protocol):** Handles on-demand lump loading triggered by `LOAD` instructions, fetching, verifying, and validating lumps securely.
 - **Navana Master Controller:** Manages Namespace entries, abstraction creation, allocation, and secure deployment, acting as the sole writer and enforcing security constraints with PassKey access control for device drivers.
 - **Instruction Set:** Comprises 20 instructions, evenly split between Church (capability-focused) and Turing (data manipulation) sets, supporting ARM-style conditional execution.
+- **Namespace Layout (hardware ↔ simulator aligned):** NS 0=Boot.NS, 1=Thread, 2=Boot.Abstr, 3=(empty), 4=Salvation, 5=Navana, 6=Mint, 7=Memory, 8=Scheduler, 9=Stack, 10=DijkstraFlag, 11=UART, 12=LED, 13=Button, 14=Timer, 15=Display. Boot c-list[0–3] are boot-internal (firmware-only); c-list[4–11] are user-visible and match between hardware (boot_rom.py DEMO_CLIST) and simulator (simulator.js HW_DEVICE_SLOTS). BOOT_PROGRAM B:04 loads Salvation E-GT from c-list[4].
 - **Hardware Target:** Primarily the Tang Nano 20K FPGA, with optional Efinix Ti60 F225 support, enabling features like CHANGE/SWITCH, SEAL_CHECK, FUSED_OPS, and GC.
 - **WebSerial:** Used for deploying compiled programs to the Tang Nano 20K FPGA.
 - **Mum Tunnel Library:** A GitHub-backed shared abstraction library with API endpoints for browsing, retrieving, and publishing abstractions.

@@ -70,7 +70,7 @@ def make_gt(gt_type=GT_TYPE_NULL, perms=0, slot_id=0, gt_seq=0, b_flag=0):
 #                      → BOOT_PROGRAM[2]  LOAD  AL, CR2, CR6[1]   ; boot code GT (X, Slot 4) → CR2
 #                      → BOOT_PROGRAM[3]  TPERM AL, CR2, #X       ; restrict to X only
 #                      → BOOT_PROGRAM[4]  LAMBDA AL, CR2          ; enter boot code (1st seal checkpoint)
-#   §B:04 LOAD_NUC     → BOOT_PROGRAM[5]  LOAD  AL, CR0, CR6[6]   ; first user E-GT → CR0
+#   §B:04 LOAD_NUC     → BOOT_PROGRAM[5]  LOAD  AL, CR0, CR6[4]   ; Salvation E-GT → CR0
 #                      → BOOT_PROGRAM[6]  TPERM AL, CR0, #E       ; restrict to E
 #                      → BOOT_PROGRAM[7]  CALL  AL, CR0, CR0      ; enter user abstr (2nd seal checkpoint)
 #   §Epilogue          → BOOT_PROGRAM[8]  LOAD  AL, CR7, CR6[1]   ; reload boot code GT (Slot 4)
@@ -105,9 +105,9 @@ BOOT_PROGRAM += [
     # A SEAL_MISMATCH fault fires if NS Slot 4 (boot code) has been tampered with.
     encode_church(ChurchOpcode.LAMBDA, CondCode.AL, cr_dst=2),
 
-    # B:04 LOAD_NUC — load first user abstraction E-GT into CR0 from c-list[6]
-    # CLOOMC: LOAD AL, CR0, CR6[6]  → make_gt(GT_TYPE_INFORM, E, slot_id=4, gt_seq=0)
-    encode_church(ChurchOpcode.LOAD, CondCode.AL, cr_dst=0, cr_src=6, imm=6),
+    # B:04 LOAD_NUC — load Salvation E-GT into CR0 from c-list[4]
+    # CLOOMC: LOAD AL, CR0, CR6[4]  → make_gt(GT_TYPE_INFORM, E, slot_id=4, gt_seq=0)
+    encode_church(ChurchOpcode.LOAD, CondCode.AL, cr_dst=0, cr_src=6, imm=4),
 
     # B:04 — restrict CR0 to E permission only before CALL
     # CLOOMC: TPERM AL, CR0, #E
@@ -293,25 +293,32 @@ def _make_ns_entry(gt_type, perms, slot_id, gt_seq, location, alloc_size, cw=0, 
 
 
 # ---------------------------------------------------------------------------
-# MMIO device GT slot assignments — first available slots after boot/system
+# MMIO device GT slot assignments — aligned with simulator DEVICE_NS_SLOTS
 #
-#   Slot 0:  NS root
-#   Slot 1:  Thread Abstraction lump
-#   Slot 2:  Boot.Abstr lump
-#   Slots 3–6: Programmer abstractions (boot-loaded)
-#   Slot 7:  LED_DEV    — 0x40000000, RW, limit=4 (5 words, one per RGB LED)
+#   Slot 0:  Boot.NS (NS root)
+#   Slot 1:  Boot.Thread
+#   Slot 2:  Boot.Abstr
+#   Slot 3:  (empty)
+#   Slot 4:  Salvation (E)     — first user abstraction; NUC_PROGRAM on hardware
+#   Slot 5:  Navana (E)        — namespace controller
+#   Slot 6:  Mint (E)          — capability minting
+#   Slot 7:  Memory (E)        — memory management
+#   Slot 8:  Scheduler (E)     — thread scheduling
+#   Slot 9:  Stack (E)         — LIFO stack abstraction
+#   Slot 10: DijkstraFlag (E)  — synchronisation primitive
+#   Slot 11: UART_DEV  — 0x40000014, RW, limit=2 (3 words: TX, STATUS, RX)
+#   Slot 12: LED_DEV   — 0x40000000, RW, limit=4 (5 words, one per RGB LED)
 #             offset 0 = LED 0  bits[2:0]={B,G,R}  (only R drives physical pin)
 #             offset 1 = LED 1  bits[2:0]={B,G,R}
 #             offset 2 = LED 2  bits[2:0]={B,G,R}
 #             offset 3 = LED 3  bits[2:0]={B,G,R}
 #             offset 4 = LED 4  bits[2:0]={B,G,R}
-#   Slot 8:  UART_DEV   — 0x40000014, RW, limit=2 (3 words: TX, STATUS, RX)
-#   Slot 9:  BTN_DEV    — 0x40000028, R,  limit=0 (1 word)
-#   Slot 10: TIMER_DEV  — 0x4000002C, RW, limit=4 (5 words):
+#   Slot 13: BTN_DEV   — 0x40000028, R,  limit=0 (1 word)
+#   Slot 14: TIMER_DEV — 0x4000002C, RW, limit=4 (5 words):
 #             offset 0 = TICKS_LO (R), offset 1 = TICKS_HI (R),
 #             offset 2 = TOD_EPOCH (R/W), offset 3 = ALARM_CMP (R/W),
 #             offset 4 = ALARM_CTL (R/W: [0]=armed, [1]=fired)
-#   Slots 11–15: reserved for future device GTs
+#   Slot 15: Display   — reserved for future display device
 #
 # Physical LED mapping (R bit = bit 0 of each word):
 #   Ti60 F225 (4 LEDs active-HIGH):
@@ -319,10 +326,10 @@ def _make_ns_entry(gt_type, perms, slot_id, gt_seq, location, alloc_size, cw=0, 
 #   Tang Nano 20K (6 LEDs active-LOW, led3 pin absent):
 #     offset 0→led0, 1→led1, 2→led2, 3→led4, 4→led5; led3 pin not connected
 # ---------------------------------------------------------------------------
-MMIO_LED_SLOT   = 7
-MMIO_UART_SLOT  = 8
-MMIO_BTN_SLOT   = 9
-MMIO_TIMER_SLOT = 10
+MMIO_LED_SLOT   = 12
+MMIO_UART_SLOT  = 11
+MMIO_BTN_SLOT   = 13
+MMIO_TIMER_SLOT = 14
 
 MMIO_LED_ADDR   = 0x40000000   # offsets 0–4: LED0–LED4, bits[2:0]={B,G,R}
 MMIO_UART_ADDR  = 0x40000014   # TX=+0, STATUS=+4, RX=+8 bytes → offsets 0,1,2 words
@@ -337,68 +344,97 @@ _MMIO_ENTRIES = {
 }
 
 # ---------------------------------------------------------------------------
-# DEMO_NAMESPACE — stub NS table entries (16 slots) used during simulation
+# DEMO_NAMESPACE — stub NS table entries (16 slots) aligned with simulator
 #
 # CLOOMC listing cross-ref: simulator/secure_boot_tutorial.js §"Boot ROM Cross-Reference"
-#   Slot 0: NS root (location=NS_TABLE_BASE, limit encodes full physical space)
-#   Slot 1: Thread Abstraction lump (base = 1 × 0x100 = 0x0100)
-#   Slot 2: Boot.Abstr lump      (base = 2 × 0x100 = 0x0200)
-#   Slots 3–6: Programmer-uploaded abstractions
-#   Slots 7–10: MMIO device GTs (LED, UART, BTN, TIMER)  ← set by boot namespace
-#   Slots 11–15: reserved
+#   Slot  0: Boot.NS      — NS root (location=NS_TABLE_BASE, limit = full phys space)
+#   Slot  1: Boot.Thread  — Thread Abstraction lump (base = 0x0100)
+#   Slot  2: Boot.Abstr   — Boot Abstraction lump   (base = 0x0200)
+#   Slot  3: (empty)      — placeholder
+#   Slot  4: Salvation     — first user abstraction (NUC_PROGRAM on hardware), E-perm
+#   Slot  5: Navana        — namespace controller, E-perm
+#   Slot  6: Mint          — capability minting, E-perm
+#   Slot  7: Memory        — memory management, E-perm
+#   Slot  8: Scheduler     — thread scheduling, E-perm
+#   Slot  9: Stack         — LIFO stack abstraction, E-perm
+#   Slot 10: DijkstraFlag  — synchronisation primitive, E-perm
+#   Slot 11: UART_DEV      — MMIO 0x40000014, RW, 3 words
+#   Slot 12: LED_DEV       — MMIO 0x40000000, RW, 5 words
+#   Slot 13: BTN_DEV       — MMIO 0x40000028, R,  1 word
+#   Slot 14: TIMER_DEV     — MMIO 0x4000002C, RW, 5 words
+#   Slot 15: Display       — reserved for future display device
 # ---------------------------------------------------------------------------
+_SYSTEM_ABSTRACTION_SLOTS = {
+    5:  ('Navana',       PERM_MASK_E),
+    6:  ('Mint',         PERM_MASK_E),
+    7:  ('Memory',       PERM_MASK_E),
+    8:  ('Scheduler',    PERM_MASK_E),
+    9:  ('Stack',        PERM_MASK_E),
+    10: ('DijkstraFlag', PERM_MASK_E),
+    15: ('Display',      PERM_MASK_E),
+}
+
 DEMO_NAMESPACE = []
 for _i in range(16):
     if _i in _MMIO_ENTRIES:
         _loc, _sz, _gtype, _perms = _MMIO_ENTRIES[_i]
         _entry = _make_ns_entry(_gtype, _perms, _i, 0, _loc, _sz)
-    else:
-        if _i == 0:
-            _location = NS_TABLE_BASE
-        elif _i == 4:
-            _location = NUC_LUMP_BASE   # 0x3FC: lump header immediately before NUC_PROGRAM in IMEM
-        else:
-            _location = _i * 0x100
-        _alloc_size = 64  # FPGA min: 64 words per spec; demo uses 8 in simulation
+    elif _i == 0:
         _entry = _make_ns_entry(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, _i, 0,
-                                _location, _alloc_size)
+                                NS_TABLE_BASE, 64)
+    elif _i == 4:
+        _entry = _make_ns_entry(GT_TYPE_INFORM, PERM_MASK_E, _i, 0,
+                                NUC_LUMP_BASE, 64)
+    elif _i in _SYSTEM_ABSTRACTION_SLOTS:
+        _name, _perms = _SYSTEM_ABSTRACTION_SLOTS[_i]
+        _entry = _make_ns_entry(GT_TYPE_INFORM, _perms, _i, 0,
+                                _i * 0x100, 64)
+    elif _i == 3:
+        _entry = _make_ns_entry(GT_TYPE_NULL, 0, _i, 0, 0, 0)
+    else:
+        _entry = _make_ns_entry(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, _i, 0,
+                                _i * 0x100, 64)
     DEMO_NAMESPACE.extend(_entry)
 
 
 # ---------------------------------------------------------------------------
 # DEMO_CLIST — initial C-List for the boot abstraction (Slot 2)
 #
-# CLOOMC listing cross-ref: simulator/secure_boot_tutorial.js §"Full Secure Boot CLOOMC Listing"
-#   idx 0: make_gt(Inform, R|X, slot_id=3, gt_seq=0)         — code/constants read+exec GT
-#   idx 1: make_gt(Inform, X,   slot_id=4, gt_seq=0)         — Boot code exec-only GT
-#   idx 2: make_gt(NULL,   0,   0,         0)                 — empty; filled by SAVE epilogue (Thread GT)
-#   idx 3: make_gt(Inform, E,   slot_id=2, gt_seq=0)         — Boot.Abstr E-GT (return channel)
-#   idx 4: make_gt(Inform, E,   slot_id=5, gt_seq=0)         — secondary abstraction E-GT
-#   idx 5: make_gt(Inform, L,   slot_id=6, gt_seq=0)         — C-List L-GT (for BIND)
-#   idx 6: make_gt(Inform, E,   slot_id=4, gt_seq=0)         — first user abstraction E-GT ← B:04
-#   idx 7: make_gt(NULL,   0,   0,         0)                 — reserved
-#   idx 8: make_gt(Inform, R|W, slot_id=7, b_flag=1)         — LED_DEV  (MMIO, bindable)
-#   idx 9: make_gt(Inform, R|W, slot_id=8, b_flag=1)         — UART_DEV (MMIO, bindable)
-#   idx10: make_gt(Inform, R,   slot_id=9, b_flag=1)         — BTN_DEV  (MMIO, bindable)
-#   idx11: make_gt(Inform, R|W, slot_id=10,b_flag=1)         — TIMER_DEV(MMIO, bindable)
+# Aligned with simulator boot c-list (simulator.js _initBootState).
+#
+#   idx  0: make_gt(Inform, R|X, slot_id=3, gt_seq=0)          — boot-internal: code/constants R|X GT
+#   idx  1: make_gt(Inform, X,   slot_id=4, gt_seq=0)          — boot-internal: boot code exec-only GT
+#   idx  2: make_gt(NULL,   0,   0,         0)                  — boot-internal: filled by SAVE epilogue (Thread GT)
+#   idx  3: make_gt(Inform, E,   slot_id=2, gt_seq=0)          — boot-internal: Boot.Abstr E-GT (return channel)
+#   idx  4: make_gt(Inform, E,   slot_id=4, gt_seq=0)          — Salvation E-GT (first user abstr) ← B:04
+#   idx  5: make_gt(Inform, E,   slot_id=5, gt_seq=0)          — Navana E-GT
+#   idx  6: make_gt(Inform, E,   slot_id=6, gt_seq=0)          — Mint E-GT
+#   idx  7: make_gt(Inform, E,   slot_id=7, gt_seq=0)          — Memory E-GT
+#   idx  8: make_gt(Inform, R|W, slot_id=12, b_flag=1)         — LED_DEV  (MMIO, bindable)
+#   idx  9: make_gt(Inform, R|W, slot_id=11, b_flag=1)         — UART_DEV (MMIO, bindable)
+#   idx 10: make_gt(Inform, R,   slot_id=13, b_flag=1)         — BTN_DEV  (MMIO, bindable)
+#   idx 11: make_gt(Inform, R|W, slot_id=14, b_flag=1)         — TIMER_DEV(MMIO, bindable)
+#
+# Indices 0–3 are boot-internal (used by BOOT_PROGRAM firmware only).
+# Indices 4–11 are the user-visible c-list, matching simulator layout exactly.
 #
 # b_flag=1 marks each IO device GT as IDE-bound to a physical peripheral.  The flag is
 # excluded from the CRC seal input so the runtime can clear it on un-bind without
 # recomputing the NS entry.
 # ---------------------------------------------------------------------------
 DEMO_CLIST = [
-    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_X, 3, 0),        # idx 0: code/constants R|X, Slot 3
-    make_gt(GT_TYPE_INFORM, PERM_MASK_X, 4, 0),                       # idx 1: Boot code X-only, Slot 4
-    make_gt(GT_TYPE_NULL, 0, 0, 0),                                    # idx 2: empty → Thread GT after SAVE
-    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 2, 0),                       # idx 3: Boot.Abstr E-GT, Slot 2
-    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 5, 0),                       # idx 4: secondary abstraction E, Slot 5
-    make_gt(GT_TYPE_INFORM, PERM_MASK_L, 6, 0),                       # idx 5: C-List L-GT, Slot 6
-    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 4, 0),                       # idx 6: first user E-GT, Slot 4 (B:04)
-    make_gt(GT_TYPE_NULL, 0, 0, 0),                                    # idx 7: reserved
-    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, MMIO_LED_SLOT,   0, b_flag=1),  # idx 8:  LED_DEV
-    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, MMIO_UART_SLOT,  0, b_flag=1),  # idx 9:  UART_DEV
-    make_gt(GT_TYPE_INFORM, PERM_MASK_R,                MMIO_BTN_SLOT,   0, b_flag=1),  # idx 10: BTN_DEV
-    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, MMIO_TIMER_SLOT, 0, b_flag=1),  # idx 11: TIMER_DEV
+    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_X, 3, 0),        # idx 0: boot-internal code/constants R|X
+    make_gt(GT_TYPE_INFORM, PERM_MASK_X, 4, 0),                       # idx 1: boot-internal boot code X-only
+    make_gt(GT_TYPE_NULL, 0, 0, 0),                                    # idx 2: boot-internal → Thread GT after SAVE
+    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 2, 0),                       # idx 3: boot-internal Boot.Abstr E-GT
+    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 4, 0),                       # idx 4: Salvation E-GT, Slot 4 (B:04)
+    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 5, 0),                       # idx 5: Navana E-GT, Slot 5
+    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 6, 0),                       # idx 6: Mint E-GT, Slot 6
+    make_gt(GT_TYPE_INFORM, PERM_MASK_E, 7, 0),                       # idx 7: Memory E-GT, Slot 7
+    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, MMIO_LED_SLOT,   0, b_flag=1),  # idx 8:  LED_DEV  → NS 12
+    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, MMIO_UART_SLOT,  0, b_flag=1),  # idx 9:  UART_DEV → NS 11
+    make_gt(GT_TYPE_INFORM, PERM_MASK_R,                MMIO_BTN_SLOT,   0, b_flag=1),  # idx 10: BTN_DEV  → NS 13
+    make_gt(GT_TYPE_INFORM, PERM_MASK_R | PERM_MASK_W, MMIO_TIMER_SLOT, 0, b_flag=1),  # idx 11: TIMER_DEV→ NS 14
 ]
 
 while len(DEMO_CLIST) < 64:
