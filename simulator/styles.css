@@ -5342,6 +5342,41 @@ a.next-step-link:hover {
     margin-bottom: 0.45rem;
 }
 
+.abs-reg-conv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    margin: 0.4rem 0;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(100, 160, 255, 0.12);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.abs-reg-conv-table td {
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid rgba(100, 160, 255, 0.08);
+}
+.abs-reg-conv-table td:first-child {
+    color: var(--text-secondary);
+    font-weight: 600;
+    width: 110px;
+    white-space: nowrap;
+}
+.abs-reg-conv-table td:last-child {
+    color: #b8d4f8;
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+}
+.abs-reg-conv-table tr:last-child td {
+    border-bottom: none;
+}
+.abs-reg-conv-table code {
+    background: rgba(100, 160, 255, 0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.68rem;
+}
+
 .abs-method-panel-code {
     font-family: 'Courier New', monospace;
     font-size: 0.68rem;

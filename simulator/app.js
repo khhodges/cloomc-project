@@ -3163,6 +3163,18 @@ function showAbstractionDetail(index) {
                 html += `<button class="btn abs-method-ctrl-btn abs-method-edit-btn" title="Edit method" onclick="absShowEditForm(${uid},${mi})">&#9998;</button>`;
                 html += `</div>`;
                 html += `<div class="abs-method-panel-desc">${purpose}</div>`;
+                const regConv = METHOD_REGISTER_CONVENTIONS[abs.name] && METHOD_REGISTER_CONVENTIONS[abs.name][m];
+                if (regConv) {
+                    html += '<table class="abs-reg-conv-table"><tbody>';
+                    html += `<tr><td>Method Index</td><td>${regConv.index}</td></tr>`;
+                    html += `<tr><td>Input</td><td>${regConv.input}</td></tr>`;
+                    html += `<tr><td>Output</td><td>${regConv.output}</td></tr>`;
+                    html += `<tr><td>CALL Encoding</td><td><code>${regConv.encoding}</code></td></tr>`;
+                    if (regConv.note) {
+                        html += `<tr><td>Note</td><td>${regConv.note}</td></tr>`;
+                    }
+                    html += '</tbody></table>';
+                }
                 if (example) {
                     html += `<pre class="abs-method-panel-code">${example}</pre>`;
                 }
@@ -3258,6 +3270,20 @@ function showAbstractionDetail(index) {
         html += 'receives only the capabilities explicitly passed by the caller. Parent oversight is ';
         html += 'enforced via the Family abstraction (NS[28]) which must approve all social connections. ';
         html += 'SWITCH instruction can move between namespace domains atomically.</div>';
+        html += '</div>';
+    }
+
+    if (abs.name === 'SlideRule') {
+        html += '<div class="abs-detail-section abs-note-security">';
+        html += '<div class="abs-detail-label">Namespace Extension Model</div>';
+        html += '<div class="abs-note-text">SlideRule demonstrates the Church Machine\u2019s extensibility principle: ';
+        html += 'one CALL opcode, one namespace entry (NS[16]), and a 4-bit method index in the immediate field ';
+        html += 'give access to all 13 operations. Adding a new method \u2014 like Bernoulli at index 12 \u2014 means ';
+        html += 'adding one entry to the method dispatch table. No new instructions, no hardware changes, no grammar changes. ';
+        html += 'The namespace IS the extension mechanism. ';
+        html += 'Legacy code uses DR3 to select the method; the encoded CALL form packs the method index, source DR, and ';
+        html += 'destination DR into a single 16-bit immediate, enabling the compiler to target any register pair. ';
+        html += 'Both forms dispatch through the same abstraction \u2014 the only difference is how the method index reaches the handler.</div>';
         html += '</div>';
     }
 
@@ -3405,6 +3431,24 @@ function absDeleteMethod(absIdx) {
     showAbstractionDetail(absIdx);
 }
 
+const METHOD_REGISTER_CONVENTIONS = {
+    'SlideRule': {
+        'Multiply':  { index: 0,  input: 'DR0 (a), DR1 (b)', output: 'DR(dst) = a * b', encoding: '0x4000 | (0<<8) | (src<<4) | dst' },
+        'Divide':    { index: 1,  input: 'DR0 (a), DR1 (b)', output: 'DR(dst) = a / b', encoding: '0x4000 | (1<<8) | (src<<4) | dst' },
+        'Sqrt':      { index: 2,  input: 'DR0 (x)',           output: 'DR(dst) = \u221ax',    encoding: '0x4000 | (2<<8) | (src<<4) | dst' },
+        'Mod':       { index: 3,  input: 'DR0 (a), DR1 (b)', output: 'DR(dst) = a % b', encoding: '0x4000 | (3<<8) | (src<<4) | dst' },
+        'Sin':       { index: 4,  input: 'DR0 (radians)',     output: 'DR(dst) = sin(x)', encoding: '0x4000 | (4<<8) | (src<<4) | dst' },
+        'Cos':       { index: 5,  input: 'DR0 (radians)',     output: 'DR(dst) = cos(x)', encoding: '0x4000 | (5<<8) | (src<<4) | dst' },
+        'Tan':       { index: 6,  input: 'DR0 (radians)',     output: 'DR(dst) = tan(x)', encoding: '0x4000 | (6<<8) | (src<<4) | dst' },
+        'Asin':      { index: 7,  input: 'DR0 (x)',           output: 'DR(dst) = asin(x)', encoding: '0x4000 | (7<<8) | (src<<4) | dst' },
+        'Acos':      { index: 8,  input: 'DR0 (x)',           output: 'DR(dst) = acos(x)', encoding: '0x4000 | (8<<8) | (src<<4) | dst' },
+        'Atan':      { index: 9,  input: 'DR0 (x)',           output: 'DR(dst) = atan(x)', encoding: '0x4000 | (9<<8) | (src<<4) | dst' },
+        'ToDegrees': { index: 10, input: 'DR0 (radians)',     output: 'DR(dst) = degrees', encoding: '0x4000 | (10<<8) | (src<<4) | dst' },
+        'ToRadians': { index: 11, input: 'DR0 (degrees)',     output: 'DR(dst) = radians', encoding: '0x4000 | (11<<8) | (src<<4) | dst' },
+        'Bernoulli': { index: 12, input: 'DR0 (n)',           output: 'DR(dst) = numerator, DR(dst+1) = denominator', encoding: '0x4000 | (12<<8) | (src<<4) | dst', note: 'Dual-register return: exact rational B(n). DR15 edge case wraps denominator to DR1.' },
+    },
+};
+
 function getMethodPurposes(abs) {
     const purposes = {};
     const knownPurposes = {
@@ -3420,7 +3464,7 @@ function getMethodPurposes(abs) {
         'Button': { 'Read': 'Button.Read() — LOAD state from device (L perm)', 'WaitPress': 'Button.WaitPress() — block via Scheduler until press (E perm)', 'OnEvent': 'Button.OnEvent() — dequeue press/release event (E perm)' },
         'Timer': { 'Start': 'Timer.Start(channel) — SAVE start command to device (S perm)', 'Stop': 'Timer.Stop(channel) — SAVE stop command (S perm)', 'Read': 'Timer.Read() — LOAD elapsed ticks from device (L perm)', 'SetAlarm': 'Timer.SetAlarm(ticks) — SAVE threshold to device (S perm)' },
         'Display': { 'Write': 'Display.Write(char) — SAVE character to device (S perm)', 'Clear': 'Display.Clear() — SAVE clear command (S perm)', 'Scroll': 'Display.Scroll(lines) — SAVE scroll command (S perm)' },
-        'SlideRule': { 'Multiply': 'SlideRule.Multiply(a, b) — DR0*DR1, DR3=0', 'Divide': 'SlideRule.Divide(a, b) — DR0/DR1, DR3=1', 'Sqrt': 'SlideRule.Sqrt(x) — √DR0, DR3=2', 'Mod': 'SlideRule.Mod(a, b) — DR0%DR1, DR3=3', 'Sin': 'SlideRule.Sin(rad) — sine, DR3=4', 'Cos': 'SlideRule.Cos(rad) — cosine, DR3=5', 'Tan': 'SlideRule.Tan(rad) — tangent, DR3=6', 'Asin': 'SlideRule.Asin(x) — inverse sine, DR3=7', 'Acos': 'SlideRule.Acos(x) — inverse cosine, DR3=8', 'Atan': 'SlideRule.Atan(x) — inverse tangent, DR3=9', 'ToDegrees': 'SlideRule.ToDegrees(rad) — radians to degrees, DR3=10', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees to radians, DR3=11' },
+        'SlideRule': { 'Multiply': 'SlideRule.Multiply(a, b) — DR0*DR1, DR3=0', 'Divide': 'SlideRule.Divide(a, b) — DR0/DR1, DR3=1', 'Sqrt': 'SlideRule.Sqrt(x) — √DR0, DR3=2', 'Mod': 'SlideRule.Mod(a, b) — DR0%DR1, DR3=3', 'Sin': 'SlideRule.Sin(rad) — sine, DR3=4', 'Cos': 'SlideRule.Cos(rad) — cosine, DR3=5', 'Tan': 'SlideRule.Tan(rad) — tangent, DR3=6', 'Asin': 'SlideRule.Asin(x) — inverse sine, DR3=7', 'Acos': 'SlideRule.Acos(x) — inverse cosine, DR3=8', 'Atan': 'SlideRule.Atan(x) — inverse tangent, DR3=9', 'ToDegrees': 'SlideRule.ToDegrees(rad) — radians to degrees, DR3=10', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees to radians, DR3=11', 'Bernoulli': 'SlideRule.Bernoulli(n) — exact rational Bernoulli number B(n). Returns numerator in destination DR, denominator in DR(dst+1). Method index 12. Odd n>1 returns 0/1.' },
         'Abacus': { 'Add': 'Abacus.Add(a, b) — integer add', 'Sub': 'Abacus.Sub(a, b) — integer subtract', 'Mul': 'Abacus.Mul(a, b) — integer multiply', 'Div': 'Abacus.Div(a, b) — integer divide', 'Mod': 'Abacus.Mod(a, b) — remainder', 'Abs': 'Abacus.Abs(x) — absolute value' },
         'Constants': { 'Pi': 'Constants.Pi() — return \u03c0 as IEEE 754', 'E': 'Constants.E() — return e', 'Phi': 'Constants.Phi() — return \u03c6', 'Zero': 'Constants.Zero() — return 0.0', 'One': 'Constants.One() — return 1.0' },
         'Circle': { 'Area': 'Circle.Area(radius) — \u03c0r\u00b2 via SlideRule.Multiply + Constants.Pi', 'Circumference': 'Circle.Circumference(radius) — 2\u03c0r via SlideRule' },
@@ -4202,6 +4246,25 @@ LOAD   CR1, NS[16]      ; Load SlideRule E-GT
 DWRITE DR0, #0x43340000 ; 180.0 degrees
 CALL   CR1              ; DR0 <- 0x40490FDB (pi rad)
 ; Multiply by pi/180 internally`,
+            'Bernoulli': `; SlideRule.Bernoulli(n) — exact rational B(n)
+; Returns: numerator in DR(dst), denominator in DR(dst+1)
+; Method index 12 — CALL encoding: 0x4C00 | (left<<4) | right
+;
+; Legacy form (DR3 dispatch):
+LOAD   CR1, NS[16]      ; Load SlideRule E-GT
+DWRITE DR0, #6          ; n=6 -> B(6) = 1/42
+DWRITE DR3, #12         ; Method selector: Bernoulli
+CALL   CR1              ; DR0 <- 1 (numerator)
+                         ; DR1 <- 42 (denominator)
+;
+; Encoded CALL form (method in immediate):
+LOAD   CR1, NS[16]      ; Load SlideRule E-GT
+DWRITE DR4, #10         ; n=10 -> B(10) = 5/66
+CALL   CR1, #0x4C44     ; 0x4C44 = CALL method 12, src=DR4, dst=DR4
+                         ; DR4 <- 5 (numerator)
+                         ; DR5 <- 66 (denominator)
+; Edge case: if dst=DR15, denominator wraps to DR1
+; Invalid/odd n>1 returns 0/1`,
         },
         'Abacus': {
             'Add': `; Abacus.Add — integer addition (Turing domain data)
@@ -12213,7 +12276,7 @@ function switchRefTab(tab) {
     if (body) body.innerHTML = '<div class="instr-placeholder">Click any item on the left to see details.</div>';
 }
 
-function showAbstractionDetail(id) {
+function showAbstractionRefDetail(id) {
     _selectedAbstraction = id;
     const item = ABSTRACTION_DATA.find(a => a.id === id);
     if (!item) return;
@@ -12249,7 +12312,7 @@ function renderReference() {
             const card = document.createElement('div');
             card.className = 'instr-card abs-card' + (_selectedAbstraction === item.id ? ' active' : '');
             card.innerHTML = `<span class="instr-mnemonic">${item.name}</span><span class="instr-brief">${item.brief}</span>`;
-            card.onclick = () => { _refTipHide(); showAbstractionDetail(item.id); };
+            card.onclick = () => { _refTipHide(); showAbstractionRefDetail(item.id); };
             _attachRefTip(card, item.brief);
             absList.appendChild(card);
         });
