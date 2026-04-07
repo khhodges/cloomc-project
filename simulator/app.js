@@ -4344,8 +4344,8 @@ CALL   CR1              ; Circle.Circumference internally:
             'Apply': `; SUCC.Apply — Church successor via LAMBDA
 ; Church numerals use LAMBDA instruction, not CALL
 ; LAMBDA dispatches within an abstraction (not a security block)
-LOAD   CR1, NS[20]      ; Load SUCC GT [X,L,E]
-                         ;   X perm: code is a DATA-domain object
+LOAD   CR1, NS[20]      ; Load SUCC GT [X]
+                         ;   X perm only (Turing domain — code object)
                          ;   SUCC's CLOOMC holds the reduction code
 DWRITE DR0, #3          ; Church numeral 3
 
@@ -4357,7 +4357,7 @@ LAMBDA CR1, DR0         ; Apply SUCC:
         },
         'PRED': {
             'Apply': `; PRED.Apply — Church predecessor
-LOAD   CR1, NS[21]      ; Load PRED GT [X,L,E]
+LOAD   CR1, NS[21]      ; Load PRED GT [X]
 DWRITE DR0, #5          ; Church numeral 5
 
 LAMBDA CR1, DR0         ; Apply PRED:
@@ -4368,7 +4368,7 @@ LAMBDA CR1, DR0         ; Apply PRED:
         },
         'ADD': {
             'Apply': `; ADD.Apply — Church addition
-LOAD   CR1, NS[22]      ; Load ADD GT [X,L,E]
+LOAD   CR1, NS[22]      ; Load ADD GT [X]
 DWRITE DR0, #3          ; First Church numeral
 DWRITE DR1, #4          ; Second Church numeral
 
@@ -4379,7 +4379,7 @@ LAMBDA CR1, DR0         ; Apply ADD:
         },
         'SUB': {
             'Apply': `; SUB.Apply — Church subtraction
-LOAD   CR1, NS[23]      ; Load SUB GT [X,L,E]
+LOAD   CR1, NS[23]      ; Load SUB GT [X]
 DWRITE DR0, #7
 DWRITE DR1, #3
 
@@ -4391,7 +4391,7 @@ LAMBDA CR1, DR0         ; Apply SUB:
         },
         'MUL': {
             'Apply': `; MUL.Apply — Church multiplication
-LOAD   CR1, NS[24]      ; Load MUL GT [X,L,E]
+LOAD   CR1, NS[24]      ; Load MUL GT [X]
 DWRITE DR0, #3
 DWRITE DR1, #4
 
@@ -4402,7 +4402,7 @@ LAMBDA CR1, DR0         ; Apply MUL:
         },
         'ISZERO': {
             'Apply': `; ISZERO.Apply — Church zero test
-LOAD   CR1, NS[25]      ; Load ISZERO GT [X,L,E]
+LOAD   CR1, NS[25]      ; Load ISZERO GT [X]
 DWRITE DR0, #0          ; Church numeral to test
 
 LAMBDA CR1, DR0         ; Apply ISZERO:
@@ -4414,7 +4414,7 @@ LAMBDA CR1, DR0         ; Apply ISZERO:
         },
         'PAIR': {
             'Apply': `; PAIR.Apply — Church pair constructor
-LOAD   CR1, NS[43]      ; Load PAIR GT [X,L,E]
+LOAD   CR1, NS[43]      ; Load PAIR GT [X]
 DWRITE DR0, #10         ; First element
 DWRITE DR1, #20         ; Second element
 
