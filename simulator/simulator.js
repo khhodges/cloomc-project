@@ -367,6 +367,13 @@ class ChurchSimulator {
         // Timer: 5 words (TICKS_LO, TICKS_HI, TOD_EPOCH, ALARM_CMP, CTL)   → limit17 = 4
         const DEVICE_REG_LIMITS = { 11: 2, 12: 4, 13: 0, 14: 4 };
 
+        const THREAD_LUMP_SIZE = 256;
+        const BOOT_ABSTR_LUMP_SIZE = 256;
+        const slotSizes = {};
+        slotSizes[1] = THREAD_LUMP_SIZE;
+        slotSizes[2] = BOOT_ABSTR_LUMP_SIZE;
+
+        let runningOffset = 0;
         for (let i = 0; i < abstractions.length; i++) {
             const a = abstractions[i];
             if (i === 3) {
@@ -376,11 +383,13 @@ class ChurchSimulator {
                 clistChildren.push(i);
                 continue;
             }
-            const loc = (i === 0) ? 0 : i * this.SLOT_SIZE;
-            const THREAD_LUMP_SIZE = 256;
+            const loc = (i === 0) ? 0 : runningOffset;
+            const mySize = slotSizes[i] || this.SLOT_SIZE;
+            if (i > 0) runningOffset += mySize;
+            else runningOffset = this.SLOT_SIZE;
             const lim17 = (i === 0) ? (this.memory.length - 1)
                         : (DEVICE_REG_LIMITS[i] !== undefined ? DEVICE_REG_LIMITS[i]
-                        : (i === 1 ? (THREAD_LUMP_SIZE - 1) : (this.SLOT_SIZE - 1)));
+                        : (mySize - 1));
             const nsTableCount = (i === 0) ? abstractions.length : 0;
             this.writeNSEntry(i, loc, lim17, 0, 0, 0, a.chainable ? 1 : 0, 1, 0, nsTableCount);
             this.nsLabels[i] = a.label;
@@ -396,7 +405,8 @@ class ChurchSimulator {
         const THREAD_SW = 32;
         const THREAD_CC = 64;
         const THREAD_N_MINUS_6 = 2;
-        this.memory[1 * this.SLOT_SIZE] = this.packLumpHeader(THREAD_N_MINUS_6, THREAD_SW, THREAD_CC, 2);
+        const threadLoc = this.memory[this.NS_TABLE_BASE + 1 * this.NS_ENTRY_WORDS];
+        this.memory[threadLoc] = this.packLumpHeader(THREAD_N_MINUS_6, THREAD_SW, THREAD_CC, 2);
 
         // DEMO_CLIST hardware alignment: override C-List slots 8–11 with device GTs so
         // hardware code "LOAD CR3, CR6, 8" picks up the LED device, exactly as on Ti60 F225.
@@ -416,24 +426,24 @@ class ChurchSimulator {
             clistGTs[8 + i] = this.createGT(0, d.nsIdx, d.perms, 1);
         }
 
-        // Slot 2 (Boot.Abstr) lump layout — hardware-accurate with lump header at word 0:
-        //   Word  0:       Lump header (magic=0x1F, n_minus_6=0→lumpSize=64, cw=17, typ=0, cc=12)
+        // Slot 2 (Boot.Abstr) lump layout — with lump header at word 0:
+        //   Word  0:       Lump header (magic=0x1F, n_minus_6=2→lumpSize=256, cw=17, typ=0, cc=12)
         //   Words 1–17:   Code region  (NUC_CODE_WORDS = 17 instructions; loaded by loadProgram)
-        //   Words 18–51:  Freespace    (34 words, always zero, internal to the lump)
-        //   Words 52–63:  C-list       (12 GT words, at physical end; matching hardware DEMO_CLIST)
-        //   Physical backing: SLOT_SIZE = 64 words = lumpSize (n_minus_6=0 → 2^6 = 64)
+        //   Words 18–243: Freespace    (226 words, available for code growth via Patch)
+        //   Words 244–255:C-list       (12 GT words, at physical end; matching hardware DEMO_CLIST)
+        //   Physical backing: BOOT_ABSTR_LUMP_SIZE = 256 words (n_minus_6=2 → 2^8 = 256)
         //   → CR14: base=lump_start, limit=cw-1=16  (code region; cload reads cw from lump header)
-        //   → CR6:  base=lump_start+52, limit=cc-1=11  (c-list at physical end)
+        //   → CR6:  base=lump_start+244, limit=cc-1=11  (c-list at physical end)
         const NUC_CODE_WORDS    = 17;
-        const DEMO_CLIST_SIZE   = 12;  // hardware DEMO_CLIST has exactly 12 entries (idx 0–11)
-        const bootAbstrLoc      = 2 * this.SLOT_SIZE;    // = 128
-        const N_MINUS_6         = 0;                      // lumpSize = 2^(0+6) = 64 = SLOT_SIZE
-        const lumpSize          = this.SLOT_SIZE;         // = 64
+        const DEMO_CLIST_SIZE   = 12;
+        const bootAbstrLoc      = this.memory[this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS];
+        const N_MINUS_6         = 2;
+        const lumpSize          = BOOT_ABSTR_LUMP_SIZE;
         // Truncate to hardware DEMO_CLIST size — entries beyond idx 11 are simulator-only abstractions
         // not present in the boot c-list on real hardware.
         clistGTs.length         = DEMO_CLIST_SIZE;
         const bootClistCount    = DEMO_CLIST_SIZE;
-        const clistStart        = lumpSize - bootClistCount;  // = 52 (c-list at physical end)
+        const clistStart        = lumpSize - bootClistCount;  // = 244 (c-list at physical end)
 
         // Word 0: lump header — hardware reads this to simultaneously derive CR14 and CR6
         this.memory[bootAbstrLoc] = this.packLumpHeader(N_MINUS_6, NUC_CODE_WORDS, bootClistCount, 0);
@@ -444,8 +454,8 @@ class ChurchSimulator {
         }
         this.memory[bootAbstrLoc + clistStart] = 0;  // GT[0] = null (filled by SAVE epilogue)
 
-        // NS entry: limit17 = lumpSize - cc - 1 = 51  (valid PC range 0..50 via +1 fetch offset)
-        const codeRegionLimit   = lumpSize - bootClistCount - 1;  // = 51
+        // NS entry: limit17 = lumpSize - cc - 1 = 243  (valid PC range 0..242 via +1 fetch offset)
+        const codeRegionLimit   = lumpSize - bootClistCount - 1;  // = 243
         const bootNSBase        = this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS;
         const bootW1            = this.packNSWord1(codeRegionLimit, 0, 0, 0, 0, 1, bootClistCount);
         this.memory[bootNSBase + 1] = bootW1;
@@ -2710,6 +2720,13 @@ class ChurchSimulator {
         this.pc = 0;
         this.halted = false;
         this.running = false;
+        this.sto = 243;
+        this.callStack = [];
+        this.stepCount = 0;
+        this.lambdaActive = false;
+        this.lambdaReturnPC = 0;
+        this.faultLog = [];
+        this._instrHistory = [];
         this.emit('programLoaded', { addr: baseAddr, length: words.length });
         this.emit('stateChange', this.getState());
     }

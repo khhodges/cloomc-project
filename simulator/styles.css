@@ -1371,6 +1371,72 @@ header h1 {
     font-size: 0.72rem;
 }
 
+/* ── Run popover ────────────────────────────────────────────────────────── */
+.run-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.run-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 200px;
+    background: #1a1a2e;
+    border: 1px solid rgba(74,222,128,0.35);
+    border-radius: 8px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    z-index: 9999;
+    padding: 0.55rem 0.75rem 0.6rem;
+}
+.run-popover-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(74,222,128,0.65);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+.run-close-btn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 0.2rem;
+    line-height: 1;
+}
+.run-close-btn:hover { color: #fff; }
+.run-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 0.3rem;
+}
+.run-hint {
+    font-size: 0.65rem;
+    color: #6b7280;
+}
+.run-batch-select {
+    width: 100%;
+    background: #111827;
+    color: var(--text-primary);
+    border: 1px solid #374151;
+    border-radius: 4px;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+}
+.run-go-btn {
+    width: 100%;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
 /* ── Breakpoint row in code view ─────────────────────────────────────────── */
 .code-bp-row {
     background: rgba(239,68,68,0.08);

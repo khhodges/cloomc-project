@@ -1488,7 +1488,13 @@ function injectCRCode(logEl) {
     const codeStart = baseLoc + 1;
     const oldCW = lumpHdr.cw;
 
-    log(`CR${crIdx}  NS[${nsIdx}]  base=0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}  old cw=${oldCW}  new cw=${newCW}`);
+    const maxCW = Math.max(0, lumpHdr.lumpSize - lumpHdr.cc - 1);
+    if (newCW > maxCW) {
+        log(`Error: Code too large — ${newCW} words, max ${maxCW} words (lumpSize=${lumpHdr.lumpSize}, c-list=${lumpHdr.cc}).`);
+        return null;
+    }
+
+    log(`CR${crIdx}  NS[${nsIdx}]  base=0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}  old cw=${oldCW}  new cw=${newCW}  (max ${maxCW})`);
 
     for (let i = 0; i < newCW; i++) {
         const addr = codeStart + i;
@@ -5275,6 +5281,38 @@ function stepSim() {
 let walkRunning = false;
 let walkTimer = null;
 
+// ── Run popover ─────────────────────────────────────────────────────────────
+let runBatchSize = 500;
+
+function showRunPopover() {
+    const pop = document.getElementById('runPopover');
+    if (!pop) { runSimGo(); return; }
+    if (pop.style.display !== 'none') { hideRunPopover(); return; }
+    const sel = document.getElementById('runBatchSelect');
+    if (sel) sel.value = String(runBatchSize);
+    pop.style.display = 'block';
+}
+
+function hideRunPopover() {
+    const pop = document.getElementById('runPopover');
+    if (pop) pop.style.display = 'none';
+}
+
+function runSimGo() {
+    const sel = document.getElementById('runBatchSelect');
+    if (sel) runBatchSize = parseInt(sel.value, 10) || 500;
+    hideRunPopover();
+    runSim();
+}
+
+document.addEventListener('mousedown', function(e) {
+    const wrap = document.getElementById('runWrap');
+    const pop = document.getElementById('runPopover');
+    if (wrap && pop && pop.style.display !== 'none' && !wrap.contains(e.target)) {
+        hideRunPopover();
+    }
+});
+
 // ── Breakpoints ────────────────────────────────────────────────────────────
 const simBreakpoints = new Set();
 
@@ -5538,7 +5576,7 @@ function runSim() {
     _autoLoadDefaultProgram();
 
     const MAX_STEPS   = 10000;
-    const BATCH_SIZE  = 500;          // steps per chunk before yielding to the UI
+    const BATCH_SIZE  = runBatchSize;
     const breakpoints = simBreakpoints.size > 0 ? simBreakpoints : null;
     const con         = document.getElementById('editorConsole');
     const runBtn      = document.getElementById('btnRunSim');
@@ -5578,7 +5616,7 @@ function runSim() {
             } else if (totalSteps >= MAX_STEPS) {
                 finishRun('maxSteps');
             } else {
-                // Yield to browser for a frame, then continue
+                try { updateDashboard(); } catch(e) { console.error('runBatch updateDashboard:', e); }
                 setTimeout(runBatch, 0);
             }
         } catch(e) {
