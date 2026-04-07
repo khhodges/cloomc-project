@@ -6805,11 +6805,11 @@ SWITCH CR0, 1          ; Swap back
 ; CR0=Salvation, CR1=Navana again
 
 ; --- TEST 6: Turing ISA ---
-IADD DR1, DR0, 42      ; DR1 = 42
-IADD DR2, DR1, 8       ; DR2 = 50
+IADD DR1, DR0, #42     ; DR1 = 42
+IADD DR2, DR1, #8      ; DR2 = 50
 ISUB DR3, DR2, DR1     ; DR3 = 8
 MCMP DR1, DR2          ; 42 < 50 → N=1, Z=0
-IADD DR4, DR0, 1       ; DR4 = 1
+IADD DR4, DR0, #1      ; DR4 = 1
 SHL DR4, DR4, 3        ; DR4 = 8
 SHR DR4, DR4, 1        ; DR4 = 4
 
