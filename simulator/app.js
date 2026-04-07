@@ -3414,10 +3414,10 @@ function getMethodPurposes(abs) {
         'Button': { 'Read': 'Button.Read() — LOAD state from device (L perm)', 'WaitPress': 'Button.WaitPress() — block via Scheduler until press (E perm)', 'OnEvent': 'Button.OnEvent() — dequeue press/release event (E perm)' },
         'Timer': { 'Start': 'Timer.Start(channel) — SAVE start command to device (S perm)', 'Stop': 'Timer.Stop(channel) — SAVE stop command (S perm)', 'Read': 'Timer.Read() — LOAD elapsed ticks from device (L perm)', 'SetAlarm': 'Timer.SetAlarm(ticks) — SAVE threshold to device (S perm)' },
         'Display': { 'Write': 'Display.Write(char) — SAVE character to device (S perm)', 'Clear': 'Display.Clear() — SAVE clear command (S perm)', 'Scroll': 'Display.Scroll(lines) — SAVE scroll command (S perm)' },
-        'SlideRule': { 'Add': 'SlideRule.Add(a, b) — IEEE 754 float add', 'Sub': 'SlideRule.Sub(a, b) — float subtract', 'Mul': 'SlideRule.Mul(a, b) — float multiply', 'Div': 'SlideRule.Div(a, b) — float divide', 'Sqrt': 'SlideRule.Sqrt(x) — square root', 'Log': 'SlideRule.Log(x) — natural logarithm', 'Pow': 'SlideRule.Pow(base, exp) — power function', 'Sin': 'SlideRule.Sin(rad) — sine', 'Cos': 'SlideRule.Cos(rad) — cosine', 'Tan': 'SlideRule.Tan(rad) — tangent', 'Asin': 'SlideRule.Asin(x) — inverse sine', 'Acos': 'SlideRule.Acos(x) — inverse cosine', 'Atan': 'SlideRule.Atan(x) — inverse tangent', 'ToDegrees': 'SlideRule.ToDegrees(rad) — radians to degrees', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees to radians' },
+        'SlideRule': { 'Multiply': 'SlideRule.Multiply(a, b) — DR0*DR1, DR3=0', 'Divide': 'SlideRule.Divide(a, b) — DR0/DR1, DR3=1', 'Sqrt': 'SlideRule.Sqrt(x) — √DR0, DR3=2', 'Mod': 'SlideRule.Mod(a, b) — DR0%DR1, DR3=3', 'Sin': 'SlideRule.Sin(rad) — sine, DR3=4', 'Cos': 'SlideRule.Cos(rad) — cosine, DR3=5', 'Tan': 'SlideRule.Tan(rad) — tangent, DR3=6', 'Asin': 'SlideRule.Asin(x) — inverse sine, DR3=7', 'Acos': 'SlideRule.Acos(x) — inverse cosine, DR3=8', 'Atan': 'SlideRule.Atan(x) — inverse tangent, DR3=9', 'ToDegrees': 'SlideRule.ToDegrees(rad) — radians to degrees, DR3=10', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees to radians, DR3=11' },
         'Abacus': { 'Add': 'Abacus.Add(a, b) — integer add', 'Sub': 'Abacus.Sub(a, b) — integer subtract', 'Mul': 'Abacus.Mul(a, b) — integer multiply', 'Div': 'Abacus.Div(a, b) — integer divide', 'Mod': 'Abacus.Mod(a, b) — remainder', 'Abs': 'Abacus.Abs(x) — absolute value' },
         'Constants': { 'Pi': 'Constants.Pi() — return \u03c0 as IEEE 754', 'E': 'Constants.E() — return e', 'Phi': 'Constants.Phi() — return \u03c6', 'Zero': 'Constants.Zero() — return 0.0', 'One': 'Constants.One() — return 1.0' },
-        'Circle': { 'Area': 'Circle.Area(radius) — \u03c0r\u00b2 via SlideRule.Mul + Constants.Pi', 'Circumference': 'Circle.Circumference(radius) — 2\u03c0r via SlideRule' },
+        'Circle': { 'Area': 'Circle.Area(radius) — \u03c0r\u00b2 via SlideRule.Multiply + Constants.Pi', 'Circumference': 'Circle.Circumference(radius) — 2\u03c0r via SlideRule' },
         'Family': { 'Register': 'Family.Register(parent_GT, child_GT) — bind parent-child in c-list', 'Hello': 'Family.Hello(target_GT) — send greeting to any family member via their GT', 'Oversight': 'Family.Oversight(child_GT) — parent queries child activity' },
         'Schoolroom': { 'Join': 'Schoolroom.Join(class_GT) — student enters class', 'Lesson': 'Schoolroom.Lesson(class_GT, content_GT) — teacher posts lesson', 'Submit': 'Schoolroom.Submit(work_GT) — student submits work', 'Grade': 'Schoolroom.Grade(work_GT, score) — teacher grades work' },
         'Friends': { 'Request': 'Friends.Request(peer_GT) — send friend request (needs parent approval)', 'Accept': 'Friends.Accept(requester_GT) — accept request', 'Share': 'Friends.Share(friend_GT, cap_GT) — share capability', 'Revoke': 'Friends.Revoke(cap_GT) — revoke shared capability' },
@@ -4135,41 +4135,30 @@ CALL   CR1              ; Display.Scroll via E perm:
 ;   Top line lost, bottom line cleared`,
         },
         'SlideRule': {
-            'Add': `; SlideRule.Add — IEEE 754 float addition
+            'Multiply': `; SlideRule.Multiply — DR0 * DR1 (DR3=0)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x3F800000 ; 1.0 (IEEE 754 single)
-DWRITE DR1, #0x40000000 ; 2.0
-CALL   CR1              ; DR0 <- 0x40400000 (3.0)`,
-            'Sub': `; SlideRule.Sub — IEEE 754 float subtract
+DWRITE DR0, #2          ; Left operand
+DWRITE DR1, #3          ; Right operand
+DWRITE DR3, #0          ; Method selector: Multiply
+CALL   CR1              ; DR0 <- 6`,
+            'Divide': `; SlideRule.Divide — DR0 / DR1 (DR3=1)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x40400000 ; 3.0
-DWRITE DR1, #0x3F800000 ; 1.0
-CALL   CR1              ; DR0 <- 0x40000000 (2.0)`,
-            'Mul': `; SlideRule.Mul — IEEE 754 float multiply
+DWRITE DR0, #10         ; Dividend
+DWRITE DR1, #2          ; Divisor
+DWRITE DR3, #1          ; Method selector: Divide
+CALL   CR1              ; DR0 <- 5
+; Div by zero returns 0 with fault message`,
+            'Sqrt': `; SlideRule.Sqrt — √DR0 (DR3=2)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x40000000 ; 2.0
-DWRITE DR1, #0x40400000 ; 3.0
-CALL   CR1              ; DR0 <- 0x40C00000 (6.0)`,
-            'Div': `; SlideRule.Div — IEEE 754 float divide
+DWRITE DR0, #9          ; Input
+DWRITE DR3, #2          ; Method selector: Sqrt
+CALL   CR1              ; DR0 <- 3`,
+            'Mod': `; SlideRule.Mod — DR0 % DR1 (DR3=3)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x41200000 ; 10.0
-DWRITE DR1, #0x40000000 ; 2.0
-CALL   CR1              ; DR0 <- 0x40A00000 (5.0)
-; Div by zero: FAULT MATH_ERROR`,
-            'Sqrt': `; SlideRule.Sqrt — square root
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x41100000 ; 9.0
-CALL   CR1              ; DR0 <- 0x40400000 (3.0)
-; Negative input: FAULT DOMAIN_ERROR`,
-            'Log': `; SlideRule.Log — natural logarithm
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x402DF854 ; e (2.71828)
-CALL   CR1              ; DR0 <- 0x3F800000 (1.0)`,
-            'Pow': `; SlideRule.Pow — power function
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x40000000 ; Base: 2.0
-DWRITE DR1, #0x41200000 ; Exponent: 10.0
-CALL   CR1              ; DR0 <- 0x44800000 (1024.0)`,
+DWRITE DR0, #10         ; Dividend
+DWRITE DR1, #3          ; Divisor
+DWRITE DR3, #3          ; Method selector: Mod
+CALL   CR1              ; DR0 <- 1`,
             'Sin': `; SlideRule.Sin — sine (radians)
 ; FPGA uses CORDIC; simulator uses IEEE 754
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
@@ -4266,10 +4255,10 @@ DWRITE DR0, #0x40A00000 ; Radius: 5.0
 
 CALL   CR1              ; Circle.Area internally:
 ;   1. LOAD CR2, NS[16] — get SlideRule GT
-;   2. CALL SlideRule.Mul(r, r)      -> r^2 = 25.0
+;   2. CALL SlideRule.Multiply(r, r)  -> r^2 = 25.0
 ;   3. LOAD CR3, NS[18] — get Constants GT
 ;   4. CALL Constants.Pi             -> pi
-;   5. CALL SlideRule.Mul(pi, r^2)   -> 78.5398
+;   5. CALL SlideRule.Multiply(pi, r^2) -> 78.5398
 ; DR0 <- 0x429CE5A0 (78.54)
 ; Circle has no trig itself — delegates to SlideRule`,
             'Circumference': `; Circle.Circumference — 2 * pi * r
@@ -4278,8 +4267,8 @@ DWRITE DR0, #0x40A00000 ; Radius: 5.0
 
 CALL   CR1              ; Circle.Circumference internally:
 ;   1. CALL Constants.Pi             -> pi
-;   2. CALL SlideRule.Mul(2.0, pi)   -> 2*pi
-;   3. CALL SlideRule.Mul(2pi, r)    -> 31.4159
+;   2. CALL SlideRule.Multiply(2.0, pi) -> 2*pi
+;   3. CALL SlideRule.Multiply(2pi, r)  -> 31.4159
 ; DR0 <- 0x41FB53D1 (31.416)`,
         },
         'SUCC': {

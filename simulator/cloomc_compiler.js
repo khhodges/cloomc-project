@@ -1842,11 +1842,28 @@ class CLOOMCCompiler {
         return (adaVars >= 2) || (arrowAssign >= 1) || (opKeywords >= 2);
     }
 
+    _sourceNeedsMulDiv(parsed) {
+        for (const method of parsed.methods) {
+            for (const stmt of method.body) {
+                const text = (stmt.text || '').replace(/×/g, '*').replace(/÷/g, '/');
+                if (/[*\/]/.test(text) || /\b(multiply|divide)\s*\(/i.test(text)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     compileSymbolic(source, capabilities) {
         const errors = [];
         const parsed = this._parseSymbolicAbstraction(source, errors);
         if (errors.length > 0) {
             return { methods: [], errors, manifest: [], abstractionName: parsed.name || '', capabilities: parsed.capabilities || [], language: 'symbolic' };
+        }
+
+        const needsSlideRule = this._sourceNeedsMulDiv(parsed);
+        if (needsSlideRule && !parsed.capabilities.map(c => c.toUpperCase()).includes('SLIDERULE')) {
+            parsed.capabilities.push('SlideRule');
         }
 
         const rom = this._buildROM(parsed.capabilities, capabilities || []);
@@ -2130,46 +2147,29 @@ class CLOOMCCompiler {
             return 14;
         };
 
+        const slideRuleMethodIndex = { Multiply: 0, Divide: 1, Sqrt: 2, Mod: 3 };
+
+        let slideRuleCR0Loaded = false;
+
+        const emitSlideRuleCall = (methodName, leftDR, rightDR, dstDR, lineNum, comment) => {
+            const methodIdx = slideRuleMethodIndex[methodName];
+            const slideRuleSlot = rom['SLIDERULE'];
+            if (!slideRuleCR0Loaded) {
+                code.push(this.encode(this.opcodes.LOAD, 14, 0, 6, slideRuleSlot));
+                manifest.push({ line: lineNum, instr: `LOAD CR0, CR6, ${slideRuleSlot}`, comment: `load SlideRule capability` });
+                slideRuleCR0Loaded = true;
+            }
+            const packed = 0x4000 | (methodIdx << 8) | (leftDR << 4) | rightDR;
+            code.push(this.encode(this.opcodes.CALL, 14, 0, dstDR, packed));
+            manifest.push({ line: lineNum, instr: `CALL CR0`, comment: `SlideRule.${methodName}(DR${leftDR}, DR${rightDR}) -> DR${dstDR}` });
+        };
+
         const emitMultiply = (leftDR, rightDR, dstDR, lineNum, comment) => {
-            const counterDR = findTempReg(leftDR, rightDR, dstDR);
-            code.push(this.encode(this.opcodes.IADD, 14, dstDR, 0, 0));
-            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR0, DR0`, comment: `${comment}: result = 0` });
-            code.push(this.encode(this.opcodes.IADD, 14, counterDR, rightDR, 0));
-            manifest.push({ line: lineNum, instr: `IADD DR${counterDR}, DR${rightDR}, DR0`, comment: `counter = right operand` });
-            const loopPC = code.length;
-            code.push(this.encode(this.opcodes.MCMP, 14, counterDR, 0, 0));
-            manifest.push({ line: lineNum, instr: `MCMP DR${counterDR}, DR0`, comment: `loop: counter == 0?` });
-            code.push(this.encode(this.opcodes.BRANCH, 0, 0, 0, 0));
-            const branchIdx = code.length - 1;
-            manifest.push({ line: lineNum, instr: `BRANCHEQ done`, comment: `exit if zero` });
-            code.push(this.encode(this.opcodes.IADD, 14, dstDR, dstDR, leftDR));
-            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${dstDR}, DR${leftDR}`, comment: `result += left` });
-            code.push(this.encode(this.opcodes.ISUB, 14, counterDR, counterDR, 1));
-            manifest.push({ line: lineNum, instr: `ISUB DR${counterDR}, DR${counterDR}, 1`, comment: `counter--` });
-            code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, loopPC));
-            manifest.push({ line: lineNum, instr: `BRANCH loop`, comment: `repeat` });
-            code[branchIdx] = this.encode(this.opcodes.BRANCH, 0, 0, 0, code.length);
+            emitSlideRuleCall('Multiply', leftDR, rightDR, dstDR, lineNum, comment);
         };
 
         const emitDivide = (leftDR, rightDR, dstDR, lineNum, comment) => {
-            const remainDR = findTempReg(leftDR, rightDR, dstDR);
-            code.push(this.encode(this.opcodes.IADD, 14, dstDR, 0, 0));
-            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR0, DR0`, comment: `${comment}: quotient = 0` });
-            code.push(this.encode(this.opcodes.IADD, 14, remainDR, leftDR, 0));
-            manifest.push({ line: lineNum, instr: `IADD DR${remainDR}, DR${leftDR}, DR0`, comment: `remainder = dividend` });
-            const loopPC = code.length;
-            code.push(this.encode(this.opcodes.MCMP, 14, remainDR, rightDR, 0));
-            manifest.push({ line: lineNum, instr: `MCMP DR${remainDR}, DR${rightDR}`, comment: `remainder >= divisor?` });
-            code.push(this.encode(this.opcodes.BRANCH, 11, 0, 0, 0));
-            const branchIdx = code.length - 1;
-            manifest.push({ line: lineNum, instr: `BRANCHLT done`, comment: `exit if less` });
-            code.push(this.encode(this.opcodes.ISUB, 14, remainDR, remainDR, rightDR));
-            manifest.push({ line: lineNum, instr: `ISUB DR${remainDR}, DR${remainDR}, DR${rightDR}`, comment: `remainder -= divisor` });
-            code.push(this.encode(this.opcodes.IADD, 14, dstDR, dstDR, 1));
-            manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${dstDR}, 1`, comment: `quotient++` });
-            code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, loopPC));
-            manifest.push({ line: lineNum, instr: `BRANCH loop`, comment: `repeat` });
-            code[branchIdx] = this.encode(this.opcodes.BRANCH, 11, 0, 0, code.length);
+            emitSlideRuleCall('Divide', leftDR, rightDR, dstDR, lineNum, comment);
         };
 
         for (const stmt of method.body) {

@@ -1850,14 +1850,58 @@ class ChurchSimulator {
             ]};
         }
 
-        const methodName = abstraction.methods[0] || 'Apply';
-        const desc = `CALL CR${d.crDst} -> ${label}.${methodName} [abstraction dispatch]`;
+        let methodIndex, argDR0, argDR1, desc, encodedDstReg;
+        // ISA extension: encoded CALL mode (imm bit 14 set)
+        // Packs method index, source operand registers, and destination DR into CALL instruction
+        // fields (imm[11:8]=method, imm[7:4]=leftDR, imm[3:0]=rightDR, crSrc=dstDR).
+        // Result is written directly to dstDR, bypassing DR0 zero-register enforcement.
+        // Legacy mode (imm bit 14 clear) uses DR3 as method selector with DR0/DR1 operands.
+        if (d.imm & 0x4000) {
+            const packed = d.imm & 0x3FFF;
+            methodIndex = (packed >> 8) & 0xF;
+            const leftReg = (packed >> 4) & 0xF;
+            const rightReg = packed & 0xF;
+            encodedDstReg = d.crSrc;
+            argDR0 = this.dr[leftReg];
+            argDR1 = this.dr[rightReg];
+            const methodName2 = (methodIndex >= 0 && methodIndex < abstraction.methods.length)
+                ? abstraction.methods[methodIndex]
+                : (abstraction.methods[0] || 'Apply');
+            desc = `CALL CR${d.crDst} -> ${label}.${methodName2} [DR${leftReg}, DR${rightReg}] -> DR${encodedDstReg}`;
+        } else {
+            methodIndex = this.dr[3] || 0;
+            encodedDstReg = null;
+            argDR0 = this.dr[0];
+            argDR1 = this.dr[1];
+            desc = `CALL CR${d.crDst} -> ${label}.${abstraction.methods[methodIndex] || 'Apply'} [DR3=${methodIndex}]`;
+        }
+        const methodName = (methodIndex >= 0 && methodIndex < abstraction.methods.length)
+            ? abstraction.methods[methodIndex]
+            : (abstraction.methods[0] || 'Apply');
         this.output += desc + '\n';
 
         if (this.abstractionRegistry) {
-            const result = this.abstractionRegistry.dispatchMethod(check.index, methodName, this, {});
+            const result = this.abstractionRegistry.dispatchMethod(check.index, methodName, this, {
+                dr0: argDR0, dr1: argDR1
+            });
             if (result && result.message) {
                 this.output += `  ${result.message}\n`;
+            }
+            if (result && result.ok && result.result !== undefined && typeof result.result === 'number') {
+                if (encodedDstReg !== null) {
+                    this.dr[encodedDstReg] = result.result;
+                } else {
+                    this.dr[0] = result.result;
+                }
+            }
+            if (result && !result.ok && result.fault) {
+                this.fault(result.fault, `${label}.${methodName}: ${result.message}`);
+                this.pc++;
+                return { pc: this.pc - 1, instr: d, desc, pipeline: [
+                    { stage: 'CALL', desc: `Enter ${label} abstraction`, perm: 'E', status: 'pass' },
+                    { stage: 'DISPATCH', desc: `${label}.${methodName}`, status: 'fail' },
+                    { stage: 'FAULT', desc: `${result.fault}: ${result.message}`, status: 'fail' },
+                ]};
             }
         }
 

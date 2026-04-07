@@ -270,7 +270,7 @@ function sliderulePresetMultiply(a, b) {
     slideruleState.cursorX = Math.max(slideruleState.scaleStart, Math.min(slideruleState.scaleStart + slideruleState.scaleWidth, slideruleState.cursorX));
     const result = aClamp * bClamp;
     slideruleTraceLog(
-        `CALL SlideRule.Mul(${aClamp}, ${bClamp}) \u2192 ${Math.round(result * 1000) / 1000}`,
+        `CALL SlideRule.Multiply(${aClamp}, ${bClamp}) \u2192 ${Math.round(result * 1000) / 1000}`,
         `Multiply: set C-scale 1 at D=${aClamp}, read D at C=${bClamp}`
     );
     slideruleUpdateDisplay();

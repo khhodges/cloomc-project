@@ -109,6 +109,7 @@ class SystemAbstractions {
         this._bindScheduler();
         this._bindStack();
         this._bindDijkstraFlag();
+        this._bindSlideRuleArithmetic();
         this._bindSlideRuleTrig();
     }
 
@@ -1256,51 +1257,86 @@ class SystemAbstractions {
         });
     }
 
+    _bindSlideRuleArithmetic() {
+        this.registry.bindMethod(16, 'Multiply', function(sim, args) {
+            const a = args.dr0 !== undefined ? args.dr0 : 0;
+            const b = args.dr1 !== undefined ? args.dr1 : 0;
+            const result = a * b;
+            return { ok: true, result: result, message: `SlideRule.Multiply(${a}, ${b}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Divide', function(sim, args) {
+            const a = args.dr0 !== undefined ? args.dr0 : 0;
+            const b = args.dr1 !== undefined ? args.dr1 : 0;
+            if (b === 0) {
+                return { ok: true, result: 0, fault: 'DIV0', message: `SlideRule.Divide(${a}, ${b}) = 0 (division by zero)` };
+            }
+            const result = Math.trunc(a / b);
+            return { ok: true, result: result, message: `SlideRule.Divide(${a}, ${b}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Sqrt', function(sim, args) {
+            const a = args.dr0 !== undefined ? args.dr0 : 0;
+            const result = Math.floor(Math.sqrt(a));
+            return { ok: true, result: result, message: `SlideRule.Sqrt(${a}) = ${result}` };
+        });
+
+        this.registry.bindMethod(16, 'Mod', function(sim, args) {
+            const a = args.dr0 !== undefined ? args.dr0 : 0;
+            const b = args.dr1 !== undefined ? args.dr1 : 0;
+            if (b === 0) {
+                return { ok: true, result: 0, fault: 'DIV0', message: `SlideRule.Mod(${a}, ${b}) = 0 (division by zero)` };
+            }
+            const result = a % b;
+            return { ok: true, result: result, message: `SlideRule.Mod(${a}, ${b}) = ${result}` };
+        });
+    }
+
     _bindSlideRuleTrig() {
         this.registry.bindMethod(16, 'Sin', function(sim, args) {
-            const angle = args.angle !== undefined ? args.angle : 0;
+            const angle = args.angle !== undefined ? args.angle : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = Math.sin(angle);
             return { ok: true, result: result, message: `SlideRule.Sin(${angle}) = ${result}` };
         });
 
         this.registry.bindMethod(16, 'Cos', function(sim, args) {
-            const angle = args.angle !== undefined ? args.angle : 0;
+            const angle = args.angle !== undefined ? args.angle : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = Math.cos(angle);
             return { ok: true, result: result, message: `SlideRule.Cos(${angle}) = ${result}` };
         });
 
         this.registry.bindMethod(16, 'Tan', function(sim, args) {
-            const angle = args.angle !== undefined ? args.angle : 0;
+            const angle = args.angle !== undefined ? args.angle : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = Math.tan(angle);
             return { ok: true, result: result, message: `SlideRule.Tan(${angle}) = ${result}` };
         });
 
         this.registry.bindMethod(16, 'Asin', function(sim, args) {
-            const value = args.value !== undefined ? args.value : 0;
+            const value = args.value !== undefined ? args.value : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = Math.asin(value);
             return { ok: true, result: result, message: `SlideRule.Asin(${value}) = ${result}` };
         });
 
         this.registry.bindMethod(16, 'Acos', function(sim, args) {
-            const value = args.value !== undefined ? args.value : 0;
+            const value = args.value !== undefined ? args.value : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = Math.acos(value);
             return { ok: true, result: result, message: `SlideRule.Acos(${value}) = ${result}` };
         });
 
         this.registry.bindMethod(16, 'Atan', function(sim, args) {
-            const value = args.value !== undefined ? args.value : 0;
+            const value = args.value !== undefined ? args.value : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = Math.atan(value);
             return { ok: true, result: result, message: `SlideRule.Atan(${value}) = ${result}` };
         });
 
         this.registry.bindMethod(16, 'ToDegrees', function(sim, args) {
-            const radians = args.radians !== undefined ? args.radians : 0;
+            const radians = args.radians !== undefined ? args.radians : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = radians * (180 / Math.PI);
             return { ok: true, result: result, message: `SlideRule.ToDegrees(${radians}) = ${result}` };
         });
 
         this.registry.bindMethod(16, 'ToRadians', function(sim, args) {
-            const degrees = args.degrees !== undefined ? args.degrees : 0;
+            const degrees = args.degrees !== undefined ? args.degrees : (args.dr0 !== undefined ? args.dr0 : 0);
             const result = degrees * (Math.PI / 180);
             return { ok: true, result: result, message: `SlideRule.ToRadians(${degrees}) = ${result}` };
         });

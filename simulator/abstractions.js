@@ -244,8 +244,8 @@ class AbstractionRegistry {
             { perms: { R: 0, W: 0, X: 0, L: 1, S: 1, E: 1 } });
 
         this.createAbstraction(16, 'SlideRule', 3,
-            ['Add', 'Sub', 'Mul', 'Div', 'Sqrt', 'Log', 'Pow', 'Sin', 'Cos', 'Tan', 'Asin', 'Acos', 'Atan', 'ToDegrees', 'ToRadians'],
-            'IEEE 754 floating-point arithmetic with trigonometry and angle functions',
+            ['Multiply', 'Divide', 'Sqrt', 'Mod', 'Sin', 'Cos', 'Tan', 'Asin', 'Acos', 'Atan', 'ToDegrees', 'ToRadians'],
+            'IEEE 754 floating-point arithmetic with trigonometry and angle functions — DR3 selects method',
             { perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 }, chainable: true });
 
         this.createAbstraction(17, 'Abacus', 3,
