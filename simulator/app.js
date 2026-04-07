@@ -6762,156 +6762,160 @@ HALT
 `,
         'selftest': `; ============================================
 ; Church Machine Self-Test
-; Tests every opcode and CR0-CR5 registers
+; Tests opcodes using boot C-List (12 entries)
 ; Boot must complete before assembling
 ; ============================================
+;
+; Boot C-List layout:
+;   [0] Boot.NS  [1] Thread  [2] Boot.Abstr (E)
+;   [3] (empty)  [4] Salvation (E)  [5] Navana (E)
+;   [6] Mint (E) [7] Memory (E)
+;   [8] LED (RW) [9] UART (RW) [10] BTN (R) [11] TIMER (RW)
 
-; --- TEST 1: LOAD into CR0-CR5 ---
-; Load 6 different abstractions via C-List (code objects are DATA domain)
+; --- TEST 1: LOAD system abstractions ---
 LOAD CR0, CR6, 4       ; CR0 = Salvation (E)
-LOAD CR1, CR6, 10      ; CR1 = SUCC    (XLE)
-LOAD CR2, CR6, 12      ; CR2 = ADD     (XLE)
-LOAD CR3, CR6, 13      ; CR3 = SUB     (XLE)
-LOAD CR4, CR6, 14      ; CR4 = MUL     (XLE)
-LOAD CR5, CR6, 7       ; CR5 = Constants (E)
+LOAD CR1, CR6, 5       ; CR1 = Navana    (E)
+LOAD CR2, CR6, 6       ; CR2 = Mint      (E)
+LOAD CR3, CR6, 7       ; CR3 = Memory    (E)
+LOAD CR4, CR6, 8       ; CR4 = LED       (RW)
+LOAD CR5, CR6, 9       ; CR5 = UART      (RW)
 
 ; --- TEST 2: TPERM - permission checks ---
-; Each should set Z=1 (pass)
-TPERM CR0, E           ; Salvation has E? PASS
-TPERM CR1, XL          ; SUCC has X+L? PASS
-TPERM CR2, XL          ; ADD has X+L? PASS
-TPERM CR3, XL          ; SUB has X+L? PASS
-TPERM CR4, XL          ; MUL has X+L? PASS
-TPERM CR5, E           ; Constants has E? PASS
+TPERM CR0, E           ; Salvation has E? PASS (Z=1)
+TPERM CR1, E           ; Navana has E? PASS (Z=1)
+TPERM CR4, RW          ; LED has R+W? PASS (Z=1)
+TPERM CR5, RW          ; UART has R+W? PASS (Z=1)
 
 ; --- TEST 3: TPERM failure ---
 TPERM CR0, L           ; Salvation has L? FAIL (Z=0)
 
 ; --- TEST 4: Conditional execution ---
 ; Z=0 from failed TPERM above
-LOADEQ CR0, CR6, 15    ; SKIP (Z=0, not equal)
-LOADNE CR0, CR6, 4     ; EXEC (Z=0, is not-equal)
+LOADEQ CR0, CR6, 5     ; SKIP (Z=0, not equal)
+LOADNE CR0, CR6, 4     ; EXEC (Z=0, is not-equal) -> Salvation
 
 ; --- TEST 5: SWITCH - swap registers ---
 SWITCH CR0, 1          ; CR0 <-> CR1
-; Now CR0=SUCC, CR1=Salvation
+; Now CR0=Navana, CR1=Salvation
 SWITCH CR0, 1          ; Swap back
-; CR0=Salvation, CR1=SUCC again
+; CR0=Salvation, CR1=Navana again
 
-; --- TEST 6: LAMBDA instruction - in-scope reduction ---
-; LAMBDA is an instruction, not a security block
-LAMBDA CR1             ; Church SUCC reduction
-LAMBDA CR2             ; Church ADD reduction
-LAMBDA CR3             ; Church SUB reduction
-LAMBDA CR4             ; Church MUL reduction
+; --- TEST 6: Turing ISA ---
+IADD DR1, DR0, 42      ; DR1 = 42
+IADD DR2, DR1, 8       ; DR2 = 50
+ISUB DR3, DR2, DR1     ; DR3 = 8
+MCMP DR1, DR2          ; 42 < 50 → N=1, Z=0
+IADD DR4, DR0, 1       ; DR4 = 1
+SHL DR4, DR4, 3        ; DR4 = 8
+SHR DR4, DR4, 1        ; DR4 = 4
 
-; --- TEST 7: CHANGE - re-aim register ---
-CHANGE CR0, 16         ; CR0 now -> SlideRule
-TPERM CR0, E           ; SlideRule has E? PASS
-
-; --- TEST 8: CALL/RETURN ---
+; --- TEST 7: CALL/RETURN ---
 LOAD CR0, CR6, 4       ; CR0 = Salvation
-CALL CR0, 0xF          ; Direct mode: CR0 is the E-GT — enter Salvation
-RETURN                ; Return to caller (pops 2-word frame)
+CALL CR0, 0xF          ; Direct mode: enter Salvation (atomic dispatch)
 
-; --- TEST 9: ELOADCALL - fused Load+TPERM+Call ---
+; --- TEST 8: ELOADCALL - fused Load+TPERM+Call ---
 ELOADCALL CR0, CR6, 4  ; Load Salvation + check E + call
-RETURN                ; Return from fused call
-
-; --- TEST 10: XLOADLAMBDA - fused Load+TPERM+Lambda ---
-XLOADLAMBDA CR1, CR6, 10 ; Load SUCC + check X + lambda
-
-; --- TEST 11: Conditional LAMBDA ---
-TPERM CR1, XL          ; Z=1 (SUCC has XL)
-LAMBDAEQ CR2           ; Apply ADD via LAMBDA only if Z=1
-TPERM CR0, L           ; Z=0 (Salvation lacks L)
-LAMBDANE CR3           ; Apply SUB via LAMBDA only if Z=0 (NE)
-LAMBDAEQ CR4           ; SKIP MUL (Z=0, not EQ)
 
 ; --- All tests complete ---
 HALT
 `,
         'load_save': `; Load and Save example
-; Load SUCC from C-List[CR6] — SUCC is a DATA-domain code object
-LOAD CR0, CR6, 4       ; CR0 = SUCC (Church numeral)
-TPERM CR0, XL          ; Check X+L permissions
-LOAD CR1, CR6, 5       ; CR1 = ADD
-TPERM CR1, XL          ; Check X+L
-LAMBDA CR0             ; Apply SUCC via LAMBDA instruction
-RETURN                ; Return to caller
+; Boot C-List: [4]=Salvation(E) [5]=Navana(E) [8]=LED(RW)
+LOAD CR0, CR6, 4       ; CR0 = Salvation (E)
+TPERM CR0, E           ; Check E permission → Z=1
+LOAD CR1, CR6, 5       ; CR1 = Navana (E)
+TPERM CR1, E           ; Check E → Z=1
+LOAD CR2, CR6, 8       ; CR2 = LED (RW)
+TPERM CR2, RW          ; Check R+W → Z=1
+CALL CR0, 0xF          ; CALL Salvation (atomic dispatch)
+HALT
 `,
-        'bernoulli': `; Bernoulli - simplified Church sequence
-; Load Church numeral abstractions (DATA-domain code objects)
-LOAD CR0, CR6, 4       ; SUCC
-LOAD CR1, CR6, 6       ; ADD
-LOAD CR2, CR6, 8       ; MUL
-LOAD CR3, CR6, 9       ; DIV (via SlideRule)
-LOAD CR4, CR6, 5       ; PRED
+        'bernoulli': `; Bernoulli Sum Identity — Pure Turing Arithmetic
+; Computes S(n) = 1 + 2 + ... + n = n(n+1)/2
+; Ada's insight: summation formulas ARE Bernoulli numbers
+; B0 = 1, and sum(k, k=1..n) = n²/2 + n*B0/1
+;
+; Uses only boot-level Turing instructions:
+; IADD, ISUB, MCMP, BRANCH, SHR
 
-; Verify permissions on all (X for LAMBDA application)
-TPERM CR0, XL          ; SUCC check
-TPERM CR1, XL          ; ADD check
-TPERM CR2, XL          ; MUL check
-TPERM CR3, XL          ; DIV check
-TPERM CR4, XL          ; PRED check
+; --- Setup ---
+IADD DR1, DR0, 10      ; n = 10
+IADD DR2, DR1, 1       ; DR2 = n + 1 = 11
 
-; Execute reductions via LAMBDA instruction (method within abstractions)
-LAMBDA CR1             ; Church ADD
-LAMBDA CR2             ; Church MUL
-LAMBDA CR3             ; Church DIV
-LAMBDA CR0             ; Church SUCC
+; --- Software multiply: DR3 = n * (n+1) ---
+IADD DR3, DR0, DR0     ; product = 0
+IADD DR4, DR2, DR0     ; counter = n + 1
+mul:
+MCMP DR4, DR0          ; counter == 0?
+BRANCHEQ div           ; → done with multiply
+IADD DR3, DR3, DR1     ; product += n
+ISUB DR4, DR4, 1       ; counter--
+BRANCH mul
 
-; Return result
-RETURN
+; --- Divide by 2 ---
+div:
+SHR DR3, DR3, 1        ; DR3 = n(n+1)/2 = 55
+
+; --- Verify by loop: DR5 = 1+2+...+n ---
+IADD DR5, DR0, DR0     ; sum = 0
+IADD DR6, DR0, 1       ; k = 1
+loop:
+MCMP DR6, DR1          ; k > n?
+BRANCHGT done          ; → finished
+IADD DR5, DR5, DR6     ; sum += k
+IADD DR6, DR6, 1       ; k++
+BRANCH loop
+
+done:
+; DR3 = 55 (formula), DR5 = 55 (loop) — match!
+HALT
 `,
         'conditional': `; Conditional execution demo
-LOAD CR0, CR6, 4       ; Load SUCC (Church numeral)
-TPERM CR0, XL          ; Check \u2014 sets Z=1 (pass)
+; Boot C-List: [4]=Salvation(E) [5]=Navana(E) [8]=LED(RW)
+LOAD CR0, CR6, 4       ; Load Salvation (E)
+TPERM CR0, E           ; Check E \u2014 sets Z=1 (pass)
 
 ; This executes only if Z=1 (TPERM passed)
-LOADEQ CR1, CR6, 6     ; Load ADD only if equal (Z=1)
-LAMBDAEQ CR1           ; Apply ADD via LAMBDA only if equal
+LOADEQ CR1, CR6, 5     ; Load Navana only if equal (Z=1) → EXEC
+CALLNE CR0, 0xF        ; SKIP (Z=1, so NE is false)
+
+; Force Z=0 via failed TPERM
+TPERM CR0, L           ; Salvation has L? FAIL → Z=0
 
 ; This would skip if Z=0 (TPERM failed)
-LOADNE CR2, CR6, 7     ; Load SUB only if not-equal (Z=0)
+LOADEQ CR2, CR6, 6     ; SKIP (Z=0, not equal)
+LOADNE CR2, CR6, 7     ; EXEC (Z=0, is not-equal) → Memory
 
-RETURN
+HALT
 `,
         'gc_test': `; ============================================
 ; Church Machine GC Test (PP250)
-; GC via safe Turing abstraction \u2014 CALL GC
-; Run AFTER boot completes (6 steps)
+; Exercises LOAD, TPERM, CALL with boot C-List
+; Boot must complete before assembling
 ; ============================================
 ;
-; Permission gates (mLoad is the single guard):
-;   R = DREAD, W = DWRITE, X = LAMBDA,
-;   L = LOAD, S = SAVE (+ B=1), E = CALL
-;
-; Expected: 16 entries freed, 8 survive (+GC).
-; ============================================
+; Boot C-List layout:
+;   [4] Salvation (E)  [5] Navana (E)
+;   [6] Mint (E)       [7] Memory (E)
+;   [8] LED (RW)       [9] UART (RW)
+;   [10] BTN (R)       [11] TIMER (RW)
 
-; --- Load subset into CRs (survivors) ---
-LOAD CR0, CR6, 4       ; CR0 = Salvation  (E)
-LOAD CR1, CR6, 10      ; CR1 = SUCC      (XLE)
-LOAD CR2, CR6, 8       ; CR2 = Stack     (E)
-LOAD CR3, CR6, 12      ; CR3 = ADD       (XLE)
-LOAD CR4, CR6, 7       ; CR4 = Constants (E)
+; --- Load subset into CRs ---
+LOAD CR0, CR6, 4       ; CR0 = Salvation (E)
+LOAD CR1, CR6, 5       ; CR1 = Navana    (E)
+LOAD CR2, CR6, 6       ; CR2 = Mint      (E)
+LOAD CR3, CR6, 7       ; CR3 = Memory    (E)
+LOAD CR4, CR6, 8       ; CR4 = LED       (RW)
 
 ; --- Verify permissions ---
 TPERM CR0, E           ; Salvation has E? PASS
-TPERM CR1, XL          ; SUCC has X+L? PASS
-TPERM CR2, E           ; Stack has E? PASS
-TPERM CR3, LE          ; ADD has L+E? PASS
-TPERM CR4, E           ; Constants has E? PASS
+TPERM CR1, E           ; Navana has E? PASS
+TPERM CR2, E           ; Mint has E? PASS
+TPERM CR3, E           ; Memory has E? PASS
+TPERM CR4, RW          ; LED has R+W? PASS
 
-; --- Exercise: LAMBDA checks X via mLoad ---
-LAMBDA CR1             ; SUCC reduction (X)
-LAMBDA CR3             ; ADD reduction (X)
-
-; --- CALL GC: checks E via mLoad ---
-LOAD CR5, CR6, 27      ; CR5 = GC (E)
-TPERM CR5, E           ; Verify E permission
-CALL CR5, 0xF          ; Direct mode: CR5 is the E-GT — trigger GC
+; --- CALL Salvation: checks E via mLoad ---
+CALL CR0, 0xF          ; Direct mode: enter Salvation (atomic dispatch)
 
 HALT
 `,
@@ -6927,15 +6931,12 @@ HALT
 ;   RETURN (shared with Church)
 ; ============================================
 
-; --- Boot: Load GTs ---
-LOAD CR0, CR6, 10      ; CR0 = SUCC (XLE)
-LOAD CR1, CR6, 12      ; CR1 = ADD (XLE)
-
 ; --- Initialize DR1 = 0 ---
 IADD DR1, DR0, DR0     ; DR1 = 0 (Z=1)
 
-; --- Church reduction ---
-LAMBDA CR0             ; SUCC reduction
+; --- Load system abstractions (boot C-List) ---
+LOAD CR0, CR6, 4       ; CR0 = Salvation (E)
+TPERM CR0, E           ; Verify E → Z=1
 
 ; --- Integer arithmetic ---
 IADD DR3, DR1, DR2     ; DR3 = DR1 + DR2
@@ -7009,32 +7010,30 @@ HALT
 ; mLoad is the single guard at the gate.
 ; ============================================
 ;
-; Namespace reference:
-;   Slot 2  Boot.Abstr (E only \u2014 combined code + C-List)
-;   Slot 3  (empty)
-;   Slot 26 TRUE       (L only \u2014 no X, no E)
-;   Slot 27 FALSE      (L only \u2014 no X, no E)
-;   Slot 44 GC         (E only)
+; Boot C-List layout:
+;   [4] Salvation (E)  [5] Navana (E)
+;   [6] Mint (E)       [7] Memory (E)
+;   [8] LED (RW)       [9] UART (RW)
+;   [10] BTN (R)       [11] TIMER (RW)
 ; ============================================
 
-; --- ATTACK 1: CALL without E permission ---
-; TRUE (slot 26) has only L \u2014 no E.
+; --- ATTACK 1: CALL device without E ---
+; LED (slot 8) has R+W but no E.
 ; CALL requires E via mLoad. Should FAULT.
-LOAD CR0, CR6, 26      ; CR0 = TRUE (L only)
-CALL CR0, 0xF          ; FAULT: direct mode but CR0 lacks E permission
+LOAD CR0, CR6, 8       ; CR0 = LED (RW, no E)
+CALL CR0, 0xF          ; FAULT: LED lacks E permission
 
-; --- ATTACK 2: LAMBDA without X permission ---
-; Constants (slot 18) has only E \u2014 no X.
-; LAMBDA requires X via mLoad. Should FAULT.
-LOAD CR1, CR6, 18      ; CR1 = Constants (E only)
-LAMBDA CR1             ; FAULT: lacks X permission
+; --- ATTACK 2: DREAD without R ---
+; Salvation (slot 4) has E but no R.
+; DREAD requires R. Should FAULT.
+LOAD CR1, CR6, 4       ; CR1 = Salvation (E only)
+DREAD DR1, CR1, 0      ; FAULT: Salvation lacks R permission
 
-; --- ATTACK 3: CALL something with only X ---
-; Salvation (slot 4) has E. Strip to X-only via TPERM.
-; CALL requires E. Should FAULT.
-LOAD CR2, CR6, 4       ; CR2 = Salvation (E-GT from C-List)
-TPERM CR2, X           ; Strip E, keep X only
-CALL CR2, 0xF          ; FAULT: direct mode but CR2 lacks E permission
+; --- ATTACK 3: DWRITE without W ---
+; BTN (slot 10) has R only, no W.
+; DWRITE requires W. Should FAULT.
+LOAD CR2, CR6, 10      ; CR2 = BTN (R only)
+DWRITE CR2, 0, DR1     ; FAULT: BTN lacks W permission
 
 ; --- If we get here, something is broken ---
 HALT
@@ -7114,8 +7113,8 @@ BRANCH led_on             ; loop forever
 ; --- ATTACK 1: SAVE with default B=0 ---
 ; After boot, B defaults to 0 on all entries.
 ; SAVE should FAULT because B=0.
-LOAD CR0, CR6, 20      ; CR0 = SUCC (XLE, B=0)
-SAVE CR0, CR6, 28      ; FAULT: B=0, cannot bind
+LOAD CR0, CR6, 4       ; CR0 = Salvation (E, B=0)
+SAVE CR0, CR6, 3       ; FAULT: B=0, cannot bind to empty slot 3
 
 ; --- If we get here, B-bit default failed ---
 HALT
