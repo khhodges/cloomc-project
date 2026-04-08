@@ -166,8 +166,21 @@ class ChurchCLoad(Elaboratable):
                     ]
                     m.next = "CHECK_TYPE"
 
+            # ── CALL target type acceptance matrix ──────────────────────
+            # Matches simulator.js lines 1616-1619:
+            #   if (srcParsed.type !== 1 && srcParsed.type !== 3) { fault }
+            #
+            #   GT_TYPE_NULL     (0) → REJECT  (fault PERM_E)
+            #   GT_TYPE_INFORM   (1) → ACCEPT  (concrete lump)
+            #   GT_TYPE_OUTFORM  (2) → REJECT  (fault PERM_E)
+            #   GT_TYPE_ABSTRACT (3) → ACCEPT  (PassKey / value)
+            # ───────────────────────────────────────────────────────────
             with m.State("CHECK_TYPE"):
-                with m.If(e_gt_view.gt_type != GT_TYPE_INFORM):
+                is_valid_type = (
+                    (e_gt_view.gt_type == GT_TYPE_INFORM) |
+                    (e_gt_view.gt_type == GT_TYPE_ABSTRACT)
+                )
+                with m.If(~is_valid_type):
                     m.d.sync += fault_type_reg.eq(FaultType.PERM_E)
                     m.next = "FAULT"
                 with m.Elif(~e_gt_view.perms[PERM_E]):

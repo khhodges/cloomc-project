@@ -56,23 +56,41 @@ Type comments used old names. Canonical GT type encoding:
 
 ---
 
-## Hardware Type Validation Found
+## GAP #4: Hardware CLOAD Rejects Abstract GTs — ✅ FIXED (April 8, 2026)
 
-**hardware/cload.py line 168** enforces:
+### Problem (historical)
+**hardware/cload.py line 170** only accepted Inform (type 1):
 ```python
 with m.If(e_gt_view.gt_type != GT_TYPE_INFORM):
     m.d.sync += fault_type_reg.eq(FaultType.PERM_E)  # FAULT
 ```
+This meant any CALL targeting a PassKey or Navana-minted Abstract GT (type 3)
+would fault on real hardware but succeed in the simulator.
 
-**This means CLOAD (code loading) ONLY accepts Inform (type 1)** — rejects Outform(2) and Abstract(3).
+### Correct Logic (now implemented)
+```
+Allows: type 1 (Inform) OR type 3 (Abstract)
+Rejects: type 0 (NULL), type 2 (Outform)
+```
+Matches simulator.js lines 1616-1619:
+```javascript
+if (srcParsed.type !== 1 && srcParsed.type !== 3) { fault }
+```
 
-### Issue
-- ✅ CLOAD correctly rejects non-Inform types for code loading
-- ❓ **BUT**: Does CALL instruction pre-validate GT types before invoking CLOAD?
-  - If CALL passes Abstract (type 3) to CLOAD directly → CLOAD will FAULT incorrectly
-  - **Need to verify**: Does CALL bypass CLOAD for Abstract GTs, or validate type first?
+### Fix Applied
+```python
+# hardware/cload.py — CHECK_TYPE state:
+is_valid_type = (
+    (e_gt_view.gt_type == GT_TYPE_INFORM) |
+    (e_gt_view.gt_type == GT_TYPE_ABSTRACT)
+)
+with m.If(~is_valid_type):
+    m.d.sync += fault_type_reg.eq(FaultType.PERM_E)
+    m.next = "FAULT"
+```
 
-**Files to check**: `hardware/call.py` (instruction decode path before CLOAD invocation)
+SystemVerilog equivalent created in `verilog/ctmm_cload.sv` with matching
+type acceptance matrix.
 
 ---
 
@@ -87,17 +105,18 @@ with m.If(e_gt_view.gt_type != GT_TYPE_INFORM):
 | TPERM presets 11-14 wrongly null | simulator.js, assembler.js | — | 🟠 HIGH | ✅ FIXED |
 | GT type naming (Inform/Outform/Abstract) not consistently applied | all JS + docs | many | 🟡 MEDIUM | ✅ FIXED |
 | isa_encoding.md preset table wrong (W at 0x0A) | docs/isa_encoding.md | — | 🟡 MEDIUM | ✅ FIXED |
+| CLOAD rejects Abstract GTs (type 3) for CALL targets | cload.py, ctmm_cload.sv | 170 | 🔴 CRITICAL | ✅ FIXED |
 
 ---
 
 ## Impact Assessment
 
-**Broken Features**:
-- ❌ CALL with Abstract GTs (PassKeys) — will FAULT with TYPE error
-- ❌ SWITCH with PassKeys — cannot work because CALL fails
-- ❌ Navana.ValidatePassKey — depends on CALL working
+**Broken Features** (all now fixed):
+- ✅ CALL with Abstract GTs (PassKeys) — was FAULTing with TYPE error, now accepts type 3
+- ✅ SWITCH with PassKeys — now works because CALL accepts Abstract GTs
+- ✅ Navana.ValidatePassKey — now executes without TYPE fault
 
-**Risk Level**: 🔴 **CRITICAL** — PassKey architecture is broken until fixed
+**Risk Level**: ✅ **ALL CRITICAL GAPS RESOLVED**
 
 ---
 
