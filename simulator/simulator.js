@@ -1654,6 +1654,19 @@ class ChurchSimulator {
 
         const savedSTO = this.sto;
         const callThreadBase = this.cr[12] && this.cr[12].word1;
+        if (callThreadBase) {
+            const newSTO = (savedSTO - 2) & 0xFFF;
+            const hdrWord = this.memory[callThreadBase] >>> 0;
+            const hdr = this.parseLumpHeader(hdrWord);
+            const lumpSize = hdr.valid ? hdr.lumpSize : 256;
+            const sw = (hdr.valid && hdr.typ === 2) ? hdr.cw : 0;
+            const sp_max = lumpSize - 12 - 1;
+            const sp_min = sp_max - sw + 1;
+            if (newSTO < sp_min) {
+                this.flags.V = true;
+                this.output += `[STACK WARNING] CALL CR${d.crDst}: STO=${newSTO} below sw limit sp_min=${sp_min} (sw=${sw}) — V flag set\n`;
+            }
+        }
         // STO-1 stores the CALLER'S old CR6 word0 (L-type post-boot).
         // RETURN restores CR6 from savedCRs (not from memory); STO-1 is the
         // hardware-accurate memory layout for the thread lump display.
@@ -2254,6 +2267,19 @@ class ChurchSimulator {
 
         const savedSTO_ec = this.sto;
         const ecThreadBase = this.cr[12] && this.cr[12].word1;
+        if (ecThreadBase) {
+            const newSTO_ec = (savedSTO_ec - 2) & 0xFFF;
+            const hdrWord_ec = this.memory[ecThreadBase] >>> 0;
+            const hdr_ec = this.parseLumpHeader(hdrWord_ec);
+            const lumpSize_ec = hdr_ec.valid ? hdr_ec.lumpSize : 256;
+            const sw_ec = (hdr_ec.valid && hdr_ec.typ === 2) ? hdr_ec.cw : 0;
+            const sp_max_ec = lumpSize_ec - 12 - 1;
+            const sp_min_ec = sp_max_ec - sw_ec + 1;
+            if (newSTO_ec < sp_min_ec) {
+                this.flags.V = true;
+                this.output += `[STACK WARNING] ELOADCALL CR${d.crDst}: STO=${newSTO_ec} below sw limit sp_min=${sp_min_ec} (sw=${sw_ec}) — V flag set\n`;
+            }
+        }
         const frameWord_ec = this._packFrameWord(this.pc + 1, 1, savedSTO_ec);
         // Save CRs BEFORE any _writeCR calls so RETURN correctly restores the caller's context.
         this.callStack.push({
