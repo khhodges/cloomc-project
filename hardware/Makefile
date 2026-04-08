@@ -7,6 +7,7 @@
 # Usage:
 #   make pnr pack  — place-and-route + generate .fs bitstream
 #   make prog      — flash to Tang Nano 20K via openFPGALoader (plug in USB-C first)
+#   make ti60      — generate synthesis-ready Verilog + resource report for Ti60 F225
 #   make clean     — remove generated files
 
 DEVICE   := GW2AR-LV18QN88C8/I7
@@ -19,17 +20,17 @@ PNR_JSON := $(PROJ)_pnr.json
 PACK     := $(PROJ).fs
 CST      := tang_nano_20k.cst
 
-.PHONY: pnr pack prog clean
+.PHONY: pnr pack prog clean ti60
 
 pnr: $(PNR_JSON)
 $(PNR_JSON): $(JSON) $(CST)
 	nextpnr-himbaechel \
-	        --device $(DEVICE) \
-	        --json $(JSON) \
-	        --write $(PNR_JSON) \
-	        -o family=$(FAMILY) \
-	        -o cst=$(CST) \
-	        --freq $(FREQ_MHZ)
+		--device $(DEVICE) \
+		--json $(JSON) \
+		--write $(PNR_JSON) \
+		-o family=$(FAMILY) \
+		-o cst=$(CST) \
+		--freq $(FREQ_MHZ)
 
 pack: $(PACK)
 $(PACK): $(PNR_JSON)
@@ -38,6 +39,10 @@ $(PACK): $(PNR_JSON)
 prog: $(PACK)
 	@echo "=== Uploading to Tang Nano 20K ==="
 	openFPGALoader -b tangnano20k $(PACK)
+
+ti60:
+	@echo "=== Ti60 F225 Build Flow ==="
+	cd .. && ./build_ti60.sh build
 
 clean:
 	rm -f $(PNR_JSON) $(PACK)

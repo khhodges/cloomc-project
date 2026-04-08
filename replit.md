@@ -51,4 +51,5 @@ The web IDE offers ten views (Math, Code, Tutorial, Dashboard, Namespace, Abstra
 - **Amaranth HDL:** Hardware synthesis for FPGA design.
 - **localStorage:** Client-side state persistence.
 - **oss-cad-suite:** FPGA toolchain (`yosys`, `nextpnr-gowin`, `gowin_pack`, `openFPGALoader`).
+- **Ti60 Build Flow:** `./build_ti60.sh` or `make -C hardware ti60` generates synthesis-ready Verilog (`build/church_ti60_f225.v`), RTLIL, and a resource report (`build/ti60_resource_report.txt`). Design fits comfortably within Ti60 F225 (~14% LUTs, ~9% FFs, ~4% BRAM).
 - **GitHub:** Integrated for the Mum Tunnel shared abstraction library and project management.

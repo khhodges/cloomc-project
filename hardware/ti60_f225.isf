@@ -11,14 +11,14 @@
 # Timing Model: C3 (final)
 #
 # Church Machine signals:
-#   clk         B8  = GPIOT_P_07_CLK4_P  50 MHz on-board crystal
-#   uart_tx     H14 = GPIOR_P_11_CLK8_P  FTDI FT232H UART TX (FPGA→host)
-#   uart_rx     M14 = GPIOR_P_02_CDI24   FTDI FT232H UART RX (host→FPGA)
+#   clk         B2  = GPIOT_P_07_CLK4_P  25 MHz crystal → PLL → 50 MHz
+#   uart_tx     H14 = GPIOR_P_11_CLK8_P  UART TX (FPGA→host, external adapter)
+#   uart_rx     M14 = GPIOR_P_02_CDI24   UART RX (host→FPGA, external adapter)
 #   push_button A7  = GPIOT_N_06         USER_PB, active-low, ext pull-up
-#   led0        K14 = GPIOR_P_19         USER_LED[0]
-#   led1        J15 = GPIOR_N_13         USER_LED[1]
-#   led2        H10 = GPIOR_N_18         USER_LED[2]
-#   led3        J14 = GPIOR_P_13         USER_LED[3]
+#   led0        R7  = USER_LED[0], active-HIGH
+#   led1        P8  = USER_LED[1], active-HIGH
+#   led2        P9  = USER_LED[2], active-HIGH
+#   led3        R9  = USER_LED[3], active-HIGH
 
 # Device setting — all banks at 1.8 V; corner banks (BL/BR/TL/TR) at 3.3 V
 design.set_device_property("1A","DYNAMIC_VOLTAGE","0","IOBANK")
@@ -91,7 +91,7 @@ design.set_device_property("Top","DYN_MUX0_EN","0","CLKMUX")
 design.set_device_property("Top","DYN_MUX7_EN","0","CLKMUX")
 
 # Create GPIO instances
-# Clock — 50 MHz crystal, ball B8 — routed as global clock via CLKMUX_R CORE0
+# Clock — 25 MHz crystal at ball B2 → PLL → 50 MHz, routed as global clock
 design.create_input_gpio("clk")
 # UART TX — FPGA → FTDI FT232H RX, ball H14
 design.create_output_gpio("uart_tx")
@@ -99,7 +99,7 @@ design.create_output_gpio("uart_tx")
 design.create_input_gpio("uart_rx")
 # Push button — active-low, ball A7
 design.create_input_gpio("push_button")
-# LEDs — active-high, balls K14 J15 H10 J14 (USER_LED[0..3] on dev kit)
+# LEDs — active-high, balls R7 P8 P9 R9 (USER_LED[0..3] on dev kit)
 design.create_output_gpio("led0")
 design.create_output_gpio("led1")
 design.create_output_gpio("led2")
@@ -110,11 +110,11 @@ design.set_property("clk","CONN_TYPE","GCLK")
 design.set_property("push_button","PULL_OPTION","WEAK_PULLUP")
 
 # Pin assignments (ball locations from Ti60 F225 Dev Kit schematic)
-design.assign_pkg_pin("clk","B8")
+design.assign_pkg_pin("clk","B2")
 design.assign_pkg_pin("uart_tx","H14")
 design.assign_pkg_pin("uart_rx","M14")
 design.assign_pkg_pin("push_button","A7")
-design.assign_pkg_pin("led0","K14")
-design.assign_pkg_pin("led1","J15")
-design.assign_pkg_pin("led2","H10")
-design.assign_pkg_pin("led3","J14")
+design.assign_pkg_pin("led0","R7")
+design.assign_pkg_pin("led1","P8")
+design.assign_pkg_pin("led2","P9")
+design.assign_pkg_pin("led3","R9")

@@ -1,0 +1,95 @@
+======================================================================
+Church Machine — Ti60 F225 Resource Utilization Report
+Generated: 2026-04-08 00:25:10
+======================================================================
+
+Target: Efinix Titanium Ti60 F225 (C3 speed grade)
+Clock:  50 MHz (25 MHz crystal × PLL)
+
+--- Estimated Resource Usage ---
+
+  Logic gates (post-techmap):    34,147
+  LUT estimate (gates / 4):       8,537  / 60,000  (14.2%)
+  Flip-flops:                     5,206  / 60,000  (8.7%)
+  Memory bits:                   73,952  / 2,097,152  (3.5%)
+  Memory instances:                   4
+  Memory (KB):                      9.0  /    256
+
+--- Fit Assessment ---
+
+  RESULT: FITS within Ti60 F225 budget
+  LUT headroom:  51,463 LUTs (85.8%)
+  FF headroom:   54,794 FFs (91.3%)
+  BRAM headroom: 247.0 KB (96.5%)
+
+--- Pre-Techmap Cell Breakdown ---
+
+  $add                         71
+  $and                        156
+  $dff                        319
+  $eq                       1,179
+  $ge                           7
+  $gt                           4
+  $le                           8
+  $logic_not                  252
+  $lt                          27
+  $meminit                      2
+  $meminit_v2                   2
+  $memrd_v2                     4
+  $memwr_v2                     2
+  $mul                          3
+  $mux                      2,163
+  $ne                           7
+  $not                        113
+  $or                          76
+  $pmux                       219
+  $reduce_bool                 12
+  $shift                        1
+  $shl                          7
+  $shr                          3
+  $sub                         21
+  $xor                      1,232
+
+--- Post-Techmap Cell Breakdown ---
+
+  $_AND_                    9,918
+  $_DFFE_PN_                  818
+  $_DFFE_PP_                2,026
+  $_DFF_P_                     79
+  $_MUX_                    9,420
+  $_NOT_                    1,564
+  $_OR_                     9,269
+  $_SDFFCE_PN0N_               28
+  $_SDFFCE_PN0P_               55
+  $_SDFFCE_PN1P_                3
+  $_SDFFCE_PP0P_              194
+  $_SDFFCE_PP1P_                3
+  $_SDFFE_PN0P_               869
+  $_SDFFE_PN1P_                 9
+  $_SDFFE_PP0N_                26
+  $_SDFFE_PP0P_             1,049
+  $_SDFFE_PP1P_                 1
+  $_SDFF_PN0_                  46
+  $_XOR_                    3,976
+
+--- Modules Included ---
+
+  ChurchCore (top.core)
+    ChurchRegisters, ChurchDecoder, ChurchPermCheck
+    ChurchGCUnit, ChurchLambda, ChurchCall, ChurchReturn
+    ChurchTperm, ChurchSave, ChurchLoad, ChurchMLoad
+    ChurchChange, ChurchSwitch, ChurchELoadCall, ChurchXLoadLambda
+    ChurchDRead, ChurchDWrite, ChurchCLoad, ChurchOutform
+  BootRom
+  DebugPrinter (UART TX)
+  UartRx
+  DMEM (2048×32 Memory)
+  MMIO (LEDs, UART, Timer, Button)
+  Debug FSM (PATCH_LUMP, READ_BRAM protocols)
+
+--- Notes ---
+
+  * LUT estimate uses gates/4 heuristic; Efinity mapper may differ ±20%
+  * Memory is inferred as Efinix EBR tiles by Efinity synthesis
+  * Yosys stat does not account for PLL, I/O buffers, or routing
+  * Final resource usage requires Efinity IDE compilation
