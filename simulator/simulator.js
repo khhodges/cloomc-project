@@ -1223,11 +1223,10 @@ class ChurchSimulator {
 
     _clearCR(crIdx) {
         this.cr[crIdx] = { word0: 0, word1: 0, word2: 0, word3: 0, m: 0 };
-        // Zero the home slot too (CR6 excluded — lives in stack frames)
         if (crIdx <= 11 && crIdx !== 6) {
             const threadBase = this.cr[12] && this.cr[12].word1;
             if (threadBase) {
-                this.memory[threadBase + THREAD_CAPS_OFFSET + crIdx] = 0;
+                this._threadWrite(threadBase + THREAD_CAPS_OFFSET + crIdx, 0, `_clearCR(${crIdx})`);
             }
         }
     }
@@ -1276,11 +1275,52 @@ class ChurchSimulator {
         };
     }
 
+    _capRead(crIdx, absAddr, perm, label) {
+        const cr = this.cr[crIdx];
+        if (!cr || cr.word0 === 0) {
+            return { ok: false, fault: 'NULL_CAP', message: `${label}: CR${crIdx} is NULL` };
+        }
+        const check = this.mLoad(cr.word0, perm, crIdx, absAddr);
+        if (!check.ok) {
+            return { ok: false, fault: check.fault, message: `${label}: CR${crIdx} ${perm}-read @${absAddr}: ${check.message}` };
+        }
+        return { ok: true, value: this.memory[absAddr] >>> 0, check };
+    }
+
+    _threadRead(absAddr, label) {
+        const cr12 = this.cr[12];
+        if (!cr12 || cr12.word0 === 0) {
+            this.fault('NULL_CAP', `${label}: CR12 (thread register) is NULL`);
+            return { ok: false };
+        }
+        const check = this.mLoad(cr12.word0, 'R', 12, absAddr);
+        if (!check.ok) {
+            this.fault(check.fault, `${label}: CR12 read @${absAddr}: ${check.message}`);
+            return { ok: false };
+        }
+        return { ok: true, value: this.memory[absAddr] >>> 0 };
+    }
+
+    _threadWrite(absAddr, value, label) {
+        const cr12 = this.cr[12];
+        if (!cr12 || cr12.word0 === 0) {
+            this.fault('NULL_CAP', `${label}: CR12 (thread register) is NULL`);
+            return false;
+        }
+        const check = this.mLoad(cr12.word0, 'W', 12, absAddr);
+        if (!check.ok) {
+            this.fault(check.fault, `${label}: CR12 write @${absAddr}: ${check.message}`);
+            return false;
+        }
+        this.memory[absAddr] = value >>> 0;
+        return true;
+    }
+
     _flushLambdaCache() {
         if (!this.lambdaActive || !this.lambdaCachedFrame) return;
         const c = this.lambdaCachedFrame;
         if (c.threadBase) {
-            this.memory[c.threadBase + c.addr] = c.word;
+            this._threadWrite(c.threadBase + c.addr, c.word, 'LAMBDA_FLUSH');
         }
         this.lambdaActive = false;
         this.lambdaCachedFrame = null;
@@ -1378,22 +1418,13 @@ class ChurchSimulator {
         if (!cr14 || cr14.word0 === 0) {
             return { ok: false, fault: 'NULL_CAP', message: 'CR14 (code register) is NULL — no code capability' };
         }
-        const cr14Parsed = this.parseGT(cr14.word0);
-        if (!cr14Parsed.permissions.X) {
-            return { ok: false, fault: 'PERM_X', message: 'CR14 lacks X permission for instruction fetch' };
-        }
-        const entry = this.readNSEntry(cr14Parsed.index);
-        if (!entry) {
-            return { ok: false, fault: 'BOUNDS', message: `CR14 NS entry ${cr14Parsed.index} not found` };
-        }
-        const cr14w2 = this.parseNSWord1((this.cr[14].word2 || 0) >>> 0);
-        if (this.pc > cr14w2.limit) {
-            return { ok: false, fault: 'BOUNDS', message: `PC=${this.pc} exceeds CR14 code limit (limit17=${cr14w2.limit}, last valid PC)` };
-        }
-        // +1: skip lump header at word 0; code region starts at word0_location + 1
-        const fetchAddr = entry.word0_location + 1 + this.pc;
+        const fetchAddr = cr14.word1 + 1 + this.pc;
         if (fetchAddr >= this.memory.length) {
             return { ok: false, fault: 'BOUNDS', message: `fetch address 0x${fetchAddr.toString(16)} out of memory` };
+        }
+        const check = this.mLoad(cr14.word0, 'X', 14, fetchAddr);
+        if (!check.ok) {
+            return { ok: false, fault: check.fault, message: `CR14 fetch: ${check.message}` };
         }
         this.physicalPC = fetchAddr;
         return { ok: true, word: this.memory[fetchAddr], addr: fetchAddr };
@@ -1502,8 +1533,9 @@ class ChurchSimulator {
             clistSize = this.parseNSWord1(this.cr[6].word2).limit + 1;
         } else {
             const lumpBase = this.cr[d.crSrc].word1;
-            const hdrWord = this.memory[lumpBase] >>> 0;
-            const hdr = this.parseLumpHeader(hdrWord);
+            const hdrRead = this._capRead(d.crSrc, lumpBase, 'R', `LOAD CR${d.crSrc} lump-hdr`);
+            if (!hdrRead.ok) { this.fault(hdrRead.fault, hdrRead.message); return null; }
+            const hdr = this.parseLumpHeader(hdrRead.value);
             clistLoc = (hdr.valid && hdr.cc > 0) ? (lumpBase + hdr.lumpSize - hdr.cc) >>> 0 : lumpBase;
             clistSize = (hdr.valid && hdr.cc > 0) ? hdr.cc : 1;
         }
@@ -1575,8 +1607,9 @@ class ChurchSimulator {
             clistSize = this.parseNSWord1(this.cr[6].word2).limit + 1;
         } else {
             const lumpBase = this.cr[d.crSrc].word1;
-            const hdrWord = this.memory[lumpBase] >>> 0;
-            const hdr = this.parseLumpHeader(hdrWord);
+            const hdrRead = this._capRead(d.crSrc, lumpBase, 'R', `SAVE CR${d.crSrc} lump-hdr`);
+            if (!hdrRead.ok) { this.fault(hdrRead.fault, hdrRead.message); return null; }
+            const hdr = this.parseLumpHeader(hdrRead.value);
             clistLoc = (hdr.valid && hdr.cc > 0) ? (lumpBase + hdr.lumpSize - hdr.cc) >>> 0 : lumpBase;
             clistSize = (hdr.valid && hdr.cc > 0) ? hdr.cc : 1;
         }
@@ -1669,21 +1702,29 @@ class ChurchSimulator {
         const savedSTO = this.sto;
         const callThreadBase = this.cr[12] && this.cr[12].word1;
         if (callThreadBase) {
-            const newSTO = (savedSTO - 2) & 0xFFF;
-            const hdrWord = this.memory[callThreadBase] >>> 0;
-            const hdr = this.parseLumpHeader(hdrWord);
+            const hdrRead = this._threadRead(callThreadBase, `CALL CR${d.crDst} thread-hdr`);
+            if (!hdrRead.ok) return null;
+            const hdr = this.parseLumpHeader(hdrRead.value);
             const lumpSize = hdr.valid ? hdr.lumpSize : 256;
             const sw = (hdr.valid && hdr.typ === 2) ? hdr.cw : 0;
             const sp_max = lumpSize - 12 - 1;
             const sp_min = sp_max - sw + 1;
+            const newSTO = (savedSTO - 2) & 0xFFF;
             if (newSTO < sp_min) {
                 this.flags.V = true;
                 this.output += `[STACK WARNING] CALL CR${d.crDst}: STO=${newSTO} below sw limit sp_min=${sp_min} (sw=${sw}) — V flag set\n`;
             }
+            const threadCC = hdr.valid ? hdr.cc : 0;
+            const heapEnd = 1 + 16 + threadCC;
+            if (savedSTO < heapEnd || savedSTO - 1 < heapEnd) {
+                this.fault('BOUNDS', `CALL CR${d.crDst}: stack overflow — STO=${savedSTO} would write into heap/DR zone (heapEnd=${heapEnd})`);
+                return null;
+            }
+            if (savedSTO >= lumpSize || savedSTO - 1 >= lumpSize) {
+                this.fault('BOUNDS', `CALL CR${d.crDst}: stack frame address ${savedSTO} out of thread lump (size=${lumpSize})`);
+                return null;
+            }
         }
-        // STO-1 stores the CALLER'S old CR6 word0 (L-type post-boot).
-        // RETURN restores CR6 from savedCRs (not from memory); STO-1 is the
-        // hardware-accurate memory layout for the thread lump display.
         const oldCR6GT = this.cr[6].word0 >>> 0;
         const frameWord = this._packFrameWord(this.pc + 1, 1, savedSTO);
         this.callStack.push({
@@ -1696,23 +1737,14 @@ class ChurchSimulator {
             frameWord,
         });
         if (callThreadBase) {
-            const threadHdrWord = this.memory[callThreadBase] >>> 0;
-            const threadHdr = this.parseLumpHeader(threadHdrWord);
-            const threadLumpSize = threadHdr.valid ? threadHdr.lumpSize : 256;
-            const threadCC = threadHdr.valid ? threadHdr.cc : 0;
-            const heapEnd = 1 + 16 + threadCC;
-            if (savedSTO < heapEnd || savedSTO - 1 < heapEnd) {
+            if (!this._threadWrite(callThreadBase + savedSTO, frameWord, `CALL CR${d.crDst} frame`)) {
                 this.callStack.pop();
-                this.fault('BOUNDS', `CALL CR${d.crDst}: stack overflow — STO=${savedSTO} would write into heap/DR zone (heapEnd=${heapEnd})`);
                 return null;
             }
-            if (savedSTO >= threadLumpSize || savedSTO - 1 >= threadLumpSize) {
+            if (!this._threadWrite(callThreadBase + savedSTO - 1, oldCR6GT, `CALL CR${d.crDst} CR6-save`)) {
                 this.callStack.pop();
-                this.fault('BOUNDS', `CALL CR${d.crDst}: stack frame address ${savedSTO} out of thread lump (size=${threadLumpSize})`);
                 return null;
             }
-            this.memory[callThreadBase + savedSTO]     = frameWord;
-            this.memory[callThreadBase + savedSTO - 1] = oldCR6GT;
         }
         this.sto = (savedSTO - 2) & 0xFFF;
 
@@ -1720,8 +1752,11 @@ class ChurchSimulator {
         const label = this.nsLabels[check.index] || 'abstraction';
         let cr7Desc = '';
 
-        // Read lump header at word 0 — hardware reads this to simultaneously derive CR14+CR6.
-        // Layout: magic(5) | n_minus_6(4) | cw(13) | typ(2) | cc(8)
+        const hdrCheck = this.mLoad(sourceGT, 'E', d.crDst, base);
+        if (!hdrCheck.ok) {
+            this.fault(hdrCheck.fault, `CALL CR${d.crDst} lump-hdr: ${hdrCheck.message}`);
+            return null;
+        }
         const hdrWord = this.memory[base] >>> 0;
         const hdr = this.parseLumpHeader(hdrWord);
         const hasLumpHeader = hdr.valid && hdr.cc > 0;
@@ -1771,6 +1806,11 @@ class ChurchSimulator {
             this.cr[6].m = 1;   // M set (CALL always M-elevated; _writeCR uses global mElevation which may be 0 post-boot)
 
             const clistLoc = nsEntry.word0_location;
+            const cr14ReadCheck = this.mLoad(sourceGT, 'E', d.crDst, clistLoc);
+            if (!cr14ReadCheck.ok) {
+                this.fault(cr14ReadCheck.fault, `CALL CR${d.crDst} clist[0]: ${cr14ReadCheck.message}`);
+                return null;
+            }
             const cr14GTVal = this.memory[clistLoc];
             if (cr14GTVal !== 0) {
                 const cr14Parsed = this.parseGT(cr14GTVal);
@@ -2073,9 +2113,8 @@ class ChurchSimulator {
             const tnBaseRet = this.cr[12] && this.cr[12].word1;
             for (let i = 0; i < frame.savedCRs.length; i++) {
                 this.cr[i] = {...frame.savedCRs[i]};
-                // Restore GT home slot for CR0-CR11 except CR6 (CR6 lives in stack frames)
                 if (i <= 11 && i !== 6 && tnBaseRet) {
-                    this.memory[tnBaseRet + THREAD_CAPS_OFFSET + i] = this.cr[i].word0 >>> 0;
+                    this._threadWrite(tnBaseRet + THREAD_CAPS_OFFSET + i, this.cr[i].word0 >>> 0, `RETURN CR${i}-restore`);
                 }
             }
         }
@@ -2134,7 +2173,12 @@ class ChurchSimulator {
             this.fault('BOUNDS', `CHANGE: entry ${targetIdx} is null`);
             return null;
         }
-        const gt = this.memory[entry.word0_location] || 0;
+        const gtRead = this._capRead(d.crSrc, entry.word0_location, null, `CHANGE CR${d.crDst}`);
+        if (!gtRead.ok) {
+            this.fault(gtRead.fault, gtRead.message);
+            return null;
+        }
+        const gt = gtRead.value || 0;
         if (!this._writeCR(d.crDst, gt, entry)) return null;
         const desc = `CHANGE CR${d.crDst}, [CR${d.crSrc}] idx=${targetIdx}`;
         this.output += desc + '\n';
@@ -2232,8 +2276,9 @@ class ChurchSimulator {
         const savedSTO = this.sto;
         const lambdaThreadBase = this.cr[12] && this.cr[12].word1;
         if (lambdaThreadBase) {
-            const threadHdrWord = this.memory[lambdaThreadBase] >>> 0;
-            const threadHdr = this.parseLumpHeader(threadHdrWord);
+            const hdrRead = this._threadRead(lambdaThreadBase, `LAMBDA CR${crIdx} thread-hdr`);
+            if (!hdrRead.ok) return null;
+            const threadHdr = this.parseLumpHeader(hdrRead.value);
             const threadLumpSize = threadHdr.valid ? threadHdr.lumpSize : 256;
             const threadCC = threadHdr.valid ? threadHdr.cc : 0;
             const heapEnd = 1 + 16 + threadCC;
@@ -2291,8 +2336,9 @@ class ChurchSimulator {
             ecClistSize = this.parseNSWord1(this.cr[6].word2).limit + 1;
         } else {
             const lumpBase = this.cr[d.crSrc].word1;
-            const hdrWord = this.memory[lumpBase] >>> 0;
-            const hdr = this.parseLumpHeader(hdrWord);
+            const hdrRead = this._capRead(d.crSrc, lumpBase, 'R', `ELOADCALL CR${d.crSrc} lump-hdr`);
+            if (!hdrRead.ok) { this.fault(hdrRead.fault, hdrRead.message); return null; }
+            const hdr = this.parseLumpHeader(hdrRead.value);
             srcLoc = (hdr.valid && hdr.cc > 0) ? (lumpBase + hdr.lumpSize - hdr.cc) >>> 0 : lumpBase;
             ecClistSize = (hdr.valid && hdr.cc > 0) ? hdr.cc : 1;
         }
@@ -2333,6 +2379,11 @@ class ChurchSimulator {
         }
         const clistEntry = tpermCheck.entry;
         const clistLoc = clistEntry.word0_location;
+        const cr7Read = this.mLoad(slotGT, 'E', undefined, clistLoc);
+        if (!cr7Read.ok) {
+            this.fault(cr7Read.fault, `ELOADCALL CR7 clist[0]: ${cr7Read.message}`);
+            return null;
+        }
         const cr7GT = this.memory[clistLoc];
         let cr7Check = null;
         if (cr7GT !== 0) {
@@ -2349,13 +2400,14 @@ class ChurchSimulator {
         const savedSTO_ec = this.sto;
         const ecThreadBase = this.cr[12] && this.cr[12].word1;
         if (ecThreadBase) {
-            const newSTO_ec = (savedSTO_ec - 2) & 0xFFF;
-            const hdrWord_ec = this.memory[ecThreadBase] >>> 0;
-            const hdr_ec = this.parseLumpHeader(hdrWord_ec);
+            const hdrRead_ec = this._threadRead(ecThreadBase, `ELOADCALL CR${d.crDst} thread-hdr`);
+            if (!hdrRead_ec.ok) return null;
+            const hdr_ec = this.parseLumpHeader(hdrRead_ec.value);
             const lumpSize_ec = hdr_ec.valid ? hdr_ec.lumpSize : 256;
             const sw_ec = (hdr_ec.valid && hdr_ec.typ === 2) ? hdr_ec.cw : 0;
             const sp_max_ec = lumpSize_ec - 12 - 1;
             const sp_min_ec = sp_max_ec - sw_ec + 1;
+            const newSTO_ec = (savedSTO_ec - 2) & 0xFFF;
             if (newSTO_ec < sp_min_ec) {
                 this.flags.V = true;
                 this.output += `[STACK WARNING] ELOADCALL CR${d.crDst}: STO=${newSTO_ec} below sw limit sp_min=${sp_min_ec} (sw=${sw_ec}) — V flag set\n`;
@@ -2401,8 +2453,9 @@ class ChurchSimulator {
             xlClistSize = this.parseNSWord1(this.cr[6].word2).limit + 1;
         } else {
             const lumpBase = this.cr[d.crSrc].word1;
-            const hdrWord = this.memory[lumpBase] >>> 0;
-            const hdr = this.parseLumpHeader(hdrWord);
+            const hdrRead = this._capRead(d.crSrc, lumpBase, 'R', `XLOADLAMBDA CR${d.crSrc} lump-hdr`);
+            if (!hdrRead.ok) { this.fault(hdrRead.fault, hdrRead.message); return null; }
+            const hdr = this.parseLumpHeader(hdrRead.value);
             srcLoc = (hdr.valid && hdr.cc > 0) ? (lumpBase + hdr.lumpSize - hdr.cc) >>> 0 : lumpBase;
             xlClistSize = (hdr.valid && hdr.cc > 0) ? hdr.cc : 1;
         }
