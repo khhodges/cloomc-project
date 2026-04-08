@@ -24,3 +24,9 @@ id = "Elz3bH1dq5iPUYkCqVrd1"
 uri = "file://docs/io-device-timer.md"
 type = "text"
 title = "IO Device — Timer (Slot 10)"
+
+[[outputs]]
+id = "TZBOixac1noJMRxUR74u_"
+uri = "file://docs/patching-fpga.md"
+type = "text"
+title = "Patching the Tang Nano 20K FPGA — Complete Guide"
