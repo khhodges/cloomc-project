@@ -91,6 +91,14 @@ class ChurchChange(Elaboratable):
 
         cr12_view = View(CAP_REG_LAYOUT, self.cr12_thread)
         cr12_gt = View(GT_LAYOUT, cr12_view.word0_gt)
+        cr12_null = Signal()
+        cr12_has_r = Signal()
+        cr12_has_w = Signal()
+        m.d.comb += [
+            cr12_null.eq(cr12_gt.gt_type == GT_TYPE_NULL),
+            cr12_has_r.eq(cr12_gt.perms[PERM_R]),
+            cr12_has_w.eq(cr12_gt.perms[PERM_W]),
+        ]
 
         thread_base = cr12_view.word1_location
 
@@ -178,6 +186,12 @@ class ChurchChange(Elaboratable):
                 with m.If(~crn_has_l_perm):
                     m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_L)]
                     m.next = "FAULT"
+                with m.Elif(cr12_null):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.NULL_CAP)]
+                    m.next = "FAULT"
+                with m.Elif(~cr12_has_w):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_W)]
+                    m.next = "FAULT"
                 with m.Else():
                     m.next = "SAVE_DR"
 
@@ -255,6 +269,17 @@ class ChurchChange(Elaboratable):
             with m.State("FETCH_THREAD_HDR"):
                 # After RESTORE_CALL the incoming thread's CRs are all committed
                 # to the register file, so CR12 now holds the new thread capability.
+                # Validate CR12 R-perm before reading the thread lump header.
+                with m.If(cr12_null):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.NULL_CAP)]
+                    m.next = "FAULT"
+                with m.Elif(~cr12_has_r):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_R)]
+                    m.next = "FAULT"
+                with m.Else():
+                    m.next = "READ_THREAD_HDR"
+
+            with m.State("READ_THREAD_HDR"):
                 # thread_base = CR12.word1_location = the incoming thread lump base.
                 # Read Mem[thread_base+0] (the lump header word) and store in
                 # THREAD_HDR — CALL uses it for stack-bound validation on every call

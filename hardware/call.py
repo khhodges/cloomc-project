@@ -70,6 +70,9 @@ class ChurchCall(Elaboratable):
         # Thread lump byte base address (CR12.word1_location)
         self.thread_base = Signal(32)
 
+        # CR12 thread capability — live view; used for W-perm check before stack writes
+        self.cr12_thread = Signal(CAP_REG_LAYOUT)
+
         # THREAD_HDR: hidden per-thread register populated by CHANGE on thread restore.
         # Holds Mem[thread_base+0] — the thread lump's header word — valid for the
         # entire lifetime of the thread. CALL reads stack bounds from it directly,
@@ -147,6 +150,22 @@ class ChurchCall(Elaboratable):
         )
 
         cr5_heap_view = View(CAP_REG_LAYOUT, self.cr5_heap)
+        cr5_gt = View(GT_LAYOUT, cr5_heap_view.word0_gt)
+        cr5_null = Signal()
+        cr5_has_r = Signal()
+        m.d.comb += [
+            cr5_null.eq(cr5_gt.gt_type == GT_TYPE_NULL),
+            cr5_has_r.eq(cr5_gt.perms[PERM_R]),
+        ]
+
+        cr12_cap_view = View(CAP_REG_LAYOUT, self.cr12_thread)
+        cr12_gt = View(GT_LAYOUT, cr12_cap_view.word0_gt)
+        cr12_null = Signal()
+        cr12_has_w = Signal()
+        m.d.comb += [
+            cr12_null.eq(cr12_gt.gt_type == GT_TYPE_NULL),
+            cr12_has_w.eq(cr12_gt.perms[PERM_W]),
+        ]
 
         # Latched CR14 for M-bit write-back after Phase 2
         cr14_latched = Signal(CAP_REG_LAYOUT)
@@ -445,7 +464,23 @@ class ChurchCall(Elaboratable):
                     self.cr_null_mask.eq(mask_latched[:12]),
                     self.cr_b_clear_mask.eq(~mask_latched[:12]),
                 ]
-                m.next = "STACK_READ_SP"
+                m.next = "CHECK_CR5_CR12"
+
+            with m.State("CHECK_CR5_CR12"):
+                with m.If(cr5_null):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.NULL_CAP)]
+                    m.next = "FAULT"
+                with m.Elif(~cr5_has_r):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_R)]
+                    m.next = "FAULT"
+                with m.Elif(cr12_null):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.NULL_CAP)]
+                    m.next = "FAULT"
+                with m.Elif(~cr12_has_w):
+                    m.d.sync += [fault_latched.eq(1), fault_type_latched.eq(FaultType.PERM_W)]
+                    m.next = "FAULT"
+                with m.Else():
+                    m.next = "STACK_READ_SP"
 
             with m.State("STACK_READ_SP"):
                 # Read STO from Heap[0] = Mem[CR5.word1_location].
