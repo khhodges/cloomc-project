@@ -1543,6 +1543,9 @@ function injectCRCode(logEl) {
     sim.sto = 243;
     sim.callStack = [];
     sim.flags = { N: false, Z: false, C: false, V: false };
+    sim.lambdaActive = false;
+    sim.lambdaReturnPC = 0;
+    sim.lambdaCachedFrame = null;
 
     updateCRDisplay();
     updateDRDisplay();

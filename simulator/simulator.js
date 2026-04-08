@@ -134,6 +134,7 @@ class ChurchSimulator {
         this.callStack = [];
         this.lambdaActive = false;
         this.lambdaReturnPC = 0;
+        this.lambdaCachedFrame = null;
         this.faultLog = [];
         this._instrHistory = [];
 
@@ -170,6 +171,7 @@ class ChurchSimulator {
         this.callStack = [];
         this.lambdaActive = false;
         this.lambdaReturnPC = 0;
+        this.lambdaCachedFrame = null;
         this.pc = 0;
         this.physicalPC = 0;
         this.halted = false;
@@ -1274,6 +1276,16 @@ class ChurchSimulator {
         };
     }
 
+    _flushLambdaCache() {
+        if (!this.lambdaActive || !this.lambdaCachedFrame) return;
+        const c = this.lambdaCachedFrame;
+        if (c.threadBase) {
+            this.memory[c.threadBase + c.addr] = c.word;
+        }
+        this.lambdaActive = false;
+        this.lambdaCachedFrame = null;
+    }
+
     _packFrameWordRaw(returnPC, sz, savedSTO, flags = {}) {
         const { N=false, Z=false, C=false, V=false } = flags;
         const flagBits = ((N ? 1 : 0) << 3) | ((Z ? 1 : 0) << 2) | ((C ? 1 : 0) << 1) | (V ? 1 : 0);
@@ -1651,6 +1663,8 @@ class ChurchSimulator {
                 return abstrResult;
             }
         }
+
+        this._flushLambdaCache();
 
         const savedSTO = this.sto;
         const callThreadBase = this.cr[12] && this.cr[12].word1;
@@ -2076,14 +2090,22 @@ class ChurchSimulator {
             }
         }
         const frameTag = frame.sz === 0 ? 'LAMBDA' : 'CALL';
+        const isLeafLambda = frame.sz === 0 && this.lambdaActive && this.lambdaCachedFrame;
+        if (isLeafLambda) {
+            this.lambdaActive = false;
+            this.lambdaCachedFrame = null;
+        }
         const maskDesc = mask ? ` MASK=0b${mask.toString(2).padStart(12, '0')} cleared[${clearedCRs.join(',')}]` : '';
-        const desc = `RETURN (${frameTag}/SZ=${frame.sz}) PC→${frame.returnPC}${maskDesc}`;
+        const leafTag = isLeafLambda ? ' [leaf — no memory write]' : '';
+        const desc = `RETURN (${frameTag}/SZ=${frame.sz}) PC→${frame.returnPC}${maskDesc}${leafTag}`;
         this.output += desc + '\n';
         this.pc = frame.returnPC;
         return { pc: frame.returnPC, instr: d, desc, pipeline: this._returnPipeline(d, frame, mask) };
     }
 
     _execChange(d) {
+        this._flushLambdaCache();
+
         const srcGT = this.cr[d.crSrc].word0;
         if (srcGT === 0) {
             this.fault('NULL_CAP', `CHANGE: CR${d.crSrc} is NULL`);
@@ -2192,6 +2214,8 @@ class ChurchSimulator {
             return null;
         }
 
+        this._flushLambdaCache();
+
         const savedSTO = this.sto;
         const lambdaThreadBase = this.cr[12] && this.cr[12].word1;
         if (lambdaThreadBase) {
@@ -2227,9 +2251,9 @@ class ChurchSimulator {
             frameWord,
             isLambda: true,
         });
-        if (lambdaThreadBase) {
-            this.memory[lambdaThreadBase + savedSTO] = frameWord;
-        }
+        this.lambdaActive = true;
+        this.lambdaReturnPC = this.pc + 1;
+        this.lambdaCachedFrame = { addr: savedSTO, word: frameWord, threadBase: lambdaThreadBase };
         this.sto = (savedSTO - 1) & 0xFFF;
 
         const label = this.nsLabels[check.index] || 'reduction';
@@ -2240,6 +2264,8 @@ class ChurchSimulator {
     }
 
     _execEloadcall(d) {
+        this._flushLambdaCache();
+
         const clistGT = this.cr[d.crSrc].word0;
         if (clistGT === 0) {
             this.fault('NULL_CAP', `ELOADCALL: CR${d.crSrc} C-List is NULL`);
@@ -2837,6 +2863,7 @@ class ChurchSimulator {
         this.stepCount = 0;
         this.lambdaActive = false;
         this.lambdaReturnPC = 0;
+        this.lambdaCachedFrame = null;
         this.faultLog = [];
         this._instrHistory = [];
         this.emit('programLoaded', { addr: baseAddr, length: words.length });
