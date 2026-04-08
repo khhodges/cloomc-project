@@ -69,6 +69,10 @@ class ChurchTangNano20K(Elaboratable):
         debug = DebugPrinter(self.clk_freq, self.baud)
         m.submodules.debug = debug
 
+        uart_rx = UartRx(self.clk_freq, self.baud)
+        m.submodules.uart_rx = uart_rx
+        m.d.comb += uart_rx.rx.eq(self.uart_rx)
+
         m.d.comb += [
             boot_rom.addr.eq(core.imem_addr[2:11]),
             core.imem_data.eq(boot_rom.data),
@@ -171,6 +175,11 @@ class ChurchTangNano20K(Elaboratable):
                 m.d.comb += mmio_rd_data.eq(0)
         # ── end MMIO decode ──────────────────────────────────────────────────
 
+        patch_active = Signal()
+        patch_bsram_addr = Signal(11)
+        patch_bsram_data = Signal(32)
+        patch_bsram_wr = Signal()
+
         if self.sim_mode:
             ns_init = []
             for i in range(0, len(DEMO_NAMESPACE), 3):
@@ -255,7 +264,10 @@ class ChurchTangNano20K(Elaboratable):
             with m.Else():
                 m.d.comb += mem_addr.eq(core.dmem_addr[2:13])
 
-            m.d.comb += bsram.addr.eq(mem_addr)
+            with m.If(patch_active):
+                m.d.comb += bsram.addr.eq(patch_bsram_addr)
+            with m.Else():
+                m.d.comb += bsram.addr.eq(mem_addr)
 
             m.d.comb += core.dmem_rd_data.eq(Mux(is_mmio_read, mmio_rd_data, bsram.rd_data))
             m.d.comb += [
@@ -265,7 +277,9 @@ class ChurchTangNano20K(Elaboratable):
 
             wr_data = Signal(32)
             wr_en = Signal()
-            with m.If(core.ns_wr_en):
+            with m.If(patch_active):
+                m.d.comb += [wr_data.eq(patch_bsram_data), wr_en.eq(patch_bsram_wr)]
+            with m.Elif(core.ns_wr_en):
                 m.d.comb += [wr_data.eq(core.ns_wr_data[:32]), wr_en.eq(1)]
             with m.Elif(core.clist_wr_en):
                 m.d.comb += [wr_data.eq(core.clist_wr_data), wr_en.eq(1)]
@@ -432,6 +446,13 @@ class ChurchTangNano20K(Elaboratable):
         step_fault = Signal(4)
         step_had_fault = Signal()
 
+        patch_addr = Signal(16)
+        patch_count = Signal(16)
+        patch_idx = Signal(16)
+        patch_byte_idx = Signal(2)
+        patch_word_acc = Signal(32)
+        patch_rx_phase = Signal(4)
+
         if self.sim_mode:
             startup_target = 4
         else:
@@ -481,7 +502,10 @@ class ChurchTangNano20K(Elaboratable):
                         m.next = "HALTED"
 
             with m.State("HALTED"):
-                with m.If(btn_press):
+                with m.If(uart_rx.valid & (uart_rx.data == 0xBE)):
+                    m.d.sync += patch_rx_phase.eq(0)
+                    m.next = "PATCH_MAGIC2"
+                with m.Elif(btn_press):
                     m.d.sync += stepping.eq(1)
                     m.next = "STEP_WAIT"
 
@@ -540,6 +564,127 @@ class ChurchTangNano20K(Elaboratable):
                         fault_word.eq(Cat(step_fault, C(0, 28))),
                         debug.data.eq(fault_word),
                         debug.send.eq(1),
+                    ]
+                    m.d.sync += halt_idx.eq(0)
+                    m.next = "SEND_HALT"
+
+            # ── PATCH_LUMP protocol ────────────────────────────────────
+            # Wire protocol (from webserial.js):
+            #   TX: [0xBE][0xEF][addrHi][addrLo][countHi][countLo]
+            #       [w0_b0][w0_b1][w0_b2][w0_b3]...[wN_b3]
+            #       [crcHi][crcLo]
+            #   RX echo: [addrHi][addrLo][countHi][countLo]
+            # Words are little-endian (LSB first).
+            # CRC-16 is ignored for now (integrity via UART framing).
+
+            with m.State("PATCH_MAGIC2"):
+                with m.If(uart_rx.valid):
+                    with m.If(uart_rx.data == 0xEF):
+                        m.next = "PATCH_ADDR_HI"
+                    with m.Else():
+                        m.next = "HALTED"
+
+            with m.State("PATCH_ADDR_HI"):
+                with m.If(uart_rx.valid):
+                    m.d.sync += patch_addr[8:16].eq(uart_rx.data)
+                    m.next = "PATCH_ADDR_LO"
+
+            with m.State("PATCH_ADDR_LO"):
+                with m.If(uart_rx.valid):
+                    m.d.sync += patch_addr[:8].eq(uart_rx.data)
+                    m.next = "PATCH_COUNT_HI"
+
+            with m.State("PATCH_COUNT_HI"):
+                with m.If(uart_rx.valid):
+                    m.d.sync += patch_count[8:16].eq(uart_rx.data)
+                    m.next = "PATCH_COUNT_LO"
+
+            with m.State("PATCH_COUNT_LO"):
+                with m.If(uart_rx.valid):
+                    m.d.sync += [
+                        patch_count[:8].eq(uart_rx.data),
+                        patch_idx.eq(0),
+                        patch_byte_idx.eq(0),
+                        patch_word_acc.eq(0),
+                    ]
+                    m.d.sync += patch_active.eq(1)
+                    m.next = "PATCH_DATA"
+
+            with m.State("PATCH_DATA"):
+                with m.If(uart_rx.valid):
+                    with m.Switch(patch_byte_idx):
+                        with m.Case(0):
+                            m.d.sync += [
+                                patch_word_acc[:8].eq(uart_rx.data),
+                                patch_byte_idx.eq(1),
+                            ]
+                        with m.Case(1):
+                            m.d.sync += [
+                                patch_word_acc[8:16].eq(uart_rx.data),
+                                patch_byte_idx.eq(2),
+                            ]
+                        with m.Case(2):
+                            m.d.sync += [
+                                patch_word_acc[16:24].eq(uart_rx.data),
+                                patch_byte_idx.eq(3),
+                            ]
+                        with m.Case(3):
+                            m.d.sync += [
+                                patch_word_acc[24:32].eq(uart_rx.data),
+                                patch_byte_idx.eq(0),
+                            ]
+                            m.next = "PATCH_WRITE"
+
+            with m.State("PATCH_WRITE"):
+                m.d.comb += [
+                    patch_bsram_addr.eq(patch_addr + patch_idx),
+                    patch_bsram_data.eq(patch_word_acc),
+                    patch_bsram_wr.eq(1),
+                ]
+                m.d.sync += patch_idx.eq(patch_idx + 1)
+                with m.If(patch_idx + 1 >= patch_count):
+                    m.next = "PATCH_CRC_HI"
+                with m.Else():
+                    m.next = "PATCH_DATA"
+
+            with m.State("PATCH_CRC_HI"):
+                with m.If(uart_rx.valid):
+                    m.next = "PATCH_CRC_LO"
+
+            with m.State("PATCH_CRC_LO"):
+                with m.If(uart_rx.valid):
+                    m.d.sync += patch_active.eq(0)
+                    m.next = "PATCH_ECHO0"
+
+            with m.State("PATCH_ECHO0"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        fsm_send_byte.eq(1),
+                        fsm_byte_data.eq(patch_addr[8:16]),
+                    ]
+                    m.next = "PATCH_ECHO1"
+
+            with m.State("PATCH_ECHO1"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        fsm_send_byte.eq(1),
+                        fsm_byte_data.eq(patch_addr[:8]),
+                    ]
+                    m.next = "PATCH_ECHO2"
+
+            with m.State("PATCH_ECHO2"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        fsm_send_byte.eq(1),
+                        fsm_byte_data.eq(patch_count[8:16]),
+                    ]
+                    m.next = "PATCH_ECHO3"
+
+            with m.State("PATCH_ECHO3"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        fsm_send_byte.eq(1),
+                        fsm_byte_data.eq(patch_count[:8]),
                     ]
                     m.d.sync += halt_idx.eq(0)
                     m.next = "SEND_HALT"
