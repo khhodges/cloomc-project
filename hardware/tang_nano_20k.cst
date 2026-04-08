@@ -1,29 +1,26 @@
 // Tang Nano 20K pin constraints for Church Machine
-// Gowin GW2AR-LV18QN88C8/I7 — 27MHz crystal, BL616 USB-UART, 6 LEDs, 1 button
+// Gowin GW2AR-LV18QN88C8/I7 — 27MHz crystal, BL616 USB-UART, 4 LEDs, 1 button
+// Onboard LEDs are on pins 15–20; pins 17–18 conflict with UART, so 4 usable.
 
 // System clock — 27MHz crystal oscillator
 IO_LOC "clk" 4;
 IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 
-// UART via BL616 USB bridge
+// UART via BL616 USB bridge (active on pins 17, 18)
 IO_LOC "uart_tx" 17;
 IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
 IO_LOC "uart_rx" 18;
 IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-// Onboard LEDs (active-low) — signal names match Amaranth led0..led5
-IO_LOC "led0" 10;
+// Onboard LEDs (active-low) — pins 15,16,19,20 (skipping 17,18 = UART)
+IO_LOC "led0" 15;
 IO_PORT "led0" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
-IO_LOC "led1" 11;
+IO_LOC "led1" 16;
 IO_PORT "led1" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
-IO_LOC "led2" 13;
+IO_LOC "led2" 19;
 IO_PORT "led2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
-IO_LOC "led3" 15;
+IO_LOC "led3" 20;
 IO_PORT "led3" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
-IO_LOC "led4" 9;
-IO_PORT "led4" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
-IO_LOC "led5" 8;
-IO_PORT "led5" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
 
 // Push button S1 (active-low)
 IO_LOC "push_button" 88;

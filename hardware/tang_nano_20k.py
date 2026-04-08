@@ -48,7 +48,7 @@ class ChurchTangNano20K(Elaboratable):
         self.uart_rx = Signal()
         self.push_button = Signal(init=1)
 
-        self.led = [Signal(name=f"led{i}") for i in range(6)]
+        self.led = [Signal(name=f"led{i}") for i in range(4)]
 
         self.dbg_nia = Signal(32)
         self.dbg_fault = Signal(4)
@@ -78,11 +78,10 @@ class ChurchTangNano20K(Elaboratable):
         # MMIO range: address[31:30] == 0b01  →  bit-30 decode
         # Active-LOW LEDs: DWRITE writes 1 = LED ON → invert before driving pin
         # Registers (bits[5:2] = word index):
-        #   0x40000000  [ 0] LED[0]     — bits[2:0]={B,G,R}; R drives led0 (active-LOW)
-        #   0x40000004  [ 1] LED[1]     — bits[2:0]={B,G,R}; R drives led1
-        #   0x40000008  [ 2] LED[2]     — bits[2:0]={B,G,R}; R drives led2
-        #   0x4000000C  [ 3] LED[3]     — bits[2:0]={B,G,R}; R drives led4 (led3 pin absent)
-        #   0x40000010  [ 4] LED[4]     — bits[2:0]={B,G,R}; R drives led5
+        #   0x40000000  [ 0] LED[0]     — bits[2:0]={B,G,R}; R drives led0 pin15
+        #   0x40000004  [ 1] LED[1]     — bits[2:0]={B,G,R}; R drives led1 pin16
+        #   0x40000008  [ 2] LED[2]     — bits[2:0]={B,G,R}; R drives led2 pin19
+        #   0x4000000C  [ 3] LED[3]     — bits[2:0]={B,G,R}; R drives led3 pin20
         #   0x40000014  [ 5] UART_TX    — 8-bit write-only
         #   0x40000018  [ 6] UART_STATUS— 32-bit read-only {30'b0, rx_valid, tx_ready}
         #   0x4000001C  [ 7] UART_RX    — 8-bit read-only
@@ -99,8 +98,7 @@ class ChurchTangNano20K(Elaboratable):
         mmio_reg_sel = Signal(4)
         m.d.comb += mmio_reg_sel.eq(core.dmem_addr[2:6])
 
-        # 5 RGB LED registers — bits[2:0]={B,G,R}; only R (bit 0) drives physical pin
-        mmio_led_reg = [Signal(3, name=f"mmio_led{i}") for i in range(5)]
+        mmio_led_reg = [Signal(3, name=f"mmio_led{i}") for i in range(4)]
         mmio_uart_tx_wr   = Signal()
         mmio_uart_tx_data = Signal(8)
 
@@ -128,7 +126,7 @@ class ChurchTangNano20K(Elaboratable):
 
         with m.If(is_mmio_write):
             with m.Switch(mmio_reg_sel):
-                for i in range(5):
+                for i in range(4):
                     with m.Case(i):
                         m.d.sync += mmio_led_reg[i].eq(core.dmem_wr_data[:3])
                 with m.Case(5):
@@ -148,7 +146,7 @@ class ChurchTangNano20K(Elaboratable):
 
         mmio_rd_data = Signal(32)
         with m.Switch(mmio_reg_sel):
-            for i in range(5):
+            for i in range(4):
                 with m.Case(i):
                     m.d.comb += mmio_rd_data.eq(mmio_led_reg[i])
             with m.Case(5):
@@ -375,18 +373,19 @@ class ChurchTangNano20K(Elaboratable):
         led_fault = core.fault_valid
 
         # Pre-boot:  show hardware status display.
-        # Post-boot: software controls LEDs via LED[0..4] MMIO registers.
+        # Post-boot: software controls LEDs via LED[0..3] MMIO registers.
         # Each LED word is bits[2:0]={B,G,R}; only R (bit 0) drives the physical pin.
         # Tang Nano 20K: active-LOW — invert R bit before driving pin.
-        # Physical mapping: offset 0→led0, 1→led1, 2→led2, 3→led4, 4→led5
-        # (led3 pin is absent on GW2AR; led[3] signal drives led4 on board).
+        # 4 LEDs: pins 15,16,19,20 (pins 17,18 used by UART).
+        #   led0 (pin15): boot status — ON during boot
+        #   led1 (pin16): run/halt   — ON when running, blinks when halted
+        #   led2 (pin19): fault      — ON on capability fault
+        #   led3 (pin20): heartbeat  — blinks to show clock alive
         m.d.comb += [
             self.led[0].eq(Mux(core.boot_complete, ~mmio_led_reg[0][0], ~led_boot)),
             self.led[1].eq(Mux(core.boot_complete, ~mmio_led_reg[1][0], ~(led_run | led_halted_blink))),
             self.led[2].eq(Mux(core.boot_complete, ~mmio_led_reg[2][0], ~led_fault)),
-            self.led[3].eq(Mux(core.boot_complete, ~mmio_led_reg[3][0], ~core.boot_complete)),
-            self.led[4].eq(Mux(core.boot_complete, ~mmio_led_reg[4][0], ~halted)),
-            self.led[5].eq(Mux(core.boot_complete, C(1, 1),             ~stepping)),
+            self.led[3].eq(Mux(core.boot_complete, ~mmio_led_reg[3][0], ~heartbeat_blink)),
         ]
 
         if not self.sim_mode:
