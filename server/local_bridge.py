@@ -62,7 +62,7 @@ def _reader():
 class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
-        pass  # silence default access log
+        print(f'  [{self.path}] {fmt % args}')
 
     def _cors(self):
         self.send_header('Access-Control-Allow-Origin',  '*')
@@ -139,11 +139,15 @@ class Handler(BaseHTTPRequestHandler):
             timeout_s = body.get('timeout_ms', 3000) / 1000.0
             try:
                 with _rx_lock:
+                    stale = bytes(_rx_buf)
                     _rx_buf.clear()
+                if stale:
+                    print(f'  [transact] drained {len(stale)} stale bytes: {stale.hex()}')
                 with _ser_lock:
                     if not (_ser and _ser.is_open):
                         raise IOError('Serial port not open')
                     _ser.write(tx_bytes)
+                print(f'  [transact] TX {len(tx_bytes)} bytes: {tx_bytes[:16].hex()}{"..." if len(tx_bytes)>16 else ""}')
                 rx = bytearray()
                 deadline = time.time() + timeout_s
                 while len(rx) < rx_count and time.time() < deadline:
@@ -153,8 +157,10 @@ class Handler(BaseHTTPRequestHandler):
                     rx.extend(chunk)
                     if len(rx) < rx_count:
                         time.sleep(0.005)
+                print(f'  [transact] RX {len(rx)} bytes: {rx.hex() if rx else "(empty)"}')
                 self._json_resp({'ok': True, 'rx': list(rx)})
             except Exception as e:
+                print(f'  [transact] ERROR: {e}')
                 self._json_resp({'ok': False, 'error': str(e)})
 
         else:
