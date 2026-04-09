@@ -143,7 +143,57 @@ The difference in timelines is not marginal. It is the difference between engine
 
 ---
 
-## 9. Summary
+## 9. The Cost Tends to Zero
+
+This is the most important consequence of all, and it is provable mathematically.
+
+A sealed CLOOMC abstraction is a *proof*. Not a proof in the informal sense — "we tested it and it seems to work" — but a proof in the mathematical sense. The hardware enforces the preconditions (capability permissions in R0), the postconditions (bounded memory via limit17), and the isolation (no access without a GT). Once the abstraction is sealed and its behaviour is verified against its interface, the proof is complete. It does not expire. It does not degrade. It does not depend on the goodwill of future programmers.
+
+Ada Lovelace understood this in 1843. Her Notes on Babbage's Analytical Engine are the first published algorithm — and they are still correct. Not "correct for their time." Correct. The mathematical reasoning she applied to Bernoulli numbers has not been patched, has not been refactored, has not been the subject of a CVE. She had no IDE, no version control, no test framework, no CI pipeline. She had rigorous mathematical thinking applied to a machine with well-defined constraints. That was enough. It has been enough for 183 years.
+
+This is what the constrained model gives you: *software that participates in mathematical proof rather than resisting it.*
+
+Consider what happens to development cost over time in both models:
+
+**Von Neumann:** Each new program starts from scratch. It inherits no guarantees from the platform. The operating system provides services but not safety — a correct program can be subverted by a buffer overflow in a library it did not write. The cost of the next program is the cost of writing it *plus* the cost of defending it against everything else on the machine. This cost never decreases. It increases, because the attack surface grows with every line of code added to the ecosystem.
+
+**CLOOMC:** Each new abstraction inherits the guarantees of the platform. The hardware enforces memory isolation. The namespace enforces access control. The seal enforces integrity. A correctly sealed abstraction cannot be subverted by a bug in another abstraction — the hardware will trap before the violation reaches it. The cost of the next abstraction is the cost of writing *it*, and only it. The platform's guarantees are not re-earned; they are inherited. And every correct abstraction becomes part of the platform's library, available to the next developer at zero marginal cost.
+
+The cost curve is:
+
+```
+Development cost per abstraction
+│
+│  ╲ ╲ ╲ ╲              Von Neumann
+│   ╲  ╲  ╲  ╲          (constant or rising)
+│    ╲   ╲   ╲   ╲
+│─────╲────╲────╲────╲──────────────
+│
+│  ╲
+│   ╲
+│    ╲╲
+│      ╲╲╲_______________   CLOOMC
+│                            (asymptotic to zero)
+└──────────────────────────────────
+  1st    10th   100th   1000th
+        Abstraction number
+```
+
+This is not wishful thinking. It is the direct consequence of two properties:
+
+1. **Composability without re-verification.** When abstraction A is sealed and correct, and abstraction B is sealed and correct, a program that uses both A and B through their capability interfaces is correct with respect to A and B *without re-testing A and B*. In von Neumann, using A and B together requires testing all interactions between them, because neither A nor B can prevent the other from corrupting its memory.
+
+2. **Immortality of verified work.** Ada Lovelace's algorithm does not need to be rewritten for a new compiler, a new OS, or a new CPU — because it is mathematics, not a binary artifact. A sealed CLOOMC abstraction has the same property. Its correctness is a function of its interface and its logic, both of which are immutable once sealed. The hardware changes; the proof does not.
+
+The industrial consequence is profound. In von Neumann computing, the global software industry spends approximately $500 billion per year on maintenance — patching, refactoring, porting, and securing code that was "finished" years ago. This is not a sign of insufficient effort. It is a sign of an architecture that makes finished work impossible. The code is never finished because the platform provides no mechanism to *finish* it. There is always another exploit, another platform migration, another dependency update that breaks the build.
+
+In a capability-secured system, finished means finished. The sealed abstraction is a mathematical object. It can be stored, copied, transmitted, and executed on any conforming hardware, forever. The development cost of the first abstraction is real. The development cost of the thousandth — built on a library of 999 verified, sealed, reusable predecessors — approaches zero.
+
+Ada wrote her algorithm once. It has cost nothing to maintain for nearly two centuries. That is not an accident. It is what happens when you do mathematics instead of improvisation.
+
+---
+
+## 10. Summary
 
 | Property | Unconstrained (von Neumann) | Constrained (Chip / CLOOMC) |
 |----------|---------------------------|----------------------------|
@@ -154,6 +204,8 @@ The difference in timelines is not marginal. It is the difference between engine
 | Versioning | Implicit, fragile | Explicit, sealed |
 | Development timeline | Unpredictable, back-loaded | Predictable, front-loaded |
 | Ultimate quality | Depends on every programmer | Guaranteed by architecture |
+| Long-term cost trend | Constant or rising (maintenance forever) | Asymptotic to zero (sealed work is finished) |
+| Lifespan of correct code | Until next platform/compiler/exploit | Indefinite (Ada Lovelace: 183 years and counting) |
 
 The lesson is simple and old and persistently ignored: **freedom is not the same as capability, and constraints are not the same as limitations.** A chip pinout constrains your wiring and liberates your engineering. A sealed abstraction constrains your interface and liberates your software from the endless renegotiation of trust. Von Neumann's unconstrained memory model constrains nothing and liberates no one — it merely defers the consequences of uncommitted design to the people least equipped to deal with them: the users.
 
