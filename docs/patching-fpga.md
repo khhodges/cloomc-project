@@ -77,7 +77,7 @@ capability-secured processor can do.
 | **FPGA** | Efinix Titanium, 60K LUTs (~14% used) |
 | **Clock** | 50 MHz (PLL from 25 MHz crystal) |
 | **Memory** | 256 KB SRAM |
-| **Price** | ~$80 (dev board) |
+| **Price** | ~$300–400 (dev kit); chip alone ~$50 |
 | **Best for** | Research, full OS experiments, lambda calculus, garbage collection |
 
 **Full profile features:**
@@ -124,7 +124,7 @@ on real silicon. If you are new to the Church Machine, start here.
 | LUTs used | ~8,537 / 60K (14%) | ~4,653 / 20K (22%) |
 | Clock | 50 MHz | 27 MHz |
 | BRAM | 256 KB | 64 KB |
-| Price | ~$80 | ~$20 |
+| Price | ~$300–400 (dev kit) | ~$20 |
 | UART adapter | External (H14/M14 pins) | Built-in USB-C (FT2232) |
 | LEDs | 4 x active-HIGH | 4 x active-LOW |
 | LAMBDA instruction | Yes | FAULT_OPCODE |
