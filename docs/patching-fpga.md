@@ -413,9 +413,9 @@ capability-secured processor can do.
 who wants to explore the complete capability architecture — including
 lambda calculus, garbage collection, and multi-threaded secure contexts.
 
-### Tang Nano 20K — IoT Profile
+### [Tang Nano 20K](https://www.google.com/search?q=Tang+Nano+20K) — IoT Profile
 
-The Tang Nano 20K is the educational and IoT platform. It runs a pruned
+The [Tang Nano 20K](https://www.google.com/search?q=Tang+Nano+20K) is the educational and IoT platform. It runs a pruned
 version of the architecture that fits a smaller, cheaper FPGA while
 keeping every security guarantee intact.
 
@@ -466,14 +466,14 @@ abstraction avoids full-profile instructions).
 
 ---
 
-## Getting Started: Tang Nano 20K
+## Getting Started: [Tang Nano 20K](https://www.google.com/search?q=Tang+Nano+20K)
 
-The Tang Nano 20K is the recommended first board. These steps take you
+The [Tang Nano 20K](https://www.google.com/search?q=Tang+Nano+20K) is the recommended first board. These steps take you
 from unboxing to running your own code on real silicon.
 
 ### What you need
 
-- A **Tang Nano 20K** board (~$20 from Sipeed)
+- A **[Tang Nano 20K](https://www.google.com/search?q=Tang+Nano+20K)** board (~$20 from Sipeed)
 - A **USB-C cable** (data, not charge-only)
 - A computer running **Linux** or **ChromeOS** (with Linux container)
 
