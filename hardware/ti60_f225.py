@@ -7,6 +7,7 @@ from .core import ChurchCore
 from .boot_rom import BootRom, FULL_ROM, DEMO_NAMESPACE, DEMO_CLIST, NUC_LUMP_HEADER
 from .uart_tx import DebugPrinter
 from .uart_rx import UartRx
+from .crc16 import CRC16_CCITT
 
 
 class ChurchTi60F225(Elaboratable):
@@ -150,6 +151,10 @@ class ChurchTi60F225(Elaboratable):
         mmio_uart_tx_wr   = Signal()
         mmio_uart_tx_data = Signal(8)
 
+        mmio_rx_data  = Signal(8)
+        mmio_rx_valid = Signal()
+        mmio_rx_read  = Signal()
+
         timer_lo    = Signal(32)
         timer_hi    = Signal(32)
         tod_epoch   = Signal(32)
@@ -199,9 +204,12 @@ class ChurchTi60F225(Elaboratable):
             with m.Case(5):
                 m.d.comb += mmio_rd_data.eq(0)
             with m.Case(6):
-                m.d.comb += mmio_rd_data.eq(Cat(~debug.busy, C(0, 31)))
+                m.d.comb += mmio_rd_data.eq(Cat(~debug.busy, mmio_rx_valid, C(0, 30)))
             with m.Case(7):
-                m.d.comb += mmio_rd_data.eq(0)
+                m.d.comb += [
+                    mmio_rd_data.eq(mmio_rx_data),
+                    mmio_rx_read.eq(is_mmio_read),
+                ]
             with m.Case(10):
                 m.d.comb += mmio_rd_data.eq(Cat(self.push_button, C(0, 31)))
             with m.Case(11):
@@ -244,9 +252,21 @@ class ChurchTi60F225(Elaboratable):
         pl_count       = Signal(16)       # remaining words to receive
         pl_word        = Signal(32)       # word accumulator (4 bytes, LE)
         pl_cur_addr    = Signal(16)       # current BRAM word address being written
-        pl_crc_hi_buf  = Signal(8)        # latched CRC high byte (verification future work)
+        pl_crc_hi_buf  = Signal(8)
+        pl_crc_fail    = Signal()
         pl_ack         = Array([Signal(8, name=f"pl_ack{i}") for i in range(4)])
         pl_ack_idx     = Signal(3)        # index into 4-byte ACK sequence
+
+        crc_mod = CRC16_CCITT()
+        m.submodules.crc_mod = crc_mod
+
+        with m.If(rx_valid & ~pl_active):
+            m.d.sync += [
+                mmio_rx_data.eq(rx_data),
+                mmio_rx_valid.eq(1),
+            ]
+        with m.Elif(mmio_rx_read):
+            m.d.sync += mmio_rx_valid.eq(0)
 
         # Default PATCH_LUMP comb outputs — overridden only inside PL_WRITE_WORD state
         m.d.comb += [pl_wr_en.eq(0), pl_wr_addr.eq(0), pl_wr_data.eq(0)]
@@ -503,14 +523,11 @@ class ChurchTi60F225(Elaboratable):
                         m.next = "HALTED"
 
             with m.State("HALTED"):
-                # Paused / single-step mode.
-                # Button hold (~1 s): resume free-run.
-                # Short press: step one instruction.
-                # 0xBE received: start PATCH_LUMP (CPU already halted).
                 with m.If(btn_hold_done):
                     m.next = "ENTER_FREE_RUN"
                 with m.Elif(rx_valid & (rx_data == 0xBE)):
                     m.d.sync += pl_active.eq(1)
+                    m.d.comb += crc_mod.reset.eq(1)
                     m.next = "PL_WAIT_EF"
                 with m.Elif(btn_press):
                     m.d.sync += stepping.eq(1)
@@ -542,8 +559,8 @@ class ChurchTi60F225(Elaboratable):
                     m.d.sync += [halted.eq(1), halt_idx.eq(0)]
                     m.next = "USER_HALT"
                 with m.Elif(rx_valid & (rx_data == 0xBE)):
-                    # PATCH_LUMP preamble received — freeze CPU and start protocol.
                     m.d.sync += [halted.eq(1), pl_active.eq(1)]
+                    m.d.comb += crc_mod.reset.eq(1)
                     m.next = "PL_WAIT_EF"
                 with m.Elif(btn_press):
                     # Button press: pause into single-step mode.
@@ -551,12 +568,10 @@ class ChurchTi60F225(Elaboratable):
                     m.next = "HALTED"
 
             with m.State("FAULT_HALT"):
-                # CPU faulted — hold halted, fault LED driven by core.fault_valid.
-                # Button press: resume single-step for diagnosis.
-                # 0xBE received: allow PATCH_LUMP / READ_BRAM even while faulted.
                 m.d.sync += halted.eq(1)
                 with m.If(rx_valid & (rx_data == 0xBE)):
                     m.d.sync += pl_active.eq(1)
+                    m.d.comb += crc_mod.reset.eq(1)
                     m.next = "PL_WAIT_EF"
                 with m.Elif(btn_press):
                     m.next = "HALTED"
@@ -640,24 +655,44 @@ class ChurchTi60F225(Elaboratable):
             # ACK:   [addrHi][addrLo][countHi][countLo]
             # ─────────────────────────────────────────────────────────────────
             with m.State("PL_WAIT_EF"):
-                # 0xEF → PATCH_LUMP (write)   0xAD → READ_BRAM   other → abort
                 with m.If(rx_valid):
                     with m.If(rx_data == 0xEF):
-                        m.next = "PL_RECV_ADDR_HI"
+                        m.d.comb += [
+                            crc_mod.data_in.eq(0xBE),
+                            crc_mod.valid.eq(1),
+                        ]
+                        m.next = "PL_CRC_FEED_EF"
                     with m.Elif(rx_data == 0xAD):
                         m.next = "RB_RECV_ADDR_HI"
+                    with m.Elif(rx_data == 0xAA):
+                        m.d.sync += pl_active.eq(0)
+                        m.d.comb += [
+                            core.free_run_start.eq(1),
+                            core.free_run_nia.eq(0),
+                        ]
+                        m.d.sync += halted.eq(0)
+                        m.next = "FREE_RUN"
                     with m.Else():
                         m.d.sync += pl_active.eq(0)
                         m.next = "HALTED"
 
+            with m.State("PL_CRC_FEED_EF"):
+                m.d.comb += [
+                    crc_mod.data_in.eq(0xEF),
+                    crc_mod.valid.eq(1),
+                ]
+                m.next = "PL_RECV_ADDR_HI"
+
             with m.State("PL_RECV_ADDR_HI"):
                 with m.If(rx_valid):
                     m.d.sync += pl_addr[8:16].eq(rx_data)
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_RECV_ADDR_LO"
 
             with m.State("PL_RECV_ADDR_LO"):
                 with m.If(rx_valid):
                     m.d.sync += pl_addr[0:8].eq(rx_data)
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_RECV_CNT_HI"
 
             with m.State("PL_RECV_CNT_HI"):
@@ -666,6 +701,7 @@ class ChurchTi60F225(Elaboratable):
                         pl_total_count[8:16].eq(rx_data),
                         pl_count[8:16].eq(rx_data),
                     ]
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_RECV_CNT_LO"
 
             with m.State("PL_RECV_CNT_LO"):
@@ -675,26 +711,31 @@ class ChurchTi60F225(Elaboratable):
                         pl_count[0:8].eq(rx_data),
                         pl_cur_addr.eq(pl_addr),
                     ]
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_RECV_B0"
 
             with m.State("PL_RECV_B0"):
                 with m.If(rx_valid):
                     m.d.sync += pl_word[0:8].eq(rx_data)
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_RECV_B1"
 
             with m.State("PL_RECV_B1"):
                 with m.If(rx_valid):
                     m.d.sync += pl_word[8:16].eq(rx_data)
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_RECV_B2"
 
             with m.State("PL_RECV_B2"):
                 with m.If(rx_valid):
                     m.d.sync += pl_word[16:24].eq(rx_data)
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_RECV_B3"
 
             with m.State("PL_RECV_B3"):
                 with m.If(rx_valid):
                     m.d.sync += pl_word[24:32].eq(rx_data)
+                    m.d.comb += [crc_mod.data_in.eq(rx_data), crc_mod.valid.eq(1)]
                     m.next = "PL_WRITE_WORD"
 
             with m.State("PL_WRITE_WORD"):
@@ -713,22 +754,36 @@ class ChurchTi60F225(Elaboratable):
                     m.next = "PL_RECV_B0"
 
             with m.State("PL_RECV_CRC_HI"):
-                # Latch CRC high byte — hardware CRC verification is future work.
                 with m.If(rx_valid):
-                    m.d.sync += pl_crc_hi_buf.eq(rx_data)
+                    m.d.sync += [
+                        pl_crc_hi_buf.eq(rx_data),
+                        pl_crc_fail.eq(rx_data != crc_mod.crc[8:16]),
+                    ]
                     m.next = "PL_RECV_CRC_LO"
 
             with m.State("PL_RECV_CRC_LO"):
-                # Receive final CRC byte; prepare ACK = [addrHi][addrLo][cntHi][cntLo].
                 with m.If(rx_valid):
-                    m.d.sync += [
-                        pl_ack[0].eq(pl_addr[8:16]),
-                        pl_ack[1].eq(pl_addr[0:8]),
-                        pl_ack[2].eq(pl_total_count[8:16]),
-                        pl_ack[3].eq(pl_total_count[0:8]),
-                        pl_ack_idx.eq(0),
+                    with m.If(pl_crc_fail | (rx_data != crc_mod.crc[:8])):
+                        m.d.sync += pl_active.eq(0)
+                        m.next = "PL_NAK"
+                    with m.Else():
+                        m.d.sync += [
+                            pl_ack[0].eq(pl_addr[8:16]),
+                            pl_ack[1].eq(pl_addr[0:8]),
+                            pl_ack[2].eq(pl_total_count[8:16]),
+                            pl_ack[3].eq(pl_total_count[0:8]),
+                            pl_ack_idx.eq(0),
+                        ]
+                        m.next = "PL_ACK"
+
+            with m.State("PL_NAK"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        fsm_send_byte.eq(1),
+                        fsm_byte_data.eq(0x15),
                     ]
-                    m.next = "PL_ACK"
+                    m.d.sync += [pl_active.eq(0), halt_idx.eq(0)]
+                    m.next = "HALTED"
 
             with m.State("PL_ACK"):
                 # Send 4-byte ACK then release.

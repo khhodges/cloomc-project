@@ -7,6 +7,7 @@ from .core import ChurchCore
 from .boot_rom import BootRom, BOOT_PROGRAM, DEMO_NAMESPACE, DEMO_CLIST, NUC_LUMP_HEADER
 from .uart_tx import DebugPrinter
 from .uart_rx import UartRx
+from .crc16 import CRC16_CCITT
 
 
 class GowinBSRAM(Elaboratable):
@@ -106,6 +107,10 @@ class ChurchTangNano20K(Elaboratable):
         mmio_uart_tx_wr   = Signal()
         mmio_uart_tx_data = Signal(8)
 
+        mmio_rx_data  = Signal(8)
+        mmio_rx_valid = Signal()
+        mmio_rx_read  = Signal()
+
         timer_lo    = Signal(32)
         timer_hi    = Signal(32)
         tod_epoch   = Signal(32)
@@ -156,9 +161,12 @@ class ChurchTangNano20K(Elaboratable):
             with m.Case(5):
                 m.d.comb += mmio_rd_data.eq(0)
             with m.Case(6):
-                m.d.comb += mmio_rd_data.eq(Cat(~debug.busy, C(0, 31)))
+                m.d.comb += mmio_rd_data.eq(Cat(~debug.busy, mmio_rx_valid, C(0, 30)))
             with m.Case(7):
-                m.d.comb += mmio_rd_data.eq(0)
+                m.d.comb += [
+                    mmio_rd_data.eq(mmio_rx_data),
+                    mmio_rx_read.eq(is_mmio_read),
+                ]
             with m.Case(10):
                 m.d.comb += mmio_rd_data.eq(Cat(self.push_button, C(0, 31)))
             with m.Case(11):
@@ -179,6 +187,18 @@ class ChurchTangNano20K(Elaboratable):
         patch_bsram_addr = Signal(11)
         patch_bsram_data = Signal(32)
         patch_bsram_wr = Signal()
+
+        crc_mod = CRC16_CCITT()
+        m.submodules.crc_mod = crc_mod
+        patch_crc_fail = Signal()
+
+        with m.If(uart_rx.valid & ~patch_active):
+            m.d.sync += [
+                mmio_rx_data.eq(uart_rx.data),
+                mmio_rx_valid.eq(1),
+            ]
+        with m.Elif(mmio_rx_read):
+            m.d.sync += mmio_rx_valid.eq(0)
 
         if self.sim_mode:
             ns_init = []
@@ -504,6 +524,9 @@ class ChurchTangNano20K(Elaboratable):
             with m.State("HALTED"):
                 with m.If(uart_rx.valid & (uart_rx.data == 0xBE)):
                     m.d.sync += patch_rx_phase.eq(0)
+                    m.d.comb += [
+                        crc_mod.reset.eq(1),
+                    ]
                     m.next = "CMD_MAGIC2"
                 with m.Elif(btn_press):
                     m.d.sync += stepping.eq(1)
@@ -512,7 +535,11 @@ class ChurchTangNano20K(Elaboratable):
             with m.State("CMD_MAGIC2"):
                 with m.If(uart_rx.valid):
                     with m.If(uart_rx.data == 0xEF):
-                        m.next = "PATCH_ADDR_HI"
+                        m.d.comb += [
+                            crc_mod.data_in.eq(0xBE),
+                            crc_mod.valid.eq(1),
+                        ]
+                        m.next = "PATCH_CRC_FEED_EF"
                     with m.Elif(uart_rx.data == 0xAA):
                         m.d.sync += halted.eq(0)
                         m.d.comb += [
@@ -522,6 +549,13 @@ class ChurchTangNano20K(Elaboratable):
                         m.next = "RUNNING"
                     with m.Else():
                         m.next = "HALTED"
+
+            with m.State("PATCH_CRC_FEED_EF"):
+                m.d.comb += [
+                    crc_mod.data_in.eq(0xEF),
+                    crc_mod.valid.eq(1),
+                ]
+                m.next = "PATCH_ADDR_HI"
 
             with m.State("RUNNING"):
                 with m.If(core.fault_valid):
@@ -600,22 +634,25 @@ class ChurchTangNano20K(Elaboratable):
             #       [crcHi][crcLo]
             #   RX echo: [addrHi][addrLo][countHi][countLo]
             # Words are little-endian (LSB first).
-            # CRC-16 is ignored for now (integrity via UART framing).
+            # CRC-16/CCITT-FALSE verified by hardware — reject on mismatch.
 
 
             with m.State("PATCH_ADDR_HI"):
                 with m.If(uart_rx.valid):
                     m.d.sync += patch_addr[8:16].eq(uart_rx.data)
+                    m.d.comb += [crc_mod.data_in.eq(uart_rx.data), crc_mod.valid.eq(1)]
                     m.next = "PATCH_ADDR_LO"
 
             with m.State("PATCH_ADDR_LO"):
                 with m.If(uart_rx.valid):
                     m.d.sync += patch_addr[:8].eq(uart_rx.data)
+                    m.d.comb += [crc_mod.data_in.eq(uart_rx.data), crc_mod.valid.eq(1)]
                     m.next = "PATCH_COUNT_HI"
 
             with m.State("PATCH_COUNT_HI"):
                 with m.If(uart_rx.valid):
                     m.d.sync += patch_count[8:16].eq(uart_rx.data)
+                    m.d.comb += [crc_mod.data_in.eq(uart_rx.data), crc_mod.valid.eq(1)]
                     m.next = "PATCH_COUNT_LO"
 
             with m.State("PATCH_COUNT_LO"):
@@ -627,10 +664,12 @@ class ChurchTangNano20K(Elaboratable):
                         patch_word_acc.eq(0),
                     ]
                     m.d.sync += patch_active.eq(1)
+                    m.d.comb += [crc_mod.data_in.eq(uart_rx.data), crc_mod.valid.eq(1)]
                     m.next = "PATCH_DATA"
 
             with m.State("PATCH_DATA"):
                 with m.If(uart_rx.valid):
+                    m.d.comb += [crc_mod.data_in.eq(uart_rx.data), crc_mod.valid.eq(1)]
                     with m.Switch(patch_byte_idx):
                         with m.Case(0):
                             m.d.sync += [
@@ -668,12 +707,26 @@ class ChurchTangNano20K(Elaboratable):
 
             with m.State("PATCH_CRC_HI"):
                 with m.If(uart_rx.valid):
+                    m.d.sync += patch_crc_fail.eq(uart_rx.data != crc_mod.crc[8:16])
                     m.next = "PATCH_CRC_LO"
 
             with m.State("PATCH_CRC_LO"):
                 with m.If(uart_rx.valid):
-                    m.d.sync += patch_active.eq(0)
-                    m.next = "PATCH_ECHO0"
+                    with m.If(patch_crc_fail | (uart_rx.data != crc_mod.crc[:8])):
+                        m.d.sync += patch_active.eq(0)
+                        m.next = "PATCH_NAK"
+                    with m.Else():
+                        m.d.sync += patch_active.eq(0)
+                        m.next = "PATCH_ECHO0"
+
+            with m.State("PATCH_NAK"):
+                with m.If(~debug.busy):
+                    m.d.comb += [
+                        fsm_send_byte.eq(1),
+                        fsm_byte_data.eq(0x15),
+                    ]
+                    m.d.sync += halt_idx.eq(0)
+                    m.next = "SEND_HALT"
 
             with m.State("PATCH_ECHO0"):
                 with m.If(~debug.busy):
