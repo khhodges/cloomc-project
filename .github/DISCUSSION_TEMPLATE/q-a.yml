@@ -1,0 +1,55 @@
+title: "[Q&A] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for asking a question! Please fill out the sections below so the community can help you effectively.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Question
+      description: Describe your question clearly and concisely.
+      placeholder: What are you trying to understand or accomplish?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform / Context
+      description: Where are you running or using the Church Machine?
+      options:
+        - Web Simulator (IDE)
+        - Tang Nano 20K FPGA
+        - Amaranth HDL (hardware)
+        - Assembly / Instruction Set
+        - CLOOMC++ (JavaScript)
+        - CLOOMC++ (Haskell)
+        - Documentation / Concepts
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What I tried
+      description: Describe what you have already tried or researched.
+      placeholder: |
+        - I read the docs on ...
+        - I tried running the Self-Test example and ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected-vs-actual
+    attributes:
+      label: Expected vs. Actual
+      description: What did you expect to happen, and what actually happened?
+      placeholder: |
+        Expected: ...
+        Actual: ...
+    validations:
+      required: false

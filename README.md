@@ -33,6 +33,10 @@ make prog       # Upload to Tang Nano 20K
 
 Prerequisites: [oss-cad-suite](https://github.com/YosysHQ/oss-cad-suite-build) (includes yosys, nextpnr-gowin, gowin_pack, openFPGALoader).
 
+## Community
+
+Have a question, want to share something you built, or looking for help? Join the conversation on [GitHub Discussions](https://github.com/khhodges/cloomc-project/discussions/categories/q-a) — the Q&A category is the best place to ask and answer questions.
+
 ## Project Structure
 
 ```
