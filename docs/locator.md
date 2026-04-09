@@ -315,7 +315,7 @@ with a code identifying the failure mode (fetch / zip format / Mint rejection).
 
 | Artefact | Role | When produced |
 |----------|------|---------------|
-| `.patch` | Compiled binary frames (CHPF v1). Contains UART frames with CRC for direct FPGA upload. See [first-steps.md](first-steps.md). | At compile time (Export Patch) |
+| `.patch` | Compiled binary frames (CHPF v1). Contains UART frames with CRC for direct FPGA upload. See [quick-start.md](quick-start.md). | At compile time (Export Patch) |
 | `lump.zip` | Standard ZIP archive containing the raw lump binary image. The Locator reads the ZIP local file header directly to derive `n` and inflate. | After Navana.Abstraction.Add processes the compiled abstraction |
 | Lump Library | Remote store of `lump.zip` archives, addressed by the 96-bit IDE token in the Outform NS slot. | Always available (GitHub-backed or DHT) |
 

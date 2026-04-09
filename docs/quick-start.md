@@ -1,337 +1,4 @@
-# First Steps
-
-Every computer you use today runs on an architecture designed in the 1940s.
-Programs share a flat memory space. Security is bolted on after the fact.
-A single buffer overflow can hand control of the entire machine to an
-attacker. We have spent seventy years patching this mistake. The Church
-Machine is a different answer: **security built into every memory access,
-enforced by the hardware itself.**
-
-The design is governed by the six Laws of the Church-Turing Machine
-Model:
-
-1. **Oil and Water** — capabilities and data never mix. Code lives in
-   one domain, security tokens live in another. You cannot cast a
-   pointer into a capability or forge a token from raw bits. The
-   hardware enforces this separation on every cycle.
-
-2. **Double Checking** — every READ and every WRITE must be validated
-   by a referenced capability context register. CR14 checks instruction
-   fetch. CR12 checks thread lump access. CR5 checks the heap. No
-   single point of trust — the machine cross-checks at every boundary.
-
-3. **Distribution not Centralisation** — there is no kernel, no central
-   authority, no single process that controls all resources. Each
-   abstraction holds exactly the capabilities it needs. Authority is
-   distributed to the edge, not hoarded at the centre. No almighty
-   network administrator who can bring down millions of machines with
-   one misconfiguration. No widespread outages because no single point
-   holds all the keys.
-
-4. **Democratic not Dictatorial** — no root user, no superuser, no
-   privilege escalation. Every abstraction operates under the same
-   rules. The boot firmware itself runs with limited capabilities. No
-   entity can override the security model — not even the manufacturer.
-
-5. **Calibrated and Transparent** — every capability carries explicit,
-   visible permission bits (R, W, X, L, S, E) and bounds. You can
-   inspect exactly what any abstraction is allowed to do. There are no
-   hidden permissions, no implicit grants, no ambient authority. What
-   you see is what it gets.
-
-6. **Open Source** — the Church Machine is a community project for
-   the Information Age. The hardware design, the toolchain, the IDE,
-   and the abstraction library are all open. Anyone can inspect the
-   security model, verify the implementation, build from source, and
-   contribute improvements. No black boxes. No vendor lock-in. The
-   architecture belongs to everyone who builds on it. Start at
-   [CLOOMC.org](https://cloomc.org).
-
-This is not theoretical. The Church Machine runs on real silicon today,
-on two FPGA boards you can buy for the price of a textbook.
-
----
-
-## The Church-Turing Thesis
-
-In 1936, two mathematicians independently solved the same fundamental
-problem — what does it mean for something to be computable? — and
-arrived at two radically different answers.
-
-**Alonzo Church** at Princeton published the lambda calculus: a pure
-mathematical system where computation is the application of functions to
-arguments. There are no variables you can change, no memory you can
-overwrite, no side effects. A function takes an input and produces an
-output. That is all it can do. The lambda calculus is computation as
-mathematics — deterministic, repeatable, and provably correct.
-
-**Alan Turing**, Church's doctoral student, published the Turing machine:
-an abstract device with a tape of symbols, a read/write head, and a set
-of rules. The machine reads a symbol, writes a symbol, moves left or
-right, and changes state. The Turing machine is computation as mechanism
-— sequential, stateful, and imperative. It models what a human
-calculator does with pencil and paper: read, write, move, decide.
-
-Church and Turing proved that their two models are equivalent in
-computational power — anything one can compute, the other can compute.
-This equivalence is a mathematical theorem. The broader Church-Turing
-thesis — that these models capture everything that is effectively
-computable — remains an unproven but universally accepted conjecture.
-
-But equivalence in power does not mean equivalence in consequence.
-Turing's model became the blueprint for every computer built since 1945:
-a mutable memory, a program counter, instructions that read and write
-anywhere. Church's model was set aside as a theoretical curiosity. We
-built civilisation's digital infrastructure on the Turing side alone.
-
-The Church Machine reunites both sides. Its instruction set is split
-evenly: ten **Turing instructions** (data manipulation, arithmetic,
-branching) and ten **Church instructions** (capability operations,
-secure entry, lambda creation). The Turing half does the work. The
-Church half ensures the work is authorised. Neither half is complete
-without the other.
-
-This is why capability faults are not errors — they are the Church side
-doing its job. When the machine refuses an unauthorised access, that is
-the lambda calculus enforcing mathematical correctness on a physical
-machine.
-
----
-
-## CLOOMC — the Universal Capability Compiler
-
-You do not need to write Church Machine assembly by hand. **CLOOMC++**
-(Church Lambda Object-Oriented Machine Compiler) is a multi-language
-compiler that targets the 20-instruction Church Machine instruction set.
-
-Write in the language you think in. CLOOMC compiles it to secure,
-capability-checked machine code:
-
-- **English** — natural language descriptions compiled to instructions
-- **JavaScript** — familiar syntax for web developers
-- **Haskell** — pure functional style, natural fit for the Church side
-- **Symbolic Math (Ada)** — mathematical expressions with `let` bindings
-  and `repeat` loops, honouring Ada Lovelace's Note G (1843)
-- **Lambda Calculus** — Church numerals, Boolean logic, pure functions
-
-CLOOMC auto-detects the language. You never need to specify it. Write
-a program, click Patch, and the IDE assembles it into machine words,
-validates capability requirements, and writes it into simulator memory.
-
-The key insight: regardless of which language you write in, every
-compiled abstraction obeys the same six Laws. A JavaScript program and
-a Haskell program running on the same Church Machine cannot interfere
-with each other — not because of process isolation or virtual memory,
-but because the hardware will not permit it.
-
-CLOOMC also generates the capability list automatically. When your code
-uses multiply or divide, it detects this and injects a capability
-reference to the SlideRule abstraction (a hardware-accelerated
-multiply/divide unit). When your code calls another abstraction, it
-generates the minimum capability grant required. You get
-principle-of-least-privilege by default, not by discipline.
-
----
-
-## Example: Ada Lovelace's Bernoulli Abstraction
-
-In 1843, Ada Lovelace published Note G — the first computer program
-ever written. It computes the seventh Bernoulli number (B7 = −1/30)
-on Charles Babbage's Analytical Engine, a machine that was never built.
-The algorithm is 183 years old. It has never been patched, never been
-updated, never received a security audit. Correct a single
-transcription error in the sign of one coefficient, and the algorithm
-is still correct today. The mathematics has not changed. The code has
-not decayed.
-
-This is the first example of what the Church Machine calls **Immortal
-Software** — no CVEs, no patch Tuesday, code that works today works
-forever. On the Church Machine, Ada's program runs as a real
-abstraction:
-
-```
-abstraction NoteG {
-    capabilities {
-    }
-
-    method compute() {
-        -- Initialize Ada's Store columns
-        let V1 = 1
-        let V2 = 2
-        let V3 = 4
-
-        -- Operation 1: multiply V2 * V3
-        -- "Multiply 2 by n" = 2 × 4 = 8
-        let V4, V5, V6 = V2 * V3
-
-        -- Operation 2: subtract V4 - V1
-        -- "2n minus 1" = 7
-        let V4 = V4 - V1
-
-        -- Operation 3: add V5 + V1
-        -- "2n plus 1" = 9
-        let V5 = V5 + V1
-
-        -- Operation 4: divide V4 / V5
-        -- "(2n-1)/(2n+1)" = 7/9
-        let V11 = V4 / V5
-
-        -- Operation 5: divide V11 / V2
-        -- "Divide coefficient by 2"
-        let V11 = V11 / V2
-
-        -- Operation 6: accumulator
-        let V13 = 0
-        let V13 = V13 - V11
-
-        -- Operation 7: loop counter = n - 1 = 3
-        let V10 = V3 - V1
-
-        -- Operation 8: denominator counter
-        let V7 = V2
-
-        -- Operations 9–23: loop body
-        -- Ada's "backing" mechanism — the Engine
-        -- returns the barrel to operation 13
-        repeat V10 as V10
-            let V6 = V6 - V1
-            let V7 = V1 + V7
-            let V8 = V6 / V7
-            let V11 = V8 * V11
-            let V6 = V6 - V1
-            let V7 = V1 + V7
-            let V9 = V6 / V7
-            let V11 = V9 * V11
-            let V15 = 1
-            let V12 = V15 * V11
-            let V13 = V12 + V13
-        end
-
-        -- Operation 24: B7 = −accumulated sum
-        let V15 = 0
-        let V15 = V15 - V13
-
-        -- Result: V15 = B7 = −1/30
-        -- Ada, 1843: "The Analytical Engine weaves
-        -- algebraical patterns just as the Jacquard
-        -- loom weaves flowers and leaves."
-        halt
-    }
-}
-```
-
-This is written in CLOOMC's Symbolic Mathematics notation — the
-language of the Analytical Engine itself. Every multiply and divide
-operation compiles to a CALL into the **SlideRule** abstraction
-(namespace slot 16), which provides hardware-accelerated arithmetic.
-CLOOMC detects the multiply and divide operations and automatically
-injects a capability reference to SlideRule. You never need to
-request it manually.
-
-### Why this abstraction is immortal
-
-On a conventional computer, the same algorithm would be a C function
-or a Python script. It would depend on a compiler, a runtime, an
-operating system, a set of libraries — each of which receives security
-patches, API changes, and deprecation notices. A program written in
-C in 1843 (had C existed) would not compile today without
-modification. A Python script from 2010 may not run on Python 3.12.
-
-On the Church Machine, NoteG is a sealed abstraction. It occupies a
-measured lump of namespace memory. Its capability list is empty — it
-needs nothing from the outside world except SlideRule, which CLOOMC
-grants automatically. It has:
-
-- **No dependencies that can change** — SlideRule is a system
-  abstraction burned into the namespace at boot. Its interface is
-  fixed by the hardware specification.
-- **No attack surface** — the abstraction cannot read or write
-  anything outside its own lump. An attacker with full control of
-  every other abstraction on the machine cannot touch NoteG's
-  memory, because they lack a capability to it.
-- **No ambient authority** — there is no system call, no file system,
-  no network stack, no shared library that could be compromised and
-  used as a vector.
-- **No CVEs** — a CVE requires a vulnerability that can be exploited.
-  When the hardware enforces that no code path can exceed its granted
-  capabilities, there is no vulnerability to discover.
-- **Measured MTBF** — the Navana Monitor tracks every abstraction's
-  Mean Time Between Failures. NoteG, running correctly since
-  activation with zero capability faults, has MTBF = ∞.
-
-The same abstraction, with the same binary representation, will
-produce the same result on every Church Machine ever built — whether
-it is a Tang Nano on a desk today or a Ti60 in a data centre in 2050.
-The hardware specification guarantees it.
-
-Ada wrote the first immortal program. She just needed the right
-machine to run it on.
-
-### For production: SlideRule.Bernoulli(n)
-
-The NoteG abstraction above preserves Ada's original 25-operation
-algorithm for historical fidelity. For production use, the SlideRule
-abstraction provides `Bernoulli(n)` as a single CALL instruction
-that computes any Bernoulli number B(n) and returns the result as a
-fraction (numerator in DR0, denominator in DR1):
-
-```
--- Production: compute B7 in one instruction
-LOAD DR0, 7
-CALL SlideRule.Bernoulli
--- DR0 = -1, DR1 = 30 → B7 = -1/30
-```
-
-Both approaches produce the same mathematical result. The difference
-is that NoteG shows the work — 25 operations, exactly as Ada
-published them — while SlideRule.Bernoulli encapsulates it.
-
----
-
-## Why This Matters
-
-Modern software is fragile. A single vulnerability in one library can
-compromise millions of machines. We accept this because the underlying
-hardware offers no alternative — the CPU will execute whatever instructions
-it finds in memory, regardless of who put them there.
-
-The Church Machine eliminates this class of failure entirely. Every
-abstraction (the Church Machine term for a program) runs inside a
-capability-secured lump of memory. It can only access what it has been
-explicitly granted permission to touch. There is no way to forge a
-capability. There is no ambient authority. There is no "sudo."
-
-This changes what software can be:
-
-- **Immortal Software** — abstractions that run correctly for decades
-  because their security properties are enforced by physics, not policy.
-  No patch Tuesday. No CVEs. Code that works today works forever.
-
-- **Zero-Trust by Default** — the 7 Zeroes: no OS, no VM, no hypervisor,
-  no privilege rings, no page tables, no TLB, no syscalls. Security is
-  not a layer — it is the machine.
-
-- **Network-Transparent Capabilities** — an IoT node can securely receive
-  new capabilities over the wire without firmware reflash. A sensor in a
-  field and a server in a data center speak the same capability protocol.
-
-- **Composable, Shareable Abstractions** — because every abstraction is
-  self-contained and capability-secured, they can be safely shared between
-  users, machines, and organisations. The Mum Tunnel Library is the
-  beginning of this: a community repository where you publish abstractions
-  and others can use them, knowing they cannot exceed their granted
-  permissions.
-
-**The progress of civilisation depends on raising the floor of what we
-can trust.** The Church Machine raises that floor from "trust nothing"
-to "trust the hardware." Every abstraction you write and share makes the
-ecosystem stronger. Every capability fault that fires proves the system
-works. Every child who learns to program on this machine learns security
-as a first principle, not an afterthought.
-
----
-
-## Step Zero: Start with the IDE — No Hardware Required
+# Quick Start
 
 You do not need an FPGA to begin. The Church Machine IDE runs entirely
 in your browser and includes a full simulator that enforces every one
@@ -364,20 +31,16 @@ identical.
   produces a `.patch` file you can flash to either FPGA with a single
   command.
 
-**Download the IDE and all project resources:**
+**The path is simple:** learn in the IDE, experiment until your
+abstractions run clean with MTBF = ∞, then plug in a board and flash.
+The code you wrote in the simulator runs unchanged on silicon.
+
+**Project resources:**
 
 - [CLOOMC.org](https://cloomc.org) — project home, documentation,
   and community
 - [CLOOMC.com](https://cloomc.com) — downloads, approved bitstreams,
   and the Mum Tunnel Library
-
-**The path is simple:** learn in the IDE, experiment until your
-abstractions run clean with MTBF = ∞, then plug in a board and flash.
-The code you wrote in the simulator runs unchanged on silicon.
-
-[Start the IDE now](https://cloomc.com) — everything below this point
-is about hardware, and you can come back to it when you are ready for
-a board.
 
 ---
 
@@ -1031,19 +694,20 @@ sudo chmod 666 /dev/ttyUSB1      # quick fix
 ### "No echo received (0 bytes)"
 
 - Is the FPGA powered with the correct bitstream?
-- Are you using the right port? UART = Channel B (usually `ttyUSB1`)
-- Try power-cycling the board (unplug and replug USB)
+- Is the serial port correct (ttyUSB1, not ttyUSB0)?
+- Close any other serial terminals that might be holding the port
 
 ### "Editor is empty"
 
-- Select a CR, then click Edit to load the code
-- Export Patch auto-loads existing code if the editor is empty
+- Click a CR first (the CRs button), then click Edit
+- The code editor only appears when you select a CR to edit
 
 ### LEDs don't change after patching
 
-- Check for "Echo OK" — if missing, the code didn't reach the FPGA
-- Check for "RUN sent" — without this, the core stays halted
-- If led2 lights up, your code triggered a capability fault
+- Check that the patch echoed correctly (addr and count match)
+- Check for capability faults (led2 ON)
+- Try resetting the board (unplug/replug USB)
+- Verify with the bridge (click BRAM in the toolbar to read back memory)
 
 ---
 
@@ -1051,33 +715,369 @@ sudo chmod 666 /dev/ttyUSB1      # quick fix
 
 ### First-time setup (Tang Nano 20K)
 
-| Step | Where | What to do |
-|------|-------|------------|
+| Step | Where | What |
+|------|-------|------|
 | 1 | Local | Install OSS CAD Suite + pyserial |
 | 2 | IDE | Download `.fs` bitstream + `patch_fpga.py` |
-| 3 | Local | Plug in board, check `ls /dev/ttyUSB*` |
-| 4 | Local | `openFPGALoader -b tangnano20k church_tang_nano_20k_iot.fs` |
-| 5 | Local | Check LEDs: 1 solid + 2 blinking = OK |
+| 3 | Local | Plug in board, check `/dev/ttyUSB*` |
+| 4 | Local | `openFPGALoader -b tangnano20k *.fs` |
+| 5 | Board | Check LEDs: solid + blinking + blinking |
 
 ### Everyday code patching (both boards)
 
-| Step | Where | What to do |
-|------|-------|------------|
-| 6 | IDE | Select CR, click Edit, write code |
-| 7 | IDE | Click Patch — compiles code in simulator |
-| 8 | IDE | Click Export Patch — downloads `.patch` file |
-| 9 | Local | `python3 patch_fpga.py /dev/ttyUSB1 CR14_patch.patch` |
-| 10 | Local | Check LEDs + cross-check CRC values |
+| Step | Where | What |
+|------|-------|------|
+| 6 | IDE | Click CRs → select CR → Edit → write code |
+| 7 | IDE | Click Patch → test in simulator |
+| 8 | IDE | Click Export Patch → downloads `.patch` file |
+| 9 | Local | `python3 patch_fpga.py /dev/ttyUSB1 file.patch` |
+| 10 | Board | Check LEDs: solid = running, led2 = fault |
 
 ### Pin reference
 
-| Signal | Tang Nano 20K | Ti60 F225 | Notes |
-|--------|--------------|-----------|-------|
-| Clock | Pin 4 (27 MHz) | PLL (50 MHz) | |
-| UART TX | Pin 69 | Pin H14 | |
-| UART RX | Pin 70 | Pin M14 | |
-| LED 0 (Boot) | Pin 15 (active-low) | Active-high | |
-| LED 1 (Halt) | Pin 16 (active-low) | Active-high | |
-| LED 2 (Fault) | Pin 19 (active-low) | Active-high | |
-| LED 3 (Heartbeat) | Pin 20 (active-low) | Active-high | |
-| Button | Pin 88 (active-low) | USER_PB (active-low) | |
+| Board | Clock | TX | RX | LEDs | Button |
+|-------|-------|----|----|------|--------|
+| Tang Nano 20K | 4 (27 MHz) | 69 | 70 | 15,16,19,20 (LOW) | 88 |
+| Ti60 F225 | PLL (50 MHz) | H14 | M14 | C13,A13,D14,B14 (HIGH) | — |
+
+---
+
+## Reference Material
+
+The sections below provide background on the Church Machine architecture,
+the Church-Turing thesis, the CLOOMC compiler, and the security model.
+They are not required to get started — the quick start above is all you
+need — but they explain why things work the way they do.
+
+---
+
+### The Six Laws
+
+Every computer you use today runs on an architecture designed in the 1940s.
+Programs share a flat memory space. Security is bolted on after the fact.
+A single buffer overflow can hand control of the entire machine to an
+attacker. We have spent seventy years patching this mistake. The Church
+Machine is a different answer: **security built into every memory access,
+enforced by the hardware itself.**
+
+The design is governed by the six Laws of the Church-Turing Machine
+Model:
+
+1. **Oil and Water** — capabilities and data never mix. Code lives in
+   one domain, security tokens live in another. You cannot cast a
+   pointer into a capability or forge a token from raw bits. The
+   hardware enforces this separation on every cycle.
+
+2. **Double Checking** — every READ and every WRITE must be validated
+   by a referenced capability context register. CR14 checks instruction
+   fetch. CR12 checks thread lump access. CR5 checks the heap. No
+   single point of trust — the machine cross-checks at every boundary.
+
+3. **Distribution not Centralisation** — there is no kernel, no central
+   authority, no single process that controls all resources. Each
+   abstraction holds exactly the capabilities it needs. Authority is
+   distributed to the edge, not hoarded at the centre. No almighty
+   network administrator who can bring down millions of machines with
+   one misconfiguration. No widespread outages because no single point
+   holds all the keys.
+
+4. **Democratic not Dictatorial** — no root user, no superuser, no
+   privilege escalation. Every abstraction operates under the same
+   rules. The boot firmware itself runs with limited capabilities. No
+   entity can override the security model — not even the manufacturer.
+
+5. **Calibrated and Transparent** — every capability carries explicit,
+   visible permission bits (R, W, X, L, S, E) and bounds. You can
+   inspect exactly what any abstraction is allowed to do. There are no
+   hidden permissions, no implicit grants, no ambient authority. What
+   you see is what it gets.
+
+6. **Open Source** — the Church Machine is a community project for
+   the Information Age. The hardware design, the toolchain, the IDE,
+   and the abstraction library are all open. Anyone can inspect the
+   security model, verify the implementation, build from source, and
+   contribute improvements. No black boxes. No vendor lock-in. The
+   architecture belongs to everyone who builds on it. Start at
+   [CLOOMC.org](https://cloomc.org).
+
+This is not theoretical. The Church Machine runs on real silicon today,
+on two FPGA boards you can buy for the price of a textbook.
+
+---
+
+### The Church-Turing Thesis
+
+In 1936, two mathematicians independently solved the same fundamental
+problem — what does it mean for something to be computable? — and
+arrived at two radically different answers.
+
+**Alonzo Church** at Princeton published the lambda calculus: a pure
+mathematical system where computation is the application of functions to
+arguments. There are no variables you can change, no memory you can
+overwrite, no side effects. A function takes an input and produces an
+output. That is all it can do. The lambda calculus is computation as
+mathematics — deterministic, repeatable, and provably correct.
+
+**Alan Turing**, Church's doctoral student, published the Turing machine:
+an abstract device with a tape of symbols, a read/write head, and a set
+of rules. The machine reads a symbol, writes a symbol, moves left or
+right, and changes state. The Turing machine is computation as mechanism
+— sequential, stateful, and imperative. It models what a human
+calculator does with pencil and paper: read, write, move, decide.
+
+Church and Turing proved that their two models are equivalent in
+computational power — anything one can compute, the other can compute.
+This equivalence is a mathematical theorem. The broader Church-Turing
+thesis — that these models capture everything that is effectively
+computable — remains an unproven but universally accepted conjecture.
+
+But equivalence in power does not mean equivalence in consequence.
+Turing's model became the blueprint for every computer built since 1945:
+a mutable memory, a program counter, instructions that read and write
+anywhere. Church's model was set aside as a theoretical curiosity. We
+built civilisation's digital infrastructure on the Turing side alone.
+
+The Church Machine reunites both sides. Its instruction set is split
+evenly: ten **Turing instructions** (data manipulation, arithmetic,
+branching) and ten **Church instructions** (capability operations,
+secure entry, lambda creation). The Turing half does the work. The
+Church half ensures the work is authorised. Neither half is complete
+without the other.
+
+This is why capability faults are not errors — they are the Church side
+doing its job. When the machine refuses an unauthorised access, that is
+the lambda calculus enforcing mathematical correctness on a physical
+machine.
+
+---
+
+### CLOOMC — the Universal Capability Compiler
+
+You do not need to write Church Machine assembly by hand. **CLOOMC++**
+(Church Lambda Object-Oriented Machine Compiler) is a multi-language
+compiler that targets the 20-instruction Church Machine instruction set.
+
+Write in the language you think in. CLOOMC compiles it to secure,
+capability-checked machine code:
+
+- **English** — natural language descriptions compiled to instructions
+- **JavaScript** — familiar syntax for web developers
+- **Haskell** — pure functional style, natural fit for the Church side
+- **Symbolic Math (Ada)** — mathematical expressions with `let` bindings
+  and `repeat` loops, honouring Ada Lovelace's Note G (1843)
+- **Lambda Calculus** — Church numerals, Boolean logic, pure functions
+
+CLOOMC auto-detects the language. You never need to specify it. Write
+a program, click Patch, and the IDE assembles it into machine words,
+validates capability requirements, and writes it into simulator memory.
+
+The key insight: regardless of which language you write in, every
+compiled abstraction obeys the same six Laws. A JavaScript program and
+a Haskell program running on the same Church Machine cannot interfere
+with each other — not because of process isolation or virtual memory,
+but because the hardware will not permit it.
+
+CLOOMC also generates the capability list automatically. When your code
+uses multiply or divide, it detects this and injects a capability
+reference to the SlideRule abstraction (a hardware-accelerated
+multiply/divide unit). When your code calls another abstraction, it
+generates the minimum capability grant required. You get
+principle-of-least-privilege by default, not by discipline.
+
+---
+
+### Example: Ada Lovelace's Bernoulli Abstraction
+
+In 1843, Ada Lovelace published Note G — the first computer program
+ever written. It computes the seventh Bernoulli number (B7 = −1/30)
+on Charles Babbage's Analytical Engine, a machine that was never built.
+The algorithm is 183 years old. It has never been patched, never been
+updated, never received a security audit. Correct a single
+transcription error in the sign of one coefficient, and the algorithm
+is still correct today. The mathematics has not changed. The code has
+not decayed.
+
+This is the first example of what the Church Machine calls **Immortal
+Software** — no CVEs, no patch Tuesday, code that works today works
+forever. On the Church Machine, Ada's program runs as a real
+abstraction:
+
+```
+abstraction NoteG {
+    capabilities {
+    }
+
+    method compute() {
+        -- Initialize Ada's Store columns
+        let V1 = 1
+        let V2 = 2
+        let V3 = 4
+
+        -- Operation 1: multiply V2 * V3
+        -- "Multiply 2 by n" = 2 × 4 = 8
+        let V4, V5, V6 = V2 * V3
+
+        -- Operation 2: subtract V4 - V1
+        -- "2n minus 1" = 7
+        let V4 = V4 - V1
+
+        -- Operation 3: add V5 + V1
+        -- "2n plus 1" = 9
+        let V5 = V5 + V1
+
+        -- Operation 4: divide V4 / V5
+        -- "(2n-1)/(2n+1)" = 7/9
+        let V11 = V4 / V5
+
+        -- Operation 5: divide V11 / V2
+        -- "Divide coefficient by 2"
+        let V11 = V11 / V2
+
+        -- Operation 6: accumulator
+        let V13 = 0
+        let V13 = V13 - V11
+
+        -- Operation 7: loop counter = n - 1 = 3
+        let V10 = V3 - V1
+
+        -- Operation 8: denominator counter
+        let V7 = V2
+
+        -- Operations 9–23: loop body
+        -- Ada's "backing" mechanism — the Engine
+        -- returns the barrel to operation 13
+        repeat V10 as V10
+            let V6 = V6 - V1
+            let V7 = V1 + V7
+            let V8 = V6 / V7
+            let V11 = V8 * V11
+            let V6 = V6 - V1
+            let V7 = V1 + V7
+            let V9 = V6 / V7
+            let V11 = V9 * V11
+            let V15 = 1
+            let V12 = V15 * V11
+            let V13 = V12 + V13
+        end
+
+        -- Operation 24: B7 = −accumulated sum
+        let V15 = 0
+        let V15 = V15 - V13
+
+        -- Result: V15 = B7 = −1/30
+        -- Ada, 1843: "The Analytical Engine weaves
+        -- algebraical patterns just as the Jacquard
+        -- loom weaves flowers and leaves."
+        halt
+    }
+}
+```
+
+This is written in CLOOMC's Symbolic Mathematics notation — the
+language of the Analytical Engine itself. Every multiply and divide
+operation compiles to a CALL into the **SlideRule** abstraction
+(namespace slot 16), which provides hardware-accelerated arithmetic.
+CLOOMC detects the multiply and divide operations and automatically
+injects a capability reference to SlideRule. You never need to
+request it manually.
+
+#### Why this abstraction is immortal
+
+On a conventional computer, the same algorithm would be a C function
+or a Python script. It would depend on a compiler, a runtime, an
+operating system, a set of libraries — each of which receives security
+patches, API changes, and deprecation notices. A program written in
+C in 1843 (had C existed) would not compile today without
+modification. A Python script from 2010 may not run on Python 3.12.
+
+On the Church Machine, NoteG is a sealed abstraction. It occupies a
+measured lump of namespace memory. Its capability list is empty — it
+needs nothing from the outside world except SlideRule, which CLOOMC
+grants automatically. It has:
+
+- **No dependencies that can change** — SlideRule is a system
+  abstraction burned into the namespace at boot. Its interface is
+  fixed by the hardware specification.
+- **No attack surface** — the abstraction cannot read or write
+  anything outside its own lump. An attacker with full control of
+  every other abstraction on the machine cannot touch NoteG's
+  memory, because they lack a capability to it.
+- **No ambient authority** — there is no system call, no file system,
+  no network stack, no shared library that could be compromised and
+  used as a vector.
+- **No CVEs** — a CVE requires a vulnerability that can be exploited.
+  When the hardware enforces that no code path can exceed its granted
+  capabilities, there is no vulnerability to discover.
+- **Measured MTBF** — the Navana Monitor tracks every abstraction's
+  Mean Time Between Failures. NoteG, running correctly since
+  activation with zero capability faults, has MTBF = ∞.
+
+The same abstraction, with the same binary representation, will
+produce the same result on every Church Machine ever built — whether
+it is a Tang Nano on a desk today or a Ti60 in a data centre in 2050.
+The hardware specification guarantees it.
+
+Ada wrote the first immortal program. She just needed the right
+machine to run it on.
+
+#### For production: SlideRule.Bernoulli(n)
+
+The NoteG abstraction above preserves Ada's original 25-operation
+algorithm for historical fidelity. For production use, the SlideRule
+abstraction provides `Bernoulli(n)` as a single CALL instruction
+that computes any Bernoulli number B(n) and returns the result as a
+fraction (numerator in DR0, denominator in DR1):
+
+```
+-- Production: compute B7 in one instruction
+LOAD DR0, 7
+CALL SlideRule.Bernoulli
+-- DR0 = -1, DR1 = 30 → B7 = -1/30
+```
+
+Both approaches produce the same mathematical result. The difference
+is that NoteG shows the work — 25 operations, exactly as Ada
+published them — while SlideRule.Bernoulli encapsulates it.
+
+---
+
+### Why This Matters
+
+Modern software is fragile. A single vulnerability in one library can
+compromise millions of machines. We accept this because the underlying
+hardware offers no alternative — the CPU will execute whatever instructions
+it finds in memory, regardless of who put them there.
+
+The Church Machine eliminates this class of failure entirely. Every
+abstraction (the Church Machine term for a program) runs inside a
+capability-secured lump of memory. It can only access what it has been
+explicitly granted permission to touch. There is no way to forge a
+capability. There is no ambient authority. There is no "sudo."
+
+This changes what software can be:
+
+- **Immortal Software** — abstractions that run correctly for decades
+  because their security properties are enforced by physics, not policy.
+  No patch Tuesday. No CVEs. Code that works today works forever.
+
+- **Zero-Trust by Default** — the 7 Zeroes: no OS, no VM, no hypervisor,
+  no privilege rings, no page tables, no TLB, no syscalls. Security is
+  not a layer — it is the machine.
+
+- **Network-Transparent Capabilities** — an IoT node can securely receive
+  new capabilities over the wire without firmware reflash. A sensor in a
+  field and a server in a data center speak the same capability protocol.
+
+- **Composable, Shareable Abstractions** — because every abstraction is
+  self-contained and capability-secured, they can be safely shared between
+  users, machines, and organisations. The Mum Tunnel Library is the
+  beginning of this: a community repository where you publish abstractions
+  and others can use them, knowing they cannot exceed their granted
+  permissions.
+
+**The progress of civilisation depends on raising the floor of what we
+can trust.** The Church Machine raises that floor from "trust nothing"
+to "trust the hardware." Every abstraction you write and share makes the
+ecosystem stronger. Every capability fault that fires proves the system
+works. Every child who learns to program on this machine learns security
+as a first principle, not an afterthought.
