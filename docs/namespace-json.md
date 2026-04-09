@@ -25,7 +25,7 @@ Every format embeds or references the **entry object**, which is the decoded in-
 |-----------------|---------|----------------|-------------|
 | `word0_location`| number  | Word 0, all 32 bits | Raw base address of the memory object. Matches `location` in upload.json. |
 | `word1_limit`   | number  | Word 1, raw packed | Full 32-bit packed flags word. Decode with `parseNSWord1` to get the fields below. |
-| `word2_seals`   | number  | Word 2, raw packed | Full 32-bit version+seal word. `(word2_seals >>> 25) & 0x7F` = version; `word2_seals & 0x01FFFFFF` = FNV seal. |
+| `word2_seals`   | number  | Word 2, raw packed | Simulator packing: `version[31:25]` (7-bit) `| spare[24:16] | CRC-16[15:0]`. Extract version via `(word2_seals >>> 25) & 0x7F`; extract seal via `word2_seals & 0xFFFF`. Note: hardware NS Entry Word 2 uses a different layout (`crc[15:0] | g_bit[16] | spare[31:17]`) with `gt_seq` in Word 1 instead. |
 | `gBit`          | 0 or 1  | Word 1 [29]    | GC mark bit. Set by the PP250 garbage collector during mark phase. Not meaningful to application code. |
 | `gtType`        | 0–3     | Word 1 [27:26] | Entry type code: `0`=NULL, `1`=Inform, `2`=Outform, `3`=Abstract. When `gtType=2` (Outform), the backing NS slot Words 1–3 hold a **96-bit opaque IDE token** rather than the normal lump descriptor — the Locator reads this token to fetch and inflate the lump on first LOAD. See [locator.md](locator.md). |
 | `clistCount`    | 0–511   | Word 1 [25:17] | Number of c-list GT slots at the top of the lump (9-bit field). `0` = data object; `>0` = abstraction lump. |
@@ -228,7 +228,7 @@ The outer array is indexed by NS slot. `null` means the slot was empty.
 | `chainable`       | ✓ (in `entry`) | ✓ | ✓ | ✓ |
 | `label`           | ✓ | ✓ | ✓ | ✓ |
 | version           | ✓ (decode `word2_seals`) | ✓ | recomputed (0) | ✓ |
-| FNV seal          | ✓ (decode `word2_seals`) | ✓ | recomputed | ✓ |
+| CRC-16 seal       | ✓ (decode `word2_seals`) | ✓ | recomputed | ✓ |
 | code words        | ✓ | ✓ | ✓ | ✓ (in `dataWords[1..]`) |
 | GT word           | ✓ (`gt` field) | ✓ | ✗ | ✓ (`dataWords[0]`) |
 | permissions       | ✓ (decoded from GT) | ✗ | ✗ | ✗ |

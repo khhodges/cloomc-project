@@ -118,7 +118,7 @@ An abstraction is the fundamental security block. Each abstraction occupies a si
 NS Entry:
   word0: location (base address of lump)
   word1: B|F|G|chain|type|clistCount|limit
-  word2: version | FNV seal
+  word2: CRC-16 seal | g_bit | spare
 
 Lump Layout:
   +---------------------------+ offset 0
@@ -589,9 +589,9 @@ The c-list is parental approval made concrete. A child cannot grant their abstra
 
 *Objection:* Floating-point is a convenience, not a requirement. The Lambda Calculus layer (Layer 4) can represent arbitrary-precision arithmetic using Church numerals. Fixed-point arithmetic (e.g., Q16.16 format) can be implemented using the existing IADD/ISUB/SHL/SHR instructions. The architecture supports computation; it does not mandate a numeric representation.
 
-**The seal is only 25 bits.** The FNV hash used to seal namespace entries is 25 bits, giving approximately 33 million possible values. A brute-force collision search is feasible on fast hardware. If an attacker finds a collision, they could forge a namespace entry with a manipulated clistCount, extending the code region into the c-list (capability theft).
+**The seal is only 16 bits.** The CRC-16/CCITT hash used to seal namespace entries is 16 bits, giving 65,536 possible values. A brute-force collision search is feasible on fast hardware. If an attacker finds a collision, they could forge a namespace entry with a manipulated clistCount, extending the code region into the c-list (capability theft).
 
-*Objection:* On the target hardware (27 MHz FPGA), a brute-force search takes hours — acceptable for the educational use case. The seal is a tamper-detection mechanism, not a cryptographic barrier. In a production deployment, the seal width could be increased to 32 bits by repurposing bits in word2, or a different hash function could be used.
+*Objection:* On the target hardware (27 MHz FPGA), the seal is a tamper-detection mechanism, not a cryptographic barrier. In a production deployment, the seal width could be increased by repurposing spare bits in word2, or a different hash function could be used.
 
 **Register pressure.** Sixteen data registers are adequate for simple methods but insufficient for complex algorithms. The Sqrt method in JavaScript uses 7 local variables; a more complex numerical method could exhaust the register file. The current compiler does not support register spilling (saving registers to memory and reloading them).
 

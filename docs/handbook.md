@@ -29,7 +29,7 @@ The fundamental particle of this universe is the Golden Token (GT) — a 32-bit 
 | 1 | Golden Token | Version, namespace index, permissions (R, W, X, L, S, E), and type (NULL, Inform, Outform, Abstract). |
 | 2 | Location | Address of the resource — local memory (Inform) or remote endpoint (Outform). |
 | 3 | Limit | Object size bound, plus B (Bind) and F (Far) flags. |
-| 4 | Seal | Integrity check — FNV hash. Ensures the namespace entry is untampered. |
+| 4 | Seal | Integrity check — CRC-16/CCITT (poly 0x1021, init 0xFFFF) over 89 bits. Ensures the namespace entry is untampered. |
 
 ---
 

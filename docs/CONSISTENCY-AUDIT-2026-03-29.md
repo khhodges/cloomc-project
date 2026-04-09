@@ -282,3 +282,18 @@ This is **correct** (64 words = 2^6). No contradiction found elsewhere.
 - ✅ **MEDIUM** (for simulation) if Critical Issue #2 is resolved
 
 **Recommendation**: Fix Critical Issues #1 and #2 before Week 1 hardware arrives tomorrow.
+
+---
+
+## Post-Audit Update (Task #85)
+
+All documentation corrections identified by this audit have been applied in place (11 corrections: C-1 through C-11 in `HARDWARE-DEVIATIONS.md`). Open deviations between documentation and the merged hardware implementation are tracked in [`docs/HARDWARE-DEVIATIONS.md`](HARDWARE-DEVIATIONS.md) (entries D-1 through D-8) for architect review:
+
+- **D-1**: Minimum lump size enforcement gap
+- **D-2**: RETURN MASK field not implemented (Task #8)
+- **D-3**: TPERM faulting model mismatch
+- **D-4**: CR12/CR14 dual register names
+- **D-5**: Navana.Init wiring
+- **D-6**: FPGA MMIO/LED routing
+- **D-7**: SAVE operand naming in app.js (Task #6)
+- **D-8**: CR5 instance-data save/restore via cr5_stack (Task #3)

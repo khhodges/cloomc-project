@@ -200,17 +200,17 @@ Each Thread.Mint internally validates domain purity (RWX or LSE, never both), ch
 Entry[4] (TunnelKey_Mum):
   Location: <address of 256-bit symmetric key in local memory>
   Limit:    32 bytes (key length)
-  Seals:    MAC = FNV(Location ⊕ Limit ⊕ Version ⊕ Index), gBit = 0
+  Seals:    MAC = CRC-16(gt_word0[24:0] + NS Word 0 + NS Word 1), gBit = 0
 
 Entry[5] (Mum_Messaging — Outform+Far, created by FamilyRegistry):
   Location: 0xC7440001   ← REMOTE ENDPOINT (Priscilla's address, from introduction)
   Limit:    B=1, F=1, session_bound  (bit 31=B, bit 30=F, bits 16:0=limit)
-  Seals:    MAC = FNV(Location ⊕ Limit ⊕ Version ⊕ Index), gBit = 0
+  Seals:    MAC = CRC-16(gt_word0[24:0] + NS Word 0 + NS Word 1), gBit = 0
 
 Entry[7] (ABI_Mum):
   Location: <address of ABI descriptor structure>
   Limit:    <descriptor length>
-  Seals:    MAC = FNV(Location ⊕ Limit ⊕ Version ⊕ Index), gBit = 0
+  Seals:    MAC = CRC-16(gt_word0[24:0] + NS Word 0 + NS Word 1), gBit = 0
 ```
 
 ### "mymother" Namespace (Church Machine)

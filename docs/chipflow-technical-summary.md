@@ -172,7 +172,7 @@ All instructions use a **32-bit fixed-width format** with a 4-bit condition code
 | LDI | ~50 | Load immediate into DR |
 | LAMBDA | ~250 | Church function application (X permission fast path, no stack frame) |
 | TPERM | ~150 | Permission test with 14 preset masks (already defined in types.py) |
-| FNV MAC | ~200 | Hardware FNV hash for namespace MAC validation (currently validated in simulation) |
+| CRC-16 MAC | ~200 | Hardware CRC-16/CCITT for namespace MAC validation (currently validated in simulation) |
 | GC Sweep Reclaim | ~100 | Extend GC unit to bump version and clear garbage entries |
 | Bus Adapter | ~200 | Wishbone or AXI wrapper around raw memory interfaces |
 | **Total needed** | **~1,450** | |
@@ -241,7 +241,7 @@ This is the security-critical module. Every capability register write passes thr
 2. Permission check (L required for LOAD, E required for CALL)
 3. Bounds check (index < word2_limit)
 4. Fetch namespace entry at word1_location + index
-5. MAC validation (FNV hash of entry vs word3_seals)
+5. MAC validation (CRC-16 of entry vs word3_seals)
 6. G-bit reset (for GC: mark entry as reachable)
 7. Thread table shadow update (CR0-CR7 snippet)
 8. Write validated capability to destination CR
@@ -506,7 +506,7 @@ ctmm_amaranth/
 
 3. **Separate CR and DR register files** — Hardware-enforced domain separation. No instruction can move data between CR and DR files except through mLoad.
 
-4. **FNV hash MAC** — Simple, fast, deterministic. No cryptographic key management needed for local namespace validation. Outform GTs use standard cryptographic MACs for network security.
+4. **CRC-16/CCITT MAC** — Simple, fast, deterministic. No cryptographic key management needed for local namespace validation. Outform GTs use standard cryptographic MACs for network security.
 
 5. **32-bit fixed-width instructions** — Simple decode, single-cycle fetch, compatible with standard instruction memories. The 5-bit opcode field naturally partitions into Church (00xxx) and Turing (1xxxx) domains. Church instructions address CR0-CR7 via 3-bit fields (CR8-CR15 are system-only, accessed via SWITCH/boot). Turing instructions address DR0-DR15 via 4-bit fields.
 

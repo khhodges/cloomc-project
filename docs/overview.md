@@ -35,12 +35,12 @@ The Church Machine enforces these core security invariants:
 | **Namespace Metadata** | B (Bind), F (Far) in namespace entry |
 | **Data Registers** | DR0-DR15 |
 | **Capability Registers** | CR0-CR15 (CR0-CR11 programmer-accessible, CR12-CR15 privileged) |
-| **Church Instructions** | LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LOADX, SAVEX, LDM, STM |
+| **Church Instructions** | LOAD, SAVE, CALL, RETURN, CHANGE, SWITCH, TPERM, LAMBDA, ELOADCALL, XLOADLAMBDA |
 | **Turing Instructions** | DREAD, DWRITE, BFEXT, BFINS, MCMP, IADD, ISUB, BRANCH, SHL, SHR |
-| **Max Namespace Entries** | 131,072 (17-bit index) |
-| **GT Version Field** | 7-bit (128 generations) |
-| **GT Type Field** | 2-bit: Inform, Outform, NULL, Abstract |
-| **MAC Validation** | 25-bit FNV seal in VersionSeals |
+| **Max Namespace Entries** | 65,536 (16-bit object_id) |
+| **GT Version Field** | 7-bit gt_seq (128 generations) |
+| **GT Type Field** | 2-bit: NULL(0), Inform(1), Outform(2), Abstract(3) |
+| **Integrity Validation** | CRC-16/CCITT (poly 0x1021, init 0xFFFF) over 89-bit input |
 | **Garbage Collection** | Version bump on sweep; G-bit reset on access |
 
 ---

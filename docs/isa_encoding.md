@@ -102,9 +102,9 @@ Example: `IADDLT DR0, DR1, DR2` encodes opcode=0x0F, cond=11.
 | Op | Mnemonic    | fld_a     | fld_b     | imm15                                        |
 |----|-------------|-----------|-----------|----------------------------------------------|
 |  0 | LOAD        | CR dst    | CR base   | unsigned byte offset (0–32767)               |
-|  1 | SAVE        | CR src    | CR base   | unsigned byte offset (0–32767)               |
+|  1 | SAVE        | CR dst (c-list, S perm) | CR src (GT, B=1) | unsigned byte offset (0–32767) |
 |  2 | CALL        | CR target | 0         | 0                                            |
-|  3 | RETURN      | CR target | 0         | 0                                            |
+|  3 | RETURN      | 0 (unused) | 0 (unused) | 12-bit mask (bit N=1 → clear CR_N) *(encoding defined; not yet implemented in hardware — see HARDWARE-DEVIATIONS.md D-2, Task #8)* |
 |  4 | CHANGE      | CR dst    | 0         | slot index (unsigned)                        |
 |  5 | SWITCH      | 0         | CR src    | new permission — lower 3 bits (0–7)          |
 |  6 | TPERM       | CR dst    | 0         | 5-bit preset code (see §6)                   |
@@ -204,9 +204,9 @@ permission preset. The assembled word uses the numeric code directly.
 | 0x07 | S       | 0x17 | SB       |
 | 0x08 | E       | 0x18 | EB       |
 | 0x09 | LS      | 0x19 | LSB      |
-| 0x0A | LE      | 0x1A | LEB      |
-| 0x0B | SE      | 0x1B | SEB      |
-| 0x0C | LSE     | 0x1C | LSEB     |
+| 0x0A | *(rsv)* | 0x1A | *(rsv)*  |
+| 0x0B | *(rsv)* | 0x1B | *(rsv)*  |
+| 0x0C | *(rsv)* | 0x1C | *(rsv)*  |
 | 0x0D | *(rsv)* | 0x1D | *(rsv)*  |
 | 0x0E | *(rsv)* | 0x1E | *(rsv)*  |
 | 0x0F | *(rsv)* | 0x1F | *(rsv)*  |

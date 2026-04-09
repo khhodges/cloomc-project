@@ -65,7 +65,7 @@ Each CR shows four 32-bit words:
 - **GT**: The Golden Token value (version, index, permissions, type)
 - **Location**: Base address of the referenced object
 - **Limit**: Size bound of the object
-- **Seal**: Integrity hash (FNV-1a)
+- **Seal**: Integrity check (CRC-16/CCITT)
 
 Click any CR to see its decoded fields (version, index, permissions breakdown).
 

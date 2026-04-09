@@ -22,7 +22,7 @@ LAMBDA CRn, x
 ## Execution: Machine-Status Fast Path
 
 ### LAMBDA Entry:
-1. Check CRn.Type = Inform (00) → FAULT if NULL, Outform, or Abstract
+1. Check CRn.Type = Inform (01) → FAULT if NULL, Outform, or Abstract
 2. Check X permission on CRn → FAULT if X bit not set
 3. Check LAMBDA-active flag in machine status → FAULT if already set (non-nestable)
 4. Save PC+4 to LAMBDA_PC machine status register
@@ -38,7 +38,7 @@ LAMBDA CRn, x
 1. LAMBDA-active flag is NOT set (CALL cleared it)
 2. Pop stack frame
 3. Check 1-bit tag on frame:
-   - Tag=0 (CALL frame): pop [E-GT · machine word]; re-derive CR5/CR6/CR14 via mLoad using E-GT; check E permission; restore PC from machine word
+   - Tag=0 (CALL frame): pop [E-GT · machine word]; re-derive CR6/CR14 via mLoad using E-GT; restore CR5 from cr5_stack; check E permission; restore PC from machine word
    - Tag=1 (LAMBDA frame): restore PC only
 
 ## Stack Frame 1-Bit Tag
@@ -46,7 +46,7 @@ LAMBDA CRn, x
 Every frame on the capability stack carries a 1-bit tag:
 | Tag | Type | Contents | RETURN behavior |
 |-----|------|----------|-----------------|
-| 0 | CALL | [E-GT · machine word] — 2 words | Full domain restoration — re-derives CR5, CR6, CR14 via mLoad on RETURN |
+| 0 | CALL | [E-GT · machine word] — 2 words | Full domain restoration — re-derives CR6, CR14 via mLoad; restores CR5 from cr5_stack on RETURN |
 | 1 | LAMBDA | PC only | Simple PC restoration |
 
 The tag makes the thread's execution history **self-describing**. When resuming a suspended thread, the stack tells you exactly what kind of return each frame requires. No external metadata needed.
@@ -192,6 +192,6 @@ The GT *is* the lambda. You can pass it between threads, store it in namespace e
 2. **Same domain**: No C-List change, no domain crossing. The body executes in the caller's protection domain.
 3. **No CR writes**: LAMBDA body operates on DRs only. CRs are not modified during the body's execution.
 4. **mLoad validated**: The GT in CRn was loaded via mLoad at some earlier point. Its code address was validated then. LAMBDA trusts that validation.
-5. **FAULT on NULL**: If CRn holds NULL (Type=10), FAULT immediately.
+5. **FAULT on NULL**: If CRn holds NULL (Type=00), FAULT immediately.
 6. **Non-nestable**: Prevents hidden state accumulation.
 7. **Self-describing**: Stack frames carry their own type, making the thread's history transparent.

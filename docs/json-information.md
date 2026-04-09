@@ -119,7 +119,7 @@ methodTableSize = methods.length
 totalCodeWords  = sum of method.code.length for all methods
 codeSize        = methodTableSize + totalCodeWords
 neededSize      = codeSize + capabilities.length
-allocSize       = max(32, nextPow2(neededSize))   ← always power-of-2, minimum 32 words
+allocSize       = max(64, nextPow2(neededSize))   ← always power-of-2, minimum 64 words
 clistStart      = allocSize - capabilities.length
 ```
 
@@ -223,7 +223,7 @@ On success, the caller receives:
 | `version`    | number | Initial version (starts at 1 for new entries). Used to revoke all outstanding GTs by incrementing this. |
 | `eGT`        | number | 32-bit Inform E-GT for the new abstraction. This is the capability handle to store in your c-list or return to a caller. |
 | `location`   | number | Base address of the allocated lump in the unified address space. |
-| `allocSize`  | number | Total lump size in words (power-of-2, minimum 32). |
+| `allocSize`  | number | Total lump size in words (power-of-2, minimum 64). |
 | `codeSize`   | number | Words occupied by the method table + code body. |
 | `clistCount` | number | Number of c-list GT slots (= `capabilities.length`). |
 | `clistStart` | number | Word offset from `location` where the c-list begins. |

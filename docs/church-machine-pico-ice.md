@@ -179,7 +179,7 @@ The demo namespace contains 16 entries. Each entry is 3 words (96 bits):
 |---|---|---|
 | 0 | Location | Physical memory address where the object begins |
 | 1 | Limit & Flags | Bits 0-16: size (17-bit limit), Bit 30: F-bit (far/tunnel), Bit 31: B-bit (bindable) |
-| 2 | Seal/Version | Bits 25-31: version (7-bit), Bits 0-24: FNV-1a MAC seal |
+| 2 | Seal/Version | Bits 15-0: CRC-16/CCITT seal, Bit 16: G-bit, Bits 31-17: spare |
 
 ### Default entries
 
@@ -467,7 +467,7 @@ The Church Machine supports compile-time feature flags in `church_machine/types.
 
 | Flag | Purpose | Default |
 |---|---|---|
-| `ENABLE_SEAL_CHECK` | FNV-1a seal and version validation on GT access | False |
+| `ENABLE_SEAL_CHECK` | CRC-16/CCITT seal and version validation on GT access | False |
 | `ENABLE_FUSED_OPS` | Fused instructions (ELOADCALL, XLOADLAMBDA) | False |
 | `ENABLE_CHANGE_SWITCH` | CHANGE and SWITCH instructions | False |
 | `ENABLE_GC` | PP250 deterministic garbage collector | False |

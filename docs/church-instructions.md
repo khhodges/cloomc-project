@@ -20,7 +20,7 @@ All Church instructions that access the namespace route through the **mLoad mast
 
 ---
 
-## The Six Church Instructions
+## The Ten Church Instructions
 
 ### 1. LOAD — Load Capability from C-List
 
@@ -65,11 +65,11 @@ All Church instructions that access the namespace route through the **mLoad mast
 4. Copy the capability from the source CR into the target entry
 5. Reset G=0 on the accessed C-List namespace entry
 
-**Mnemonic**: `SAVE CRsrc, CRdst, index`
+**Mnemonic**: `SAVE CRd, CRs, index` — CRd is the destination c-list (requires S permission), CRs is the source GT (requires B=1)
 
 | Aspect | Detail |
 |--------|--------|
-| **Permission Check** | S on destination CR |
+| **Permission Check** | S on CRd (destination c-list); B=1 on CRs (source GT) |
 | **Bounds Check** | Index must be within C-List bounds |
 | **Seal Recompute** | MAC seal recomputed from Location+Limit |
 | **G-bit Reset** | Yes — on accessed C-List namespace entry |
@@ -113,13 +113,17 @@ All Church instructions that access the namespace route through the **mLoad mast
 
 **Frame structure**: CALL pushes 2 words. RETURN pops them. The caller's E-GT in Word 0 is revalidated by mLoad — this catches use-after-free (version mismatch → FAULT) and resets the G-bit for GC liveness tracking.
 
-**Operation**:
+> **Hardware status**: The MASK field (step 7) is defined in the encoding but **not yet implemented** in hardware. Current hardware ignores the mask bits. See [HARDWARE-DEVIATIONS.md](HARDWARE-DEVIATIONS.md) D-2 and Task #8.
+
+**Operation** (current hardware behavior, steps 1–6):
 1. Check that a frame exists on the call stack → FAULT if empty
 2. Pop Word 0 (caller's E-GT) and Word 1 (NIA | machine indicators)
 3. mLoad the caller's E-GT: version check + MAC + G-bit reset → FAULT on failure
 4. Re-run NS split on caller's NS entry → re-derive CR6 (caller c-list) and CR14 (caller code)
-5. Restore PC from NIA (Word 1)
-6. Restore machine indicators from Word 1
+5. Restore CR5 from cr5_stack (pushed by CALL; see [HARDWARE-DEVIATIONS.md](HARDWARE-DEVIATIONS.md) D-8)
+6. Restore PC from NIA (Word 1); restore machine indicators from Word 1
+
+**Planned extension** (mask, Task #8):
 7. Apply mask[11:0]: all CRs with mask bit set written to NULL in one parallel clock edge
 
 **Mnemonic**: `RETURN [mask]` — mask is a 12-bit literal in instruction bits [11:0]; mask=0 is the no-op default (`RETURN` with no argument)
@@ -129,9 +133,10 @@ All Church instructions that access the namespace route through the **mLoad mast
 | **Permission Check** | None |
 | **E-GT Revalidation** | mLoad on caller's E-GT: version, MAC, G-bit reset (FAULT on failure) |
 | **CR6 / CR14 Restore** | Re-derived from caller's NS entry via NS split — not stored directly in frame |
+| **CR5 Restore** | Popped from cr5_stack (pushed by CALL) |
 | **PC Restore** | NIA from Word 1 |
 | **Machine Indicators** | Restored from Word 1 (LAMBDA-active, flags, stackSpace, etc.) |
-| **Mask** | Bits [11:0]: bit N=1 → CR_N to NULL. Bit 6 reserved (CR6 always restored from E-GT). One parallel clock edge — zero overhead. |
+| **Mask** | *Not yet implemented in hardware (Task #8).* Design: bits [11:0], bit N=1 → CR_N to NULL. Bit 6 reserved (CR6 always restored from E-GT). One parallel clock edge — zero overhead. |
 | **Unchanged** | DR0–DR15 and non-masked CRs retain callee values |
 | **Stack Underflow** | FAULT: no saved context |
 | **Stack Indicators** | stackFrames and stackSpace updated |
@@ -259,16 +264,19 @@ TPERM can read all metadata fields from a CR into a data register:
 
 ---
 
-## Additional Church Instructions
+## Fused Church Instructions
 
-These instructions provide atomic operations, bulk transfers, and extended permission management:
+### 7. LAMBDA — In-Scope Code Application
 
-| Instruction | Purpose | Permission | G-bit Reset |
-|-------------|---------|------------|-------------|
-| **LOADX** | Load Exclusive — same as LOAD but sets an exclusive monitor for atomic operations | L or M | Yes — via mLoad |
-| **SAVEX** | Save Exclusive — conditional save that only succeeds if the exclusive monitor is still valid | S or M | Yes — on accessed entry |
-| **LDM** | Load Multiple — load multiple CRs from consecutive C-List entries in one instruction | L or M | Yes — on each accessed entry |
-| **STM** | Store Multiple — store multiple CRs to consecutive C-List entries in one instruction | S or M | Yes — on each accessed entry |
+Applies the code object referenced by a CR in the current scope. Requires X permission. Does not switch c-lists. See `docs/lambda-instruction.md` for full specification.
+
+### 8. ELOADCALL — Fused Load + Call
+
+Loads a GT from a c-list slot and immediately enters it. Equivalent to LOAD + CALL (direct mode), but atomic.
+
+### 9. XLOADLAMBDA — Fused Load + Lambda
+
+Loads a GT from a c-list slot and immediately applies it. Equivalent to LOAD + LAMBDA, but atomic.
 
 ---
 
@@ -276,10 +284,9 @@ These instructions provide atomic operations, bulk transfers, and extended permi
 
 ### Instruction Encoding Format
 ```
-[31:27] Opcode (5 bits) — each Church instruction has its own opcode
-[26:23] Condition (4 bits) — ARM-style conditional execution (N,Z,C,V)
-[22]    I-bit — 0=register source, 1=C-List lookup
-[21:0]  Operands (22 bits) — CRs, indices, target fields
+31    27 26  23 22  19 18  15 14           0
+|opcode | cond |  dst |  src |    imm15    |
+| 5 bit | 4 bit| 4 bit| 4 bit|   15 bits   |
 ```
 Every instruction can be conditionally executed based on the condition flags. This is what enables the TPERM try-catch pattern — one TPERM sets the flags, subsequent instructions carry EQ/NE suffixes.
 

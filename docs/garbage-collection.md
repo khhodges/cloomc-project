@@ -101,7 +101,7 @@ Garbage collection uses the G-bit mechanism through mLoad:
 - **mLoad resets G**: When mLoad validates a namespace access, it resets G=0 on the accessed entry. This happens during every LOAD, SAVE, CALL, RETURN, CHANGE, and SWITCH.
 - **mLoadByIndex resets G**: Direct namespace index access also resets G=0.
 - The three phases (Mark, Scan, Sweep) can be triggered independently through the Dashboard UI.
-- The namespace table is a flat array of up to 131,072 entries.
+- The namespace table is a flat array of up to 65,536 entries (16-bit `object_id`).
 
 ### Dashboard UI (Church Machine)
 
@@ -142,7 +142,7 @@ The mLoad module (`ctmm_amaranth/mload.py`) mirrors the SystemVerilog implementa
 | Aspect | Detail |
 |--------|--------|
 | **G-bit Reset Trigger** | Every mLoad/mLoadByIndex call (all Church instructions) |
-| **Namespace Structure** | Flat table (up to 131,072 entries) |
+| **Namespace Structure** | Flat table (up to 65,536 entries, 16-bit `object_id`) |
 | **Scan Algorithm** | DNA tree walk from registers + call stack + thread table, no permission filtering |
 | **Version Bumping** | 7-bit version incremented on Sweep |
 | **Token Invalidation** | Version mismatch detection |

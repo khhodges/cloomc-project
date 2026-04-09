@@ -21,17 +21,17 @@ with sufficient permissions. Every risk below is tracked to resolution.
 - **Task**: T002
 - **Status**: RESOLVED
 
-## R002: Seal Strength — 25-bit FNV Hash
+## R002: Seal Strength — 16-bit CRC-16/CCITT
 - **Severity**: MEDIUM
 - **New**: No — pre-existing. Consequence now worse because clistCount manipulation could
   cross domain boundaries.
-- **Layer**: NS Table seal (word2 bits 0-24)
-- **Risk**: The FNV seal is 25 bits (33 million values). A brute-force search is feasible
+- **Layer**: NS Table seal (Word 2 bits [15:0])
+- **Risk**: The CRC-16/CCITT seal is 16 bits (65,536 values). A brute-force search is feasible
   on fast hardware. If an attacker finds a collision, they could forge an NS entry with a
   manipulated clistCount, extending CR14's limit into the c-list region (capability theft).
 - **Fix**: On Tang Nano 20K at 27MHz, brute-force takes hours — acceptable for the target.
   In the simulator (JavaScript at GHz speed), consider rate-limiting seal checks or using
-  a stronger hash. Long-term: increase seal to 32 bits by repurposing word2 layout.
+  a stronger hash. Long-term: increase seal width by repurposing Word 2 spare bits.
 - **Task**: Review during T001, monitor
 - **Status**: ACCEPTED (acceptable for target hardware)
 

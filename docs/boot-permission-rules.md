@@ -61,6 +61,21 @@ The M (Meta/Microcode) permission is a **transient hardware elevation** — set 
 
 The architecture defines two mutually exclusive permission domains: **Turing** (R, W, X) for data and code operations, and **Church** (L, S, E) for capability operations through C-Lists and abstraction entry. M is a transient microcode elevation, never stored in the GT. B (Bind) and F (Far/Foreign) are namespace entry metadata, not GT permission bits.
 
+### CRC-16/CCITT Integrity Specification
+
+The integrity seal is CRC-16/CCITT (polynomial 0x1021, init 0xFFFF) computed over exactly **89 bits** of input:
+
+```
+Input bits (MSB-first):
+  gt_word0[24:0]  — 25 bits (gt_type[1:0] | gt_seq[6:0] | object_id[15:0])
+  NS Word 0       — 32 bits (base address)
+  NS Word 1       — 32 bits (spare[31:28] | gt_seq[27:21] | limit_offset[20:0])
+  ─────────────────────────
+  Total: 89 bits
+```
+
+The permission bits `perms[30:25]` and the bind flag `B[31]` are **excluded** from the CRC input. This allows TPERM to attenuate permissions without requiring a CRC recomputation. The result is stored in NS Entry Word 2 bits [15:0] and recomputed by ChurchNSGate on every access. A mismatch faults with `SEAL` error.
+
 ## Boot Sequence Permission Flow
 
 1. **Step 1 (Fault Restart)**: Clear all registers. Cold restart.

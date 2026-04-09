@@ -185,12 +185,12 @@ the GT class at [24:23], and identity fields below that:
 | Bits  | Field | Side   | Instruction | Meaning |
 |-------|-------|--------|-------------|---------|
 | 31    | B     | Church | SAVE        | Bind — B=1 allows SAVE; B=0 causes SAVE to fault |
-| 30    | R     | Turing | DREAD       | Read data words from this region |
-| 29    | W     | Turing | DWRITE      | Write data words to this region |
-| 28    | X     | Turing | —           | Region is executable (PC may enter) |
-| 27    | L     | Church | LOAD        | Load a capability out of this region |
-| 26    | S     | Church | SAVE        | Save a capability into this region |
-| 25    | E     | Church | CALL        | This GT is a valid CALL target |
+| 30    | E     | Church | CALL        | This GT is a valid CALL target |
+| 29    | S     | Church | SAVE        | Save a capability into this region |
+| 28    | L     | Church | LOAD        | Load a capability out of this region |
+| 27    | X     | Turing | —           | Region is executable (PC may enter) |
+| 26    | W     | Turing | DWRITE      | Write data words to this region |
+| 25    | R     | Turing | DREAD       | Read data words from this region |
 | 24:23 | typ   | —      | —           | GT class: 00=NULL, 01=Inform, 10=Outform, 11=Abstract — CRC covered |
 
 **R, W, X and L, S, E are mutually exclusive groups.** Any GT with bits from

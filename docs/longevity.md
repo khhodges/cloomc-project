@@ -19,7 +19,7 @@ This session made Navana the master controller of the Church Machine namespace, 
 | Risk | Severity | Description | Status |
 |------|----------|-------------|--------|
 | R001 | Critical | CALL inherits permissions from source GT instead of hardcoding domain-pure values | Resolved |
-| R002 | Medium | 25-bit FNV seal is brute-forceable on fast hardware; collision could forge NS entries | Accepted (adequate for Tang Nano 20K at 27MHz) |
+| R002 | Medium | 16-bit CRC-16/CCITT seal is brute-forceable on fast hardware; collision could forge NS entries | Accepted (adequate for Tang Nano 20K at 27MHz) |
 | R003 | Low | Boot raw write of Navana's NS entry is a single point of failure | Resolved |
 | R004 | High | Compiler bugs could produce wrong c-list offsets, branch targets, or register allocation | Resolved |
 | R005 | Medium | Compiler maps abstraction names to wrong c-list offsets — capability confusion | Resolved |
@@ -90,7 +90,7 @@ The permissions are not copied from the source GT. They are not read from the NS
 
 ### T003: Power-of-2 Memory Allocation
 
-**Problem:** Lump sizes must be powers of 2 (minimum 32 words) so that memory allocation is simple, fragmentation is bounded, and address arithmetic uses shifts instead of division.
+**Problem:** Lump sizes must be powers of 2 (minimum 64 words per hardware `n_minus_6` encoding) so that memory allocation is simple, fragmentation is bounded, and address arithmetic uses shifts instead of division.
 
 **Solution:** Already implemented in `simulator/system_abstractions.js`. The `nextPow2` function at line 1 computes the next power of 2 greater than or equal to the input. Memory.Allocate and Navana.Abstraction.Add both use it.
 
@@ -233,7 +233,7 @@ Each entry includes compiled code words, capability lists, and grant specificati
 
 - **Bounds check:** codeSize + clistCount must not exceed allocSize
 - **clistCount limit:** maximum 511 (9-bit field)
-- **Power-of-2 allocation:** allocSize must be a power of 2, minimum 32
+- **Power-of-2 allocation:** allocSize must be a power of 2, minimum 64
 - **Capability delegation:** every capability in the upload's c-list must be a valid delegation from the caller's own capabilities — you cannot grant what you do not hold
 - **Integer overflow:** all size calculations use unsigned 32-bit arithmetic with overflow checks
 
