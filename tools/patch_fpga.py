@@ -93,6 +93,10 @@ def parse_patch_file(path):
         if run_sentinel != b'\xBE\xAA':
             print(f"ERROR: Invalid RUN sentinel (expected 0xBEAA, got 0x{run_sentinel[0]:02X}{run_sentinel[1]:02X})")
             sys.exit(1)
+        offset += 2
+
+    if offset != len(data):
+        print(f"WARNING: {len(data) - offset} unexpected trailing bytes after patch data")
 
     return frames, run_sentinel
 

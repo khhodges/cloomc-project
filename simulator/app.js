@@ -1693,6 +1693,7 @@ function exportPatchFile() {
 
     blocks.push({ addr: codeStart, words: newWords });
     log(`Block ${blocks.length - 1}: Code lump  addr=0x${codeStart.toString(16).toUpperCase().padStart(4,'0')}  words=${newCW}`);
+    log(`NS table update included: ${nsChanged ? 'yes' : 'no'}`);
 
     function crc16ccitt(data) {
         let crc = 0xFFFF;
