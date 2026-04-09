@@ -102,7 +102,9 @@ The global software industry currently spends approximately $500 billion per yea
 
 ## What Is the CLOOMC IDE?
 
-CLOOMC stands for Church Language Object-Oriented Machine Code. It is the instruction set — the language that the Church Machine hardware understands. The CLOOMC IDE is the development environment where abstractions are written, compiled, tested, and sealed.
+CLOOMC stands for Capability-Limited, Object-Oriented, Machine Code. The name is the design: *capability-limited* means every operation is bounded by a hardware-enforced token — the fulcrum that turns unconstrained flexibility into an engineering discipline. *Object-oriented* means the unit of software is the sealed abstraction, not the loose file. *Machine code* means these are real instructions executed by real hardware, not interpreted by a software layer that can be subverted.
+
+CLOOMC is both the instruction set — the language the Church Machine hardware understands — and the fulcrum itself: the point where hardware meets meaning. The CLOOMC IDE is the development environment where abstractions are written, compiled, tested, and sealed.
 
 The IDE runs in a web browser. It provides:
 
