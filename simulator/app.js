@@ -1904,6 +1904,11 @@ function updateCRDetail() {
         html += `<button class="crd-action-info-btn crd-action-info-btn-fpga" onclick="toggleCrdInfoPop('exportPatchInfoPop')" title="What does Export Patch do?">&#x2139;</button>`;
         html += `<div class="crd-info-pop" id="exportPatchInfoPop" style="display:none;"><b>Export Patch</b><br><br>Assembles the code and downloads a <code>.patch</code> file containing complete UART frames with tags, CRC, and RUN sentinel. Flash it to the FPGA with:<br><code>python3 patch_fpga.py /dev/ttyUSB1 file.patch</code><br><br>No bridge or browser connection needed &mdash; just one terminal command.</div>`;
         html += `</span>`;
+        html += `<span class="crd-action-group">`;
+        html += `<button class="crd-tab crd-tab-action" onclick="publishToLibrary()" title="Publish this abstraction to the Mum Tunnel Library" style="background:#4a7a2e;">&#x21E1; Publish</button>`;
+        html += `<button class="crd-action-info-btn" onclick="toggleCrdInfoPop('publishInfoPop')" title="What does Publish do?">&#x2139;</button>`;
+        html += `<div class="crd-info-pop" id="publishInfoPop" style="display:none;"><b>Publish to Library</b><br><br>Compiles your code and publishes the abstraction to the Mum Tunnel Library on GitHub. Other Church Machine users worldwide can browse, search, and import your abstraction directly into their namespace.<br><br>Includes: compiled machine words, capability list, source code, and metadata.</div>`;
+        html += `</span>`;
     }
     html += '</div>';
 
