@@ -213,7 +213,13 @@ openFPGALoader -b tangnano20k church_tang_nano_20k_iot.fs
 
 Wait for `Done` / `DONE`. The entire flash takes about 10 seconds.
 
-### Step 5 — Check the LEDs
+### Step 5 — Boot the Church Machine and check the LEDs
+
+When the bitstream finishes flashing, the Church Machine boots
+automatically. The boot ROM initialises every capability register,
+loads the namespace, and puts the core into HALT — waiting safely
+for you to send it code. This is why you flash first and patch
+second: the machine must exist before you can give it software.
 
 | LED | Pin | Meaning | What you should see |
 |-----|-----|---------|---------------------|
