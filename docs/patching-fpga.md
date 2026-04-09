@@ -7,7 +7,7 @@ attacker. We have spent seventy years patching this mistake. The Church
 Machine is a different answer: **security built into every memory access,
 enforced by the hardware itself.**
 
-The design is governed by the five Laws of the Church-Turing Machine
+The design is governed by the six Laws of the Church-Turing Machine
 Model:
 
 1. **Oil and Water** — capabilities and data never mix. Code lives in
@@ -17,13 +17,16 @@ Model:
 
 2. **Double Checking** — every READ and every WRITE must be validated
    by a referenced capability context register. CR14 checks instruction
-   fetch. CR12 checks thread lump access. CR5 checks code entry. No
+   fetch. CR12 checks thread lump access. CR5 checks the heap. No
    single point of trust — the machine cross-checks at every boundary.
 
 3. **Distribution not Centralisation** — there is no kernel, no central
    authority, no single process that controls all resources. Each
    abstraction holds exactly the capabilities it needs. Authority is
-   distributed to the edge, not hoarded at the centre.
+   distributed to the edge, not hoarded at the centre. No almighty
+   network administrator who can bring down millions of machines with
+   one misconfiguration. No widespread outages because no single point
+   holds all the keys.
 
 4. **Democratic not Dictatorial** — no root user, no superuser, no
    privilege escalation. Every abstraction operates under the same
@@ -35,6 +38,13 @@ Model:
    inspect exactly what any abstraction is allowed to do. There are no
    hidden permissions, no implicit grants, no ambient authority. What
    you see is what it gets.
+
+6. **Open Source** — the Church Machine is a community project for
+   the Information Age. The hardware design, the toolchain, the IDE,
+   and the abstraction library are all open. Anyone can inspect the
+   security model, verify the implementation, build from source, and
+   contribute improvements. No black boxes. No vendor lock-in. The
+   architecture belongs to everyone who builds on it.
 
 This is not theoretical. The Church Machine runs on real silicon today,
 on two FPGA boards you can buy for the price of a textbook.
