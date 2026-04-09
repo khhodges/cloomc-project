@@ -386,7 +386,8 @@ never silently ignores a missing feature.
 **Who should choose this:** Parents, children, schools, teachers,
 students, educators, IoT builders, and anyone who wants the fastest
 path from unboxing to running secure code on real silicon. If you are
-new to the Church Machine, start here.
+new to the Church Machine, start here and learn the language of life
+in the Information Age!
 
 ### Side-by-Side Comparison
 
