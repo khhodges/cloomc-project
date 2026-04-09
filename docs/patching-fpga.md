@@ -629,6 +629,7 @@ machine will not permit the code to misbehave, so you do not need
 to worry about whether it will.
 
 Write. Click. Run. The Laws hold from editor to silicon.
+[See it in action](https://cloomc.com/oneclick).
 
 ```
 FLASH (once)     →  fail-safe COMPUTER  (the machine itself)
