@@ -6,6 +6,8 @@ const TangSerial = (function() {
     let _readerLoopRunning = false;
     let _rxBuffer = [];
     let _rxWaiters = [];
+    let _loopError = null;
+    let _loopTotalBytes = 0;
 
     let _bridgeMode = false;
     let _bridgeUrl  = '';
@@ -78,14 +80,28 @@ const TangSerial = (function() {
 
     function _startReadLoop() {
         if (_readerLoopRunning || !port || !port.readable) return;
-        _reader = port.readable.getReader();
+        try {
+            _reader = port.readable.getReader();
+        } catch(e) {
+            console.warn('[TangSerial] getReader() failed:', e.message);
+            _loopError = 'getReader failed: ' + e.message;
+            return;
+        }
         _readerLoopRunning = true;
+        _loopError = null;
+        _loopTotalBytes = 0;
+        console.log('[TangSerial] read loop started');
         (async function loop() {
             try {
                 while (_readerLoopRunning) {
                     var result = await _reader.read();
-                    if (result.done) break;
+                    if (result.done) {
+                        console.warn('[TangSerial] read loop: stream done (port closed?)');
+                        _loopError = 'stream ended (done=true)';
+                        break;
+                    }
                     if (result.value && result.value.length > 0) {
+                        _loopTotalBytes += result.value.length;
                         for (var i = 0; i < result.value.length; i++) {
                             _rxBuffer.push(result.value[i]);
                         }
@@ -96,12 +112,24 @@ const TangSerial = (function() {
                     }
                 }
             } catch(e) {
+                console.warn('[TangSerial] read loop error:', e.message || e);
+                _loopError = e.message || String(e);
             } finally {
                 _readerLoopRunning = false;
                 try { _reader.releaseLock(); } catch(e2) {}
                 _reader = null;
+                console.log('[TangSerial] read loop stopped (totalBytes=' + _loopTotalBytes + ')');
             }
         })();
+    }
+
+    function _ensureReadLoop() {
+        if (_readerLoopRunning) return true;
+        if (!port || !port.readable) return false;
+        console.warn('[TangSerial] read loop was dead (error: ' + (_loopError || 'unknown') +
+                     ') — restarting');
+        _startReadLoop();
+        return _readerLoopRunning;
     }
 
     async function _stopReadLoop() {
@@ -127,6 +155,7 @@ const TangSerial = (function() {
     }
 
     function _readBytes(n, timeoutMs) {
+        _ensureReadLoop();
         return new Promise(function(resolve) {
             var collected = [];
             var deadline = Date.now() + timeoutMs;
@@ -159,6 +188,7 @@ const TangSerial = (function() {
     }
 
     function _readBytesGreedy(maxBytes, timeoutMs) {
+        _ensureReadLoop();
         return new Promise(function(resolve) {
             var collected = [];
             var deadline = Date.now() + timeoutMs;
@@ -205,7 +235,7 @@ const TangSerial = (function() {
         port = await navigator.serial.requestPort({ filters: [] });
 
         try {
-            await port.open({ baudRate: BAUD, dataBits: 8, stopBits: 1, parity: 'none' });
+            await port.open({ baudRate: BAUD, dataBits: 8, stopBits: 1, parity: 'none', bufferSize: 4096 });
         } catch(e) {
             port = null;
             const msg = e.message || String(e);
@@ -221,6 +251,10 @@ const TangSerial = (function() {
 
         _rxBuffer.length = 0;
         _startReadLoop();
+        await sleep(50);
+        if (!_readerLoopRunning) {
+            console.warn('[TangSerial] read loop failed to start after connect! err=' + (_loopError || 'unknown'));
+        }
     }
 
     async function disconnect() {
@@ -255,7 +289,7 @@ const TangSerial = (function() {
     async function drainInput() {
         if (_bridgeMode) { await _bDrain(); return; }
         _rxBuffer.length = 0;
-        await sleep(50);
+        await sleep(80);
         _rxBuffer.length = 0;
     }
 
@@ -288,6 +322,7 @@ const TangSerial = (function() {
 
         await _writeBytes(payload);
 
+        _ensureReadLoop();
         status(`Data sent to ${_boardLabel}. Waiting for FPGA response...`);
 
         var rxBytes = await _readBytesGreedy(2048, 5000);
@@ -432,12 +467,19 @@ const TangSerial = (function() {
             return { success: false };
         }
 
+        var loopOk = _ensureReadLoop();
+        status('Bytes sending… (readLoop=' + (loopOk ? 'alive' : 'DEAD') +
+               ', totalRx=' + _loopTotalBytes + ')');
+
         await _writeBytes(frame);
         status('Bytes sent. Waiting for echo\u2026');
         var rxBytes = await _readBytes(4, 5000);
 
         if (rxBytes.length === 0) {
-            status('No echo \u2014 retrying with drain\u2026');
+            loopOk = _ensureReadLoop();
+            status('No echo \u2014 retrying (readLoop=' + (loopOk ? 'alive' : 'DEAD') +
+                   ', totalRx=' + _loopTotalBytes + ', buf=' + _rxBuffer.length +
+                   ', err=' + (_loopError || 'none') + ')\u2026');
             await drainInput();
             await sleep(200);
             await drainInput();
@@ -464,7 +506,10 @@ const TangSerial = (function() {
             status('NAK (0x15) received \u2014 CRC mismatch on FPGA side. Frame may be corrupted.');
             return { success: false };
         } else {
-            status('No echo received (' + rxBytes.length + ' bytes). Check: FPGA connected? Bitstream includes debug FSM?');
+            status('No echo received (' + rxBytes.length + ' bytes). readLoop=' +
+                   (_readerLoopRunning ? 'alive' : 'DEAD') + ' totalRx=' + _loopTotalBytes +
+                   ' loopErr=' + (_loopError || 'none') +
+                   '. Check: FPGA connected? Bitstream includes debug FSM?');
             return { success: false, rxBytes: rxBytes };
         }
     }
@@ -504,12 +549,15 @@ const TangSerial = (function() {
             return { success: bOk, words: bWords, rxBytes: new Uint8Array(rb), rxLen: rb.length };
         }
 
+        _ensureReadLoop();
         await _writeBytes(frame);
         var expected = count * 4;
         var rxArr = await _readBytes(expected, 8000);
 
         if (rxArr.length === 0) {
-            status('READ_BRAM: no response — retrying with drain…');
+            _ensureReadLoop();
+            status('READ_BRAM: no response (readLoop=' + (_readerLoopRunning ? 'alive' : 'DEAD') +
+                   ' totalRx=' + _loopTotalBytes + ') — retrying with drain…');
             await drainInput();
             await sleep(200);
             await drainInput();
@@ -560,6 +608,16 @@ const TangSerial = (function() {
         return { success: true };
     }
 
+    function readLoopStatus() {
+        return {
+            running: _readerLoopRunning,
+            totalBytes: _loopTotalBytes,
+            bufferLen: _rxBuffer.length,
+            waiters: _rxWaiters.length,
+            error: _loopError
+        };
+    }
+
     return {
         isSupported,
         isConnected,
@@ -574,6 +632,7 @@ const TangSerial = (function() {
         pingFPGA,
         parseReadback,
         setBoardLabel,
+        readLoopStatus,
         NS_WORDS,
         CLIST_WORDS,
         TOTAL_WORDS
