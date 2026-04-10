@@ -26,9 +26,15 @@ except ImportError:
     print("ERROR: pyserial not installed.  Run:  pip3 install pyserial")
     sys.exit(1)
 
-SERIAL_PORT = sys.argv[1] if len(sys.argv) > 1 else '/dev/ttyUSB3'
-BAUD        = int(sys.argv[2]) if len(sys.argv) > 2 else 115200
-HTTP_PORT   = int(sys.argv[3]) if len(sys.argv) > 3 else 8766
+_first_arg = sys.argv[1] if len(sys.argv) > 1 else ''
+if _first_arg.startswith('--'):
+    SERIAL_PORT = '/dev/ttyUSB1'
+    BAUD = 115200
+    HTTP_PORT = 8766
+else:
+    SERIAL_PORT = _first_arg or '/dev/ttyUSB3'
+    BAUD        = int(sys.argv[2]) if len(sys.argv) > 2 else 115200
+    HTTP_PORT   = int(sys.argv[3]) if len(sys.argv) > 3 else 8766
 
 _ser       = None
 _ser_lock  = threading.Lock()
@@ -288,17 +294,17 @@ def _probe_bauds(port):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == '--scan':
+    if _first_arg == '--scan':
         _scan_ports()
         sys.exit(0)
 
-    if len(sys.argv) > 1 and sys.argv[1] == '--monitor':
+    if _first_arg == '--monitor':
         port = sys.argv[2] if len(sys.argv) > 2 else '/dev/ttyUSB1'
         baud = int(sys.argv[3]) if len(sys.argv) > 3 else 115200
         _monitor_mode(port, baud)
         sys.exit(0)
 
-    if len(sys.argv) > 1 and sys.argv[1] == '--probe-bauds':
+    if _first_arg == '--probe-bauds':
         port = sys.argv[2] if len(sys.argv) > 2 else '/dev/ttyUSB1'
         _probe_bauds(port)
         sys.exit(0)
