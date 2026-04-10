@@ -6,10 +6,10 @@
 IO_LOC "clk" 4;
 IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 
-// UART via BL616 USB bridge — pin 17 = FPGA TX→BL616 RX, pin 18 = BL616 TX→FPGA RX
-IO_LOC "uart_tx" 17;
+// UART via BL616 USB bridge — pin 17 = BL616 TX→FPGA RX, pin 18 = FPGA TX→BL616 RX
+IO_LOC "uart_tx" 18;
 IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
-IO_LOC "uart_rx" 18;
+IO_LOC "uart_rx" 17;
 IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
 // Onboard LEDs (active-low) — 6 LEDs on pins 15-20, using 4 (pins 17,18 used by UART)
