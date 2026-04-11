@@ -50,20 +50,28 @@ You do not need a board to start. Open the Church Machine IDE in your
 browser and begin writing code immediately.
 
 1. Open the Church Machine IDE
-2. Click the **Boot** button **↺** in the toolbar — the simulator
-   initialises every capability register, loads the namespace, and
-   puts the core into HALT, just like real hardware. You now have a
-   running Church Machine in your browser.
-
-   > **Finding the Boot button:** Look for the yellow **↺** icon in the
-   > top toolbar, between the navigation arrows and the coloured
-   > indicator lights. Hover over it to see the tooltip "Boot — Reset
-   > and run the boot sequence."
-
+2. Click the **Boot** button in the toolbar — the simulator initialises
+   every capability register, loads the namespace, and puts the core
+   into HALT, just like real hardware. You now have a running Church
+   Machine in your browser.
 3. Click **CRs** in the toolbar to see the capability registers
 4. Click on a CR — for example, **CR14** (instruction fetch)
 5. Click **Edit** to open the abstraction creator
 6. Write or modify your Church Machine assembly
+
+### Toolbar icon reference
+
+| Icon | Button | What it does |
+|------|--------|------|
+| ↺ | **Boot** (yellow) | Reset and run the boot sequence |
+| 👣 | **Step** (green) | Execute one instruction |
+| 🚶 | **Walk** | Animate step-by-step execution |
+| 🏃 | **Run** (green) | Execute until halt, fault, or breakpoint |
+| ⚡ | **Fault** (yellow) | Recall the fault report |
+
+> **Finding Boot:** look for the yellow **↺** between the navigation
+> arrows and the coloured indicator lights. Hover any icon for its
+> tooltip.
 
 ## Step 2 — Compile and test in the simulator
 
@@ -71,10 +79,12 @@ Click **Patch**. This assembles your code into binary machine words and
 writes them into the simulator memory. The simulator enforces every one
 of the six Laws — the same capability checks that run on real silicon.
 
-Step through instructions, inspect registers, and check for capability
-faults. If the assembler reports errors, fix them and click Patch
-again. Everything you see in the simulator transfers directly to
-hardware — the instruction set, the security model, the faults.
+Use **Step** 👣 to execute one instruction at a time, **Walk** 🚶 to
+animate execution, or **Run** 🏃 to execute until halt or fault. Inspect
+registers and check for capability faults. If the assembler reports
+errors, fix them and click Patch again. Everything you see in the
+simulator transfers directly to hardware — the instruction set, the
+security model, the faults.
 
 **You can stay here as long as you want.** The simulator is the full
 Church Machine. When you are ready for real silicon, continue to
