@@ -1480,7 +1480,13 @@ function editCRCodeInEditor() {
     if (asmEd) {
         asmEd.value = lines.join('\n');
         if (!asmEd._mtbfListenerAttached) {
-            asmEd.addEventListener('input', _updateMtbfIndicator);
+            asmEd.addEventListener('input', function() {
+                if (_simRunHash && _currentEditorHash() !== _simRunHash) {
+                    _simRunHistory = [];
+                    _simRunHash = '';
+                }
+                _updateMtbfIndicator();
+            });
             asmEd._mtbfListenerAttached = true;
         }
     }
