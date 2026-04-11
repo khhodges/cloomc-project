@@ -22,7 +22,7 @@ identical.
   running into the walls.
 - **Step through instructions** — single-step your abstraction and
   watch each Turing instruction (ADD, SUB, LOAD, STORE, BRANCH) and
-  each Church instruction (CALL, RETURN, SENTRY, LAMBDA) execute in
+  each Church instruction (CALL, RETURN, LAMBDA) execute in
   sequence.
 - **Run Ada's Bernoulli program** — load the NoteG example from the
   tutorial menu, compile it, and watch 183-year-old mathematics
