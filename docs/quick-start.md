@@ -46,6 +46,21 @@ The code you wrote in the simulator runs unchanged on silicon.
 
 ## Step 1 — Write your code and boot the simulator
 
+### Toolbar icon reference
+
+![Church Machine toolbar](/simulator/toolbar-icons.png)
+
+| Icon | Button | What it does |
+|------|--------|------|
+| ↺ | **Boot** (yellow) | Reset and run the boot sequence |
+| 👣 | **Step** (green) | Execute one instruction |
+| 🚶 | **Walk** | Animate step-by-step execution |
+| 🏃 | **Run** (green) | Execute until halt, fault, or breakpoint |
+| ● | **Breakpoint** | Toggle a breakpoint at the current address |
+| ⚡ | **Fault** (yellow) | Recall the fault report |
+
+> Hover any icon for its tooltip.
+
 You do not need a board to start. Open the Church Machine IDE in your
 browser and begin writing code immediately.
 
@@ -57,20 +72,6 @@ browser and begin writing code immediately.
 4. Click on a CR — for example, **CR14** (instruction fetch)
 5. Click **Edit** to open the abstraction creator
 6. Write or modify your Church Machine assembly
-
-### Toolbar icon reference
-
-| Icon | Button | What it does |
-|------|--------|------|
-| ↺ | **Boot** (yellow) | Reset and run the boot sequence |
-| 👣 | **Step** (green) | Execute one instruction |
-| 🚶 | **Walk** | Animate step-by-step execution |
-| 🏃 | **Run** (green) | Execute until halt, fault, or breakpoint |
-| ⚡ | **Fault** (yellow) | Recall the fault report |
-
-> **Finding Boot:** look for the yellow **↺** between the navigation
-> arrows and the coloured indicator lights. Hover any icon for its
-> tooltip.
 
 ## Step 2 — Compile and test in the simulator
 
