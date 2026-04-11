@@ -73,18 +73,24 @@ browser and begin writing code immediately.
 5. Click **Edit** to open the abstraction creator
 6. Write or modify your Church Machine assembly
 
-## Step 2 — Compile and test in the simulator
+## Step 2 — Compile, inspect, and test
 
-Click **Patch**. This assembles your code into binary machine words and
-writes them into the simulator memory. The simulator enforces every one
-of the six Laws — the same capability checks that run on real silicon.
+Click **Compile** to assemble your code into binary machine words. The
+compiled output appears in the **CR14** view — this shows you exactly
+what the Church Machine will execute at runtime. Use it to verify your
+code and add breakpoints by clicking the **●** button at any address
+before running.
+
+Click **Patch** to write the compiled words into the simulator memory.
+The simulator enforces every one of the six Laws — the same capability
+checks that run on real silicon.
 
 Use **Step** 👣 to execute one instruction at a time, **Walk** 🚶 to
-animate execution, or **Run** 🏃 to execute until halt or fault. Inspect
-registers and check for capability faults. If the assembler reports
-errors, fix them and click Patch again. Everything you see in the
-simulator transfers directly to hardware — the instruction set, the
-security model, the faults.
+animate execution, or **Run** 🏃 to execute until halt, fault, or
+breakpoint. Inspect registers and check for capability faults. If the
+assembler reports errors, fix them and click Patch again. Everything
+you see in the simulator transfers directly to hardware — the
+instruction set, the security model, the faults.
 
 **You can stay here as long as you want.** The simulator is the full
 Church Machine. When you are ready for real silicon, continue to
