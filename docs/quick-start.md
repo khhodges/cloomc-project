@@ -44,6 +44,37 @@ The code you wrote in the simulator runs unchanged on silicon.
 
 ---
 
+## Step 1 — Write your code and boot the simulator
+
+You do not need a board to start. Open the Church Machine IDE in your
+browser and begin writing code immediately.
+
+1. Open the Church Machine IDE
+2. Click **Boot** — the simulator initialises every capability register,
+   loads the namespace, and puts the core into HALT, just like real
+   hardware. You now have a running Church Machine in your browser.
+3. Click **CRs** in the toolbar
+4. Click on a CR — for example, **CR14** (instruction fetch)
+5. Click **Edit** to open the abstraction creator
+6. Write or modify your Church Machine assembly
+
+## Step 2 — Compile and test in the simulator
+
+Click **Patch**. This assembles your code into binary machine words and
+writes them into the simulator memory. The simulator enforces every one
+of the six Laws — the same capability checks that run on real silicon.
+
+Step through instructions, inspect registers, and check for capability
+faults. If the assembler reports errors, fix them and click Patch
+again. Everything you see in the simulator transfers directly to
+hardware — the instruction set, the security model, the faults.
+
+**You can stay here as long as you want.** The simulator is the full
+Church Machine. When you are ready for real silicon, continue to
+Step 3.
+
+---
+
 ## Choosing Your Board
 
 The Church Machine runs on two FPGA boards. Both execute the same
@@ -139,30 +170,6 @@ from unboxing to running your own code on real silicon.
 - A **[Tang Nano 20K](https://www.google.com/search?q=Tang+Nano+20K)** board (~$3–$20)
 - A **USB-C cable** (data, not charge-only)
 - A computer running **Linux** or **ChromeOS** (with Linux container)
-
-### Step 1 — Write your code in the IDE
-
-You do not need a board to start. Open the Church Machine IDE in your
-browser and begin writing code immediately.
-
-1. Open the Church Machine IDE
-2. Click **CRs** in the toolbar
-3. Click on a CR — for example, **CR14** (instruction fetch)
-4. Click **Edit** to open the abstraction creator
-5. Write or modify your Church Machine assembly
-
-### Step 2 — Compile and test in the simulator
-
-Click **Patch**. This assembles your code into binary machine words and
-writes them into the simulator memory. The simulator enforces every one
-of the six Laws — the same capability checks that run on real silicon.
-
-Step through instructions, inspect registers, and check for capability
-faults. If the assembler reports errors, fix them and click Patch
-again. Everything you see in the simulator transfers directly to
-hardware — the instruction set, the security model, the faults.
-
----
 
 ### Step 3 — Download the official bitstream and flash your Church Machine
 
