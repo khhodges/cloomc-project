@@ -2135,16 +2135,65 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
         return { desc: _escDecomp(`${verb} ${sTag}[${imm}]`), compiler: false };
     }
 
+    if (opcode === 12) {
+        const pos = (imm >>> 5) & 0x1F;
+        const width = imm & 0x1F;
+        const sTag = _crTag(crSrc, crPets);
+        const drV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
+        const valStr = drV !== null ? ` (=${drV})` : '';
+        return { desc: _escDecomp(`bfext DR${crDst} \u2190 ${sTag}[${pos}:${pos+width-1}]${valStr}`), compiler: false };
+    }
+
+    if (opcode === 13) {
+        const pos = (imm >>> 5) & 0x1F;
+        const width = imm & 0x1F;
+        const sTag = _crTag(crSrc, crPets);
+        return { desc: _escDecomp(`bfins ${sTag}[${pos}:${pos+width-1}] \u2190 DR${crDst}`), compiler: false };
+    }
+
+    if (opcode === 14) {
+        const dV = sim && sim.dr ? (sim.dr[crDst] >>> 0) : null;
+        const sV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
+        const vals = (dV !== null && sV !== null) ? ` (${dV} vs ${sV})` : '';
+        return { desc: _escDecomp(`mcmp DR${crDst}, DR${crSrc}${vals}`), compiler: false };
+    }
+
     if (opcode === 15 || opcode === 16) {
-        if (stored && stored[addr]) {
-            const s = stored[addr];
-            return { desc: _escDecomp(s.desc), compiler: s.compiler };
+        const op = opcode === 15 ? '+' : '\u2212';
+        const mnem = opcode === 15 ? 'iadd' : 'isub';
+        const isImm = (imm & 0x4000) !== 0;
+        const srcV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
+        if (isImm) {
+            const immVal = imm & 0x3FFF;
+            const valStr = srcV !== null ? ` (${srcV}${op}${immVal}=${opcode === 15 ? ((srcV + immVal) >>> 0) : ((srcV - immVal) >>> 0)})` : '';
+            return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${op} #${immVal}${valStr}`), compiler: false };
+        } else {
+            const drOp = imm & 0xF;
+            const opV = sim && sim.dr ? (sim.dr[drOp] >>> 0) : null;
+            const valStr = (srcV !== null && opV !== null) ? ` (${srcV}${op}${opV}=${opcode === 15 ? ((srcV + opV) >>> 0) : ((srcV - opV) >>> 0)})` : '';
+            return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${op} DR${drOp}${valStr}`), compiler: false };
         }
     }
 
     if (opcode === 17) {
         const soff = (imm & 0x4000) ? (imm | 0xFFFF8000) : imm;
         return { desc: `branch ${soff > 0 ? '+' : ''}${soff}`, compiler: false };
+    }
+
+    if (opcode === 18) {
+        const shamt = imm & 0x1F;
+        const srcV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
+        const valStr = srcV !== null ? ` (${srcV}\u00AB${shamt}=${(srcV << shamt) >>> 0})` : '';
+        return { desc: _escDecomp(`DR${crDst}= DR${crSrc} \u00AB ${shamt}${valStr}`), compiler: false };
+    }
+
+    if (opcode === 19) {
+        const arith = (imm >>> 5) & 1;
+        const shamt = imm & 0x1F;
+        const srcV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
+        const sym = arith ? '\u00BB\u00BB' : '\u00BB';
+        const valStr = srcV !== null ? ` (${srcV}${sym}${shamt}=${arith ? (srcV >> shamt) : (srcV >>> shamt)})` : '';
+        return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${sym} ${shamt}${valStr}`), compiler: false };
     }
 
     if (stored && stored[addr]) {
