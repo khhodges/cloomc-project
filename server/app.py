@@ -545,6 +545,16 @@ def library_publish():
     if not name:
         return jsonify({"error": "Abstraction name is required"}), 400
 
+    methods = payload.get("methods", [])
+    if not methods or not any(m.get("code") for m in methods):
+        return jsonify({"error": "Cannot publish empty abstraction — compiled methods required"}), 400
+
+    if not payload.get("simTestPassed"):
+        return jsonify({"error": "Simulator test required — code must halt cleanly before publishing"}), 400
+
+    if not payload.get("openSourceConsent"):
+        return jsonify({"error": "Open Source membership required — accept the CLOOMC Open Source licence in Settings"}), 400
+
     doc = payload.get("doc", {})
     lang = doc.get("language", "javascript")
     source = payload.get("source", "")

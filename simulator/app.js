@@ -89,6 +89,8 @@
 const POPUPS_DISABLED = false;
 
 let sim = null;
+let _simTestPassed = false;
+let _simTestHash = '';
 let assembler = null;
 let pipelineViz = null;
 let repl = null;
@@ -1692,7 +1694,25 @@ async function injectCRCodeToFPGA(logEl) {
     }
 }
 
+function _quickHash(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0).toString(16);
+}
+
+function _isSimTestValid() {
+    if (!_simTestPassed) return false;
+    const ed = document.getElementById('asmEditor');
+    if (!ed) return false;
+    return _quickHash(ed.value) === _simTestHash;
+}
+
 function patchSimulator() {
+    _simTestPassed = false;
+    _simTestHash = '';
     const logEl = document.getElementById('crInjectLog');
     if (logEl) { logEl.style.display = 'block'; logEl.textContent = ''; }
     const result = injectCRCode(logEl);
@@ -1734,6 +1754,11 @@ async function patchFPGA() {
  * over UART — no recomputation needed.
  */
 function exportPatchFile() {
+    if (!_isSimTestValid()) {
+        appendOutput('Export Patch blocked — run your code in the simulator first. Click Patch, then Run. The code must halt cleanly with no faults before you can export. If you edited the code after testing, you must re-test.', 'error');
+        return;
+    }
+
     const logEl = document.getElementById('crInjectLog');
     if (logEl) { logEl.style.display = 'block'; logEl.textContent = ''; }
     const log = msg => { if (logEl) { logEl.textContent += msg + '\n'; logEl.scrollTop = logEl.scrollHeight; } };
@@ -6078,6 +6103,12 @@ function runSim() {
         if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = ''; }
         console.log('[finishRun] stopReason=', stopReason, 'halted=', sim.halted, 'bootComplete=', sim.bootComplete, 'faultLog=', sim.faultLog.length, 'steps=', totalSteps);
         if (sim.faultLog.length > 0) console.log('[finishRun] FAULTS:', JSON.stringify(sim.faultLog.map(f => f.type + ': ' + f.message)));
+        const ranClean = (stopReason === 'halted' || sim.halted) && sim.faultLog.length === 0;
+        if (ranClean) {
+            _simTestPassed = true;
+            const ed = document.getElementById('asmEditor');
+            _simTestHash = ed ? _quickHash(ed.value) : '';
+        }
         if (con) {
             let status = 'Stopped.';
             if (stopReason === 'bootExit' || !sim.bootComplete) {
@@ -10519,6 +10550,8 @@ function openSettings() {
     const anyPerm = hasAnyPopupDismissedPerm();
     const showAllCheck = document.getElementById('showAllPopupsCheck');
     if (showAllCheck) showAllCheck.checked = !anyPerm;
+    const osCb = document.getElementById('settingOpenSource');
+    if (osCb) osCb.checked = !!settings.openSource;
     const boardSel = document.getElementById('settingFPGABoard');
     if (boardSel) boardSel.value = getSelectedBoard();
     document.getElementById('settingsModal').style.display = 'flex';
@@ -10620,6 +10653,7 @@ function saveSettings() {
         nationality: document.getElementById('settingNationality')?.value || 'us',
         ageTier: document.getElementById('settingAgeTier')?.value || '13-17',
         fpgaBoard: document.getElementById('settingFPGABoard')?.value || 'tang-nano-20k',
+        openSource: !!document.getElementById('settingOpenSource')?.checked,
         selectedSubjects: getSelectedSubjects()
     };
     localStorage.setItem('church_student_settings', JSON.stringify(settings));
@@ -14930,6 +14964,18 @@ function filterLibrary() {
 
 function publishToLibrary() {
     if (!requirePermission('publish', 'Publish to Library')) return;
+
+    if (!_isSimTestValid()) {
+        appendOutput('Publish blocked — run your code in the simulator first. Click Patch, then Run. The code must halt cleanly with no faults before you can publish. If you edited the code after testing, you must re-test.', 'error');
+        return;
+    }
+
+    const settings = getStudentSettings();
+    if (!settings.openSource) {
+        appendOutput('Publish blocked — Open Source membership required. Open Settings and tick "Open Source member" to agree to the CLOOMC Open Source licence before publishing.', 'error');
+        return;
+    }
+
     const editor = document.getElementById('asmEditor');
     if (!editor || !cloomcCompiler) return;
     const source = editor.value;
@@ -14971,6 +15017,7 @@ async function confirmPublish() {
         return { target: -1, name: capName, grants: ['E'] };
     });
 
+    const settings = getStudentSettings();
     const payload = {
         abstraction: result.abstractionName || 'Unnamed',
         type: 'abstraction',
@@ -14982,7 +15029,9 @@ async function confirmPublish() {
         })),
         doc: doc,
         source: source,
-        profile: result.profile || 'IoT'
+        profile: result.profile || 'IoT',
+        simTestPassed: _isSimTestValid(),
+        openSourceConsent: !!settings.openSource
     };
 
     try {
