@@ -2064,11 +2064,20 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
     word = word >>> 0;
     if (word === 0) return null;
     const opcode = (word >>> 27) & 0x1F;
+    const cond = (word >>> 23) & 0xF;
     const crDst = (word >>> 19) & 0xF;
     const crSrc = (word >>> 15) & 0xF;
     const imm = word & 0x7FFF;
 
     if (opcode === 0x1F) return null;
+
+    const _condNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
+    const _condDescs = ['if equal','if not equal','if carry set','if carry clear',
+        'if negative','if positive','if overflow','if no overflow',
+        'if unsigned higher','if unsigned lower/same','if signed \u2265','if signed <',
+        'if signed >','if signed \u2264','','never'];
+    const cc = cond === 14 ? '' : _condNames[cond];
+    const ccDesc = cond === 14 ? '' : ` [${_condDescs[cond]}]`;
 
     const stored = _lumpManifests[nsIdx];
 
@@ -2076,63 +2085,81 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
         const pet = _resolveClistPetName(clistBase, imm, nsIdx);
         if (pet) {
             if (crPets) crPets[crDst] = pet;
-            return { desc: _escDecomp(`load ${pet.toLowerCase()} \u2192 CR${crDst}`), compiler: true, pet: pet };
+            return { desc: _escDecomp(`load${cc} ${pet.toLowerCase()} \u2192 CR${crDst}${ccDesc}`), compiler: true, pet: pet };
         }
         if (crPets) delete crPets[crDst];
-        return { desc: `load clist[${imm}] \u2192 CR${crDst}`, compiler: true };
+        return { desc: _escDecomp(`load${cc} clist[${imm}] \u2192 CR${crDst}${ccDesc}`), compiler: true };
     }
 
     if (opcode === 0) {
         const dTag = _crTag(crDst, crPets);
         const sTag = _crTag(crSrc, crPets);
         if (crPets && crPets[crSrc]) crPets[crDst] = crPets[crSrc];
-        return { desc: _escDecomp(`load ${dTag} \u2190 ${sTag}[${imm}]`), compiler: false };
+        return { desc: _escDecomp(`load${cc} ${dTag} \u2190 ${sTag}[${imm}]${ccDesc}`), compiler: false };
     }
 
     if (opcode === 1) {
         const dTag = _crTag(crDst, crPets);
         const sTag = _crTag(crSrc, crPets);
-        return { desc: _escDecomp(`save ${dTag} \u2192 ${sTag}[${imm}]`), compiler: false };
+        return { desc: _escDecomp(`save${cc} ${dTag} \u2192 ${sTag}[${imm}]${ccDesc}`), compiler: false };
     }
 
     if (opcode === 2) {
-        if (crDst === 6) return { desc: 'recall self', compiler: false };
+        if (crDst === 6) return { desc: _escDecomp(`recall${cc} self${ccDesc}`), compiler: false };
         const tag = _crTag(crDst, crPets);
-        return { desc: _escDecomp(`call ${tag}`), compiler: false };
+        return { desc: _escDecomp(`call${cc} ${tag}${ccDesc}`), compiler: false };
     }
 
-    if (opcode === 3) return { desc: 'return', compiler: false };
+    if (opcode === 3) return { desc: _escDecomp(`return${cc}${ccDesc}`), compiler: false };
+
+    if (opcode === 4) {
+        const dTag = _crTag(crDst, crPets);
+        return { desc: _escDecomp(`change${cc} ${dTag}, ${imm}${ccDesc}`), compiler: false };
+    }
 
     if (opcode === 5) {
         const sTag = _crTag(crSrc, crPets);
-        return { desc: _escDecomp(`switch ${sTag}, ${imm & 7}`), compiler: false };
+        return { desc: _escDecomp(`switch${cc} ${sTag}, ${imm & 7}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 6) {
         const dTag = _crTag(crDst, crPets);
         const presetNames = ['CLEAR','R','RW','X','RX','RWX','L','S','E','LS'];
-        const pName = presetNames[imm & 0xF] || `0x${imm.toString(16)}`;
-        return { desc: _escDecomp(`tperm ${dTag} ${pName}`), compiler: false };
+        const presetDescs = ['remove all perms','read only','read+write','execute only',
+            'read+execute','read+write+execute','load only','store only','enter only','load+store'];
+        const pidx = imm & 0xF;
+        const bFlag = (imm >>> 4) & 1;
+        const pName = presetNames[pidx] || `0x${pidx.toString(16)}`;
+        const pDesc = presetDescs[pidx] || '';
+        const bStr = bFlag ? 'B' : '';
+        const explain = pDesc ? ` [${pDesc}${bStr ? ', bounded' : ''}]` : '';
+        return { desc: _escDecomp(`tperm${cc} ${dTag} ${pName}${bStr}${explain}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 7) {
         const dTag = _crTag(crDst, crPets);
-        return { desc: _escDecomp(`lambda \u2192 ${dTag}`), compiler: false };
+        return { desc: _escDecomp(`lambda${cc} \u2192 ${dTag}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 8) {
         const pet = _resolveClistPetName(clistBase, imm, nsIdx);
         if (pet) {
             if (crPets) crPets[crDst] = pet;
-            return { desc: _escDecomp(`eloadcall ${pet.toLowerCase()}(CR${crDst})`), compiler: true, pet: pet };
+            return { desc: _escDecomp(`eloadcall${cc} ${pet.toLowerCase()}(CR${crDst})${ccDesc}`), compiler: true, pet: pet };
         }
-        return { desc: `eloadcall clist[${imm}] \u2192 CR${crDst}`, compiler: true };
+        return { desc: _escDecomp(`eloadcall${cc} clist[${imm}] \u2192 CR${crDst}${ccDesc}`), compiler: true };
+    }
+
+    if (opcode === 9) {
+        const dTag = _crTag(crDst, crPets);
+        const sTag = _crTag(crSrc, crPets);
+        return { desc: _escDecomp(`xloadlambda${cc} ${dTag} \u2190 ${sTag}[${imm}]${ccDesc}`), compiler: false };
     }
 
     if (opcode === 10 || opcode === 11) {
         const sTag = _crTag(crSrc, crPets);
         const verb = opcode === 10 ? 'read' : 'write';
-        return { desc: _escDecomp(`${verb} ${sTag}[${imm}]`), compiler: false };
+        return { desc: _escDecomp(`${verb}${cc} ${sTag}[${imm}]${ccDesc}`), compiler: false };
     }
 
     if (opcode === 12) {
@@ -2141,21 +2168,21 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
         const sTag = _crTag(crSrc, crPets);
         const drV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
         const valStr = drV !== null ? ` (=${_fmtVal(drV)})` : '';
-        return { desc: _escDecomp(`bfext DR${crDst} \u2190 ${sTag}[${pos}:${pos+width-1}]${valStr}`), compiler: false };
+        return { desc: _escDecomp(`bfext${cc} DR${crDst} \u2190 ${sTag}[${pos}:${pos+width-1}]${valStr}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 13) {
         const pos = (imm >>> 5) & 0x1F;
         const width = imm & 0x1F;
         const sTag = _crTag(crSrc, crPets);
-        return { desc: _escDecomp(`bfins ${sTag}[${pos}:${pos+width-1}] \u2190 DR${crDst}`), compiler: false };
+        return { desc: _escDecomp(`bfins${cc} ${sTag}[${pos}:${pos+width-1}] \u2190 DR${crDst}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 14) {
         const dV = sim && sim.dr ? (sim.dr[crDst] >>> 0) : null;
         const sV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
         const vals = (dV !== null && sV !== null) ? ` (${_fmtVal(dV)} vs ${_fmtVal(sV)})` : '';
-        return { desc: _escDecomp(`mcmp DR${crDst}, DR${crSrc}${vals}`), compiler: false };
+        return { desc: _escDecomp(`mcmp${cc} DR${crDst}, DR${crSrc}${vals}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 15 || opcode === 16) {
@@ -2166,19 +2193,21 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
             const immVal = imm & 0x3FFF;
             const res = opcode === 15 ? ((srcV + immVal) >>> 0) : ((srcV - immVal) >>> 0);
             const valStr = srcV !== null ? ` (${_fmtVal(srcV)}${op}${immVal}=${_fmtVal(res)})` : '';
-            return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${op} #${immVal}${valStr}`), compiler: false };
+            return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${op} #${immVal}${valStr}${ccDesc}`), compiler: false };
         } else {
             const drOp = imm & 0xF;
             const opV = sim && sim.dr ? (sim.dr[drOp] >>> 0) : null;
             const res = opcode === 15 ? ((srcV + opV) >>> 0) : ((srcV - opV) >>> 0);
             const valStr = (srcV !== null && opV !== null) ? ` (${_fmtVal(srcV)}${op}${_fmtVal(opV)}=${_fmtVal(res)})` : '';
-            return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${op} DR${drOp}${valStr}`), compiler: false };
+            return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${op} DR${drOp}${valStr}${ccDesc}`), compiler: false };
         }
     }
 
     if (opcode === 17) {
         const soff = (imm & 0x4000) ? (imm | 0xFFFF8000) : imm;
-        return { desc: `branch ${soff > 0 ? '+' : ''}${soff}`, compiler: false };
+        const condLabel = cc || 'AL';
+        const condExplain = cond === 14 ? ' [always]' : ` [${_condDescs[cond]}]`;
+        return { desc: _escDecomp(`branch${cc} ${soff > 0 ? '+' : ''}${soff}${condExplain}`), compiler: false };
     }
 
     if (opcode === 18) {
@@ -2186,7 +2215,7 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
         const srcV = sim && sim.dr ? (sim.dr[crSrc] >>> 0) : null;
         const res = (srcV << shamt) >>> 0;
         const valStr = srcV !== null ? ` (${_fmtVal(srcV)}\u00AB${shamt}=${_fmtVal(res)})` : '';
-        return { desc: _escDecomp(`DR${crDst}= DR${crSrc} \u00AB ${shamt}${valStr}`), compiler: false };
+        return { desc: _escDecomp(`DR${crDst}= DR${crSrc} \u00AB ${shamt}${valStr}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 19) {
@@ -2196,7 +2225,7 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
         const sym = arith ? '\u00BB\u00BB' : '\u00BB';
         const res = arith ? (srcV >> shamt) : (srcV >>> shamt);
         const valStr = srcV !== null ? ` (${_fmtVal(srcV)}${sym}${shamt}=${_fmtVal(res)})` : '';
-        return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${sym} ${shamt}${valStr}`), compiler: false };
+        return { desc: _escDecomp(`DR${crDst}= DR${crSrc} ${sym} ${shamt}${valStr}${ccDesc}`), compiler: false };
     }
 
     if (stored && stored[addr]) {
