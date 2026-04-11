@@ -549,8 +549,9 @@ def library_publish():
     if not methods or not any(m.get("code") for m in methods):
         return jsonify({"error": "Cannot publish empty abstraction — compiled methods required"}), 400
 
-    if not payload.get("simTestPassed"):
-        return jsonify({"error": "Simulator test required — code must halt cleanly before publishing"}), 400
+    mtbf = payload.get("mtbfScore", 0)
+    if not isinstance(mtbf, int) or mtbf < 5:
+        return jsonify({"error": f"MTBF too low — publish requires 5 consecutive clean runs (you have {mtbf})"}), 400
 
     if not payload.get("openSourceConsent"):
         return jsonify({"error": "Open Source membership required — accept the CLOOMC Open Source licence in Settings"}), 400

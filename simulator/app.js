@@ -89,8 +89,8 @@
 const POPUPS_DISABLED = false;
 
 let sim = null;
-let _simTestPassed = false;
-let _simTestHash = '';
+let _simRunHistory = [];
+let _simRunHash = '';
 let assembler = null;
 let pipelineViz = null;
 let repl = null;
@@ -1703,22 +1703,46 @@ function _quickHash(str) {
     return (h >>> 0).toString(16);
 }
 
-function _isSimTestValid() {
-    if (!_simTestPassed) return false;
-    const ed = document.getElementById('asmEditor');
-    if (!ed) return false;
-    return _quickHash(ed.value) === _simTestHash;
+function _getConsecutiveCleanRuns() {
+    if (!_simRunHash) return 0;
+    let count = 0;
+    for (let i = _simRunHistory.length - 1; i >= 0; i--) {
+        const r = _simRunHistory[i];
+        if (r.hash !== _simRunHash) break;
+        if (!r.passed) break;
+        count++;
+    }
+    return count;
+}
+
+function _updateMtbfIndicator() {
+    const el = document.getElementById('mtbfIndicator');
+    if (!el) return;
+    const n = _getConsecutiveCleanRuns();
+    const total = _simRunHistory.filter(r => r.hash === _simRunHash).length;
+    if (!_simRunHash || total === 0) {
+        el.textContent = 'MTBF: —';
+        el.className = 'mtbf-badge mtbf-red';
+    } else {
+        el.textContent = `MTBF: ${n}/${total}`;
+        el.className = 'mtbf-badge ' + (n >= 5 ? 'mtbf-green' : n >= 3 ? 'mtbf-amber' : 'mtbf-red');
+    }
 }
 
 function patchSimulator() {
-    _simTestPassed = false;
-    _simTestHash = '';
     const logEl = document.getElementById('crInjectLog');
     if (logEl) { logEl.style.display = 'block'; logEl.textContent = ''; }
     const result = injectCRCode(logEl);
     const logText = logEl ? logEl.textContent.trim() : '';
     showPatchModal(!!result, 'Patch Simulator', logText);
     if (result) {
+        const wordsStr = (result.newWords || []).map(w => (w >>> 0).toString(16)).join(',');
+        const newHash = _quickHash(wordsStr);
+        if (newHash !== _simRunHash) {
+            _simRunHistory = [];
+            _simRunHash = newHash;
+        }
+        _updateMtbfIndicator();
         updateCRDetail();
         runSim();
     }
@@ -1754,8 +1778,9 @@ async function patchFPGA() {
  * over UART — no recomputation needed.
  */
 function exportPatchFile() {
-    if (!_isSimTestValid()) {
-        appendOutput('Export Patch blocked — run your code in the simulator first. Click Patch, then Run. The code must halt cleanly with no faults before you can export. If you edited the code after testing, you must re-test.', 'error');
+    const cleanRuns = _getConsecutiveCleanRuns();
+    if (cleanRuns < 3) {
+        appendOutput(`Export Patch blocked — requires 3 consecutive clean runs (you have ${cleanRuns}). Click Patch then Run repeatedly. The code must halt cleanly with no faults each time.`, 'error');
         return;
     }
 
@@ -6104,10 +6129,11 @@ function runSim() {
         console.log('[finishRun] stopReason=', stopReason, 'halted=', sim.halted, 'bootComplete=', sim.bootComplete, 'faultLog=', sim.faultLog.length, 'steps=', totalSteps);
         if (sim.faultLog.length > 0) console.log('[finishRun] FAULTS:', JSON.stringify(sim.faultLog.map(f => f.type + ': ' + f.message)));
         const ranClean = (stopReason === 'halted' || sim.halted) && sim.faultLog.length === 0;
-        if (ranClean) {
-            _simTestPassed = true;
-            const ed = document.getElementById('asmEditor');
-            _simTestHash = ed ? _quickHash(ed.value) : '';
+        const countable = stopReason !== 'breakpoint' && stopReason !== 'bootExit'
+            && sim.bootComplete && totalSteps >= 1;
+        if (countable && _simRunHash) {
+            _simRunHistory.push({ hash: _simRunHash, passed: ranClean, ts: Date.now() });
+            _updateMtbfIndicator();
         }
         if (con) {
             let status = 'Stopped.';
@@ -14965,8 +14991,9 @@ function filterLibrary() {
 function publishToLibrary() {
     if (!requirePermission('publish', 'Publish to Library')) return;
 
-    if (!_isSimTestValid()) {
-        appendOutput('Publish blocked — run your code in the simulator first. Click Patch, then Run. The code must halt cleanly with no faults before you can publish. If you edited the code after testing, you must re-test.', 'error');
+    const cleanRuns = _getConsecutiveCleanRuns();
+    if (cleanRuns < 5) {
+        appendOutput(`Publish blocked — requires 5 consecutive clean runs (you have ${cleanRuns}). Click Patch then Run repeatedly. The code must halt cleanly with no faults each time.`, 'error');
         return;
     }
 
@@ -15030,7 +15057,9 @@ async function confirmPublish() {
         doc: doc,
         source: source,
         profile: result.profile || 'IoT',
-        simTestPassed: _isSimTestValid(),
+        simTestPassed: _getConsecutiveCleanRuns() >= 5,
+        mtbfScore: _getConsecutiveCleanRuns(),
+        totalRuns: _simRunHistory.filter(r => r.hash === _simRunHash).length,
         openSourceConsent: !!settings.openSource
     };
 

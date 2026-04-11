@@ -10231,6 +10231,18 @@ tr.itrace-fault td { color: #ff9999; }
     cursor: pointer;
 }
 .editor-patch-btn-close:hover { border-color: #e74c3c !important; color: #e74c3c !important; }
+.mtbf-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+}
+.mtbf-red   { background: #3a1111; color: #f87171; border: 1px solid #7f1d1d; }
+.mtbf-amber { background: #3a2a0a; color: #fbbf24; border: 1px solid #78350f; }
+.mtbf-green { background: #0a3a1a; color: #4ade80; border: 1px solid #14532d; }
 @media (max-width: 768px) {
     .gh-repos-row, .gh-section-grid, .gh-actions-row { grid-template-columns: 1fr; }
 }
