@@ -7,10 +7,10 @@ The browser IDE talks to this script over HTTP; this script talks to the FPGA
 over UART.
 
 Usage:
-    python3 server/local_bridge.py [port] [baud] [http_port]
+    python3 server/local_bridge.py [port] [baud] [http_port] [--ide=URL]
 
 Defaults:
-    port      = /dev/ttyUSB3
+    port      = /dev/ttyUSB1
     baud      = 115200
     http_port = 8766
 
