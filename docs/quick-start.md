@@ -50,8 +50,7 @@ You do not need a board to start. Open the Church Machine IDE in your
 browser and begin writing code immediately.
 
 1. Open the Church Machine IDE
-2. Click the **Boot** button in the toolbar — the simulator initialises
-   every capability register, loads the namespace, and puts the core
+2. Click the **Boot** button in the toolbar — the simulator controls every capability register, loads the namespace, and puts the core
    into HALT, just like real hardware. You now have a running Church
    Machine in your browser.
 3. Click **CRs** in the toolbar to see the capability registers
