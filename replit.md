@@ -59,3 +59,6 @@ The web IDE offers ten views (Math, Code, Tutorial, Dashboard, Namespace, Abstra
 - **oss-cad-suite:** FPGA toolchain (`yosys`, `nextpnr-gowin`, `gowin_pack`, `openFPGALoader`).
 - **Ti60 Build Flow:** `./build_ti60.sh` or `make -C hardware ti60` generates synthesis-ready Verilog (`build/church_ti60_f225.v`), RTLIL, and a resource report (`build/ti60_resource_report.txt`). Design fits comfortably within Ti60 F225 (~14% LUTs, ~9% FFs, ~4% BRAM).
 - **GitHub:** Integrated for the Mum Tunnel shared abstraction library and project management.
+
+## Release History
+- **v0.11 – 2026-04-11:** HMAC build signatures replace single-byte build tag; `_verify_build_sig()` with constant-time comparison; `hardware/build_sig.py` helper; 17-byte call-home packet; Device model migrated to `build_sig`/`build_verified` columns; green/amber Official/Custom Build badges in Devices view.
