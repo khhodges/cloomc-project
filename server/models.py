@@ -1,4 +1,16 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float, func
+
+
+BOARD_TYPES = {
+    0x01: "TN20K-IoT",
+    0x02: "TN20K-Full",
+    0x03: "Ti60-Full",
+}
+
+PROFILE_NAMES = {
+    0x00: "IoT",
+    0x01: "Full",
+}
 
 
 def register_models(db):
@@ -20,4 +32,23 @@ def register_models(db):
         completed = Column(Integer, default=0)
         created_at = Column(DateTime, server_default=func.now())
 
-    return Project, TutorialProgress
+    class Device(db.Model):
+        __tablename__ = "devices"
+
+        id = Column(Integer, primary_key=True)
+        device_uid = Column(String(16), unique=True, nullable=False)
+        board_type = Column(Integer, nullable=False)
+        board_name = Column(String(32), default="")
+        profile = Column(String(8), default="Full")
+        fw_major = Column(Integer, default=1)
+        fw_minor = Column(Integer, default=0)
+        bridge_host = Column(String(255), default="")
+        bridge_port = Column(Integer, default=0)
+        serial_port = Column(String(128), default="")
+        status = Column(String(16), default="offline")
+        last_seen = Column(Float, default=0.0)
+        first_seen = Column(DateTime, server_default=func.now())
+        boot_count = Column(Integer, default=0)
+        label = Column(String(255), default="")
+
+    return Project, TutorialProgress, Device

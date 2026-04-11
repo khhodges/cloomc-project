@@ -42,10 +42,103 @@ _rx_buf    = bytearray()
 _rx_lock   = threading.Lock()
 _reader_running = False
 
+CALLHOME_MAGIC = bytes([0xCE, 0x11])
+CALLHOME_PKT_LEN = 13
+CALLHOME_ACK = bytes([0xCE, 0x22])
+
+_IDE_SERVER_URL = None
+_device_uid = None
+_heartbeat_running = False
+
+BOARD_TYPES = {
+    0x01: ("TN20K-IoT", "IoT"),
+    0x02: ("TN20K-Full", "Full"),
+    0x03: ("Ti60-Full", "Full"),
+}
+
+def _handle_callhome(pkt):
+    global _device_uid, _heartbeat_running
+    if len(pkt) < CALLHOME_PKT_LEN:
+        return
+    board_type = pkt[2]
+    fw_major = pkt[3]
+    fw_minor = pkt[4]
+    uid_bytes = pkt[5:13]
+    uid_hex = uid_bytes.hex()
+    _device_uid = uid_hex
+    board_name, profile = BOARD_TYPES.get(board_type, (f"Unknown-0x{board_type:02X}", "Full"))
+    print(f'  [CALL HOME] Board: {board_name}  FW: {fw_major}.{fw_minor}  UID: {uid_hex}')
+
+    with _ser_lock:
+        s = _ser
+    if s and s.is_open:
+        try:
+            s.write(CALLHOME_ACK)
+            print(f'  [CALL HOME] ACK sent to FPGA')
+        except Exception as e:
+            print(f'  [CALL HOME] ACK send failed: {e}')
+
+    if _IDE_SERVER_URL:
+        _register_with_ide(uid_hex, board_type, board_name, profile, fw_major, fw_minor)
+        if not _heartbeat_running:
+            _heartbeat_running = True
+            hb = threading.Thread(target=_heartbeat_thread, daemon=True)
+            hb.start()
+
+
+def _register_with_ide(uid, board_type, board_name, profile, fw_major, fw_minor):
+    import socket
+    try:
+        import urllib.request
+        payload = json.dumps({
+            "device_uid": uid,
+            "board_type": board_type,
+            "profile": profile,
+            "fw_major": fw_major,
+            "fw_minor": fw_minor,
+            "bridge_host": socket.gethostname(),
+            "bridge_port": HTTP_PORT,
+            "serial_port": SERIAL_PORT,
+        }).encode()
+        req = urllib.request.Request(
+            f"{_IDE_SERVER_URL}/api/device/register",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read())
+        if result.get("ok"):
+            print(f'  [CALL HOME] Registered with IDE — boot #{result.get("boot_count", "?")}')
+        else:
+            print(f'  [CALL HOME] IDE registration response: {result}')
+    except Exception as e:
+        print(f'  [CALL HOME] IDE registration failed: {e}')
+
+
+def _heartbeat_thread():
+    global _heartbeat_running
+    while _heartbeat_running and _device_uid and _IDE_SERVER_URL:
+        try:
+            import urllib.request
+            payload = json.dumps({"device_uid": _device_uid}).encode()
+            req = urllib.request.Request(
+                f"{_IDE_SERVER_URL}/api/device/heartbeat",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=10)
+        except Exception:
+            pass
+        time.sleep(60)
+
+
 # ── background reader ────────────────────────────────────────────────────────
 
 def _reader():
     global _ser, _rx_buf
+    callhome_scan = bytearray()
     while _reader_running:
         try:
             with _ser_lock:
@@ -54,8 +147,24 @@ def _reader():
                 waiting = s.in_waiting
                 if waiting:
                     chunk = s.read(waiting)
-                    with _rx_lock:
-                        _rx_buf.extend(chunk)
+                    callhome_scan.extend(chunk)
+                    while len(callhome_scan) >= 2:
+                        idx = callhome_scan.find(CALLHOME_MAGIC)
+                        if idx < 0:
+                            safe = max(0, len(callhome_scan) - 1)
+                            if safe > 0:
+                                with _rx_lock:
+                                    _rx_buf.extend(callhome_scan[:safe])
+                                callhome_scan = callhome_scan[safe:]
+                            break
+                        if idx > 0:
+                            with _rx_lock:
+                                _rx_buf.extend(callhome_scan[:idx])
+                            callhome_scan = callhome_scan[idx:]
+                        if len(callhome_scan) < CALLHOME_PKT_LEN:
+                            break
+                        _handle_callhome(bytes(callhome_scan[:CALLHOME_PKT_LEN]))
+                        callhome_scan = callhome_scan[CALLHOME_PKT_LEN:]
                 else:
                     time.sleep(0.005)
             else:
@@ -309,6 +418,11 @@ if __name__ == '__main__':
         _probe_bauds(port)
         sys.exit(0)
 
+    for a in sys.argv[1:]:
+        if a.startswith('--ide='):
+            _IDE_SERVER_URL = a[6:].rstrip('/')
+            break
+
     cert_path, key_path = _generate_self_signed_cert()
     use_https = cert_path is not None
 
@@ -321,6 +435,10 @@ if __name__ == '__main__':
     print(f'  Serial : {SERIAL_PORT} @ {BAUD} baud')
     print(f'  {scheme.upper():7s}: {scheme}://0.0.0.0:{HTTP_PORT}')
     print(f'  ChromeOS bridge URL: {scheme}://penguin.linux.test:{HTTP_PORT}')
+    if _IDE_SERVER_URL:
+        print(f'  IDE Server: {_IDE_SERVER_URL}')
+    else:
+        print(f'  IDE Server: (not configured — use --ide=URL to enable call-home)')
     print()
     if use_https:
         print('IMPORTANT — first time setup:')

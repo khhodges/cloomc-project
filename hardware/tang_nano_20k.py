@@ -450,6 +450,19 @@ class ChurchTangNano20K(Elaboratable):
         banner_byte = Signal(8)
         m.d.comb += banner_byte.eq(BANNER[banner_idx])
 
+        BOARD_TYPE_ID = 0x01 if self.iot_profile else 0x02
+        FW_MAJOR = 1
+        FW_MINOR = 0
+        DEVICE_UID = [0x54, 0x4E, 0x32, 0x30, 0x4B, 0x00, 0x00, 0x01]
+        CALLHOME_PKT = Array([C(v, 8) for v in [
+            0xCE, 0x11,
+            BOARD_TYPE_ID,
+            FW_MAJOR, FW_MINOR,
+        ] + DEVICE_UID])
+        callhome_idx = Signal(range(len(CALLHOME_PKT) + 1))
+        callhome_byte = Signal(8)
+        m.d.comb += callhome_byte.eq(CALLHOME_PKT[callhome_idx])
+
         HALT_MSG = Array([C(ord(c), 8) for c in "HALT\r\n"])
         halt_idx = Signal(range(len(HALT_MSG) + 1))
         halt_byte = Signal(8)
@@ -501,6 +514,18 @@ class ChurchTangNano20K(Elaboratable):
                             fsm_send_byte.eq(1),
                         ]
                         m.d.sync += banner_idx.eq(banner_idx + 1)
+                    with m.Else():
+                        m.d.sync += callhome_idx.eq(0)
+                        m.next = "CALL_HOME"
+
+            with m.State("CALL_HOME"):
+                with m.If(~debug.busy):
+                    with m.If(callhome_idx < len(CALLHOME_PKT)):
+                        m.d.comb += [
+                            fsm_byte_data.eq(callhome_byte),
+                            fsm_send_byte.eq(1),
+                        ]
+                        m.d.sync += callhome_idx.eq(callhome_idx + 1)
                     with m.Else():
                         m.next = "DUMP_NIA"
 

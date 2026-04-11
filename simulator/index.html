@@ -93,6 +93,7 @@
                             <button class="ham-item" id="hamItem-docs" onclick="switchView('docs');closeHamburger()">Docs</button>
                             <button class="ham-item" id="hamItem-gc" onclick="switchView('gc');closeHamburger()">GC</button>
                             <button class="ham-item" id="hamItem-github" onclick="switchView('github');closeHamburger()">GitHub</button>
+                            <button class="ham-item" id="hamItem-devices" onclick="switchView('devices');closeHamburger()">Devices</button>
                         </div>
                     </div>
                     <button class="btn btn-view cr-cycle-btn" id="crCycleBtn"
@@ -783,6 +784,21 @@
 
             <div class="gh-footer-message">
                 <a href="#" onclick="event.preventDefault();switchView('interactiveMath');closeHamburger();" class="gh-get-started-link">Get Started</a> — Have fun, don't worry, your mistakes will all be found and fixed. Above all, believe in a safe digital future we can all enjoy, built by the people, for the people.
+            </div>
+        </div>
+    </div>
+
+    <div id="devices" class="view">
+        <div class="devices-layout">
+            <div class="dev-header">
+                <div class="dev-header-left">
+                    <div class="gc-title">FPGA Devices</div>
+                    <div class="gc-sub">Registered boards and bridge connections</div>
+                </div>
+                <button class="gh-refresh-btn" onclick="loadDeviceList()" title="Refresh device list">&#x21BB;</button>
+            </div>
+            <div class="dev-grid" id="devGrid">
+                <div class="dev-empty">No devices registered. Connect a board via the local bridge to see it here.</div>
             </div>
         </div>
     </div>

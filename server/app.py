@@ -938,11 +938,127 @@ def download_fpga_package():
             return build_resp
     return download_fpga_zip()
 
+import time as _time
+
+DEVICE_ONLINE_TIMEOUT = 90
+
+@app.route("/api/device/register", methods=["POST"])
+def device_register():
+    data = request.get_json(silent=True) or {}
+    uid = data.get("device_uid", "").strip()
+    if not uid:
+        return jsonify({"ok": False, "error": "missing device_uid"}), 400
+    board_type = int(data.get("board_type", 0))
+    fw_major = int(data.get("fw_major", 1))
+    fw_minor = int(data.get("fw_minor", 0))
+    profile = data.get("profile", "Full")
+    bridge_host = data.get("bridge_host", "")
+    bridge_port = int(data.get("bridge_port", 0))
+    serial_port = data.get("serial_port", "")
+    now = _time.time()
+    dev = Device.query.filter_by(device_uid=uid).first()
+    if dev:
+        dev.board_type = board_type
+        dev.board_name = BOARD_TYPES.get(board_type, f"Unknown-0x{board_type:02X}")
+        dev.profile = profile
+        dev.fw_major = fw_major
+        dev.fw_minor = fw_minor
+        dev.bridge_host = bridge_host
+        dev.bridge_port = bridge_port
+        dev.serial_port = serial_port
+        dev.status = "online"
+        dev.last_seen = now
+        dev.boot_count = (dev.boot_count or 0) + 1
+    else:
+        dev = Device(
+            device_uid=uid,
+            board_type=board_type,
+            board_name=BOARD_TYPES.get(board_type, f"Unknown-0x{board_type:02X}"),
+            profile=profile,
+            fw_major=fw_major,
+            fw_minor=fw_minor,
+            bridge_host=bridge_host,
+            bridge_port=bridge_port,
+            serial_port=serial_port,
+            status="online",
+            last_seen=now,
+            boot_count=1,
+        )
+        db.session.add(dev)
+    db.session.commit()
+    logging.info("Device registered: %s (%s) via %s:%s",
+                 uid, dev.board_name, bridge_host, bridge_port)
+    return jsonify({
+        "ok": True,
+        "device_id": dev.id,
+        "board_name": dev.board_name,
+        "boot_count": dev.boot_count,
+    })
+
+
+@app.route("/api/device/heartbeat", methods=["POST"])
+def device_heartbeat():
+    data = request.get_json(silent=True) or {}
+    uid = data.get("device_uid", "").strip()
+    if not uid:
+        return jsonify({"ok": False}), 400
+    dev = Device.query.filter_by(device_uid=uid).first()
+    if not dev:
+        return jsonify({"ok": False, "error": "unknown device"}), 404
+    dev.status = "online"
+    dev.last_seen = _time.time()
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/device/list")
+def device_list():
+    now = _time.time()
+    devs = Device.query.order_by(Device.last_seen.desc()).all()
+    result = []
+    for d in devs:
+        is_online = (now - (d.last_seen or 0)) < DEVICE_ONLINE_TIMEOUT
+        if d.status == "online" and not is_online:
+            d.status = "offline"
+        result.append({
+            "id": d.id,
+            "device_uid": d.device_uid,
+            "board_type": d.board_type,
+            "board_name": d.board_name,
+            "profile": d.profile,
+            "fw_version": f"{d.fw_major}.{d.fw_minor}",
+            "bridge_host": d.bridge_host,
+            "bridge_port": d.bridge_port,
+            "serial_port": d.serial_port,
+            "status": "online" if is_online else "offline",
+            "last_seen": d.last_seen,
+            "boot_count": d.boot_count,
+            "label": d.label or "",
+        })
+    db.session.commit()
+    return jsonify({"ok": True, "devices": result})
+
+
+@app.route("/api/device/<int:device_id>/label", methods=["POST"])
+def device_set_label(device_id):
+    data = request.get_json(silent=True) or {}
+    dev = Device.query.get(device_id)
+    if not dev:
+        return jsonify({"ok": False}), 404
+    dev.label = data.get("label", "")[:255]
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+Device = None
+Project = None
+TutorialProgress = None
+
 with app.app_context():
     import sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from server.models import register_models
-    Project, TutorialProgress = register_models(db)
+    from server.models import register_models, BOARD_TYPES, PROFILE_NAMES
+    Project, TutorialProgress, Device = register_models(db)
     db.create_all()
     logging.info("Database tables created")
 

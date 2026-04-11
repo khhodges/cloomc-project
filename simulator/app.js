@@ -460,6 +460,7 @@ function switchView(viewId) {
     if (viewId === 'pipeline') pipelineViz.render();
     if (viewId === 'builder' && typeof initBuilder === 'function') initBuilder();
     if (viewId === 'builder') initHardwareBuildPanel();
+    if (viewId === 'devices') loadDeviceList();
     if (viewId === 'editor') {
         if (!_editorCREditActive) {
             if (activeUserTabId && userTabDirty) saveActiveUserTab();
@@ -15677,5 +15678,65 @@ function initCodeCopyButtons() {
         }
     });
     observer.observe(document.body, { childList: true, subtree: true });
+}
+
+function loadDeviceList() {
+    const grid = document.getElementById('devGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="dev-empty">Loading...</div>';
+    fetch('/api/device/list')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok || !data.devices || data.devices.length === 0) {
+                grid.innerHTML = '<div class="dev-empty">No devices registered. Connect a board via the local bridge to see it here.</div>';
+                return;
+            }
+            grid.innerHTML = '';
+            data.devices.forEach(dev => {
+                const isOnline = dev.status === 'online';
+                const profileClass = dev.profile === 'IoT' ? 'dev-badge-iot' : 'dev-badge-full';
+                const lastSeen = dev.last_seen ? new Date(dev.last_seen * 1000).toLocaleString() : 'never';
+                const card = document.createElement('div');
+                card.className = 'dev-card';
+                card.innerHTML =
+                    '<div class="dev-status-dot ' + (isOnline ? 'online' : 'offline') + '"></div>' +
+                    '<div class="dev-info">' +
+                        '<div class="dev-name">' + _escHtml(dev.board_name) + '</div>' +
+                        '<div class="dev-meta">' +
+                            '<span>UID: ' + _escHtml(dev.device_uid) + '</span>' +
+                            '<span>FW: ' + _escHtml(dev.fw_version) + '</span>' +
+                            '<span>Boots: ' + dev.boot_count + '</span>' +
+                            '<span>Seen: ' + _escHtml(lastSeen) + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<span class="dev-badge ' + profileClass + '">' + _escHtml(dev.profile) + '</span>' +
+                    '<input class="dev-label-input" placeholder="Label" value="' + _escHtml(dev.label || '') + '" ' +
+                        'onchange="setDeviceLabel(' + dev.id + ', this.value)" />' +
+                    '<div class="dev-actions">' +
+                        '<button class="dev-action-btn" onclick="deviceDeploy(' + dev.id + ')" title="Deploy bitstream to this device">Deploy</button>' +
+                    '</div>';
+                grid.appendChild(card);
+            });
+        })
+        .catch(() => {
+            grid.innerHTML = '<div class="dev-empty">Failed to load devices.</div>';
+        });
+}
+
+function _escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setDeviceLabel(deviceId, label) {
+    fetch('/api/device/' + deviceId + '/label', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: label })
+    });
+}
+
+function deviceDeploy(deviceId) {
+    alert('Deploy to device #' + deviceId + ' — coming soon.');
 }
 
