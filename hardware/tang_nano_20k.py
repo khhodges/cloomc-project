@@ -40,11 +40,12 @@ class GowinBSRAM(Elaboratable):
 
 
 class ChurchTangNano20K(Elaboratable):
-    def __init__(self, clk_freq=27_000_000, baud=115200, sim_mode=False, iot_profile=False):
+    def __init__(self, clk_freq=27_000_000, baud=115200, sim_mode=False, iot_profile=False, community_build=False):
         self.clk_freq = clk_freq
         self.baud = baud
         self.sim_mode = sim_mode
         self.iot_profile = iot_profile
+        self.community_build = community_build
 
         self.uart_tx = Signal(init=1)
         self.uart_rx = Signal()
@@ -453,11 +454,13 @@ class ChurchTangNano20K(Elaboratable):
         BOARD_TYPE_ID = 0x01 if self.iot_profile else 0x02
         FW_MAJOR = 1
         FW_MINOR = 0
+        BUILD_TAG = 0xAA if not getattr(self, 'community_build', False) else 0x00
         DEVICE_UID = [0x54, 0x4E, 0x32, 0x30, 0x4B, 0x00, 0x00, 0x01]
         CALLHOME_PKT = Array([C(v, 8) for v in [
             0xCE, 0x11,
             BOARD_TYPE_ID,
             FW_MAJOR, FW_MINOR,
+            BUILD_TAG,
         ] + DEVICE_UID])
         callhome_idx = Signal(range(len(CALLHOME_PKT) + 1))
         callhome_byte = Signal(8)

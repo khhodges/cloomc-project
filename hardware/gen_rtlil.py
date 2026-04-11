@@ -36,7 +36,7 @@ def _rtlil_to_verilog(il_path, v_path):
 def generate_rtlil_tang_nano(output_dir="build"):
     os.makedirs(output_dir, exist_ok=True)
 
-    top = ChurchTangNano20K(clk_freq=27_000_000, baud=115200, sim_mode=False)
+    top = ChurchTangNano20K(clk_freq=27_000_000, baud=115200, sim_mode=False, community_build=True)
 
     ports = [
         top.uart_tx, top.uart_rx, top.push_button,
@@ -59,7 +59,7 @@ def generate_rtlil_tang_nano(output_dir="build"):
 def generate_rtlil_ti60(output_dir="build"):
     os.makedirs(output_dir, exist_ok=True)
 
-    top = ChurchTi60F225(clk_freq=50_000_000, baud=115200, sim_mode=False)
+    top = ChurchTi60F225(clk_freq=50_000_000, baud=115200, sim_mode=False, community_build=True)
 
     ports = [
         top.uart_tx, top.uart_rx, top.push_button,

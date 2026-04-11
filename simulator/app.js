@@ -15917,6 +15917,7 @@ function loadDeviceList() {
                         '<div class="dev-deploy-status" style="display:none;"></div>' +
                     '</div>' +
                     '<span class="dev-badge ' + profileClass + '">' + _escHtml(dev.profile) + '</span>' +
+                    '<span class="dev-badge ' + (dev.official ? 'dev-badge-official' : 'dev-badge-custom') + '">' + (dev.official ? 'Official' : 'Custom Build') + '</span>' +
                     '<input class="dev-label-input" placeholder="Label" value="' + _escHtml(dev.label || '') + '" ' +
                         'onchange="setDeviceLabel(' + dev.id + ', this.value)" />' +
                     '<div class="dev-actions">' +
