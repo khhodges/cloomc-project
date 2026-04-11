@@ -9,6 +9,7 @@ OUTFORM_FAULT_ALLOC  = 0x16
 OUTFORM_FAULT_MINT   = 0x17
 OUTFORM_FAULT_DEFL   = 0x18
 OUTFORM_FAULT_WIN    = 0x19
+OUTFORM_FAULT_RLE    = 0x1A
 
 ZIP_SIGNATURE  = 0x04034B50
 METHOD_STORE   = 0
@@ -177,6 +178,7 @@ class ChurchOutform(Elaboratable):
         defl_len_idx   = Signal(5,  name="defl_len_idx")
         defl_dist_code = Signal(5,  name="defl_dist_code")
         defl_rx_count  = Signal(32, name="defl_rx_count")
+        defl_bytes_out = Signal(32, name="defl_bytes_out")
         rle_rx_count   = Signal(32, name="rle_rx_count")
 
         rle_count     = Signal(8, name="rle_count")
@@ -424,6 +426,7 @@ class ChurchOutform(Elaboratable):
                         defl_bits   .eq(0),
                         defl_bit_cnt.eq(0),
                         defl_win_pos.eq(0),
+                        defl_bytes_out.eq(0),
                         defl_rx_count.eq(0),
                     ]
                     m.next = "DEFL_BLOCK_HDR"
@@ -528,8 +531,9 @@ class ChurchOutform(Elaboratable):
                     win_wr.en.eq(1),
                 ]
                 m.d.sync += [
-                    crc_acc     .eq(crc_next),
-                    defl_win_pos.eq(defl_win_pos + 1),
+                    crc_acc       .eq(crc_next),
+                    defl_win_pos  .eq(defl_win_pos + 1),
+                    defl_bytes_out.eq(defl_bytes_out + 1),
                 ]
                 with m.If(byte_buf_cnt == 3):
                     m.d.comb += [
@@ -655,7 +659,9 @@ class ChurchOutform(Elaboratable):
 
             with m.State("DEFL_COPY_RD"):
                 m.d.comb += self.outform_busy.eq(1)
-                with m.If((defl_copy_idx == 0) & ((defl_copy_dist == 0) | (defl_copy_dist > defl_win_pos))):
+                defl_hist_depth = Signal(32, name="defl_hist_depth")
+                m.d.comb += defl_hist_depth.eq(Mux(defl_bytes_out >= DEFL_WIN_SIZE, DEFL_WIN_SIZE, defl_bytes_out))
+                with m.If((defl_copy_idx == 0) & ((defl_copy_dist == 0) | (defl_copy_dist > defl_hist_depth))):
                     m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_WIN)
                     m.next = "FAULT"
                 with m.Else():
@@ -673,6 +679,7 @@ class ChurchOutform(Elaboratable):
                 m.d.sync += [
                     crc_acc       .eq(crc_next),
                     defl_win_pos  .eq(defl_win_pos + 1),
+                    defl_bytes_out.eq(defl_bytes_out + 1),
                     defl_copy_idx .eq(defl_copy_idx + 1),
                 ]
                 with m.If(byte_buf_cnt == 3):
@@ -711,7 +718,7 @@ class ChurchOutform(Elaboratable):
                     with m.If((wr_word_cnt == total_words) & (byte_buf_cnt == 0)):
                         m.next = "CHECK_CRC32"
                     with m.Else():
-                        m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_DEFL)
+                        m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_RLE)
                         m.next = "FAULT"
                 with m.Elif(self.rx_valid):
                     m.d.sync += [
@@ -723,7 +730,7 @@ class ChurchOutform(Elaboratable):
             with m.State("RLE_READ_LIT"):
                 m.d.comb += self.outform_busy.eq(1)
                 with m.If(rle_rx_count >= comp_size_reg):
-                    m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_DEFL)
+                    m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_RLE)
                     m.next = "FAULT"
                 with m.Elif(self.rx_valid):
                     m.d.sync += [
