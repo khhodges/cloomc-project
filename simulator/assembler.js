@@ -514,7 +514,8 @@ class ChurchAssembler {
             case 0: return `${mnemonic} CR${crDst}, CR${crSrc}, ${imm}`;
             case 1: return `${mnemonic} CR${crDst}, CR${crSrc}, ${imm}`;
             case 2: {
-                if (crSrc !== 0 || imm !== 0) return `${mnemonic} CR${crDst}, CR${crSrc}, ${imm}`;
+                if (imm !== 0) return `${mnemonic} CR${crDst}, CR${crSrc}, ${imm}`;
+                if (crSrc !== 0) return `${mnemonic} CR${crDst}, CR${crSrc}`;
                 return `${mnemonic} CR${crDst}`;
             }
             case 3: {
