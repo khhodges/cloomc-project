@@ -1,0 +1,52 @@
+{
+  "abstraction": "Constants",
+  "token": "00001200",
+  "ns_slot": 18,
+  "type": "abstraction",
+  "grants": [
+    "E"
+  ],
+  "capabilities": [],
+  "methods": [
+    {
+      "name": "Pi",
+      "code": [
+        "0x7f600003",
+        "0x7f060000",
+        "0x1f000000"
+      ]
+    },
+    {
+      "name": "E",
+      "code": [
+        "0x7f600002",
+        "0x7f060000",
+        "0x1f000000"
+      ]
+    },
+    {
+      "name": "Phi",
+      "code": [
+        "0x7f600001",
+        "0x7f060000",
+        "0x1f000000"
+      ]
+    },
+    {
+      "name": "Zero",
+      "code": [
+        "0x7f600000",
+        "0x7f060000",
+        "0x1f000000"
+      ]
+    },
+    {
+      "name": "One",
+      "code": [
+        "0x7f600001",
+        "0x7f060000",
+        "0x1f000000"
+      ]
+    }
+  ]
+}

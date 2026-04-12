@@ -1,5 +1,43 @@
 [
   {
+    "token": "00001200",
+    "abstraction": "Constants",
+    "ns_slot": 18,
+    "lump_size": 64,
+    "cw": 15,
+    "cc": 0,
+    "methods": [
+      {
+        "name": "Pi",
+        "offset": 0,
+        "length": 3
+      },
+      {
+        "name": "E",
+        "offset": 3,
+        "length": 3
+      },
+      {
+        "name": "Phi",
+        "offset": 6,
+        "length": 3
+      },
+      {
+        "name": "Zero",
+        "offset": 9,
+        "length": 3
+      },
+      {
+        "name": "One",
+        "offset": 12,
+        "length": 3
+      }
+    ],
+    "grants": [
+      "E"
+    ]
+  },
+  {
     "token": "00001000",
     "abstraction": "SlideRule",
     "ns_slot": 16,
