@@ -16427,6 +16427,116 @@ function setDeviceLabel(deviceId, label) {
     });
 }
 
+function _resolveNIA(nia) {
+    if (!nia || typeof sim === 'undefined' || !sim.readNSEntry || !sim.parseLumpHeader) {
+        return { raw: nia, label: '0x' + (nia >>> 0).toString(16).toUpperCase().padStart(4, '0') };
+    }
+    for (var nsIdx = 0; nsIdx < (sim.nsCount || 0); nsIdx++) {
+        var entry = sim.readNSEntry(nsIdx);
+        if (!entry) continue;
+        var loc = entry.word0_location >>> 0;
+        if (loc >= sim.memory.length) continue;
+        var hdrWord = sim.memory[loc] >>> 0;
+        var hdr = sim.parseLumpHeader(hdrWord);
+        if (!hdr.valid || hdr.cw === 0) continue;
+        var codeStart = loc + 1;
+        var codeEnd = codeStart + hdr.cw - 1;
+        if (nia >= codeStart && nia <= codeEnd) {
+            var offset = nia - codeStart;
+            var absName = sim.nsLabels[nsIdx] || ('NS[' + nsIdx + ']');
+            var absObj = (typeof abstractionRegistry !== 'undefined') ? abstractionRegistry.getAbstraction(nsIdx) : null;
+            var methodName = '';
+            if (absObj && absObj.result && absObj.result.methods) {
+                methodName = absObj.result.methods[0] || '';
+            }
+            return {
+                raw: nia,
+                nsIdx: nsIdx,
+                absName: absName,
+                method: methodName,
+                offset: offset,
+                label: absName + (methodName ? '.' + methodName : '') + ':' + offset
+            };
+        }
+    }
+    return { raw: nia, label: '0x' + (nia >>> 0).toString(16).toUpperCase().padStart(4, '0') };
+}
+
+var _faultTypeNames = {
+    0:'NONE',1:'PERM_R',2:'PERM_W',3:'PERM_X',4:'PERM_L',5:'PERM_S',
+    6:'PERM_E',7:'NULL_CAP',8:'BOUNDS',9:'VERSION',10:'SEAL',
+    11:'INVALID_OP',12:'TPERM_RSV',13:'DOMAIN_PURITY',14:'BIND',
+    15:'F_BIT',16:'STACK_OVERFLOW',17:'ABSENT_OUTFORM',
+    18:'STACK_CORRUPT',19:'STACK_UNDERFLOW'
+};
+
+function showDeviceFaultLog(deviceUid) {
+    fetch('/api/device/faults' + (deviceUid ? '?device_uid=' + encodeURIComponent(deviceUid) : ''))
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok) return;
+            var events = data.events || [];
+            var mtbfMap = data.mtbf_by_nia || {};
+
+            var html = '<div class="fault-log-container">';
+            html += '<div class="fault-log-title">MTBF by Instruction Address</div>';
+
+            var niaKeys = Object.keys(mtbfMap);
+            if (niaKeys.length === 0) {
+                html += '<div class="fault-log-empty">No fault events recorded.</div>';
+            } else {
+                html += '<table class="fault-mtbf-table"><thead><tr>' +
+                    '<th>Address</th><th>Location</th><th>Faults</th><th>MTBF</th>' +
+                    '</tr></thead><tbody>';
+                niaKeys.forEach(function(niaStr) {
+                    var nia = parseInt(niaStr);
+                    var resolved = _resolveNIA(nia);
+                    var info = mtbfMap[niaStr];
+                    var mtbfStr = info.mtbf !== null ? _formatMTBF(info.mtbf) : '\u2014';
+                    var mtbfClass = info.mtbf === null ? '' : (info.mtbf > 3600 ? 'mtbf-cell-green' : info.mtbf > 300 ? 'mtbf-cell-amber' : 'mtbf-cell-red');
+                    html += '<tr>' +
+                        '<td class="fault-addr">0x' + (nia >>> 0).toString(16).toUpperCase().padStart(4, '0') + '</td>' +
+                        '<td class="fault-loc">' + _escHtml(resolved.label) + '</td>' +
+                        '<td class="fault-count">' + info.count + '</td>' +
+                        '<td class="fault-mtbf ' + mtbfClass + '">' + mtbfStr + '</td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+
+            html += '<div class="fault-log-title" style="margin-top:1rem;">Recent Fault Events</div>';
+            if (events.length === 0) {
+                html += '<div class="fault-log-empty">No fault events.</div>';
+            } else {
+                html += '<table class="fault-events-table"><thead><tr>' +
+                    '<th>Time</th><th>Device</th><th>Fault</th><th>Location</th>' +
+                    '</tr></thead><tbody>';
+                events.slice(0, 50).forEach(function(ev) {
+                    var resolved = _resolveNIA(ev.fault_nia);
+                    var fName = _faultTypeNames[ev.fault_type] || ('0x' + ev.fault_type.toString(16));
+                    var ts = ev.timestamp ? new Date(ev.timestamp * 1000).toLocaleString() : '—';
+                    html += '<tr>' +
+                        '<td class="fault-ts">' + _escHtml(ts) + '</td>' +
+                        '<td class="fault-dev">' + _escHtml(ev.device_uid) + '</td>' +
+                        '<td class="dev-fault-badge">' + _escHtml(fName) + '</td>' +
+                        '<td class="fault-loc">' + _escHtml(resolved.label) + '</td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+            html += '</div>';
+
+            showModal('Fault Log \u2014 MTBF per Instruction', html);
+        });
+}
+
+function _formatMTBF(seconds) {
+    if (seconds >= 86400) return (seconds / 86400).toFixed(1) + 'd';
+    if (seconds >= 3600) return (seconds / 3600).toFixed(1) + 'h';
+    if (seconds >= 60) return (seconds / 60).toFixed(1) + 'm';
+    return seconds.toFixed(1) + 's';
+}
+
 function _buildDeployFramesFromNS(nsIdx) {
     if (typeof sim === 'undefined' || !sim.readNSEntry) return null;
     var entry = sim.readNSEntry(nsIdx);

@@ -1312,6 +1312,18 @@ def device_register():
         )
         db.session.add(dev)
     db.session.commit()
+    if boot_reason == 2 and last_fault:
+        fe = FaultEvent(
+            device_uid=uid,
+            fault_type=last_fault,
+            fault_nia=fault_nia,
+            boot_reason=boot_reason,
+            timestamp=now,
+        )
+        db.session.add(fe)
+        db.session.commit()
+        logging.info("Fault event logged: device=%s fault=0x%02X nia=0x%08X", uid, last_fault, fault_nia)
+
     logging.info("Device registered: %s (%s) via %s:%s",
                  uid, dev.board_name, bridge_host, bridge_port)
     return jsonify({
@@ -1368,6 +1380,38 @@ def device_list():
         })
     db.session.commit()
     return jsonify({"ok": True, "devices": result})
+
+
+@app.route("/api/device/faults")
+def device_fault_log():
+    uid = request.args.get("device_uid", "").strip()
+    events = FaultEvent.query
+    if uid:
+        events = events.filter_by(device_uid=uid)
+    events = events.order_by(FaultEvent.timestamp.desc()).limit(500).all()
+    result = []
+    for e in events:
+        result.append({
+            "id": e.id,
+            "device_uid": e.device_uid,
+            "fault_type": e.fault_type,
+            "fault_nia": e.fault_nia,
+            "boot_reason": e.boot_reason,
+            "timestamp": e.timestamp,
+        })
+    mtbf_by_nia = {}
+    from collections import defaultdict
+    nia_times = defaultdict(list)
+    for e in reversed(events):
+        nia_times[e.fault_nia].append(e.timestamp)
+    for nia, times in nia_times.items():
+        if len(times) < 2:
+            mtbf_by_nia[str(nia)] = {"count": len(times), "mtbf": None}
+        else:
+            intervals = [times[i+1] - times[i] for i in range(len(times)-1)]
+            avg = sum(intervals) / len(intervals) if intervals else 0
+            mtbf_by_nia[str(nia)] = {"count": len(times), "mtbf": round(avg, 2)}
+    return jsonify({"ok": True, "events": result, "mtbf_by_nia": mtbf_by_nia})
 
 
 @app.route("/api/device/<int:device_id>/label", methods=["POST"])
@@ -1464,7 +1508,7 @@ with app.app_context():
     import sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from server.models import register_models, BOARD_TYPES, PROFILE_NAMES
-    Project, TutorialProgress, Device = register_models(db)
+    Project, TutorialProgress, Device, FaultEvent = register_models(db)
     db.create_all()
 
     from sqlalchemy import inspect as _sa_inspect, text as _sa_text

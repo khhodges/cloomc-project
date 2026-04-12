@@ -10486,3 +10486,43 @@ tr.itrace-fault td { color: #ff9999; }
 .deploy-program-option:hover { background: #2a2a2a; }
 .deploy-program-option input[type="radio"] { accent-color: var(--church-gold, #daa520); }
 .deploy-program-list { border: 1px solid #333; border-radius: 4px; padding: 0.3rem; }
+.dev-fault-log-btn {
+    background: #3a1a1a;
+    border: 1px solid #8a2222;
+    color: #ef5350;
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.dev-fault-log-btn:hover { background: #4a2222; color: #fff; }
+.fault-log-container { font-size: 0.85rem; max-height: 60vh; overflow-y: auto; }
+.fault-log-title { font-weight: 700; color: var(--church-gold, #daa520); margin-bottom: 0.5rem; font-size: 0.9rem; }
+.fault-log-empty { color: #888; font-style: italic; padding: 0.5rem 0; }
+.fault-mtbf-table, .fault-events-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.fault-mtbf-table th, .fault-events-table th {
+    text-align: left;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #444;
+    color: #aaa;
+    font-weight: 600;
+}
+.fault-mtbf-table td, .fault-events-table td {
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid #2a2a2a;
+}
+.fault-addr { font-family: monospace; color: #7dd3fc; }
+.fault-loc { font-family: monospace; color: #e8b84a; }
+.fault-count { text-align: center; }
+.fault-mtbf { font-weight: 600; }
+.fault-ts { color: #888; font-size: 0.78rem; }
+.fault-dev { color: #aaa; }
+.mtbf-cell-green { color: #4ade80; }
+.mtbf-cell-amber { color: #fbbf24; }
+.mtbf-cell-red { color: #ef5350; }

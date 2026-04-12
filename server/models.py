@@ -57,4 +57,14 @@ def register_models(db):
         fault_nia = Column(Integer, default=0)
         label = Column(String(255), default="")
 
-    return Project, TutorialProgress, Device
+    class FaultEvent(db.Model):
+        __tablename__ = "fault_events"
+
+        id = Column(Integer, primary_key=True)
+        device_uid = Column(String(16), nullable=False)
+        fault_type = Column(Integer, nullable=False, default=0)
+        fault_nia = Column(Integer, nullable=False, default=0)
+        boot_reason = Column(Integer, default=0)
+        timestamp = Column(Float, default=0.0)
+
+    return Project, TutorialProgress, Device, FaultEvent
