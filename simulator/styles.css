@@ -4327,6 +4327,9 @@ a.next-step-link:hover {
     padding: 0.3rem;
     background: #0d1b2a;
     border-radius: 6px;
+    position: sticky;
+    top: 0;
+    z-index: 12;
 }
 
 .crd-tab {
@@ -4386,13 +4389,7 @@ a.next-step-link:hover {
     overflow-y: auto;
     max-height: calc(100vh - 105px);
 }
-/* Tabs row pins to top of the scroll area */
-.crd-content-thread .crd-tabs {
-    position: sticky;
-    top: 0;
-    z-index: 12;
-    /* retain its own bg so it covers content scrolling under it */
-}
+/* Tabs row already sticky via .crd-tabs base rule */
 /* Thread layout header pins below the tabs (~46px) */
 .crd-content-thread .thread-layout-sticky {
     top: 46px;
