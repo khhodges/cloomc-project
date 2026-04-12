@@ -262,6 +262,9 @@ class ChurchAssembler {
             }
             case 2: {
                 crDst = this._parseCR(parts[1], lineNum);
+                if (parts[2]) {
+                    this.errors.push({ line: lineNum, message: 'CALL takes exactly one operand (CALL CRn). Use ELOADCALL for c-list load + call.' });
+                }
                 break;
             }
             case 3: {
