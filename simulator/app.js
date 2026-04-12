@@ -2266,7 +2266,23 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
         const pet = crPets && crPets[crSrc];
         const rn = _regName(pet, imm);
         const offStr = rn ? `.${rn}` : `[${imm}]`;
-        return { desc: _escDecomp(`${verb}${cc} ${sTag}${offStr}${ccDesc}`), compiler: false };
+        const drV = sim && sim.dr ? (sim.dr[crDst] >>> 0) : null;
+        let valStr = '';
+        if (drV !== null) {
+            const nsCheckIdx = sim.cr && sim.cr[crSrc] ? sim.parseGT(sim.cr[crSrc].word0).index : -1;
+            if (nsCheckIdx === 12) {
+                valStr = ` (=${drV} → LED${imm} ${drV & 1 ? 'ON' : 'OFF'})`;
+            } else if (nsCheckIdx === 11) {
+                const uartReg = imm === 0 ? 'TX' : imm === 1 ? 'STATUS' : 'RX';
+                valStr = ` (=${drV} → UART.${uartReg})`;
+            } else if (nsCheckIdx === 14) {
+                const tReg = ['TICKS_LO','TICKS_HI','TOD_EPOCH','ALARM_CMP','ALARM_CTL'][imm] || 'reg';
+                valStr = ` (=${drV} → TIMER.${tReg})`;
+            } else {
+                valStr = ` (=${_fmtVal(drV)})`;
+            }
+        }
+        return { desc: _escDecomp(`${verb}${cc} DR${crDst}, ${sTag}${offStr}${valStr}${ccDesc}`), compiler: false };
     }
 
     if (opcode === 12) {
