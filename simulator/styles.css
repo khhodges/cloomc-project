@@ -513,10 +513,8 @@ header h1 {
 .code-pc-row td { color: var(--text-primary) !important; font-weight: 600; }
 .code-decompiled-hdr { color: var(--church-blue); min-width: 120px; }
 .br-arrow-hdr { width: 0; padding: 0 !important; border: none; }
-.br-arrow-col { padding: 0 0.15rem !important; font-family: monospace; font-size: 0.78rem; line-height: 1; white-space: nowrap; color: #666; vertical-align: middle; border-right: none !important; }
-.br-arrow-head { color: #e94560; font-size: 0.6rem; }
-.br-arrow-corner { color: #888; }
-.br-arrow-line { color: #555; }
+.br-arrow-col { padding: 0 !important; vertical-align: middle; border-left: none !important; border-right: none !important; line-height: 0; }
+.br-svg { display: block; }
 .code-decompiled { font-size: 0.82rem; padding-left: 0.6rem !important; border-left: 2px solid rgba(255,255,255,0.06); }
 .code-decompiled-compiler { color: #e0a040; font-style: italic; }
 .code-decompiled-user { color: #7ec8e3; }

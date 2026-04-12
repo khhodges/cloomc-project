@@ -1042,10 +1042,10 @@ function renderCListEntryDetail(nsIdx, entry) {
                         _cw1.push(a < sim.memory.length ? (sim.memory[a] >>> 0) : 0);
                     }
                     const _ba1 = _computeBranchArrows(_cw1);
-                    const _hba1 = _ba1.some(a => a !== '');
                     let codeHtml = '<table class="cr-table code-view-table"><thead><tr>';
-                    if (_hba1) codeHtml += '<th class="br-arrow-hdr"></th>';
-                    codeHtml += '<th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th><th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
+                    codeHtml += '<th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th>';
+                    if (_ba1.hasBranches) codeHtml += '<th class="br-arrow-hdr"></th>';
+                    codeHtml += '<th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
                     for (let w = 0; w < cw; w++) {
                         const addr = loc + 1 + w;
                         if (addr >= sim.memory.length) break;
@@ -1057,11 +1057,11 @@ function renderCListEntryDetail(nsIdx, entry) {
                         const _dcCls = _dc ? (_dc.compiler ? 'code-decompiled-compiler' : 'code-decompiled-user') : '';
                         const rowCls = isPC ? 'code-pc-row' : (_dc && _dc.compiler ? 'code-row-compiler' : '');
                         codeHtml += `<tr class="${rowCls}"${dimmed}>`;
-                        if (_hba1) codeHtml += `<td class="br-arrow-col">${_ba1[w]}</td>`;
                         codeHtml += `<td class="cr-idx">+${w + 1}</td>`;
                         codeHtml += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
                         codeHtml += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
                         codeHtml += `<td class="code-disasm">${decoded}</td>`;
+                        if (_ba1.hasBranches) codeHtml += `<td class="br-arrow-col">${_ba1.html[w]}</td>`;
                         codeHtml += `<td class="code-decompiled ${_dcCls}">${_dc ? _dc.desc : ''}</td>`;
                         codeHtml += '</tr>';
                     }
@@ -1126,10 +1126,10 @@ function renderCListEntryDetail(nsIdx, entry) {
                     _cw2.push(a < sim.memory.length ? (sim.memory[a] >>> 0) : 0);
                 }
                 const _ba2 = _computeBranchArrows(_cw2);
-                const _hba2 = _ba2.some(a => a !== '');
                 let codeHtml2 = '<table class="cr-table code-view-table"><thead><tr>';
-                if (_hba2) codeHtml2 += '<th class="br-arrow-hdr"></th>';
-                codeHtml2 += '<th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th><th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
+                codeHtml2 += '<th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th>';
+                if (_ba2.hasBranches) codeHtml2 += '<th class="br-arrow-hdr"></th>';
+                codeHtml2 += '<th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
                 for (let w = 0; w < clistStart2; w++) {
                     const addr = loc + w;
                     if (addr >= sim.memory.length) break;
@@ -1140,11 +1140,11 @@ function renderCListEntryDetail(nsIdx, entry) {
                     const _dc2Cls = _dc2 ? (_dc2.compiler ? 'code-decompiled-compiler' : 'code-decompiled-user') : '';
                     const rowCls2 = _dc2 && _dc2.compiler ? ' class="code-row-compiler"' : '';
                     codeHtml2 += `<tr${rowCls2}${dimmed}>`;
-                    if (_hba2) codeHtml2 += `<td class="br-arrow-col">${_ba2[w]}</td>`;
                     codeHtml2 += `<td class="cr-idx">+${w}</td>`;
                     codeHtml2 += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
                     codeHtml2 += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
                     codeHtml2 += `<td class="code-disasm">${decoded}</td>`;
+                    if (_ba2.hasBranches) codeHtml2 += `<td class="br-arrow-col">${_ba2.html[w]}</td>`;
                     codeHtml2 += `<td class="code-decompiled ${_dc2Cls}">${_dc2 ? _dc2.desc : ''}</td></tr>`;
                 }
                 codeHtml2 += '</tbody></table>';
@@ -2076,7 +2076,9 @@ function _resolveClistPetName(clistBase, imm, nsIdx) {
     return null;
 }
 
-function _computeBranchArrows(words, startIdx) {
+const _brColors = ['#e94560','#4ecdc4','#f7b731','#a55eea','#26de81','#fd9644','#45aaf2','#fc5c65'];
+
+function _computeBranchArrows(words) {
     const n = words.length;
     const branches = [];
     for (let i = 0; i < n; i++) {
@@ -2090,46 +2092,57 @@ function _computeBranchArrows(words, startIdx) {
             if (tgtRow >= 0 && tgtRow < n && tgtRow !== i) {
                 const top = Math.min(i, tgtRow);
                 const bot = Math.max(i, tgtRow);
-                branches.push({ src: i, tgt: tgtRow, top, bot });
+                branches.push({ src: i, tgt: tgtRow, top, bot, span: bot - top });
             }
         }
     }
-    branches.sort((a, b) => (a.bot - a.top) - (b.bot - b.top));
+    if (branches.length === 0) return { html: new Array(n).fill(''), hasBranches: false };
+    branches.sort((a, b) => a.span - b.span);
     for (let i = 0; i < branches.length; i++) {
         const b = branches[i];
         for (let lane = 0; lane < 8; lane++) {
             let ok = true;
             for (let j = 0; j < i; j++) {
                 if (branches[j].lane !== lane) continue;
-                const t2 = branches[j].top, b2 = branches[j].bot;
-                if (t2 <= b.bot && b2 >= b.top) { ok = false; break; }
+                if (branches[j].top <= b.bot && branches[j].bot >= b.top) { ok = false; break; }
             }
             if (ok) { b.lane = lane; break; }
         }
         if (b.lane === undefined) b.lane = 0;
+        b.color = _brColors[i % _brColors.length];
     }
-    if (branches.length === 0) return new Array(n).fill('');
     const maxLane = Math.max(...branches.map(b => b.lane)) + 1;
+    const laneW = 7;
+    const tickW = 5;
+    const svgW = maxLane * laneW + tickW + 2;
+    const h = 18;
+    const mid = h / 2;
     const result = [];
     for (let row = 0; row < n; row++) {
-        let segs = new Array(maxLane).fill('\u2003');
+        let lines = '';
         for (const b of branches) {
-            const l = b.lane;
-            if (row === b.tgt) {
-                segs[l] = '<span class="br-arrow-head">\u25B6</span>';
-            } else if (row === b.src) {
-                segs[l] = (b.tgt < b.src) ? '<span class="br-arrow-corner">\u2570</span>' : '<span class="br-arrow-corner">\u256D</span>';
-            } else if (row > b.top && row < b.bot) {
-                segs[l] = '<span class="br-arrow-line">\u2502</span>';
-            } else if (row === b.top && row !== b.tgt && row !== b.src) {
-                segs[l] = '<span class="br-arrow-corner">\u256D</span>';
-            } else if (row === b.bot && row !== b.tgt && row !== b.src) {
-                segs[l] = '<span class="br-arrow-corner">\u2570</span>';
+            if (row < b.top || row > b.bot) continue;
+            const x = svgW - tickW - (b.lane * laneW) - 2;
+            const col = b.color;
+            if (row === b.top) {
+                lines += `<line x1="${x}" y1="${mid}" x2="${x}" y2="${h}" stroke="${col}" stroke-width="1.5"/>`;
+                lines += `<line x1="${x}" y1="${mid}" x2="${svgW}" y2="${mid}" stroke="${col}" stroke-width="1.5"/>`;
+                if (row === b.tgt) lines += `<polygon points="${svgW},${mid} ${svgW-4},${mid-3} ${svgW-4},${mid+3}" fill="${col}"/>`;
+            } else if (row === b.bot) {
+                lines += `<line x1="${x}" y1="0" x2="${x}" y2="${mid}" stroke="${col}" stroke-width="1.5"/>`;
+                lines += `<line x1="${x}" y1="${mid}" x2="${svgW}" y2="${mid}" stroke="${col}" stroke-width="1.5"/>`;
+                if (row === b.tgt) lines += `<polygon points="${svgW},${mid} ${svgW-4},${mid-3} ${svgW-4},${mid+3}" fill="${col}"/>`;
+            } else {
+                lines += `<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="${col}" stroke-width="1.5"/>`;
             }
         }
-        result.push(segs.join(''));
+        if (lines) {
+            result.push(`<svg class="br-svg" width="${svgW}" height="${h}">${lines}</svg>`);
+        } else {
+            result.push('');
+        }
     }
-    return result;
+    return { html: result, hasBranches: true, svgW };
 }
 
 const _deviceRegNames = {
@@ -2465,24 +2478,24 @@ function updateCRDetail() {
             _codeWords.push(sim.memory[a] >>> 0);
         }
         const _brArrows = _computeBranchArrows(_codeWords);
-        const _hasBrArrows = _brArrows.some(a => a !== '');
 
         let codeHtml = '<table class="cr-table code-view-table"><thead><tr>';
-        if (_hasBrArrows) codeHtml += '<th class="br-arrow-hdr"></th>';
-        codeHtml += '<th>Addr</th><th>Hex</th><th>Instruction</th><th class="code-decompiled-hdr">Decompiled</th>';
+        codeHtml += '<th>Addr</th><th>Hex</th><th>Instruction</th>';
+        if (_brArrows.hasBranches) codeHtml += '<th class="br-arrow-hdr"></th>';
+        codeHtml += '<th class="code-decompiled-hdr">Decompiled</th>';
         codeHtml += '</tr></thead><tbody>';
 
         if (lumpHdr.valid) {
-            const typNames  = ['lump', 'data', 'thread', 'outform'];
+            const typNames  = ['code', 'data', 'thread', 'outform'];
             const typStr    = typNames[lumpHdr.typ] || String(lumpHdr.typ);
             const hdrDisasm = `.header ${typStr} n\u22126=${lumpHdr.n_minus_6}\u2192${lumpHdr.lumpSize}w`
                             + ` cw=${lumpHdr.cw} cc=${lumpHdr.cc}`;
             codeHtml += `<tr class="code-row-infra">`;
-            if (_hasBrArrows) codeHtml += '<td class="br-arrow-col"></td>';
             codeHtml += `<td class="cr-idx">0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}</td>`;
             codeHtml += `<td class="cr-gt">0x${word0.toString(16).toUpperCase().padStart(8,'0')}</td>`;
             codeHtml += `<td class="code-disasm" style="color:var(--text-secondary);">${hdrDisasm}</td>`;
-            codeHtml += `<td class="code-decompiled code-decompiled-infra">lump header</td>`;
+            if (_brArrows.hasBranches) codeHtml += '<td class="br-arrow-col"></td>';
+            codeHtml += `<td class="code-decompiled code-decompiled-infra">header</td>`;
             codeHtml += '</tr>';
             codeStart = baseLoc + 1;
             codeLimit = lumpHdr.cw;
@@ -2511,10 +2524,10 @@ function updateCRDetail() {
                 : '<td class="code-decompiled"></td>';
 
             codeHtml += `<tr class="${rowClass}" style="cursor:pointer;" title="Double-click to set breakpoint" ondblclick="openBreakPopoverAt(${addr})">`;
-            if (_hasBrArrows) codeHtml += `<td class="br-arrow-col">${_brArrows[w]}</td>`;
             codeHtml += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
             codeHtml += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
             codeHtml += `<td class="code-disasm">${bpDot}${decoded}</td>`;
+            if (_brArrows.hasBranches) codeHtml += `<td class="br-arrow-col">${_brArrows.html[w]}</td>`;
             codeHtml += decompTd;
             codeHtml += '</tr>';
         }
