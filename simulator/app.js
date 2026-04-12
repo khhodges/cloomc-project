@@ -1036,11 +1036,20 @@ function renderCListEntryDetail(nsIdx, entry) {
                     // Empty slots (word=0) are shown dimmed; loaded instructions are bright.
                     const _clBase = (cc > 0) ? (loc + lumpSize - cc) : 0;
                     const _crPets1 = {};
-                    let codeHtml = '<table class="cr-table code-view-table"><thead><tr><th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th><th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
+                    const _cw1 = [];
+                    for (let w = 0; w < cw; w++) {
+                        const a = loc + 1 + w;
+                        _cw1.push(a < sim.memory.length ? (sim.memory[a] >>> 0) : 0);
+                    }
+                    const _ba1 = _computeBranchArrows(_cw1);
+                    const _hba1 = _ba1.some(a => a !== '');
+                    let codeHtml = '<table class="cr-table code-view-table"><thead><tr>';
+                    if (_hba1) codeHtml += '<th class="br-arrow-hdr"></th>';
+                    codeHtml += '<th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th><th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
                     for (let w = 0; w < cw; w++) {
                         const addr = loc + 1 + w;
                         if (addr >= sim.memory.length) break;
-                        const word = sim.memory[addr] >>> 0;
+                        const word = _cw1[w];
                         const decoded = word === 0 ? 'HALT' : asm.disassemble(word);
                         const isPC   = sim.bootComplete && (addr === (sim.memory[sim.NS_TABLE_BASE + 2 * sim.NS_ENTRY_WORDS] || (2 * sim.SLOT_SIZE)) + 1 + sim.pc);
                         const dimmed = word === 0 ? ' style="opacity:0.35;"' : '';
@@ -1048,6 +1057,7 @@ function renderCListEntryDetail(nsIdx, entry) {
                         const _dcCls = _dc ? (_dc.compiler ? 'code-decompiled-compiler' : 'code-decompiled-user') : '';
                         const rowCls = isPC ? 'code-pc-row' : (_dc && _dc.compiler ? 'code-row-compiler' : '');
                         codeHtml += `<tr class="${rowCls}"${dimmed}>`;
+                        if (_hba1) codeHtml += `<td class="br-arrow-col">${_ba1[w]}</td>`;
                         codeHtml += `<td class="cr-idx">+${w + 1}</td>`;
                         codeHtml += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
                         codeHtml += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
@@ -1110,17 +1120,28 @@ function renderCListEntryDetail(nsIdx, entry) {
                 const asm2 = new ChurchAssembler();
                 const _clBase2 = (cc2 > 0) ? (loc + allocSize2 - cc2) : 0;
                 const _crPets2 = {};
-                let codeHtml2 = '<table class="cr-table code-view-table"><thead><tr><th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th><th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
+                const _cw2 = [];
+                for (let w = 0; w < clistStart2; w++) {
+                    const a = loc + w;
+                    _cw2.push(a < sim.memory.length ? (sim.memory[a] >>> 0) : 0);
+                }
+                const _ba2 = _computeBranchArrows(_cw2);
+                const _hba2 = _ba2.some(a => a !== '');
+                let codeHtml2 = '<table class="cr-table code-view-table"><thead><tr>';
+                if (_hba2) codeHtml2 += '<th class="br-arrow-hdr"></th>';
+                codeHtml2 += '<th>Off</th><th>Addr</th><th>Hex</th><th>Decode</th><th class="code-decompiled-hdr">Decompiled</th></tr></thead><tbody>';
                 for (let w = 0; w < clistStart2; w++) {
                     const addr = loc + w;
                     if (addr >= sim.memory.length) break;
-                    const word = sim.memory[addr] >>> 0;
+                    const word = _cw2[w];
                     const decoded = word === 0 ? 'HALT' : asm2.disassemble(word);
                     const dimmed = word === 0 ? ' style="opacity:0.35;"' : '';
                     const _dc2 = _decompileWord(word, addr, nsIdx, _clBase2, _crPets2);
                     const _dc2Cls = _dc2 ? (_dc2.compiler ? 'code-decompiled-compiler' : 'code-decompiled-user') : '';
                     const rowCls2 = _dc2 && _dc2.compiler ? ' class="code-row-compiler"' : '';
-                    codeHtml2 += `<tr${rowCls2}${dimmed}><td class="cr-idx">+${w}</td>`;
+                    codeHtml2 += `<tr${rowCls2}${dimmed}>`;
+                    if (_hba2) codeHtml2 += `<td class="br-arrow-col">${_ba2[w]}</td>`;
+                    codeHtml2 += `<td class="cr-idx">+${w}</td>`;
                     codeHtml2 += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
                     codeHtml2 += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
                     codeHtml2 += `<td class="code-disasm">${decoded}</td>`;
@@ -2055,6 +2076,62 @@ function _resolveClistPetName(clistBase, imm, nsIdx) {
     return null;
 }
 
+function _computeBranchArrows(words, startIdx) {
+    const n = words.length;
+    const branches = [];
+    for (let i = 0; i < n; i++) {
+        const w = words[i] >>> 0;
+        if (w === 0) continue;
+        const opcode = (w >>> 27) & 0x1F;
+        if (opcode === 17) {
+            const imm = w & 0x7FFF;
+            const soff = (imm & 0x4000) ? (imm | 0xFFFF8000) : imm;
+            const tgtRow = i + soff;
+            if (tgtRow >= 0 && tgtRow < n && tgtRow !== i) {
+                const top = Math.min(i, tgtRow);
+                const bot = Math.max(i, tgtRow);
+                branches.push({ src: i, tgt: tgtRow, top, bot });
+            }
+        }
+    }
+    branches.sort((a, b) => (a.bot - a.top) - (b.bot - b.top));
+    for (let i = 0; i < branches.length; i++) {
+        const b = branches[i];
+        for (let lane = 0; lane < 8; lane++) {
+            let ok = true;
+            for (let j = 0; j < i; j++) {
+                if (branches[j].lane !== lane) continue;
+                const t2 = branches[j].top, b2 = branches[j].bot;
+                if (t2 <= b.bot && b2 >= b.top) { ok = false; break; }
+            }
+            if (ok) { b.lane = lane; break; }
+        }
+        if (b.lane === undefined) b.lane = 0;
+    }
+    if (branches.length === 0) return new Array(n).fill('');
+    const maxLane = Math.max(...branches.map(b => b.lane)) + 1;
+    const result = [];
+    for (let row = 0; row < n; row++) {
+        let segs = new Array(maxLane).fill('\u2003');
+        for (const b of branches) {
+            const l = b.lane;
+            if (row === b.tgt) {
+                segs[l] = '<span class="br-arrow-head">\u25B6</span>';
+            } else if (row === b.src) {
+                segs[l] = (b.tgt < b.src) ? '<span class="br-arrow-corner">\u2570</span>' : '<span class="br-arrow-corner">\u256D</span>';
+            } else if (row > b.top && row < b.bot) {
+                segs[l] = '<span class="br-arrow-line">\u2502</span>';
+            } else if (row === b.top && row !== b.tgt && row !== b.src) {
+                segs[l] = '<span class="br-arrow-corner">\u256D</span>';
+            } else if (row === b.bot && row !== b.tgt && row !== b.src) {
+                segs[l] = '<span class="br-arrow-corner">\u2570</span>';
+            }
+        }
+        result.push(segs.join(''));
+    }
+    return result;
+}
+
 const _deviceRegNames = {
     'LED':    ['LED0','LED1','LED2','LED3','LED4','LED5'],
     'UART':   ['TxData','RxData','Status','BaudDiv'],
@@ -2379,7 +2456,19 @@ function updateCRDetail() {
             }
         }
 
+        let _codeStartPre = codeStart, _codeLimitPre = codeLimit;
+        if (lumpHdr.valid) { _codeStartPre = baseLoc + 1; _codeLimitPre = lumpHdr.cw; }
+        const _codeWords = [];
+        for (let w = 0; w < _codeLimitPre; w++) {
+            const a = _codeStartPre + w;
+            if (a >= sim.memory.length) break;
+            _codeWords.push(sim.memory[a] >>> 0);
+        }
+        const _brArrows = _computeBranchArrows(_codeWords);
+        const _hasBrArrows = _brArrows.some(a => a !== '');
+
         let codeHtml = '<table class="cr-table code-view-table"><thead><tr>';
+        if (_hasBrArrows) codeHtml += '<th class="br-arrow-hdr"></th>';
         codeHtml += '<th>Addr</th><th>Hex</th><th>Instruction</th><th class="code-decompiled-hdr">Decompiled</th>';
         codeHtml += '</tr></thead><tbody>';
 
@@ -2389,6 +2478,7 @@ function updateCRDetail() {
             const hdrDisasm = `.header ${typStr} n\u22126=${lumpHdr.n_minus_6}\u2192${lumpHdr.lumpSize}w`
                             + ` cw=${lumpHdr.cw} cc=${lumpHdr.cc}`;
             codeHtml += `<tr class="code-row-infra">`;
+            if (_hasBrArrows) codeHtml += '<td class="br-arrow-col"></td>';
             codeHtml += `<td class="cr-idx">0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}</td>`;
             codeHtml += `<td class="cr-gt">0x${word0.toString(16).toUpperCase().padStart(8,'0')}</td>`;
             codeHtml += `<td class="code-disasm" style="color:var(--text-secondary);">${hdrDisasm}</td>`;
@@ -2400,10 +2490,9 @@ function updateCRDetail() {
 
         const _crPets3 = {};
         let hasCodeData = lumpHdr.valid;
-        for (let w = 0; w < codeLimit; w++) {
+        for (let w = 0; w < _codeWords.length; w++) {
             const addr = codeStart + w;
-            if (addr >= sim.memory.length) break;
-            const word = sim.memory[addr] >>> 0;
+            const word = _codeWords[w];
             if (word === 0 && !hasCodeData) continue;
             hasCodeData = true;
             const isPC    = lumpHdr.valid
@@ -2422,6 +2511,7 @@ function updateCRDetail() {
                 : '<td class="code-decompiled"></td>';
 
             codeHtml += `<tr class="${rowClass}" style="cursor:pointer;" title="Double-click to set breakpoint" ondblclick="openBreakPopoverAt(${addr})">`;
+            if (_hasBrArrows) codeHtml += `<td class="br-arrow-col">${_brArrows[w]}</td>`;
             codeHtml += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
             codeHtml += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
             codeHtml += `<td class="code-disasm">${bpDot}${decoded}</td>`;
