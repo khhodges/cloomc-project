@@ -2485,6 +2485,28 @@ function updateCRDetail() {
         codeHtml += '<th class="code-decompiled-hdr">Decompiled</th>';
         codeHtml += '</tr></thead><tbody>';
 
+        if (nsIdx === 2) {
+            const _bootPreamble = [
+                { addr: 'B:00', desc: 'FAULT_RST',   decomp: 'CR0\u2013CR15 \u2190 NULL \u00b7 DR0\u2013DR15 \u2190 0 \u00b7 M-Elevation ON' },
+                { addr: 'B:01', desc: 'LOAD_NS',     decomp: 'CR15 \u2190 NS[0] Namespace (base=0x0000, perms=none)' },
+                { addr: 'B:02', desc: 'INIT_THRD',   decomp: 'CR12 \u2190 NS[1] Thread Identity (Inform, perms=none)' },
+                { addr: 'B:02\u00BD', desc: 'CALL_HOME',  decomp: 'UART \u2192 17-byte packet [0xCE11, board, FW, sig, UID] \u00b7 await ACK' },
+                { addr: 'B:03', desc: 'INIT_ABSTR',  decomp: 'CR6 \u2190 NS[2] Boot Abstraction (E-type, transient)' },
+                { addr: 'B:04', desc: 'LOAD_NUC',    decomp: 'CR14(R+X) + CR6(L) \u2190 header \u00b7 push sentinel frame \u00b7 PC\u21900' },
+                { addr: 'B:05', desc: 'COMPLETE',    decomp: 'M-Elevation OFF \u00b7 bootComplete \u2190 true \u00b7 dispatch begins' },
+            ];
+            const _arrowTd = _brArrows.hasBranches ? '<td class="br-arrow-col"></td>' : '';
+            for (const bp of _bootPreamble) {
+                codeHtml += `<tr class="code-row-infra">`;
+                codeHtml += `<td class="cr-idx" style="color:#888;">${bp.addr}</td>`;
+                codeHtml += `<td class="cr-gt" style="color:#555;">\u2014</td>`;
+                codeHtml += `<td class="code-disasm" style="color:#888;">${bp.desc}</td>`;
+                codeHtml += _arrowTd;
+                codeHtml += `<td class="code-decompiled code-decompiled-infra">${bp.decomp}</td>`;
+                codeHtml += '</tr>';
+            }
+        }
+
         if (lumpHdr.valid) {
             const typNames  = ['code', 'data', 'thread', 'outform'];
             const typStr    = typNames[lumpHdr.typ] || String(lumpHdr.typ);
