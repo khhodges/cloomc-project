@@ -6246,6 +6246,21 @@ let walkTimer = null;
 // ── Run popover ─────────────────────────────────────────────────────────────
 let runBatchSize = 500;
 
+let _runClickTimer = null;
+
+function onRunBtnClick() {
+    if (_runClickTimer) {
+        clearTimeout(_runClickTimer);
+        _runClickTimer = null;
+        showRunPopover();
+    } else {
+        _runClickTimer = setTimeout(() => {
+            _runClickTimer = null;
+            runSimGo();
+        }, 280);
+    }
+}
+
 function showRunPopover() {
     const pop = document.getElementById('runPopover');
     if (!pop) { runSimGo(); return; }
