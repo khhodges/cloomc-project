@@ -6234,8 +6234,8 @@ function stepSim() {
             con.scrollTop = con.scrollHeight;
         }
         updateDashboard();
-        switchView('dashboard');
-        openCRDetail(14);
+        // Stay on the current view (editor/console if from runLazyLoadTest).
+        // triggerLazyLoad() will switch to editor/console when finished.
         triggerLazyLoad(result);
         return;
     }
@@ -7449,6 +7449,10 @@ async function triggerLazyLoad(absentResult) {
 //   ✓ Installed: Math.Add — 64 words @ 0x<addr> [local cache]
 //   ✓ PASS — reached HALT after 2 step(s) post-retry.
 function runLazyLoadTest() {
+    // Switch to the editor/console view FIRST so the user can watch the log live.
+    switchView('editor');
+    switchCodeTab('console');
+
     const con = document.getElementById('editorConsole');
     function log(msg) {
         if (con) { con.textContent += '\n' + msg; con.scrollTop = con.scrollHeight; }
@@ -7484,6 +7488,7 @@ function runLazyLoadTest() {
     // 5. Run first step — should trigger the absent-lump intercept.
     stepSim();   // returns {absent:true} → stepSim calls triggerLazyLoad(result)
     // triggerLazyLoad() handles the rest asynchronously (fetch → install → retry → HALT).
+    // When complete, triggerLazyLoad switches back to editor/console to show results.
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
