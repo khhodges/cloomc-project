@@ -7333,7 +7333,7 @@ async function triggerLazyLoad(absentResult) {
             let errText = '';
             try { const j = await resp.json(); errText = j.error || ''; } catch(_) {}
             log(`⊿ Lazy load failed (HTTP ${resp.status}) for 0x${token}: ${errText}`);
-            updateDashboard(); switchView('dashboard'); openCRDetail(14);
+            updateDashboard(); switchView('editor'); switchCodeTab('console');
             return;
         }
         const buf = await resp.arrayBuffer();
@@ -7345,7 +7345,7 @@ async function triggerLazyLoad(absentResult) {
     } catch (e) {
         log(`⊿ Lazy load fetch error: ${e.message}`);
         console.error('[lazyLoad] fetch error:', e);
-        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        updateDashboard(); switchView('editor'); switchCodeTab('console');
         return;
     }
 
@@ -7353,7 +7353,7 @@ async function triggerLazyLoad(absentResult) {
     const installResult = sim.receiveLump(words);
     if (!installResult.ok) {
         log(`⊿ Install failed: ${installResult.message}`);
-        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        updateDashboard(); switchView('editor'); switchCodeTab('console');
         return;
     }
     const srcLabel = source.startsWith('library:')
@@ -7384,7 +7384,7 @@ async function triggerLazyLoad(absentResult) {
             ? sim.faultLog[sim.faultLog.length - 1]
             : null;
         log(`⊿ Retry LOAD faulted: ${fault ? fault.type + ' — ' + fault.message : 'unknown fault'}`);
-        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        updateDashboard(); switchView('editor'); switchCodeTab('console');
         return;
     }
     if (retryResult.desc && retryResult.desc.startsWith('HALT')) {
@@ -7395,7 +7395,7 @@ async function triggerLazyLoad(absentResult) {
             log(`✓ CR3.word0=0x${sim.cr[3].word0.toString(16).padStart(8,'0')} — capability installed`);
             log(`✓ PASS — HALT after retry (1 step).`);
         }
-        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        updateDashboard(); switchView('editor'); switchCodeTab('console');
         return;
     }
     log(`↪ Retry LOAD succeeded — continuing to HALT...`);
@@ -7434,8 +7434,8 @@ async function triggerLazyLoad(absentResult) {
         log(`? Stopped after ${stepCount} steps (no HALT, no fault).`);
     }
     updateDashboard();
-    switchView('dashboard');
-    openCRDetail(14);
+    switchView('editor');
+    switchCodeTab('console');
 }
 
 // Lazy-load end-to-end test.
