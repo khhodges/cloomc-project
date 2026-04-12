@@ -2072,8 +2072,8 @@ function _decompileWord(word, addr, nsIdx, clistBase, crPets) {
     if (opcode === 0x1F) return null;
 
     const _condNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
-    const _condDescs = ['if equal','if not equal','if carry set','if carry clear',
-        'if negative','if positive','if overflow','if no overflow',
+    const _condDescs = ['if equal to zero','if not equal to zero','if carry set','if carry clear',
+        'if negative','if positive/zero','if overflow','if no overflow',
         'if unsigned higher','if unsigned lower/same','if signed \u2265','if signed <',
         'if signed >','if signed \u2264','','never'];
     const cc = cond === 14 ? '' : _condNames[cond];
