@@ -1934,7 +1934,7 @@ class ChurchSimulator {
             let methodName, argDR0, argDR1, encodedDstReg = null;
             if (d.imm & 0x4000) {
                 const packed = d.imm & 0x3FFF;
-                const methodIdx = (packed >> 8) & 0xF;
+                const methodIdx = (packed >> 8) & 0x3F;
                 const leftReg = (packed >> 4) & 0xF;
                 const rightReg = packed & 0xF;
                 encodedDstReg = d.crSrc;
@@ -1987,12 +1987,12 @@ class ChurchSimulator {
         let methodIndex, argDR0, argDR1, desc, encodedDstReg;
         // ISA extension: encoded CALL mode (imm bit 14 set)
         // Packs method index, source operand registers, and destination DR into CALL instruction
-        // fields (imm[11:8]=method, imm[7:4]=leftDR, imm[3:0]=rightDR, crSrc=dstDR).
+        // fields (imm[13:8]=method, imm[7:4]=leftDR, imm[3:0]=rightDR, crSrc=dstDR).
         // Result is written directly to dstDR, bypassing DR0 zero-register enforcement.
         // Legacy mode (imm bit 14 clear) uses DR3 as method selector with DR0/DR1 operands.
         if (d.imm & 0x4000) {
             const packed = d.imm & 0x3FFF;
-            methodIndex = (packed >> 8) & 0xF;
+            methodIndex = (packed >> 8) & 0x3F;
             const leftReg = (packed >> 4) & 0xF;
             const rightReg = packed & 0xF;
             encodedDstReg = d.crSrc;
