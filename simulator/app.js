@@ -7319,78 +7319,159 @@ async function triggerLazyLoad(absentResult) {
     const token = absentResult.token;
     const label = absentResult.label || ('Slot ' + absentResult.nsIndex);
     const con   = document.getElementById('editorConsole');
+    function log(msg) {
+        if (con) { con.textContent += '\n' + msg; con.scrollTop = con.scrollHeight; }
+        console.log('[lazyLoad]', msg);
+    }
+
+    // ── 1. Fetch the lump binary from /api/lump/<token> ─────────────────────
+    let words, source;
     try {
         const resp = await fetch(`/api/lump/${token}`);
+        source = resp.headers.get('X-Lump-Source') || 'local';
         if (!resp.ok) {
-            const msg = `Lazy load failed: server returned ${resp.status} for token 0x${token}`;
-            if (con) { con.textContent += '\n' + msg; con.scrollTop = con.scrollHeight; }
-            console.error('[lazyLoad]', msg);
+            let errText = '';
+            try { const j = await resp.json(); errText = j.error || ''; } catch(_) {}
+            log(`⊿ Lazy load failed (HTTP ${resp.status}) for 0x${token}: ${errText}`);
+            updateDashboard(); switchView('dashboard'); openCRDetail(14);
             return;
         }
-        const buf     = await resp.arrayBuffer();
-        const numWords = Math.floor(buf.byteLength / 4);
-        const view    = new DataView(buf);
-        const words   = [];
-        for (let i = 0; i < numWords; i++) {
+        const buf = await resp.arrayBuffer();
+        words = [];
+        const view = new DataView(buf);
+        for (let i = 0; i < Math.floor(buf.byteLength / 4); i++) {
             words.push(view.getUint32(i * 4, false));  // big-endian
         }
-        const result = sim.receiveLump(words);
-        if (!result.ok) {
-            const msg = `Lazy load failed: ${result.message}`;
-            if (con) { con.textContent += '\n' + msg; con.scrollTop = con.scrollHeight; }
-            console.error('[lazyLoad]', msg);
-        } else {
-            const msg = `\u2713 Lazy loaded: ${label} — ${result.lumpSize} words at 0x${result.freeBase.toString(16)}`;
-            if (con) { con.textContent += '\n' + msg; con.scrollTop = con.scrollHeight; }
-            console.log('[lazyLoad]', msg);
-        }
     } catch (e) {
-        const msg = `Lazy load fetch error: ${e.message}`;
-        if (con) { con.textContent += '\n' + msg; con.scrollTop = con.scrollHeight; }
-        console.error('[lazyLoad]', e);
+        log(`⊿ Lazy load fetch error: ${e.message}`);
+        console.error('[lazyLoad] fetch error:', e);
+        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        return;
+    }
+
+    // ── 2. Install into simulator ────────────────────────────────────────────
+    const installResult = sim.receiveLump(words);
+    if (!installResult.ok) {
+        log(`⊿ Install failed: ${installResult.message}`);
+        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        return;
+    }
+    const srcLabel = source.startsWith('library:')
+        ? `Mum Tunnel Library — ${source.slice(8)}`
+        : 'local cache';
+    log(`✓ Installed: ${label} — ${installResult.lumpSize} words @ 0x${installResult.freeBase.toString(16).toUpperCase()} [${srcLabel}]`);
+
+    // ── 3. Auto-retry the LOAD (PC was reset to retryPC by receiveLump) ──────
+    const faultsBefore = sim.faultLog ? sim.faultLog.length : 0;
+    let retryResult;
+    try {
+        retryResult = sim.step();
+    } catch (e) {
+        log(`⊿ Retry step threw: ${e.message}`);
+        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        return;
+    }
+
+    if (retryResult && retryResult.absent) {
+        // Nested absent — recurse (another Outform in the same chain)
+        log(`⟳ Retry hit another absent: Slot ${retryResult.nsIndex} (${retryResult.label})`);
+        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        triggerLazyLoad(retryResult);
+        return;
+    }
+    if (!retryResult || (sim.faultLog && sim.faultLog.length > faultsBefore)) {
+        const fault = sim.faultLog && sim.faultLog.length
+            ? sim.faultLog[sim.faultLog.length - 1]
+            : null;
+        log(`⊿ Retry LOAD faulted: ${fault ? fault.type + ' — ' + fault.message : 'unknown fault'}`);
+        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        return;
+    }
+    if (retryResult.desc && retryResult.desc.startsWith('HALT')) {
+        log(`✓ PASS — HALT after retry (1 step).`);
+        updateDashboard(); switchView('dashboard'); openCRDetail(14);
+        return;
+    }
+    log(`↪ Retry LOAD succeeded — continuing to HALT...`);
+
+    // ── 4. Run to HALT (up to 10 000 steps) ────────────────────────────────
+    let stepCount = 0;
+    const faultsMid = sim.faultLog ? sim.faultLog.length : 0;
+    while (!sim.halted && !sim.awaitingLump && stepCount < 10000) {
+        const r = sim.step();
+        stepCount++;
+        if (!r || (sim.faultLog && sim.faultLog.length > faultsMid)) break;
+        if (r.absent) {
+            log(`⟳ Step ${stepCount}: another absent lump — Slot ${r.nsIndex}`);
+            updateDashboard(); switchView('dashboard'); openCRDetail(14);
+            triggerLazyLoad(r);
+            return;
+        }
+    }
+
+    // ── 5. Report final outcome ──────────────────────────────────────────────
+    const newFaults = sim.faultLog ? sim.faultLog.length - faultsMid : 0;
+    if (sim.halted && newFaults === 0) {
+        log(`✓ PASS — reached HALT after ${stepCount + 1} step(s) post-retry.`);
+    } else if (newFaults > 0) {
+        const f = sim.faultLog[sim.faultLog.length - 1];
+        log(`⊿ FAIL — fault after retry: ${f ? f.type + ' @ PC=' + f.pc : 'unknown'}`);
+    } else if (sim.awaitingLump) {
+        log(`⟳ Suspended — another absent lump queued (use Step to continue).`);
+    } else {
+        log(`? Stopped after ${stepCount} steps (no HALT, no fault).`);
     }
     updateDashboard();
     switchView('dashboard');
     openCRDetail(14);
 }
 
-// Load the lazy-load test program into the editor and run it.
-// Test: LOAD CR3, CR6, 3  →  HALT
-// The LOAD targets NS slot 3 (Math.Add, Outform) via Boot.Abstr c-list.
-// On first execution the simulator suspends and fetches the absent lump;
-// after installation it retries the LOAD, succeeds, then executes HALT.
+// Lazy-load end-to-end test.
+// Program: LOAD CR3, CR6, 3  →  HALT
+//   - Targets NS slot 3 (Math.Add, Outform gtType=2) via Boot.Abstr c-list slot 3.
+//   - First step suspends (absent-lump intercept) → triggerLazyLoad() fires.
+//   - Server returns Math.Add binary lump; receiveLump() promotes slot 3 to Inform.
+//   - Auto-retry LOAD succeeds; CR3 ← Math.Add GT; then HALT.
+// Expected console output:
+//   ⟳ Absent lump — fetching Slot 3 (Math.Add)
+//   ✓ Installed: Math.Add — 64 words @ 0x<addr> [local cache]
+//   ✓ PASS — reached HALT after 2 step(s) post-retry.
 function runLazyLoadTest() {
-    // Ensure boot is complete before injecting the test program.
-    while (!sim.bootComplete && !sim.halted) {
-        sim._bootStep();
+    const con = document.getElementById('editorConsole');
+    function log(msg) {
+        if (con) { con.textContent += '\n' + msg; con.scrollTop = con.scrollHeight; }
     }
-    if (sim.halted && !sim.bootComplete) {
-        const con = document.getElementById('editorConsole');
-        if (con) con.textContent += '\n[LazyTest] Boot failed — cannot run test.';
+
+    // 1. Finish boot if needed.
+    while (!sim.bootComplete && !sim.halted) {
+        try { sim._bootStep(); } catch(e) { break; }
+    }
+    if (!sim.bootComplete) {
+        log('[LazyTest] ⊿ Boot failed — cannot run test.');
         return;
     }
-    _autoLoadDefaultProgram();
 
-    // LOAD CR3, CR6, 3  = (opcode=0, cond=14=AL, crDst=3, crSrc=6, imm=3)
-    // Bits: [31:27]=0, [26:23]=14=0b1110, [22:19]=3, [18:15]=6, [14:0]=3
-    // (14<<23)|(3<<19)|(6<<15)|3 = 0x07000000|0x00180000|0x00030000|0x3 = 0x071B0003
+    // 2. Clear any previous suspension.
+    sim.awaitingLump = null;
+
+    // 3. Inject the test program into Boot.Abstr's code region.
+    //    LOAD CR3, CR6, 3 = (opcode=0, cond=14=AL, crDst=3, crSrc=6, imm=3)
+    //    Encoding: (14<<23)|(3<<19)|(6<<15)|3 = 0x071B0003
     const LOAD_CR3_CR6_3 = (14 << 23) | (3 << 19) | (6 << 15) | 3;   // 0x071B0003
-    const HALT           = 0x00000000;
-    sim.loadProgram([LOAD_CR3_CR6_3, HALT], 0);
+    sim.loadProgram([LOAD_CR3_CR6_3, 0x00000000 /*HALT*/], 0);
+    // loadProgram resets: pc=0, halted=false, callStack=[], stepCount=0
 
-    const con = document.getElementById('editorConsole');
-    if (con) {
-        con.textContent += '\n[LazyTest] Loaded: LOAD CR3,CR6,3 → HALT';
-        con.textContent += '\n[LazyTest] Running step-by-step…';
-        con.scrollTop = con.scrollHeight;
-    }
-    // Inject the source text into the editor for visibility
+    log('[LazyTest] ──────────────────────────────────────────────────');
+    log('[LazyTest] Program: LOAD CR3,CR6,3 → HALT');
+    log('[LazyTest] Slot 3 is Outform (Math.Add, absent). Stepping…');
+
+    // 4. Show test source in editor.
     const ed = document.getElementById('codeEditor');
-    if (ed) {
-        ed.value = '; Lazy load test — absent Math.Add lump\nLOAD CR3, CR6, 3\n';
-    }
-    // Execute first step (should trigger the absent-lump fetch)
-    stepSim();
+    if (ed) ed.value = '; Lazy-load test — absent Math.Add (Outform token=0xDEAD0003)\nLOAD CR3, CR6, 3   ; triggers fetch if absent\nHALT               ; machine stops after retry succeeds\n';
+
+    // 5. Run first step — should trigger the absent-lump intercept.
+    stepSim();   // returns {absent:true} → stepSim calls triggerLazyLoad(result)
+    // triggerLazyLoad() handles the rest asynchronously (fetch → install → retry → HALT).
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

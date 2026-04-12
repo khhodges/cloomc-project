@@ -1223,46 +1223,129 @@ def bitstream_list():
 
 # ── Lazy-load lump endpoint ────────────────────────────────────────────────────
 # The simulator calls GET /api/lump/<token_hex> when it encounters an Outform NS
-# entry (gtType=2).  For the end-to-end lazy-load test a single pre-built 64-word
-# raw lump (METHOD_STORE, no compression) is served for token 0xDEAD0003.
-# The lump format matches the Church Machine LUMP_HEADER_LAYOUT:
-#   word 0 : header  — magic=0x1F, n_minus_6=0 (lumpSize=64), cw=1, typ=0, cc=1
-#   word 1 : code    — NOP / HALT (0x00000000)
-#   words 2-62 : freespace (all zeros)
-#   word 63  : c-list slot 0 (NULL GT, filled at runtime)
-LAZY_LUMPS = {}
+# entry (gtType=2).  Lookup order:
+#   1. LAZY_LUMPS dict  — pre-built local stubs (test lumps, cached library hits)
+#   2. Mum Tunnel Library (GitHub) — searched by token field in published JSON
+#
+# Lump binary format (Church Machine LUMP_HEADER_LAYOUT, big-endian uint32s):
+#   word 0 : header  — [31:27]=0x1F magic, [26:23]=n_minus_6, [22:10]=cw, [9:8]=typ, [7:0]=cc
+#   word 1..cw : code region
+#   word (lumpSize-cc)..(lumpSize-1) : c-list GTs
+import struct as _struct
+
+LAZY_LUMPS = {}    # token_hex_8 → bytes
+
+# ── Lump header packing ─────────────────────────────────────────────────────────
+def _pack_lump_header(n_minus_6=0, cw=1, cc=1, typ=0):
+    return ((0x1F & 0x1F) << 27) | ((n_minus_6 & 0xF) << 23) | \
+           ((cw & 0x1FFF) << 10) | ((typ & 0x3) << 8) | (cc & 0xFF)
+
+def _words_to_binary(words):
+    """Pack a list of up to 64 uint32 values into big-endian bytes (padded to lumpSize)."""
+    n_minus_6 = (words[0] >> 23) & 0xF if words else 0
+    lump_size  = 1 << (n_minus_6 + 6)
+    padded     = list(words) + [0] * lump_size
+    padded     = padded[:lump_size]
+    return _struct.pack(f'>{lump_size}I', *[int(w) & 0xFFFFFFFF for w in padded])
 
 def _build_lazy_lumps():
-    import struct
-    magic      = 0x1F
-    n_minus_6  = 0          # lumpSize = 2^(0+6) = 64 words
-    cw         = 1          # 1 code word (NOP/HALT at word[1])
-    typ        = 0          # object type: lump
-    cc         = 1          # 1 c-list slot (at word[63])
-    header     = ((magic & 0x1F) << 27) | ((n_minus_6 & 0xF) << 23) | \
-                 ((cw & 0x1FFF) << 10) | ((typ & 0x3) << 8) | (cc & 0xFF)
+    # Math.Add — token 0xDEAD0003
+    # 64-word lump: header | RETURN AL | <zeros> | NULL GT (c-list[63])
+    # RETURN AL encoding: opcode=3, cond=14 → (3<<27)|(14<<23) = 0x1F000000
+    RETURN_AL = 0x1F000000
     words      = [0] * 64
-    words[0]   = header     # lump header
-    words[1]   = 0          # NOP / HALT instruction
-    words[63]  = 0          # c-list slot 0 — NULL GT (placeholder)
-    # Pack as 64 big-endian uint32 values
-    data = struct.pack('>64I', *words)
-    LAZY_LUMPS['dead0003'] = data   # token for Math.Add (matches simulator MATH_ADD_TOKEN)
+    words[0]   = _pack_lump_header(n_minus_6=0, cw=1, cc=1, typ=0)   # 0xF8000401
+    words[1]   = RETURN_AL   # minimal callable body: immediately returns
+    words[63]  = 0            # c-list slot 0 — NULL GT (caller supplies at runtime)
+    LAZY_LUMPS['dead0003'] = _struct.pack('>64I', *words)
 
 _build_lazy_lumps()
 
+# ── Mum Tunnel Library fallback ─────────────────────────────────────────────────
+def _fetch_lump_from_library(token_hex):
+    """Search the Mum Tunnel Library (GitHub) for an abstraction whose token matches.
+
+    Returns (binary_bytes, name_str) or (None, None) when not found.
+    The library JSON must include a "token" field set to the hex token string.
+    """
+    if not GITHUB_TOKEN or not GITHUB_LIBRARY_REPO:
+        return None, None
+
+    token_norm = token_hex.lower().lstrip('0') or '0'
+    token_8    = token_hex.lower().zfill(8)
+
+    # Browse the library root for language directories
+    index_data, err = github_api("GET", "/contents/library")
+    if err or not isinstance(index_data, list):
+        return None, None
+
+    for lang_entry in index_data:
+        if not isinstance(lang_entry, dict) or lang_entry.get('type') != 'dir':
+            continue
+        lang_name = lang_entry.get('name', '')
+        files, _  = github_api("GET", f"/contents/library/{lang_name}")
+        if not isinstance(files, list):
+            continue
+        for f in files:
+            if not isinstance(f, dict) or not f.get('name', '').endswith('.json'):
+                continue
+            file_data, _ = github_api("GET", f"/contents/library/{lang_name}/{f['name']}")
+            if not isinstance(file_data, dict):
+                continue
+            try:
+                content = base64.b64decode(file_data.get('content', '')).decode('utf-8')
+                payload = json.loads(content)
+            except Exception:
+                continue
+            item_token = str(payload.get('token', '')).lower().strip()
+            item_tok8  = item_token.zfill(8)
+            item_tokn  = item_token.lstrip('0') or '0'
+            if item_tok8 == token_8 or item_tokn == token_norm:
+                # Found — build binary lump from the first method's words
+                methods = payload.get('methods', [])
+                raw_words = methods[0].get('words', []) if methods else []
+                if not raw_words:
+                    continue
+                # If the words already have a valid lump header (magic=0x1F at [31:27]),
+                # use them as-is; otherwise wrap with a generated header.
+                first = int(raw_words[0]) & 0xFFFFFFFF
+                if (first >> 27) == 0x1F:
+                    lump_words = [int(w) & 0xFFFFFFFF for w in raw_words]
+                else:
+                    cw     = len(raw_words)
+                    header = _pack_lump_header(n_minus_6=0, cw=cw, cc=0, typ=0)
+                    lump_words = [header] + [int(w) & 0xFFFFFFFF for w in raw_words]
+                name = payload.get('abstraction',
+                                   f.get('name', '').replace('.json', ''))
+                return _words_to_binary(lump_words), name
+
+    return None, None
+
 @app.route("/api/lump/<token_hex>")
 def get_lump(token_hex):
-    """Serve a pre-built raw lump binary for the simulator lazy-load test."""
-    key = token_hex.lower().lstrip('0') or '0'
-    # Also try with zero-padding to 8 chars
-    key8 = token_hex.lower().zfill(8)
-    data = LAZY_LUMPS.get(key) or LAZY_LUMPS.get(key8)
-    if data is None:
-        return jsonify({"error": f"Unknown lump token: {token_hex}"}), 404
+    """Serve a raw lump binary — local stubs first, then Mum Tunnel Library."""
     from flask import Response
-    return Response(data, mimetype='application/octet-stream',
-                    headers={'Content-Length': str(len(data))})
+    key  = token_hex.lower().lstrip('0') or '0'
+    key8 = token_hex.lower().zfill(8)
+
+    data   = LAZY_LUMPS.get(key) or LAZY_LUMPS.get(key8)
+    source = 'local'
+
+    if data is None:
+        # Fall back to the Mum Tunnel Library
+        data, lib_name = _fetch_lump_from_library(token_hex)
+        if data is not None:
+            LAZY_LUMPS[key8] = data           # cache for future requests
+            source = f'library:{lib_name}'
+        else:
+            github_hint = '' if (GITHUB_TOKEN and GITHUB_LIBRARY_REPO) else \
+                          ' (GitHub not configured — Mum Tunnel Library unavailable)'
+            return jsonify({"error": f"Unknown lump token 0x{key8}{github_hint}"}), 404
+
+    resp = Response(data, mimetype='application/octet-stream',
+                    headers={'Content-Length': str(len(data)),
+                             'X-Lump-Source': source})
+    return resp
 # ──────────────────────────────────────────────────────────────────────────────
 
 
