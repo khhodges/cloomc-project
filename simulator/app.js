@@ -7236,6 +7236,7 @@ function faultModalClearAndDismiss() {
 }
 
 function resetSim() {
+    switchView('dashboard');
     faultAlertOff();
     if (pipelineViz) pipelineViz.setNIA(null);
     _defaultProgramLoaded = false;
