@@ -3900,11 +3900,19 @@ function _initLazyLoadManifest() {
         for (const upload of BOOT_UPLOADS) {
             if (upload.methods && upload.methods.length > 0 && upload.index >= 16) {
                 const isHot = (upload.index === 19);
+                let codeWords = 0;
+                for (const m of upload.methods) {
+                    if (m.code && m.code.length > 0) codeWords += m.code.length;
+                }
+                const capsCount = (upload.capabilities || []).length;
+                const minWords = 1 + codeWords + capsCount;
+                let lumpSize = 64;
+                while (lumpSize < minWords) lumpSize *= 2;
                 manifest[upload.index] = {
                     source: 'local',
                     path: `${upload.abstraction}.lump`,
                     label: upload.abstraction,
-                    size: 64,
+                    size: lumpSize,
                     priority: isHot ? 'hot' : 'warm',
                     loaded: false,
                     loadCount: 0,
