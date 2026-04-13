@@ -762,7 +762,7 @@ function updateLedStrip() {
 
 function copyLedAssembly() {
     const bits = (sim && typeof sim.ledBits === 'number') ? sim.ledBits : 0;
-    const asm = `; LED.Pattern — set all 6 LEDs at once\nLOAD   CR1, NS[12]      ; Load LED device GT [L,S,E]\nDWRITE DR0, #${bits}${' '.repeat(Math.max(1, 12 - bits.toString().length))}; Pattern 0b${bits.toString(2).padStart(6,'0')}\nSAVE   CR1, CR6, 12     ; Write pattern to all LEDs`;
+    const asm = `; LED.Pattern — set all 6 LEDs at once\nLOAD   CR1, NS[12]      ; Load LED device GT [L,S,E]\nDWRITE DR1, #${bits}${' '.repeat(Math.max(1, 12 - bits.toString().length))}; Pattern 0b${bits.toString(2).padStart(6,'0')}\nSAVE   CR1, CR6, 12     ; Write pattern to all LEDs`;
     navigator.clipboard.writeText(asm).then(() => {
         const btn = document.querySelector('.led-copy-btn');
         if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = '↗ Copy assembly'; }, 1600); }
@@ -4377,19 +4377,19 @@ function absDeleteMethod(absIdx) {
 
 const METHOD_REGISTER_CONVENTIONS = {
     'SlideRule': {
-        'Multiply':  { index: 0,  input: 'DR0 (a), DR1 (b)', output: 'DR(dst) = a * b', encoding: '0x4000 | (0<<8) | (src<<4) | dst' },
-        'Divide':    { index: 1,  input: 'DR0 (a), DR1 (b)', output: 'DR(dst) = a / b', encoding: '0x4000 | (1<<8) | (src<<4) | dst' },
-        'Sqrt':      { index: 2,  input: 'DR0 (x)',           output: 'DR(dst) = \u221ax',    encoding: '0x4000 | (2<<8) | (src<<4) | dst' },
-        'Mod':       { index: 3,  input: 'DR0 (a), DR1 (b)', output: 'DR(dst) = a % b', encoding: '0x4000 | (3<<8) | (src<<4) | dst' },
-        'Sin':       { index: 4,  input: 'DR0 (radians)',     output: 'DR(dst) = sin(x)', encoding: '0x4000 | (4<<8) | (src<<4) | dst' },
-        'Cos':       { index: 5,  input: 'DR0 (radians)',     output: 'DR(dst) = cos(x)', encoding: '0x4000 | (5<<8) | (src<<4) | dst' },
-        'Tan':       { index: 6,  input: 'DR0 (radians)',     output: 'DR(dst) = tan(x)', encoding: '0x4000 | (6<<8) | (src<<4) | dst' },
-        'Asin':      { index: 7,  input: 'DR0 (x)',           output: 'DR(dst) = asin(x)', encoding: '0x4000 | (7<<8) | (src<<4) | dst' },
-        'Acos':      { index: 8,  input: 'DR0 (x)',           output: 'DR(dst) = acos(x)', encoding: '0x4000 | (8<<8) | (src<<4) | dst' },
-        'Atan':      { index: 9,  input: 'DR0 (x)',           output: 'DR(dst) = atan(x)', encoding: '0x4000 | (9<<8) | (src<<4) | dst' },
-        'ToDegrees': { index: 10, input: 'DR0 (radians)',     output: 'DR(dst) = degrees', encoding: '0x4000 | (10<<8) | (src<<4) | dst' },
-        'ToRadians': { index: 11, input: 'DR0 (degrees)',     output: 'DR(dst) = radians', encoding: '0x4000 | (11<<8) | (src<<4) | dst' },
-        'Bernoulli': { index: 12, input: 'DR0 (n)',           output: 'DR(dst) = numerator, DR(dst+1) = denominator', encoding: '0x4000 | (12<<8) | (src<<4) | dst', note: 'Dual-register return: exact rational B(n). DR15 edge case wraps denominator to DR1.' },
+        'Multiply':  { index: 0,  input: 'DR1 (a), DR2 (b)', output: 'DR(dst) = a * b', encoding: '0x4000 | (0<<8) | (src<<4) | dst' },
+        'Divide':    { index: 1,  input: 'DR1 (a), DR2 (b)', output: 'DR(dst) = a / b', encoding: '0x4000 | (1<<8) | (src<<4) | dst' },
+        'Sqrt':      { index: 2,  input: 'DR1 (x)',           output: 'DR(dst) = \u221ax',    encoding: '0x4000 | (2<<8) | (src<<4) | dst' },
+        'Mod':       { index: 3,  input: 'DR1 (a), DR2 (b)', output: 'DR(dst) = a % b', encoding: '0x4000 | (3<<8) | (src<<4) | dst' },
+        'Sin':       { index: 4,  input: 'DR1 (radians)',     output: 'DR(dst) = sin(x)', encoding: '0x4000 | (4<<8) | (src<<4) | dst' },
+        'Cos':       { index: 5,  input: 'DR1 (radians)',     output: 'DR(dst) = cos(x)', encoding: '0x4000 | (5<<8) | (src<<4) | dst' },
+        'Tan':       { index: 6,  input: 'DR1 (radians)',     output: 'DR(dst) = tan(x)', encoding: '0x4000 | (6<<8) | (src<<4) | dst' },
+        'Asin':      { index: 7,  input: 'DR1 (x)',           output: 'DR(dst) = asin(x)', encoding: '0x4000 | (7<<8) | (src<<4) | dst' },
+        'Acos':      { index: 8,  input: 'DR1 (x)',           output: 'DR(dst) = acos(x)', encoding: '0x4000 | (8<<8) | (src<<4) | dst' },
+        'Atan':      { index: 9,  input: 'DR1 (x)',           output: 'DR(dst) = atan(x)', encoding: '0x4000 | (9<<8) | (src<<4) | dst' },
+        'ToDegrees': { index: 10, input: 'DR1 (radians)',     output: 'DR(dst) = degrees', encoding: '0x4000 | (10<<8) | (src<<4) | dst' },
+        'ToRadians': { index: 11, input: 'DR1 (degrees)',     output: 'DR(dst) = radians', encoding: '0x4000 | (11<<8) | (src<<4) | dst' },
+        'Bernoulli': { index: 12, input: 'DR1 (n)',           output: 'DR(dst) = numerator, DR(dst+1) = denominator', encoding: '0x4000 | (12<<8) | (src<<4) | dst', note: 'Dual-register return: exact rational B(n). DR15 edge case wraps denominator to DR1.' },
     },
 };
 
@@ -4408,7 +4408,7 @@ function getMethodPurposes(abs) {
         'Button': { 'Read': 'Button.Read() — LOAD state from device (L perm)', 'WaitPress': 'Button.WaitPress() — block via Scheduler until press (E perm)', 'OnEvent': 'Button.OnEvent() — dequeue press/release event (E perm)' },
         'Timer': { 'Start': 'Timer.Start(channel) — SAVE start command to device (S perm)', 'Stop': 'Timer.Stop(channel) — SAVE stop command (S perm)', 'Read': 'Timer.Read() — LOAD elapsed ticks from device (L perm)', 'SetAlarm': 'Timer.SetAlarm(ticks) — SAVE threshold to device (S perm)' },
         'Display': { 'Write': 'Display.Write(char) — SAVE character to device (S perm)', 'Clear': 'Display.Clear() — SAVE clear command (S perm)', 'Scroll': 'Display.Scroll(lines) — SAVE scroll command (S perm)' },
-        'SlideRule': { 'Multiply': 'SlideRule.Multiply(a, b) — DR0*DR1, method index 0', 'Divide': 'SlideRule.Divide(a, b) — DR0/DR1 (truncated), method index 1. Division by zero returns 0.', 'Sqrt': 'SlideRule.Sqrt(x) — floor(√DR0), method index 2', 'Mod': 'SlideRule.Mod(a, b) — DR0%DR1, method index 3. Mod by zero returns 0.', 'Sin': 'SlideRule.Sin(angle) — CORDIC sine in fixed-point (16-bit fractional), method index 4', 'Cos': 'SlideRule.Cos(angle) — CORDIC cosine in fixed-point (16-bit fractional), method index 5', 'Tan': 'SlideRule.Tan(angle) — CORDIC tangent in fixed-point (16-bit fractional), method index 6', 'Asin': 'SlideRule.Asin(x) — CORDIC inverse sine, result in fixed-point radians, method index 7', 'Acos': 'SlideRule.Acos(x) — CORDIC inverse cosine, result in fixed-point radians, method index 8', 'Atan': 'SlideRule.Atan(x) — CORDIC inverse tangent, result in fixed-point radians, method index 9', 'ToDegrees': 'SlideRule.ToDegrees(rad) — fixed-point radians → degrees (×180/π), method index 10', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees → fixed-point radians (×π/180), method index 11', 'Bernoulli': 'SlideRule.Bernoulli(n) — exact rational Bernoulli number B(n). Numerator in DR(dst), denominator in DR(dst+1). Odd n>1 returns 0/1. Method index 12.', 'Abs': 'SlideRule.Abs(n) — |DR0|, method index 13', 'Pow': 'SlideRule.Pow(base, exp) — base^exp (integer, exp≥0), method index 14. Negative exponent returns 0.', 'Min': 'SlideRule.Min(a, b) — min(DR0, DR1), method index 15', 'Max': 'SlideRule.Max(a, b) — max(DR0, DR1), method index 16', 'GCD': 'SlideRule.GCD(a, b) — greatest common divisor of DR0 and DR1, method index 17', 'Factorial': 'SlideRule.Factorial(n) — n! (integer), method index 18. Negative n returns 0.', 'Log2': 'SlideRule.Log2(n) — floor(log₂(n)), method index 19. n<1 returns 0.', 'Atan2': 'SlideRule.Atan2(y, x) — two-argument arctangent, method index 20', 'Signum': 'SlideRule.Signum(n) — sign of DR0: +1, 0, or −1, method index 21' },
+        'SlideRule': { 'Multiply': 'SlideRule.Multiply(a, b) — DR1*DR2, method index 0', 'Divide': 'SlideRule.Divide(a, b) — DR1/DR2 (truncated), method index 1. Division by zero returns 0.', 'Sqrt': 'SlideRule.Sqrt(x) — floor(√DR1), method index 2', 'Mod': 'SlideRule.Mod(a, b) — DR1%DR2, method index 3. Mod by zero returns 0.', 'Sin': 'SlideRule.Sin(angle) — CORDIC sine in fixed-point (16-bit fractional), method index 4', 'Cos': 'SlideRule.Cos(angle) — CORDIC cosine in fixed-point (16-bit fractional), method index 5', 'Tan': 'SlideRule.Tan(angle) — CORDIC tangent in fixed-point (16-bit fractional), method index 6', 'Asin': 'SlideRule.Asin(x) — CORDIC inverse sine, result in fixed-point radians, method index 7', 'Acos': 'SlideRule.Acos(x) — CORDIC inverse cosine, result in fixed-point radians, method index 8', 'Atan': 'SlideRule.Atan(x) — CORDIC inverse tangent, result in fixed-point radians, method index 9', 'ToDegrees': 'SlideRule.ToDegrees(rad) — fixed-point radians → degrees (×180/π), method index 10', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees → fixed-point radians (×π/180), method index 11', 'Bernoulli': 'SlideRule.Bernoulli(n) — exact rational Bernoulli number B(n). Numerator in DR(dst), denominator in DR(dst+1). Odd n>1 returns 0/1. Method index 12.', 'Abs': 'SlideRule.Abs(n) — |DR1|, method index 13', 'Pow': 'SlideRule.Pow(base, exp) — base^exp (integer, exp≥0), method index 14. Negative exponent returns 0.', 'Min': 'SlideRule.Min(a, b) — min(DR1, DR2), method index 15', 'Max': 'SlideRule.Max(a, b) — max(DR1, DR2), method index 16', 'GCD': 'SlideRule.GCD(a, b) — greatest common divisor of DR1 and DR2, method index 17', 'Factorial': 'SlideRule.Factorial(n) — n! (integer), method index 18. Negative n returns 0.', 'Log2': 'SlideRule.Log2(n) — floor(log₂(n)), method index 19. n<1 returns 0.', 'Atan2': 'SlideRule.Atan2(y, x) — two-argument arctangent, method index 20', 'Signum': 'SlideRule.Signum(n) — sign of DR1: +1, 0, or −1, method index 21' },
         'Abacus': { 'Add': 'Abacus.Add(a, b) — integer add', 'Sub': 'Abacus.Sub(a, b) — integer subtract', 'Mul': 'Abacus.Mul(a, b) — integer multiply', 'Div': 'Abacus.Div(a, b) — integer divide', 'Mod': 'Abacus.Mod(a, b) — remainder', 'Abs': 'Abacus.Abs(x) — absolute value' },
         'Constants': { 'Pi': 'Constants.Pi() — return \u03c0 as IEEE 754', 'E': 'Constants.E() — return e', 'Phi': 'Constants.Phi() — return \u03c6', 'Zero': 'Constants.Zero() — return 0.0', 'One': 'Constants.One() — return 1.0' },
         'Loader': { 'Load': 'Loader.Load(slot) — fault-driven lazy load of a warm/cold abstraction', 'Prefetch': 'Loader.Prefetch(slot) — hint-driven pre-load without blocking', 'Evict': 'Loader.Evict(slot) — unload a cold abstraction to free memory' },
@@ -4494,11 +4494,11 @@ TPERM  CR1, E            ; Check E permission, valid, MAC
 ; It is NOT a security block — just an instruction
 LOAD   CR1, NS[20]      ; Load SUCC GT (X+L+E perms)
                          ;   mLoad validates X perm for code
-DWRITE DR0, #3           ; Church numeral 3 in data register
-LAMBDA CR1, DR0          ; Apply SUCC: DR0 <- SUCC(3) = 4
+DWRITE DR1, #3           ; Church numeral 3 in data register
+LAMBDA CR1, DR1          ; Apply SUCC: DR1 <- SUCC(3) = 4
                          ;   CR1 must have X perm (code exec)
                          ;   SUCC's CLOOMC is a DATA-domain object
-; Result: DR0 = 4`,
+; Result: DR1 = 4`,
             'TransitionToNavana': `; Salvation -> Navana transition (Salvation does NOT return)
 ; Boot flow: Boot -> CALL Salvation -> Salvation -> Navana
 ; Navana runs forever as the namespace controller
@@ -4532,8 +4532,8 @@ CALL   CR1              ; Enter Navana
 ; Navana dispatches create/destroy/call/inspect uniformly
 ; Every abstraction shares this polymorphic interface
 LOAD   CR1, NS[5]       ; Load Navana E-GT
-DWRITE DR0, #33         ; Target: Editor abstraction (NS[33])
-DWRITE DR1, #0          ; Operation: 0=create
+DWRITE DR1, #33         ; Target: Editor abstraction (NS[33])
+DWRITE DR2, #0          ; Operation: 0=create
 CALL   CR1              ; Navana.Manage dispatches:
 ;   1. Mint.Create(type, size, perms):
 ;      a. Memory.Allocate(size) -> location
@@ -4550,8 +4550,8 @@ CALL   CR1              ; Navana.Monitor checks:
 ;     read faultCount from registry
 ;     compute MTBF = activeTime / faultCount
 ;     if MTBF < threshold: flag degraded
-;   DR0 <- total fault count across all blocks
-;   DR1 <- index of lowest-MTBF abstraction`,
+;   DR1 <- total fault count across all blocks
+;   DR2 <- index of lowest-MTBF abstraction`,
             'IDS': `; Navana.IDS — Intrusion Detection System
 ; Detects GT forgery attempts and version anomalies
 LOAD   CR1, NS[5]       ; Load Navana E-GT
@@ -4570,7 +4570,7 @@ CALL   CR1              ; Navana.IDS scans:
 ;   GT index encodes: device[15:8] | permMask[7:4] | id[3:0]
 ; Navana = gatekeeper. Validates PassKey,
 ;   replaces CR1 with E-perm LED driver.
-; LED driver = callable. Methods via DR0/DR1.
+; LED driver = callable. Methods via DR1/DR2.
 ; Caller never sees hardware address or NS index.
 ;
 ; Step 1: Load PassKey from thread's c-list
@@ -4595,19 +4595,19 @@ CALL   CR2                ; CALL Navana detects Abstract GT in CR1:
 ;   4. Check not revoked, not tampered
 ;   5. Replace CR1 <- E-perm LED driver GT (Inform)
 ;   6. Store permMask for driver calls
-;   DR0 <- permMask granted
+;   DR1 <- permMask granted
 ; If invalid: PERM fault — no hardware state changes
 
 ; ── STEP 3: CALL LED driver — set LED 3 ON ────
 ; CR1 now holds E-perm LED driver (not PassKey)
-DWRITE DR0, #3            ; LED number (0-5)
-DWRITE DR1, #1            ; Colour/state: 1=on
+DWRITE DR1, #3            ; LED number (0-5)
+DWRITE DR2, #1            ; Colour/state: 1=on
 CALL   CR1                ; LED.Set via E-perm driver:
-;   1. DR0[31:24] = method (0=Set,1=Clear,2=Pattern,3=Get)
-;   2. DR0[7:0]   = LED number
-;   3. DR1[7:0]   = colour/state
+;   1. DR1[31:24] = method (0=Set,1=Clear,2=Pattern,3=Get)
+;   2. DR1[7:0]   = LED number
+;   3. DR2[7:0]   = colour/state
 ;   4. Hardware write at 0xFE10 (invisible to caller)
-;   5. DR0 <- updated LED state
+;   5. DR1 <- updated LED state
 ; Gate Log shows full chain of custody:
 ;   PassKey presented -> Navana validated ->
 ;   LED.Set(3,1) called -> device write committed`,
@@ -4617,20 +4617,20 @@ CALL   CR1                ; LED.Set via E-perm driver:
 ; CR1 holds E-perm LED driver GT from Navana
 
 ; ---- Mode 1: LED.Set(LED#, colour) ----
-; When DR1 > 0, routes to LED.Set automatically
-DWRITE DR0, #3            ; DR0 = LED number (0-5)
-DWRITE DR1, #1            ; DR1 = colour (non-zero -> Set mode)
+; When DR2 > 0, routes to LED.Set automatically
+DWRITE DR1, #3            ; DR1 = LED number (0-5)
+DWRITE DR2, #1            ; DR2 = colour (non-zero -> Set mode)
 CALL   CR1                ; LED.Set via E-perm driver
 
 ; ---- Mode 2: LED.Pattern(6-bit pattern) ----
-; When DR1 = 0 and DR0 is a 6-bit value, routes to LED.Pattern
-DWRITE DR0, #0b00101010  ; DR0 = 6-bit pattern (alternating)
-DWRITE DR1, #0            ; DR1 = 0 -> Pattern mode
+; When DR2 = 0 and DR1 is a 6-bit value, routes to LED.Pattern
+DWRITE DR1, #0b00101010  ; DR1 = 6-bit pattern (alternating)
+DWRITE DR2, #0            ; DR2 = 0 -> Pattern mode
 CALL   CR1                ; LED.Pattern via E-perm driver:
-;   1. Reads DR0[5:0] as 6-bit pattern
+;   1. Reads DR1[5:0] as 6-bit pattern
 ;   2. Writes pattern atomically to all 6 LEDs
 ;   3. Pins 15-20 driven active-low
-;   4. DR0 <- new LED state
+;   4. DR1 <- new LED state
 ; Gate Log shows full chain of custody:
 ;   Grant validated -> LED.Pattern called ->
 ;   device write committed`,
@@ -4638,8 +4638,8 @@ CALL   CR1                ; LED.Pattern via E-perm driver:
 ; PRIVILEGED: requires M-elevation (boot/kernel only)
 ; Unprivileged callers get PERM fault.
 LOAD   CR1, NS[5]        ; Load Navana E-GT
-DWRITE DR0, #4            ; DR0=4 selects MintPassKey method
-DWRITE DR1, #0x010F       ; DR1[15:8]=device(LED=0x01), DR1[7:0]=permMask(ALL=0x0F)
+DWRITE DR1, #4            ; DR1=4 selects MintPassKey method
+DWRITE DR2, #0x010F       ; DR2[15:8]=device(LED=0x01), DR2[7:0]=permMask(ALL=0x0F)
 CALL   CR1                ; Navana.MintPassKey:
 ;   1. Check M-elevation (unprivileged -> PERM fault)
 ;   2. Allocate PassKey ID (monotonic counter)
@@ -4680,9 +4680,9 @@ CALL   CR1                ; Navana.MintPassKey:
 
 ; ── EXAMPLE A: Inform + Turing R,W (data buffer) ──────────
 LOAD   CR1, NS[6]       ; Load Mint E-GT (mLoad validates)
-DWRITE DR0, #1          ; type = 01 (Inform)
-DWRITE DR1, #128        ; size = 128 words
-DWRITE DR2, #0b000011   ; perms = R+W (Turing domain)
+DWRITE DR1, #1          ; type = 01 (Inform)
+DWRITE DR2, #128        ; size = 128 words
+DWRITE DR3, #0b000011   ; perms = R+W (Turing domain)
                          ;   bit0=R, bit1=W
 CALL   CR1              ; Mint.Create internally:
 ;   1. Domain purity: R+W = Turing only — OK
@@ -4704,9 +4704,9 @@ CALL   CR1              ; Mint.Create internally:
 
 ; ── EXAMPLE B: Inform + Turing R,W,X (full data+code) ────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #1          ; type = 01 (Inform)
-DWRITE DR1, #64         ; size = 64 words
-DWRITE DR2, #0b000111   ; perms = R+W+X (full Turing)
+DWRITE DR1, #1          ; type = 01 (Inform)
+DWRITE DR2, #64         ; size = 64 words
+DWRITE DR3, #0b000111   ; perms = R+W+X (full Turing)
                          ;   bit0=R, bit1=W, bit2=X
 CALL   CR1              ; Mint.Create:
 ;   Domain purity: R+W+X = Turing only — OK
@@ -4717,9 +4717,9 @@ CALL   CR1              ; Mint.Create:
 
 ; ── EXAMPLE C: Inform + Turing X only (execute-only code) ─
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #1          ; type = 01 (Inform)
-DWRITE DR1, #32         ; size = 32 words
-DWRITE DR2, #0b000100   ; perms = X only (Turing)
+DWRITE DR1, #1          ; type = 01 (Inform)
+DWRITE DR2, #32         ; size = 32 words
+DWRITE DR3, #0b000100   ; perms = X only (Turing)
                          ;   bit2=X — execute but no read
 CALL   CR1              ; Mint.Create:
 ;   Code object you can run but not inspect
@@ -4727,9 +4727,9 @@ CALL   CR1              ; Mint.Create:
 
 ; ── EXAMPLE D: Inform + Church L,S,E (c-list) ────────────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #1          ; type = 01 (Inform)
-DWRITE DR1, #16         ; size = 16 slots
-DWRITE DR2, #0b111000   ; perms = L+S+E (full Church)
+DWRITE DR1, #1          ; type = 01 (Inform)
+DWRITE DR2, #16         ; size = 16 slots
+DWRITE DR3, #0b111000   ; perms = L+S+E (full Church)
                          ;   bit3=L, bit4=S, bit5=E
 CALL   CR1              ; Mint.Create:
 ;   Domain purity: L+S+E = Church only — OK
@@ -4742,9 +4742,9 @@ CALL   CR1              ; Mint.Create:
 
 ; ── EXAMPLE E: Inform + Church E only (abstraction) ──────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #1          ; type = 01 (Inform)
-DWRITE DR1, #8          ; size = 8 words
-DWRITE DR2, #0b100000   ; perms = E only (Church)
+DWRITE DR1, #1          ; type = 01 (Inform)
+DWRITE DR2, #8          ; size = 8 words
+DWRITE DR3, #0b100000   ; perms = E only (Church)
                          ;   bit5=E
 CALL   CR1              ; Mint.Create:
 ;   Standard abstraction entry point — E only
@@ -4752,10 +4752,10 @@ CALL   CR1              ; Mint.Create:
 
 ; ── EXAMPLE F: Inform + Bind flag ─────────────────────────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #1          ; type = 01 (Inform)
-DWRITE DR1, #64         ; size = 64 words
-DWRITE DR2, #0b000011   ; perms = R+W (Turing)
-DWRITE DR3, #1          ; bind = 1 (B-bit set)
+DWRITE DR1, #1          ; type = 01 (Inform)
+DWRITE DR2, #64         ; size = 64 words
+DWRITE DR3, #0b000011   ; perms = R+W (Turing)
+DWRITE DR4, #1          ; bind = 1 (B-bit set)
 CALL   CR1              ; Mint.Create:
 ;   B-bit=1 in word1[31] — GT bound to a thread
 ;   B-bit auto-cleared by CALL (hardware enforced)
@@ -4763,9 +4763,9 @@ CALL   CR1              ; Mint.Create:
 
 ; ── EXAMPLE G: Outform + Far + Church L,E (remote) ───────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #2          ; type = 10 (Outform)
-DWRITE DR1, #32         ; size = 32 words (local proxy)
-DWRITE DR2, #0b101000   ; perms = L+E (Church)
+DWRITE DR1, #2          ; type = 10 (Outform)
+DWRITE DR2, #32         ; size = 32 words (local proxy)
+DWRITE DR3, #0b101000   ; perms = L+E (Church)
                          ;   bit3=L, bit5=E
 CALL   CR1              ; Mint.Create:
 ;   Outform: F-bit auto-set (Far = remote resource)
@@ -4775,16 +4775,16 @@ CALL   CR1              ; Mint.Create:
 
 ; ── EXAMPLE H: Abstract type (new abstraction) ───────────
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #3          ; type = 11 (Abstract)
-DWRITE DR1, #256        ; size = 256 words
-DWRITE DR2, #0b100000   ; perms = E only (Church)
+DWRITE DR1, #3          ; type = 11 (Abstract)
+DWRITE DR2, #256        ; size = 256 words
+DWRITE DR3, #0b100000   ; perms = E only (Church)
 CALL   CR1              ; Mint.Create:
 ;   Abstract type: this GT represents a new abstraction
 ;   Responds to polymorphic interface: create/destroy/call/inspect
 ;   Navana manages its lifecycle
 
 ; ── ILLEGAL: NULL type (FAULT) ────────────────────────────
-; DWRITE DR0, #0          ; type = 00 (NULL) — ILLEGAL!
+; DWRITE DR1, #0          ; type = 00 (NULL) — ILLEGAL!
 ;   -> FAULT: TYPE
 ;   NULL is the zero/absent value, not creatable
 
@@ -4797,7 +4797,7 @@ CALL   CR1              ; Mint.Create:
 ; outstanding copies of the GT — they will fail mLoad
 ; step 2 (version mismatch) on next use
 LOAD   CR1, NS[6]       ; Load Mint E-GT
-DWRITE DR0, #50         ; Target NS slot to revoke
+DWRITE DR1, #50         ; Target NS slot to revoke
 
 CALL   CR1              ; Mint.Revoke:
 ;   base = NS_TABLE_BASE + 50 * 3
@@ -4811,7 +4811,7 @@ CALL   CR1              ; Mint.Revoke:
 ;   any LOAD/CALL with stale GT hits mLoad step 2:
 ;   GT.version(7 bits) != NS[50].word2.version(7 bits)
 ;   -> FAULT: VERSION_MISMATCH
-; DR0 <- new version number`,
+; DR1 <- new version number`,
             'Transfer': `; Mint.Transfer — move GT between c-lists
 ; The c-list IS the parental approval — transferring a GT
 ; to a child's c-list grants them access to that resource
@@ -4836,7 +4836,7 @@ CALL   CR1              ; Mint.Transfer:
 ; Memory manages address space as a pool of allocations.
 ; It does NOT manage the NS table — that is Mint/Navana's job.
 LOAD   CR1, NS[7]       ; Load Memory E-GT via mLoad
-DWRITE DR0, #128        ; Request 128 words of storage
+DWRITE DR1, #128        ; Request 128 words of storage
 
 CALL   CR1              ; Memory.Allocate:
 ;   1. Check if requested size fits in available memory
@@ -4845,13 +4845,13 @@ CALL   CR1              ; Memory.Allocate:
 ;   2. Record allocation at current free address
 ;   3. Advance free address pointer by size
 ;
-; DR0 <- base location address
-; DR1 <- allocation size (128)
+; DR1 <- base location address
+; DR2 <- allocation size (128)
 ; Memory only returns a location — Mint.Create handles
 ; the NS entry, GT creation, and version management`,
             'Free': `; Memory.Free — release a memory region
 LOAD   CR1, NS[7]       ; Load Memory E-GT
-DWRITE DR0, #0x2D00     ; Location to free (from original Allocate)
+DWRITE DR1, #0x2D00     ; Location to free (from original Allocate)
 
 CALL   CR1              ; Memory.Free:
 ;   1. Look up allocation at given location
@@ -4862,8 +4862,8 @@ CALL   CR1              ; Memory.Free:
 ; invalidate GTs, then free the backing memory here`,
             'Resize': `; Memory.Resize — adjust allocation size
 LOAD   CR1, NS[7]       ; Load Memory E-GT
-DWRITE DR0, #0x2D00     ; Location to resize (from original Allocate)
-DWRITE DR1, #256        ; New size (words)
+DWRITE DR1, #0x2D00     ; Location to resize (from original Allocate)
+DWRITE DR2, #256        ; New size (words)
 
 CALL   CR1              ; Memory.Resize:
 ;   1. Look up allocation at given location
@@ -4887,7 +4887,7 @@ CALL   CR1              ; Scheduler.Yield:
 LOAD   CR1, NS[8]       ; Load Scheduler E-GT
 LOAD   CR2, NS[50]      ; Code GT for new thread (X perm)
                          ;   must be DATA-domain object
-DWRITE DR0, #0x0200     ; Entry point address within code
+DWRITE DR1, #0x0200     ; Entry point address within code
 
 CALL   CR1              ; Scheduler.Spawn:
 ;   1. Memory.Allocate for thread control block
@@ -4895,7 +4895,7 @@ CALL   CR1              ; Scheduler.Spawn:
 ;   3. Set new thread PC = entry point
 ;   4. Each child thread has isolated namespace view
 ;   5. Add to run queue
-; DR0 <- new thread ID`,
+; DR1 <- new thread ID`,
             'Wait': `; Scheduler.Wait — block thread on DijkstraFlag
 ; Thread stops running until the flag is signaled
 LOAD   CR1, NS[8]       ; Load Scheduler E-GT
@@ -4909,7 +4909,7 @@ CALL   CR1              ; Scheduler.Wait:
 ; Thread resumes when DijkstraFlag.Signal fires`,
             'Stop': `; Scheduler.Stop — terminate a thread
 LOAD   CR1, NS[8]       ; Load Scheduler E-GT
-DWRITE DR0, #2          ; Thread ID to terminate
+DWRITE DR1, #2          ; Thread ID to terminate
 
 CALL   CR1              ; Scheduler.Stop:
 ;   1. Remove thread from run/wait queue
@@ -4922,7 +4922,7 @@ CALL   CR1              ; Scheduler.Stop:
             'Push': `; Stack.Push — push value onto managed stack
 ; Stack uses a Memory-allocated DATA region for storage
 LOAD   CR1, NS[9]       ; Load Stack E-GT
-DWRITE DR0, #42         ; Value to push
+DWRITE DR1, #42         ; Value to push
 
 CALL   CR1              ; Stack.Push:
 ;   1. Check stack not full (depth < limit from word1)
@@ -4938,7 +4938,7 @@ CALL   CR1              ; Stack.Pop:
 ;   2. Decrement depth counter
 ;   3. DREAD value from mem[location + depth]
 ;   4. If empty: FAULT STACK_UNDERFLOW
-; DR0 <- popped value`,
+; DR1 <- popped value`,
             'Peek': `; Stack.Peek — read top without removing
 LOAD   CR1, NS[9]       ; Load Stack E-GT
 
@@ -4946,12 +4946,12 @@ CALL   CR1              ; Stack.Peek:
 ;   1. Check stack not empty
 ;   2. DREAD mem[location + depth - 1]
 ;   3. Do NOT decrement depth
-; DR0 <- top value (stack unchanged)`,
+; DR1 <- top value (stack unchanged)`,
             'Depth': `; Stack.Depth — query current stack depth
 LOAD   CR1, NS[9]       ; Load Stack E-GT
 
 CALL   CR1              ; Stack.Depth:
-;   DR0 <- current number of entries on stack`,
+;   DR1 <- current number of entries on stack`,
         },
         'DijkstraFlag': {
             'Wait': `; DijkstraFlag.Wait — block thread until flag signaled
@@ -4991,7 +4991,7 @@ LOAD   CR1, NS[10]      ; Load DijkstraFlag E-GT
 CALL   CR1              ; DijkstraFlag.Test:
 ;   1. Read flag state without blocking
 ;   2. Does NOT consume the signal
-;   DR0 <- 1 if signaled, 0 if not`,
+;   DR1 <- 1 if signaled, 0 if not`,
         },
         'UART': {
             'Send': `; UART.Send — transmit byte via Church domain S perm
@@ -5000,22 +5000,22 @@ CALL   CR1              ; DijkstraFlag.Test:
 LOAD   CR1, NS[11]      ; Load UART GT [L,S,E] via mLoad
                          ;   mLoad checks: type, version, seal,
                          ;   bounds, perms, F-bit, deliver
-DWRITE DR0, #0x41       ; Byte to send ('A') in data register
-SAVE   CR1, DR0         ; S perm: save data TO device
+DWRITE DR1, #0x41       ; Byte to send ('A') in data register
+SAVE   CR1, DR1         ; S perm: save data TO device
                          ;   SAVE checks S permission on GT
                          ;   Church domain: capability-gated I/O
 ; Byte queued for transmission on pin 69 (TX)`,
             'Receive': `; UART.Receive — read byte via Church domain L perm
 LOAD   CR1, NS[11]      ; Load UART GT [L,S,E]
 
-LOAD   DR0, CR1         ; L perm: load data FROM device
+LOAD   DR1, CR1         ; L perm: load data FROM device
                          ;   LOAD checks L permission on GT
                          ;   Only capability holders can read UART
-; DR0 <- received byte from pin 70 (RX)
-; If no byte available: DR0 = 0, Z flag set`,
+; DR1 <- received byte from pin 70 (RX)
+; If no byte available: DR1 = 0, Z flag set`,
             'SetBaud': `; UART.SetBaud — configure baud rate via CALL
 LOAD   CR1, NS[11]      ; Load UART E-GT
-DWRITE DR0, #115200     ; Target baud rate
+DWRITE DR1, #115200     ; Target baud rate
 
 CALL   CR1              ; UART.SetBaud via E perm:
 ;   1. Validate baud rate is supported
@@ -5028,19 +5028,19 @@ CALL   CR1              ; UART.SetBaud via E perm:
             'Set': `; LED.Set — turn LED on via S (Save) permission
 ; Tang Nano 20K: 6 LEDs on pins 15-20 (active-low)
 LOAD   CR1, NS[12]      ; Load LED GT [L,S,E]
-DWRITE DR0, #3          ; LED number (0-5)
-DWRITE DR1, #1          ; State: 1=on
-SAVE   CR1, DR0         ; S perm: save state to device
+DWRITE DR1, #3          ; LED number (0-5)
+DWRITE DR2, #1          ; State: 1=on
+SAVE   CR1, DR1         ; S perm: save state to device
                          ;   Church domain capability gate
                          ;   No ambient access — must hold GT`,
             'Clear': `; LED.Clear — turn LED off via S perm
 LOAD   CR1, NS[12]      ; Load LED GT [L,S,E]
-DWRITE DR0, #3          ; LED number
-DWRITE DR1, #0          ; State: 0=off
-SAVE   CR1, DR0         ; S perm: save to device`,
+DWRITE DR1, #3          ; LED number
+DWRITE DR2, #0          ; State: 0=off
+SAVE   CR1, DR1         ; S perm: save to device`,
             'Toggle': `; LED.Toggle — flip LED state
 LOAD   CR1, NS[12]      ; Load LED GT [L,S,E]
-DWRITE DR0, #3          ; LED number
+DWRITE DR1, #3          ; LED number
 
 CALL   CR1              ; LED.Toggle via E perm:
 ;   1. L perm: read current state from device
@@ -5048,9 +5048,9 @@ CALL   CR1              ; LED.Toggle via E perm:
 ;   3. S perm: write new state to device`,
             'Pattern': `; LED.Pattern — set all 6 LEDs at once
 LOAD   CR1, NS[12]      ; Load LED GT [L,S,E]
-DWRITE DR0, #0b101010   ; Pattern: alternating on/off
+DWRITE DR1, #0b101010   ; Pattern: alternating on/off
                          ; Bit 0=LED0, Bit 5=LED5
-SAVE   CR1, DR0         ; S perm: save pattern to device
+SAVE   CR1, DR1         ; S perm: save pattern to device
 ; All 6 LEDs updated atomically
 ; Pins 15-20 driven active-low`,
         },
@@ -5059,8 +5059,8 @@ SAVE   CR1, DR0         ; S perm: save pattern to device
 ; Button is L+E only (no S — you can't write to a button)
 ; Tang Nano 20K button on pin 88
 LOAD   CR1, NS[13]      ; Load Button GT [L,E]
-LOAD   DR0, CR1         ; L perm: load state from device
-; DR0 <- 1 if pressed, 0 if released`,
+LOAD   DR1, CR1         ; L perm: load state from device
+; DR1 <- 1 if pressed, 0 if released`,
             'WaitPress': `; Button.WaitPress — block until button press
 LOAD   CR1, NS[13]      ; Load Button GT [L,E]
 
@@ -5069,26 +5069,26 @@ CALL   CR1              ; Button.WaitPress via E perm:
 ;   2. If pressed: return immediately
 ;   3. If released: Scheduler.Wait on button event
 ;      thread blocks until hardware interrupt
-; DR0 <- 1 (pressed) when thread resumes`,
+; DR1 <- 1 (pressed) when thread resumes`,
             'OnEvent': `; Button.OnEvent — dequeue button event
 LOAD   CR1, NS[13]      ; Load Button GT [L,E]
 
 CALL   CR1              ; Button.OnEvent via E perm:
 ;   1. Check event queue (press/release transitions)
 ;   2. If event pending: dequeue and return
-;   3. If no event: DR0 = 0, Z flag set
-; DR0 <- event type (1=press, 2=release, 0=none)`,
+;   3. If no event: DR1 = 0, Z flag set
+; DR1 <- event type (1=press, 2=release, 0=none)`,
         },
         'Timer': {
             'Start': `; Timer.Start — begin counting via S perm
 LOAD   CR1, NS[14]      ; Load Timer GT [L,S,E]
-DWRITE DR0, #0          ; Timer channel
+DWRITE DR1, #0          ; Timer channel
 
-SAVE   CR1, DR0         ; S perm: save "start" to device
+SAVE   CR1, DR1         ; S perm: save "start" to device
 ; Timer begins counting from 27MHz clock`,
             'Stop': `; Timer.Stop — halt timer via S perm
 LOAD   CR1, NS[14]      ; Load Timer GT [L,S,E]
-DWRITE DR0, #0          ; Timer channel
+DWRITE DR1, #0          ; Timer channel
 
 CALL   CR1              ; Timer.Stop via E perm:
 ;   S perm: write stop command to device
@@ -5096,14 +5096,14 @@ CALL   CR1              ; Timer.Stop via E perm:
             'Read': `; Timer.Read — get elapsed time via L perm
 LOAD   CR1, NS[14]      ; Load Timer GT [L,S,E]
 
-LOAD   DR0, CR1         ; L perm: load elapsed from device
-; DR0 <- elapsed ticks since Start
+LOAD   DR1, CR1         ; L perm: load elapsed from device
+; DR1 <- elapsed ticks since Start
 ; At 27MHz: ticks / 27000000 = seconds`,
             'SetAlarm': `; Timer.SetAlarm — set alarm threshold via S perm
 LOAD   CR1, NS[14]      ; Load Timer GT [L,S,E]
-DWRITE DR0, #27000000   ; Alarm at 1 second (27M ticks)
+DWRITE DR1, #27000000   ; Alarm at 1 second (27M ticks)
 
-SAVE   CR1, DR0         ; S perm: save alarm to device
+SAVE   CR1, DR1         ; S perm: save alarm to device
 ; When counter reaches threshold:
 ;   hardware signals DijkstraFlag for this timer
 ;   waiting thread wakes via DijkstraFlag.Signal`,
@@ -5111,9 +5111,9 @@ SAVE   CR1, DR0         ; S perm: save alarm to device
         'Display': {
             'Write': `; Display.Write — write character via S perm
 LOAD   CR1, NS[15]      ; Load Display GT [L,S,E]
-DWRITE DR0, #0x48       ; Character 'H'
+DWRITE DR1, #0x48       ; Character 'H'
 
-SAVE   CR1, DR0         ; S perm: save char to device
+SAVE   CR1, DR1         ; S perm: save char to device
 ; Character appears at current cursor position`,
             'Clear': `; Display.Clear — clear screen via E perm
 LOAD   CR1, NS[15]      ; Load Display GT [L,S,E]
@@ -5123,73 +5123,73 @@ CALL   CR1              ; Display.Clear via E perm:
 ;   All pixels/chars zeroed, cursor reset to (0,0)`,
             'Scroll': `; Display.Scroll — scroll display via E perm
 LOAD   CR1, NS[15]      ; Load Display GT [L,S,E]
-DWRITE DR0, #1          ; Scroll 1 line up
+DWRITE DR1, #1          ; Scroll 1 line up
 
 CALL   CR1              ; Display.Scroll via E perm:
 ;   S perm: write scroll command to device
 ;   Top line lost, bottom line cleared`,
         },
         'SlideRule': {
-            'Multiply': `; SlideRule.Multiply — DR0 * DR1 (DR3=0)
+            'Multiply': `; SlideRule.Multiply — DR1 * DR2 (DR3=0)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #2          ; Left operand
-DWRITE DR1, #3          ; Right operand
+DWRITE DR1, #2          ; Left operand
+DWRITE DR2, #3          ; Right operand
 DWRITE DR3, #0          ; Method selector: Multiply
-CALL   CR1              ; DR0 <- 6`,
-            'Divide': `; SlideRule.Divide — DR0 / DR1 (DR3=1)
+CALL   CR1              ; DR1 <- 6`,
+            'Divide': `; SlideRule.Divide — DR1 / DR2 (DR3=1)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #10         ; Dividend
-DWRITE DR1, #2          ; Divisor
+DWRITE DR1, #10         ; Dividend
+DWRITE DR2, #2          ; Divisor
 DWRITE DR3, #1          ; Method selector: Divide
-CALL   CR1              ; DR0 <- 5
+CALL   CR1              ; DR1 <- 5
 ; Div by zero returns 0 with fault message`,
-            'Sqrt': `; SlideRule.Sqrt — √DR0 (DR3=2)
+            'Sqrt': `; SlideRule.Sqrt — √DR1 (DR3=2)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #9          ; Input
+DWRITE DR1, #9          ; Input
 DWRITE DR3, #2          ; Method selector: Sqrt
-CALL   CR1              ; DR0 <- 3`,
-            'Mod': `; SlideRule.Mod — DR0 % DR1 (DR3=3)
+CALL   CR1              ; DR1 <- 3`,
+            'Mod': `; SlideRule.Mod — DR1 % DR2 (DR3=3)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #10         ; Dividend
-DWRITE DR1, #3          ; Divisor
+DWRITE DR1, #10         ; Dividend
+DWRITE DR2, #3          ; Divisor
 DWRITE DR3, #3          ; Method selector: Mod
-CALL   CR1              ; DR0 <- 1`,
+CALL   CR1              ; DR1 <- 1`,
             'Sin': `; SlideRule.Sin — sine (radians)
 ; FPGA uses CORDIC; simulator uses IEEE 754
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x3FC90FDB ; pi/2 (1.5708 rad)
-CALL   CR1              ; DR0 <- 0x3F800000 (1.0)`,
+DWRITE DR1, #0x3FC90FDB ; pi/2 (1.5708 rad)
+CALL   CR1              ; DR1 <- 0x3F800000 (1.0)`,
             'Cos': `; SlideRule.Cos — cosine (radians)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x00000000 ; 0.0 rad
-CALL   CR1              ; DR0 <- 0x3F800000 (1.0)`,
+DWRITE DR1, #0x00000000 ; 0.0 rad
+CALL   CR1              ; DR1 <- 0x3F800000 (1.0)`,
             'Tan': `; SlideRule.Tan — tangent (radians)
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x3F490FDB ; pi/4 (0.7854 rad)
-CALL   CR1              ; DR0 <- 0x3F800000 (1.0)
+DWRITE DR1, #0x3F490FDB ; pi/4 (0.7854 rad)
+CALL   CR1              ; DR1 <- 0x3F800000 (1.0)
 ; Near pi/2: FAULT DOMAIN_ERROR (asymptote)`,
             'Asin': `; SlideRule.Asin — inverse sine -> radians
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x3F800000 ; 1.0
-CALL   CR1              ; DR0 <- 0x3FC90FDB (pi/2)
+DWRITE DR1, #0x3F800000 ; 1.0
+CALL   CR1              ; DR1 <- 0x3FC90FDB (pi/2)
 ; |input| > 1.0: FAULT DOMAIN_ERROR`,
             'Acos': `; SlideRule.Acos — inverse cosine -> radians
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x3F800000 ; 1.0
-CALL   CR1              ; DR0 <- 0x00000000 (0.0)`,
+DWRITE DR1, #0x3F800000 ; 1.0
+CALL   CR1              ; DR1 <- 0x00000000 (0.0)`,
             'Atan': `; SlideRule.Atan — inverse tangent -> radians
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x3F800000 ; 1.0
-CALL   CR1              ; DR0 <- 0x3F490FDB (pi/4)`,
+DWRITE DR1, #0x3F800000 ; 1.0
+CALL   CR1              ; DR1 <- 0x3F490FDB (pi/4)`,
             'ToDegrees': `; SlideRule.ToDegrees — radians to degrees
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x40490FDB ; pi (3.14159 rad)
-CALL   CR1              ; DR0 <- 0x43340000 (180.0 deg)
+DWRITE DR1, #0x40490FDB ; pi (3.14159 rad)
+CALL   CR1              ; DR1 <- 0x43340000 (180.0 deg)
 ; Multiply by 180/pi internally`,
             'ToRadians': `; SlideRule.ToRadians — degrees to radians
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #0x43340000 ; 180.0 degrees
-CALL   CR1              ; DR0 <- 0x40490FDB (pi rad)
+DWRITE DR1, #0x43340000 ; 180.0 degrees
+CALL   CR1              ; DR1 <- 0x40490FDB (pi rad)
 ; Multiply by pi/180 internally`,
             'Bernoulli': `; SlideRule.Bernoulli(n) — exact rational B(n)
 ; Returns: numerator in DR(dst), denominator in DR(dst+1)
@@ -5197,10 +5197,10 @@ CALL   CR1              ; DR0 <- 0x40490FDB (pi rad)
 ;
 ; Legacy form (DR3 dispatch):
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR0, #6          ; n=6 -> B(6) = 1/42
+DWRITE DR1, #6          ; n=6 -> B(6) = 1/42
 DWRITE DR3, #12         ; Method selector: Bernoulli
-CALL   CR1              ; DR0 <- 1 (numerator)
-                         ; DR1 <- 42 (denominator)
+CALL   CR1              ; DR1 <- 1 (numerator)
+                         ; DR2 <- 42 (denominator)
 ;
 ; Encoded CALL form (method in immediate):
 LOAD   CR1, NS[16]      ; Load SlideRule E-GT
@@ -5214,60 +5214,60 @@ CALL   CR1, #0x4C44     ; 0x4C44 = CALL method 12, src=DR4, dst=DR4
         'Abacus': {
             'Add': `; Abacus.Add — integer addition (Turing domain data)
 LOAD   CR1, NS[17]      ; Load Abacus E-GT
-DWRITE DR0, #7
-DWRITE DR1, #5
-CALL   CR1              ; DR0 <- 12
+DWRITE DR1, #7
+DWRITE DR2, #5
+CALL   CR1              ; DR1 <- 12
 ; Overflow: sets V (overflow) flag`,
             'Sub': `; Abacus.Sub — integer subtract
 LOAD   CR1, NS[17]      ; Load Abacus E-GT
-DWRITE DR0, #10
-DWRITE DR1, #3
-CALL   CR1              ; DR0 <- 7
+DWRITE DR1, #10
+DWRITE DR2, #3
+CALL   CR1              ; DR1 <- 7
 ; Underflow: sets N (negative) flag`,
             'Mul': `; Abacus.Mul — integer multiply
 LOAD   CR1, NS[17]      ; Load Abacus E-GT
-DWRITE DR0, #6
-DWRITE DR1, #7
-CALL   CR1              ; DR0 <- 42`,
+DWRITE DR1, #6
+DWRITE DR2, #7
+CALL   CR1              ; DR1 <- 42`,
             'Div': `; Abacus.Div — integer divide
 LOAD   CR1, NS[17]      ; Load Abacus E-GT
-DWRITE DR0, #42
-DWRITE DR1, #6
-CALL   CR1              ; DR0 <- 7 (quotient)
+DWRITE DR1, #42
+DWRITE DR2, #6
+CALL   CR1              ; DR1 <- 7 (quotient)
 ; Div by zero: FAULT MATH_ERROR`,
             'Mod': `; Abacus.Mod — modulo (remainder)
 LOAD   CR1, NS[17]      ; Load Abacus E-GT
-DWRITE DR0, #17
-DWRITE DR1, #5
-CALL   CR1              ; DR0 <- 2`,
+DWRITE DR1, #17
+DWRITE DR2, #5
+CALL   CR1              ; DR1 <- 2`,
             'Abs': `; Abacus.Abs — absolute value
 LOAD   CR1, NS[17]      ; Load Abacus E-GT
-DWRITE DR0, #-42        ; Negative input (two's complement)
-CALL   CR1              ; DR0 <- 42`,
+DWRITE DR1, #-42        ; Negative input (two's complement)
+CALL   CR1              ; DR1 <- 42`,
         },
         'Constants': {
             'Pi': `; Constants.Pi — return pi as IEEE 754
 LOAD   CR1, NS[18]      ; Load Constants E-GT
-CALL   CR1              ; DR0 <- 0x40490FDB (3.14159265)`,
+CALL   CR1              ; DR1 <- 0x40490FDB (3.14159265)`,
             'E': `; Constants.E — return Euler's number
 LOAD   CR1, NS[18]      ; Load Constants E-GT
-CALL   CR1              ; DR0 <- 0x402DF854 (2.71828183)`,
+CALL   CR1              ; DR1 <- 0x402DF854 (2.71828183)`,
             'Phi': `; Constants.Phi — return golden ratio
 LOAD   CR1, NS[18]      ; Load Constants E-GT
-CALL   CR1              ; DR0 <- 0x3FCFBE77 (1.61803399)`,
+CALL   CR1              ; DR1 <- 0x3FCFBE77 (1.61803399)`,
             'Zero': `; Constants.Zero — return 0
 LOAD   CR1, NS[18]      ; Load Constants E-GT
-CALL   CR1              ; DR0 <- 0x00000000 (0.0)`,
+CALL   CR1              ; DR1 <- 0x00000000 (0.0)`,
             'One': `; Constants.One — return 1
 LOAD   CR1, NS[18]      ; Load Constants E-GT
-CALL   CR1              ; DR0 <- 0x3F800000 (1.0)`,
+CALL   CR1              ; DR1 <- 0x3F800000 (1.0)`,
         },
         'Loader': {
             'Load': `; Loader.Load — fault-driven lazy load
 ; Normally called automatically by the fault handler
 ; when a CALL targets a warm/cold NULL slot.
 ; Can also be called explicitly:
-DWRITE DR0, #16         ; Slot 16 (SlideRule)
+DWRITE DR1, #16         ; Slot 16 (SlideRule)
 LOAD   CR1, NS[19]      ; Load Loader E-GT
 CALL   CR1              ; Loader.Load(16):
 ;   1. Read manifest[16] — source, path, size, priority
@@ -5278,14 +5278,14 @@ CALL   CR1              ; Loader.Load(16):
 ;   6. Mint.Create(GT for loaded abstraction)
 ; Slot 16 is now live — subsequent CALLs work`,
             'Prefetch': `; Loader.Prefetch — hint-driven pre-load
-DWRITE DR0, #16         ; Slot to prefetch
+DWRITE DR1, #16         ; Slot to prefetch
 DWRITE DR3, #1          ; Method index 1 (Prefetch)
 LOAD   CR1, NS[19]      ; Load Loader E-GT
 CALL   CR1              ; Returns immediately
 ; Lump will be loaded in background
 ; No fault if already loaded`,
             'Evict': `; Loader.Evict — unload a cold abstraction
-DWRITE DR0, #16         ; Slot to evict
+DWRITE DR1, #16         ; Slot to evict
 DWRITE DR3, #2          ; Method index 2 (Evict)
 LOAD   CR1, NS[19]      ; Load Loader E-GT
 CALL   CR1              ; Loader.Evict(16):
@@ -5297,7 +5297,7 @@ CALL   CR1              ; Loader.Evict(16):
         'Circle': {
             'Area': `; Circle.Area — pi * r^2 (delegates to SlideRule)
 LOAD   CR1, NS[46]      ; Load Circle E-GT
-DWRITE DR0, #0x40A00000 ; Radius: 5.0
+DWRITE DR1, #0x40A00000 ; Radius: 5.0
 
 CALL   CR1              ; Circle.Area internally:
 ;   1. LOAD CR2, NS[16] — get SlideRule GT
@@ -5305,17 +5305,17 @@ CALL   CR1              ; Circle.Area internally:
 ;   3. LOAD CR3, NS[18] — get Constants GT
 ;   4. CALL Constants.Pi             -> pi
 ;   5. CALL SlideRule.Multiply(pi, r^2) -> 78.5398
-; DR0 <- 0x429CE5A0 (78.54)
+; DR1 <- 0x429CE5A0 (78.54)
 ; Circle has no trig itself — delegates to SlideRule`,
             'Circumference': `; Circle.Circumference — 2 * pi * r
 LOAD   CR1, NS[46]      ; Load Circle E-GT
-DWRITE DR0, #0x40A00000 ; Radius: 5.0
+DWRITE DR1, #0x40A00000 ; Radius: 5.0
 
 CALL   CR1              ; Circle.Circumference internally:
 ;   1. CALL Constants.Pi             -> pi
 ;   2. CALL SlideRule.Multiply(2.0, pi) -> 2*pi
 ;   3. CALL SlideRule.Multiply(2pi, r)  -> 31.4159
-; DR0 <- 0x41FB53D1 (31.416)`,
+; DR1 <- 0x41FB53D1 (31.416)`,
         },
         'SUCC': {
             'Apply': `; SUCC.Apply — Church successor via LAMBDA
@@ -5324,82 +5324,82 @@ CALL   CR1              ; Circle.Circumference internally:
 LOAD   CR1, NS[20]      ; Load SUCC GT [X]
                          ;   X perm only (Turing domain — code object)
                          ;   SUCC's CLOOMC holds the reduction code
-DWRITE DR0, #3          ; Church numeral 3
+DWRITE DR1, #3          ; Church numeral 3
 
-LAMBDA CR1, DR0         ; Apply SUCC:
+LAMBDA CR1, DR1         ; Apply SUCC:
                          ;   CR1 must have X perm (execute code)
                          ;   SUCC's code performs: f(f(f(x))) -> f(f(f(f(x))))
                          ;   i.e. add one application of f
-; DR0 <- 4 (Church numeral for successor of 3)`,
+; DR1 <- 4 (Church numeral for successor of 3)`,
         },
         'PRED': {
             'Apply': `; PRED.Apply — Church predecessor
 LOAD   CR1, NS[21]      ; Load PRED GT [X]
-DWRITE DR0, #5          ; Church numeral 5
+DWRITE DR1, #5          ; Church numeral 5
 
-LAMBDA CR1, DR0         ; Apply PRED:
+LAMBDA CR1, DR1         ; Apply PRED:
                          ;   Removes one application of f
                          ;   f(f(f(f(f(x))))) -> f(f(f(f(x))))
-; DR0 <- 4 (predecessor of 5)
+; DR1 <- 4 (predecessor of 5)
 ; PRED(0) = 0 (Church numerals have no negatives)`,
         },
         'ADD': {
             'Apply': `; ADD.Apply — Church addition
 LOAD   CR1, NS[22]      ; Load ADD GT [X]
-DWRITE DR0, #3          ; First Church numeral
-DWRITE DR1, #4          ; Second Church numeral
+DWRITE DR1, #3          ; First Church numeral
+DWRITE DR2, #4          ; Second Church numeral
 
-LAMBDA CR1, DR0         ; Apply ADD:
+LAMBDA CR1, DR1         ; Apply ADD:
                          ;   ADD m n = apply SUCC m times to n
                          ;   3 + 4 = SUCC(SUCC(SUCC(4))) = 7
-; DR0 <- 7`,
+; DR1 <- 7`,
         },
         'SUB': {
             'Apply': `; SUB.Apply — Church subtraction
 LOAD   CR1, NS[23]      ; Load SUB GT [X]
-DWRITE DR0, #7
-DWRITE DR1, #3
+DWRITE DR1, #7
+DWRITE DR2, #3
 
-LAMBDA CR1, DR0         ; Apply SUB:
+LAMBDA CR1, DR1         ; Apply SUB:
                          ;   SUB m n = apply PRED n times to m
                          ;   7 - 3 = PRED(PRED(PRED(7))) = 4
-; DR0 <- 4
+; DR1 <- 4
 ; SUB where n > m yields 0 (no negatives)`,
         },
         'MUL': {
             'Apply': `; MUL.Apply — Church multiplication
 LOAD   CR1, NS[24]      ; Load MUL GT [X]
-DWRITE DR0, #3
-DWRITE DR1, #4
+DWRITE DR1, #3
+DWRITE DR2, #4
 
-LAMBDA CR1, DR0         ; Apply MUL:
+LAMBDA CR1, DR1         ; Apply MUL:
                          ;   MUL m n = compose m and n
                          ;   3 * 4 = apply (ADD 4) three times to 0
-; DR0 <- 12`,
+; DR1 <- 12`,
         },
         'ISZERO': {
             'Apply': `; ISZERO.Apply — Church zero test
 LOAD   CR1, NS[25]      ; Load ISZERO GT [X]
-DWRITE DR0, #0          ; Church numeral to test
+DWRITE DR1, #0          ; Church numeral to test
 
-LAMBDA CR1, DR0         ; Apply ISZERO:
+LAMBDA CR1, DR1         ; Apply ISZERO:
                          ;   if numeral is 0 (no f applications):
                          ;     return TRUE (Church boolean)
                          ;   else:
                          ;     return FALSE
-; DR0 <- TRUE (NS[26] GT) because input was 0`,
+; DR1 <- TRUE (NS[26] GT) because input was 0`,
         },
         'PAIR': {
             'Apply': `; PAIR.Apply — Church pair constructor
 LOAD   CR1, NS[43]      ; Load PAIR GT [X]
-DWRITE DR0, #10         ; First element
-DWRITE DR1, #20         ; Second element
+DWRITE DR1, #10         ; First element
+DWRITE DR2, #20         ; Second element
 
-LAMBDA CR1, DR0         ; Apply PAIR:
+LAMBDA CR1, DR1         ; Apply PAIR:
                          ;   Construct pair: \\f. f 10 20
                          ;   Extract first:  PAIR TRUE  -> 10
                          ;   Extract second: PAIR FALSE -> 20
-; DR0 <- PAIR(10, 20) encoded as closure`,
+; DR1 <- PAIR(10, 20) encoded as closure`,
         },
         'Family': {
             'Register': `; Family.Register — bind parent-child relationship
@@ -5443,7 +5443,7 @@ CALL   CR1              ; Family.Oversight:
 ;   2. Read child's abstraction usage log
 ;   3. Report which GTs the child accessed
 ;   4. Report fault counts on child's blocks
-; DR0 <- activity summary
+; DR1 <- activity summary
 ; Parent can then Mint.Revoke any GT to restrict access`,
         },
         'Schoolroom': {
@@ -5479,7 +5479,7 @@ CALL   CR1              ; Schoolroom.Submit:
             'Grade': `; Schoolroom.Grade — teacher grades submitted work
 LOAD   CR1, NS[29]      ; Load Schoolroom E-GT
 LOAD   CR2, NS[71]      ; Work GT (teacher's read copy)
-DWRITE DR0, #85         ; Grade: 85%
+DWRITE DR1, #85         ; Grade: 85%
 
 CALL   CR1              ; Schoolroom.Grade:
 ;   1. Verify teacher authority
@@ -5544,7 +5544,7 @@ CALL   CR1              ; Tunnel.Connect:
             'Send': `; Tunnel.Send — send data via encrypted tunnel
 LOAD   CR1, NS[31]      ; Load Tunnel E-GT
 LOAD   CR2, NS[55]      ; Connected remote GT (F-bit=1)
-DWRITE DR0, #0x48656C6C ; Payload data ("Hell")
+DWRITE DR1, #0x48656C6C ; Payload data ("Hell")
 
 CALL   CR1              ; Tunnel.Send:
 ;   1. Encrypt payload with tunnel key
@@ -5558,7 +5558,7 @@ CALL   CR1              ; Tunnel.Receive:
 ;   1. Decrypt incoming message
 ;   2. Verify source GT matches tunnel endpoint
 ;   3. Deliver payload to caller
-; DR0 <- received data
+; DR1 <- received data
 ; If no data pending: Scheduler.Wait on tunnel event`,
             'Close': `; Tunnel.Close — close encrypted tunnel
 LOAD   CR1, NS[31]      ; Load Tunnel E-GT
@@ -5581,10 +5581,10 @@ CALL   CR1              ; Negotiate.Propose:
 ;   2. Mint.Create proposal GT for parent
 ;   3. Mint.Create proposal GT for teacher
 ;   4. Both must Negotiate.Approve before grant
-; DR0 <- proposal ID`,
+; DR1 <- proposal ID`,
             'Approve': `; Negotiate.Approve — parent or teacher approves
 LOAD   CR1, NS[32]      ; Load Negotiate E-GT
-DWRITE DR0, #1          ; Proposal ID
+DWRITE DR1, #1          ; Proposal ID
 
 CALL   CR1              ; Negotiate.Approve:
 ;   1. Verify caller is authorized approver
@@ -5596,7 +5596,7 @@ CALL   CR1              ; Negotiate.Approve:
 ;   4. If only one approved: wait for other`,
             'Reject': `; Negotiate.Reject — reject proposal
 LOAD   CR1, NS[32]      ; Load Negotiate E-GT
-DWRITE DR0, #1          ; Proposal ID
+DWRITE DR1, #1          ; Proposal ID
 
 CALL   CR1              ; Negotiate.Reject:
 ;   1. Mark proposal as rejected
@@ -5604,10 +5604,10 @@ CALL   CR1              ; Negotiate.Reject:
 ;   3. Notify other approver of rejection`,
             'Status': `; Negotiate.Status — check proposal state
 LOAD   CR1, NS[32]      ; Load Negotiate E-GT
-DWRITE DR0, #1          ; Proposal ID
+DWRITE DR1, #1          ; Proposal ID
 
 CALL   CR1              ; Negotiate.Status:
-; DR0 <- status: 0=pending, 1=parent_ok,
+; DR1 <- status: 0=pending, 1=parent_ok,
 ;   2=teacher_ok, 3=both_approved, 4=rejected`,
         },
         'Editor': {
@@ -5633,7 +5633,7 @@ CALL   CR1              ; Editor.Save:
 ;   5. Update word2 = (gt_seq << 25) | newCRC`,
             'Load': `; Editor.Load — load source from NS slot into editor
 LOAD   CR1, NS[33]      ; Load Editor E-GT
-DWRITE DR0, #80         ; NS slot containing source
+DWRITE DR1, #80         ; NS slot containing source
 
 CALL   CR1              ; Editor.Load:
 ;   1. LOAD GT for NS[80] (needs L perm in c-list)
@@ -5685,8 +5685,8 @@ CALL   CR1              ; Assembler.Validate:
 ;   2. Check register references (CR0-15, DR0-15)
 ;   3. Verify condition codes (EQ,NE,CS,CC,MI,PL,...)
 ;   4. Check opcode encoding fits 5-bit field
-; DR0 <- 1 if valid, 0 if errors found
-; DR1 <- error count`,
+; DR1 <- 1 if valid, 0 if errors found
+; DR2 <- error count`,
         },
         'Debugger': {
             'Step': `; Debugger.Step — single-step one instruction
@@ -5711,15 +5711,15 @@ CALL   CR1              ; Debugger.Run:
 ;   5. Max steps limit prevents infinite loops`,
             'Breakpoint': `; Debugger.Breakpoint — set/clear breakpoint
 LOAD   CR1, NS[35]      ; Load Debugger E-GT
-DWRITE DR0, #0x0040     ; Address to break at
+DWRITE DR1, #0x0040     ; Address to break at
 
 CALL   CR1              ; Debugger.Breakpoint:
 ;   1. If address already has breakpoint: clear it
-;   2. If no breakpoint: set one at DR0
+;   2. If no breakpoint: set one at DR1
 ;   3. Breakpoints stored in debugger's DATA slot`,
             'Inspect': `; Debugger.Inspect — inspect register or memory
 LOAD   CR1, NS[35]      ; Load Debugger E-GT
-DWRITE DR0, #0x0100     ; Memory address to inspect
+DWRITE DR1, #0x0100     ; Memory address to inspect
 
 CALL   CR1              ; Debugger.Inspect:
 ;   1. If address is in NS table range (>= 0xFD00):
@@ -5727,7 +5727,7 @@ CALL   CR1              ; Debugger.Inspect:
 ;   2. If address is in data memory:
 ;      DREAD the word at that address
 ;   3. Return decoded view (GT fields, NS entry fields)
-; DR0 <- value at inspected address`,
+; DR1 <- value at inspected address`,
         },
         'Deployer': (function() {
             const b = getSelectedBoard();
@@ -5740,7 +5740,7 @@ CALL   CR1              ; Debugger.Inspect:
             return {
                 'Build': `; Deployer.Build — compile binary for ${brdName}\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\nLOAD   CR2, NS[81]      ; Binary GT (DATA object)\n\nCALL   CR1              ; Deployer.Build:\n;   1. DREAD binary from CR2's location\n;   2. Add boot vector and NS table initialization\n;   3. Package for FPGA: ${chip} bitstream\n;   4. Memory.Allocate for deployment image\n;   5. Mint.Create GT for image\n; CR2 <- deployment image GT`,
                 'Upload': `; Deployer.Upload — send to ${brdName} via UART\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Upload:\n;   1. LOAD UART GT from c-list (NS[11])\n;   2. For each word in deployment image:\n;      SAVE word to UART (S perm on UART GT)\n${uartNote}\n;   4. Wait for ACK after each block`,
-                'Verify': `; Deployer.Verify — verify upload integrity\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Verify:\n;   1. Request readback from ${brdName} via UART\n;   2. LOAD bytes from UART (L perm)\n;   3. Compare against original image\n;   4. Compute checksum match\n; DR0 <- 1 if verified, 0 if mismatch`,
+                'Verify': `; Deployer.Verify — verify upload integrity\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Verify:\n;   1. Request readback from ${brdName} via UART\n;   2. LOAD bytes from UART (L perm)\n;   3. Compare against original image\n;   4. Compute checksum match\n; DR1 <- 1 if verified, 0 if mismatch`,
                 'Boot': `; Deployer.Boot — boot the FPGA\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Boot:\n;   1. Send boot command via UART\n${bootLine}\n;   3. FPGA initializes NS table (slots 0-45)\n;   4. Boot -> Salvation -> Navana (same as simulator)\n${clkNote}`,
             };
         })(),
@@ -5805,7 +5805,7 @@ CALL   CR1              ; Messenger.Contacts:
 ;   1. Walk the contact c-list
 ;   2. Each contact is a GT placed by parent
 ;   3. Return count and list of valid GTs
-; DR0 <- number of approved contacts`,
+; DR1 <- number of approved contacts`,
             'Block': `; Messenger.Block — block a contact
 LOAD   CR1, NS[38]      ; Load Messenger E-GT
 LOAD   CR2, NS[52]      ; Contact GT to block
@@ -5848,7 +5848,7 @@ LOAD   CR1, NS[39]      ; Load Photos E-GT
 CALL   CR1              ; Photos.Album:
 ;   1. Walk album c-list (each entry is a photo GT)
 ;   2. Return count and metadata
-; DR0 <- album entry count`,
+; DR1 <- album entry count`,
         },
         'Social': {
             'Post': `; Social.Post — post content to feed
@@ -5880,7 +5880,7 @@ LOAD   CR1, NS[40]      ; Load Social E-GT
 
 CALL   CR1              ; Social.Feed:
 ;   1. Count entries in feed c-list
-; DR0 <- number of feed items available`,
+; DR1 <- number of feed items available`,
         },
         'Video': {
             'Watch': `; Video.Watch — play a video
@@ -5906,7 +5906,7 @@ LOAD   CR1, NS[41]      ; Load Video E-GT
 CALL   CR1              ; Video.Playlist:
 ;   1. Walk playlist c-list
 ;   2. Each entry is a video GT
-; DR0 <- playlist length`,
+; DR1 <- playlist length`,
             'Share': `; Video.Share — share video GT
 LOAD   CR1, NS[41]      ; Load Video E-GT
 LOAD   CR2, NS[85]      ; Video GT
@@ -5954,7 +5954,7 @@ LOAD   CR1, NS[42]      ; Load Email E-GT
 CALL   CR1              ; Email.Contacts:
 ;   1. Walk email contacts c-list
 ;   2. Each contact is a GT placed by parent
-; DR0 <- number of email contacts`,
+; DR1 <- number of email contacts`,
         },
         'GC': {
             'Scan': `; GC.Scan — mark live entries via G-bit
@@ -5981,7 +5981,7 @@ CALL   CR1              ; GC.Identify:
 ;      read word1[29] (G-bit) for each entry
 ;      if G-bit != current polarity: entry is garbage
 ;   2. Build garbage list
-; DR0 <- number of garbage entries found
+; DR1 <- number of garbage entries found
 ; Skip boot slots 0-45 (always live)`,
             'Clear': `; GC.Clear — zero garbage memory
 LOAD   CR1, NS[44]      ; Load GC E-GT
@@ -5993,7 +5993,7 @@ CALL   CR1              ; GC.Clear:
 ;      preserve word2 (version stays for stale GT detection)
 ;   2. Memory at old locations now free
 ;   3. Slots available for Memory.Allocate reuse
-; DR0 <- number of entries cleared`,
+; DR1 <- number of entries cleared`,
             'Flip': `; GC.Flip — invert GC polarity
 LOAD   CR1, NS[44]      ; Load GC E-GT
 
@@ -6036,7 +6036,7 @@ CALL   CR_mint, #Create ; Mint.Create(Inform, lumpSize, perms=0) ->
                          ;   CR12 of new thread (zero-perm Inform GT)
                          ;   word0_location = lump base
                          ;   word0_limit    = lumpSize - 1
-DWRITE DR0, lump[0]     ; store f_GT into new thread's GT zone word 0
+DWRITE DR1, lump[0]     ; store f_GT into new thread's GT zone word 0
                          ;   (CR0 of the new thread = first-call slot)
 ; Returns: new Thread GT — call Thread.switchTo to begin execution`,
         },
@@ -9095,59 +9095,59 @@ function challengeOpSlot(opType) {
 function buildTuringLines(c) {
     const lines = [];
     if (c.opType === 'add') {
-        lines.push({asm: 'IADD DR0, DR0, DR1', desc: 'Add DR0 + DR1, store result (' + c.answer + ') in DR0'});
-        lines.push({note: 'DR0 = ' + c.a + ', DR1 = ' + c.b + '. IADD is "integer add". Everything is a number. The body works in numbers.'});
+        lines.push({asm: 'IADD DR1, DR1, DR2', desc: 'Add DR1 + DR2, store result (' + c.answer + ') in DR1'});
+        lines.push({note: 'DR1 = ' + c.a + ', DR2 = ' + c.b + '. IADD is "integer add". Everything is a number. The body works in numbers.'});
     } else if (c.opType === 'sub') {
-        lines.push({asm: 'ISUB DR0, DR0, DR1', desc: 'Subtract DR1 from DR0, store result (' + c.answer + ') in DR0'});
-        lines.push({note: 'DR0 = ' + c.a + ', DR1 = ' + c.b + '. ISUB is "integer subtract". DR0, DR1 are physical addresses holding numbers.'});
+        lines.push({asm: 'ISUB DR1, DR1, DR2', desc: 'Subtract DR2 from DR1, store result (' + c.answer + ') in DR1'});
+        lines.push({note: 'DR1 = ' + c.a + ', DR2 = ' + c.b + '. ISUB is "integer subtract". DR1, DR2 are physical addresses holding numbers.'});
     } else if (c.opType === 'mul') {
-        lines.push({asm: 'DREAD DR2, #0', desc: 'Set DR2 to 0 (running total)'});
-        lines.push({asm: 'IADD DR2, DR2, DR0', desc: 'Add DR0 to DR2 (repeat DR1 times)'});
-        lines.push({asm: 'ISUB DR1, DR1, #1', desc: 'Count down: subtract 1 from DR1'});
-        lines.push({asm: 'BRANCH NE, -2', desc: 'If DR1 is not zero, jump back and add again'});
-        lines.push({asm: 'DREAD DR0, DR2', desc: 'Copy result to DR0'});
+        lines.push({asm: 'IADD DR3, DR0, #0', desc: 'Set DR3 to 0 (running total)'});
+        lines.push({asm: 'IADD DR3, DR3, DR1', desc: 'Add DR1 to DR3 (repeat DR2 times)'});
+        lines.push({asm: 'ISUB DR2, DR2, #1', desc: 'Count down: subtract 1 from DR2'});
+        lines.push({asm: 'BRANCH NE, -2', desc: 'If DR2 is not zero, jump back and add again'});
+        lines.push({asm: 'IADD DR1, DR0, DR3', desc: 'Copy result to DR1'});
         lines.push({note: 'No multiply instruction! The body loops: add ' + c.a + ' to itself ' + c.b + ' times. ' + c.a + ' \u00d7 ' + c.b + ' = ' + c.answer + '. Loops can run forever \u2014 the body can fail.'});
     } else if (c.opType === 'div') {
-        lines.push({asm: 'DREAD DR2, #0', desc: 'Set DR2 to 0 (counts subtractions)'});
-        lines.push({asm: 'ISUB DR0, DR0, DR1', desc: 'Subtract DR1 from DR0'});
-        lines.push({asm: 'IADD DR2, DR2, #1', desc: 'Add 1 to the counter'});
-        lines.push({asm: 'BRANCH PL, -2', desc: 'If DR0 is still positive, keep subtracting'});
-        lines.push({asm: 'DREAD DR0, DR2', desc: 'Copy result to DR0'});
+        lines.push({asm: 'IADD DR3, DR0, #0', desc: 'Set DR3 to 0 (counts subtractions)'});
+        lines.push({asm: 'ISUB DR1, DR1, DR2', desc: 'Subtract DR2 from DR1'});
+        lines.push({asm: 'IADD DR3, DR3, #1', desc: 'Add 1 to the counter'});
+        lines.push({asm: 'BRANCH PL, -2', desc: 'If DR1 is still positive, keep subtracting'});
+        lines.push({asm: 'IADD DR1, DR0, DR3', desc: 'Copy result to DR1'});
         lines.push({note: 'Division is repeated subtraction. Subtract ' + c.b + ' from ' + c.a + ' and count: ' + c.answer + ' times. All numbers, all physical.'});
     } else if (c.opType === 'factorial') {
-        lines.push({asm: 'DREAD DR1, DR0', desc: 'Copy ' + c.a + ' into DR1 (counter)'});
-        lines.push({asm: 'DREAD DR0, #1', desc: 'Set DR0 to 1 (running product)'});
-        lines.push({asm: '-- outer loop:', desc: 'For each counter value, multiply DR0 by DR1'});
-        lines.push({asm: 'DREAD DR2, DR0', desc: 'Copy the current product into DR2'});
-        lines.push({asm: 'DREAD DR0, #0', desc: 'Reset DR0 for the add loop'});
-        lines.push({asm: 'DREAD DR3, DR1', desc: 'Copy counter into DR3 (inner loop count)'});
-        lines.push({asm: 'IADD DR0, DR0, DR2', desc: 'Add DR2 to DR0 (repeated DR1 times = multiply)'});
-        lines.push({asm: 'ISUB DR3, DR3, #1', desc: 'Decrease inner loop counter'});
-        lines.push({asm: 'BRANCH NE, -2', desc: 'Inner loop: keep adding until DR3 = 0'});
-        lines.push({asm: 'ISUB DR1, DR1, #1', desc: 'Decrease the outer counter by 1'});
+        lines.push({asm: 'IADD DR2, DR0, DR1', desc: 'Copy ' + c.a + ' into DR2 (counter)'});
+        lines.push({asm: 'IADD DR1, DR0, #1', desc: 'Set DR1 to 1 (running product)'});
+        lines.push({asm: '-- outer loop:', desc: 'For each counter value, multiply DR1 by DR2'});
+        lines.push({asm: 'IADD DR3, DR0, DR1', desc: 'Copy the current product into DR3'});
+        lines.push({asm: 'IADD DR1, DR0, #0', desc: 'Reset DR1 for the add loop'});
+        lines.push({asm: 'IADD DR4, DR0, DR2', desc: 'Copy counter into DR4 (inner loop count)'});
+        lines.push({asm: 'IADD DR1, DR1, DR3', desc: 'Add DR3 to DR1 (repeated DR2 times = multiply)'});
+        lines.push({asm: 'ISUB DR4, DR4, #1', desc: 'Decrease inner loop counter'});
+        lines.push({asm: 'BRANCH NE, -2', desc: 'Inner loop: keep adding until DR4 = 0'});
+        lines.push({asm: 'ISUB DR2, DR2, #1', desc: 'Decrease the outer counter by 1'});
         lines.push({asm: 'BRANCH NE, -8', desc: 'Outer loop: repeat for next factor'});
-        lines.push({note: c.a + '! = ' + c.answer + '. Two nested loops of addition \u2014 the body builds complexity from simple parts. Result ends up in DR0.'});
+        lines.push({note: c.a + '! = ' + c.answer + '. Two nested loops of addition \u2014 the body builds complexity from simple parts. Result ends up in DR1.'});
     } else if (c.opType === 'exp') {
-        lines.push({asm: 'DREAD DR2, #1', desc: 'Set DR2 to 1 (result starts at 1)'});
-        lines.push({asm: '-- outer loop:', desc: 'Multiply DR2 by DR0, using an add loop'});
-        lines.push({asm: 'DREAD DR3, DR2', desc: 'Copy current result into DR3'});
-        lines.push({asm: 'DREAD DR2, #0', desc: 'Reset DR2 for the add loop'});
-        lines.push({asm: 'DREAD DR4, DR0', desc: 'Copy base into DR4 (inner loop count)'});
-        lines.push({asm: 'IADD DR2, DR2, DR3', desc: 'Add DR3 to DR2 (repeated DR0 times = multiply)'});
-        lines.push({asm: 'ISUB DR4, DR4, #1', desc: 'Decrease inner counter'});
+        lines.push({asm: 'IADD DR3, DR0, #1', desc: 'Set DR3 to 1 (result starts at 1)'});
+        lines.push({asm: '-- outer loop:', desc: 'Multiply DR3 by DR1, using an add loop'});
+        lines.push({asm: 'IADD DR4, DR0, DR3', desc: 'Copy current result into DR4'});
+        lines.push({asm: 'IADD DR3, DR0, #0', desc: 'Reset DR3 for the add loop'});
+        lines.push({asm: 'IADD DR5, DR0, DR1', desc: 'Copy base into DR5 (inner loop count)'});
+        lines.push({asm: 'IADD DR3, DR3, DR4', desc: 'Add DR4 to DR3 (repeated DR1 times = multiply)'});
+        lines.push({asm: 'ISUB DR5, DR5, #1', desc: 'Decrease inner counter'});
         lines.push({asm: 'BRANCH NE, -2', desc: 'Inner loop: keep adding'});
-        lines.push({asm: 'ISUB DR1, DR1, #1', desc: 'Decrease exponent counter'});
+        lines.push({asm: 'ISUB DR2, DR2, #1', desc: 'Decrease exponent counter'});
         lines.push({asm: 'BRANCH NE, -8', desc: 'Outer loop until exponent reaches 0'});
-        lines.push({asm: 'DREAD DR0, DR2', desc: 'Copy result to DR0'});
-        lines.push({note: c.a + '^' + c.b + ' = ' + c.answer + '. Repeated multiplication, each multiplication repeated addition. Two nested loops, all numbers. Result in DR0.'});
+        lines.push({asm: 'IADD DR1, DR0, DR3', desc: 'Copy result to DR1'});
+        lines.push({note: c.a + '^' + c.b + ' = ' + c.answer + '. Repeated multiplication, each multiplication repeated addition. Two nested loops, all numbers. Result in DR1.'});
     } else if (c.opType === 'mod') {
-        lines.push({asm: 'ISUB DR0, DR0, DR1', desc: 'Subtract DR1 from DR0'});
+        lines.push({asm: 'ISUB DR1, DR1, DR2', desc: 'Subtract DR2 from DR1'});
         lines.push({asm: 'BRANCH PL, -1', desc: 'If still positive, keep subtracting'});
-        lines.push({asm: 'IADD DR0, DR0, DR1', desc: 'Add back once (remainder = ' + c.answer + ')'});
-        lines.push({note: 'Modulo: subtract ' + c.b + ' from ' + c.a + ' until it goes negative, then add back once. Result ' + c.answer + ' is in DR0.'});
+        lines.push({asm: 'IADD DR1, DR1, DR2', desc: 'Add back once (remainder = ' + c.answer + ')'});
+        lines.push({note: 'Modulo: subtract ' + c.b + ' from ' + c.a + ' until it goes negative, then add back once. Result ' + c.answer + ' is in DR1.'});
     } else {
         lines.push({asm: 'Operation', desc: 'Compute ' + c.a + ' op ' + c.b + ' = ' + c.answer});
-        lines.push({note: 'The body computes the result in DR0. All numbers, all physical addresses.'});
+        lines.push({note: 'The body computes the result in DR1. All numbers, all physical addresses.'});
     }
     return lines;
 }
@@ -9165,9 +9165,9 @@ function showChallengeExplanation(el, c) {
     html += `<div class="explain-turing">`;
     html += `<div class="explain-header">The body \u2014 Turing (numbers)</div>`;
     if (c.opType === 'factorial') {
-        html += `<div style="font-size:0.78rem;color:rgba(130,200,255,0.7);margin-bottom:0.3rem;">Inside the envelope: DR0 = ${c.a}</div>`;
+        html += `<div style="font-size:0.78rem;color:rgba(130,200,255,0.7);margin-bottom:0.3rem;">Inside the envelope: DR1 = ${c.a}</div>`;
     } else {
-        html += `<div style="font-size:0.78rem;color:rgba(130,200,255,0.7);margin-bottom:0.3rem;">Inside the envelope: DR0 = ${c.a}, DR1 = ${c.b}</div>`;
+        html += `<div style="font-size:0.78rem;color:rgba(130,200,255,0.7);margin-bottom:0.3rem;">Inside the envelope: DR1 = ${c.a}, DR2 = ${c.b}</div>`;
     }
     const turingLines = buildTuringLines(c);
     for (const line of turingLines) {
@@ -13276,8 +13276,8 @@ const INSTRUCTION_DATA = [
           + 'IADDEQ  val, val, 1    ;\n'
           + 'writeEQ CR5, 4, val    ;\n'
           + 'returnEQ(val)          ; done — skipped if Z=0\n'
-          + 'MOVNE   DR0, 0         ; catch — fires only if Z=0\n'
-          + 'returnNE(DR0)          ; return error\n'
+          + 'MOVNE   DR1, 0         ; catch — fires only if Z=0\n'
+          + 'returnNE(DR1)          ; return error\n'
           + '\n'
           + '; FORM 2 — strip write before handing off\n'
           + 'TPERM CR0, RX          ; remove W, L, S, E — keep R and X only\n'
@@ -13807,7 +13807,7 @@ Lifecycle:
   6. RETURN restores caller context
 
 Register conventions:
-  DR0–DR3   Arguments (DR0 = return value)
+  DR1–DR3   Arguments (DR1 = return value, DR0 = hardwired zero)
   DR4–DR11  Callee-saved locals
   DR12–DR15 Caller-saved temporaries`,
         example: `; CLOOMC JS method call
@@ -14174,7 +14174,7 @@ const SYNTAX_REF = {
             { heading: "Calls & Returns", items: [
                 { syntax: "Call <em>Memory.Allocate</em> with <em>size</em>", desc: "Invoke method" },
                 { syntax: "Set <em>r</em> to the result of calling <em>Memory.Allocate</em> with <em>size</em>", desc: "Capture return value" },
-                { syntax: "Return the result", desc: "Return DR0" },
+                { syntax: "Return the result", desc: "Return DR1" },
                 { syntax: "Return <em>value</em>", desc: "Return a specific value" },
             ]},
             { heading: "Memory", items: [
@@ -14206,7 +14206,7 @@ const SYNTAX_REF = {
             { heading: "Calls & Returns", items: [
                 { syntax: "result = call(<em>Memory.Allocate</em>(<em>size</em>))", desc: "Call via c-list" },
                 { syntax: "recall()", desc: "Re-call self — CALL CR6 (current abstraction)" },
-                { syntax: "return(<em>result</em>)", desc: "Return value in DR0" },
+                { syntax: "return(<em>result</em>)", desc: "Return value in DR1" },
             ]},
             { heading: "Memory & Bit Fields", items: [
                 { syntax: "<em>x</em> = read(<em>CR0</em>, <em>offset</em>)", desc: "Read from capability" },
@@ -14309,7 +14309,7 @@ const SYNTAX_REF = {
             ]},
             { heading: "Registers", items: [
                 { syntax: "CR0\u2013CR11", desc: "Programmer-accessible Golden Token slots (C-List)" },
-                { syntax: "DR0\u2013DR15", desc: "32-bit data registers; DR0 = arg/return; DR0 always 0 on read" },
+                { syntax: "DR0\u2013DR15", desc: "32-bit data registers; DR0 = hardwired zero; DR1 = arg/return" },
                 { syntax: "CR12\u2013CR15", desc: "Privileged — FAULT if used in most fields; set by CALL/CHANGE" },
                 { syntax: "CR6",  desc: "C-List base (loaded by CALL from target c-list)" },
                 { syntax: "CR14", desc: "Code region GT (X-only; loaded by CALL from target code lump)" },
@@ -14909,9 +14909,9 @@ abstraction Memory {
 
         // catch path (NE = fires only when Z=0)
         // TPERM set Z=0 → every EQ was skipped
-        MOVNE DR0, 0
         MOVNE DR1, 0
-        returnNE(DR0, DR1)
+        MOVNE DR2, 0
+        returnNE(DR1, DR2)
     }
 
     // Free: placeholder — bump allocators don't free.
@@ -15142,8 +15142,8 @@ abstraction Heap {
 
         // catch path (NE = fires only when Z=0)
         // Every EQ above was skipped by hardware
-        MOVNE DR0, 0
-        returnNE(DR0)
+        MOVNE DR1, 0
+        returnNE(DR1)
     }
 
     // Alloc: reserve 'count' words from the heap.
@@ -15161,8 +15161,8 @@ abstraction Heap {
 
         // catch path (NE = fires only when Z=0)
         // TPERM set Z=0 → every EQ was skipped
-        MOVNE DR0, 0
-        returnNE(DR0)
+        MOVNE DR1, 0
+        returnNE(DR1)
     }
 
     // Read: return the value at heap[index].
@@ -15175,8 +15175,8 @@ abstraction Heap {
         returnEQ(value)
 
         // catch path (NE = fires only when Z=0)
-        MOVNE DR0, 0
-        returnNE(DR0)
+        MOVNE DR1, 0
+        returnNE(DR1)
     }
 
     // Write: store a value at heap[index].
@@ -15189,8 +15189,8 @@ abstraction Heap {
         returnEQ(1)
 
         // catch path (NE = fires only when Z=0)
-        MOVNE DR0, 0
-        returnNE(DR0)
+        MOVNE DR1, 0
+        returnNE(DR1)
     }
 }`,
         'counter': `abstraction Counter {\n    capabilities {\n    }\n    method Increment(value) {\n        result = value + 1\n        return(result)\n    }\n    method Add(a, b) {\n        result = a + b\n        return(result)\n    }\n}`,
