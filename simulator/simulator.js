@@ -2127,7 +2127,7 @@ class ChurchSimulator {
                             this.fault('PERM', 'CALL Navana: no driver GT in validation result');
                             return null;
                         }
-                        this.dr[0] = result.result.permMask || 0;
+                        this.dr[1] = result.result.permMask || 0;
                     } else {
                         this.output += `  ${result ? result.message : 'Navana.ValidatePassKey failed'}\n`;
                         this.fault('PERM', `CALL Navana: PassKey validation failed — ${result ? result.message : 'unknown error'}`);
