@@ -302,10 +302,10 @@ The ABI descriptor costs nothing compared to the network. It is fetched once, ca
 
 ; --- Prepare the message (Turing domain: values in data registers) ---
 
-    MOV   DR0, 0x48656C6C6F        ; "Hello" (ASCII packed into 64-bit register)
-    MOV   DR1, 0x204D756D21        ; " Mum!" (ASCII packed)
-    MOV   DR2, 5                   ; message word count
-    MOV   DR3, 1                   ; message type: TEXT
+    MOV   DR1, 0x48656C6C6F        ; "Hello" (ASCII packed into 64-bit register)
+    MOV   DR2, 0x204D756D21        ; " Mum!" (ASCII packed)
+    MOV   DR3, 5                   ; message word count
+    MOV   DR4, 1                   ; message type: TEXT
     ; DR4-DR15 unused — cleared to zero by thread initialization
 
 ; --- Connect and call (Church domain: capabilities in CRs) ---
@@ -328,19 +328,19 @@ The ABI descriptor costs nothing compared to the network. It is fetched once, ca
                                    ;   → E permission checked on CR1 → FAULT if denied
                                    ;   → Detects Outform type on CR1
                                    ;   → Reads ABI descriptor from entry 7 (via mLoad, R perm)
-                                   ;   → Serializes DR0-DR7 per ABI arg_map to wire format
+                                   ;   → Serializes DR1-DR8 per ABI arg_map to wire format
                                    ;   → Reads tunnel key from CR0's namespace entry (via mLoad, R perm)
                                    ;   → Encrypts payload with tunnel key
                                    ;   → Sends to mymother's endpoint
                                    ;   → mymother validates, executes, returns encrypted result
                                    ;   → Decrypts response with tunnel key
-                                   ;   → Deserializes result per ABI ret_map into DR0-DR3
+                                   ;   → Deserializes result per ABI ret_map into DR1-DR4
                                    ;   → Execution resumes here
 
 ; --- Read the result (Turing domain: acknowledgment in data registers) ---
 
-    ; DR0 now contains mymother's acknowledgment code
-    ; DR1 now contains timestamp of message receipt
+    ; DR1 now contains mymother's acknowledgment code
+    ; DR2 now contains timestamp of message receipt
     ; The program continues — it never knew it left the machine
 ```
 
@@ -397,7 +397,7 @@ messaging_receive:
     RETURN                          ; Result registers (x10, x11) serialized per ABI ret_map
                                    ; Encrypted with tunnel key
                                    ; Sent back to "me"
-                                   ; "me" deserializes into DR0-DR1
+                                   ; "me" deserializes into DR1-DR2
                                    ; The service never knew the caller was 64-bit
 ```
 
@@ -556,7 +556,7 @@ The program produces the same result. The data registers hold the same values af
 We trace every piece of code that touches the message "Hello Mum!" from "me"'s data registers to "mymother"'s Inbox. At no point does any code run with unbounded privilege.
 
 ```
-STEP 1: "me" writes "Hello Mum!" into DR0-DR3
+STEP 1: "me" writes "Hello Mum!" into DR1-DR4
   → User code. No privilege. DR writes are unconditional (Turing domain).
 
 STEP 2: CAP.LOAD CR0, CR6, 4 — load tunnel key
@@ -598,7 +598,7 @@ STEP 8: "mymother" returns acknowledgment
   → Encrypted with tunnel key. Sent back to "me".
 
 STEP 9: "me" receives response
-  → Decrypted. Deserialized per ABI ret_map. DR0-DR1 updated.
+  → Decrypted. Deserialized per ABI ret_map. DR1-DR2 updated.
   → Execution continues after CAP.CALL.
 ```
 

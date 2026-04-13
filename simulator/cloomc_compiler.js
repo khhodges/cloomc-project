@@ -1633,15 +1633,15 @@ class CLOOMCCompiler {
 
                     if (capIdx !== undefined) {
                         const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
-                        if (argReg !== 0) {
-                            code.push(this.encode(this.opcodes.IADD, 14, 0, argReg, 0));
+                        if (argReg !== this.DR_ARGS_START) {
+                            code.push(this.encode(this.opcodes.IADD, 14, this.DR_ARGS_START, argReg, 0));
                         }
                         manifest.push({ src: lineNum, addr: code.length, desc: `LOAD CR0, [CR6 + ${capIdx}] (${parts[0]})` });
                         code.push(this.encode(this.opcodes.LOAD, 14, 0, 6, capIdx));
                         manifest.push({ src: lineNum, addr: code.length, desc: `CALL CR0 -> ${node.func.name}` });
                         code.push(this.encode(this.opcodes.CALL, 14, 0, 0, 0));
                         const dr = this._allocTemp(locals);
-                        code.push(this.encode(this.opcodes.IADD, 14, dr, 0, 0));
+                        code.push(this.encode(this.opcodes.IADD, 14, dr, this.DR_ARGS_START, 0));
                         return dr;
                     }
                 }
@@ -1691,14 +1691,14 @@ class CLOOMCCompiler {
                 const funcReg = this._emitHaskellExpr(node.func, code, locals, rom, capNames, errors, manifest, lineNum);
                 const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
 
-                if (argReg !== 0) {
-                    code.push(this.encode(this.opcodes.IADD, 14, 0, argReg, 0));
+                if (argReg !== this.DR_ARGS_START) {
+                    code.push(this.encode(this.opcodes.IADD, 14, this.DR_ARGS_START, argReg, 0));
                 }
 
                 manifest.push({ src: lineNum, addr: code.length, desc: `CALL lambda` });
                 code.push(this.encode(this.opcodes.CALL, 14, 0, 0, 0));
                 const resultDR = this._allocTemp(locals);
-                code.push(this.encode(this.opcodes.IADD, 14, resultDR, 0, 0));
+                code.push(this.encode(this.opcodes.IADD, 14, resultDR, this.DR_ARGS_START, 0));
                 return resultDR;
             }
 
