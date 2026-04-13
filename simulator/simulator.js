@@ -1888,18 +1888,52 @@ class ChurchSimulator {
     }
 
     _execCall(d) {
-        const sourceGT = this.cr[d.crDst].word0;
-        if (sourceGT === 0) {
-            this.fault('NULL_CAP', `CALL: CR${d.crDst} is NULL`);
-            return null;
+        let sourceGT;
+        const isClistIndexed = d.imm !== 0 && !(d.imm & 0x4000);
+        if (isClistIndexed) {
+            const clistGT = this.cr[d.crSrc].word0;
+            if (clistGT === 0) {
+                this.fault('NULL_CAP', `CALL: CR${d.crSrc} c-list is NULL`);
+                return null;
+            }
+            let clistLoc, clistSize;
+            if (d.crSrc === 6) {
+                clistLoc = this.cr[d.crSrc].word1;
+                clistSize = this.parseNSWord1(this.cr[6].word2).limit + 1;
+            } else {
+                const lumpBase = this.cr[d.crSrc].word1;
+                const hdrRead = this._capRead(d.crSrc, lumpBase, 'R', `CALL CR${d.crSrc} lump-hdr`);
+                if (!hdrRead.ok) { this.fault(hdrRead.fault, hdrRead.message); return null; }
+                const hdr = this.parseLumpHeader(hdrRead.value);
+                clistLoc = (hdr.valid && hdr.cc > 0) ? (lumpBase + hdr.lumpSize - hdr.cc) >>> 0 : lumpBase;
+                clistSize = (hdr.valid && hdr.cc > 0) ? hdr.cc : 1;
+            }
+            const absAddr = (clistLoc + d.imm) >>> 0;
+            const clistRange = { base: clistLoc, upperBound: (clistLoc + clistSize - 1) >>> 0 };
+            const loadCheck = this.mLoad(clistGT, d.crSrc === 6 ? null : 'L', d.crSrc, absAddr, clistRange);
+            if (!loadCheck.ok) {
+                this.fault(loadCheck.fault, `CALL c-list LOAD: CR${d.crSrc}: ${loadCheck.message}`);
+                return null;
+            }
+            sourceGT = this.memory[clistLoc + d.imm] || 0;
+            if (sourceGT === 0) {
+                this.fault('NULL_CAP', `CALL: c-list CR${d.crSrc} offset ${d.imm} is empty`);
+                return null;
+            }
+        } else {
+            sourceGT = this.cr[d.crDst].word0;
+            if (sourceGT === 0) {
+                this.fault('NULL_CAP', `CALL: CR${d.crDst} is NULL`);
+                return null;
+            }
         }
         const srcParsed = this.parseGT(sourceGT);
         if (srcParsed.type === 0) {
-            this.fault('TYPE', `CALL: CR${d.crDst} GT type is NULL — cannot CALL a NULL GT`);
+            this.fault('TYPE', `CALL: GT type is NULL — cannot CALL a NULL GT`);
             return;
         }
         if (srcParsed.type !== 1 && srcParsed.type !== 3) {
-            this.fault('TYPE', `CALL: CR${d.crDst} GT type is ${srcParsed.typeName}, must be Inform or Abstract`);
+            this.fault('TYPE', `CALL: GT type is ${srcParsed.typeName}, must be Inform or Abstract`);
             return null;
         }
         const callTargetIdx = srcParsed.index;
@@ -1918,15 +1952,16 @@ class ChurchSimulator {
                 }
             }
         }
-        const check = this.mLoad(sourceGT, 'E', d.crDst);
+        const callCrLabel = isClistIndexed ? `CR${d.crSrc}+${d.imm}` : `CR${d.crDst}`;
+        const check = this.mLoad(sourceGT, 'E', isClistIndexed ? d.crSrc : d.crDst);
         if (!check.ok) {
-            this.fault(check.fault, `CALL: CR${d.crDst}: ${check.message}`);
+            this.fault(check.fault, `CALL: ${callCrLabel}: ${check.message}`);
             return null;
         }
         const nsEntry = check.entry;
         const word1 = this.parseNSWord1(nsEntry.word1_limit);
         if (word1.f === 1) {
-            this.fault('FAR', `CALL: CR${d.crDst} has F-bit set (Far)`);
+            this.fault('FAR', `CALL: ${callCrLabel} has F-bit set (Far)`);
             return null;
         }
 
@@ -2145,6 +2180,7 @@ class ChurchSimulator {
             }
 
             let methodName, argDR1, argDR2, encodedDstReg = null;
+            const isClistIndexedNav = d.imm !== 0 && !(d.imm & 0x4000);
             if (d.imm & 0x4000) {
                 const packed = d.imm & 0x3FFF;
                 const methodIdx = (packed >> 8) & 0x3F;
@@ -2156,12 +2192,21 @@ class ChurchSimulator {
                 methodName = (methodIdx >= 0 && methodIdx < abstraction.methods.length)
                     ? abstraction.methods[methodIdx]
                     : (abstraction.methods[0] || 'Apply');
+            } else if (isClistIndexedNav) {
+                const methodIdx = d.crDst;
+                argDR1 = this.dr[1];
+                argDR2 = this.dr[2];
+                methodName = (methodIdx >= 0 && methodIdx < abstraction.methods.length)
+                    ? abstraction.methods[methodIdx]
+                    : (abstraction.methods[0] || 'Apply');
             } else {
                 methodName = this._selectNavanaMethod(d) || abstraction.methods[0] || 'Apply';
                 argDR1 = this.dr[1];
                 argDR2 = this.dr[2];
             }
-            const desc = `CALL CR${d.crDst} -> ${label}.${methodName} [abstraction dispatch]`;
+            const desc = isClistIndexedNav
+                ? `CALL CR${d.crDst}, CR${d.crSrc}, #${d.imm} -> ${label}.${methodName} [method=${d.crDst}]`
+                : `CALL CR${d.crDst} -> ${label}.${methodName} [abstraction dispatch]`;
             this.output += desc + '\n';
 
             if (this.abstractionRegistry) {
@@ -2198,11 +2243,13 @@ class ChurchSimulator {
         }
 
         let methodIndex, argDR1, argDR2, desc, encodedDstReg;
+        const isClistIndexed = d.imm !== 0 && !(d.imm & 0x4000);
         // ISA extension: encoded CALL mode (imm bit 14 set)
         // Packs method index, source operand registers, and destination DR into CALL instruction
         // fields (imm[13:8]=method, imm[7:4]=leftDR, imm[3:0]=rightDR, crSrc=dstDR).
         // Result is written directly to dstDR, bypassing DR0 zero-register enforcement.
-        // Legacy mode (imm bit 14 clear) uses DR3 as method selector with DR1/DR2 operands.
+        // C-list indexed mode (imm != 0, bit 14 clear): CRd is method selector (0–15).
+        // Legacy mode (imm=0, bit 14 clear) uses DR3 as method selector with DR1/DR2 operands.
         if (d.imm & 0x4000) {
             const packed = d.imm & 0x3FFF;
             methodIndex = (packed >> 8) & 0x3F;
@@ -2215,6 +2262,12 @@ class ChurchSimulator {
                 ? abstraction.methods[methodIndex]
                 : (abstraction.methods[0] || 'Apply');
             desc = `CALL CR${d.crDst} -> ${label}.${methodName2} [DR${leftReg}, DR${rightReg}] -> DR${encodedDstReg}`;
+        } else if (isClistIndexed) {
+            methodIndex = d.crDst;
+            encodedDstReg = null;
+            argDR1 = this.dr[1];
+            argDR2 = this.dr[2];
+            desc = `CALL CR${d.crDst}, CR${d.crSrc}, #${d.imm} -> ${label}.${abstraction.methods[methodIndex] || abstraction.methods[0] || 'Apply'} [method=${methodIndex}]`;
         } else {
             methodIndex = this.dr[3] || 0;
             encodedDstReg = null;

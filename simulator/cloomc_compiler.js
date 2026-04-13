@@ -971,6 +971,16 @@ class CLOOMCCompiler {
             return;
         }
 
+        const callClistMatch = text.match(/^CALL\s+CR(\d+)\s*,\s*CR(\d+)\s*,\s*#(\d+)$/i);
+        if (callClistMatch) {
+            const methodIdx = parseInt(callClistMatch[1]) & 0xF;
+            const srcCR = parseInt(callClistMatch[2]) & 0xF;
+            const offset = parseInt(callClistMatch[3]) & 0x7FFF;
+            manifest.push({ src: stmt.lineNum, addr: code.length, desc: `CALL CR${methodIdx}, CR${srcCR}, #${offset} (c-list indexed)` });
+            code.push(this.encode(this.opcodes.CALL, 14, methodIdx, srcCR, offset));
+            return;
+        }
+
         // recall() — re-call the current abstraction (CR6) directly → CALL CR6
         const recallMatch = text.match(/^recall\s*\(\s*(.*?)\s*\)$/);
         if (recallMatch) {
