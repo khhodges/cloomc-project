@@ -3468,7 +3468,27 @@ function updateNamespace() {
     const typeNames = ['NULL','Inform','Outform','Abstract'];
     for (let i = 0; i < sim.nsCount; i++) {
         const e = sim.readNSEntry(i);
-        if (!e) continue;
+        const manifest = sim.lazyManifest ? sim.lazyManifest[i] : null;
+        if (!e && !manifest) continue;
+        if (!e && manifest) {
+            const label = manifest.label || sim.nsLabels[i] || '-';
+            const isExpanded = (nsExpandedSlot === i);
+            const warmStyle = 'color:#f0a040;font-style:italic;';
+            const priorityTag = manifest.priority === 'hot' ? 'Hot' : (manifest.priority === 'cold' ? 'Cold' : 'Warm');
+            html += `<tr class="ns-row${isExpanded ? ' ns-row-active' : ''}" onclick="toggleNSDetail(${i})" style="cursor:pointer;opacity:0.7;">`;
+            html += `<td>${i}</td>`;
+            html += `<td class="ns-label" style="${warmStyle}" onmouseenter="showNSEntryTooltip(event,${i})" onmouseleave="hideNSEntryTooltip()">${label}</td>`;
+            html += `<td style="${warmStyle}">\u2014</td>`;
+            html += `<td style="${warmStyle}">${priorityTag}</td>`;
+            html += `<td class="ns-flag" style="${warmStyle}">0</td>`;
+            html += `<td class="ns-flag" style="${warmStyle}">0</td>`;
+            html += `<td style="${warmStyle}">\u2014</td>`;
+            html += `<td style="${warmStyle}">0</td>`;
+            html += `<td style="${warmStyle}">\u2014</td>`;
+            html += `<td class="ns-entry-actions"><span style="${warmStyle}">lazy load</span></td>`;
+            html += '</tr>';
+            continue;
+        }
         const lim = sim.parseNSWord1(e.word1_limit);
         const ver = (e.word2_seals >>> 25) & 0x7F;
         const seal = e.word2_seals & 0xFFFF;
@@ -3511,7 +3531,25 @@ function _getNSEntryTooltipEl() {
 function showNSEntryTooltip(evt, idx) {
     const tt = _getNSEntryTooltipEl();
     const e = sim.readNSEntry(idx);
-    if (!e) { tt.classList.remove('visible'); return; }
+    const manifest = sim.lazyManifest ? sim.lazyManifest[idx] : null;
+    if (!e && !manifest) { tt.classList.remove('visible'); return; }
+
+    if (!e && manifest) {
+        const label = manifest.label || sim.nsLabels[idx] || '';
+        const priorityTag = manifest.priority === 'hot' ? 'Hot' : (manifest.priority === 'cold' ? 'Cold' : 'Warm');
+        let html = `<div class="ns-tt-header">Slot ${idx}<span class="ns-tt-badge" style="background:#f0a040;color:#1a1a2e;">${priorityTag}</span></div>`;
+        if (label) html += `<div class="ns-tt-label">"${label}"</div>`;
+        html += `<div style="color:#f0a040;font-size:0.75rem;margin-top:0.25rem;">Unloaded \u2014 will lazy-load on first CALL</div>`;
+        if (manifest.bootUpload && manifest.bootUpload.methods) {
+            const mNames = manifest.bootUpload.methods.map(m => m.name || '?');
+            html += `<div style="color:#9ca3af;font-size:0.72rem;margin-top:0.15rem;">Methods: ${mNames.join(', ')}</div>`;
+        }
+        tt.innerHTML = html;
+        tt.style.left = (evt.pageX + 12) + 'px';
+        tt.style.top = (evt.pageY - 10) + 'px';
+        tt.classList.add('visible');
+        return;
+    }
 
     const lim = sim.parseNSWord1(e.word1_limit);
     const typeNames = ['NULL','Inform','Outform','Abstract'];

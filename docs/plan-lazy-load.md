@@ -79,7 +79,9 @@ On FAULT NULL_CAP:
 
 - Write `loader.cloomc` with Load, Prefetch, Evict methods
 - Load method: read manifest → fetch lump bytes → call Locator.Parse →
-  call Memory.Allocate → call Navana.Abstraction.Add → call Mint.Create
+  call Memory.Allocate → call Navana.Abstraction.Add
+  (The GT already exists in the c-list from boot — Mint.Create is not
+  needed. Lazy load re-populates the NS entry; it does not mint a new GT.)
 - Compile to `Loader.json`, build lump
 
 ### Step 3: Fault handler extension
