@@ -3071,7 +3071,8 @@ class CLOOMCCompiler {
             const asmResult = asmObj.assemble(combined);
             if (asmResult.errors && asmResult.errors.length > 0) {
                 for (const e of asmResult.errors) {
-                    const srcLine = asmBlockSrcLines[e.line !== undefined ? e.line : 0] || asmBlockSrcLines[0];
+                    const errIdx = e.line !== undefined ? (e.line > 0 ? e.line - 1 : e.line) : 0;
+                    const srcLine = asmBlockSrcLines[errIdx] || asmBlockSrcLines[0];
                     errors.push({ line: srcLine, message: e.message });
                 }
             } else if (asmResult.words && asmResult.words.length > 0) {
@@ -3244,16 +3245,18 @@ class CLOOMCCompiler {
             }
         }
 
+        const abacusArgMap = { add: 2, sub: 2, mul: 2, div: 2, mod: 2, abs: 1 };
+
         for (const upload of bootUploads) {
             if (!upload.methods || !upload.methods.length) continue;
             const absName = upload.abstraction;
             const nsSlot = upload.index;
             if (regConv[absName]) continue;
+            if (!mathAbstractions.has(absName)) continue;
             for (let mi = 0; mi < upload.methods.length; mi++) {
                 const m = upload.methods[mi];
                 const key = m.name.toLowerCase();
-                const args = (absName === 'Abacus' && (key === 'add' || key === 'sub' || key === 'mul' || key === 'div' || key === 'mod')) ? 2
-                    : (absName === 'Abacus' && key === 'abs') ? 1 : 1;
+                const args = abacusArgMap[key] || 1;
                 const entry = { abs: absName, nsSlot, methodIndex: mi, args, outputDR: 1 };
                 allMethods.push({ key, entry });
                 if (!funcTable[key] || (mathAbstractions.has(absName) && !mathAbstractions.has(funcTable[key].abs))) {
