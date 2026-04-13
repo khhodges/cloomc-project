@@ -6478,6 +6478,7 @@ let walkTimer = null;
 
 // ── Run popover ─────────────────────────────────────────────────────────────
 let runBatchSize = 500;
+let _runStopped = false;
 
 let _runClickTimer = null;
 
@@ -6513,6 +6514,17 @@ function runSimGo() {
     if (sel) runBatchSize = parseInt(sel.value, 10) || 500;
     hideRunPopover();
     runSim();
+}
+
+function stopSim() {
+    _runStopped = true;
+}
+
+function _showStopBtn(show) {
+    const runBtn  = document.getElementById('btnRunSim');
+    const stopBtn = document.getElementById('btnStopSim');
+    if (runBtn)  runBtn.style.display  = show ? 'none' : '';
+    if (stopBtn) stopBtn.style.display = show ? '' : 'none';
 }
 
 document.addEventListener('mousedown', function(e) {
@@ -6818,16 +6830,21 @@ function runSim() {
     const con         = document.getElementById('editorConsole');
     const runBtn      = document.getElementById('btnRunSim');
 
-    // Show "Running…" progress line in console and disable Run while executing
+    _runStopped = false;
+    _showStopBtn(true);
+
     if (con) {
         con.textContent += '\nRunning…';
         con.scrollTop = con.scrollHeight;
     }
-    if (runBtn) { runBtn.disabled = true; runBtn.style.opacity = '0.5'; }
 
     let totalSteps = 0;
 
     function runBatch() {
+        if (_runStopped) {
+            finishRun('userStopped');
+            return;
+        }
         if (!sim.bootComplete || sim.halted || totalSteps >= MAX_STEPS) {
             finishRun('stopped');
             return;
@@ -6850,7 +6867,7 @@ function runSim() {
 
             // Absent-lump: sim suspended mid-run waiting for a lazy fetch.
             if (sim.awaitingLump) {
-                if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = ''; }
+                _showStopBtn(false);
                 if (con) {
                     const al = sim.awaitingLump;
                     const lines = con.textContent.split('\n');
@@ -6877,7 +6894,7 @@ function runSim() {
     }
 
     function finishRun(stopReason, breakpointAddr) {
-        if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = ''; }
+        _showStopBtn(false);
         console.log('[finishRun] stopReason=', stopReason, 'halted=', sim.halted, 'bootComplete=', sim.bootComplete, 'faultLog=', sim.faultLog.length, 'steps=', totalSteps);
         if (sim.faultLog.length > 0) console.log('[finishRun] FAULTS:', JSON.stringify(sim.faultLog.map(f => f.type + ': ' + f.message)));
         const ranClean = (stopReason === 'halted' || sim.halted) && sim.faultLog.length === 0;
@@ -6897,6 +6914,8 @@ function runSim() {
                 status = `Breakpoint at 0x${breakpointAddr.toString(16).toUpperCase().padStart(4,'0')}.`;
             } else if (stopReason === 'maxSteps') {
                 status = `Max steps (${totalSteps}) reached.`;
+            } else if (stopReason === 'userStopped') {
+                status = 'Stopped by user.';
             } else if (stopReason === 'error') {
                 status = 'Runtime error — see console.';
             }
