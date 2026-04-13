@@ -261,12 +261,14 @@ class ChurchAssembler {
                 break;
             }
             case 2: {
-                crDst = this._parseCR(parts[1], lineNum);
                 if (parts[2] && parts[3]) {
+                    crDst = this._parseCRorBare(parts[1], lineNum);
                     crSrc = this._parseCR(parts[2], lineNum);
                     imm = this._parseImm(parts[3], lineNum);
                 } else if (parts[2]) {
                     this.errors.push({ line: lineNum, message: 'CALL takes one operand (CALL CRn) or three (CALL CRd, CRs, #imm). Two-operand form is not supported.' });
+                } else {
+                    crDst = this._parseCR(parts[1], lineNum);
                 }
                 break;
             }
@@ -433,6 +435,27 @@ class ChurchAssembler {
             return 0;
         }
         this.errors.push({ line: lineNum, message: `Expected a capability register like CR0 or CR6, but got "${token}". Capability registers start with CR followed by a number 0-15.` });
+        return 0;
+    }
+
+    _parseCRorBare(token, lineNum) {
+        if (!token) return 0;
+        token = token.toUpperCase().replace(/,/g, '');
+        const crMatch = token.match(/^CR(\d+)$/);
+        if (crMatch) {
+            const idx = parseInt(crMatch[1]);
+            if (idx >= 0 && idx <= 15) return idx;
+            this.errors.push({ line: lineNum, message: `CR${idx} is too big! Capability registers go from CR0 to CR15.` });
+            return 0;
+        }
+        const bareMatch = token.match(/^(\d+)$/);
+        if (bareMatch) {
+            const idx = parseInt(bareMatch[1]);
+            if (idx >= 0 && idx <= 15) return idx;
+            this.errors.push({ line: lineNum, message: `Method selector ${idx} is too big — must be 0–15.` });
+            return 0;
+        }
+        this.errors.push({ line: lineNum, message: `Expected a method selector (0–15 or CR0–CR15), but got "${token}".` });
         return 0;
     }
 
