@@ -6242,6 +6242,7 @@ function assembleAndLoad() {
     const con = document.getElementById('editorConsole');
 
     const isHighLevel = cloomcCompiler && (
+        cloomcCompiler._detectPetName(source) ||
         cloomcCompiler._detectEnglish(source) ||
         cloomcCompiler._detectHaskell(source) ||
         cloomcCompiler._detectSymbolic(source) ||
@@ -14712,7 +14713,8 @@ function compileDraft() {
     if (!cloomcCompiler) return;
     switchCodeTab('console');
 
-    const isHighLevel = cloomcCompiler._detectEnglish(source) ||
+    const isHighLevel = cloomcCompiler._detectPetName(source) ||
+                        cloomcCompiler._detectEnglish(source) ||
                         cloomcCompiler._detectHaskell(source) ||
                         cloomcCompiler._detectSymbolic(source) ||
                         /^\s*abstraction\s+\w+/m.test(source);

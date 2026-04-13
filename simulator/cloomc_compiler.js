@@ -3144,7 +3144,7 @@ class CLOOMCCompiler {
         }
 
         const methods = [{ name: 'run', code: code }];
-        const capsArray = Object.values(neededCaps);
+        const capsArray = Object.values(neededCaps).sort((a, b) => a.capIndex - b.capIndex);
         return {
             methods,
             errors,
