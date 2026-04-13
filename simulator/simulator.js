@@ -2248,7 +2248,8 @@ class ChurchSimulator {
         // Packs method index, source operand registers, and destination DR into CALL instruction
         // fields (imm[13:8]=method, imm[7:4]=leftDR, imm[3:0]=rightDR, crSrc=dstDR).
         // Result is written directly to dstDR, bypassing DR0 zero-register enforcement.
-        // C-list indexed mode (imm != 0, bit 14 clear): CRd is method selector (0–15).
+        // C-list indexed mode (imm != 0, bit 14 clear): CRd is method selector (0–14).
+        //   CRd=15 is the escape code: read DR3 as the extended method selector.
         // Legacy mode (imm=0, bit 14 clear) uses DR3 as method selector with DR1/DR2 operands.
         if (d.imm & 0x4000) {
             const packed = d.imm & 0x3FFF;
@@ -2263,11 +2264,14 @@ class ChurchSimulator {
                 : (abstraction.methods[0] || 'Apply');
             desc = `CALL CR${d.crDst} -> ${label}.${methodName2} [DR${leftReg}, DR${rightReg}] -> DR${encodedDstReg}`;
         } else if (isClistIndexed) {
-            methodIndex = d.crDst;
+            methodIndex = (d.crDst === 15) ? (this.dr[3] || 0) : d.crDst;
             encodedDstReg = null;
             argDR1 = this.dr[1];
             argDR2 = this.dr[2];
-            desc = `CALL CR${d.crDst}, CR${d.crSrc}, #${d.imm} -> ${label}.${abstraction.methods[methodIndex] || abstraction.methods[0] || 'Apply'} [method=${methodIndex}]`;
+            const methodLabel = abstraction.methods[methodIndex] || abstraction.methods[0] || 'Apply';
+            desc = (d.crDst === 15)
+                ? `CALL CR15, CR${d.crSrc}, #${d.imm} -> ${label}.${methodLabel} [escape: DR3=${methodIndex}]`
+                : `CALL CR${d.crDst}, CR${d.crSrc}, #${d.imm} -> ${label}.${methodLabel} [method=${methodIndex}]`;
         } else {
             methodIndex = this.dr[3] || 0;
             encodedDstReg = null;

@@ -354,14 +354,18 @@ Computational abstractions for arithmetic, trigonometry, and geometry.
 
 ### 16 — SlideRule
 
-**Methods**: Add, Sub, Mul, Div, Sqrt, Log, Pow, Sin, Cos, Tan, Asin, Acos, Atan, ToDegrees, ToRadians
+**Methods** (22): Multiply, Divide, Sqrt, Mod, Sin, Cos, Tan, Asin, Acos, Atan, ToDegrees, ToRadians, Bernoulli, Abs, Pow, Min, Max, GCD, Factorial, Log2, Atan2, Signum
 
-IEEE 754 floating-point arithmetic with full trigonometry and angle conversion. Named after the analog computing device used before electronic calculators. SlideRule is the authoritative source for all trigonometric and angle functions:
+Integer and fixed-point arithmetic with full trigonometry, combinatorics, and number theory. Named after the analog computing device used before electronic calculators. SlideRule is the authoritative source for all trigonometric and angle functions:
 
-- **Arithmetic**: Add, Sub, Mul, Div, Sqrt, Log, Pow
-- **Trigonometry**: Sin, Cos, Tan (radians input)
-- **Inverse trig**: Asin, Acos, Atan (returns radians)
-- **Angle conversion**: ToDegrees, ToRadians
+- **Arithmetic** (0–3): Multiply, Divide, Sqrt, Mod
+- **Trigonometry** (4–6): Sin, Cos, Tan (fixed-point CORDIC)
+- **Inverse trig** (7–9): Asin, Acos, Atan
+- **Angle conversion** (10–11): ToDegrees, ToRadians
+- **Number theory** (12): Bernoulli (exact rational B(n), numerator in DR1, denominator in DR2)
+- **Extended** (13–21): Abs, Pow, Min, Max, GCD, Factorial, Log2, Atan2, Signum
+
+SlideRule has more than 15 methods, so c-list indexed calls use the **CRd=15 escape convention**: set DR3 to the method index, then `CALL CR15, CRs, #imm`. Methods 0–14 can also be addressed directly via CRd. See [Architecture: Method Dispatch Modes](architecture.md#method-dispatch-modes) for details.
 
 ### 17 — Abacus
 
