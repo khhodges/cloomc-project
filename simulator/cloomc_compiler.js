@@ -2802,18 +2802,23 @@ class CLOOMCCompiler {
     }
 
     _detectPetName(source) {
-        if (/[;{}]/.test(source)) return false;
-        if (/\b(var|let|const|function|return|if|else|for|while|switch|class|import|export|require|console)\b/.test(source)) return false;
-        if (/===|!==|&&|\|\||=>/.test(source)) return false;
+        const stripped = source.replace(/;[^\n]*/g, '').replace(/\/\/[^\n]*/g, '').replace(/--[^\n]*/g, '');
+        if (/[;{}]/.test(stripped)) return false;
+        if (/\b(var|let|const|function|return|if|else|for|while|switch|class|import|export|require|console)\b/.test(stripped)) return false;
+        if (/===|!==|&&|\|\||=>/.test(stripped)) return false;
         if (this._detectEnglish(source)) return false;
         if (/^\s*abstraction\s+\w+/m.test(source)) return false;
         if (/^\s*method\s+\w+/m.test(source)) return false;
         if (/^\s*(?:create|define|make)\s+(?:an?\s+)?abstraction/im.test(source)) return false;
 
+        const builtFuncNames = CLOOMCCompiler._getPetNameFuncNames();
+        const funcPattern = builtFuncNames.length > 0
+            ? new RegExp('^\\s*(?:[A-Za-z_]\\w*\\s*=\\s*)?(?:' + builtFuncNames.join('|') + ')\\s*\\(', 'i')
+            : /^\s*(?:[A-Za-z_]\w*\s*=\s*)?(?:Sqrt|GCD|Factorial|Log2|Abs|Min|Max|Pow|Sin|Cos|Tan)\s*\(/i;
+
         const lines = source.split('\n');
         let petNameScore = 0;
         const asmMnemonics = /^\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH|SHL|SHR|HALT|NOP)\b/i;
-        const funcCallPattern = /^\s*(?:[A-Za-z_]\w*\s*=\s*)?(?:Sqrt|GCD|Factorial|Log2|Abs|Min|Max|Pow|Sin|Cos|Tan|Asin|Acos|Atan|Atan2|ToDegrees|ToRadians|Bernoulli|Signum|Mod)\s*\(/i;
         const operatorPattern = /^\s*[A-Za-z_]\w*\s*=\s*[A-Za-z_\d]\S*\s*[\+\-\*\/%]\s*/;
         const assignPattern = /^\s*[A-Za-z_]\w*\s*=\s*.+/;
         let exprLines = 0;
@@ -2821,7 +2826,7 @@ class CLOOMCCompiler {
             const t = line.trim();
             if (!t || t.startsWith(';') || t.startsWith('//') || t.startsWith('--')) continue;
             if (asmMnemonics.test(t)) continue;
-            if (funcCallPattern.test(t)) { petNameScore += 3; exprLines++; continue; }
+            if (funcPattern.test(t)) { petNameScore += 3; exprLines++; continue; }
             if (operatorPattern.test(t)) { petNameScore += 2; exprLines++; continue; }
             if (assignPattern.test(t)) { petNameScore += 1; exprLines++; continue; }
         }
@@ -3188,6 +3193,15 @@ class CLOOMCCompiler {
         return bestPos;
     }
 
+    static _getPetNameFuncNames() {
+        if (CLOOMCCompiler._cachedFuncNames) return CLOOMCCompiler._cachedFuncNames;
+        const tables = CLOOMCCompiler._buildPetNameTables();
+        CLOOMCCompiler._cachedFuncNames = Object.keys(tables.funcTable)
+            .map(k => k.charAt(0).toUpperCase() + k.slice(1))
+            .filter((v, i, a) => a.indexOf(v) === i);
+        return CLOOMCCompiler._cachedFuncNames;
+    }
+
     static _buildPetNameTables() {
         const opTable = {};
         const funcTable = {};
@@ -3215,15 +3229,18 @@ class CLOOMCCompiler {
             return match ? parseInt(match[1]) : 1;
         };
 
+        const mathAbstractions = new Set(['Abacus', 'SlideRule', 'Constants']);
+        const allMethods = [];
+
         for (const [absName, methods] of Object.entries(regConv)) {
             const nsSlot = nsSlotMap[absName];
             if (nsSlot === undefined) continue;
             for (const [methodName, conv] of Object.entries(methods)) {
                 const args = countArgs(conv.input);
                 const outputDR = parseOutputDR(conv.output);
-                funcTable[methodName.toLowerCase()] = {
-                    abs: absName, nsSlot, methodIndex: conv.index, args, outputDR
-                };
+                const entry = { abs: absName, nsSlot, methodIndex: conv.index, args, outputDR };
+                funcTable[methodName.toLowerCase()] = entry;
+                allMethods.push({ key: methodName.toLowerCase(), entry });
             }
         }
 
@@ -3235,10 +3252,12 @@ class CLOOMCCompiler {
             for (let mi = 0; mi < upload.methods.length; mi++) {
                 const m = upload.methods[mi];
                 const key = m.name.toLowerCase();
-                if (!funcTable[key]) {
-                    const args = (absName === 'Abacus' && (key === 'add' || key === 'sub' || key === 'mul' || key === 'div' || key === 'mod')) ? 2
-                        : (absName === 'Abacus' && key === 'abs') ? 1 : 1;
-                    funcTable[key] = { abs: absName, nsSlot, methodIndex: mi, args, outputDR: 1 };
+                const args = (absName === 'Abacus' && (key === 'add' || key === 'sub' || key === 'mul' || key === 'div' || key === 'mod')) ? 2
+                    : (absName === 'Abacus' && key === 'abs') ? 1 : 1;
+                const entry = { abs: absName, nsSlot, methodIndex: mi, args, outputDR: 1 };
+                allMethods.push({ key, entry });
+                if (!funcTable[key] || (mathAbstractions.has(absName) && !mathAbstractions.has(funcTable[key].abs))) {
+                    funcTable[key] = entry;
                 }
             }
         }
@@ -3246,15 +3265,12 @@ class CLOOMCCompiler {
         for (const [op, methodName] of Object.entries(opMapping)) {
             const prefAbs = opAbsPreference[op];
             const key = methodName.toLowerCase();
-            const entry = funcTable[key];
-            if (entry) {
+            const preferred = allMethods.find(m => m.key === key && m.entry.abs === prefAbs);
+            if (preferred) {
+                opTable[op] = { abs: preferred.entry.abs, nsSlot: preferred.entry.nsSlot, method: methodName, methodIndex: preferred.entry.methodIndex };
+            } else if (funcTable[key]) {
+                const entry = funcTable[key];
                 opTable[op] = { abs: entry.abs, nsSlot: entry.nsSlot, method: methodName, methodIndex: entry.methodIndex };
-                if (entry.abs !== prefAbs) {
-                    const alt = Object.entries(funcTable).find(([k, v]) => k === key && v.abs === prefAbs);
-                    if (alt) {
-                        opTable[op] = { abs: alt[1].abs, nsSlot: alt[1].nsSlot, method: methodName, methodIndex: alt[1].methodIndex };
-                    }
-                }
             }
         }
 
