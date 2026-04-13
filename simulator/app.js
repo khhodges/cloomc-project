@@ -4113,7 +4113,7 @@ function showAbstractionDetail(index) {
                     html += `<tr><td>Method Index</td><td>${regConv.index}</td></tr>`;
                     html += `<tr><td>Input</td><td>${regConv.input}</td></tr>`;
                     html += `<tr><td>Output</td><td>${regConv.output}</td></tr>`;
-                    html += `<tr><td>CALL Encoding</td><td><code>${regConv.encoding}</code></td></tr>`;
+                    html += `<tr><td>Dispatch</td><td><code>${regConv.dispatch}</code></td></tr>`;
                     if (regConv.note) {
                         html += `<tr><td>Note</td><td>${regConv.note}</td></tr>`;
                     }
@@ -4221,13 +4221,14 @@ function showAbstractionDetail(index) {
         html += '<div class="abs-detail-section abs-note-security">';
         html += '<div class="abs-detail-label">Namespace Extension Model</div>';
         html += '<div class="abs-note-text">SlideRule demonstrates the Church Machine\u2019s extensibility principle: ';
-        html += 'one CALL opcode, one namespace entry (NS[16]), and a 4-bit method index in the immediate field ';
-        html += 'give access to all 13 operations. Adding a new method \u2014 like Bernoulli at index 12 \u2014 means ';
-        html += 'adding one entry to the method dispatch table. No new instructions, no hardware changes, no grammar changes. ';
-        html += 'The namespace IS the extension mechanism. ';
-        html += 'Legacy code uses DR3 to select the method; the encoded CALL form packs the method index, source DR, and ';
-        html += 'destination DR into a single 16-bit immediate, enabling the compiler to target any register pair. ';
-        html += 'Both forms dispatch through the same abstraction \u2014 the only difference is how the method index reaches the handler.</div>';
+        html += 'one CALL opcode, one namespace entry (NS[16]), and 22 methods accessed via two dispatch rules.<br><br>';
+        html += '<b>Rule 1 \u2014 Direct (methods 0\u201314):</b> <code>CALL d, CRs, #imm</code> \u2014 the method index is the bare number <code>d</code> ';
+        html += 'encoded directly in the instruction. Example: <code>CALL 0, CR6, 16</code> calls Multiply (index 0) from c-list offset 16.<br>';
+        html += '<b>Rule 2 \u2014 DR3 Escape (methods 15+):</b> <code>CALL 15, CRs, #imm</code> \u2014 when <code>d=15</code>, the hardware reads DR3 ';
+        html += 'as the actual method index. Set DR3 first, then issue the escape CALL. ';
+        html += 'Example: <code>IADD DR3, DR0, #17</code> then <code>CALL 15, CR6, 16</code> calls GCD (index 17).<br><br>';
+        html += 'Adding a new method means adding one entry to the dispatch table \u2014 no new instructions, no hardware changes, no grammar changes. ';
+        html += 'The namespace IS the extension mechanism.</div>';
         html += '</div>';
     }
 
@@ -4377,19 +4378,28 @@ function absDeleteMethod(absIdx) {
 
 const METHOD_REGISTER_CONVENTIONS = {
     'SlideRule': {
-        'Multiply':  { index: 0,  input: 'DR1 (a), DR2 (b)', output: 'DR(dst) = a * b', encoding: '0x4000 | (0<<8) | (src<<4) | dst' },
-        'Divide':    { index: 1,  input: 'DR1 (a), DR2 (b)', output: 'DR(dst) = a / b', encoding: '0x4000 | (1<<8) | (src<<4) | dst' },
-        'Sqrt':      { index: 2,  input: 'DR1 (x)',           output: 'DR(dst) = \u221ax',    encoding: '0x4000 | (2<<8) | (src<<4) | dst' },
-        'Mod':       { index: 3,  input: 'DR1 (a), DR2 (b)', output: 'DR(dst) = a % b', encoding: '0x4000 | (3<<8) | (src<<4) | dst' },
-        'Sin':       { index: 4,  input: 'DR1 (radians)',     output: 'DR(dst) = sin(x)', encoding: '0x4000 | (4<<8) | (src<<4) | dst' },
-        'Cos':       { index: 5,  input: 'DR1 (radians)',     output: 'DR(dst) = cos(x)', encoding: '0x4000 | (5<<8) | (src<<4) | dst' },
-        'Tan':       { index: 6,  input: 'DR1 (radians)',     output: 'DR(dst) = tan(x)', encoding: '0x4000 | (6<<8) | (src<<4) | dst' },
-        'Asin':      { index: 7,  input: 'DR1 (x)',           output: 'DR(dst) = asin(x)', encoding: '0x4000 | (7<<8) | (src<<4) | dst' },
-        'Acos':      { index: 8,  input: 'DR1 (x)',           output: 'DR(dst) = acos(x)', encoding: '0x4000 | (8<<8) | (src<<4) | dst' },
-        'Atan':      { index: 9,  input: 'DR1 (x)',           output: 'DR(dst) = atan(x)', encoding: '0x4000 | (9<<8) | (src<<4) | dst' },
-        'ToDegrees': { index: 10, input: 'DR1 (radians)',     output: 'DR(dst) = degrees', encoding: '0x4000 | (10<<8) | (src<<4) | dst' },
-        'ToRadians': { index: 11, input: 'DR1 (degrees)',     output: 'DR(dst) = radians', encoding: '0x4000 | (11<<8) | (src<<4) | dst' },
-        'Bernoulli': { index: 12, input: 'DR1 (n)',           output: 'DR(dst) = numerator, DR(dst+1) = denominator', encoding: '0x4000 | (12<<8) | (src<<4) | dst', note: 'Dual-register return: exact rational B(n). DR15 edge case wraps denominator to DR1.' },
+        'Multiply':  { index: 0,  input: 'DR1 (a), DR2 (b)', output: 'DR1 = a * b',  dispatch: 'CALL 0, CRs, #imm' },
+        'Divide':    { index: 1,  input: 'DR1 (a), DR2 (b)', output: 'DR1 = a / b',  dispatch: 'CALL 1, CRs, #imm' },
+        'Sqrt':      { index: 2,  input: 'DR1 (x)',           output: 'DR1 = \u221ax',     dispatch: 'CALL 2, CRs, #imm' },
+        'Mod':       { index: 3,  input: 'DR1 (a), DR2 (b)', output: 'DR1 = a % b',  dispatch: 'CALL 3, CRs, #imm' },
+        'Sin':       { index: 4,  input: 'DR1 (radians)',     output: 'DR1 = sin(x)', dispatch: 'CALL 4, CRs, #imm' },
+        'Cos':       { index: 5,  input: 'DR1 (radians)',     output: 'DR1 = cos(x)', dispatch: 'CALL 5, CRs, #imm' },
+        'Tan':       { index: 6,  input: 'DR1 (radians)',     output: 'DR1 = tan(x)', dispatch: 'CALL 6, CRs, #imm' },
+        'Asin':      { index: 7,  input: 'DR1 (x)',           output: 'DR1 = asin(x)', dispatch: 'CALL 7, CRs, #imm' },
+        'Acos':      { index: 8,  input: 'DR1 (x)',           output: 'DR1 = acos(x)', dispatch: 'CALL 8, CRs, #imm' },
+        'Atan':      { index: 9,  input: 'DR1 (x)',           output: 'DR1 = atan(x)', dispatch: 'CALL 9, CRs, #imm' },
+        'ToDegrees': { index: 10, input: 'DR1 (radians)',     output: 'DR1 = degrees', dispatch: 'CALL 10, CRs, #imm' },
+        'ToRadians': { index: 11, input: 'DR1 (degrees)',     output: 'DR1 = radians', dispatch: 'CALL 11, CRs, #imm' },
+        'Bernoulli': { index: 12, input: 'DR1 (n)',           output: 'DR1 = numerator, DR2 = denominator', dispatch: 'CALL 12, CRs, #imm', note: 'Dual-register return: exact rational B(n).' },
+        'Abs':       { index: 13, input: 'DR1 (n)',           output: 'DR1 = |n|',    dispatch: 'CALL 13, CRs, #imm' },
+        'Pow':       { index: 14, input: 'DR1 (base), DR2 (exp)', output: 'DR1 = base^exp', dispatch: 'CALL 14, CRs, #imm' },
+        'Min':       { index: 15, input: 'DR1 (a), DR2 (b)', output: 'DR1 = min(a,b)', dispatch: 'DR3=15, CALL 15, CRs, #imm' },
+        'Max':       { index: 16, input: 'DR1 (a), DR2 (b)', output: 'DR1 = max(a,b)', dispatch: 'DR3=16, CALL 15, CRs, #imm' },
+        'GCD':       { index: 17, input: 'DR1 (a), DR2 (b)', output: 'DR1 = gcd(a,b)', dispatch: 'DR3=17, CALL 15, CRs, #imm' },
+        'Factorial': { index: 18, input: 'DR1 (n)',           output: 'DR1 = n!',     dispatch: 'DR3=18, CALL 15, CRs, #imm' },
+        'Log2':      { index: 19, input: 'DR1 (n)',           output: 'DR1 = floor(log2(n))', dispatch: 'DR3=19, CALL 15, CRs, #imm' },
+        'Atan2':     { index: 20, input: 'DR1 (y), DR2 (x)', output: 'DR1 = atan2(y,x)', dispatch: 'DR3=20, CALL 15, CRs, #imm' },
+        'Signum':    { index: 21, input: 'DR1 (n)',           output: 'DR1 = sign(n)', dispatch: 'DR3=21, CALL 15, CRs, #imm' },
     },
 };
 
@@ -4408,7 +4418,7 @@ function getMethodPurposes(abs) {
         'Button': { 'Read': 'Button.Read() — LOAD state from device (L perm)', 'WaitPress': 'Button.WaitPress() — block via Scheduler until press (E perm)', 'OnEvent': 'Button.OnEvent() — dequeue press/release event (E perm)' },
         'Timer': { 'Start': 'Timer.Start(channel) — SAVE start command to device (S perm)', 'Stop': 'Timer.Stop(channel) — SAVE stop command (S perm)', 'Read': 'Timer.Read() — LOAD elapsed ticks from device (L perm)', 'SetAlarm': 'Timer.SetAlarm(ticks) — SAVE threshold to device (S perm)' },
         'Display': { 'Write': 'Display.Write(char) — SAVE character to device (S perm)', 'Clear': 'Display.Clear() — SAVE clear command (S perm)', 'Scroll': 'Display.Scroll(lines) — SAVE scroll command (S perm)' },
-        'SlideRule': { 'Multiply': 'SlideRule.Multiply(a, b) — DR1*DR2, method index 0', 'Divide': 'SlideRule.Divide(a, b) — DR1/DR2 (truncated), method index 1. Division by zero returns 0.', 'Sqrt': 'SlideRule.Sqrt(x) — floor(√DR1), method index 2', 'Mod': 'SlideRule.Mod(a, b) — DR1%DR2, method index 3. Mod by zero returns 0.', 'Sin': 'SlideRule.Sin(angle) — CORDIC sine in fixed-point (16-bit fractional), method index 4', 'Cos': 'SlideRule.Cos(angle) — CORDIC cosine in fixed-point (16-bit fractional), method index 5', 'Tan': 'SlideRule.Tan(angle) — CORDIC tangent in fixed-point (16-bit fractional), method index 6', 'Asin': 'SlideRule.Asin(x) — CORDIC inverse sine, result in fixed-point radians, method index 7', 'Acos': 'SlideRule.Acos(x) — CORDIC inverse cosine, result in fixed-point radians, method index 8', 'Atan': 'SlideRule.Atan(x) — CORDIC inverse tangent, result in fixed-point radians, method index 9', 'ToDegrees': 'SlideRule.ToDegrees(rad) — fixed-point radians → degrees (×180/π), method index 10', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees → fixed-point radians (×π/180), method index 11', 'Bernoulli': 'SlideRule.Bernoulli(n) — exact rational Bernoulli number B(n). Numerator in DR(dst), denominator in DR(dst+1). Odd n>1 returns 0/1. Method index 12.', 'Abs': 'SlideRule.Abs(n) — |DR1|, method index 13', 'Pow': 'SlideRule.Pow(base, exp) — base^exp (integer, exp≥0), method index 14. Negative exponent returns 0.', 'Min': 'SlideRule.Min(a, b) — min(DR1, DR2), method index 15', 'Max': 'SlideRule.Max(a, b) — max(DR1, DR2), method index 16', 'GCD': 'SlideRule.GCD(a, b) — greatest common divisor of DR1 and DR2, method index 17', 'Factorial': 'SlideRule.Factorial(n) — n! (integer), method index 18. Negative n returns 0.', 'Log2': 'SlideRule.Log2(n) — floor(log₂(n)), method index 19. n<1 returns 0.', 'Atan2': 'SlideRule.Atan2(y, x) — two-argument arctangent, method index 20', 'Signum': 'SlideRule.Signum(n) — sign of DR1: +1, 0, or −1, method index 21' },
+        'SlideRule': { 'Multiply': 'SlideRule.Multiply(a, b) — DR1*DR2. CALL 0, CRs, #imm', 'Divide': 'SlideRule.Divide(a, b) — DR1/DR2 (truncated). CALL 1, CRs, #imm. Div by zero returns 0.', 'Sqrt': 'SlideRule.Sqrt(x) — floor(√DR1). CALL 2, CRs, #imm', 'Mod': 'SlideRule.Mod(a, b) — DR1%DR2. CALL 3, CRs, #imm. Mod by zero returns 0.', 'Sin': 'SlideRule.Sin(angle) — CORDIC sine (fixed-point). CALL 4, CRs, #imm', 'Cos': 'SlideRule.Cos(angle) — CORDIC cosine (fixed-point). CALL 5, CRs, #imm', 'Tan': 'SlideRule.Tan(angle) — CORDIC tangent (fixed-point). CALL 6, CRs, #imm', 'Asin': 'SlideRule.Asin(x) — CORDIC inverse sine. CALL 7, CRs, #imm', 'Acos': 'SlideRule.Acos(x) — CORDIC inverse cosine. CALL 8, CRs, #imm', 'Atan': 'SlideRule.Atan(x) — CORDIC inverse tangent. CALL 9, CRs, #imm', 'ToDegrees': 'SlideRule.ToDegrees(rad) — radians → degrees (×180/π). CALL 10, CRs, #imm', 'ToRadians': 'SlideRule.ToRadians(deg) — degrees → radians (×π/180). CALL 11, CRs, #imm', 'Bernoulli': 'SlideRule.Bernoulli(n) — exact rational B(n). DR1=numerator, DR2=denominator. CALL 12, CRs, #imm', 'Abs': 'SlideRule.Abs(n) — |DR1|. CALL 13, CRs, #imm', 'Pow': 'SlideRule.Pow(base, exp) — base^exp (exp≥0). CALL 14, CRs, #imm', 'Min': 'SlideRule.Min(a, b) — min(DR1, DR2). DR3=15, CALL 15, CRs, #imm (escape)', 'Max': 'SlideRule.Max(a, b) — max(DR1, DR2). DR3=16, CALL 15, CRs, #imm (escape)', 'GCD': 'SlideRule.GCD(a, b) — gcd(DR1, DR2). DR3=17, CALL 15, CRs, #imm (escape)', 'Factorial': 'SlideRule.Factorial(n) — n!. DR3=18, CALL 15, CRs, #imm (escape)', 'Log2': 'SlideRule.Log2(n) — floor(log₂(n)). DR3=19, CALL 15, CRs, #imm (escape)', 'Atan2': 'SlideRule.Atan2(y, x) — two-argument arctangent. DR3=20, CALL 15, CRs, #imm (escape)', 'Signum': 'SlideRule.Signum(n) — sign(DR1): +1/0/−1. DR3=21, CALL 15, CRs, #imm (escape)' },
         'Abacus': { 'Add': 'Abacus.Add(a, b) — integer add', 'Sub': 'Abacus.Sub(a, b) — integer subtract', 'Mul': 'Abacus.Mul(a, b) — integer multiply', 'Div': 'Abacus.Div(a, b) — integer divide', 'Mod': 'Abacus.Mod(a, b) — remainder', 'Abs': 'Abacus.Abs(x) — absolute value' },
         'Constants': { 'Pi': 'Constants.Pi() — return \u03c0 as IEEE 754', 'E': 'Constants.E() — return e', 'Phi': 'Constants.Phi() — return \u03c6', 'Zero': 'Constants.Zero() — return 0.0', 'One': 'Constants.One() — return 1.0' },
         'Loader': { 'Load': 'Loader.Load(slot) — fault-driven lazy load of a warm/cold abstraction', 'Prefetch': 'Loader.Prefetch(slot) — hint-driven pre-load without blocking', 'Evict': 'Loader.Evict(slot) — unload a cold abstraction to free memory' },
@@ -5130,86 +5140,187 @@ CALL   CR1              ; Display.Scroll via E perm:
 ;   Top line lost, bottom line cleared`,
         },
         'SlideRule': {
-            'Multiply': `; SlideRule.Multiply — DR1 * DR2 (DR3=0)
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #2          ; Left operand
-DWRITE DR2, #3          ; Right operand
-DWRITE DR3, #0          ; Method selector: Multiply
-CALL   CR1              ; DR1 <- 6`,
-            'Divide': `; SlideRule.Divide — DR1 / DR2 (DR3=1)
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #10         ; Dividend
-DWRITE DR2, #2          ; Divisor
-DWRITE DR3, #1          ; Method selector: Divide
-CALL   CR1              ; DR1 <- 5
+            'Multiply': `; SlideRule.Multiply — DR1 * DR2
+; Method index 0 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #2     ; Left operand
+IADD   DR2, DR0, #3     ; Right operand
+CALL   0, CR6, 16       ; method=0 (Multiply), c-list offset 16 (SlideRule)
+                         ; DR1 <- 6`,
+            'Divide': `; SlideRule.Divide — DR1 / DR2
+; Method index 1 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #10    ; Dividend
+IADD   DR2, DR0, #2     ; Divisor
+CALL   1, CR6, 16       ; method=1 (Divide), c-list offset 16 (SlideRule)
+                         ; DR1 <- 5
 ; Div by zero returns 0 with fault message`,
-            'Sqrt': `; SlideRule.Sqrt — √DR1 (DR3=2)
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #9          ; Input
-DWRITE DR3, #2          ; Method selector: Sqrt
-CALL   CR1              ; DR1 <- 3`,
-            'Mod': `; SlideRule.Mod — DR1 % DR2 (DR3=3)
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #10         ; Dividend
-DWRITE DR2, #3          ; Divisor
-DWRITE DR3, #3          ; Method selector: Mod
-CALL   CR1              ; DR1 <- 1`,
+            'Sqrt': `; SlideRule.Sqrt — floor(sqrt(DR1))
+; Method index 2 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #9     ; Input
+CALL   2, CR6, 16       ; method=2 (Sqrt), c-list offset 16 (SlideRule)
+                         ; DR1 <- 3`,
+            'Mod': `; SlideRule.Mod — DR1 % DR2
+; Method index 3 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #10    ; Dividend
+IADD   DR2, DR0, #3     ; Divisor
+CALL   3, CR6, 16       ; method=3 (Mod), c-list offset 16 (SlideRule)
+                         ; DR1 <- 1`,
             'Sin': `; SlideRule.Sin — sine (radians)
+; Method index 4 (below 15: use method selector directly)
 ; FPGA uses CORDIC; simulator uses IEEE 754
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x3FC90FDB ; pi/2 (1.5708 rad)
-CALL   CR1              ; DR1 <- 0x3F800000 (1.0)`,
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0x3FC90FDB  ; pi/2 (1.5708 rad)
+CALL   4, CR6, 16       ; method=4 (Sin), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x3F800000 (1.0)`,
             'Cos': `; SlideRule.Cos — cosine (radians)
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x00000000 ; 0.0 rad
-CALL   CR1              ; DR1 <- 0x3F800000 (1.0)`,
+; Method index 5 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0     ; 0.0 rad
+CALL   5, CR6, 16       ; method=5 (Cos), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x3F800000 (1.0)`,
             'Tan': `; SlideRule.Tan — tangent (radians)
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x3F490FDB ; pi/4 (0.7854 rad)
-CALL   CR1              ; DR1 <- 0x3F800000 (1.0)
+; Method index 6 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0x3F490FDB  ; pi/4 (0.7854 rad)
+CALL   6, CR6, 16       ; method=6 (Tan), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x3F800000 (1.0)
 ; Near pi/2: FAULT DOMAIN_ERROR (asymptote)`,
             'Asin': `; SlideRule.Asin — inverse sine -> radians
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x3F800000 ; 1.0
-CALL   CR1              ; DR1 <- 0x3FC90FDB (pi/2)
+; Method index 7 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0x3F800000  ; 1.0
+CALL   7, CR6, 16       ; method=7 (Asin), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x3FC90FDB (pi/2)
 ; |input| > 1.0: FAULT DOMAIN_ERROR`,
             'Acos': `; SlideRule.Acos — inverse cosine -> radians
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x3F800000 ; 1.0
-CALL   CR1              ; DR1 <- 0x00000000 (0.0)`,
+; Method index 8 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0x3F800000  ; 1.0
+CALL   8, CR6, 16       ; method=8 (Acos), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x00000000 (0.0)`,
             'Atan': `; SlideRule.Atan — inverse tangent -> radians
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x3F800000 ; 1.0
-CALL   CR1              ; DR1 <- 0x3F490FDB (pi/4)`,
+; Method index 9 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0x3F800000  ; 1.0
+CALL   9, CR6, 16       ; method=9 (Atan), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x3F490FDB (pi/4)`,
             'ToDegrees': `; SlideRule.ToDegrees — radians to degrees
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x40490FDB ; pi (3.14159 rad)
-CALL   CR1              ; DR1 <- 0x43340000 (180.0 deg)
+; Method index 10 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0x40490FDB  ; pi (3.14159 rad)
+CALL   10, CR6, 16      ; method=10 (ToDegrees), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x43340000 (180.0 deg)
 ; Multiply by 180/pi internally`,
             'ToRadians': `; SlideRule.ToRadians — degrees to radians
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #0x43340000 ; 180.0 degrees
-CALL   CR1              ; DR1 <- 0x40490FDB (pi rad)
+; Method index 11 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #0x43340000  ; 180.0 degrees
+CALL   11, CR6, 16      ; method=11 (ToRadians), c-list offset 16 (SlideRule)
+                         ; DR1 <- 0x40490FDB (pi rad)
 ; Multiply by pi/180 internally`,
             'Bernoulli': `; SlideRule.Bernoulli(n) — exact rational B(n)
-; Returns: numerator in DR(dst), denominator in DR(dst+1)
-; Method index 12 — CALL encoding: 0x4C00 | (left<<4) | right
+; Method index 12 (below 15: use method selector directly)
+; Returns: numerator in DR1, denominator in DR2
 ;
-; Legacy form (DR3 dispatch):
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR1, #6          ; n=6 -> B(6) = 1/42
-DWRITE DR3, #12         ; Method selector: Bernoulli
-CALL   CR1              ; DR1 <- 1 (numerator)
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #6     ; n=6 -> B(6) = 1/42
+CALL   12, CR6, 16      ; method=12 (Bernoulli), c-list offset 16 (SlideRule)
+                         ; DR1 <- 1 (numerator)
                          ; DR2 <- 42 (denominator)
+; Odd n>1 returns 0/1`,
+            'Abs': `; SlideRule.Abs — |DR1|
+; Method index 13 (below 15: use method selector directly)
 ;
-; Encoded CALL form (method in immediate):
-LOAD   CR1, NS[16]      ; Load SlideRule E-GT
-DWRITE DR4, #10         ; n=10 -> B(10) = 5/66
-CALL   CR1, #0x4C44     ; 0x4C44 = CALL method 12, src=DR4, dst=DR4
-                         ; DR4 <- 5 (numerator)
-                         ; DR5 <- 66 (denominator)
-; Edge case: if dst=DR15, denominator wraps to DR1
-; Invalid/odd n>1 returns 0/1`,
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #42    ; Input
+ISUB   DR1, DR0, DR1    ; Negate: DR1 = -42
+CALL   13, CR6, 16      ; method=13 (Abs), c-list offset 16 (SlideRule)
+                         ; DR1 <- 42`,
+            'Pow': `; SlideRule.Pow — base^exp (integer, exp >= 0)
+; Method index 14 (below 15: use method selector directly)
+;
+; CALL d, CRs, #imm form:
+IADD   DR1, DR0, #2     ; Base
+IADD   DR2, DR0, #10    ; Exponent
+CALL   14, CR6, 16      ; method=14 (Pow), c-list offset 16 (SlideRule)
+                         ; DR1 <- 1024
+; Negative exponent returns 0`,
+            'Min': `; SlideRule.Min — min(DR1, DR2)
+; Method index 15 (AT the boundary: use DR3 escape)
+;
+; CALL 15, CRs, #imm form (escape: DR3 holds method):
+IADD   DR1, DR0, #7     ; First value
+IADD   DR2, DR0, #3     ; Second value
+IADD   DR3, DR0, #15    ; Method selector: Min (index 15)
+CALL   15, CR6, 16      ; escape -> DR3=15 (Min), c-list offset 16
+                         ; DR1 <- 3`,
+            'Max': `; SlideRule.Max — max(DR1, DR2)
+; Method index 16 (above 15: use DR3 escape)
+;
+; CALL 15, CRs, #imm form (escape: DR3 holds method):
+IADD   DR1, DR0, #7     ; First value
+IADD   DR2, DR0, #3     ; Second value
+IADD   DR3, DR0, #16    ; Method selector: Max (index 16)
+CALL   15, CR6, 16      ; escape -> DR3=16 (Max), c-list offset 16
+                         ; DR1 <- 7`,
+            'GCD': `; SlideRule.GCD — greatest common divisor
+; Method index 17 (above 15: use DR3 escape)
+;
+; CALL 15, CRs, #imm form (escape: DR3 holds method):
+IADD   DR1, DR0, #12    ; First value
+IADD   DR2, DR0, #8     ; Second value
+IADD   DR3, DR0, #17    ; Method selector: GCD (index 17)
+CALL   15, CR6, 16      ; escape -> DR3=17 (GCD), c-list offset 16
+                         ; DR1 <- 4`,
+            'Factorial': `; SlideRule.Factorial — n!
+; Method index 18 (above 15: use DR3 escape)
+;
+; CALL 15, CRs, #imm form (escape: DR3 holds method):
+IADD   DR1, DR0, #10    ; n=10
+IADD   DR3, DR0, #18    ; Method selector: Factorial (index 18)
+CALL   15, CR6, 16      ; escape -> DR3=18 (Factorial), c-list offset 16
+                         ; DR1 <- 3628800`,
+            'Log2': `; SlideRule.Log2 — floor(log2(n))
+; Method index 19 (above 15: use DR3 escape)
+;
+; CALL 15, CRs, #imm form (escape: DR3 holds method):
+IADD   DR1, DR0, #256   ; Input
+IADD   DR3, DR0, #19    ; Method selector: Log2 (index 19)
+CALL   15, CR6, 16      ; escape -> DR3=19 (Log2), c-list offset 16
+                         ; DR1 <- 8
+; n<1 returns 0`,
+            'Atan2': `; SlideRule.Atan2 — atan2(y, x)
+; Method index 20 (above 15: use DR3 escape)
+;
+; CALL 15, CRs, #imm form (escape: DR3 holds method):
+IADD   DR1, DR0, #0x3F800000  ; y = 1.0
+IADD   DR2, DR0, #0x3F800000  ; x = 1.0
+IADD   DR3, DR0, #20    ; Method selector: Atan2 (index 20)
+CALL   15, CR6, 16      ; escape -> DR3=20 (Atan2), c-list offset 16
+                         ; DR1 <- 0x3F490FDB (pi/4)`,
+            'Signum': `; SlideRule.Signum — sign of DR1: +1, 0, or -1
+; Method index 21 (above 15: use DR3 escape)
+;
+; CALL 15, CRs, #imm form (escape: DR3 holds method):
+IADD   DR1, DR0, #42    ; Positive input
+IADD   DR3, DR0, #21    ; Method selector: Signum (index 21)
+CALL   15, CR6, 16      ; escape -> DR3=21 (Signum), c-list offset 16
+                         ; DR1 <- 1`,
         },
         'Abacus': {
             'Add': `; Abacus.Add — integer addition (Turing domain data)
