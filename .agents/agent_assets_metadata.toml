@@ -48,3 +48,9 @@ id = "BcSHNOV01T03YtzZbrzj-"
 uri = "file://docs/introducing-cloomc.pdf"
 type = "pdf"
 title = "Introducing CLOOMC — Capability-Limited, Object-Oriented, Machine Code"
+
+[[outputs]]
+id = "ieJch8GCUVKM9Z_yr6gBg"
+uri = "file://docs/pet-name-language.md"
+type = "text"
+title = "Pet-Name Language Reference"
