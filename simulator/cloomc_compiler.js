@@ -3141,8 +3141,10 @@ class CLOOMCCompiler {
                     errors.push({ line: i, message: `LOAD ${petName}: "${petName}" is not a known capability in the c-list — access denied` });
                     continue;
                 }
-                const clistOffset = requireCap(capEntry.nsSlot, capEntry.abs);
-                const cr = allocCR(petName, i);
+                const canonName = capEntry.abs;
+                const clistOffset = requireCap(capEntry.nsSlot, canonName);
+                const cr = allocCR(canonName, i);
+                crLocals[petName] = cr;
                 manifest.push({ src: i, addr: code.length, desc: `LOAD CR${cr}, CR6, #${clistOffset}  (${petName} GT from c-list)` });
                 code.push(this.encode(this.opcodes.LOAD, 14, cr, 6, clistOffset));
                 continue;
