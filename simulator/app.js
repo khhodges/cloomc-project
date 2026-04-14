@@ -16171,7 +16171,7 @@ abstraction Feedback {
         const isHaskell = ['church_math','church_pair','church_case','church_lambda','sliderule_hs'].includes(name);
         const isSymbolic = ['ada_note_g', 'bernoulli_numbers'].includes(name);
         const isEnglish = ['english_hello','english_counter'].includes(name);
-        const isLambda = ['lambda_church','lambda_booleans','lambda_pairs','lambda_ycomb','lambda_sliderule','lambda_fixedpoint','lambda_rational'].includes(name);
+        const isLambda = ['lambda_church','lambda_booleans','lambda_pairs','lambda_ycomb','lambda_sliderule','lambda_fixedpoint','lambda_rational','lambda_church_vs_compiled'].includes(name);
         sel.value = isLambda ? 'lambda' : isEnglish ? 'english' : isSymbolic ? 'symbolic' : isHaskell ? 'haskell' : 'javascript';
     }
 
