@@ -2818,7 +2818,7 @@ class CLOOMCCompiler {
 
         const lines = source.split('\n');
         let petNameScore = 0;
-        const asmMnemonics = /^\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH|SHL|SHR|HALT|NOP)\b/i;
+        const asmMnemonics = /^\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH\w*|SHL|SHR|HALT|NOP)\b/i;
         const operatorPattern = /^\s*[A-Za-z_]\w*\s*=\s*[A-Za-z_\d]\S*\s*[\+\-\*\/%]\s*/;
         const assignPattern = /^\s*[A-Za-z_]\w*\s*=\s*.+/;
         const petLoadPattern = /^\s*LOAD\s+([A-Za-z_]\w*)\s*$/i;
@@ -2886,7 +2886,7 @@ class CLOOMCCompiler {
             }
         }
 
-        const asmMnemonics = /^\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH|SHL|SHR|HALT|NOP)\b/i;
+        const asmMnemonics = /^\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH\w*|SHL|SHR|HALT|NOP)\b/i;
 
         const PETNAME_DR_START = 1;
         const PETNAME_DR_END = 11;
@@ -3092,7 +3092,7 @@ class CLOOMCCompiler {
             return line.replace(/\b([A-Za-z_]\w*)\b/g, (match) => {
                 const upper = match.toUpperCase();
                 if (/^(DR\d+|CR\d+)$/.test(upper)) return match;
-                if (/^(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH|SHL|SHR|HALT|NOP)$/.test(upper)) return match;
+                if (/^(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH(EQ|NE|CS|CC|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE|NV)?|SHL|SHR|HALT|NOP)$/.test(upper)) return match;
                 const cr = crLocals[match];
                 if (cr !== undefined) return `CR${cr}`;
                 const reg = locals[match];
@@ -3153,7 +3153,7 @@ class CLOOMCCompiler {
                 continue;
             }
 
-            if (asmMnemonics.test(t) || /^\s*\w+:\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH|SHL|SHR|HALT|NOP)?\b/i.test(t)) {
+            if (asmMnemonics.test(t) || /^\s*\w+:\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH\w*|SHL|SHR|HALT|NOP)?\b/i.test(t)) {
                 asmBlock.push(substitutePetNames(t));
                 asmBlockSrcLines.push(i);
                 continue;
