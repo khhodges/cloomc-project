@@ -25,7 +25,7 @@ Authoritative sources: `hardware/hw_types.py`, `hardware/layouts.py`, `hardware/
 
 ---
 
-## Open Deviations (D-1 through D-8)
+## Open Deviations (D-1 through D-9)
 
 ### D-1: Minimum Lump Size — Enforcement Gap
 
@@ -90,6 +90,23 @@ Authoritative sources: `hardware/hw_types.py`, `hardware/layouts.py`, `hardware/
 - **Decision**: Should `architecture.md` describe CR5 as "saved on CALL and restored on RETURN (transparent to callee)" or explicitly document the cr5_stack mechanism?
 - **Affected files**: `architecture.md`, `call-stack.md`, `lambda-instruction.md`
 - **Pending task**: Task #3 (CR5 instance-data behavior)
+
+### D-9: LAMBDA Recursion Counter — NIA Repacking Optimization (Planned)
+
+- **Current hardware**: LAMBDA CR6 (opcode 7, SZ=0) pushes a 1-word frame per recursive call, identical to the existing call-stack mechanism but with a smaller frame (no namespace gate swap). Each frame carries the same return address (top of current method via CR6). On CHANGE, all N frames must be saved individually — O(N) context-switch cost proportional to recursion depth.
+- **Proposed optimization**: Because every LAMBDA CR6 returns to the **same address**, N nested frames are redundant — they encode a single number (the recursion depth). The hardware can replace the per-frame stack push with a **loop counter register**. On CHANGE, the counter packs into the **NIA word** alongside the return PC, collapsing the entire recursive state into a single word — **O(1) context-switch cost** regardless of depth.
+- **Hardware changes required**:
+  1. Add a small counter register (8–16 bits) to the pipeline, incremented on LAMBDA CR6 execute
+  2. Modify RETURN to decrement the counter; only pop a real frame when counter reaches zero
+  3. Repartition or widen the NIA word to include the counter field
+  4. Modify CHANGE save/restore to pack/unpack the counter from the NIA word
+  5. Validate CHANGE-under-interrupt during deep LAMBDA recursion
+- **Platform strategy**: Prototype on **Ti60 F225** first (~112K logic elements, ample headroom for debug signals and A/B comparison mux). Port to **Tang Nano 20K** only after the design is validated on Ti60. The Tang Nano can continue using the current frame-based LAMBDA implementation until the counter design is proven.
+- **Software impact**: None. The compiler already emits LAMBDA CR6 via `relambda()`. The simulator already models LAMBDA semantics correctly. The counter optimization is purely a hardware-level improvement — the ISA encoding and software interface are unchanged.
+- **Risk**: NIA word format touches fetch, decode, call stack, CHANGE, and RETURN — high-impact change surface. Ti60-first strategy mitigates this.
+- **Decision**: Architect to confirm NIA bit allocation for counter field and schedule Ti60 prototype.
+- **Affected files**: `hardware/core.py`, `hardware/call.py`, `hardware/ret.py`, `hardware/hw_types.py`, `hardware/layouts.py`
+- **Pending task**: None currently tracked — awaiting Ti60 prototype validation
 
 ---
 
