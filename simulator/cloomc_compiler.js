@@ -2971,12 +2971,16 @@ class CLOOMCCompiler {
             }
         };
 
+        const loadedCRs = {};
         const emitAbsCall = (nsSlot, absName, methodIndex, lineNum) => {
             const clistOffset = requireCap(nsSlot, absName);
             const cr = allocCR(absName, lineNum);
             code.push(this.encode(this.opcodes.IADD, 14, 3, 0, methodIndex | 0x4000));
-            manifest.push({ src: lineNum, addr: code.length, desc: `LOAD CR${cr}, CR6, #${clistOffset}  (${absName} GT from c-list)` });
-            code.push(this.encode(this.opcodes.LOAD, 14, cr, 6, clistOffset));
+            if (!loadedCRs[absName]) {
+                manifest.push({ src: lineNum, addr: code.length, desc: `LOAD CR${cr}, CR6, #${clistOffset}  (${absName} GT from c-list)` });
+                code.push(this.encode(this.opcodes.LOAD, 14, cr, 6, clistOffset));
+                loadedCRs[absName] = true;
+            }
             manifest.push({ src: lineNum, addr: code.length, desc: `CALL CR${cr} (method ${methodIndex})` });
             code.push(this.encode(this.opcodes.CALL, 14, cr, 0, 0));
         };
