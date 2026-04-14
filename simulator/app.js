@@ -1550,24 +1550,49 @@ function showCRPopup(evt, crIdx) {
         }
         html += `</table>`;
     } else {
+        const _deviceInfo = {
+            11: { name: 'UART',   ioBase: '0xFE00', regs: ['TX','STATUS','RX'] },
+            12: { name: 'LED',    ioBase: '0xFE10', regs: ['LED0','LED1','LED2','LED3','LED4'] },
+            13: { name: 'Button', ioBase: '0xFE20', regs: ['BTN_STATE'] },
+            14: { name: 'Timer',  ioBase: '0xFE30', regs: ['TICKS_LO','TICKS_HI','TOD_EPOCH','ALARM_CMP','ALARM_CTL'] },
+        };
+        const dev = _deviceInfo[nsIdx];
         const titleName = displayName ? ` — ${displayName}` : '';
-        html += `<div class="zdp-title" style="border-color:#60a5fa;color:#60a5fa;">CR${crIdx}${titleName}</div>`;
-        html += `<table>`;
-        html += `<tr><td>Type</td><td class="zdp-val">${cr.gtTypeName}</td></tr>`;
-        html += `<tr><td>NS Slot</td><td class="zdp-val">${nsIdx}${nsLabel ? ' <span class="zdp-lbl">('+nsLabel+')</span>' : ''}</td></tr>`;
-        html += `<tr><td>Perms</td><td class="zdp-val">[${cr.perms}]</td></tr>`;
-        html += `<tr><td>Location</td><td class="zdp-hex">${hexW(cr.word1_location)}</td></tr>`;
-        html += `<tr><td>Limit</td><td class="zdp-hex">0x${cr.limit17.toString(16).toUpperCase().padStart(5, '0')}</td></tr>`;
-        if (cr.perms.indexOf('X') !== -1) {
-            html += `<tr><td>Role</td><td class="zdp-note">Code (executable)</td></tr>`;
-        } else if (cr.perms.indexOf('R') !== -1 && cr.perms.indexOf('W') !== -1) {
-            html += `<tr><td>Role</td><td class="zdp-note">Data (read/write)</td></tr>`;
-        } else if (cr.perms.indexOf('R') !== -1) {
-            html += `<tr><td>Role</td><td class="zdp-note">Data (read-only)</td></tr>`;
-        } else if (cr.perms.indexOf('E') !== -1) {
-            html += `<tr><td>Role</td><td class="zdp-note">Entry gate (callable)</td></tr>`;
+        if (dev) {
+            html += `<div class="zdp-title" style="border-color:#4ade80;color:#4ade80;">CR${crIdx}${titleName} · I/O Device</div>`;
+            html += `<table>`;
+            html += `<tr><td>Device</td><td class="zdp-val">${dev.name}</td></tr>`;
+            html += `<tr><td>NS Slot</td><td class="zdp-val">${nsIdx}</td></tr>`;
+            html += `<tr><td>Perms</td><td class="zdp-val">[${cr.perms}]</td></tr>`;
+            html += `<tr><td>I/O Base</td><td class="zdp-hex">${dev.ioBase} <span class="zdp-lbl">(memory-mapped)</span></td></tr>`;
+            html += `<tr><td>Registers</td><td class="zdp-val">${dev.regs.length}</td></tr>`;
+            html += `<tr><td colspan="2" style="color:#6b8faf;padding-top:0.25rem;">Register map:</td></tr>`;
+            for (let r = 0; r < dev.regs.length; r++) {
+                const regAddr = parseInt(dev.ioBase, 16) + r;
+                const regHex = '0x' + regAddr.toString(16).toUpperCase().padStart(4, '0');
+                html += `<tr><td style="color:#4ade80;">[${r}]</td><td class="zdp-val">${regHex} ${dev.regs[r]}</td></tr>`;
+            }
+            html += `<tr><td>Role</td><td class="zdp-note">I/O range (device registers)</td></tr>`;
+            html += `</table>`;
+        } else {
+            html += `<div class="zdp-title" style="border-color:#60a5fa;color:#60a5fa;">CR${crIdx}${titleName}</div>`;
+            html += `<table>`;
+            html += `<tr><td>Type</td><td class="zdp-val">${cr.gtTypeName}</td></tr>`;
+            html += `<tr><td>NS Slot</td><td class="zdp-val">${nsIdx}${nsLabel ? ' <span class="zdp-lbl">('+nsLabel+')</span>' : ''}</td></tr>`;
+            html += `<tr><td>Perms</td><td class="zdp-val">[${cr.perms}]</td></tr>`;
+            html += `<tr><td>Location</td><td class="zdp-hex">${hexW(cr.word1_location)}</td></tr>`;
+            html += `<tr><td>Limit</td><td class="zdp-hex">0x${cr.limit17.toString(16).toUpperCase().padStart(5, '0')}</td></tr>`;
+            if (cr.perms.indexOf('X') !== -1) {
+                html += `<tr><td>Role</td><td class="zdp-note">Code (executable)</td></tr>`;
+            } else if (cr.perms.indexOf('R') !== -1 && cr.perms.indexOf('W') !== -1) {
+                html += `<tr><td>Role</td><td class="zdp-note">Data (read/write)</td></tr>`;
+            } else if (cr.perms.indexOf('R') !== -1) {
+                html += `<tr><td>Role</td><td class="zdp-note">Data (read-only)</td></tr>`;
+            } else if (cr.perms.indexOf('E') !== -1) {
+                html += `<tr><td>Role</td><td class="zdp-note">Entry gate (callable)</td></tr>`;
+            }
+            html += `</table>`;
         }
-        html += `</table>`;
     }
 
     const dismissBtn = `<button class="zdp-dismiss" onclick="hideCRPopup(true)" title="Close">&times;</button>`;
