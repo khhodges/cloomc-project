@@ -3022,6 +3022,12 @@ class CLOOMCCompiler {
             if (/^[A-Za-z_]\w*$/.test(expr)) {
                 const reg = locals[expr];
                 if (reg !== undefined) return reg;
+                const constFunc = FUNC_TABLE[expr.toLowerCase()];
+                if (constFunc && constFunc.args === 0) {
+                    protectCallRegs(lineNum);
+                    emitAbsCall(constFunc.nsSlot, constFunc.abs, constFunc.methodIndex, lineNum);
+                    return saveResult(lineNum, constFunc.outputDR);
+                }
                 errors.push({ line: lineNum, message: `Unknown variable '${expr}' — assign it first (e.g. ${expr} = 5)` });
                 return 0;
             }
@@ -3310,7 +3316,7 @@ class CLOOMCCompiler {
             }
         }
 
-        const abacusArgMap = { add: 2, sub: 2, mul: 2, div: 2, mod: 2, abs: 1 };
+        const abacusArgMap = { add: 2, sub: 2, mul: 2, div: 2, mod: 2, abs: 1, pi: 0, e: 0, phi: 0, zero: 0, one: 0 };
 
         for (const upload of bootUploads) {
             if (!upload.methods || !upload.methods.length) continue;
@@ -3321,7 +3327,7 @@ class CLOOMCCompiler {
             for (let mi = 0; mi < upload.methods.length; mi++) {
                 const m = upload.methods[mi];
                 const key = m.name.toLowerCase();
-                const args = abacusArgMap[key] || 1;
+                const args = (abacusArgMap[key] !== undefined) ? abacusArgMap[key] : 1;
                 const entry = { abs: absName, nsSlot, methodIndex: mi, args, outputDR: 1 };
                 allMethods.push({ key, entry });
                 if (!funcTable[key] || (mathAbstractions.has(absName) && !mathAbstractions.has(funcTable[key].abs))) {
