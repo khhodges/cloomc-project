@@ -133,7 +133,13 @@ Apply lambda with n, total</pre>
 <p><strong>CALL</strong> pushes a 2-word frame (SZ=1) and performs a namespace gate swap &mdash; it re-validates capabilities and switches the execution context. This is secure but heavyweight.</p>
 <p><strong>LAMBDA</strong> pushes only a 1-word frame (SZ=0) and skips the namespace gate entirely. No capability re-validation, no context switch overhead. It is a pure functional reduction &mdash; the lightest way to re-enter your own code.</p>
 </div>
-<p>Result: <strong>10 instructions</strong>, with <strong>1 LAMBDA</strong> per iteration &mdash; same count as RecurseSum but with half the stack overhead.</p>
+<div class="sr-key-concept" style="margin-top:0.75rem">
+<div class="sr-concept-title">The Counter Insight</div>
+<p>Because every LAMBDA CR6 returns to the <strong>same address</strong> (the top of the current method), N nested calls are just N copies of the identical return. That is not a stack &mdash; it is a <strong>number</strong>.</p>
+<p>The hardware only needs a <strong>loop counter</strong>: &ldquo;how deep am I?&rdquo; When a CHANGE (context switch) occurs, that counter packs into the <strong>NIA word</strong> alongside the return PC. The entire recursive state &mdash; no matter how deep &mdash; survives a context switch in a <em>single word</em>.</p>
+<p>Compare this to CALL, where each frame carries a distinct return address and namespace gate &mdash; every frame must be saved individually.</p>
+</div>
+<p>Result: <strong>10 instructions</strong>, with <strong>1 LAMBDA</strong> per iteration &mdash; same count as RecurseSum but with half the stack overhead and a context-switch cost that is O(1) instead of O(N).</p>
 </div>
 <div class="sr-comp-side sr-comp-side-right">
 <div class="sr-comp-side-panel open">
@@ -146,10 +152,9 @@ Apply lambda with n, total</pre>
 <li><code>Lambda self with count</code></li>
 </ul>
 <p>All of these compile to <code>relambda(args)</code>, which emits a <strong>LAMBDA CR6</strong> instruction.</p>
-<div class="sr-comp-side-title" style="margin-top:0.75rem">Stack Cost Per Iteration</div>
-<p><strong>CALL:</strong> 2 words per frame &times; N iterations<br>
-<strong>LAMBDA:</strong> 1 word per frame &times; N iterations</p>
-<p>For deep recursion (large N), LAMBDA uses half the stack space.</p>
+<div class="sr-comp-side-title" style="margin-top:0.75rem">Stack vs Counter</div>
+<p><strong>CALL:</strong> 2 words per frame &times; N iterations &mdash; must save each frame on CHANGE</p>
+<p><strong>LAMBDA:</strong> return address is always the same, so N frames collapse to a counter. On CHANGE, the counter packs into the NIA word &mdash; <strong>O(1) context save</strong> regardless of depth.</p>
 </div>
 </div>
 </div>`
@@ -174,9 +179,9 @@ Apply lambda with n, total</pre>
 </ul>
 <div class="sr-key-concept">
 <div class="sr-concept-title">The Full Spectrum</div>
-<p><strong>While</strong> &rarr; Most compact code, but 2 branches per iteration (pipeline risk).<br>
-<strong>CALL</strong> &rarr; Predictable timing, full capability check, but 2 words of stack per iteration.<br>
-<strong>LAMBDA</strong> &rarr; Fastest and lightest &mdash; 1 word of stack, no namespace swap, no branch.</p>
+<p><strong>While</strong> &rarr; Most compact code, but 2 branches per iteration (pipeline stall risk, speculative execution vulnerabilities).<br>
+<strong>CALL</strong> &rarr; Predictable timing, full capability check, but 2 words of stack per iteration. Each frame must be saved individually on CHANGE &mdash; O(N) context-switch cost.<br>
+<strong>LAMBDA</strong> &rarr; Fastest and lightest &mdash; 1 word of stack, no namespace swap, no branch. Because the return address is always the same, the entire recursion depth collapses to a counter that packs into the NIA word on CHANGE &mdash; <strong>O(1) context-switch cost</strong>.</p>
 </div>
 </div>
 <div class="sr-comp-side sr-comp-side-right">
