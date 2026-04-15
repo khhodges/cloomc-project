@@ -210,17 +210,19 @@ The CLOOMC++ compiler provides two primitives for self-invocation:
 
 - **`relambda(args)`**: Emits LOAD instructions for updated arguments followed by **LAMBDA CR6**. English syntax: "Apply lambda with x, y", "Lambda repeat with n minus 1", "Lambda recurse with a, b", "Lambda self with count".
 
-#### 1.6 Security Properties
+#### 1.6 Security Properties — CALL CR6 Adds No Security Over LAMBDA CR6
 
-Self-invocation via CR6 preserves all capability security guarantees:
+A critical architectural observation: **CALL CR6 is no more secure than LAMBDA CR6 for self-invocation.** Both re-enter the same method, in the same protection domain, with the same c-list, accessing the same capabilities.
 
-- **CALL CR6** performs full namespace gate validation on each recursive call. Each frame is independently secured. The method cannot access any capability not in its own c-list.
+- **CALL CR6** performs full namespace gate re-validation on each recursive call — but the gate re-validates the **same GT**, re-splits the **same lump**, creates the **same CR14 and CR6**, and enters the **same code body**. The re-validation is redundant work that produces an identical result every time. No new capabilities are introduced. No new domain is entered. The "security" of per-iteration re-validation is illusory when the target never changes.
 
-- **LAMBDA CR6** verifies X permission before branching. No namespace swap occurs, so no new capabilities are introduced. The method operates within its existing domain.
+- **LAMBDA CR6** verifies X permission before branching — once. Since every re-entry targets the same code body with the same capabilities in the same domain, the X check on the first entry is sufficient. Subsequent idempotent re-entries execute the same verified code.
 
-- **No GT forgery**: CR6 was established by the original CALL lump split. Software cannot modify CR6's GT — only CALL and mLoad can write to capability registers. Self-invocation uses a GT that was already validated.
+- **No GT forgery in either case**: CR6 was established by the original CALL lump split. Software cannot modify CR6's GT — only CALL and mLoad can write to capability registers. Both CALL CR6 and LAMBDA CR6 use a GT that was already validated at method entry.
 
 - **Idempotent re-entry is safe**: Each re-entry executes the same code body with the same capabilities. Only data registers change (the arguments). The capability register file is untouched by LAMBDA execution — this is the Golden Rule strengthened, as disclosed in the parent application.
+
+**Conclusion**: CALL CR6 recursion is **strictly inferior** to LAMBDA CR6 recursion — identical security, but O(N) stack cost, O(N) context-switch cost, and O(N) unwind cost versus O(1) for all three with LAMBDA CR6. CALL CR6 is never the preferred choice for self-invocation. It exists in the architecture because CALL can target any CR (including CR6), but when the intent is recursion, LAMBDA CR6 dominates on every axis. The only reason to describe CALL CR6 recursion is to demonstrate the superiority of LAMBDA CR6 by contrast.
 
 ### 2. The O(1) Trifecta — Without a Counter
 
@@ -277,32 +279,33 @@ The combination of BRANCH, CALL CR6, and LAMBDA CR6 provides three distinct loop
 
 #### 3.2 Comparison
 
-| Property | While (BRANCH) | Recursive Repeat (CALL CR6) | Lambda Recursion (LAMBDA CR6) |
+| Property | While (BRANCH) | CALL CR6 (shown for contrast) | **LAMBDA CR6 (optimal)** |
 |----------|:-:|:-:|:-:|
 | Opcode | MCMP + BRANCH | CALL | LAMBDA |
 | Loop mechanism | Compare-and-branch | Self-invocation with full frame | Idempotent self-invocation |
 | Stack per iteration | 0 | 2 words (SZ=1) | 0 (no stack, no counter) |
-| Namespace gate swap | No | Yes (full re-validation) | No |
+| Namespace gate swap | No | Yes (redundant — same GT every time) | No |
 | Branch prediction | Required (misprediction risk) | Not required (target is CR6, known) | Not required (target is CR6, known) |
 | Speculative execution | Yes (Spectre/Meltdown risk) | No | No |
 | Context switch cost | O(1) | O(N) (save N frames) | O(1) (save flag + PC) |
 | Unwind cost | O(1) | O(N) (pop N frames) | O(1) (2 RETURNs always) |
 | Pipeline stall risk | Yes (misprediction on final iteration) | No | No |
-| Security audit | Requires branch analysis | Fully capability-checked per call | X permission verified once |
+| Security vs LAMBDA | Requires branch analysis | **No additional security** (same method, same domain, same c-list) | X permission verified at entry |
 | Instructions per iteration | 4+ (MCMP, BRANCH, body, BRANCH back) | 2+ (args, CALL) | 2+ (args, LAMBDA) |
 | Additional hardware | Branch predictor | Stack memory | None (existing flag + PC) |
+| Verdict | Vulnerable (Spectre/Meltdown) | **Strictly inferior to LAMBDA CR6** | **Optimal for recursion** |
 
-#### 3.3 Architectural Significance
+#### 3.3 Architectural Significance — LAMBDA CR6 Dominates
 
-The three loop styles map to three points on the security-performance spectrum:
+The three loop styles exist in the architecture, but they are not equal alternatives — they form a hierarchy where LAMBDA CR6 is the clear winner for recursive self-invocation:
 
-- **While (BRANCH)**: Familiar to imperative programmers. Most compact loop code. But inherits all of conventional computing's branch prediction problems: pipeline stalls on misprediction, speculative execution vulnerabilities (Spectre, Meltdown), non-deterministic timing.
+- **While (BRANCH)**: Familiar to imperative programmers. Most compact loop code. But inherits all of conventional computing's branch prediction problems: pipeline stalls on misprediction, speculative execution vulnerabilities (Spectre, Meltdown), non-deterministic timing. These are the exact vulnerabilities the Church Machine is designed to eliminate.
 
-- **CALL CR6 (Recursive Repeat)**: Fully capability-checked on every iteration. Namespace gate swap provides complete security re-validation. Predictable timing (no branch prediction). But O(N) stack and O(N) context switch cost.
+- **CALL CR6 (Recursive Repeat)**: Performs full namespace gate re-validation on every iteration — but this re-validation is **redundant** because CR6 always points to the same method. The gate re-checks the same GT, re-splits the same lump, and produces the same CR14 and CR6 every time. CALL CR6 adds no security over LAMBDA CR6 while imposing O(N) stack, O(N) context switch, and O(N) unwind costs. **CALL CR6 is never the preferred choice for recursion.** It is included in this comparison solely to demonstrate, by contrast, the power of LAMBDA CR6.
 
-- **LAMBDA CR6 (Lambda Recursion)**: O(1) everything — entry, context switch, exit. No branch prediction, no speculative execution, no namespace swap. **No additional hardware beyond the existing `lambda_active` flag and `lambda_pc` register.** The lightest recursion primitive possible. But no capability re-validation per iteration (relies on initial X permission check).
+- **LAMBDA CR6 (Lambda Recursion)**: O(1) everything — entry, context switch, exit. No branch prediction, no speculative execution, no namespace swap. **No additional hardware beyond the existing `lambda_active` flag and `lambda_pc` register.** Same security as CALL CR6 (same method, same domain, same capabilities) with none of the overhead. The optimal recursion primitive.
 
-The programmer (or compiler) chooses the appropriate style based on the computation's security requirements and performance constraints. The hardware supports all three through the same instruction set.
+The architectural lesson: CALL is the correct instruction for **cross-domain invocation** (entering a different abstraction with a different c-list). When the target is the same method (CR6), CALL's heavyweight machinery provides no benefit — it is LAMBDA's domain. The CALL lump split creates CR6 as a self-reference; LAMBDA CR6 is how that self-reference should be used.
 
 ### 4. Natural Language Compilation (English Front-End)
 
@@ -449,15 +452,13 @@ A recursion mechanism in a capability-based processor comprising:
 
 (a) a CALL instruction that, upon entering an abstraction, creates a code region capability register (CR14) and a capability list register (CR6) by splitting the abstraction's memory lump;
 
-(b) wherein the capability list register (CR6) holds an Inform Golden Token pointing to the abstraction's own entry point;
+(b) wherein the capability list register (CR6) holds an Inform Golden Token pointing to the abstraction's own entry point, providing a self-reference as a free consequence of the CALL lump split — no additional GT allocation, namespace lookup, or c-list modification is required;
 
-(c) wherein a CALL instruction targeting CR6 re-enters the same abstraction with full namespace gate validation, capability re-checking, and a new 2-word stack frame — implementing secure recursive self-invocation;
+(c) wherein a LAMBDA instruction targeting CR6 re-enters the same abstraction with X permission verification only, no namespace gate swap, and no stack frame push — implementing optimal recursive self-invocation with O(1) entry, O(1) context switch, and O(1) exit;
 
-(d) wherein a LAMBDA instruction targeting CR6 re-enters the same abstraction with X permission verification only, no namespace gate swap, and no stack frame push — implementing lightweight recursive self-invocation;
+(d) wherein a CALL instruction targeting CR6 also re-enters the same abstraction but with full namespace gate re-validation, a new 2-word stack frame, and O(N) cost — providing no additional security over LAMBDA CR6 because the re-validation re-checks the same GT, re-splits the same lump, and enters the same domain every time;
 
-(e) wherein the self-reference capability in CR6 is a free consequence of the CALL lump split architecture — no additional GT allocation, namespace lookup, or c-list modification is required;
-
-(f) thereby providing two recursion primitives (secure heavyweight and lightweight) from a single architectural mechanism (the CALL lump split), both using a self-reference capability that the architecture already establishes.
+(e) wherein the architectural analysis demonstrates that LAMBDA CR6 dominates CALL CR6 for self-invocation on every axis: identical security (same method, same domain, same capabilities), but O(1) cost versus O(N) — establishing LAMBDA CR6 as the optimal and preferred recursion primitive.
 
 ### Claim 2 — Idempotent LAMBDA Re-Entry for O(1) Recursion (Independent)
 
@@ -489,19 +490,19 @@ The processor of Claim 2, wherein:
 
 (d) thereby, the two-RETURN exit path is a structural consequence of the method layout — the first RETURN navigates to the second RETURN via `lambda_pc`, and the second RETURN exits the method via the CALL frame — regardless of whether recursion depth was 1, 100, or 1,000,000.
 
-### Claim 4 — Three Architectural Loop Styles with Distinct Security Profiles (Independent)
+### Claim 4 — Three Architectural Loop Styles Demonstrating LAMBDA CR6 Dominance (Independent)
 
-A processor architecture providing three distinct loop mechanisms within a single instruction set, each offering a different security-performance tradeoff:
+A processor architecture providing three distinct loop mechanisms within a single instruction set, wherein analysis demonstrates that LAMBDA CR6 is the optimal recursion primitive:
 
-(a) a **compare-and-branch loop** (While) using MCMP and BRANCH instructions, which is familiar to imperative programming but requires branch prediction, is susceptible to pipeline stalls on misprediction, and enables speculative execution vulnerabilities (Spectre, Meltdown);
+(a) a **compare-and-branch loop** (While) using MCMP and BRANCH instructions, which is familiar to imperative programming but requires branch prediction, is susceptible to pipeline stalls on misprediction, and enables speculative execution vulnerabilities (Spectre, Meltdown) — the exact class of vulnerabilities the Church Machine eliminates;
 
-(b) a **secure recursive repeat** (CALL CR6) which invokes the current method through the full CALL path with namespace gate validation on every iteration, providing deterministic timing and full capability re-checking but with O(N) stack and context-switch cost;
+(b) a **recursive repeat** (CALL CR6) which invokes the current method through the full CALL path with namespace gate re-validation on every iteration — but wherein the re-validation is **redundant** because CR6 always points to the same method, re-checking the same GT and re-splitting the same lump, adding O(N) stack and context-switch cost with no security benefit over LAMBDA CR6;
 
-(c) a **lightweight lambda recursion** (LAMBDA CR6) which invokes the current method through the idempotent LAMBDA re-entry path of Claim 2, with X permission check only, no branch prediction, no speculative execution, no namespace swap, no stack frames, and O(1) entry, context switch, and exit — requiring no hardware beyond the existing `lambda_active` flag and `lambda_pc` register;
+(c) a **lambda recursion** (LAMBDA CR6) which invokes the current method through the idempotent LAMBDA re-entry path of Claim 2, with X permission check only, no branch prediction, no speculative execution, no namespace swap, no stack frames, and O(1) entry, context switch, and exit — requiring no hardware beyond the existing `lambda_active` flag and `lambda_pc` register;
 
-(d) wherein all three mechanisms compile from the same source language to the same instruction set, produce the same computational result, and the programmer or compiler selects the appropriate style based on the computation's security requirements and performance constraints;
+(d) wherein all three mechanisms compile from the same source language to the same instruction set and produce the same computational result, but LAMBDA CR6 dominates: it provides the same security as CALL CR6 (same method, same domain, same capabilities) at O(1) cost instead of O(N), while eliminating all branch-prediction vulnerabilities that afflict While loops;
 
-(e) wherein the lightweight lambda recursion of (c) eliminates all branch-prediction-related vulnerabilities (Spectre, Meltdown, pipeline stalls) while simultaneously achieving the lowest resource cost of the three mechanisms — requiring zero additional hardware.
+(e) wherein LAMBDA CR6 requires **zero additional hardware** — the existing `lambda_active` flag and `lambda_pc` register, already present for single-level LAMBDA in the parent application, are the complete recursion mechanism. CALL CR6 recursion exists only as an architectural consequence (CALL can target any CR) and serves as a foil demonstrating the power of LAMBDA CR6.
 
 ### Claim 5 — Natural Language Compilation to Capability-Secured Instructions (Independent)
 
@@ -606,10 +607,10 @@ The idempotent re-entry mechanism is architecturally invisible to the instructio
 └─────────────────────────────────────────┘
 ```
 
-### Figure 2: Three Loop Styles — Hardware Comparison
+### Figure 2: Three Loop Styles — LAMBDA CR6 Dominates
 
 ```
-While (BRANCH)           CALL CR6 (Recursive)      LAMBDA CR6 (Idempotent)
+While (BRANCH)           CALL CR6 (for contrast)   LAMBDA CR6 (OPTIMAL)
 ────────────────         ────────────────────       ────────────────────────
 MCMP + BRANCH ←──┐      CALL CR6 ────────┐        LAMBDA CR6 ──────────┐
   body            │        body           │          body                │
@@ -624,6 +625,8 @@ Pipeline: stall risk     Pipeline: deterministic     Pipeline: deterministic
 Unwind: O(1)             Unwind: O(N)                Unwind: O(1) — always 2
 Change: O(1)             Change: O(N)                Change: O(1)
 New HW: predictor        New HW: stack memory        New HW: NONE
+Security: vulnerable     Security: SAME AS LAMBDA    Security: X perm at entry
+Verdict: Spectre risk    Verdict: STRICTLY INFERIOR   Verdict: OPTIMAL
 ```
 
 ### Figure 3: Why No Counter — Software Drives, Hardware Follows
@@ -647,4 +650,4 @@ Software counts.                Hardware doesn't need to.
 
 ## ABSTRACT
 
-A capability-based processor architecture with three innovations for recursive computation. First, self-invocation via the capability list register (CR6), wherein the CALL instruction's lump split naturally establishes a self-reference that CALL CR6 and LAMBDA CR6 use for recursion — no additional GT allocation or namespace lookup required. Second, idempotent LAMBDA re-entry, wherein LAMBDA CR6 is permitted to re-execute while `lambda_active` is already set because the return address is invariant — the same value is overwritten with the same value. The software's own recursion argument drives the countdown; the hardware's existing 1-bit flag and PC register handle exit: the base-case RETURN clears the flag and jumps to the instruction after LAMBDA CR6, where a second RETURN pops the CALL frame. Two RETURNs total, regardless of recursion depth. No hardware counter, no stack frames, no additional registers. Third, three architectural loop styles — While (BRANCH), Recursive Repeat (CALL CR6), and Lambda Recursion (LAMBDA CR6) — offering distinct security-performance tradeoffs within the same instruction set, with LAMBDA CR6 requiring zero additional hardware while eliminating branch prediction, speculative execution, and all associated vulnerabilities. The architecture is extended with a natural language (English) front-end for the CLOOMC++ compiler, enabling all three loop styles through plain English sentences. Pet-name mathematical constants (Pi, E, Phi) are accessed as Abstract Golden Tokens through the capability system.
+A capability-based processor architecture demonstrating that LAMBDA CR6 is the optimal recursion primitive — superior to both conventional branch loops and CALL-based recursion. The CALL instruction's lump split naturally establishes a self-reference in the capability list register (CR6). LAMBDA CR6 exploits this self-reference through idempotent re-entry: LAMBDA CR6 is permitted to re-execute while `lambda_active` is already set because the return address is invariant — the same value overwrites the same register. The software's own recursion argument drives the countdown; the hardware's existing 1-bit flag and PC register handle exit: the base-case RETURN clears the flag and jumps to the instruction after LAMBDA CR6, where a second RETURN pops the CALL frame. Two RETURNs total, regardless of recursion depth. No hardware counter, no stack frames, no additional registers. CALL CR6 also re-enters the same method but with full namespace gate re-validation — which is redundant because the gate re-checks the same GT and re-splits the same lump every time, adding O(N) cost with no security benefit. LAMBDA CR6 dominates: identical security (same method, same domain, same capabilities), O(1) cost versus O(N), zero additional hardware, and elimination of all branch-prediction vulnerabilities (Spectre, Meltdown, pipeline stalls). The architecture is extended with a natural language (English) front-end for the CLOOMC++ compiler. Pet-name mathematical constants (Pi, E, Phi) are accessed as Abstract Golden Tokens through the capability system.
