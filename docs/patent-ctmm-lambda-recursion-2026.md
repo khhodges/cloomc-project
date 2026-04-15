@@ -1,6 +1,6 @@
-# CONTINUATION-IN-PART: Lambda Recursion Counter and Self-Invocation Architecture
+# CONTINUATION-IN-PART: Lambda Recursion and Self-Invocation Architecture
 
-## Church-Turing Meta-Machine: O(1) Lambda Recursion Through Counter-Based Stack Elimination, Self-Invocation via CR6, and Multi-Paradigm Natural Language Compilation
+## Church-Turing Meta-Machine: O(1) Lambda Recursion Through Self-Invocation via CR6, Idempotent LAMBDA Re-Entry, and Multi-Paradigm Natural Language Compilation
 
 ---
 
@@ -22,7 +22,7 @@
 
 ## TITLE OF THE INVENTION
 
-O(1) Lambda Recursion Through Counter-Based Stack Elimination and Self-Invocation via Capability List Register in a Capability-Based Processor with Natural Language Compilation
+O(1) Lambda Recursion Through Idempotent Self-Invocation via Capability List Register in a Capability-Based Processor with Natural Language Compilation
 
 ---
 
@@ -34,7 +34,7 @@ The present application extends those disclosures with five innovations:
 
 1. **Self-invocation via CR6** — A recursion mechanism where CALL CR6 and LAMBDA CR6 re-enter the current method using the capability list register that the CALL lump split already established, providing zero-cost self-reference without additional GT allocation or namespace lookup.
 
-2. **The Lambda Recursion Counter** — A hardware counter that replaces N identical LAMBDA stack frames with a single register, achieving O(1) entry (counter increment), O(1) context switch (counter packs into the NIA word), and O(1) exit (counter zeroed in one cycle, one RETURN replaces N).
+2. **Idempotent LAMBDA re-entry** — A refinement of the parent application's non-nestable LAMBDA rule, wherein LAMBDA CR6 is permitted to re-execute while `lambda_active` is already set, because the return address is invariant (the same value is overwritten with the same value). No hardware counter is needed — the software's own recursion argument (e.g., `n` counting down to 0) drives the recursion, and the existing 1-bit `lambda_active` flag plus `lambda_pc` register provide O(1) exit: the base-case RETURN clears the flag and jumps to the instruction after LAMBDA CR6, where a second RETURN pops the CALL frame. Two RETURNs total, regardless of depth.
 
 3. **Three architectural loop styles** — While loops (BRANCH), Recursive Repeat (CALL CR6), and Lambda Recursion (LAMBDA CR6) as distinct hardware mechanisms offering different security, performance, and resource tradeoff profiles, all compilable from the same source language.
 
@@ -46,7 +46,7 @@ The present application extends those disclosures with five innovations:
 
 ## FIELD OF THE INVENTION
 
-The present invention relates to recursion optimization in a capability-based processor, wherein the architectural properties of the LAMBDA instruction — specifically, the invariance of the return address during self-invocation — enable a hardware counter to replace an arbitrarily deep stack of identical return frames, achieving constant-time recursion entry, context switch, and exit. The invention further relates to a self-invocation mechanism using the capability list register (CR6) and to natural language compilation targeting the capability-secured instruction set.
+The present invention relates to recursion optimization in a capability-based processor, wherein the architectural properties of the LAMBDA instruction — specifically, the invariance of the return address during self-invocation — enable idempotent re-entry without additional hardware state. The software's own recursion argument drives the countdown; the hardware's existing `lambda_active` flag and `lambda_pc` register handle the O(1) exit path. No hardware counter, no stack frames, and no additional registers are required. The invention further relates to a self-invocation mechanism using the capability list register (CR6) and to natural language compilation targeting the capability-secured instruction set.
 
 ---
 
@@ -68,13 +68,20 @@ The parent application describes LAMBDA as non-nestable, with controlled nesting
 
 ### The Discovery: Return Address Invariance
 
-The present invention recognizes that when a method invokes itself via CR6 using LAMBDA, every recursive call returns to the **same address** — the instruction immediately after the LAMBDA CR6 instruction, which is always the top of the current method. This invariance means N nested LAMBDA frames are not N distinct return addresses but N copies of the identical address — which is a **number**, not a stack.
+The present invention recognizes that when a method invokes itself via CR6 using LAMBDA, every recursive call returns to the **same address** — the instruction immediately after the LAMBDA CR6 instruction. This invariance means that re-executing LAMBDA CR6 while `lambda_active` is already set is **idempotent**: it overwrites `lambda_pc` with the same value it already holds. The non-nestable FAULT is unnecessary for self-invocation because no new return context is created — the same return address is being written again.
 
-This observation enables three optimizations that no prior architecture achieves:
+### The Key Insight: The Software Already Counts
 
-1. The stack can be replaced by a counter register
-2. Context switch saves one word instead of N frames
-3. Return from arbitrarily deep recursion requires one RETURN instruction instead of N
+The recursion depth is not hidden from the software — it **is** the software. The method's own argument (e.g., `n` in `Sum(n)`) counts down to zero. The software determines when to stop (the base case). The hardware does not need to independently track depth because the software already does. The hardware only needs to know one thing: "am I in a LAMBDA body?" — which is the existing 1-bit `lambda_active` flag.
+
+This insight eliminates the need for any hardware counter:
+
+1. The software counter (`n`) drives the recursion
+2. The base case (`n == 0`) triggers RETURN
+3. RETURN sees `lambda_active = 1`, restores PC from `lambda_pc`, clears the flag
+4. The restored PC points to the instruction after LAMBDA CR6, which is RETURN
+5. This second RETURN sees `lambda_active = 0`, pops the CALL frame
+6. **Two RETURNs. Always two. Regardless of recursion depth.**
 
 ### The Self-Invocation Discovery
 
@@ -111,18 +118,91 @@ Step 6: Method body executes with fresh CR14/CR6 (same values, new frame)
 Step 7: RETURN pops frame, restores caller's CR14/CR6, validates via mLoad
 ```
 
-**LAMBDA CR6** (Lambda Recursion):
+**LAMBDA CR6** (Lambda Recursion — Idempotent Re-Entry):
 ```
 Step 1: Read CR6 — Inform GT with X permission (code body in same domain)
 Step 2: LAMBDA verifies X permission on CR6
-Step 3: Save return address (PC+4) to LAMBDA_PC machine status register
-Step 4: Set LAMBDA_active flag
-Step 5: Branch to code entry point referenced by CR6
-Step 6: Method body executes (same CR14, same CR6 — no namespace swap)
-Step 7: RETURN detects LAMBDA_active, restores PC from LAMBDA_PC, clears flag
+Step 3: If lambda_active == 0:
+          Save return address (PC+4) to lambda_pc
+          Set lambda_active = 1
+        If lambda_active == 1:
+          Overwrite lambda_pc with PC+4 (same value — idempotent)
+Step 4: Branch to code entry point referenced by CR6
+Step 5: Method body executes (same CR14, same CR6 — no namespace swap)
+Step 6: On base case RETURN:
+          lambda_active = 1 → PC ← lambda_pc, clear lambda_active
+          Falls to instruction after LAMBDA CR6
+Step 7: Second RETURN:
+          lambda_active = 0 → real RETURN, pop CALL frame
 ```
 
-#### 1.2 Compiler Primitives
+#### 1.2 The Idempotent Re-Entry Rule
+
+The parent application's non-nestable rule states: if `lambda_active` is set and a LAMBDA instruction executes, the hardware generates a FAULT. The present invention refines this rule with a **self-invocation exception**:
+
+**Refined Rule**: If `lambda_active` is set and LAMBDA CR6 executes (self-invocation), the hardware permits re-entry because the return address is invariant — `lambda_pc` is overwritten with the same value it already holds. This is not nesting (no new return context is created); it is re-entry to the same body with updated data register arguments.
+
+**The FAULT is preserved** for LAMBDA to a different target (different CR, different return address) while `lambda_active` is set. The distinction is:
+- LAMBDA CR6 while active → **permit** (idempotent, same return address)
+- LAMBDA CRn (n ≠ 6) while active → **FAULT** (different return address, true nesting)
+
+This requires no new hardware — it is a refinement of the existing FAULT condition logic, gating on whether the target CR is CR6.
+
+#### 1.3 Traced Execution: LambdaSum(3, 0)
+
+```
+CALL enters LambdaSum → push CALL frame, lump split creates CR14 + CR6
+  lambda_active = 0
+
+Level 0: DR_n=3, DR_total=0
+  n≠0, skip base case
+  total = 0+3 = 3, n = 3-1 = 2
+  LAMBDA CR6: lambda_active was 0 → set lambda_active=1, lambda_pc=addr_after_lambda
+  Branch to method entry
+
+Level 1: DR_n=2, DR_total=3
+  n≠0, skip base case
+  total = 3+2 = 5, n = 2-1 = 1
+  LAMBDA CR6: lambda_active already 1 → overwrite lambda_pc with same value (idempotent)
+  Branch to method entry
+
+Level 2: DR_n=1, DR_total=5
+  n≠0, skip base case
+  total = 5+1 = 6, n = 1-1 = 0
+  LAMBDA CR6: lambda_active already 1 → idempotent
+  Branch to method entry
+
+Level 3: DR_n=0, DR_total=6
+  n==0! Base case.
+  RETURN #1: lambda_active=1 → PC ← lambda_pc, clear lambda_active
+    DR_total=6 (correct answer!)
+    Now at addr_after_lambda
+
+  RETURN #2: lambda_active=0 → real RETURN
+    Pop CALL frame from initial entry
+    Back to caller with DR_total=6 ✓
+
+Total: 2 RETURNs for depth 3. Same 2 RETURNs for depth 3,000,000.
+No counter. No stack frames. No unwinding.
+```
+
+#### 1.4 Why No Hardware Counter Is Needed
+
+The initial design proposed a 16-bit hardware counter (`lambda_depth_reg`) to track recursion depth. Analysis reveals this counter is **unnecessary**:
+
+1. **The software already counts**: The method's own argument (`n`) is the recursion counter. It counts down to zero. The hardware does not need to independently replicate this count.
+
+2. **The counter would be discarded**: When the base-case RETURN fires, the proposed counter would be zeroed and thrown away. It served no purpose during execution — the software determined when to stop.
+
+3. **The existing flag is sufficient**: The 1-bit `lambda_active` flag already tells RETURN whether to take the LAMBDA fast path. No additional depth information is needed because the fast path behavior is the same regardless of depth: restore PC from `lambda_pc`, clear flag, done.
+
+4. **Two RETURNs is already O(1)**: The base-case RETURN clears the flag (O(1)), the follow-on RETURN pops the CALL frame (O(1)). Total: O(1) regardless of depth. A counter cannot improve on this.
+
+5. **Context switch is already O(1)**: CHANGE saves `lambda_active` (1 bit) and `lambda_pc` (already packed in the NIA word) — two fixed-size values regardless of recursion depth. No counter needed.
+
+The simpler design — just relaxing the FAULT rule for CR6 self-invocation — achieves the same O(1) trifecta with zero additional hardware.
+
+#### 1.5 Compiler Primitives
 
 The CLOOMC++ compiler provides two primitives for self-invocation:
 
@@ -130,7 +210,7 @@ The CLOOMC++ compiler provides two primitives for self-invocation:
 
 - **`relambda(args)`**: Emits LOAD instructions for updated arguments followed by **LAMBDA CR6**. English syntax: "Apply lambda with x, y", "Lambda repeat with n minus 1", "Lambda recurse with a, b", "Lambda self with count".
 
-#### 1.3 Security Properties
+#### 1.6 Security Properties
 
 Self-invocation via CR6 preserves all capability security guarantees:
 
@@ -140,81 +220,54 @@ Self-invocation via CR6 preserves all capability security guarantees:
 
 - **No GT forgery**: CR6 was established by the original CALL lump split. Software cannot modify CR6's GT — only CALL and mLoad can write to capability registers. Self-invocation uses a GT that was already validated.
 
-### 2. The Lambda Recursion Counter
+- **Idempotent re-entry is safe**: Each re-entry executes the same code body with the same capabilities. Only data registers change (the arguments). The capability register file is untouched by LAMBDA execution — this is the Golden Rule strengthened, as disclosed in the parent application.
 
-#### 2.1 The Observation
+### 2. The O(1) Trifecta — Without a Counter
 
-When LAMBDA CR6 is used for recursion, each recursive call stores the return address PC+4 in the LAMBDA_PC machine status register. But because every LAMBDA CR6 within a given method is the same instruction, PC+4 is the same value for every recursive call. N nested LAMBDA CR6 calls produce N copies of the identical return address.
+#### 2.1 O(1) Entry
 
-This is not a stack — it is a number. The hardware only needs to know: "how deep am I?"
+Each LAMBDA CR6 re-entry requires:
+- X permission check on CR6 (combinational — no memory access)
+- Overwrite `lambda_pc` with PC+4 (same value — idempotent write to existing register)
+- Branch to method entry
 
-#### 2.2 Hardware Implementation
+No stack frame push. No counter increment. No memory access. One clock cycle beyond the normal LAMBDA path.
 
-Replace the existing 1-bit `lambda_active` flag and 32-bit `lambda_pc` register with:
+#### 2.2 O(1) Context Switch
 
-```
-lambda_depth_reg  : Signal(16)  — recursion counter, 0 = inactive
-lambda_pc_reg     : Signal(32)  — return address (invariant during recursion)
-```
+On CHANGE (thread context switch), the hardware saves:
+- `lambda_active` (1 bit) — already packed in the NIA word's indicator bits
+- `lambda_pc` (32 bits) — already saved as part of machine status
 
-**On LAMBDA CR6 execute**:
-```
-lambda_depth_reg <= lambda_depth_reg + 1
-lambda_pc_reg <= PC + 4          (invariant — same value each time)
-```
+These are two fixed-size values regardless of recursion depth. Whether the method has recursed 1 time or 1,000,000 times, CHANGE saves the same two values. Compare with CALL CR6 recursive repeat, where each of N CALL frames must be individually saved.
 
-**On RETURN with lambda_depth > 0**:
-```
-lambda_depth_reg <= 0            (zero in one cycle, not decrement-by-one)
-NIA <= lambda_pc_reg             (return to the single return address)
-Proceed to real RETURN           (pop the CALL frame from before recursion)
-```
+#### 2.3 O(1) Exit
 
-**On CALL during active LAMBDA recursion**:
-```
-lambda_depth_reg <= 0            (clear counter — CALL starts fresh domain)
-Save lambda_depth and lambda_pc to CALL frame
-```
+The base case triggers two RETURNs:
 
-**On CHANGE (context switch)**:
-```
-Save lambda_depth_reg and lambda_pc_reg to NIA word in thread context
-(Total: one word for counter + one word for PC = 2 words regardless of depth)
-```
+**RETURN #1** (from base case):
+- `lambda_active = 1` → restore PC from `lambda_pc`, clear `lambda_active`
+- This is the existing LAMBDA fast path from the parent application
+- One cycle, no stack access
 
-#### 2.3 The O(1) Trifecta
+**RETURN #2** (from after-LAMBDA instruction):
+- `lambda_active = 0` → real RETURN, pop CALL frame
+- This is the normal CALL RETURN path
+- Standard frame pop
 
-The counter achieves three constant-time operations that no prior architecture provides for recursive invocation:
+**Total: exactly 2 RETURN instructions regardless of recursion depth.**
 
-**O(1) Entry**: Each recursive call increments a counter register instead of pushing a stack frame. One clock cycle per recursion level, no memory access.
+For recursion depth N, this eliminates N-1 RETURN instructions compared to an architecture that unwinds iteratively. For N = 1,000,000, this saves 999,999 RETURN cycles.
 
-**O(1) Context Switch**: On CHANGE, the counter (16 bits) packs into the NIA word alongside the return PC. The entire recursive state — regardless of depth — is saved in a fixed number of words. Compare: CALL frames require saving each of N 2-word frames individually.
+#### 2.4 The Counter as Optional Enhancement
 
-**O(1) Exit**: When the recursion base case executes RETURN, the hardware zeros the counter in one cycle and falls through to the real RETURN (the CALL frame from before the recursion started). One RETURN instruction replaces N. For a recursion depth of 1000, this eliminates 999 RETURN instructions.
+While the core mechanism requires no hardware counter, an optional counter register (`lambda_depth_reg`, 16 bits) could serve diagnostic purposes:
 
-#### 2.4 Correctness Argument
+- **Performance monitoring**: Query recursion depth without walking the stack
+- **Safety limit**: Generate a FAULT on counter overflow (e.g., depth > 65535) to catch runaway recursion before stack exhaustion on the CALL side
+- **Debugging**: Hardware watchpoint on counter value
 
-The optimization is correct because of a structural invariant:
-
-- Every LAMBDA CR6 within a method body branches to the same target (the method's own code entry)
-- Every LAMBDA CR6 saves the same return address (the instruction after the LAMBDA CR6 instruction)
-- The return address is invariant across recursion levels
-- Therefore, N return addresses are redundant — a counter is semantically equivalent
-
-This invariant does not hold for:
-- LAMBDA to different targets (each has a different code entry and return address)
-- CALL CR6 (each CALL pushes a distinct frame with namespace gate state)
-- Mixed LAMBDA/CALL sequences
-
-The counter optimization applies exclusively to contiguous LAMBDA CR6 self-invocation without intervening CALL or LAMBDA-to-other-target instructions.
-
-#### 2.5 Resource Cost
-
-- 16-bit counter register: ~16 flip-flops + 16 LUTs (increment/zero logic)
-- NIA word repartition: combinational logic only
-- Total: < 50 LUTs, < 20 flip-flops
-- On the Ti60 F225 (~112K logic elements): negligible (< 0.05%)
-- On the Tang Nano 20K (~20.8K LUTs): feasible (< 0.25%)
+These are enhancement features, not requirements for correctness or O(1) performance. The base mechanism — idempotent LAMBDA re-entry with the existing flag and PC register — is complete without the counter.
 
 ### 3. Three Architectural Loop Styles
 
@@ -227,16 +280,17 @@ The combination of BRANCH, CALL CR6, and LAMBDA CR6 provides three distinct loop
 | Property | While (BRANCH) | Recursive Repeat (CALL CR6) | Lambda Recursion (LAMBDA CR6) |
 |----------|:-:|:-:|:-:|
 | Opcode | MCMP + BRANCH | CALL | LAMBDA |
-| Loop mechanism | Compare-and-branch | Self-invocation with full frame | Self-invocation with counter |
-| Stack per iteration | 0 | 2 words (SZ=1) | 0 (counter increment) |
+| Loop mechanism | Compare-and-branch | Self-invocation with full frame | Idempotent self-invocation |
+| Stack per iteration | 0 | 2 words (SZ=1) | 0 (no stack, no counter) |
 | Namespace gate swap | No | Yes (full re-validation) | No |
 | Branch prediction | Required (misprediction risk) | Not required (target is CR6, known) | Not required (target is CR6, known) |
 | Speculative execution | Yes (Spectre/Meltdown risk) | No | No |
-| Context switch cost | O(1) | O(N) (save N frames) | O(1) (save counter) |
-| Unwind cost | O(1) | O(N) (pop N frames) | O(1) (zero counter) |
+| Context switch cost | O(1) | O(N) (save N frames) | O(1) (save flag + PC) |
+| Unwind cost | O(1) | O(N) (pop N frames) | O(1) (2 RETURNs always) |
 | Pipeline stall risk | Yes (misprediction on final iteration) | No | No |
 | Security audit | Requires branch analysis | Fully capability-checked per call | X permission verified once |
 | Instructions per iteration | 4+ (MCMP, BRANCH, body, BRANCH back) | 2+ (args, CALL) | 2+ (args, LAMBDA) |
+| Additional hardware | Branch predictor | Stack memory | None (existing flag + PC) |
 
 #### 3.3 Architectural Significance
 
@@ -246,7 +300,7 @@ The three loop styles map to three points on the security-performance spectrum:
 
 - **CALL CR6 (Recursive Repeat)**: Fully capability-checked on every iteration. Namespace gate swap provides complete security re-validation. Predictable timing (no branch prediction). But O(N) stack and O(N) context switch cost.
 
-- **LAMBDA CR6 (Lambda Recursion)**: O(1) everything — entry, context switch, exit. No branch prediction, no speculative execution, no namespace swap. The lightest recursion primitive possible. But no capability re-validation per iteration (relies on initial X permission check).
+- **LAMBDA CR6 (Lambda Recursion)**: O(1) everything — entry, context switch, exit. No branch prediction, no speculative execution, no namespace swap. **No additional hardware beyond the existing `lambda_active` flag and `lambda_pc` register.** The lightest recursion primitive possible. But no capability re-validation per iteration (relies on initial X permission check).
 
 The programmer (or compiler) chooses the appropriate style based on the computation's security requirements and performance constraints. The hardware supports all three through the same instruction set.
 
@@ -368,13 +422,18 @@ Set total to total plus n
 Set n to n minus 1
 Apply lambda with n, total
 ```
-Compiles to: MCMP, BRANCH.NE, RETURN, IADD, ISUB, LOAD, LOAD, LAMBDA CR6 — 1 LAMBDA per iteration, 0 branches for looping, half the stack overhead of RecurseSum.
+Compiles to: MCMP, BRANCH.NE, RETURN, IADD, ISUB, LOAD, LOAD, LAMBDA CR6 — 1 LAMBDA per iteration, 0 branches for looping, **zero stack overhead** (idempotent re-entry, no frames pushed).
 
 All three methods produce Sum(5) = 15. The compiled code has been verified in the Church Machine simulator.
 
-### Counter Optimization Design
+### Idempotent Re-Entry Verification
 
-The LAMBDA recursion counter optimization is documented in HARDWARE-DEVIATIONS.md as D-9, with implementation strategy: prototype on Ti60 F225, validate CHANGE-under-interrupt, port to Tang Nano 20K after proven. The Amaranth HDL changes are specified (core.py, ret.py, change.py, lambda_unit.py).
+The traced execution of LambdaSum(3, 0) demonstrates:
+- 3 levels of LAMBDA CR6 re-entry with `lambda_active` already set
+- Each re-entry overwrites `lambda_pc` with the same value (idempotent)
+- Base case triggers 2 RETURNs: flag-clear + CALL-frame-pop
+- Result: DR_total = 6 = 1+2+3 ✓
+- Total RETURNs: 2 (same for depth 3, 30, 300, or 3,000,000)
 
 ### English Front-End Proof
 
@@ -394,37 +453,41 @@ A recursion mechanism in a capability-based processor comprising:
 
 (c) wherein a CALL instruction targeting CR6 re-enters the same abstraction with full namespace gate validation, capability re-checking, and a new 2-word stack frame — implementing secure recursive self-invocation;
 
-(d) wherein a LAMBDA instruction targeting CR6 re-enters the same abstraction with X permission verification only, no namespace gate swap, and no stack frame push in the common case — implementing lightweight recursive self-invocation;
+(d) wherein a LAMBDA instruction targeting CR6 re-enters the same abstraction with X permission verification only, no namespace gate swap, and no stack frame push — implementing lightweight recursive self-invocation;
 
 (e) wherein the self-reference capability in CR6 is a free consequence of the CALL lump split architecture — no additional GT allocation, namespace lookup, or c-list modification is required;
 
 (f) thereby providing two recursion primitives (secure heavyweight and lightweight) from a single architectural mechanism (the CALL lump split), both using a self-reference capability that the architecture already establishes.
 
-### Claim 2 — Lambda Recursion Counter for O(1) Stack Elimination (Independent)
+### Claim 2 — Idempotent LAMBDA Re-Entry for O(1) Recursion (Independent)
 
-A hardware optimization for recursive self-invocation in a capability-based processor, comprising:
+A hardware mechanism for recursive self-invocation in a capability-based processor, comprising:
 
-(a) a counter register (lambda_depth) in the processor pipeline that replaces the per-frame stack push for LAMBDA self-invocation via CR6;
+(a) a LAMBDA instruction that, when targeting the capability list register (CR6) while the `lambda_active` flag is already set, is permitted to re-execute without generating a FAULT — because the return address written to `lambda_pc` is invariant (always PC+4 of the same LAMBDA CR6 instruction), making the re-entry idempotent;
 
-(b) wherein each LAMBDA CR6 execution increments the counter register instead of pushing a stack frame, because the return address is invariant (always PC+4 of the LAMBDA CR6 instruction) across all recursion levels;
+(b) wherein the method's own recursion argument (e.g., a counter `n` counting down to zero in data registers) drives the recursion — the hardware does not independently track recursion depth;
 
-(c) wherein RETURN, upon detecting lambda_depth > 0, zeros the counter in a single clock cycle and proceeds to the real RETURN path (popping the CALL frame from before the recursion started), thereby replacing N iterative RETURN instructions with one;
+(c) wherein the base-case RETURN instruction, upon detecting `lambda_active = 1`, restores PC from `lambda_pc` (the instruction after LAMBDA CR6) and clears `lambda_active` — in a single cycle with no stack access;
 
-(d) wherein CHANGE (context switch) saves the counter register and the invariant return address as a fixed-size entry in the thread context, regardless of recursion depth — achieving O(1) context-switch cost instead of O(N);
+(d) wherein a second RETURN instruction, now finding `lambda_active = 0`, performs the real RETURN by popping the CALL frame from the initial method entry;
 
-(e) wherein the counter is zeroed when a CALL instruction is executed during active LAMBDA recursion, preserving the invariant that CALL starts a fresh protection domain;
+(e) wherein exactly two RETURN instructions execute regardless of recursion depth — achieving O(1) exit for arbitrarily deep recursion with no hardware counter, no stack unwinding, and no iterative frame popping;
 
-(f) thereby achieving constant-time (O(1)) recursion entry, constant-time context switch, and constant-time exit for arbitrarily deep LAMBDA self-invocation — a property no prior processor architecture provides for recursive computation.
+(f) wherein the FAULT is preserved for LAMBDA to a different target (different CR, different return address) while `lambda_active` is set — the idempotent exception applies exclusively to CR6 self-invocation;
 
-### Claim 3 — O(1) Recursive Unwind via Counter Zeroing (Dependent on Claim 2)
+(g) thereby achieving O(1) recursion entry (one idempotent register write), O(1) context switch (save `lambda_active` flag + `lambda_pc` — two fixed-size values regardless of depth), and O(1) exit (two RETURNs always) — using only the existing `lambda_active` flag and `lambda_pc` register with no additional hardware.
+
+### Claim 3 — Two-RETURN Exit Path (Dependent on Claim 2)
 
 The processor of Claim 2, wherein:
 
-(a) in the absence of the counter, RETURN from the base case of a recursive computation takes the LAMBDA fast path (restore PC from lambda_pc, clear lambda_active flag), which re-enters the caller's RETURN instruction, repeating for each recursion level — requiring N RETURN executions for recursion depth N;
+(a) the code structure of a LAMBDA CR6 recursive method places the LAMBDA CR6 instruction as the final executable statement before the method's trailing RETURN instruction;
 
-(b) with the counter, the base-case RETURN detects lambda_depth > 0, zeros the counter in one cycle, and falls through directly to the real RETURN that pops the CALL frame — requiring exactly one RETURN execution regardless of recursion depth;
+(b) the base-case RETURN (#1) clears `lambda_active` and jumps to the instruction after LAMBDA CR6, which is the method's trailing RETURN;
 
-(c) thereby eliminating O(N) unwind time and replacing it with O(1) unwind time, where the performance improvement is proportional to recursion depth.
+(c) the trailing RETURN (#2) finds `lambda_active = 0` and pops the CALL frame from the initial method entry;
+
+(d) thereby, the two-RETURN exit path is a structural consequence of the method layout — the first RETURN navigates to the second RETURN via `lambda_pc`, and the second RETURN exits the method via the CALL frame — regardless of whether recursion depth was 1, 100, or 1,000,000.
 
 ### Claim 4 — Three Architectural Loop Styles with Distinct Security Profiles (Independent)
 
@@ -434,11 +497,11 @@ A processor architecture providing three distinct loop mechanisms within a singl
 
 (b) a **secure recursive repeat** (CALL CR6) which invokes the current method through the full CALL path with namespace gate validation on every iteration, providing deterministic timing and full capability re-checking but with O(N) stack and context-switch cost;
 
-(c) a **lightweight lambda recursion** (LAMBDA CR6) which invokes the current method through the LAMBDA path with X permission check only, no branch prediction, no speculative execution, no namespace swap, and with the counter optimization of Claim 2 achieving O(1) stack, O(1) context switch, and O(1) exit;
+(c) a **lightweight lambda recursion** (LAMBDA CR6) which invokes the current method through the idempotent LAMBDA re-entry path of Claim 2, with X permission check only, no branch prediction, no speculative execution, no namespace swap, no stack frames, and O(1) entry, context switch, and exit — requiring no hardware beyond the existing `lambda_active` flag and `lambda_pc` register;
 
 (d) wherein all three mechanisms compile from the same source language to the same instruction set, produce the same computational result, and the programmer or compiler selects the appropriate style based on the computation's security requirements and performance constraints;
 
-(e) wherein the lightweight lambda recursion of (c) eliminates all branch-prediction-related vulnerabilities (Spectre, Meltdown, pipeline stalls) while simultaneously achieving the lowest resource cost of the three mechanisms.
+(e) wherein the lightweight lambda recursion of (c) eliminates all branch-prediction-related vulnerabilities (Spectre, Meltdown, pipeline stalls) while simultaneously achieving the lowest resource cost of the three mechanisms — requiring zero additional hardware.
 
 ### Claim 5 — Natural Language Compilation to Capability-Secured Instructions (Independent)
 
@@ -454,19 +517,19 @@ A compilation method for a capability-secured processor, comprising:
 
 (e) thereby extending the universal computation target property of the Church Machine instruction set to three programming paradigms: imperative, functional, and natural language.
 
-### Claim 6 — Invariant Return Address as Counter Precondition (Dependent on Claim 2)
+### Claim 6 — Invariant Return Address as Idempotent Re-Entry Precondition (Dependent on Claim 2)
 
-The processor of Claim 2, wherein the correctness of the counter optimization depends on a structural invariant:
+The processor of Claim 2, wherein the correctness of idempotent re-entry depends on a structural invariant:
 
 (a) every LAMBDA CR6 instruction within a given method body branches to the same target (the method's own code entry point, as established by CR6);
 
-(b) every LAMBDA CR6 instruction saves the same return address (the instruction immediately following the LAMBDA CR6 instruction);
+(b) every LAMBDA CR6 instruction writes the same return address to `lambda_pc` (the instruction immediately following the LAMBDA CR6 instruction);
 
-(c) the return address is invariant across all recursion levels — it does not change with recursion depth;
+(c) the return address is invariant across all recursion levels — it does not change with recursion depth — making each re-entry write idempotent;
 
-(d) therefore N return frames are provably redundant and a counter is semantically equivalent to a stack of N identical return addresses;
+(d) therefore re-entry does not create new return context — the `lambda_pc` register holds the same value before and after the write — and no stack, counter, or additional state is needed;
 
-(e) this invariant holds exclusively for contiguous LAMBDA CR6 self-invocation; the counter is invalidated (zeroed) when a CALL instruction or a LAMBDA to a different target intervenes, preserving correctness for mixed invocation sequences.
+(e) this invariant holds exclusively for LAMBDA CR6 self-invocation; LAMBDA to a different target writes a different return address and would corrupt the existing `lambda_pc`, which is why the non-nestable FAULT is preserved for non-CR6 targets.
 
 ### Claim 7 — Pet-Name Mathematical Constants via Abstract GT (Dependent on Parent I/O Patent)
 
@@ -488,15 +551,15 @@ A method of representing mathematical constants in a capability-based processor,
 
 ### Recursion in Prior Architectures
 
-| System | Self-Invocation | Counter Optimization | O(1) Context Switch | O(1) Unwind | Three Loop Styles | Natural Language |
-|--------|:---:|:---:|:---:|:---:|:---:|:---:|
-| x86/ARM | Computed branch | No | No | No | No | No |
-| MIPS | JAL/JR | No | No | No | No | No |
-| LISP Machines | Tail-call optimization | No | No | No | No | No |
-| Reduceron | Graph reduction | No | No | No | No | No |
-| CHERI | Same as base ISA | No | No | No | No | No |
-| CTMM (parent) | CALL only (non-nestable LAMBDA) | No | No | No | No | No |
-| **CTMM (this CIP)** | **CALL CR6 + LAMBDA CR6** | **Yes** | **Yes** | **Yes** | **Yes** | **Yes** |
+| System | Self-Invocation | Idempotent Re-Entry | O(1) Context Switch | O(1) Exit | Three Loop Styles | Natural Language | Additional Hardware |
+|--------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| x86/ARM | Computed branch | No | No | No | No | No | Branch predictor |
+| MIPS | JAL/JR | No | No | No | No | No | Return address reg |
+| LISP Machines | TCO (compiler) | No | No | No | No | No | Stack |
+| Reduceron | Graph reduction | No | No | No | No | No | Heap |
+| CHERI | Same as base ISA | No | No | No | No | No | Capability cache |
+| CTMM (parent) | CALL only (LAMBDA FAULTs) | No | No | No | No | No | — |
+| **CTMM (this CIP)** | **CALL CR6 + LAMBDA CR6** | **Yes** | **Yes** | **Yes (2 RETURNs)** | **Yes** | **Yes** | **None** |
 
 ### Tail-Call Optimization (TCO) — Closest Prior Art
 
@@ -504,37 +567,41 @@ Functional language implementations (Scheme, Haskell, ML) perform tail-call opti
 
 **Distinction**: TCO is a **compiler optimization** that modifies generated code. The present invention is a **hardware mechanism** that:
 
-1. Does not require compiler participation — the counter operates at the hardware level
-2. Provides O(1) **context switch** — TCO does not address context switch cost because it does not track recursion depth
-3. Provides O(1) **unwind** — TCO has no unwind (there is only one frame), but the present invention supports LAMBDA recursion where intermediate state (data registers) changes on each call
+1. Does not require compiler participation — the idempotent re-entry operates at the hardware level by relaxing the FAULT condition for CR6
+2. Provides O(1) **context switch** — TCO does not address context switch cost
+3. Provides O(1) **exit** via the two-RETURN path — TCO eliminates the return entirely (tail position), but the present invention preserves the RETURN instruction semantics while making exit cost depth-independent
 4. Works within a **capability-secured** instruction set — TCO operates in unprotected address spaces
-5. Preserves the ability to inspect recursion depth (the counter value) without walking the stack
+5. Requires **no additional hardware** — the existing `lambda_active` flag and `lambda_pc` register, already present for single-level LAMBDA, are the complete mechanism. TCO typically requires compiler analysis and code transformation.
 
-The counter mechanism is architecturally visible and interacts with CHANGE (context switch) and CALL (domain crossing) in ways that compiler-level TCO cannot replicate.
+The idempotent re-entry mechanism is architecturally invisible to the instruction stream — the same LAMBDA CR6 instruction executes on each recursion level. The O(1) behavior is a consequence of the return address invariance, not a compiler transformation.
 
 ---
 
 ## FIGURES (Proposed)
 
-### Figure 1: LAMBDA CR6 Self-Invocation Flow
+### Figure 1: LAMBDA CR6 Idempotent Self-Invocation Flow
 
 ```
 ┌─────────────────────────────────────────┐
 │ CALL enters method (lump split)         │
 │   CR14 ← code region (X-only)          │
 │   CR6  ← c-list region (L-only)        │
+│   lambda_active = 0                     │
 ├─────────────────────────────────────────┤
 │ Method body executes                    │
 │   ...                                   │
 │   LAMBDA CR6 ←─── self-invocation ──┐   │
-│     lambda_depth_reg++              │   │
-│     lambda_pc_reg ← PC+4           │   │
+│     if !lambda_active:              │   │
+│       lambda_active ← 1            │   │
+│     lambda_pc ← PC+4 (idempotent)  │   │
 │     Branch to method entry ─────────┘   │
 │   ...                                   │
-│   Base case: RETURN                     │
-│     lambda_depth_reg ← 0               │
-│     NIA ← lambda_pc_reg                │
-│     Fall through to real RETURN         │
+│   Base case: RETURN #1                  │
+│     lambda_active=1 → PC ← lambda_pc   │
+│     lambda_active ← 0                  │
+│                                         │
+│   RETURN #2 (at addr_after_lambda)      │
+│     lambda_active=0 → real RETURN       │
 │     Pop CALL frame from initial entry   │
 └─────────────────────────────────────────┘
 ```
@@ -542,39 +609,42 @@ The counter mechanism is architecturally visible and interacts with CHANGE (cont
 ### Figure 2: Three Loop Styles — Hardware Comparison
 
 ```
-While (BRANCH)           CALL CR6 (Recursive)      LAMBDA CR6 (Counter)
-────────────────         ────────────────────       ────────────────────
-MCMP + BRANCH ←──┐      CALL CR6 ────────┐        LAMBDA CR6 ──────┐
-  body            │        body           │          body            │
-  MCMP + BRANCH ──┘        CALL CR6 ──────┤          LAMBDA CR6 ────┤
-                           ...            │          ...            │
-                           RETURN ────────┤          RETURN (base)  │
-                           RETURN ────────┤            depth ← 0   │
-                           RETURN ────────┘            real RETURN ─┘
-Stack: 0                 Stack: 2N words             Stack: 0 (counter)
+While (BRANCH)           CALL CR6 (Recursive)      LAMBDA CR6 (Idempotent)
+────────────────         ────────────────────       ────────────────────────
+MCMP + BRANCH ←──┐      CALL CR6 ────────┐        LAMBDA CR6 ──────────┐
+  body            │        body           │          body                │
+  MCMP + BRANCH ──┘        CALL CR6 ──────┤          LAMBDA CR6 ────────┤
+                           ...            │          ...                │
+                           RETURN ────────┤          RETURN #1 (base)   │
+                           RETURN ────────┤            clear flag       │
+                           RETURN ────────┘          RETURN #2 (real) ──┘
+Stack: 0                 Stack: 2N words             Stack: 0
 Branches: 2/iter         Branches: 0                 Branches: 0
 Pipeline: stall risk     Pipeline: deterministic     Pipeline: deterministic
-Unwind: O(1)             Unwind: O(N)                Unwind: O(1)
+Unwind: O(1)             Unwind: O(N)                Unwind: O(1) — always 2
 Change: O(1)             Change: O(N)                Change: O(1)
+New HW: predictor        New HW: stack memory        New HW: NONE
 ```
 
-### Figure 3: Context Switch — Counter vs Stack
+### Figure 3: Why No Counter — Software Drives, Hardware Follows
 
 ```
-Without counter (current):              With counter (invention):
-┌───────────────────────┐               ┌───────────────────────┐
-│ Save frame 1 (2 words)│               │ Save NIA word         │
-│ Save frame 2 (2 words)│               │   (includes counter   │
-│ Save frame 3 (2 words)│               │    + return PC)       │
-│ ...                   │               │ Save lambda_pc        │
-│ Save frame N (2 words)│               │ Done.                 │
-│ Total: 2N words       │               │ Total: 2 words        │
-│ Time: O(N)            │               │ Time: O(1)            │
-└───────────────────────┘               └───────────────────────┘
+Software (data registers):     Hardware (machine status):
+┌──────────────────────┐       ┌───────────────────────┐
+│ n=5 → LAMBDA CR6     │       │ lambda_active = 1     │
+│ n=4 → LAMBDA CR6     │       │ lambda_pc = addr+4    │
+│ n=3 → LAMBDA CR6     │       │ (same value each time)│
+│ n=2 → LAMBDA CR6     │       │                       │
+│ n=1 → LAMBDA CR6     │       │ No counter.           │
+│ n=0 → RETURN (base)  │──────→│ Clear flag, jump.     │
+│       RETURN (real)   │──────→│ Pop CALL frame.       │
+│       Done.           │       │ Done.                 │
+└──────────────────────┘       └───────────────────────┘
+Software counts.                Hardware doesn't need to.
 ```
 
 ---
 
 ## ABSTRACT
 
-A capability-based processor architecture with three innovations for recursive computation. First, self-invocation via the capability list register (CR6), wherein the CALL instruction's lump split naturally establishes a self-reference that CALL CR6 and LAMBDA CR6 use for recursion — no additional GT allocation or namespace lookup required. Second, a lambda recursion counter that replaces N identical LAMBDA stack frames with a single hardware register, exploiting the invariance of the return address during self-invocation to achieve O(1) recursion entry (counter increment), O(1) context switch (counter packs into NIA word), and O(1) exit (counter zeroed in one cycle, one RETURN replaces N). Third, three architectural loop styles — While (BRANCH), Recursive Repeat (CALL CR6), and Lambda Recursion (LAMBDA CR6) — offering distinct security-performance tradeoffs within the same instruction set. The architecture is extended with a natural language (English) front-end for the CLOOMC++ compiler, enabling all three loop styles through plain English sentences. Pet-name mathematical constants (Pi, E, Phi) are accessed as Abstract Golden Tokens through the capability system.
+A capability-based processor architecture with three innovations for recursive computation. First, self-invocation via the capability list register (CR6), wherein the CALL instruction's lump split naturally establishes a self-reference that CALL CR6 and LAMBDA CR6 use for recursion — no additional GT allocation or namespace lookup required. Second, idempotent LAMBDA re-entry, wherein LAMBDA CR6 is permitted to re-execute while `lambda_active` is already set because the return address is invariant — the same value is overwritten with the same value. The software's own recursion argument drives the countdown; the hardware's existing 1-bit flag and PC register handle exit: the base-case RETURN clears the flag and jumps to the instruction after LAMBDA CR6, where a second RETURN pops the CALL frame. Two RETURNs total, regardless of recursion depth. No hardware counter, no stack frames, no additional registers. Third, three architectural loop styles — While (BRANCH), Recursive Repeat (CALL CR6), and Lambda Recursion (LAMBDA CR6) — offering distinct security-performance tradeoffs within the same instruction set, with LAMBDA CR6 requiring zero additional hardware while eliminating branch prediction, speculative execution, and all associated vulnerabilities. The architecture is extended with a natural language (English) front-end for the CLOOMC++ compiler, enabling all three loop styles through plain English sentences. Pet-name mathematical constants (Pi, E, Phi) are accessed as Abstract Golden Tokens through the capability system.

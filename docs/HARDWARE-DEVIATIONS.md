@@ -91,25 +91,29 @@ Authoritative sources: `hardware/hw_types.py`, `hardware/layouts.py`, `hardware/
 - **Affected files**: `architecture.md`, `call-stack.md`, `lambda-instruction.md`
 - **Pending task**: Task #3 (CR5 instance-data behavior)
 
-### D-9: LAMBDA Recursion Counter — NIA Repacking Optimization (Planned)
+### D-9: LAMBDA Recursion — Idempotent Re-Entry via CR6 (Revised Design)
 
-- **Current hardware**: LAMBDA CR6 (opcode 7, SZ=0) pushes a 1-word frame per recursive call, identical to the existing call-stack mechanism but with a smaller frame (no namespace gate swap). Each frame carries the same return address (top of current method via CR6). On CHANGE, all N frames must be saved individually — O(N) context-switch cost proportional to recursion depth.
-- **Proposed optimization**: Because every LAMBDA CR6 returns to the **same address**, N nested frames are redundant — they encode a single number (the recursion depth). The hardware can replace the per-frame stack push with a **loop counter register**. On CHANGE, the counter packs into the **NIA word** alongside the return PC, collapsing the entire recursive state into a single word — **O(1) context-switch cost** regardless of depth.
-- **O(1) unwind optimization**: With the counter, the base-case RETURN does not need to unwind N times. Currently, each RETURN takes the LAMBDA_FAST path (jump back to `lambda_pc`, clear one level), which re-executes the caller's RETURN, repeating N times — O(N) unwind cost. With the counter, the base-case RETURN sees `lambda_depth > 0`, zeros the counter in one cycle, and falls through to the real RETURN (pop the CALL frame from before the LAMBDA recursion started). **One RETURN instruction replaces N** — unwind cost drops from O(N) to O(1). For LambdaSum(1000), that is 1 RETURN instead of 1000.
-- **Combined benefit**: LAMBDA recursion with the counter is O(1) for entry (counter increment instead of frame push), O(1) for context switch (counter packs into NIA word), and O(1) for exit (counter zeroed in one cycle). The entire recursion lifecycle becomes depth-independent.
+- **Current hardware**: LAMBDA (opcode 7) uses `lambda_active_reg` (1-bit flag) and `lambda_pc_reg` (return address). The parent patent specifies non-nestable LAMBDA: a second LAMBDA while `lambda_active` is set causes a FAULT. CALL-mediated nesting is the only way to nest.
+- **Discovery — return address invariance**: When LAMBDA CR6 self-invokes, every recursive call writes the **same return address** (PC+4 of the LAMBDA CR6 instruction) to `lambda_pc`. Re-executing LAMBDA CR6 while `lambda_active` is already set is **idempotent** — the same value overwrites the same register.
+- **Discovery — the software already counts**: The method's own recursion argument (e.g., `n` counting down to 0) drives the recursion. The hardware does not need to independently track depth. The software determines when to stop (base case). No hardware counter is needed.
+- **Revised design — idempotent re-entry**: Relax the non-nestable FAULT rule **exclusively for CR6 self-invocation**:
+  - LAMBDA CR6 while `lambda_active = 1` → **permit** (idempotent, same return address)
+  - LAMBDA CRn (n ≠ 6, i.e., different target) while `lambda_active = 1` → **FAULT** (different return address, true nesting — unsafe)
+- **Two-RETURN exit path**: Base-case RETURN #1 sees `lambda_active = 1`, restores PC from `lambda_pc` (instruction after LAMBDA CR6), clears flag. RETURN #2 sees `lambda_active = 0`, pops the CALL frame from initial method entry. **Exactly 2 RETURNs regardless of recursion depth.**
+- **O(1) trifecta achieved without a counter**:
+  - O(1) entry: LAMBDA CR6 re-entry is one idempotent register write + branch
+  - O(1) context switch: CHANGE saves `lambda_active` (1 bit, already in NIA indicators) + `lambda_pc` (already in machine status) — two fixed-size values regardless of depth
+  - O(1) exit: 2 RETURNs always, never N
 - **Hardware changes required**:
-  1. Add a small counter register (8–16 bits) to the pipeline, incremented on LAMBDA CR6 execute
-  2. Modify RETURN: when `lambda_depth > 0`, zero the counter in one cycle and proceed to real RETURN (no iterative unwind). The existing LAMBDA_FAST state in `ret.py` becomes a single-cycle counter-zero-and-continue path
-  3. Repartition or widen the NIA word to include the counter field
-  4. Modify CHANGE save/restore to pack/unpack the counter from the NIA word
-  5. Validate CHANGE-under-interrupt during deep LAMBDA recursion
-  6. Validate that CALL during active LAMBDA correctly zeros the counter (existing `core.py` line 765–766 clears `lambda_active_reg` on CALL; the counter equivalent must zero `lambda_depth_reg`)
-- **Platform strategy**: Prototype on **Ti60 F225** first (~112K logic elements, ample headroom for debug signals and A/B comparison mux). Port to **Tang Nano 20K** only after the design is validated on Ti60. The Tang Nano can continue using the current frame-based LAMBDA implementation until the counter design is proven.
-- **Software impact**: None. The compiler already emits LAMBDA CR6 via `relambda()`. The simulator already models LAMBDA semantics correctly. The counter optimization is purely a hardware-level improvement — the ISA encoding and software interface are unchanged.
-- **Risk**: NIA word format touches fetch, decode, call stack, CHANGE, and RETURN — high-impact change surface. Ti60-first strategy mitigates this.
-- **Decision**: Architect to confirm NIA bit allocation for counter field and schedule Ti60 prototype.
-- **Affected files**: `hardware/core.py`, `hardware/call.py`, `hardware/ret.py`, `hardware/hw_types.py`, `hardware/layouts.py`
-- **Pending task**: None currently tracked — awaiting Ti60 prototype validation
+  1. `core.py`: Modify LAMBDA FAULT condition — gate on target CR: FAULT only when `lambda_active = 1` AND target is NOT CR6. When target IS CR6, permit re-entry (idempotent write to `lambda_pc_reg`).
+  2. No other changes. `ret.py`, `change.py`, `lambda_unit.py` unchanged. No new registers, no NIA repartition, no counter logic.
+- **Counter as optional enhancement**: A diagnostic counter (`lambda_depth_reg`, 8–16 bits) could be added later for performance monitoring or safety limits (FAULT on overflow to catch runaway recursion). This is not required for correctness or O(1) performance.
+- **Previous design (superseded)**: The initial D-9 proposed a 16-bit `lambda_depth_reg` counter to replace stack frames. Analysis showed the counter is redundant — the software's own argument is the counter, and the existing 1-bit flag + `lambda_pc` register already provide O(1) behavior with the idempotent re-entry rule. The counter was discarded on RETURN anyway (zeroed and thrown away), confirming it served no purpose.
+- **Platform strategy**: Change is minimal (FAULT condition refinement in `core.py` only). Safe to implement on both **Ti60 F225** and **Tang Nano 20K** simultaneously — no NIA format change, no stack format change.
+- **Software impact**: None. The compiler already emits LAMBDA CR6 via `relambda()`. The simulator already models LAMBDA semantics correctly. The idempotent re-entry is purely a hardware-level refinement of the FAULT condition.
+- **Risk**: Extremely low. Single-line FAULT condition change in `core.py`. No format changes, no new registers, no multi-file impact.
+- **Affected files**: `hardware/core.py` (FAULT condition only)
+- **Patent**: Documented in `docs/patent-ctmm-lambda-recursion-2026.md` (Claims 1–7)
 
 ---
 
