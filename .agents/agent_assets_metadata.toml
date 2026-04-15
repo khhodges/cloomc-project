@@ -54,3 +54,51 @@ id = "ieJch8GCUVKM9Z_yr6gBg"
 uri = "file://docs/pet-name-language.md"
 type = "text"
 title = "Pet-Name Language Reference"
+
+[[outputs]]
+id = "07IcMXkBDy-i_PaiYPxgj"
+uri = "file://docs/patents/patent-ctmm-consolidated-2026.pdf"
+type = "pdf"
+title = "Consolidated Patent (All Parts + Addendums)"
+
+[[outputs]]
+id = "PbyxwGrRpjzJCNuL7e6Ke"
+uri = "file://docs/patents/patent-ctmm-unified.pdf"
+type = "pdf"
+title = "Base Patent - Unified (Feb 2026)"
+
+[[outputs]]
+id = "KRZPCSzOdMT8U14hemiov"
+uri = "file://docs/patents/patent-ctmm-lambda.pdf"
+type = "pdf"
+title = "Initial Filing - LAMBDA Instruction (Feb 2026)"
+
+[[outputs]]
+id = "MRZpcvUHPs432qkXF3Igg"
+uri = "file://docs/patents/patent-church-machine-claims.pdf"
+type = "pdf"
+title = "CIP - Pure Church Machine (Feb 2026)"
+
+[[outputs]]
+id = "bxCSemZIjaaeibDLY7GYL"
+uri = "file://docs/patents/patent-cloomc-universal-target.pdf"
+type = "pdf"
+title = "CIP - CLOOMC++ Universal Target (Mar 2026)"
+
+[[outputs]]
+id = "VUhBy7hDNLoqCq1Elsso2"
+uri = "file://docs/patents/patent-ctmm-io-addressing-2026.pdf"
+type = "pdf"
+title = "CIP - Abstract GT I/O Addressing (Mar 2026)"
+
+[[outputs]]
+id = "bM4o9N9BAGDDWd-hTNRNd"
+uri = "file://docs/patents/patent-ctmm-lambda-recursion-2026.pdf"
+type = "pdf"
+title = "CIP - Lambda Recursion (Apr 2026)"
+
+[[outputs]]
+id = "Qe0OOz1k8wDcFgi0vbVz_"
+uri = "file://docs/patents/patent-church-machine-email.pdf"
+type = "pdf"
+title = "Attorney Cover Email"
