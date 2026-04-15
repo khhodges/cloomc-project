@@ -25,6 +25,7 @@
   }
   .nav a:hover { background: #e0e0e0; color: #000; }
   @media print { .nav { display: none; } }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -34,7 +35,7 @@
 <h1>Figure A4 &mdash; Local Peripheral Autonomy</h1>
 <p class="subtitle">CTMMs identify and secure locally attached hardware (UART, GPIO, Timer, Display) without any IDE connection. Abstract GTs in the IDE address range (0xFE______) are probed at boot. Present peripherals get valid Abstract GTs; absent ones get NULL. Air-gapped and offline operation is fully supported.</p>
 
-<svg viewBox="0 0 1100 850" width="1100" height="850" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 850" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#2a6db5"/>

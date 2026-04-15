@@ -18,6 +18,7 @@
   }
   h1 { font-size: 22px; color: #b8860b; margin-bottom: 6px; text-align: center; }
   .subtitle { font-size: 13px; color: #555555; margin-bottom: 30px; text-align: center; max-width: 780px; }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -25,7 +26,7 @@
 <h1>Figure 12 &mdash; mLoad Validation Pipeline</h1>
 <p class="subtitle">Five sequential checks. Any failure at any stage routes to the single FAULT handler. No partial state, no silent fallback, no recovery. Every namespace access in the entire machine passes through this pipeline.</p>
 
-<svg viewBox="0 0 1100 1480" width="1100" height="1480" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 1480" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#5dade2"/>

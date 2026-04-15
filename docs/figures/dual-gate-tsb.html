@@ -30,6 +30,7 @@
   @media print {
     .nav { display: none; }
   }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -39,7 +40,7 @@
 <h1>Figure 1 &mdash; Dual-Gate Trusted Security Base Architecture</h1>
 <p class="subtitle">The complete TSB consists of exactly two hardware gates: mLoad (read path) and mSave (write path). Every capability operation in the entire machine must pass through one or both gates. Any validation failure at any stage routes to the single FAULT handler. ~329 lines of synthesizable Amaranth HDL.</p>
 
-<svg viewBox="0 0 1100 1100" width="1100" height="1100" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 1100" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#5dade2"/>

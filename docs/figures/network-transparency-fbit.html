@@ -28,6 +28,7 @@
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
   .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
   @media print { .nav { display: none; } }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -37,7 +38,7 @@
 <h1>Figure 13 &mdash; Network Transparency via F-bit and Tunnel Keys</h1>
 <p class="subtitle">Two Meta Machines with matching namespace entries connected by an encrypted capability tunnel. The F-bit in mSave detects foreign/remote objects and routes access through HTTPS/RPC. GC version bump on either side revokes the tunnel atomically. Outform GTs (type=01) carry the remote endpoint binding.</p>
 
-<svg viewBox="0 0 1100 1340" width="1100" height="1340" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 1340" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#27864a"/>

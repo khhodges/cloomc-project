@@ -28,6 +28,7 @@
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
   .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
   @media print { .nav { display: none; } }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -37,7 +38,7 @@
 <h1>Figure 4 &mdash; LAMBDA vs. CALL Execution Paths</h1>
 <p class="subtitle">Side-by-side comparison of the two abstraction-entry mechanisms. LAMBDA is a lightweight, in-scope fast path (~3 cycles) that saves only the PC to machine status. CALL is the full domain-crossing mechanism (10+ cycles) with stack frame push, c-list switch, mLoad revalidation, and automatic B-bit clearing.</p>
 
-<svg viewBox="0 0 1100 1080" width="1100" height="1080" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 1080" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#27864a"/>

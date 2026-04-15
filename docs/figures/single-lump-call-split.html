@@ -30,6 +30,7 @@
   @media print {
     .nav { display: none; }
   }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -39,7 +40,7 @@
 <h1>Figure 25 &mdash; Single-Lump CALL Split</h1>
 <p class="subtitle">A single Inform E-GT points to one namespace entry describing a contiguous memory lump. The CALL instruction reads clistCount from word1 and splits the lump into two domain-pure regions: CR14 (code, X-only) and CR6 (c-list, L-only), with inaccessible freespace between them.</p>
 
-<svg viewBox="0 0 1100 960" width="1100" height="960" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 960" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#b8860b"/>

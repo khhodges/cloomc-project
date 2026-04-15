@@ -24,6 +24,7 @@
   }
   .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555555; }
   .legend-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -31,7 +32,7 @@
 <h1>Figure 5 &mdash; Non-Nestable LAMBDA with CALL-Mediated Nesting</h1>
 <p class="subtitle">Sequence diagram showing how CALL saves LAMBDA state to permit a nested LAMBDA in the called domain, with LAMBDA-active flag state annotated at every step</p>
 
-<svg viewBox="0 0 1050 1240" width="1050" height="1240" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1050 1240" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#5dade2"/>

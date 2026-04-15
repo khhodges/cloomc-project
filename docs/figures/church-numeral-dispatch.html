@@ -28,6 +28,7 @@
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
   .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
   @media print { .nav { display: none; } }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -37,7 +38,7 @@
 <h1>Figure 16 &mdash; Church Numeral Method Dispatch</h1>
 <p class="subtitle">Method dispatch via Church numeral encoding eliminates all branch instructions. A data register value is converted to a Church numeral (SUCC/ZERO), which naturally indexes into a c-list of method entries. TPERM sets permissions, then LAMBDA applies the selected method. The numeral itself is the dispatch &mdash; no comparisons, no jump tables, no branches.</p>
 
-<svg viewBox="0 0 1100 1260" width="1100" height="1260" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 1260" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#2a6db5"/>

@@ -28,6 +28,7 @@
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555555; }
   .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
   @media print { .nav { display: none; } }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -37,7 +38,7 @@
 <h1>Figure 17 &mdash; DATA Objects: Church/Turing Bridge</h1>
 <p class="subtitle">DATA objects are namespace entries that bridge the Church and Turing domains. Church-domain Golden Tokens provide access control (R/W permissions via mLoad). Turing-domain DREAD/DWRITE instructions perform the actual data operations. mLoad validates permissions and enforces bounds checking on every access within the Location..Limit range. No raw pointers, no unchecked access.</p>
 
-<svg viewBox="0 0 1100 1320" width="1100" height="1320" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 1320" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#2a6db5"/>

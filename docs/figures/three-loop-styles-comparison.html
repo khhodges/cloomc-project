@@ -25,6 +25,7 @@
   }
   .nav a:hover { background: #e0e0e0; color: #000; }
   @media print { .nav { display: none; } }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -34,7 +35,7 @@
 <h1>Figure 2 &mdash; Three Loop Styles — LAMBDA CR6 Dominates</h1>
 <p class="subtitle">Side-by-side comparison of While (BRANCH), CALL CR6 (full gate recursion), and LAMBDA CR6 (idempotent self-invocation). LAMBDA CR6 dominates: identical security, O(1) cost, zero additional hardware, no branch-prediction vulnerabilities.</p>
 
-<svg viewBox="0 0 1100 950" width="1100" height="950" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 950" xmlns="http://www.w3.org/2000/svg">
   <style>
     .col-title { font-family:'Segoe UI',system-ui,sans-serif; font-size:14px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
     .label { font-family:'Segoe UI',system-ui,sans-serif; font-size:11px; fill:#333; text-anchor:start; dominant-baseline:central; }

@@ -25,6 +25,7 @@
   }
   .nav a:hover { background: #e0e0e0; color: #000; }
   @media print { .nav { display: none; } }
+  svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -34,7 +35,7 @@
 <h1>Figure 3 &mdash; Why No Counter</h1>
 <p class="subtitle">Software drives the recursion countdown in data registers. Hardware follows with a 1-bit flag and a PC register. The hardware does not need a counter because the software already has one. The separation is clean: software counts, hardware re-enters.</p>
 
-<svg viewBox="0 0 1100 780" width="1100" height="780" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1100 780" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="ah-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#2a6db5"/>
