@@ -4371,7 +4371,7 @@ function renderLumps() {
                 const safeName = _escHtml(name);
                 const safeLang = _escHtml(lang);
                 const safeProfile = _escHtml(profile);
-                html += `<div class="lump-item${isActive ? ' active' : ''}" onclick="showLumpDetail('${safeToken}')">`;
+                html += `<div class="lump-item${isActive ? ' active' : ''}" data-token="${safeToken}">`;
                 html += `<div class="lump-item-header">`;
                 html += `<span class="lump-item-name">${safeName}</span>`;
                 if (mtbf.status) {
@@ -4388,6 +4388,9 @@ function renderLumps() {
                 html += `</div>`;
             }
             listEl.innerHTML = html;
+            listEl.querySelectorAll('.lump-item[data-token]').forEach(el => {
+                el.addEventListener('click', () => showLumpDetail(el.dataset.token));
+            });
         })
         .catch(err => {
             listEl.innerHTML = `<div class="lumps-placeholder">Error loading lumps: ${_escHtml(err.message)}</div>`;
@@ -4506,11 +4509,13 @@ function showLumpDetail(token) {
     }
 
     html += '<div class="lump-detail-actions">';
-    html += `<button class="btn lump-delete-btn" onclick="deleteLump('${e(token)}')">Delete Lump</button>`;
+    html += `<button class="btn lump-delete-btn" data-delete-token="${e(token)}">Delete Lump</button>`;
     html += '</div>';
 
     html += '</div>';
     contentEl.innerHTML = html;
+    const delBtn = contentEl.querySelector('.lump-delete-btn[data-delete-token]');
+    if (delBtn) delBtn.addEventListener('click', () => deleteLump(delBtn.dataset.deleteToken));
 }
 
 function deleteLump(token) {

@@ -1499,6 +1499,7 @@ def save_lump():
     ns_slot    = metadata.get("ns_slot", None)
     token_hint = metadata.get("token", None)
 
+    import re as _re
     if token_hint:
         token8 = str(token_hint).lower().zfill(8)[:8]
     elif ns_slot is not None:
@@ -1507,6 +1508,9 @@ def save_lump():
         import hashlib as _hl
         digest = _hl.sha256(abs_name.encode('utf-8')).hexdigest()[:8]
         token8 = digest
+
+    if not _re.fullmatch(r'[0-9a-f]{8}', token8):
+        return jsonify({"error": "Invalid token — must be 8 hex characters"}), 400
 
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
     os.makedirs(lumps_dir, exist_ok=True)
@@ -1623,8 +1627,11 @@ def list_lumps():
 @app.route("/api/lumps/<token>", methods=["DELETE"])
 def delete_lump(token):
     """Delete a lump binary, sidecar, and manifest entry."""
-    raw = token.lower().lstrip('0x')
+    import re as _re
+    raw = token.lower().replace('0x', '', 1)
     token8 = raw.zfill(8)[:8]
+    if not _re.fullmatch(r'[0-9a-f]{8}', token8):
+        return jsonify({"error": "Invalid token — must be hex characters"}), 400
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
 
     lump_path = os.path.join(lumps_dir, f'{token8}.lump')
