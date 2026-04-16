@@ -263,14 +263,24 @@ header h1 {
     border: 1px solid var(--border);
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    width: fit-content;
-    min-width: 160px;
-    max-width: 280px;
     padding: 0.35rem 0;
-    display: inline-flex;
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     max-height: calc(100vh - 60px);
     overflow-y: auto;
+}
+
+.ham-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 140px;
+    border-right: 1px solid var(--border);
+    padding: 0.2rem 0;
+}
+
+.ham-group:last-child {
+    border-right: none;
 }
 
 .ham-group-title {
