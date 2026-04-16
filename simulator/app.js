@@ -14937,6 +14937,8 @@ function onLangChange(restoring) {
     if (btnSaveNS) btnSaveNS.disabled = (lang !== 'assembly' || !lastAssembledWords);
     const btnBuildLump = document.getElementById('btnBuildLump');
     if (btnBuildLump) btnBuildLump.disabled = (lang === 'assembly');
+    const btnBuildLumpMenu = document.getElementById('btnBuildLumpMenu');
+    if (btnBuildLumpMenu) btnBuildLumpMenu.disabled = (lang === 'assembly');
 
     const langExampleGroups = {
         english: ['cloomc_english_hello', 'cloomc_english_counter', 'cloomc_english_string', 'cloomc_english_loops'],
@@ -15282,6 +15284,20 @@ function buildAndDownloadLump() {
                    ((0 & 0x03) << 8) |
                    (cc & 0xFF);
 
+    const resolvedCaps = caps.map(capName => {
+        let target = -1;
+        if (sim && sim.abstractionRegistry) {
+            const allAbs = sim.abstractionRegistry.abstractions || [];
+            for (let j = 0; j < allAbs.length; j++) {
+                if (allAbs[j] && allAbs[j].name && allAbs[j].name.toUpperCase() === capName.toUpperCase()) {
+                    target = j;
+                    break;
+                }
+            }
+        }
+        return { name: capName, nsIndex: target };
+    });
+
     const lumpWords = new Uint32Array(lumpSize);
     lumpWords[0] = header >>> 0;
     for (let i = 0; i < cw; i++) {
@@ -15289,7 +15305,7 @@ function buildAndDownloadLump() {
     }
     const clistStart = lumpSize - cc;
     for (let i = 0; i < cc; i++) {
-        lumpWords[clistStart + i] = 0x00000000;
+        lumpWords[clistStart + i] = resolvedCaps[i].nsIndex >= 0 ? (resolvedCaps[i].nsIndex & 0xFFFFFFFF) : 0x00000000;
     }
 
     const binaryBuf = new ArrayBuffer(lumpSize * 4);
@@ -15322,9 +15338,16 @@ function buildAndDownloadLump() {
     listing += `  Profile:   ${profile}\n`;
 
     if (cc > 0) {
-        listing += `\n  Capabilities:\n`;
-        for (let i = 0; i < caps.length; i++) {
-            listing += `    [${i}] ${caps[i]}\n`;
+        listing += `\n  Capabilities (C-List):\n`;
+        const unresolved = [];
+        for (let i = 0; i < resolvedCaps.length; i++) {
+            const rc = resolvedCaps[i];
+            const status = rc.nsIndex >= 0 ? `NS[${rc.nsIndex}]` : 'unresolved (null GT)';
+            listing += `    [${i}] ${rc.name} → ${status}\n`;
+            if (rc.nsIndex < 0) unresolved.push(rc.name);
+        }
+        if (unresolved.length > 0) {
+            listing += `    ⚠ ${unresolved.length} unresolved — boot the simulator to resolve, or deploy with null GTs\n`;
         }
     }
 
