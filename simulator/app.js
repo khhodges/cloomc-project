@@ -7485,35 +7485,37 @@ function assembleAndLoad() {
         for (const m of methods) {
             for (const w of (m.code || [])) words.push(w);
         }
-        sim.loadProgram(words, 0);
-        lastAssembledWords = words.slice();
-        lastAssembledCapabilities = (result.capabilities && result.capabilities.length > 0) ? result.capabilities.slice() : null;
-        lastMethodTableSize = methodTableSize;
-        _defaultProgramLoaded = true;
-        if (sim.bootComplete && result.capabilities && result.capabilities.length > 0) {
-            const clistBase = sim.cr[6].word1;
-            for (let ci = 0; ci < result.capabilities.length; ci++) {
-                const capName = result.capabilities[ci];
-                let nsIdx = -1;
-                for (const [idx, lbl] of Object.entries(sim.nsLabels)) {
-                    if (lbl.toUpperCase() === capName.toUpperCase()) {
-                        nsIdx = parseInt(idx);
-                        break;
+        if (!_editorCREditActive) {
+            sim.loadProgram(words, 0);
+            lastAssembledWords = words.slice();
+            lastAssembledCapabilities = (result.capabilities && result.capabilities.length > 0) ? result.capabilities.slice() : null;
+            lastMethodTableSize = methodTableSize;
+            _defaultProgramLoaded = true;
+            if (sim.bootComplete && result.capabilities && result.capabilities.length > 0) {
+                const clistBase = sim.cr[6].word1;
+                for (let ci = 0; ci < result.capabilities.length; ci++) {
+                    const capName = result.capabilities[ci];
+                    let nsIdx = -1;
+                    for (const [idx, lbl] of Object.entries(sim.nsLabels)) {
+                        if (lbl.toUpperCase() === capName.toUpperCase()) {
+                            nsIdx = parseInt(idx);
+                            break;
+                        }
+                    }
+                    if (nsIdx >= 0) {
+                        const gt = sim.createGT(0, nsIdx, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
+                        sim.memory[clistBase + ci + 1] = gt;
                     }
                 }
-                if (nsIdx >= 0) {
-                    const gt = sim.createGT(0, nsIdx, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
-                    sim.memory[clistBase + ci + 1] = gt;
-                }
             }
+            const abstrBase2 = sim.NS_TABLE_BASE + 2 * sim.NS_ENTRY_WORDS;
+            const progBase = sim.bootComplete ? (sim.memory[abstrBase2] || (2 * sim.SLOT_SIZE)) : 0;
+            sim.programBaseAddr = progBase;
+            sim.programLabels = labels;
+            sim.programName = result.abstractionName || (methods.length > 0 ? methods[0].name : 'prog');
+            window._assemblerSymbols = { labels, lumpName: sim.programName };
+            if (pipelineViz) pipelineViz.setNIA(null);
         }
-        const abstrBase2 = sim.NS_TABLE_BASE + 2 * sim.NS_ENTRY_WORDS;
-        const progBase = sim.bootComplete ? (sim.memory[abstrBase2] || (2 * sim.SLOT_SIZE)) : 0;
-        sim.programBaseAddr = progBase;
-        sim.programLabels = labels;
-        sim.programName = result.abstractionName || (methods.length > 0 ? methods[0].name : 'prog');
-        window._assemblerSymbols = { labels, lumpName: sim.programName };
-        if (pipelineViz) pipelineViz.setNIA(null);
         const manifestByMethod = {};
         if (result.manifest) {
             for (const entry of result.manifest) {
@@ -7644,6 +7646,7 @@ function assembleAndLoad() {
                 listing += '\n';
             }
         }
+        if (_editorCREditActive) listing = '; [CR edit mode — listing only, simulator memory unchanged]\n; Use Patch to apply this code to the CR.\n\n' + listing;
         if (con) con.textContent = listing;
         showNextSteps('assembled');
         const saveBtn = document.getElementById('btnSaveNS');
@@ -7662,18 +7665,20 @@ function assembleAndLoad() {
         return;
     }
 
-    sim.loadProgram(result.words, 0);
-    lastAssembledWords = result.words.slice();
-    _defaultProgramLoaded = true;
+    if (!_editorCREditActive) {
+        sim.loadProgram(result.words, 0);
+        lastAssembledWords = result.words.slice();
+        _defaultProgramLoaded = true;
 
-    const abstrBase2 = sim.NS_TABLE_BASE + 2 * sim.NS_ENTRY_WORDS;
-    const progBase = sim.bootComplete ? (sim.memory[abstrBase2] || (2 * sim.SLOT_SIZE)) : 0;
-    sim.programBaseAddr = progBase;
-    sim.programLabels = result.labels || {};
-    const entryLabel = Object.keys(result.labels || {}).find(k => (result.labels[k] === 0)) || null;
-    sim.programName = entryLabel || (Object.keys(result.labels || {})[0]) || 'prog';
-    window._assemblerSymbols = { labels: result.labels || {}, lumpName: sim.programName };
-    if (pipelineViz) pipelineViz.setNIA(null);
+        const abstrBase2 = sim.NS_TABLE_BASE + 2 * sim.NS_ENTRY_WORDS;
+        const progBase = sim.bootComplete ? (sim.memory[abstrBase2] || (2 * sim.SLOT_SIZE)) : 0;
+        sim.programBaseAddr = progBase;
+        sim.programLabels = result.labels || {};
+        const entryLabel = Object.keys(result.labels || {}).find(k => (result.labels[k] === 0)) || null;
+        sim.programName = entryLabel || (Object.keys(result.labels || {})[0]) || 'prog';
+        window._assemblerSymbols = { labels: result.labels || {}, lumpName: sim.programName };
+        if (pipelineViz) pipelineViz.setNIA(null);
+    }
 
     const _srcComments = (() => {
         const out = [];
@@ -7698,6 +7703,7 @@ function assembleAndLoad() {
         const cmt  = _srcComments[i] || '';
         listing += cmt ? `${mnem.padEnd(40)}; ${cmt}\n` : `${mnem}\n`;
     }
+    if (_editorCREditActive) listing = '; [CR edit mode — listing only, simulator memory unchanged]\n; Use Patch to apply this code to the CR.\n\n' + listing;
     if (con) con.textContent = listing;
     showNextSteps('assembled');
 
