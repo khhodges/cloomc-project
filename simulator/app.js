@@ -2263,6 +2263,176 @@ function exportPatchFile() {
     showPatchModal(true, 'Export Patch', logText);
 }
 
+/*
+ * exportLumpAsPatch() — Load a pre-built .lump binary and wrap it as a .patch
+ * file for command-line FPGA flashing via tools/patch_fpga.py.
+ *
+ * The .lump file stores 32-bit words big-endian (per the lump specification).
+ * The UART PATCH_LUMP protocol on the Ti60 F225 expects words little-endian.
+ * This function performs the byte-swap on each word during frame construction.
+ *
+ * User supplies:
+ *   • A .lump file (picked via the browser file-picker)
+ *   • A target BRAM word address (prompted; default 0x0100 = after NS/clist area)
+ *
+ * The resulting .patch file uses the same CHPF v1 format as exportPatchFile().
+ */
+function exportLumpAsPatch() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.lump,application/octet-stream';
+
+    input.onchange = function() {
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const buf = evt.target.result;
+            _processLumpFileForPatch(file.name, buf);
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    input.click();
+}
+
+function _processLumpFileForPatch(fileName, buf) {
+    const msgs = [];
+    const log = msg => msgs.push(msg);
+
+    if (buf.byteLength < 64 * 4) {
+        appendOutput('Export Lump as Patch: file too small — minimum lump is 64 words (256 bytes).', 'error');
+        return;
+    }
+    if (buf.byteLength % 4 !== 0) {
+        appendOutput('Export Lump as Patch: file size is not a multiple of 4 bytes — not a valid .lump.', 'error');
+        return;
+    }
+
+    const view = new DataView(buf);
+    const word0 = view.getUint32(0, false);
+
+    const magic   = (word0 >>> 27) & 0x1F;
+    const nMinus6 = (word0 >>> 23) & 0x0F;
+    const cw      = (word0 >>> 10) & 0x1FFF;
+    const typ     = (word0 >>> 8)  & 0x03;
+    const cc      = word0 & 0xFF;
+
+    if (magic !== 0x1F) {
+        appendOutput(`Export Lump as Patch: invalid magic 0x${magic.toString(16)} in "${fileName}" — expected 0x1F.`, 'error');
+        return;
+    }
+
+    const lumpSize = 64 << nMinus6;
+    if (buf.byteLength !== lumpSize * 4) {
+        appendOutput(`Export Lump as Patch: file size ${buf.byteLength} bytes does not match header lump_size=${lumpSize} words (${lumpSize * 4} bytes).`, 'error');
+        return;
+    }
+
+    const addrInput = prompt(
+        `Export Lump "${fileName}" as FPGA patch\n\nTarget BRAM word address (hex, default 0x0100):`,
+        '0x0100'
+    );
+    if (addrInput === null) return;
+
+    const targetAddr = parseInt(addrInput, 16);
+    if (isNaN(targetAddr) || targetAddr < 0 || targetAddr > 0xFFFF) {
+        appendOutput('Export Lump as Patch: invalid target address.', 'error');
+        return;
+    }
+
+    log(`Lump: "${fileName}"`);
+    log(`  Header:    0x${word0.toString(16).padStart(8, '0')}`);
+    log(`  lump_size: ${lumpSize} words`);
+    log(`  cw:        ${cw}  typ: ${typ}  cc: ${cc}`);
+    log(`  Target:    BRAM word address 0x${targetAddr.toString(16).toUpperCase().padStart(4, '0')}`);
+    log('');
+
+    const lumpWords = [];
+    for (let i = 0; i < lumpSize; i++) {
+        lumpWords.push(view.getUint32(i * 4, false));
+    }
+
+    function crc16ccitt(data) {
+        let crc = 0xFFFF;
+        for (const byte of data) {
+            for (let b = 0; b < 8; b++) {
+                const bit = ((byte >>> (7 - b)) & 1) ^ ((crc >>> 15) & 1);
+                crc = ((crc << 1) & 0xFFFF) ^ (bit ? 0x1021 : 0);
+            }
+        }
+        return crc;
+    }
+
+    const N = lumpWords.length;
+    const bodyLen = 6 + N * 4;
+    const frame = new Uint8Array(bodyLen + 2);
+    frame[0] = 0xBE;
+    frame[1] = 0xEF;
+    frame[2] = (targetAddr >> 8) & 0xFF;
+    frame[3] = targetAddr & 0xFF;
+    frame[4] = (N >> 8) & 0xFF;
+    frame[5] = N & 0xFF;
+    for (let i = 0; i < N; i++) {
+        const w = lumpWords[i] >>> 0;
+        frame[6 + i * 4 + 0] = w & 0xFF;
+        frame[6 + i * 4 + 1] = (w >> 8) & 0xFF;
+        frame[6 + i * 4 + 2] = (w >> 16) & 0xFF;
+        frame[6 + i * 4 + 3] = (w >> 24) & 0xFF;
+    }
+    const crc = crc16ccitt(frame.subarray(0, bodyLen));
+    frame[bodyLen]     = (crc >> 8) & 0xFF;
+    frame[bodyLen + 1] = crc & 0xFF;
+
+    log(`Block 0: lump  addr=0x${targetAddr.toString(16).toUpperCase().padStart(4,'0')}  words=${N}  CRC=0x${crc.toString(16).toUpperCase().padStart(4,'0')}`);
+
+    const runSentinel = new Uint8Array([0xBE, 0xAA]);
+    const fileSize = 8 + frame.length + runSentinel.length;
+    const fileData = new Uint8Array(fileSize);
+    fileData[0] = 0x43;
+    fileData[1] = 0x48;
+    fileData[2] = 0x50;
+    fileData[3] = 0x46;
+    fileData[4] = 0x01;
+    fileData[5] = 0x01;
+    fileData[6] = 0x01;
+    fileData[7] = 0x00;
+    fileData.set(frame, 8);
+    fileData.set(runSentinel, 8 + frame.length);
+
+    const baseName = fileName.replace(/\.lump$/i, '');
+    const outName = `${baseName}_0x${targetAddr.toString(16).toUpperCase().padStart(4,'0')}.patch`;
+
+    const blob = new Blob([fileData], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = outName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    log(`File size: ${fileSize} bytes`);
+    log(`Downloaded: ${outName}`);
+    log('');
+    log('To flash to FPGA, run:');
+    log(`  python3 tools/patch_fpga.py /dev/ttyUSB1 ${outName}`);
+    log('');
+    log('Hardware verification checklist (Efinix Ti60 F225):');
+    log(`  1. Flash: python3 tools/patch_fpga.py /dev/ttyUSB1 ${outName}`);
+    log('  2. Expected UART echo after flash: "ACK <N> words written"');
+    log('  3. Verify lump header in BRAM with READ_BRAM (0xBEAD) at the target address');
+    log(`     Expected word 0: 0x${word0.toString(16).padStart(8, '0')} (magic=0x1F)`);
+    log('  4. Construct a GT pointing to the lump base and CALL into it');
+    log('     Expected: PC=1 (code region entry), correct CR14/CR6 derived by hardware');
+    log('  5. If CALL completes with no FAULT_MAGIC/FAULT_BOUNDS: lump loaded correctly');
+
+    appendOutput(`Export Lump as Patch: "${outName}" — ${lumpSize} words at 0x${targetAddr.toString(16).toUpperCase().padStart(4,'0')} (${fileSize} bytes)`, 'info');
+    showPatchModal(true, 'Export Lump as Patch', msgs.join('\n'));
+}
+
 function showPatchModal(ok, opName, logText) {
     const existing = document.getElementById('patchToastOverlay');
     if (existing) existing.remove();
@@ -2799,6 +2969,11 @@ function updateCRDetail() {
         html += `<button class="crd-tab crd-tab-action crd-tab-fpga" onclick="exportPatchFile()" title="Export compiled patch as .patch file for command-line flashing">&#x2B73; Export Patch</button>`;
         html += `<button class="crd-action-info-btn crd-action-info-btn-fpga" onclick="toggleCrdInfoPop('exportPatchInfoPop')" title="What does Export Patch do?">&#x2139;</button>`;
         html += `<div class="crd-info-pop" id="exportPatchInfoPop" style="display:none;"><b>Export Patch</b><br><br>Assembles the code and downloads a <code>.patch</code> file containing complete UART frames with tags, CRC, and RUN sentinel. Flash it to the FPGA with:<br><code>python3 patch_fpga.py /dev/ttyUSB1 file.patch</code><br><br>No bridge or browser connection needed &mdash; just one terminal command.</div>`;
+        html += `</span>`;
+        html += `<span class="crd-action-group">`;
+        html += `<button class="crd-tab crd-tab-action crd-tab-fpga" onclick="exportLumpAsPatch()" title="Convert a pre-built .lump binary into a .patch file for FPGA flashing">&#x2B73; Lump&#x2192;Patch</button>`;
+        html += `<button class="crd-action-info-btn crd-action-info-btn-fpga" onclick="toggleCrdInfoPop('lumpToPatchInfoPop')" title="What does Lump→Patch do?">&#x2139;</button>`;
+        html += `<div class="crd-info-pop" id="lumpToPatchInfoPop" style="display:none;"><b>Lump&#x2192;Patch</b><br><br>Picks a pre-built <code>.lump</code> binary file, validates the header (magic 0x1F, size, cw, cc), and wraps all words into a <code>.patch</code> UART frame file.<br><br>Words are byte-swapped from big-endian (.lump spec) to little-endian (FPGA UART protocol) automatically.<br><br>Flash with:<br><code>python3 tools/patch_fpga.py /dev/ttyUSB1 file.patch</code></div>`;
         html += `</span>`;
         html += `<span class="crd-action-group">`;
         html += `<button class="crd-tab crd-tab-action" onclick="publishToLibrary()" title="Publish this abstraction to the Mum Tunnel Library" style="background:#4a7a2e;">&#x21E1; Publish</button>`;
@@ -12667,7 +12842,8 @@ function closeSettings() {
 
 function showReleaseHistory() {
     const history = [
-        { date: '2026-04-16 UTC', title: 'One-Click Build LUMP', changes: ['Build LUMP button: one-click compile-to-binary for any CLOOMC++ abstraction in any language mode', 'Produces spec-compliant .lump binary: header (magic 0x1F + n-6 + cw + typ + cc), method table, code region, c-list, big-endian uint32', 'Console shows full lump layout: header hex, methods with offsets, capability list, freespace, file size', 'Available in toolbar (green button) and Editor Actions dropdown; auto-disabled in Assembly mode'] },
+        { date: '2026-04-16 UTC', title: 'LUMP Hardware Verification Fixes', changes: ['Fixed Build LUMP binary: removed embedded method dispatch table (raw word offsets were incorrectly written as code words that the FPGA would try to execute as instructions)', 'Method offsets in sidecar metadata now start at 0, matching the Python build_lumps.py spec and the manifest.json format used by FPGA tooling', 'Added Export Lump as Patch flow: pick any pre-built .lump file, validate the header (magic 0x1F, size, cw, cc), and wrap all words into a .patch file for FPGA flashing via patch_fpga.py', 'Byte-order correctness: .lump files remain big-endian per spec; Lump→Patch automatically byte-swaps each word to little-endian for the UART PATCH_LUMP protocol', 'Lump→Patch button added to editor toolbar, editor actions dropdown, and CRD FPGA action bar', 'Lump→Patch prompts for target BRAM word address (default 0x0100) and produces a CHPF v1 .patch with CRC-16/CCITT and RUN sentinel'] },
+        { date: '2026-04-16 UTC', title: 'One-Click Build LUMP', changes: ['Build LUMP button: one-click compile-to-binary for any CLOOMC++ abstraction in any language mode', 'Produces spec-compliant .lump binary: header (magic 0x1F + n-6 + cw + typ + cc), code region, c-list, big-endian uint32', 'Console shows full lump layout: header hex, methods with offsets, capability list, freespace, file size', 'Available in toolbar (green button) and Editor Actions dropdown; auto-disabled in Assembly mode'] },
         { date: '2026-04-16 UTC', title: 'English String Abstraction', changes: ['EN: String example — 14 of 15 planned methods for packed 4-char-per-word string operations written in plain English (ReplaceChar deferred: requires bitwise AND/OR masking not yet in English translator)', 'Pack4/Unpack, IsLetter/IsDigit/IsUpper/IsLower/IsSpace, ToUpper/ToLower, CharToDigit/DigitToChar, ReverseWord, CompareWords, CountLetters', 'Byte extraction via shift-and-subtract (no bfext needed) — pure English front-end, zero hardware dependencies', 'New EN: String tab in CLOOMC++ IDE with category-organized source and ASCII reference header'] },
         { date: '2026-04-15 UTC', title: 'Patent Portfolio & Figure Audit', changes: ['Browsable /patents/ page: 8 PDFs with color-coded badges (FULL/BASE/CIP/COVER), 45 HTML figures with category filters and live search', 'Figure audit complete: 14 dark-background figures converted to white, 5 missing figures created (HP-35 opcode chart, Ada Lovelace model, 3 Lambda Recursion CIP figures), 4 new I/O Addressing figures', 'Consolidated patent document (2,818 lines): cover letter + Part I base patent + Addendum A (CLOOMC++) + Addendum B (Abstract GT I/O) + Addendum C (Lambda Recursion)', 'Lambda Recursion CIP finalized: 7 patent claims — CR6 self-invocation, idempotent re-entry, O(1) trifecta, two-RETURN exit, three loop styles, English NL compilation, pet-name constants', 'All patent PDFs regenerated with fpdf2: Unicode support, letter-size pages, multi-line table cells, page numbering', 'Server routes added: /patents/, /patents/files/, /figures/ for browsing patent portfolio'] },
         { date: '2026-04-12 UTC', title: 'SlideRule Abstraction, LED MMIO & Doc Review', changes: ['SlideRule abstraction complete (NS slot 16): 22 methods in CLOOMC++ source — 13 core (Add, Sub, Mul, Div, Mod, Sqrt, Pow, Sin, Cos, Tan, ASin, ACos, ATan2) + 9 extended (Sinh, Cosh, Exp, Log, Log2, Log10, ToDegrees, ToRadians, Bernoulli)', 'CLOOMC++ compiler bugs fixed: multi-word method bodies, semicolon handling, capability block parsing', '4 lumps build cleanly: Constants, LED, SlideRule, SlideRuleHS (token=00001000, cw=2602, methods=22)', 'LED abstraction (NS slot 12): FPGA MMIO bindings for Efinix Ti60 F225 (NS slot 12)', 'Navana.Init boot sequence: ordered capability grants, slot pre-population on boot ROM start', 'IntegerOps (Clamp+Abs) and PackedString (Pack4+Unpack+IsLetter+ToUpper) JS examples in IDE tabs', 'CR5 instance-data convention clarified: hardware pushes CR5 to cr5_stack on CALL, restores on RETURN', 'Branding cleanup: CTMM_64 → ChurchMachine_64, RV32_CAP → IoT_32 throughout docs', 'Doc review (9 fixes): GT type table, register count, GT width, patent dates, network-transparency status, TSB line count (329 → ~300), Results row in prologue property table'] },
@@ -15775,10 +15951,9 @@ function compileDraft() {
     for (const m of result.methods) {
         totalCodeWords += (m.code || []).length;
     }
-    const methodTableSize = result.methods.length;
-    const codeSize = methodTableSize + totalCodeWords;
+    const codeSize = totalCodeWords;
     const neededSize = codeSize + clistCount;
-    const allocSize = Math.max(32, nextPow2(neededSize));
+    const allocSize = Math.max(64, nextPow2(neededSize + 1));
     const clistStart = allocSize - clistCount;
     const freespace = allocSize - codeSize - clistCount;
 
@@ -15800,21 +15975,22 @@ function compileDraft() {
         }
     }
 
-    draft += `\n  Lump Layout:\n`;
-    draft += `    ┌─────────────────────────────────────────┐\n`;
-    draft += `    │ Method Table     ${methodTableSize.toString().padStart(5)} words  (offset 0)  │\n`;
-    draft += `    │ Code             ${totalCodeWords.toString().padStart(5)} words              │\n`;
-    draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
-    draft += `    │ FREESPACE        ${freespace.toString().padStart(5)} words              │\n`;
-    draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
-    draft += `    │ C-List           ${clistCount.toString().padStart(5)} slots  (offset ${clistStart})${' '.repeat(Math.max(0, 3 - clistStart.toString().length))}│\n`;
-    draft += `    └─────────────────────────────────────────┘\n`;
-    draft += `    Total alloc: ${allocSize} words (power-of-2)\n`;
+    draft += `\n  Lump Layout (matches Build LUMP binary):\n`;
+    draft += `    ┌─────────────────────────────────────────────┐\n`;
+    draft += `    │ Word 0:  Header (magic+n-6+cw+typ+cc)       │\n`;
+    draft += `    │ Words 1..${codeSize}: Code (${result.methods.length} method${result.methods.length !== 1 ? 's' : ''} concatenated)${' '.repeat(Math.max(0, 13 - codeSize.toString().length - result.methods.length.toString().length))}│\n`;
+    draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
+    draft += `    │ FREESPACE        ${freespace.toString().padStart(5)} words                │\n`;
+    draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
+    draft += `    │ C-List           ${clistCount.toString().padStart(5)} slots  (offset ${clistStart})${' '.repeat(Math.max(0, 5 - clistStart.toString().length))}│\n`;
+    draft += `    └─────────────────────────────────────────────┘\n`;
+    draft += `    Total: ${allocSize} words = ${allocSize * 4} bytes\n`;
 
-    draft += `\n  clistCount: ${clistCount} (word1 bits[25:17])\n`;
-    draft += `  Code size:  ${codeSize} words (table + instructions)\n`;
-    draft += `  Lump size:  ${allocSize} words (power-of-2)\n`;
+    draft += `\n  clistCount: ${clistCount}\n`;
+    draft += `  Code (cw):  ${codeSize} words\n`;
+    draft += `  Lump size:  ${allocSize} words (power-of-2, ≥64)\n`;
     draft += `  Freespace:  ${freespace} words\n`;
+    draft += `  (Method offsets for FPGA dispatch: in sidecar metadata, not in binary)\n`;
 
     draft += `\n  CALL split preview:\n`;
     if (clistCount > 0) {
@@ -15899,19 +16075,15 @@ function buildAndDownloadLump() {
     const cc = caps.length;
     const profile = result.profile || 'IoT';
 
-    const methodTable = [];
     const allCode = [];
     const numMethods = result.methods.length;
 
-    let codeOffset = numMethods;
     for (const m of result.methods) {
-        methodTable.push(codeOffset);
         const words = m.code || [];
         allCode.push(...words);
-        codeOffset += words.length;
     }
 
-    const codeRegion = [...methodTable, ...allCode];
+    const codeRegion = [...allCode];
     const cw = codeRegion.length;
 
     let lumpSize = 64;
@@ -15974,7 +16146,7 @@ function buildAndDownloadLump() {
     const mtbfStatus = mtbfTotal === 0 ? 'untested' : (mtbfClean >= 5 ? 'green' : mtbfClean >= 3 ? 'amber' : 'red');
 
     const methodMeta = [];
-    let mOff = numMethods;
+    let mOff = 0;
     for (let i = 0; i < result.methods.length; i++) {
         const m = result.methods[i];
         const len = (m.code || []).length;
@@ -16044,7 +16216,7 @@ function buildAndDownloadLump() {
     listing += `═══════════════════════════════════════════════════\n\n`;
     listing += `  Header:    0x${(header >>> 0).toString(16).padStart(8, '0')}\n`;
     listing += `  Lump Size: ${lumpSize} words (2^${Math.log2(lumpSize)})\n`;
-    listing += `  Code:      ${cw} words (cw = ${numMethods} method-table + ${cw - numMethods} instructions)\n`;
+    listing += `  Code:      ${cw} words (${numMethods} method${numMethods !== 1 ? 's' : ''} concatenated)\n`;
     listing += `  C-List:    ${cc} slot${cc !== 1 ? 's' : ''} (cc)\n`;
     listing += `  Freespace: ${freespace} words\n`;
     listing += `  Profile:   ${profile}\n`;
