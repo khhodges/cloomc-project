@@ -53,19 +53,28 @@ set(CONFIG_CHERRYUSB  1)
 set(CONFIG_CHERRYUSB_DEVICE     1)
 set(CONFIG_CHERRYUSB_DEVICE_CDC 1)
 
-# ── Application sources ───────────────────────────────────────────────────
-# The SDK's build_common.cmake creates an `app` CMake target; add source
-# files to it here before including build_common.cmake.
-target_sources(app PRIVATE
+# ── Executable ───────────────────────────────────────────────────────────
+# Create the target before including build_common.cmake.
+# build_common.cmake appends SDK libraries, linker scripts, and startup
+# code to this target via target_link_libraries() and friends.
+add_executable(${PROJECT_NAME}
     bl702_firmware.c    # main entry point, bridge loop, call-home packet
     cdc_acm_init.c      # USB CDC ACM class descriptor registration
 )
 
-target_include_directories(app PRIVATE
+target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# ── SDK integration — must be last ────────────────────────────────────────
-# build_common.cmake resolves chip drivers, linker scripts, startup code,
-# and all SDK library targets (hal_uart, hal_efuse, usb stack, etc.).
+# ── SDK integration — must be after add_executable ────────────────────────
+# build_common.cmake uses the PROJECT_NAME target to attach SDK libraries,
+# the chip-specific linker script, startup assembly, and USB stack.
 include(${BL_SDK_BASE}/cmake/build_common.cmake)
+
+# ── Output binary ─────────────────────────────────────────────────────────
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary
+            $<TARGET_FILE:${PROJECT_NAME}>
+            ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.bin
+    COMMENT "Creating ${PROJECT_NAME}.bin"
+)

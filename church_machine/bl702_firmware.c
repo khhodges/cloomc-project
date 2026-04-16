@@ -91,8 +91,9 @@ extern uint32_t cdc_acm_read(uint8_t *buf, uint32_t max_len);
 #define FPGA_UART_ID       UART0_INDEX     /* UART0: GPIO14/15 on TN20K-IoT */
 #define FPGA_BAUD          115200
 
-#define USB_ATTACH_TIMEOUT_MS  3000   /* max wait for host to connect */
-#define USB_ATTACH_POLL_MS     10
+#define USB_ATTACH_DELAY_MS    200    /* fixed startup delay before first send */
+#define CALLHOME_RETRY_COUNT   5      /* retry attempts if endpoint not ready */
+#define CALLHOME_RETRY_WAIT_MS 50     /* wait between retries */
 
 #define BRIDGE_BUF_SIZE    256
 
@@ -138,19 +139,25 @@ static void send_callhome_packet(const uint8_t uid[8])
     pkt[22] = 0x00;                /* fault_nia[0] LSB */
 
     /*
-     * Wait for the USB host to enumerate the CDC ACM device and open the
-     * virtual COM port (DTR asserted).  Without this the packet bytes are
-     * discarded before the host driver is ready.
+     * Fixed startup delay.  The USB host driver needs time to enumerate
+     * the CDC ACM device after power-up; 200 ms is sufficient in practice.
+     * We do not gate on DTR: the host bridge (local_bridge.py) scans for
+     * the 0xCE 0x11 magic in the raw byte stream as soon as it opens the
+     * port, so the packet must be sent unconditionally.  If the IN endpoint
+     * is not yet ready we retry a small number of times before giving up
+     * and entering bridge mode anyway.
      */
-    uint32_t waited = 0;
-    while (!cdc_acm_connected() && waited < USB_ATTACH_TIMEOUT_MS) {
-        bflb_platform_delay_ms(USB_ATTACH_POLL_MS);
-        waited += USB_ATTACH_POLL_MS;
-    }
+    bflb_platform_delay_ms(USB_ATTACH_DELAY_MS);
 
-    if (cdc_acm_connected()) {
-        cdc_acm_write(pkt, CALLHOME_PKT_LEN);
+    for (int attempt = 0; attempt < CALLHOME_RETRY_COUNT; attempt++) {
+        uint32_t sent = cdc_acm_write(pkt, CALLHOME_PKT_LEN);
+        if (sent == CALLHOME_PKT_LEN) {
+            break;
+        }
+        bflb_platform_delay_ms(CALLHOME_RETRY_WAIT_MS);
     }
+    /* Bridge mode starts regardless of write success;
+     * local_bridge.py will re-request registration on next heartbeat timeout. */
 }
 
 /* ── UART ↔ USB transparent bridge ───────────────────────────────────────── */
