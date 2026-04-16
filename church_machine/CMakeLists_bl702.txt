@@ -1,97 +1,71 @@
-# Church Machine — BL702 firmware build stub
-# ===========================================
+# Church Machine — BL702 firmware (Tang Nano 20K IoT)
+# =====================================================
 #
-# Prerequisites
-# -------------
-# 1. Clone the Bouffalo Lab MCU SDK alongside this repo:
-#      git clone https://github.com/bouffalolab/bl_mcu_sdk
+# SDK: Bouffalo Lab bl_mcu_sdk
+#   git clone https://github.com/bouffalolab/bl_mcu_sdk
+#   export BL_SDK_BASE=/absolute/path/to/bl_mcu_sdk
 #
-# 2. Install the RISC-V GCC toolchain:
-#      # Ubuntu / Debian:
-#      sudo apt-get install gcc-riscv64-unknown-elf
-#      # Or download from:
-#      #   https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases
+# Toolchain: RISC-V GCC (riscv32-unknown-elf or riscv-none-elf)
+#   # Ubuntu / Debian:
+#   sudo apt-get install gcc-riscv64-unknown-elf
+#   # Or download xpack release:
+#   #   https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases
+#   export PATH=/path/to/riscv-none-elf-gcc/bin:$PATH
 #
-# 3. Install Ninja build system:
-#      sudo apt-get install ninja-build
-#
-# Build
-# -----
-# From the bl_mcu_sdk root directory:
-#
-#   cmake \
-#     -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/riscv32-unknown-elf-gcc.cmake \
-#     -DCHIP=bl702 \
-#     -DBOARD=bl702_iot \
-#     -DAPP_DIR=<absolute-path-to-church_machine> \
-#     -DAPP=bl702_firmware \
-#     -Bbuild \
-#     -G Ninja
+# Build:
+#   cd church_machine
+#   cmake -DCMAKE_BUILD_TYPE=MinSizeRel -Bbuild -G Ninja
 #   ninja -C build
 #
-# Flash
-# -----
-# Using blisp (https://github.com/pine64/blisp):
+# Flash (Tang Nano 20K IoT boot mode: hold BOOT, press RESET, release RESET):
+#   # blisp (open-source):
 #   blisp --chip bl70x --port /dev/ttyUSB0 write build/bl702_firmware.bin --reset
-#
-# Or using the official Bouffalo Lab DevCube GUI flashing tool.
-#
-# The Tang Nano 20K IoT enters boot mode by holding the BOOT button while
-# pressing RESET (or power-cycling with BOOT held).
+#   # or Bouffalo Lab DevCube GUI (Windows/Linux/macOS):
+#   #   https://dev.bouffalolab.com/download
 
 cmake_minimum_required(VERSION 3.15)
 
-# ── SDK path ──────────────────────────────────────────────────────────────────
-# Set BL_MCU_SDK_PATH to the directory where you cloned bl_mcu_sdk,
-# or pass it on the cmake command line:  -DBL_MCU_SDK_PATH=/path/to/bl_mcu_sdk
-if(NOT DEFINED BL_MCU_SDK_PATH)
-    set(BL_MCU_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../bl_mcu_sdk"
-        CACHE PATH "Path to Bouffalo Lab bl_mcu_sdk checkout")
+# ── SDK toolchain — must be included before project() ─────────────────────
+# BL_SDK_BASE is set via environment variable (see build instructions above),
+# or you can pass it directly: cmake -DBL_SDK_BASE=/path/to/bl_mcu_sdk ...
+if(DEFINED ENV{BL_SDK_BASE})
+    set(BL_SDK_BASE $ENV{BL_SDK_BASE})
+elseif(NOT DEFINED BL_SDK_BASE)
+    message(FATAL_ERROR
+        "BL_SDK_BASE is not set.\n"
+        "  export BL_SDK_BASE=/path/to/bl_mcu_sdk\n"
+        "or pass -DBL_SDK_BASE=... to cmake.")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${BL_MCU_SDK_PATH}/cmake")
-include("${BL_MCU_SDK_PATH}/cmake/compiler_flags.cmake")
+set(CHIP bl702)
+set(BOARD bl702_iot)
 
-# ── Project ───────────────────────────────────────────────────────────────────
+include(${BL_SDK_BASE}/cmake/toolchain/riscv32-unknown-elf-gcc.cmake)
+
+# ── Project ───────────────────────────────────────────────────────────────
 project(bl702_firmware C ASM)
 
-set(TARGET bl702_firmware)
+# ── USB CDC class selection ───────────────────────────────────────────────
+# These variables are consumed by build_common.cmake to pull in the right
+# USB stack components from components/usb_stack/.
+set(CONFIG_USB_HS     0)   # BL702 is full-speed only
+set(CONFIG_CHERRYUSB  1)
+set(CONFIG_CHERRYUSB_DEVICE     1)
+set(CONFIG_CHERRYUSB_DEVICE_CDC 1)
 
-add_executable(${TARGET}
-    bl702_firmware.c
+# ── Application sources ───────────────────────────────────────────────────
+# The SDK's build_common.cmake creates an `app` CMake target; add source
+# files to it here before including build_common.cmake.
+target_sources(app PRIVATE
+    bl702_firmware.c    # main entry point, bridge loop, call-home packet
+    cdc_acm_init.c      # USB CDC ACM class descriptor registration
 )
 
-# ── SDK includes ──────────────────────────────────────────────────────────────
-target_include_directories(${TARGET} PRIVATE
-    ${BL_MCU_SDK_PATH}/drivers/bl702_driver/hal_drv/inc
-    ${BL_MCU_SDK_PATH}/drivers/bl702_driver/regs
-    ${BL_MCU_SDK_PATH}/components/usb_stack/class/cdc
-    ${BL_MCU_SDK_PATH}/components/usb_stack/core
-    ${BL_MCU_SDK_PATH}/bsp/bsp_common/platform
+target_include_directories(app PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# ── SDK libraries ─────────────────────────────────────────────────────────────
-target_link_libraries(${TARGET}
-    bl702_hal           # HAL layer: uart, gpio, efuse, dma
-    bl702_usb           # USB device stack with CDC ACM
-    bl702_startup       # RISC-V crt0, linker script
-)
-
-# ── Chip / board definitions ──────────────────────────────────────────────────
-target_compile_definitions(${TARGET} PRIVATE
-    CHIP_BL702
-    BOARD_BL702_IOT
-    CONFIG_USB_HS=0     # BL702 is full-speed USB only
-)
-
-# ── Output binary ─────────────────────────────────────────────────────────────
-set_target_properties(${TARGET} PROPERTIES
-    SUFFIX ".elf"
-)
-
-add_custom_command(TARGET ${TARGET} POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} -O binary
-            $<TARGET_FILE:${TARGET}>
-            ${CMAKE_BINARY_DIR}/${TARGET}.bin
-    COMMENT "Creating ${TARGET}.bin"
-)
+# ── SDK integration — must be last ────────────────────────────────────────
+# build_common.cmake resolves chip drivers, linker scripts, startup code,
+# and all SDK library targets (hal_uart, hal_efuse, usb stack, etc.).
+include(${BL_SDK_BASE}/cmake/build_common.cmake)
