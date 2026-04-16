@@ -57,10 +57,11 @@
         @keyframes app-pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
         @keyframes app-slide { 0%{transform:translateX(-200%)} 100%{transform:translateX(450%)} }
         /* hamburger mega-menu — inline to bypass CSS file cache */
-        #hamDropdown { display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:9999; background:var(--bg-panel,#12121f); border:1px solid var(--border,#2a2a4a); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:0.35rem 0.2rem; grid-template-columns:repeat(6,auto); max-height:calc(100vh - 60px); overflow-y:auto; }
+        #hamDropdown { display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:9999; background:var(--bg-panel,#12121f); border:1px solid var(--border,#2a2a4a); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:0.35rem 0; grid-template-columns:repeat(6,max-content); max-height:calc(100vh - 60px); overflow-y:auto; }
         #hamDropdown.ham-open { display:grid !important; }
-        .ham-group { display:flex; flex-direction:column; min-width:130px; border-right:1px solid var(--border,#2a2a4a); padding:0.2rem 0; }
+        .ham-group { display:flex; flex-direction:column; border-right:1px solid var(--border,#2a2a4a); padding:0.2rem 0; }
         .ham-group:last-child { border-right:none; }
+        .ham-item { width:100%; box-sizing:border-box; }
     </style>
 </head>
 <body>
@@ -89,7 +90,7 @@
                             </div>
                             <div class="ham-group">
                                 <div class="ham-group-title">Test</div>
-                                <button class="ham-item" id="hamItem-dashboard" onclick="switchView('dashboard');switchDashTab('cr');closeHamburger()">Ti60 255 IDE</button>
+                                <button class="ham-item" id="hamItem-dashboard" onclick="switchView('dashboard');switchDashTab('cr');closeHamburger()">Simulator</button>
                                 <button class="ham-item" id="hamItem-dashboard-dr" onclick="switchView('dashboard');switchDashTab('dr');closeHamburger()">Data Registers</button>
                                 <button class="ham-item" id="hamItem-dashboard-gatelog" onclick="switchView('dashboard');switchDashTab('gatelog');closeHamburger()">Gate Log</button>
                                 <button class="ham-item" id="hamItem-dashboard-state" onclick="switchView('dashboard');switchDashTab('state');closeHamburger()">Machine State</button>
