@@ -1613,21 +1613,37 @@ function showDRPopup(evt, drIdx) {
         }
 
         if (sim.getFormattedCR) {
+            const _cr14 = sim.getFormattedCR(14);
+            const _cr14Base = (_cr14 && !_cr14.isNull) ? (_cr14.word1_location >>> 0) : null;
+            const _absPC = _cr14Base !== null ? (_cr14Base + 1 + (sim.pc >>> 0)) : null;
             for (let i = 0; i < 16; i++) {
-                const cr = sim.getFormattedCR(i);
-                if (!cr || cr.isNull || cr.perms.indexOf('X') === -1) continue;
-                const base = cr.word1_location >>> 0;
-                const limit = cr.limit17 || 0;
+                const _xcr = sim.getFormattedCR(i);
+                if (!_xcr || _xcr.isNull || _xcr.perms.indexOf('X') === -1) continue;
+                const base = _xcr.word1_location >>> 0;
+                const limit = _xcr.limit17 || 0;
                 if (val > base && val <= base + limit) {
-                    const nsLbl = (sim.nsLabels && sim.nsLabels[cr.gtIndex]) || '';
+                    const nsLbl = (sim.nsLabels && sim.nsLabels[_xcr.gtIndex]) || '';
                     const offset = val - base;
-                    const isSelf = (sim.pc >>> 0) >= base && (sim.pc >>> 0) <= base + limit;
+                    const isSelf = _absPC !== null && _absPC >= base && _absPC <= base + limit;
                     if (isSelf) {
                         html += `<tr><td colspan="2" style="color:#fbbf24;padding-top:0.3rem;">&#x21BB; Self-loop target — within current lump${nsLbl ? ' ('+nsLbl+')' : ''} +${offset}</td></tr>`;
                     } else {
                         html += `<tr><td colspan="2" style="color:#7dd3fc;padding-top:0.3rem;">&#x2192; Code offset +${offset} in CR${i}${nsLbl ? ' ('+nsLbl+')' : ''}</td></tr>`;
                     }
                     break;
+                }
+            }
+        }
+
+        if (assembler && assembler.labels && sim.getFormattedCR) {
+            const _sCR14 = sim.getFormattedCR(14);
+            const _sBase = (_sCR14 && !_sCR14.isNull) ? (_sCR14.word1_location >>> 0) : null;
+            if (_sBase !== null) {
+                for (const [symName, symOff] of Object.entries(assembler.labels)) {
+                    if ((_sBase + 1 + symOff) === val) {
+                        html += `<tr><td colspan="2" style="color:#34d399;padding-top:0.3rem;">&#x22B9; Symbol: .${symName}</td></tr>`;
+                        break;
+                    }
                 }
             }
         }
@@ -1759,12 +1775,20 @@ function showCRPopup(evt, crIdx) {
                 if (baseLoc2 < sim.memory.length) {
                     const lhdr2 = sim.parseLumpHeader ? sim.parseLumpHeader(sim.memory[baseLoc2] >>> 0) : null;
                     const cEnd2 = lhdr2 && lhdr2.valid ? baseLoc2 + 1 + lhdr2.cw : baseLoc2 + Math.min(cr.limit17 || 0, 64);
-                    let hasLambda = false;
+                    let isSelfLoop = false;
                     for (let _w = baseLoc2 + 1; _w < cEnd2 && _w < sim.memory.length; _w++) {
-                        if (((sim.memory[_w] >>> 27) & 0x1F) === 7) { hasLambda = true; break; }
+                        const _wd = sim.memory[_w] >>> 0;
+                        if (((_wd >>> 27) & 0x1F) === 7) {
+                            const _crSrcIdx = (_wd >>> 15) & 0xF;
+                            const _tmplCR = sim.getFormattedCR ? sim.getFormattedCR(_crSrcIdx) : null;
+                            if (_tmplCR && !_tmplCR.isNull && (_tmplCR.word1_location >>> 0) === baseLoc2) {
+                                isSelfLoop = true;
+                                break;
+                            }
+                        }
                     }
-                    if (hasLambda) {
-                        html += `<tr><td>Pattern</td><td class="zdp-note">&#x21BB; Self-loop <span class="zdp-lbl">(LAMBDA closure)</span></td></tr>`;
+                    if (isSelfLoop) {
+                        html += `<tr><td>Pattern</td><td class="zdp-note">&#x21BB; Self-loop <span class="zdp-lbl">(LAMBDA tail-call)</span></td></tr>`;
                     }
                 }
             } else if (cr.perms.indexOf('R') !== -1 && cr.perms.indexOf('W') !== -1) {
