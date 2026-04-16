@@ -1623,7 +1623,8 @@ def list_lumps():
 @app.route("/api/lumps/<token>", methods=["DELETE"])
 def delete_lump(token):
     """Delete a lump binary, sidecar, and manifest entry."""
-    token8 = token.lower().zfill(8)[:8]
+    raw = token.lower().lstrip('0x')
+    token8 = raw.zfill(8)[:8]
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
 
     lump_path = os.path.join(lumps_dir, f'{token8}.lump')
@@ -1640,21 +1641,25 @@ def delete_lump(token):
     LAZY_LUMPS.pop(token8, None)
     LAZY_LUMPS.pop(token8.lstrip('0') or '0', None)
 
+    manifest_removed = False
     manifest_path = os.path.join(lumps_dir, 'manifest.json')
     if os.path.isfile(manifest_path):
         try:
             with open(manifest_path, 'r') as fh:
                 manifest = json.load(fh)
+            before = len(manifest)
             manifest = [e for e in manifest if e.get('token') != token8]
+            if len(manifest) < before:
+                manifest_removed = True
             with open(manifest_path, 'w') as fh:
                 json.dump(manifest, fh, indent=2)
         except Exception:
             pass
 
-    if not deleted:
+    if not deleted and not manifest_removed:
         return jsonify({"error": f"No lump found for token 0x{token8}"}), 404
 
-    print(f'[lumps] Deleted {", ".join(deleted)}', flush=True)
+    print(f'[lumps] Deleted {", ".join(deleted)}{"+ manifest entry" if manifest_removed else ""}', flush=True)
     return jsonify({"ok": True, "token": token8, "deleted": deleted})
 
 # ──────────────────────────────────────────────────────────────────────────────

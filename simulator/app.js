@@ -4347,7 +4347,7 @@ function renderLumps() {
     listEl.innerHTML = '<div class="lumps-loading">Loading lumps...</div>';
 
     fetch('/api/lumps/list')
-        .then(r => r.json())
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
         .then(lumps => {
             _lumpsCache = lumps;
             if (!lumps || lumps.length === 0) {
@@ -4516,7 +4516,7 @@ function showLumpDetail(token) {
 function deleteLump(token) {
     if (!confirm(`Delete lump 0x${token}? This cannot be undone.`)) return;
     fetch(`/api/lumps/${token}`, { method: 'DELETE' })
-        .then(r => r.json())
+        .then(r => { if (!r.ok && r.status !== 404) throw new Error(`HTTP ${r.status}`); return r.json(); })
         .then(resp => {
             if (resp.ok) {
                 _selectedLumpToken = null;
