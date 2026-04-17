@@ -21,32 +21,80 @@
   "methods": [
     {
       "name": "Pi",
+      "description": "Return the IEEE-754 single-precision value of π (3.14159265…) in DR0.",
+      "inputs": [],
+      "outputs": ["DR0: π ≈ 3.14159265 (0x40490FDB)"],
       "pet_names": { "DR": {} },
+      "comments": [
+        "load self-data-R cap (c-list[0]) into CR0 — grants read-only access to embedded data words",
+        "read data word [0] (π = 3.14159265…) via CR0 into DR0",
+        "return π in DR0 to caller"
+      ],
       "code": ["0x07030000", "0x57000000", "0x1F000000"]
     },
     {
       "name": "E",
+      "description": "Return the IEEE-754 single-precision value of e (2.71828182…) in DR0.",
+      "inputs": [],
+      "outputs": ["DR0: e ≈ 2.71828182 (0x402DF854)"],
       "pet_names": { "DR": {} },
+      "comments": [
+        "load self-data-R cap (c-list[0]) into CR0 — grants read-only access to embedded data words",
+        "read data word [1] (e = 2.71828182…) via CR0 into DR0",
+        "return e in DR0 to caller"
+      ],
       "code": ["0x07030000", "0x57000001", "0x1F000000"]
     },
     {
       "name": "Phi",
+      "description": "Return the IEEE-754 single-precision golden ratio φ (1.61803398…) in DR0.",
+      "inputs": [],
+      "outputs": ["DR0: φ ≈ 1.61803398 (0x3FCF1BBD)"],
       "pet_names": { "DR": {} },
+      "comments": [
+        "load self-data-R cap (c-list[0]) into CR0 — grants read-only access to embedded data words",
+        "read data word [2] (φ = 1.61803398…) via CR0 into DR0",
+        "return φ in DR0 to caller"
+      ],
       "code": ["0x07030000", "0x57000002", "0x1F000000"]
     },
     {
       "name": "Zero",
+      "description": "Return IEEE-754 positive zero (0.0) in DR0.",
+      "inputs": [],
+      "outputs": ["DR0: 0.0 (0x00000000)"],
       "pet_names": { "DR": {} },
+      "comments": [
+        "load self-data-R cap (c-list[0]) into CR0 — grants read-only access to embedded data words",
+        "read data word [3] (0.0) via CR0 into DR0",
+        "return 0.0 in DR0 to caller"
+      ],
       "code": ["0x07030000", "0x57000003", "0x1F000000"]
     },
     {
       "name": "One",
+      "description": "Return IEEE-754 1.0 in DR0.",
+      "inputs": [],
+      "outputs": ["DR0: 1.0 (0x3F800000)"],
       "pet_names": { "DR": {} },
+      "comments": [
+        "load self-data-R cap (c-list[0]) into CR0 — grants read-only access to embedded data words",
+        "read data word [4] (1.0) via CR0 into DR0",
+        "return 1.0 in DR0 to caller"
+      ],
       "code": ["0x07030000", "0x57000004", "0x1F000000"]
     },
     {
       "name": "Add",
+      "description": "Store a user-supplied 32-bit value XYZ in the next free pool slot and return a sealed, read-only Abstract GT capability pointing to that slot. Returns FAULT if the pool (14 slots) is full.",
+      "inputs": ["DR0: XYZ — any IEEE-754 or raw 32-bit value to store"],
+      "outputs": ["CR0: Abstract GT (type=3, R-only) to the allocated pool slot; FAULT if full"],
       "pet_names": { "DR": { "0": "XYZ" } },
+      "comments": [
+        "load pool-W GT (c-list[1]) into CR1 — grants write access to the 14-word user constant pool",
+        "write XYZ (DR0) to pool slot offset 0 via CR1; bindMethod intercepts to scan the bitmap, place value, and mark slot as occupied",
+        "return: Abstract GT (sealed R-only handle to the allocated pool slot) is placed in CR0 by bindMethod before this RETURN executes"
+      ],
       "code": ["0x070B0001", "0x5F008000", "0x1F000000"]
     }
   ]

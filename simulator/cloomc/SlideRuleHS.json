@@ -23,6 +23,14 @@
         "0x7f600000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Add two floats (DR0 + DR1) and return the sum in DR0.",
+      "inputs": [
+        "DR0: first operand",
+        "DR1: second operand"
+      ],
+      "outputs": [
+        "DR0: DR0 + DR1"
       ]
     },
     {
@@ -31,6 +39,14 @@
         "0x87600000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Subtract DR1 from DR0 (DR0 \u2212 DR1) and return the result in DR0.",
+      "inputs": [
+        "DR0: minuend",
+        "DR1: subtrahend"
+      ],
+      "outputs": [
+        "DR0: DR0 \u2212 DR1"
       ]
     },
     {
@@ -44,6 +60,14 @@
         "0x8f000001",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Multiply two floats (DR0 \u00d7 DR1) and return the product in DR0.",
+      "inputs": [
+        "DR0: multiplicand",
+        "DR1: multiplier"
+      ],
+      "outputs": [
+        "DR0: DR0 \u00d7 DR1"
       ]
     },
     {
@@ -76,6 +100,13 @@
         "0x7f660000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return the square root of DR0. Input must be non-negative.",
+      "inputs": [
+        "DR0: radicand (\u2265 0)"
+      ],
+      "outputs": [
+        "DR0: \u221aDR0"
       ]
     },
     {
@@ -100,6 +131,13 @@
         "0x7f660000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return 2^DR0 (two raised to the power DR0).",
+      "inputs": [
+        "DR0: exponent"
+      ],
+      "outputs": [
+        "DR0: 2^DR0"
       ]
     },
     {
@@ -118,6 +156,13 @@
         "0x7f600000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return the absolute value |DR0|.",
+      "inputs": [
+        "DR0: any float"
+      ],
+      "outputs": [
+        "DR0: |DR0|"
       ]
     },
     {
@@ -148,6 +193,13 @@
         "0x7f660000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return +1.0 if DR0 > 0, \u22121.0 if DR0 < 0, or 0.0 if DR0 = 0.",
+      "inputs": [
+        "DR0: any float"
+      ],
+      "outputs": [
+        "DR0: sign of DR0"
       ]
     },
     {
@@ -163,6 +215,14 @@
         "0x7f608000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return the larger of DR0 and DR1.",
+      "inputs": [
+        "DR0: first value",
+        "DR1: second value"
+      ],
+      "outputs": [
+        "DR0: max(DR0, DR1)"
       ]
     },
     {
@@ -178,6 +238,14 @@
         "0x7f608000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return the smaller of DR0 and DR1.",
+      "inputs": [
+        "DR0: first value",
+        "DR1: second value"
+      ],
+      "outputs": [
+        "DR0: min(DR0, DR1)"
       ]
     },
     {
@@ -201,6 +269,15 @@
         "0x7f660000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Clamp DR0 to the range [DR1, DR2] and return the result in DR0.",
+      "inputs": [
+        "DR0: value to clamp",
+        "DR1: lower bound",
+        "DR2: upper bound"
+      ],
+      "outputs": [
+        "DR0: clamped value in [DR1, DR2]"
       ]
     }
   ]

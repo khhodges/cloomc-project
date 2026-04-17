@@ -10,7 +10,11 @@
   "methods": [
     {
       "name": "Dispatch",
-      "pet_names": { "DR": { "0": "method" } },
+      "pet_names": {
+        "DR": {
+          "0": "method"
+        }
+      },
       "code": [
         "0x0000000e",
         "0x0000001c",
@@ -40,11 +44,22 @@
         "0x7f460000",
         "0x7f0c0000",
         "0x1f000000"
+      ],
+      "description": "Route a WordString method call by index. Reads the method index from DR0 and jumps to the corresponding implementation via the dispatch table.",
+      "inputs": [
+        "DR0: method index (integer)"
+      ],
+      "outputs": [
+        "Dispatches to the selected WordString method; return value depends on the method called"
       ]
     },
     {
       "name": "GetWordCount",
-      "pet_names": { "DR": { "0": "str" } },
+      "pet_names": {
+        "DR": {
+          "0": "str"
+        }
+      },
       "code": [
         "0x7f600000",
         "0x77160000",
@@ -53,11 +68,22 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Return the number of 32-bit words occupied by the WordString, including the header word.",
+      "inputs": [
+        "CR0: WordString GT"
+      ],
+      "outputs": [
+        "DR0: word count"
       ]
     },
     {
       "name": "GetCharCount",
-      "pet_names": { "DR": { "0": "str" } },
+      "pet_names": {
+        "DR": {
+          "0": "str"
+        }
+      },
       "code": [
         "0x7f604001",
         "0x77160000",
@@ -72,11 +98,22 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Return the total number of Unicode code points in the WordString.",
+      "inputs": [
+        "CR0: WordString GT"
+      ],
+      "outputs": [
+        "DR0: character count"
       ]
     },
     {
       "name": "GetByteCount",
-      "pet_names": { "DR": { "0": "str" } },
+      "pet_names": {
+        "DR": {
+          "0": "str"
+        }
+      },
       "code": [
         "0x7f604002",
         "0x77160000",
@@ -91,11 +128,23 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Return the total byte length of the UTF-8 encoded content of the WordString.",
+      "inputs": [
+        "CR0: WordString GT"
+      ],
+      "outputs": [
+        "DR0: byte count"
       ]
     },
     {
       "name": "GetCharByte",
-      "pet_names": { "DR": { "0": "str", "1": "idx" } },
+      "pet_names": {
+        "DR": {
+          "0": "str",
+          "1": "idx"
+        }
+      },
       "code": [
         "0x9f608008",
         "0x7f2e0000",
@@ -105,11 +154,23 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Return the UTF-8 byte at position DR0 within the WordString.",
+      "inputs": [
+        "CR0: WordString GT",
+        "DR0: byte index"
+      ],
+      "outputs": [
+        "DR0: byte value at index"
       ]
     },
     {
       "name": "IsUppercase",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f604040",
         "0x770e0000",
@@ -120,11 +181,22 @@
         "0x7f604001",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Return 1 if the character (code point DR0) is an ASCII uppercase letter (A\u2013Z), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if uppercase letter, else 0"
       ]
     },
     {
       "name": "IsLowercase",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f604060",
         "0x770e0000",
@@ -135,6 +207,13 @@
         "0x7f604001",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Return 1 if the character (code point DR0) is an ASCII lowercase letter (a\u2013z), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if lowercase letter, else 0"
       ]
     },
     {
@@ -143,11 +222,20 @@
         "0x7f600000",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Always return 0 (false). Used as a stub for unimplemented or inapplicable character class predicates.",
+      "inputs": [],
+      "outputs": [
+        "DR0: 0"
       ]
     },
     {
       "name": "IsDigit",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f60402f",
         "0x770e0000",
@@ -158,31 +246,77 @@
         "0x7f604001",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Return 1 if the code point DR0 is an ASCII decimal digit (0\u20139), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if digit, else 0"
       ]
     },
     {
       "name": "IsAlpha",
-      "aliasOf": "ReturnFalse"
+      "aliasOf": "ReturnFalse",
+      "description": "Return 1 if the code point DR0 is an ASCII letter (A\u2013Z or a\u2013z), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if letter, else 0"
+      ]
     },
     {
       "name": "IsUpperExt",
-      "aliasOf": "IsUppercase"
+      "aliasOf": "IsUppercase",
+      "description": "Return 1 if the code point DR0 is a non-ASCII uppercase letter (extended Unicode), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if extended uppercase, else 0"
+      ]
     },
     {
       "name": "IsPunct",
-      "aliasOf": "ReturnFalse"
+      "aliasOf": "ReturnFalse",
+      "description": "Return 1 if the code point DR0 is an ASCII punctuation character, else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if punctuation, else 0"
+      ]
     },
     {
       "name": "IsLowerExt",
-      "aliasOf": "IsLowercase"
+      "aliasOf": "IsLowercase",
+      "description": "Return 1 if the code point DR0 is a non-ASCII lowercase letter (extended Unicode), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if extended lowercase, else 0"
+      ]
     },
     {
       "name": "IsSymbol",
-      "aliasOf": "ReturnFalse"
+      "aliasOf": "ReturnFalse",
+      "description": "Return 1 if the code point DR0 is a Unicode symbol character, else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if symbol, else 0"
+      ]
     },
     {
       "name": "IsSpace",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f604020",
         "0x770e0000",
@@ -190,15 +324,33 @@
         "0x7f604001",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Return 1 if the code point DR0 is a whitespace character (space, tab, newline, etc.), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if whitespace, else 0"
       ]
     },
     {
       "name": "IsAlphaNum",
-      "aliasOf": "ReturnFalse"
+      "aliasOf": "ReturnFalse",
+      "description": "Return 1 if the code point DR0 is alphanumeric (letter or digit), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if alphanumeric, else 0"
+      ]
     },
     {
       "name": "ToUppercase",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f604060",
         "0x770e0000",
@@ -210,17 +362,35 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Convert ASCII lowercase letter DR0 to its uppercase equivalent. Non-letters pass through unchanged.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: uppercased code point"
       ]
     },
     {
       "name": "Stub",
       "code": [
         "0x1f000000"
+      ],
+      "description": "No-op stub. Returns DR0 unchanged. Placeholder for unimplemented transformations.",
+      "inputs": [
+        "DR0: any value"
+      ],
+      "outputs": [
+        "DR0: unchanged"
       ]
     },
     {
       "name": "ToLowercase",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f604040",
         "0x770e0000",
@@ -232,15 +402,33 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Convert ASCII uppercase letter DR0 to its lowercase equivalent. Non-letters pass through unchanged.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: lowercased code point"
       ]
     },
     {
       "name": "StubExt",
-      "aliasOf": "Stub"
+      "aliasOf": "Stub",
+      "description": "No-op stub for extended Unicode transformations. Returns DR0 unchanged.",
+      "inputs": [
+        "DR0: any value"
+      ],
+      "outputs": [
+        "DR0: unchanged"
+      ]
     },
     {
       "name": "NormaliseDigit",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f60402f",
         "0x770e0000",
@@ -252,25 +440,57 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Return the decimal digit value (0\u20139) of the digit character DR0. Non-digits return \u22121.",
+      "inputs": [
+        "DR0: Unicode code point for a decimal digit"
+      ],
+      "outputs": [
+        "DR0: integer value 0\u20139, or \u22121 if not a digit"
       ]
     },
     {
       "name": "IsHex",
-      "aliasOf": "ReturnFalse"
+      "aliasOf": "ReturnFalse",
+      "description": "Return 1 if the code point DR0 is a valid hexadecimal digit (0\u20139, A\u2013F, a\u2013f), else 0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: 1 if hex digit, else 0"
+      ]
     },
     {
       "name": "Offset",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f60c030",
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Return the byte offset within the WordString's backing store for character index DR0.",
+      "inputs": [
+        "CR0: WordString GT",
+        "DR0: character index"
+      ],
+      "outputs": [
+        "DR0: byte offset"
       ]
     },
     {
       "name": "StringOp",
-      "pet_names": { "DR": { "0": "src", "1": "dst", "2": "len" } },
+      "pet_names": {
+        "DR": {
+          "0": "src",
+          "1": "dst",
+          "2": "len"
+        }
+      },
       "code": [
         "0x9f608018",
         "0x7f260000",
@@ -309,43 +529,90 @@
         "0x7f778000",
         "0x7f0f0000",
         "0x1f000000"
+      ],
+      "description": "Apply a generic string operation specified by DR1 to the WordString. The operation semantics depend on DR1.",
+      "inputs": [
+        "CR0: WordString GT",
+        "DR0: output buffer or result register",
+        "DR1: operation code"
+      ],
+      "outputs": [
+        "DR0: result or status"
       ]
     },
     {
       "name": "CheckNonZero",
-      "pet_names": { "DR": { "0": "val" } },
+      "pet_names": {
+        "DR": {
+          "0": "val"
+        }
+      },
       "code": [
         "0x77090000",
         "0x88800004",
         "0x7f600000",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Return DR0 if DR0 \u2260 0, else FAULT. Used to guard operations that require a non-zero value.",
+      "inputs": [
+        "DR0: value to check"
+      ],
+      "outputs": [
+        "DR0: DR0 (pass-through if non-zero), FAULT otherwise"
       ]
     },
     {
       "name": "CheckPositive",
-      "pet_names": { "DR": { "0": "val" } },
+      "pet_names": {
+        "DR": {
+          "0": "val"
+        }
+      },
       "code": [
         "0x77090000",
         "0x8e800004",
         "0x7f604001",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Return DR0 if DR0 > 0, else FAULT. Guards operations requiring a strictly positive value.",
+      "inputs": [
+        "DR0: value to check"
+      ],
+      "outputs": [
+        "DR0: DR0 (pass-through if positive), FAULT otherwise"
       ]
     },
     {
       "name": "ComputeBase",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x87608002",
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Compute the base word address of the WordString data given the GT and an offset.",
+      "inputs": [
+        "CR0: WordString GT",
+        "DR0: offset"
+      ],
+      "outputs": [
+        "DR0: absolute base address"
       ]
     },
     {
       "name": "Classify",
-      "pet_names": { "DR": { "0": "c" } },
+      "pet_names": {
+        "DR": {
+          "0": "c"
+        }
+      },
       "code": [
         "0x7f600000",
         "0x7f260000",
@@ -437,6 +704,13 @@
         "0x7f260000",
         "0x7f0a0000",
         "0x1f000000"
+      ],
+      "description": "Classify the Unicode code point DR0 into a character category code and return it in DR0.",
+      "inputs": [
+        "DR0: Unicode code point"
+      ],
+      "outputs": [
+        "DR0: character category code"
       ]
     }
   ]

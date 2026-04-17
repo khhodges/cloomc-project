@@ -6180,6 +6180,35 @@ a.next-step-link:hover {
     opacity: 0.85;
     font-style: italic;
 }
+.lump-code-comment {
+    color: #6fa87a;
+    font-size: 0.68rem;
+    margin-left: auto;
+    padding-left: 1rem;
+    opacity: 0.75;
+    font-style: italic;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.lump-code-docstring {
+    color: #8a9aaa;
+    font-size: 0.67rem;
+    font-style: italic;
+    padding: 0.2rem 0.4rem 0.35rem 0.75rem;
+    border-left: 2px solid rgba(100, 160, 255, 0.18);
+    margin: 0.1rem 0 0.3rem 0;
+    line-height: 1.5;
+}
+.lump-code-docstring .lump-doc-desc {
+    color: #9bb0c4;
+    display: block;
+    margin-bottom: 0.15rem;
+}
+.lump-code-docstring .lump-doc-io {
+    color: #6a8899;
+    display: block;
+    font-size: 0.63rem;
+}
 /* ── C-List viewer ──────────────────────────────────────── */
 .lump-clist-section {
     margin-top: 0.8rem;

@@ -146,8 +146,10 @@ def build_lump(payload, verbose=False):
                 'length' : length,
                 'aliasOf': alias_of,
             }
-            if 'pet_names' in m:
-                entry['pet_names'] = m['pet_names']
+            if 'pet_names'   in m: entry['pet_names']   = m['pet_names']
+            if 'description' in m: entry['description'] = m['description']
+            if 'inputs'      in m: entry['inputs']      = m['inputs']
+            if 'outputs'     in m: entry['outputs']     = m['outputs']
             method_table.append(entry)
         else:
             words = parse_code(m)
@@ -167,8 +169,11 @@ def build_lump(payload, verbose=False):
                 'offset': offset,
                 'length': len(words),
             }
-            if 'pet_names' in m:
-                entry['pet_names'] = m['pet_names']
+            if 'pet_names'   in m: entry['pet_names']   = m['pet_names']
+            if 'description' in m: entry['description'] = m['description']
+            if 'inputs'      in m: entry['inputs']      = m['inputs']
+            if 'outputs'     in m: entry['outputs']     = m['outputs']
+            if 'comments'    in m: entry['comments']    = m['comments']
             method_table.append(entry)
 
     cw = len(all_code)

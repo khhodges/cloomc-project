@@ -14,7 +14,17 @@
         "length": 3,
         "pet_names": {
           "DR": {}
-        }
+        },
+        "description": "Return the IEEE-754 single-precision value of \u03c0 (3.14159265\u2026) in DR0.",
+        "inputs": [],
+        "outputs": [
+          "DR0: \u03c0 \u2248 3.14159265 (0x40490FDB)"
+        ],
+        "comments": [
+          "load self-data-R cap (c-list[0]) into CR0 \u2014 grants read-only access to embedded data words",
+          "read data word [0] (\u03c0 = 3.14159265\u2026) via CR0 into DR0",
+          "return \u03c0 in DR0 to caller"
+        ]
       },
       {
         "name": "E",
@@ -22,7 +32,17 @@
         "length": 3,
         "pet_names": {
           "DR": {}
-        }
+        },
+        "description": "Return the IEEE-754 single-precision value of e (2.71828182\u2026) in DR0.",
+        "inputs": [],
+        "outputs": [
+          "DR0: e \u2248 2.71828182 (0x402DF854)"
+        ],
+        "comments": [
+          "load self-data-R cap (c-list[0]) into CR0 \u2014 grants read-only access to embedded data words",
+          "read data word [1] (e = 2.71828182\u2026) via CR0 into DR0",
+          "return e in DR0 to caller"
+        ]
       },
       {
         "name": "Phi",
@@ -30,7 +50,17 @@
         "length": 3,
         "pet_names": {
           "DR": {}
-        }
+        },
+        "description": "Return the IEEE-754 single-precision golden ratio \u03c6 (1.61803398\u2026) in DR0.",
+        "inputs": [],
+        "outputs": [
+          "DR0: \u03c6 \u2248 1.61803398 (0x3FCF1BBD)"
+        ],
+        "comments": [
+          "load self-data-R cap (c-list[0]) into CR0 \u2014 grants read-only access to embedded data words",
+          "read data word [2] (\u03c6 = 1.61803398\u2026) via CR0 into DR0",
+          "return \u03c6 in DR0 to caller"
+        ]
       },
       {
         "name": "Zero",
@@ -38,7 +68,17 @@
         "length": 3,
         "pet_names": {
           "DR": {}
-        }
+        },
+        "description": "Return IEEE-754 positive zero (0.0) in DR0.",
+        "inputs": [],
+        "outputs": [
+          "DR0: 0.0 (0x00000000)"
+        ],
+        "comments": [
+          "load self-data-R cap (c-list[0]) into CR0 \u2014 grants read-only access to embedded data words",
+          "read data word [3] (0.0) via CR0 into DR0",
+          "return 0.0 in DR0 to caller"
+        ]
       },
       {
         "name": "One",
@@ -46,7 +86,17 @@
         "length": 3,
         "pet_names": {
           "DR": {}
-        }
+        },
+        "description": "Return IEEE-754 1.0 in DR0.",
+        "inputs": [],
+        "outputs": [
+          "DR0: 1.0 (0x3F800000)"
+        ],
+        "comments": [
+          "load self-data-R cap (c-list[0]) into CR0 \u2014 grants read-only access to embedded data words",
+          "read data word [4] (1.0) via CR0 into DR0",
+          "return 1.0 in DR0 to caller"
+        ]
       },
       {
         "name": "Add",
@@ -56,7 +106,19 @@
           "DR": {
             "0": "XYZ"
           }
-        }
+        },
+        "description": "Store a user-supplied 32-bit value XYZ in the next free pool slot and return a sealed, read-only Abstract GT capability pointing to that slot. Returns FAULT if the pool (14 slots) is full.",
+        "inputs": [
+          "DR0: XYZ \u2014 any IEEE-754 or raw 32-bit value to store"
+        ],
+        "outputs": [
+          "CR0: Abstract GT (type=3, R-only) to the allocated pool slot; FAULT if full"
+        ],
+        "comments": [
+          "load pool-W GT (c-list[1]) into CR1 \u2014 grants write access to the 14-word user constant pool",
+          "write XYZ (DR0) to pool slot offset 0 via CR1; bindMethod intercepts to scan the bitmap, place value, and mark slot as occupied",
+          "return: Abstract GT (sealed R-only handle to the allocated pool slot) is placed in CR0 by bindMethod before this RETURN executes"
+        ]
       }
     ],
     "grants": [
@@ -87,22 +149,143 @@
       {
         "name": "Set",
         "offset": 0,
-        "length": 33
+        "length": 33,
+        "description": "Turn on one LED (0\u20135) without disturbing the others. For each of the 6 LED positions, compare the input LED# with the position index; if they match, write an ON bitmask to that LED's IO register slot.",
+        "inputs": [
+          "DR0: LED number to turn on (0\u20135)"
+        ],
+        "outputs": [
+          "Hardware LED DR0 is illuminated; IO register slot DR0 is set to 1"
+        ],
+        "comments": [
+          "LED 0: DR12 = 2\u00d7DR0 (= 0 when led=0, comparison target for index 0)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 0 \u2192 skip LED 0 assignment",
+          "DR12 = led#+1 (= 1 for led=0, ON bitmask for LED 0)",
+          "write ON bitmask to LED-0 IO register slot via CR7",
+          "LED 1: DR12 = led#+1 (comparison target for index 1)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 1 \u2192 skip LED 1 assignment",
+          "DR12 = 1 (ON bitmask for LED 1)",
+          "write ON bitmask to LED-1 IO register slot via CR7",
+          "LED 2: DR12 = led#+2 (comparison target for index 2)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 2 \u2192 skip LED 2 assignment",
+          "DR12 = 1 (ON bitmask for LED 2)",
+          "write ON bitmask to LED-2 IO register slot via CR7",
+          "LED 3: DR12 = led#+3 (comparison target for index 3)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 3 \u2192 skip LED 3 assignment",
+          "DR12 = 1 (ON bitmask for LED 3)",
+          "write ON bitmask to LED-3 IO register slot via CR7",
+          "LED 4: DR12 = led#+4 (comparison target for index 4)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 4 \u2192 skip LED 4 assignment",
+          "DR12 = 1 (ON bitmask for LED 4)",
+          "write ON bitmask to LED-4 IO register slot via CR7",
+          "LED 5: DR12 = led#+5 (comparison target for index 5)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 5 \u2192 fall through to epilogue",
+          "DR12 = 1 (ON bitmask for LED 5)",
+          "write ON bitmask to LED-5 IO register slot via CR7",
+          "epilogue: clear DR12 scratch register",
+          "clear DR0 result (no data return)",
+          "return to caller"
+        ]
       },
       {
         "name": "Clear",
         "offset": 33,
-        "length": 33
+        "length": 33,
+        "description": "Turn off one LED (0\u20135) without disturbing the others. Same structure as Set but writes 0 (OFF bitmask) to the matched LED's IO register slot.",
+        "inputs": [
+          "DR0: LED number to turn off (0\u20135)"
+        ],
+        "outputs": [
+          "Hardware LED DR0 is extinguished; IO register slot DR0 is cleared to 0"
+        ],
+        "comments": [
+          "LED 0: DR12 = 2\u00d7DR0 (= 0 when led=0, comparison target for index 0)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 0 \u2192 skip LED 0 assignment",
+          "DR12 = 2\u00d7DR0 (= 0 for led=0, OFF bitmask \u2014 clear the bit)",
+          "write OFF bitmask (0) to LED-0 IO register slot via CR7",
+          "LED 1: DR12 = led#+1 (comparison target for index 1)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 1 \u2192 skip LED 1 assignment",
+          "DR12 = 0 (OFF bitmask for LED 1)",
+          "write OFF bitmask to LED-1 IO register slot via CR7",
+          "LED 2: DR12 = led#+2 (comparison target for index 2)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 2 \u2192 skip LED 2 assignment",
+          "DR12 = 0 (OFF bitmask for LED 2)",
+          "write OFF bitmask to LED-2 IO register slot via CR7",
+          "LED 3: DR12 = led#+3 (comparison target for index 3)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 3 \u2192 skip LED 3 assignment",
+          "DR12 = 0 (OFF bitmask for LED 3)",
+          "write OFF bitmask to LED-3 IO register slot via CR7",
+          "LED 4: DR12 = led#+4 (comparison target for index 4)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 4 \u2192 skip LED 4 assignment",
+          "DR12 = 0 (OFF bitmask for LED 4)",
+          "write OFF bitmask to LED-4 IO register slot via CR7",
+          "LED 5: DR12 = led#+5 (comparison target for index 5)",
+          "compare input led# (DR0) vs DR12",
+          "branch if led# \u2260 5 \u2192 fall through to epilogue",
+          "DR12 = 0 (OFF bitmask for LED 5)",
+          "write OFF bitmask to LED-5 IO register slot via CR7",
+          "epilogue: clear DR12 scratch register",
+          "clear DR0 result (no data return)",
+          "return to caller"
+        ]
       },
       {
         "name": "Toggle",
         "offset": 66,
-        "length": 57
+        "length": 57,
+        "description": "Flip the state of one LED (0\u20135). Reads the current IO register value, XORs the target bit, and writes the new state back. For each LED position: read current state, compute XOR bitmask, conditionally negate, then write back.",
+        "inputs": [
+          "DR0: LED number to toggle (0\u20135)"
+        ],
+        "outputs": [
+          "Hardware LED DR0 is flipped; IO register slot DR0 reflects the new state"
+        ]
       },
       {
         "name": "Pattern",
         "offset": 123,
-        "length": 21
+        "length": 21,
+        "description": "Set all 6 LEDs simultaneously from a bitmask. Extracts each bit from DR0[5:0] and writes each bit individually to the corresponding LED IO register slot (bit 0 \u2192 LED 0, \u2026, bit 5 \u2192 LED 5).",
+        "inputs": [
+          "DR0: 6-bit LED pattern \u2014 bit N controls LED N (1=on, 0=off)"
+        ],
+        "outputs": [
+          "All 6 LED IO register slots updated to match the pattern bitmask"
+        ],
+        "comments": [
+          "extract bit 0 of pattern (LED 0) into DR12 via bit-field shift",
+          "store LED-0 bit into DR9 (working register)",
+          "extract bit 1 of pattern (LED 1) into DR12",
+          "store LED-1 bit into DR11",
+          "extract bit 2 of pattern (LED 2) into DR12",
+          "store LED-2 bit into DR13",
+          "extract bit 3 of pattern (LED 3) into DR12",
+          "store LED-3 bit into DR15",
+          "extract bit 4 of pattern (LED 4) into DR12",
+          "store LED-4 bit into DR17",
+          "extract bit 5 of pattern (LED 5) into DR12",
+          "store LED-5 bit into DR19",
+          "write LED-0 bit to IO register slot 0 via CR9",
+          "write LED-1 bit to IO register slot 1 via CR11",
+          "write LED-2 bit to IO register slot 2 via CR13",
+          "write LED-3 bit to IO register slot 3 via CR15",
+          "write LED-4 bit to IO register slot 4 via CR17",
+          "write LED-5 bit to IO register slot 5 via CR19",
+          "epilogue: clear DR12 scratch register",
+          "clear DR0 result (no data return)",
+          "return to caller"
+        ]
       }
     ],
     "grants": [
@@ -121,112 +304,274 @@
       {
         "name": "Multiply",
         "offset": 0,
-        "length": 43
+        "length": 43,
+        "description": "Multiply two IEEE-754 floats (DR0 \u00d7 DR1) and return the product in DR0.",
+        "inputs": [
+          "DR0: multiplicand",
+          "DR1: multiplier"
+        ],
+        "outputs": [
+          "DR0: DR0 \u00d7 DR1"
+        ]
       },
       {
         "name": "Divide",
         "offset": 43,
-        "length": 41
+        "length": 41,
+        "description": "Divide DR0 by DR1 (DR0 \u00f7 DR1) and return the quotient in DR0. FAULT if DR1 is zero.",
+        "inputs": [
+          "DR0: dividend",
+          "DR1: divisor (must be non-zero)"
+        ],
+        "outputs": [
+          "DR0: DR0 \u00f7 DR1"
+        ]
       },
       {
         "name": "Sqrt",
         "offset": 84,
-        "length": 40
+        "length": 40,
+        "description": "Return the square root of DR0 (\u221aDR0). Input must be non-negative.",
+        "inputs": [
+          "DR0: radicand (\u2265 0)"
+        ],
+        "outputs": [
+          "DR0: \u221aDR0"
+        ]
       },
       {
         "name": "Mod",
         "offset": 124,
-        "length": 34
+        "length": 34,
+        "description": "Return the IEEE-754 remainder of DR0 \u00f7 DR1 (equivalent to fmod).",
+        "inputs": [
+          "DR0: dividend",
+          "DR1: divisor"
+        ],
+        "outputs": [
+          "DR0: DR0 mod DR1"
+        ]
       },
       {
         "name": "Sin",
         "offset": 158,
-        "length": 295
+        "length": 295,
+        "description": "Return the sine of DR0 (radians) in DR0.",
+        "inputs": [
+          "DR0: angle in radians"
+        ],
+        "outputs": [
+          "DR0: sin(DR0)"
+        ]
       },
       {
         "name": "Cos",
         "offset": 453,
-        "length": 280
+        "length": 280,
+        "description": "Return the cosine of DR0 (radians) in DR0.",
+        "inputs": [
+          "DR0: angle in radians"
+        ],
+        "outputs": [
+          "DR0: cos(DR0)"
+        ]
       },
       {
         "name": "Tan",
         "offset": 733,
-        "length": 335
+        "length": 335,
+        "description": "Return the tangent of DR0 (radians) in DR0.",
+        "inputs": [
+          "DR0: angle in radians"
+        ],
+        "outputs": [
+          "DR0: tan(DR0)"
+        ]
       },
       {
         "name": "Asin",
         "offset": 1068,
-        "length": 282
+        "length": 282,
+        "description": "Return the arcsine of DR0 in radians. Input must be in [\u22121, 1].",
+        "inputs": [
+          "DR0: value in [\u22121, 1]"
+        ],
+        "outputs": [
+          "DR0: arcsin(DR0) in radians"
+        ]
       },
       {
         "name": "Acos",
         "offset": 1350,
-        "length": 290
+        "length": 290,
+        "description": "Return the arccosine of DR0 in radians. Input must be in [\u22121, 1].",
+        "inputs": [
+          "DR0: value in [\u22121, 1]"
+        ],
+        "outputs": [
+          "DR0: arccos(DR0) in radians"
+        ]
       },
       {
         "name": "Atan",
         "offset": 1640,
-        "length": 280
+        "length": 280,
+        "description": "Return the arctangent of DR0 in radians.",
+        "inputs": [
+          "DR0: value"
+        ],
+        "outputs": [
+          "DR0: arctan(DR0) in radians"
+        ]
       },
       {
         "name": "ToDegrees",
         "offset": 1920,
-        "length": 39
+        "length": 39,
+        "description": "Convert DR0 from radians to degrees (DR0 \u00d7 180/\u03c0).",
+        "inputs": [
+          "DR0: angle in radians"
+        ],
+        "outputs": [
+          "DR0: angle in degrees"
+        ]
       },
       {
         "name": "ToRadians",
         "offset": 1959,
-        "length": 37
+        "length": 37,
+        "description": "Convert DR0 from degrees to radians (DR0 \u00d7 \u03c0/180).",
+        "inputs": [
+          "DR0: angle in degrees"
+        ],
+        "outputs": [
+          "DR0: angle in radians"
+        ]
       },
       {
         "name": "Bernoulli",
         "offset": 1996,
-        "length": 130
+        "length": 130,
+        "description": "Return the Bernoulli number B(n) for non-negative integer n in DR0.",
+        "inputs": [
+          "DR0: integer n \u2265 0"
+        ],
+        "outputs": [
+          "DR0: B(n)"
+        ]
       },
       {
         "name": "Abs",
         "offset": 2126,
-        "length": 7
+        "length": 7,
+        "description": "Return the absolute value of DR0 (|DR0|).",
+        "inputs": [
+          "DR0: any float"
+        ],
+        "outputs": [
+          "DR0: |DR0|"
+        ]
       },
       {
         "name": "Pow",
         "offset": 2133,
-        "length": 63
+        "length": 63,
+        "description": "Return DR0 raised to the power DR1 (DR0^DR1).",
+        "inputs": [
+          "DR0: base",
+          "DR1: exponent"
+        ],
+        "outputs": [
+          "DR0: DR0^DR1"
+        ]
       },
       {
         "name": "Min",
         "offset": 2196,
-        "length": 5
+        "length": 5,
+        "description": "Return the smaller of DR0 and DR1.",
+        "inputs": [
+          "DR0: first value",
+          "DR1: second value"
+        ],
+        "outputs": [
+          "DR0: min(DR0, DR1)"
+        ]
       },
       {
         "name": "Max",
         "offset": 2201,
-        "length": 5
+        "length": 5,
+        "description": "Return the larger of DR0 and DR1.",
+        "inputs": [
+          "DR0: first value",
+          "DR1: second value"
+        ],
+        "outputs": [
+          "DR0: max(DR0, DR1)"
+        ]
       },
       {
         "name": "GCD",
         "offset": 2206,
-        "length": 25
+        "length": 25,
+        "description": "Return the greatest common divisor of integer DR0 and DR1 using the Euclidean algorithm.",
+        "inputs": [
+          "DR0: first integer",
+          "DR1: second integer"
+        ],
+        "outputs": [
+          "DR0: GCD(DR0, DR1)"
+        ]
       },
       {
         "name": "Factorial",
         "offset": 2231,
-        "length": 42
+        "length": 42,
+        "description": "Return n! for non-negative integer n in DR0. Returns 1.0 for n=0.",
+        "inputs": [
+          "DR0: non-negative integer n"
+        ],
+        "outputs": [
+          "DR0: n!"
+        ]
       },
       {
         "name": "Log2",
         "offset": 2273,
-        "length": 18
+        "length": 18,
+        "description": "Return the base-2 logarithm of DR0 (log\u2082 DR0). Input must be positive.",
+        "inputs": [
+          "DR0: positive float"
+        ],
+        "outputs": [
+          "DR0: log\u2082(DR0)"
+        ]
       },
       {
         "name": "Atan2",
         "offset": 2291,
-        "length": 294
+        "length": 294,
+        "description": "Return the two-argument arctangent atan2(DR0, DR1) in radians. DR0=y, DR1=x.",
+        "inputs": [
+          "DR0: y component",
+          "DR1: x component"
+        ],
+        "outputs": [
+          "DR0: atan2(y, x) in radians"
+        ]
       },
       {
         "name": "Signum",
         "offset": 2585,
-        "length": 17
+        "length": 17,
+        "description": "Return the sign of DR0: +1.0 if positive, \u22121.0 if negative, 0.0 if zero.",
+        "inputs": [
+          "DR0: any float"
+        ],
+        "outputs": [
+          "DR0: sign of DR0 (+1.0, 0.0, or \u22121.0)"
+        ]
       }
     ],
     "grants": [
@@ -245,52 +590,129 @@
       {
         "name": "Add",
         "offset": 0,
-        "length": 4
+        "length": 4,
+        "description": "Add two floats (DR0 + DR1) and return the sum in DR0.",
+        "inputs": [
+          "DR0: first operand",
+          "DR1: second operand"
+        ],
+        "outputs": [
+          "DR0: DR0 + DR1"
+        ]
       },
       {
         "name": "Sub",
         "offset": 4,
-        "length": 3
+        "length": 3,
+        "description": "Subtract DR1 from DR0 (DR0 \u2212 DR1) and return the result in DR0.",
+        "inputs": [
+          "DR0: minuend",
+          "DR1: subtrahend"
+        ],
+        "outputs": [
+          "DR0: DR0 \u2212 DR1"
+        ]
       },
       {
         "name": "Mul",
         "offset": 7,
-        "length": 8
+        "length": 8,
+        "description": "Multiply two floats (DR0 \u00d7 DR1) and return the product in DR0.",
+        "inputs": [
+          "DR0: multiplicand",
+          "DR1: multiplier"
+        ],
+        "outputs": [
+          "DR0: DR0 \u00d7 DR1"
+        ]
       },
       {
         "name": "Sqrt",
         "offset": 15,
-        "length": 27
+        "length": 27,
+        "description": "Return the square root of DR0. Input must be non-negative.",
+        "inputs": [
+          "DR0: radicand (\u2265 0)"
+        ],
+        "outputs": [
+          "DR0: \u221aDR0"
+        ]
       },
       {
         "name": "Pow2",
         "offset": 42,
-        "length": 19
+        "length": 19,
+        "description": "Return 2^DR0 (two raised to the power DR0).",
+        "inputs": [
+          "DR0: exponent"
+        ],
+        "outputs": [
+          "DR0: 2^DR0"
+        ]
       },
       {
         "name": "Abs",
         "offset": 61,
-        "length": 13
+        "length": 13,
+        "description": "Return the absolute value |DR0|.",
+        "inputs": [
+          "DR0: any float"
+        ],
+        "outputs": [
+          "DR0: |DR0|"
+        ]
       },
       {
         "name": "Signum",
         "offset": 74,
-        "length": 25
+        "length": 25,
+        "description": "Return +1.0 if DR0 > 0, \u22121.0 if DR0 < 0, or 0.0 if DR0 = 0.",
+        "inputs": [
+          "DR0: any float"
+        ],
+        "outputs": [
+          "DR0: sign of DR0"
+        ]
       },
       {
         "name": "Max",
         "offset": 99,
-        "length": 10
+        "length": 10,
+        "description": "Return the larger of DR0 and DR1.",
+        "inputs": [
+          "DR0: first value",
+          "DR1: second value"
+        ],
+        "outputs": [
+          "DR0: max(DR0, DR1)"
+        ]
       },
       {
         "name": "Min",
         "offset": 109,
-        "length": 10
+        "length": 10,
+        "description": "Return the smaller of DR0 and DR1.",
+        "inputs": [
+          "DR0: first value",
+          "DR1: second value"
+        ],
+        "outputs": [
+          "DR0: min(DR0, DR1)"
+        ]
       },
       {
         "name": "Clamp",
         "offset": 119,
-        "length": 18
+        "length": 18,
+        "description": "Clamp DR0 to the range [DR1, DR2] and return the result in DR0.",
+        "inputs": [
+          "DR0: value to clamp",
+          "DR1: lower bound",
+          "DR2: upper bound"
+        ],
+        "outputs": [
+          "DR0: clamped value in [DR1, DR2]"
+        ]
       }
     ],
     "grants": [
@@ -314,7 +736,14 @@
           "DR": {
             "0": "method"
           }
-        }
+        },
+        "description": "Route a WordString method call by index. Reads the method index from DR0 and jumps to the corresponding implementation via the dispatch table.",
+        "inputs": [
+          "DR0: method index (integer)"
+        ],
+        "outputs": [
+          "Dispatches to the selected WordString method; return value depends on the method called"
+        ]
       },
       {
         "name": "GetWordCount",
@@ -324,7 +753,14 @@
           "DR": {
             "0": "str"
           }
-        }
+        },
+        "description": "Return the number of 32-bit words occupied by the WordString, including the header word.",
+        "inputs": [
+          "CR0: WordString GT"
+        ],
+        "outputs": [
+          "DR0: word count"
+        ]
       },
       {
         "name": "GetCharCount",
@@ -334,7 +770,14 @@
           "DR": {
             "0": "str"
           }
-        }
+        },
+        "description": "Return the total number of Unicode code points in the WordString.",
+        "inputs": [
+          "CR0: WordString GT"
+        ],
+        "outputs": [
+          "DR0: character count"
+        ]
       },
       {
         "name": "GetByteCount",
@@ -344,7 +787,14 @@
           "DR": {
             "0": "str"
           }
-        }
+        },
+        "description": "Return the total byte length of the UTF-8 encoded content of the WordString.",
+        "inputs": [
+          "CR0: WordString GT"
+        ],
+        "outputs": [
+          "DR0: byte count"
+        ]
       },
       {
         "name": "GetCharByte",
@@ -355,7 +805,15 @@
             "0": "str",
             "1": "idx"
           }
-        }
+        },
+        "description": "Return the UTF-8 byte at position DR0 within the WordString.",
+        "inputs": [
+          "CR0: WordString GT",
+          "DR0: byte index"
+        ],
+        "outputs": [
+          "DR0: byte value at index"
+        ]
       },
       {
         "name": "IsUppercase",
@@ -365,7 +823,14 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Return 1 if the character (code point DR0) is an ASCII uppercase letter (A\u2013Z), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if uppercase letter, else 0"
+        ]
       },
       {
         "name": "IsLowercase",
@@ -375,12 +840,24 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Return 1 if the character (code point DR0) is an ASCII lowercase letter (a\u2013z), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if lowercase letter, else 0"
+        ]
       },
       {
         "name": "ReturnFalse",
         "offset": 87,
-        "length": 3
+        "length": 3,
+        "description": "Always return 0 (false). Used as a stub for unimplemented or inapplicable character class predicates.",
+        "inputs": [],
+        "outputs": [
+          "DR0: 0"
+        ]
       },
       {
         "name": "IsDigit",
@@ -390,37 +867,79 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Return 1 if the code point DR0 is an ASCII decimal digit (0\u20139), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if digit, else 0"
+        ]
       },
       {
         "name": "IsAlpha",
         "offset": 87,
         "length": 3,
-        "aliasOf": "ReturnFalse"
+        "aliasOf": "ReturnFalse",
+        "description": "Return 1 if the code point DR0 is an ASCII letter (A\u2013Z or a\u2013z), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if letter, else 0"
+        ]
       },
       {
         "name": "IsUpperExt",
         "offset": 69,
         "length": 9,
-        "aliasOf": "IsUppercase"
+        "aliasOf": "IsUppercase",
+        "description": "Return 1 if the code point DR0 is a non-ASCII uppercase letter (extended Unicode), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if extended uppercase, else 0"
+        ]
       },
       {
         "name": "IsPunct",
         "offset": 87,
         "length": 3,
-        "aliasOf": "ReturnFalse"
+        "aliasOf": "ReturnFalse",
+        "description": "Return 1 if the code point DR0 is an ASCII punctuation character, else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if punctuation, else 0"
+        ]
       },
       {
         "name": "IsLowerExt",
         "offset": 78,
         "length": 9,
-        "aliasOf": "IsLowercase"
+        "aliasOf": "IsLowercase",
+        "description": "Return 1 if the code point DR0 is a non-ASCII lowercase letter (extended Unicode), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if extended lowercase, else 0"
+        ]
       },
       {
         "name": "IsSymbol",
         "offset": 87,
         "length": 3,
-        "aliasOf": "ReturnFalse"
+        "aliasOf": "ReturnFalse",
+        "description": "Return 1 if the code point DR0 is a Unicode symbol character, else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if symbol, else 0"
+        ]
       },
       {
         "name": "IsSpace",
@@ -430,13 +949,27 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Return 1 if the code point DR0 is a whitespace character (space, tab, newline, etc.), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if whitespace, else 0"
+        ]
       },
       {
         "name": "IsAlphaNum",
         "offset": 87,
         "length": 3,
-        "aliasOf": "ReturnFalse"
+        "aliasOf": "ReturnFalse",
+        "description": "Return 1 if the code point DR0 is alphanumeric (letter or digit), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if alphanumeric, else 0"
+        ]
       },
       {
         "name": "ToUppercase",
@@ -446,12 +979,26 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Convert ASCII lowercase letter DR0 to its uppercase equivalent. Non-letters pass through unchanged.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: uppercased code point"
+        ]
       },
       {
         "name": "Stub",
         "offset": 115,
-        "length": 1
+        "length": 1,
+        "description": "No-op stub. Returns DR0 unchanged. Placeholder for unimplemented transformations.",
+        "inputs": [
+          "DR0: any value"
+        ],
+        "outputs": [
+          "DR0: unchanged"
+        ]
       },
       {
         "name": "ToLowercase",
@@ -461,13 +1008,27 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Convert ASCII uppercase letter DR0 to its lowercase equivalent. Non-letters pass through unchanged.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: lowercased code point"
+        ]
       },
       {
         "name": "StubExt",
         "offset": 115,
         "length": 1,
-        "aliasOf": "Stub"
+        "aliasOf": "Stub",
+        "description": "No-op stub for extended Unicode transformations. Returns DR0 unchanged.",
+        "inputs": [
+          "DR0: any value"
+        ],
+        "outputs": [
+          "DR0: unchanged"
+        ]
       },
       {
         "name": "NormaliseDigit",
@@ -477,13 +1038,27 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Return the decimal digit value (0\u20139) of the digit character DR0. Non-digits return \u22121.",
+        "inputs": [
+          "DR0: Unicode code point for a decimal digit"
+        ],
+        "outputs": [
+          "DR0: integer value 0\u20139, or \u22121 if not a digit"
+        ]
       },
       {
         "name": "IsHex",
         "offset": 87,
         "length": 3,
-        "aliasOf": "ReturnFalse"
+        "aliasOf": "ReturnFalse",
+        "description": "Return 1 if the code point DR0 is a valid hexadecimal digit (0\u20139, A\u2013F, a\u2013f), else 0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: 1 if hex digit, else 0"
+        ]
       },
       {
         "name": "Offset",
@@ -493,7 +1068,15 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Return the byte offset within the WordString's backing store for character index DR0.",
+        "inputs": [
+          "CR0: WordString GT",
+          "DR0: character index"
+        ],
+        "outputs": [
+          "DR0: byte offset"
+        ]
       },
       {
         "name": "StringOp",
@@ -505,7 +1088,16 @@
             "1": "dst",
             "2": "len"
           }
-        }
+        },
+        "description": "Apply a generic string operation specified by DR1 to the WordString. The operation semantics depend on DR1.",
+        "inputs": [
+          "CR0: WordString GT",
+          "DR0: output buffer or result register",
+          "DR1: operation code"
+        ],
+        "outputs": [
+          "DR0: result or status"
+        ]
       },
       {
         "name": "CheckNonZero",
@@ -515,7 +1107,14 @@
           "DR": {
             "0": "val"
           }
-        }
+        },
+        "description": "Return DR0 if DR0 \u2260 0, else FAULT. Used to guard operations that require a non-zero value.",
+        "inputs": [
+          "DR0: value to check"
+        ],
+        "outputs": [
+          "DR0: DR0 (pass-through if non-zero), FAULT otherwise"
+        ]
       },
       {
         "name": "CheckPositive",
@@ -525,7 +1124,14 @@
           "DR": {
             "0": "val"
           }
-        }
+        },
+        "description": "Return DR0 if DR0 > 0, else FAULT. Guards operations requiring a strictly positive value.",
+        "inputs": [
+          "DR0: value to check"
+        ],
+        "outputs": [
+          "DR0: DR0 (pass-through if positive), FAULT otherwise"
+        ]
       },
       {
         "name": "ComputeBase",
@@ -535,7 +1141,15 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Compute the base word address of the WordString data given the GT and an offset.",
+        "inputs": [
+          "CR0: WordString GT",
+          "DR0: offset"
+        ],
+        "outputs": [
+          "DR0: absolute base address"
+        ]
       },
       {
         "name": "Classify",
@@ -545,7 +1159,14 @@
           "DR": {
             "0": "c"
           }
-        }
+        },
+        "description": "Classify the Unicode code point DR0 into a character category code and return it in DR0.",
+        "inputs": [
+          "DR0: Unicode code point"
+        ],
+        "outputs": [
+          "DR0: character category code"
+        ]
       }
     ],
     "grants": [

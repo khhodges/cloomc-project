@@ -5910,6 +5910,7 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
     const methodDRPetNames = {};  // method name → { drNum: "label" }
     const topLevelDR = ((lump.pet_names || {}).DR) || {};
     for (const m of methods) {
+        if (!m.code) continue;
         const own = ((m.pet_names || {}).DR) || {};
         if (Object.keys(own).length > 0) {
             const numMap = {};
@@ -5927,13 +5928,19 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
     }
     let _curMethodDRMap = {};  // active during the instruction render loop
 
-    // Build method boundary map (word index → name).
+    // Build method boundary maps (word index → name / method object).
     // If no manifest methods, auto-detect by scanning for HALT (word=0)
     // or RETURN (opcode 3) followed by a non-zero word within the code region.
-    const mb = {};
+    const mb    = {};   // wordIndex → method name
+    const mbObj = {};   // wordIndex → method JSON object
     const autoDetected = methods.length === 0;
     if (!autoDetected) {
-        for (const m of methods) mb[1 + (parseInt(m.offset) || 0)] = m.name;
+        for (const m of methods) {
+            if (!m.code) continue;
+            const wi = 1 + (parseInt(m.offset) || 0);
+            mb[wi]    = m.name;
+            mbObj[wi] = m;
+        }
     } else if (cw > 0) {
         mb[1] = `${abstName}.Method_0`;
         let mIdx = 0;
@@ -5984,6 +5991,152 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
         clistSlotName[s] = resolved || `0x${wVal.toString(16).padStart(8, '0')}`;
     }
 
+    // ── Auto-comment engine ──────────────────────────────────────────────
+    // Generates a human-readable semantic comment for one instruction.
+    // Uses the already-maintained crAlias + clistSlotName context.
+    const _autoComment = (w, op, crDst, crSrc, imm, cond, crAlias) => {
+        if (w === 0) return 'end of method / padding';
+
+        const condNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
+        const condStr   = cond === 14 ? '' : `if ${condNames[cond]} `;
+
+        const crName = n => {
+            if (n === 6 && cc > 0) return 'c-list';
+            if (n === 14) return 'CR14(code)';
+            if (n === 13) return 'CR13(int)';
+            if (n === 15) return 'CR15(priv)';
+            return `CR${n}`;
+        };
+        const crAliasSym = n => {
+            if (crAlias[n] !== undefined) {
+                const nm = clistSlotName[crAlias[n]];
+                return nm ? `"${nm}"` : null;
+            }
+            return null;
+        };
+
+        switch (op) {
+            case 0: {  // LOAD CRd, CRs[imm]
+                if (crSrc === 6 && cc > 0) {
+                    const nm = clistSlotName[imm] || `slot ${imm}`;
+                    return `${condStr}CR${crDst} ← c-list[${imm}] (${nm})`;
+                }
+                const sym = crAliasSym(crSrc);
+                return `${condStr}CR${crDst} ← GT via ${crName(crSrc)}[${imm}]${sym ? ` ${sym}` : ''}`;
+            }
+            case 1: {  // SAVE CRd, CRs[imm]
+                const sym = crAliasSym(crDst);
+                return `${condStr}store CR${crSrc} → GT space of ${crName(crDst)}[${imm}]${sym ? ` ${sym}` : ''}`;
+            }
+            case 2: {  // CALL CRd[, sel]
+                const sym = crAliasSym(crDst);
+                const name = sym ? ` ${sym}` : '';
+                const selSrc = crSrc ? `, method #${crSrc}` : '';
+                return `${condStr}invoke CR${crDst}${name}${selSrc}`;
+            }
+            case 3: {  // RETURN [mask]
+                const retMask = imm & 0xFFF;
+                return retMask
+                    ? `scrub regs 0b${retMask.toString(2).padStart(12,'0')} then return`
+                    : 'return to caller';
+            }
+            case 4: {  // CHANGE CRd, CRs[imm]
+                if (crSrc === 6 && cc > 0) {
+                    const nm = clistSlotName[imm] || `slot ${imm}`;
+                    return `${condStr}hot-swap CR${crDst} ← c-list[${imm}] (${nm})`;
+                }
+                return `${condStr}update CR${crDst} via ${crName(crSrc)}[${imm}]`;
+            }
+            case 5: {  // SWITCH CRs, CRb
+                return `${condStr}swap CR${crSrc} ↔ CR${imm & 0x7}`;
+            }
+            case 6: {  // TPERM CRd, preset[B]
+                const presets = ['CLEAR','R','RW','X','RX','RWX','L','S','E','LS'];
+                const bFlag   = (imm >>> 4) & 1;
+                const preset  = presets[imm & 0xF] || 'RSV';
+                return `${condStr}attenuate CR${crDst} to ${preset}${bFlag ? '+B' : ''} permissions`;
+            }
+            case 7: {  // LAMBDA CRd
+                return `${condStr}create lambda closure → CR${crDst}`;
+            }
+            case 8: {  // ELOADCALL CRd, CRs[imm]
+                if (crSrc === 6 && cc > 0) {
+                    const nm = clistSlotName[imm] || `slot ${imm}`;
+                    return `${condStr}fused load + call c-list[${imm}] (${nm}) → CR${crDst}`;
+                }
+                return `${condStr}fused load + call ${crName(crSrc)}[${imm}] → CR${crDst}`;
+            }
+            case 9: {  // XLOADLAMBDA CRd, CRs[imm]
+                if (crSrc === 6 && cc > 0) {
+                    const nm = clistSlotName[imm] || `slot ${imm}`;
+                    return `${condStr}fused load + lambda c-list[${imm}] (${nm}) → CR${crDst}`;
+                }
+                return `${condStr}fused load + lambda ${crName(crSrc)}[${imm}] → CR${crDst}`;
+            }
+            case 10: {  // DREAD DRd, CRs[imm]
+                const sym = crAliasSym(crSrc);
+                return `${condStr}DR${crDst} ← data[${crName(crSrc)}+${imm}]${sym ? ` (${sym})` : ''}`;
+            }
+            case 11: {  // DWRITE DRd, CRs[imm]
+                const sym = crAliasSym(crSrc);
+                return `${condStr}data[${crName(crSrc)}+${imm}]${sym ? ` (${sym})` : ''} ← DR${crDst}`;
+            }
+            case 12: {  // BFEXT DRd, CRs, pos, w
+                const pos   = (imm >>> 5) & 0x1F;
+                const width = imm & 0x1F;
+                return `${condStr}DR${crDst} = bits[${pos}:${pos+width-1}] of CR${crSrc}`;
+            }
+            case 13: {  // BFINS DRd, CRs, pos, w
+                const pos   = (imm >>> 5) & 0x1F;
+                const width = imm & 0x1F;
+                return `${condStr}insert ${width}b of CR${crSrc} at pos ${pos} into DR${crDst}`;
+            }
+            case 14: {  // MCMP DRd, DRs
+                return `${condStr}compare DR${crDst} vs DR${crSrc} → flags`;
+            }
+            case 15: {  // IADD DRd, DRs, DRm | #imm
+                const isImm = (imm & 0x4000) !== 0;
+                const rhs   = isImm ? `#${imm & 0x3FFF}` : `DR${imm & 0xF}`;
+                return `${condStr}DR${crDst} = DR${crSrc} + ${rhs}`;
+            }
+            case 16: {  // ISUB DRd, DRs, DRm | #imm
+                const isImm = (imm & 0x4000) !== 0;
+                const rhs   = isImm ? `#${imm & 0x3FFF}` : `DR${imm & 0xF}`;
+                return `${condStr}DR${crDst} = DR${crSrc} − ${rhs}`;
+            }
+            case 17: {  // BRANCH soff
+                const soff = (imm & 0x4000) ? (imm | 0xFFFF8000) : imm;
+                return `${condStr}branch → PC${soff >= 0 ? '+' : ''}${soff}`;
+            }
+            case 18: {  // SHL DRd, DRs, shamt
+                return `${condStr}DR${crDst} = DR${crSrc} << ${imm & 0x1F}`;
+            }
+            case 19: {  // SHR DRd, DRs, shamt [ASR]
+                const arith = (imm >>> 5) & 1;
+                const shamt = imm & 0x1F;
+                return `${condStr}DR${crDst} = DR${crSrc} >> ${shamt} (${arith ? 'arithmetic' : 'logical'})`;
+            }
+            default:
+                return 'unknown opcode';
+        }
+    };
+
+    // ── Method docstring renderer ────────────────────────────────────────
+    // Emits a styled block for description / inputs / outputs if present.
+    const _renderDocstring = m => {
+        if (!m) return '';
+        const desc    = m.description || '';
+        const inputs  = m.inputs  || [];
+        const outputs = m.outputs || [];
+        if (!desc && !inputs.length && !outputs.length) return '';
+        let d = '<div class="lump-code-docstring">';
+        if (desc) d += `<span class="lump-doc-desc">${e(desc)}</span>`;
+        if (inputs.length)  d += `<span class="lump-doc-io">in: ${inputs.map(e).join(' | ')}</span>`;
+        if (outputs.length) d += `<span class="lump-doc-io">out: ${outputs.map(e).join(' | ')}</span>`;
+        d += '</div>';
+        return d;
+    };
+
     const effEnd = Math.min(cw + 1, lumpSize - cc > 0 ? lumpSize - cc : cw + 1, words.length);
     let html = '<div class="lump-content-code">';
     if (effEnd <= 1) {
@@ -5991,6 +6144,9 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
     } else {
         // Live CR alias map: tracks which cap-register holds which c-list slot
         const crAlias = {};  // crNum → slot index (int)
+        let _curMethodObj = null;
+        let instrRelIdx   = 0;
+
         for (let i = 1; i < effEnd; i++) {
             // Method boundary → reset per-method register aliases and update DR pet names
             if (mb[i] !== undefined) {
@@ -5998,10 +6154,14 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                 html += `<div class="lump-code-method-label">\u25c6 ${e(mb[i])}${auto}</div>`;
                 for (const k of Object.keys(crAlias)) delete crAlias[k];
                 _curMethodDRMap = methodDRPetNames[mb[i]] || {};
+                _curMethodObj   = mbObj[i] || null;
+                instrRelIdx     = 0;
+                html += _renderDocstring(_curMethodObj);
             }
 
             const w    = words[i] >>> 0;
             const op   = (w >>> 27) & 0x1F;
+            const cond = (w >>> 23) & 0xF;
             const crDst = (w >>> 19) & 0xF;
             const crSrc = (w >>> 15) & 0xF;
             const imm   = w & 0x7FFF;
@@ -6020,22 +6180,24 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                 else delete crAlias[swOther];
             }
 
-            // Build symbolic annotation
+            // Build symbolic annotation (capability arrow shown next to mnemonic)
             let ann = '';
             if ((op === 0 || op === 4) && crSrc === 6 && cc > 0) {
-                // LOAD/CHANGE CR?, CR6[slot] — note what was loaded
                 const nm = clistSlotName[imm];
                 if (nm) ann = `<span class="lump-sym-ann">\u2190 ${e(nm)}</span>`;
             } else if (op === 2 && crAlias[crDst] !== undefined && cc > 0) {
-                // CALL CRd — annotate with what CRd holds
-                const slot = crAlias[crDst];
-                const nm = clistSlotName[slot];
+                const nm = clistSlotName[crAlias[crDst]];
                 if (nm) ann = `<span class="lump-sym-ann">\u2192 ${e(nm)}</span>`;
             } else if ((op === 8 || op === 9) && crSrc === 6 && cc > 0) {
-                // ELOADCALL / XLOADLAMBDA CR?, CR6[slot]
                 const nm = clistSlotName[imm];
                 if (nm) ann = `<span class="lump-sym-ann">\u21D2 ${e(nm)}</span>`;
             }
+
+            // Resolve instruction comment: static (from JSON) beats dynamic
+            const staticCmt = _curMethodObj && Array.isArray(_curMethodObj.comments)
+                ? (_curMethodObj.comments[instrRelIdx] || null)
+                : null;
+            const commentText = staticCmt || _autoComment(w, op, crDst, crSrc, imm, cond, crAlias);
 
             const addr = (i * 4).toString(16).toUpperCase().padStart(4, '0');
             const hex  = (w >>> 0).toString(16).toUpperCase().padStart(8, '0');
@@ -6049,7 +6211,10 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
             html += `<div class="lump-code-row">` +
                     `<span class="lump-code-addr">0x${addr}</span>` +
                     `<span class="lump-code-hex">${hex}</span>` +
-                    `<span class="lump-code-instr">${e(disText)}${ann ? ' ' + ann : ''}</span></div>`;
+                    `<span class="lump-code-instr">${e(disText)}${ann ? ' ' + ann : ''}</span>` +
+                    `<span class="lump-code-comment">; ${e(commentText)}</span></div>`;
+
+            instrRelIdx++;
 
             // RETURN or HALT → clear aliases (next code is a new method scope)
             if (w === 0 || op === 3) {

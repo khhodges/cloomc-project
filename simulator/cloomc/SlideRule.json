@@ -62,6 +62,14 @@
         "0x7f260000",
         "0x7f020000",
         "0x1f000000"
+      ],
+      "description": "Multiply two IEEE-754 floats (DR0 \u00d7 DR1) and return the product in DR0.",
+      "inputs": [
+        "DR0: multiplicand",
+        "DR1: multiplier"
+      ],
+      "outputs": [
+        "DR0: DR0 \u00d7 DR1"
       ]
     },
     {
@@ -108,6 +116,14 @@
         "0x7f2e0000",
         "0x7f028000",
         "0x1f000000"
+      ],
+      "description": "Divide DR0 by DR1 (DR0 \u00f7 DR1) and return the quotient in DR0. FAULT if DR1 is zero.",
+      "inputs": [
+        "DR0: dividend",
+        "DR1: divisor (must be non-zero)"
+      ],
+      "outputs": [
+        "DR0: DR0 \u00f7 DR1"
       ]
     },
     {
@@ -153,6 +169,13 @@
         "0x8f007fee",
         "0x7f020000",
         "0x1f000000"
+      ],
+      "description": "Return the square root of DR0 (\u221aDR0). Input must be non-negative.",
+      "inputs": [
+        "DR0: radicand (\u2265 0)"
+      ],
+      "outputs": [
+        "DR0: \u221aDR0"
       ]
     },
     {
@@ -192,6 +215,14 @@
         "0x87660000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return the IEEE-754 remainder of DR0 \u00f7 DR1 (equivalent to fmod).",
+      "inputs": [
+        "DR0: dividend",
+        "DR1: divisor"
+      ],
+      "outputs": [
+        "DR0: DR0 mod DR1"
       ]
     },
     {
@@ -492,6 +523,13 @@
         "0x7f460000",
         "0x7f040000",
         "0x1f000000"
+      ],
+      "description": "Return the sine of DR0 (radians) in DR0.",
+      "inputs": [
+        "DR0: angle in radians"
+      ],
+      "outputs": [
+        "DR0: sin(DR0)"
       ]
     },
     {
@@ -777,6 +815,13 @@
         "0x7f3e0000",
         "0x7f028000",
         "0x1f000000"
+      ],
+      "description": "Return the cosine of DR0 (radians) in DR0.",
+      "inputs": [
+        "DR0: angle in radians"
+      ],
+      "outputs": [
+        "DR0: cos(DR0)"
       ]
     },
     {
@@ -1117,6 +1162,13 @@
         "0x7f778000",
         "0x7f070000",
         "0x1f000000"
+      ],
+      "description": "Return the tangent of DR0 (radians) in DR0.",
+      "inputs": [
+        "DR0: angle in radians"
+      ],
+      "outputs": [
+        "DR0: tan(DR0)"
       ]
     },
     {
@@ -1404,6 +1456,13 @@
         "0x7f4e0000",
         "0x7f048000",
         "0x1f000000"
+      ],
+      "description": "Return the arcsine of DR0 in radians. Input must be in [\u22121, 1].",
+      "inputs": [
+        "DR0: value in [\u22121, 1]"
+      ],
+      "outputs": [
+        "DR0: arcsin(DR0) in radians"
       ]
     },
     {
@@ -1699,6 +1758,13 @@
         "0x7f778000",
         "0x7f070000",
         "0x1f000000"
+      ],
+      "description": "Return the arccosine of DR0 in radians. Input must be in [\u22121, 1].",
+      "inputs": [
+        "DR0: value in [\u22121, 1]"
+      ],
+      "outputs": [
+        "DR0: arccos(DR0) in radians"
       ]
     },
     {
@@ -1984,6 +2050,13 @@
         "0x7f3e0000",
         "0x7f038000",
         "0x1f000000"
+      ],
+      "description": "Return the arctangent of DR0 in radians.",
+      "inputs": [
+        "DR0: value"
+      ],
+      "outputs": [
+        "DR0: arctan(DR0) in radians"
       ]
     },
     {
@@ -2028,6 +2101,13 @@
         "0x7f2e0000",
         "0x7f028000",
         "0x1f000000"
+      ],
+      "description": "Convert DR0 from radians to degrees (DR0 \u00d7 180/\u03c0).",
+      "inputs": [
+        "DR0: angle in radians"
+      ],
+      "outputs": [
+        "DR0: angle in degrees"
       ]
     },
     {
@@ -2070,6 +2150,13 @@
         "0x7f2e0000",
         "0x7f028000",
         "0x1f000000"
+      ],
+      "description": "Convert DR0 from degrees to radians (DR0 \u00d7 \u03c0/180).",
+      "inputs": [
+        "DR0: angle in degrees"
+      ],
+      "outputs": [
+        "DR0: angle in radians"
       ]
     },
     {
@@ -2205,6 +2292,13 @@
         "0x7f604001",
         "0x7f0e0000",
         "0x1f000000"
+      ],
+      "description": "Return the Bernoulli number B(n) for non-negative integer n in DR0.",
+      "inputs": [
+        "DR0: integer n \u2265 0"
+      ],
+      "outputs": [
+        "DR0: B(n)"
       ]
     },
     {
@@ -2217,6 +2311,13 @@
         "0x87660000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return the absolute value of DR0 (|DR0|).",
+      "inputs": [
+        "DR0: any float"
+      ],
+      "outputs": [
+        "DR0: |DR0|"
       ]
     },
     {
@@ -2285,6 +2386,14 @@
         "0x7f260000",
         "0x7f020000",
         "0x1f000000"
+      ],
+      "description": "Return DR0 raised to the power DR1 (DR0^DR1).",
+      "inputs": [
+        "DR0: base",
+        "DR1: exponent"
+      ],
+      "outputs": [
+        "DR0: DR0^DR1"
       ]
     },
     {
@@ -2295,6 +2404,14 @@
         "0x1f000000",
         "0x7f008000",
         "0x1f000000"
+      ],
+      "description": "Return the smaller of DR0 and DR1.",
+      "inputs": [
+        "DR0: first value",
+        "DR1: second value"
+      ],
+      "outputs": [
+        "DR0: min(DR0, DR1)"
       ]
     },
     {
@@ -2305,6 +2422,14 @@
         "0x1f000000",
         "0x7f008000",
         "0x1f000000"
+      ],
+      "description": "Return the larger of DR0 and DR1.",
+      "inputs": [
+        "DR0: first value",
+        "DR1: second value"
+      ],
+      "outputs": [
+        "DR0: max(DR0, DR1)"
       ]
     },
     {
@@ -2335,6 +2460,14 @@
         "0x7f0a0000",
         "0x8f007ff5",
         "0x1f000000"
+      ],
+      "description": "Return the greatest common divisor of integer DR0 and DR1 using the Euclidean algorithm.",
+      "inputs": [
+        "DR0: first integer",
+        "DR1: second integer"
+      ],
+      "outputs": [
+        "DR0: GCD(DR0, DR1)"
       ]
     },
     {
@@ -2382,6 +2515,13 @@
         "0x8f007fe7",
         "0x7f020000",
         "0x1f000000"
+      ],
+      "description": "Return n! for non-negative integer n in DR0. Returns 1.0 for n=0.",
+      "inputs": [
+        "DR0: non-negative integer n"
+      ],
+      "outputs": [
+        "DR0: n!"
       ]
     },
     {
@@ -2405,6 +2545,13 @@
         "0x8f007ff9",
         "0x7f020000",
         "0x1f000000"
+      ],
+      "description": "Return the base-2 logarithm of DR0 (log\u2082 DR0). Input must be positive.",
+      "inputs": [
+        "DR0: positive float"
+      ],
+      "outputs": [
+        "DR0: log\u2082(DR0)"
       ]
     },
     {
@@ -2704,6 +2851,14 @@
         "0x7f360000",
         "0x7f030000",
         "0x1f000000"
+      ],
+      "description": "Return the two-argument arctangent atan2(DR0, DR1) in radians. DR0=y, DR1=x.",
+      "inputs": [
+        "DR0: y component",
+        "DR1: x component"
+      ],
+      "outputs": [
+        "DR0: atan2(y, x) in radians"
       ]
     },
     {
@@ -2726,6 +2881,13 @@
         "0x7f600000",
         "0x7f060000",
         "0x1f000000"
+      ],
+      "description": "Return the sign of DR0: +1.0 if positive, \u22121.0 if negative, 0.0 if zero.",
+      "inputs": [
+        "DR0: any float"
+      ],
+      "outputs": [
+        "DR0: sign of DR0 (+1.0, 0.0, or \u22121.0)"
       ]
     }
   ]
