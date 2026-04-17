@@ -5197,7 +5197,6 @@ function hideNsdgTooltip() {
 }
 
 function showLumpDetail(token) {
-    if (_lumpEditDirty && !confirm('Discard changes?')) return;
     _lumpEditDirty = false;
     _selectedLumpToken = token;
     const listEl = document.getElementById('lumpsListContent');
@@ -5221,6 +5220,7 @@ function showLumpDetail(token) {
         (isNamespace ? ' — Namespace LUMP' : ` — ${_lumpTitleLabel}`);
 
     const _tk = token.replace(/[^a-z0-9]/gi, '');
+    const _prevTab = _lumpActiveTab[_tk] || 'overview';
     delete _lumpContentLoaded[_tk];
     delete _lumpHexLoaded[_tk];
     let _tabBar = `<div class="lump-tabs-bar" id="lumpTabBar_${_tk}">` +
@@ -5413,6 +5413,8 @@ function showLumpDetail(token) {
     _lumpActiveTab[_tk] = 'overview';
     const nsdgWrap = contentEl.querySelector('.ns-dep-graph-wrap[id]');
     if (nsdgWrap) _initNsDepGraphPanZoom(nsdgWrap.id);
+    const restoreTab = (_lumpEditorOpen[_tk] && !isNamespace) ? 'content' : _prevTab;
+    if (restoreTab !== 'overview') _switchLumpTab(_tk, restoreTab);
 }
 
 async function _fetchAndShowLumpBinary(token, lump) {
@@ -5492,6 +5494,8 @@ async function _fetchAndShowLumpBinary(token, lump) {
 const _lumpActiveTab      = {};
 const _lumpContentLoaded  = {};
 const _lumpHexLoaded      = {};
+const _lumpEditorOpen     = {};
+const _lumpEditorDraftText = {};
 
 function _lumpContentTypeLabel(lump) {
     const ct = (lump.content_type || '').toLowerCase();
@@ -5584,6 +5588,9 @@ async function _saveLumpText(token, text, bodyEl, lump) {
         const result = await resp.json();
         if (!resp.ok) throw new Error(result.error || `HTTP ${resp.status}`);
         _lumpEditDirty = false;
+        const _tk = token.replace(/[^a-z0-9]/gi, '');
+        _lumpEditorOpen[_tk] = false;
+        delete _lumpEditorDraftText[_tk];
         if (statusEl) { statusEl.textContent = 'Saved.'; statusEl.style.color = 'var(--accent-green, #4caf50)'; }
         setTimeout(() => _loadLumpContent(token, lump), 800);
     } catch (err) {
@@ -5593,6 +5600,11 @@ async function _saveLumpText(token, text, bodyEl, lump) {
 }
 
 function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
+    const tk = token.replace(/[^a-z0-9]/gi, '');
+    const hasDraft = Object.prototype.hasOwnProperty.call(_lumpEditorDraftText, tk);
+    const initialText = hasDraft ? _lumpEditorDraftText[tk] : text;
+    const startOpen   = !!_lumpEditorOpen[tk];
+
     const wrapper = document.createElement('div');
     wrapper.className = 'lump-edit-wrapper';
 
@@ -5622,7 +5634,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
 
     const ta = document.createElement('textarea');
     ta.className = 'lump-edit-textarea';
-    ta.value = text;
+    ta.value = initialText;
     ta.spellcheck = false;
     leftPane.appendChild(ta);
     splitPane.appendChild(leftPane);
@@ -5635,7 +5647,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     rightPane.className = 'lump-edit-split-right';
     const livePreview = document.createElement('div');
     livePreview.className = 'lump-edit-live-preview';
-    renderFn(livePreview, text);
+    renderFn(livePreview, initialText);
     rightPane.appendChild(livePreview);
     splitPane.appendChild(rightPane);
 
@@ -5698,8 +5710,16 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     editorArea.appendChild(actionRow);
     wrapper.appendChild(editorArea);
 
+    if (startOpen) {
+        editBtn.style.display = 'none';
+        preview.style.display = 'none';
+        editorArea.style.display = '';
+        _lumpEditDirty = true;
+    }
+
     let _debounceTimer = null;
     ta.addEventListener('input', () => {
+        _lumpEditorDraftText[tk] = ta.value;
         clearTimeout(_debounceTimer);
         _debounceTimer = setTimeout(() => {
             livePreview.innerHTML = '';
@@ -5709,6 +5729,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
 
     editBtn.addEventListener('click', () => {
         _lumpEditDirty = true;
+        _lumpEditorOpen[tk] = true;
         editBtn.style.display = 'none';
         preview.style.display = 'none';
         editorArea.style.display = '';
@@ -5718,6 +5739,8 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     cancelBtn.addEventListener('click', () => {
         if (ta.value !== text && !confirm('Discard changes?')) return;
         _lumpEditDirty = false;
+        _lumpEditorOpen[tk] = false;
+        delete _lumpEditorDraftText[tk];
         clearTimeout(_debounceTimer);
         ta.value = text;
         livePreview.innerHTML = '';
