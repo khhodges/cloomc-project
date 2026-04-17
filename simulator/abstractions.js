@@ -254,8 +254,8 @@ class AbstractionRegistry {
             { perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 }, chainable: true });
 
         this.createAbstraction(18, 'Constants', 3,
-            ['Pi', 'E', 'Phi', 'Zero', 'One'],
-            'Read-only mathematical constants',
+            ['Pi', 'E', 'Phi', 'Zero', 'One', 'Add'],
+            'Read-only mathematical constants + user-defined constant pool (14 slots)',
             { perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(19, 'Loader', 1,

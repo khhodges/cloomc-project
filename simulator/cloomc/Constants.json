@@ -7,7 +7,8 @@
     "E"
   ],
   "capabilities": [
-    { "type": "self-data-R" }
+    { "type": "self-data-R" },
+    { "type": "pool-W" }
   ],
   "data_words": [
     "0x40490FDB",
@@ -42,6 +43,11 @@
       "name": "One",
       "pet_names": { "DR": {} },
       "code": ["0x07030000", "0x57000004", "0x1F000000"]
+    },
+    {
+      "name": "Add",
+      "pet_names": { "DR": { "0": "XYZ" } },
+      "code": ["0x070B0001", "0x5F008000", "0x1F000000"]
     }
   ]
 }

@@ -4,9 +4,9 @@
     "abstraction": "Constants",
     "ns_slot": 18,
     "lump_size": 64,
-    "cw": 15,
+    "cw": 18,
     "dw": 5,
-    "cc": 1,
+    "cc": 2,
     "methods": [
       {
         "name": "Pi",
@@ -47,12 +47,22 @@
         "pet_names": {
           "DR": {}
         }
+      },
+      {
+        "name": "Add",
+        "offset": 15,
+        "length": 3,
+        "pet_names": {
+          "DR": {
+            "0": "XYZ"
+          }
+        }
       }
     ],
     "grants": [
       "E"
     ],
-    "data_offset": 16,
+    "data_offset": 19,
     "data_word_names": [
       "Pi",
       "E",
@@ -60,7 +70,10 @@
       "Zero",
       "One"
     ],
-    "self_data_r": true
+    "self_data_r": true,
+    "pool_w": true,
+    "pool_ns_base": 50,
+    "pool_size": 14
   },
   {
     "token": "00000c00",

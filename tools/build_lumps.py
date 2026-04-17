@@ -201,6 +201,10 @@ def build_lump(payload, verbose=False):
     cap_types = [c.get('type', '') for c in capabilities]
     if 'self-data-R' in cap_types:
         manifest_entry['self_data_r'] = True
+    if 'pool-W' in cap_types:
+        manifest_entry['pool_w'] = True
+        manifest_entry['pool_ns_base'] = 50
+        manifest_entry['pool_size'] = 14
 
     if verbose:
         print(f'  {name:<20} token={token8}  lump_size={lump_size:4d}  '

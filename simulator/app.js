@@ -6059,6 +6059,57 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
     }
     html += '</div>';
 
+    // Built-in data words section
+    const dw          = parseInt(lump.dw)          || 0;
+    const dataOffset  = parseInt(lump.data_offset) || 0;
+    const dataNames   = lump.data_word_names       || [];
+    if (dw > 0 && dataOffset > 0) {
+        html += `<div class="lump-clist-section"><div class="lump-clist-title">Data Words — ${dw} word${dw === 1 ? '' : 's'}</div><div class="lump-clist-table">`;
+        for (let d = 0; d < dw; d++) {
+            const wIdx = dataOffset + d;
+            const wVal = wIdx < words.length ? (words[wIdx] >>> 0) : 0;
+            const hexW = wVal.toString(16).toUpperCase().padStart(8, '0');
+            const nm   = dataNames[d] || `[${d}]`;
+            const flt  = new DataView(new ArrayBuffer(4));
+            flt.setUint32(0, wVal, false);
+            const fVal = flt.getFloat32(0, false);
+            const fStr = Number.isFinite(fVal) ? fVal.toFixed(6) : '—';
+            html += `<div class="lump-clist-row">` +
+                    `<span class="lump-clist-idx">${e(nm)}</span>` +
+                    `<span class="lump-clist-tok">0x${hexW}</span>` +
+                    `<span class="lump-clist-name">${e(fStr)}</span>` +
+                    `</div>`;
+        }
+        html += '</div></div>';
+    }
+
+    // User-constant pool section (Constants.Add pool)
+    const poolW      = lump.pool_w;
+    const poolNsBase = parseInt(lump.pool_ns_base) || 50;
+    const poolSize   = parseInt(lump.pool_size)    || 14;
+    if (poolW && dw > 0 && dataOffset > 0) {
+        const poolOffset = dataOffset + dw;
+        const bitmapIdx  = poolOffset + poolSize;
+        const bitmap     = bitmapIdx < words.length ? (words[bitmapIdx] >>> 0) : 0;
+        html += `<div class="lump-clist-section"><div class="lump-clist-title">User Constant Pool — ${poolSize} slots (NS ${poolNsBase}–${poolNsBase + poolSize - 1})</div><div class="lump-clist-table">`;
+        for (let p = 0; p < poolSize; p++) {
+            const wIdx     = poolOffset + p;
+            const wVal     = wIdx < words.length ? (words[wIdx] >>> 0) : 0;
+            const hexW     = wVal.toString(16).toUpperCase().padStart(8, '0');
+            const occupied = !!(bitmap & (1 << p));
+            const stateSpan = occupied
+                ? `<span style="color:var(--accent-green,#4caf50)">\u25cf occupied</span>`
+                : `<span style="color:var(--text-secondary,#888)">\u25cb free</span>`;
+            html += `<div class="lump-clist-row">` +
+                    `<span class="lump-clist-idx">pool[${p}]</span>` +
+                    `<span class="lump-clist-tok">0x${hexW}</span>` +
+                    `<span class="lump-clist-name">${stateSpan}</span>` +
+                    `</div>`;
+        }
+        html += `<div class="lump-clist-row" style="font-size:0.7rem;color:var(--text-secondary,#888);padding:2px 4px">bitmap 0x${bitmap.toString(16).toUpperCase().padStart(4,'0')} \u2022 ${(bitmap === 0 ? 'all free' : `${poolSize - (poolSize - bitmap.toString(2).split('1').length + 1)}/${poolSize} free`)} </div>`;
+        html += '</div></div>';
+    }
+
     // C-list viewer
     if (cc > 0) {
         html += `<div class="lump-clist-section"><div class="lump-clist-title">C-List — ${cc} entr${cc === 1 ? 'y' : 'ies'}</div><div class="lump-clist-table">`;

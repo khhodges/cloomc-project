@@ -218,6 +218,7 @@ class ChurchSimulator {
         if (cc > 0) {
             const capsList = bootUpload.capabilities || [];
             const selfDataRIdx = capsList.findIndex(c => c && c.type === 'self-data-R');
+            const poolWIdx     = capsList.findIndex(c => c && c.type === 'pool-W');
 
             if (selfDataRIdx >= 0) {
                 const dataBase   = (loc + 1 + totalCodeWords) >>> 0;
@@ -228,6 +229,30 @@ class ChurchSimulator {
                 const dataGT = this.createGT(0, dataNsSlot, {R:1,W:0,X:0,L:0,S:0,E:0}, 1);
                 this.memory[(loc + lumpSize - cc + selfDataRIdx) >>> 0] = dataGT;
                 this.output += `[LOADER] ${label}: self-data-R → NS[${dataNsSlot}] base=0x${dataBase.toString(16).toUpperCase()} limit=${dataLimit} GT@lump+${lumpSize - cc + selfDataRIdx}\n`;
+            }
+
+            if (poolWIdx >= 0) {
+                // Pool memory lives in the lump's free space, immediately after the data words.
+                // Convention: 14 pool words (NS slots 50–63) + 1 bitmap word.
+                const POOL_SIZE    = 14;
+                const POOL_NS_BASE = 50;
+                const poolBase     = (loc + 1 + totalCodeWords + totalDataWords) >>> 0;
+
+                // Aggregate pool NS entry (W-capable, covers the full 14-word region)
+                const poolAggNsSlot = 200 + slotIndex + 1;
+                this.writeNSEntry(poolAggNsSlot, poolBase, POOL_SIZE - 1, 0, 0, 0, 0, 1, 0, 0);
+                this.nsLabels[poolAggNsSlot] = `${label}.pool-W`;
+
+                // Individual R-only NS entries for each pool slot (callers read via Abstract GTs)
+                for (let i = 0; i < POOL_SIZE; i++) {
+                    this.writeNSEntry(POOL_NS_BASE + i, poolBase + i, 0, 0, 0, 0, 0, 1, 0, 0);
+                    this.nsLabels[POOL_NS_BASE + i] = `${label}.pool[${i}]`;
+                }
+
+                // Write pool-W GT into the lump c-list
+                const poolGT = this.createGT(0, poolAggNsSlot, {R:1,W:1,X:0,L:0,S:0,E:0}, 1);
+                this.memory[(loc + lumpSize - cc + poolWIdx) >>> 0] = poolGT;
+                this.output += `[LOADER] ${label}: pool-W → NS[${poolAggNsSlot}] poolBase=0x${poolBase.toString(16).toUpperCase()} indivSlots=${POOL_NS_BASE}..${POOL_NS_BASE+POOL_SIZE-1} GT@lump+${lumpSize - cc + poolWIdx}\n`;
             }
         }
 
