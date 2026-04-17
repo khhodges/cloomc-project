@@ -148,6 +148,15 @@ class CLOOMCCompiler {
         const manifest = [];
 
         for (const method of parsed.methods) {
+            if (method.aliasOf) {
+                methods.push({ name: method.name, aliasOf: method.aliasOf });
+                continue;
+            }
+            if (method.rawIsa) {
+                methods.push({ name: method.name, code: method.rawIsa });
+                manifest.push({ name: method.name, mapping: [] });
+                continue;
+            }
             const result = this._compileMethod(method, rom, parsed.capabilities);
             if (result.errors.length > 0) {
                 errors.push(...result.errors);
@@ -160,6 +169,7 @@ class CLOOMCCompiler {
         if (errors.length === 0) {
             const _bodyIndex = new Map();
             for (const m of methods) {
+                if (m.aliasOf) continue;
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
                     m.aliasOf = _bodyIndex.get(fp);
@@ -198,6 +208,15 @@ class CLOOMCCompiler {
         const manifest = [];
 
         for (const method of parsed.methods) {
+            if (method.aliasOf) {
+                methods.push({ name: method.name, aliasOf: method.aliasOf });
+                continue;
+            }
+            if (method.rawIsa) {
+                methods.push({ name: method.name, code: method.rawIsa });
+                manifest.push({ name: method.name, mapping: [] });
+                continue;
+            }
             const result = this._compileLambdaMethod(method, rom, parsed.capabilities, errors);
             if (result.errors.length > 0) {
                 errors.push(...result.errors);
@@ -210,6 +229,7 @@ class CLOOMCCompiler {
         if (errors.length === 0) {
             const _bodyIndex = new Map();
             for (const m of methods) {
+                if (m.aliasOf) continue;
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
                     m.aliasOf = _bodyIndex.get(fp);
@@ -681,10 +701,38 @@ class CLOOMCCompiler {
                 continue;
             }
 
-            const methodMatch = line.match(/^method\s+(\w+)\s*\(([^)]*)\)\s*\{/);
+            // method Name = aliasOf Target;  (explicit alias, no code body)
+            const aliasMatch = line.match(/^method\s+(\w+)\s*(?:\([^)]*\))?\s*=\s*aliasOf\s+(\w+)\s*;/);
+            if (aliasMatch) {
+                result.methods.push({ name: aliasMatch[1], aliasOf: aliasMatch[2], params: [], body: [], startLine: i });
+                i++;
+                continue;
+            }
+
+            // method Name [RAW ISA] { 0xHEX ... }  (inline ISA words)
+            const rawIsaMatch = line.match(/^method\s+(\w+)\s*(?:\([^)]*\))?\s*\[RAW ISA\]\s*\{/);
+            if (rawIsaMatch) {
+                const rawWords = [];
+                i++;
+                while (i < lines.length) {
+                    const t = lines[i].trim();
+                    if (t === '}') { i++; break; }
+                    if (t && !t.startsWith('//')) {
+                        for (const tok of t.split(/\s+/)) {
+                            if (/^0x[0-9a-fA-F]+$/.test(tok)) rawWords.push(parseInt(tok, 16) >>> 0);
+                        }
+                    }
+                    i++;
+                }
+                result.methods.push({ name: rawIsaMatch[1], rawIsa: rawWords, params: [], body: [], startLine: i });
+                continue;
+            }
+
+            // method Name(...) { ... }  or  method Name { ... }  (optional parens)
+            const methodMatch = line.match(/^method\s+(\w+)\s*(?:\(([^)]*)\))?\s*\{/);
             if (methodMatch) {
                 const method = { name: methodMatch[1], params: [], body: [], startLine: i };
-                if (methodMatch[2].trim()) {
+                if (methodMatch[2] && methodMatch[2].trim()) {
                     method.params = methodMatch[2].split(',').map(p => p.trim()).filter(Boolean);
                 }
                 i++;
@@ -1220,6 +1268,15 @@ class CLOOMCCompiler {
         const manifest = [];
 
         for (const method of parsed.methods) {
+            if (method.aliasOf) {
+                methods.push({ name: method.name, aliasOf: method.aliasOf });
+                continue;
+            }
+            if (method.rawIsa) {
+                methods.push({ name: method.name, code: method.rawIsa });
+                manifest.push({ name: method.name, mapping: [] });
+                continue;
+            }
             const result = this._compileHaskellMethod(method, rom, parsed.capabilities, errors);
             if (result.errors.length > 0) {
                 errors.push(...result.errors);
@@ -1232,6 +1289,7 @@ class CLOOMCCompiler {
         if (errors.length === 0) {
             const _bodyIndex = new Map();
             for (const m of methods) {
+                if (m.aliasOf) continue;
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
                     m.aliasOf = _bodyIndex.get(fp);
@@ -2529,6 +2587,15 @@ class CLOOMCCompiler {
         const manifest = [];
 
         for (const method of parsed.methods) {
+            if (method.aliasOf) {
+                methods.push({ name: method.name, aliasOf: method.aliasOf });
+                continue;
+            }
+            if (method.rawIsa) {
+                methods.push({ name: method.name, code: method.rawIsa });
+                manifest.push({ name: method.name, mapping: [] });
+                continue;
+            }
             const result = this._compileMethod(method, rom, parsed.capabilities);
             if (result.errors.length > 0) {
                 errors.push(...result.errors);
@@ -2541,6 +2608,7 @@ class CLOOMCCompiler {
         if (errors.length === 0) {
             const _bodyIndex = new Map();
             for (const m of methods) {
+                if (m.aliasOf) continue;
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
                     m.aliasOf = _bodyIndex.get(fp);
