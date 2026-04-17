@@ -5122,12 +5122,19 @@ function _switchLumpTab(tk, tab) {
 }
 
 function _pack4Decode(words) {
-    let str = '';
+    const bytes = new Uint8Array(words.length * 4);
+    let bi = 0;
     for (const w of words) {
-        const bytes = [(w >>> 24) & 0xFF, (w >>> 16) & 0xFF, (w >>> 8) & 0xFF, w & 0xFF];
-        for (const b of bytes) str += b === 0 ? '\0' : String.fromCharCode(b);
+        bytes[bi++] = (w >>> 24) & 0xFF;
+        bytes[bi++] = (w >>> 16) & 0xFF;
+        bytes[bi++] = (w >>>  8) & 0xFF;
+        bytes[bi++] =  w         & 0xFF;
     }
-    return str.replace(/\0+$/, '');
+    // Strip trailing nulls
+    let end = bytes.length;
+    while (end > 0 && bytes[end - 1] === 0) end--;
+    const td = new TextDecoder('utf-8', { fatal: false });
+    return td.decode(bytes.subarray(0, end));
 }
 
 async function _loadLumpContent(token, lump) {
@@ -5390,6 +5397,14 @@ async function _submitLumpImport() {
         const bytes = new Uint8Array(buf);
         for (const b of bytes) binary += String.fromCharCode(b);
         dataB64 = btoa(binary);
+    }
+
+    // Client-side size guard: max lump is 2^14 words = 65536 bytes of payload
+    const MAX_PAYLOAD_BYTES = (1 << 14) * 4 - 4;
+    const approxBytes = Math.ceil(dataB64.length * 3 / 4);
+    if (approxBytes > MAX_PAYLOAD_BYTES) {
+        errEl.textContent = `File too large: ~${(approxBytes / 1024).toFixed(0)} KB exceeds the 64 KB LUMP limit.`;
+        return;
     }
 
     const body = { name, content_type: ct, data_b64: dataB64 };
