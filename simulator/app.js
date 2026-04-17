@@ -5658,10 +5658,11 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     rightPane.appendChild(livePreview);
     splitPane.appendChild(rightPane);
 
-    (function _initDividerDrag() {
+    const restoreSplitRatio = (function _initDividerDrag() {
         let startX = 0;
         let startLeftPx = 0;
         const DIVIDER_PX = 6;
+        const LS_KEY = 'lump-edit-split-ratio';
 
         function applyColumns(leftPx) {
             const totalPx = splitPane.offsetWidth - DIVIDER_PX;
@@ -5681,6 +5682,9 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
             document.body.style.userSelect = '';
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            const totalPx = splitPane.offsetWidth - DIVIDER_PX;
+            const ratio = leftPane.offsetWidth / totalPx;
+            try { localStorage.setItem(LS_KEY, String(ratio)); } catch (_) {}
         }
 
         divider.addEventListener('mousedown', function (e) {
@@ -5693,6 +5697,19 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
+
+        return function restoreRatio() {
+            try {
+                const saved = localStorage.getItem(LS_KEY);
+                if (saved !== null) {
+                    const ratio = parseFloat(saved);
+                    if (isFinite(ratio) && ratio > 0 && ratio < 1) {
+                        const totalPx = splitPane.offsetWidth - DIVIDER_PX;
+                        applyColumns(Math.round(ratio * totalPx));
+                    }
+                }
+            } catch (_) {}
+        };
     })();
 
     editorArea.appendChild(splitPane);
@@ -5721,6 +5738,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
         editBtn.style.display = 'none';
         preview.style.display = 'none';
         editorArea.style.display = '';
+        restoreSplitRatio();
         _lumpEditDirty = true;
     }
 
@@ -5740,6 +5758,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
         editBtn.style.display = 'none';
         preview.style.display = 'none';
         editorArea.style.display = '';
+        restoreSplitRatio();
         ta.focus();
     });
 
