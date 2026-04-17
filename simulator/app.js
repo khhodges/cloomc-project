@@ -4790,9 +4790,113 @@ async function renderLumps() {
         listEl.querySelectorAll('.lump-item[data-token]').forEach(el => {
             el.addEventListener('click', () => showLumpDetail(el.dataset.token));
         });
+
+        if (_selectedLumpToken) {
+            const sel = _lumpsCache.find(l => l.token === _selectedLumpToken);
+            if (sel && (sel.lump_type === 'namespace' || sel.typ === 10)) {
+                showLumpDetail(_selectedLumpToken);
+            }
+        }
     } catch (err) {
         listEl.innerHTML = `<div class="lumps-placeholder">Error loading lumps: ${_escHtml(err.message)}</div>`;
     }
+}
+
+function _buildNsDepGraph(nsMeta, lump) {
+    const e = _escHtml;
+    const allEntries = nsMeta.entries || [];
+    const active = allEntries.filter(ent => ent.state && ent.state !== 'null');
+    if (active.length === 0) return '';
+
+    const SVG_W = 660;
+    const ROW_H = 52;
+    const PAD_T = 28, PAD_B = 20;
+    const NS_W = 118, NS_H = 52;
+    const SLOT_W = 156, SLOT_H = 34;
+    const TGT_W = 156, TGT_H = 34;
+
+    const nRows = active.length;
+    const svgH = Math.max(NS_H + PAD_T + PAD_B + 10, nRows * ROW_H + PAD_T + PAD_B);
+
+    const nsX = 8, slotX = 188, tgtX = 418;
+    const nsCX = nsX + NS_W / 2;
+    const nsCY = svgH / 2;
+
+    let svg = `<svg class="ns-dep-graph-svg" viewBox="0 0 ${SVG_W} ${svgH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Namespace dependency graph">`;
+    svg += `<defs>
+      <marker id="nsdg-arr-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,1 L9,5 L0,9 z" fill="#4a7aab"/></marker>
+      <marker id="nsdg-arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,1 L9,5 L0,9 z" fill="#4ade80"/></marker>
+      <marker id="nsdg-arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,1 L9,5 L0,9 z" fill="#a78bfa"/></marker>
+    </defs>`;
+
+    const nsLabel = (lump.abstraction || 'Namespace').substring(0, 14);
+    const nsToken = (lump.token || '').substring(0, 12);
+    svg += `<rect x="${nsX}" y="${nsCY - NS_H / 2}" width="${NS_W}" height="${NS_H}" rx="6" fill="#1a1a0a" stroke="#fbbf24" stroke-width="2"/>`;
+    svg += `<text x="${nsCX}" y="${nsCY - 10}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fbbf24" font-family="monospace">NS LUMP</text>`;
+    svg += `<text x="${nsCX}" y="${nsCY + 4}" text-anchor="middle" font-size="9" fill="#eaeaea" font-family="monospace">${e(nsLabel)}</text>`;
+    svg += `<text x="${nsCX}" y="${nsCY + 17}" text-anchor="middle" font-size="7.5" fill="#7a7a5a" font-family="monospace">0x${e(nsToken)}</text>`;
+
+    for (let i = 0; i < active.length; i++) {
+        const ent = active[i];
+        const rowCY = PAD_T + i * ROW_H + ROW_H / 2;
+
+        const ex1 = nsX + NS_W, ey1 = nsCY;
+        const ex2 = slotX, ey2 = rowCY;
+        const cBx = ex1 + (ex2 - ex1) * 0.45;
+        svg += `<path d="M${ex1},${ey1} C${cBx},${ey1} ${cBx},${ey2} ${ex2},${ey2}" fill="none" stroke="#4a7aab" stroke-width="1.2" marker-end="url(#nsdg-arr-blue)"/>`;
+
+        const stateCol = ent.state === 'bundled' ? '#60a5fa'
+                       : ent.state === 'live'    ? '#4ade80'
+                       :                           '#a78bfa';
+        const slotLabel = (ent.label || `slot ${ent.slot}`).substring(0, 20);
+        svg += `<rect x="${slotX}" y="${rowCY - SLOT_H / 2}" width="${SLOT_W}" height="${SLOT_H}" rx="4" fill="#081828" stroke="${stateCol}" stroke-width="1.2"/>`;
+        svg += `<text x="${slotX + 6}" y="${rowCY - 5}" font-size="7" font-weight="bold" fill="${stateCol}" font-family="monospace">[${parseInt(ent.slot)}] ${e((ent.state || '').toUpperCase())}</text>`;
+        svg += `<text x="${slotX + 6}" y="${rowCY + 8}" font-size="9" fill="#dde8f0" font-family="monospace">${e(slotLabel)}</text>`;
+
+        const isOutform = ent.state === 'outform';
+        const isBundled = ent.state === 'bundled' || ent.state === 'live';
+        if (isOutform || isBundled) {
+            const tgtTok = (ent.lump_token || ent.token || '').replace(/[^a-z0-9]/gi, '');
+            const tgtLump = tgtTok ? (_lumpsCache || []).find(l => l.token === tgtTok) : null;
+            const tgtCol = isOutform ? '#a78bfa' : '#4ade80';
+            const tgtStroke = isOutform ? '#6a5a9a' : (tgtLump ? '#2a7a4a' : '#1a4a2a');
+            const arrMkr = isOutform ? 'nsdg-arr-purple' : 'nsdg-arr-green';
+
+            svg += `<line x1="${slotX + SLOT_W}" y1="${rowCY}" x2="${tgtX - 2}" y2="${rowCY}" stroke="${tgtCol}" stroke-width="1" stroke-opacity="0.6" marker-end="url(#${arrMkr})"/>`;
+
+            let tgtLine1, tgtLine2;
+            if (isOutform) {
+                tgtLine1 = 'OUTFORM';
+                tgtLine2 = (ent.hash || '').substring(0, 16) || `loc:${ent.loc_idx || 0}`;
+            } else if (tgtLump) {
+                tgtLine1 = (tgtLump.abstraction || 'Lump').substring(0, 18);
+                tgtLine2 = '0x' + tgtTok.substring(0, 12);
+            } else if (ent.file) {
+                tgtLine1 = ent.file.split('/').pop().replace(/\.lump$/, '').substring(0, 18);
+                tgtLine2 = tgtTok ? '0x' + tgtTok.substring(0, 12) : '';
+            } else {
+                tgtLine1 = tgtTok ? '0x' + tgtTok.substring(0, 12) : 'unknown';
+                tgtLine2 = '';
+            }
+
+            const clickable = !!tgtLump;
+            const clickAttr = clickable ? ` style="cursor:pointer" onclick="showLumpDetail('${tgtTok}')"` : '';
+            const titleEl = clickable ? `<title>Navigate to ${e(tgtLump.abstraction || tgtTok)}</title>` : '';
+
+            svg += `<g${clickAttr}>${titleEl}`;
+            svg += `<rect x="${tgtX}" y="${rowCY - TGT_H / 2}" width="${TGT_W}" height="${TGT_H}" rx="4" fill="#080810" stroke="${tgtStroke}" stroke-width="${clickable ? '1.8' : '1'}"/>`;
+            if (clickable) svg += `<rect x="${tgtX}" y="${rowCY - TGT_H / 2}" width="${TGT_W}" height="${TGT_H}" rx="4" fill="${tgtCol}" fill-opacity="0.04"/>`;
+            svg += `<text x="${tgtX + 7}" y="${rowCY - 5}" font-size="9" font-weight="${clickable ? 'bold' : 'normal'}" fill="${tgtCol}" font-family="monospace">${e(tgtLine1)}</text>`;
+            if (tgtLine2) svg += `<text x="${tgtX + 7}" y="${rowCY + 8}" font-size="7.5" fill="#5a7a6a" font-family="monospace">${e(tgtLine2)}</text>`;
+            if (clickable) svg += `<text x="${tgtX + TGT_W - 6}" y="${rowCY - 5}" font-size="9" fill="${tgtCol}" font-family="monospace" text-anchor="end">&#8594;</text>`;
+            svg += `</g>`;
+        }
+    }
+
+    const legY = svgH - 6;
+    svg += `<text x="8" y="${legY}" font-size="7" fill="#4a6a6a" font-family="monospace">bundled/live &#9632;  outform &#9670;  click a lump node to navigate</text>`;
+    svg += `</svg>`;
+    return svg;
 }
 
 function showLumpDetail(token) {
@@ -4843,6 +4947,14 @@ function showLumpDetail(token) {
         html += `<tr><td>Lump Size</td><td>${parseInt(lump.lump_size) || 0} words (${(parseInt(lump.lump_size) || 0) * 4} bytes)</td></tr>`;
         html += '</tbody></table>';
         html += '</div>';
+
+        const graphSvg = _buildNsDepGraph(nsMeta, lump);
+        if (graphSvg) {
+            html += '<div class="lump-detail-section">';
+            html += '<div class="lump-section-title">Dependency Graph</div>';
+            html += '<div class="ns-dep-graph-wrap">' + graphSvg + '</div>';
+            html += '</div>';
+        }
 
         const nsEntries = nsMeta.entries || [];
         if (nsEntries.length > 0) {

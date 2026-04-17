@@ -6251,6 +6251,25 @@ a.next-step-link:hover {
     margin-top: 0.4rem;
 }
 
+.ns-dep-graph-wrap {
+    overflow-x: auto;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    border: 1px solid rgba(100, 160, 255, 0.10);
+    padding: 4px 2px;
+}
+
+.ns-dep-graph-svg {
+    display: block;
+    width: 100%;
+    max-width: 660px;
+    height: auto;
+}
+
+.ns-dep-graph-svg text {
+    user-select: none;
+}
+
 .ns-builder-form {
     padding: 0.5rem 0;
 }
