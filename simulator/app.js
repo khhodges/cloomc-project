@@ -5934,13 +5934,21 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
     const mbObj = {};   // wordIndex → method JSON object
     const autoDetected = methods.length === 0;
     if (!autoDetected) {
+        let _codeOnlyCursor = 0;  // cumulative offset for source-JSON code-only methods
         for (const m of methods) {
-            // Manifest methods have numeric `offset`; source-JSON methods have `code`.
-            // Both are valid — key on offset when present, otherwise skip.
-            const hasOffset = m.offset !== undefined && m.offset !== null;
-            const hasCode   = Array.isArray(m.code) || typeof m.code === 'string';
+            const hasOffset = typeof m.offset === 'number';
+            const codeArr   = Array.isArray(m.code) ? m.code : null;
+            const hasCode   = codeArr !== null || typeof m.code === 'string';
             if (!hasOffset && !hasCode) continue;
-            const wi = 1 + (parseInt(m.offset) || 0);
+            let wi;
+            if (hasOffset) {
+                // Manifest method: offset is the canonical word index within the code region.
+                wi = 1 + m.offset;
+            } else {
+                // Source-JSON method: no explicit offset — compute cumulatively from code length.
+                wi = 1 + _codeOnlyCursor;
+                _codeOnlyCursor += codeArr ? codeArr.length : 1;
+            }
             mb[wi]    = m.name;
             mbObj[wi] = m;
         }
