@@ -1749,6 +1749,110 @@ def import_lump():
     return jsonify({"ok": True, "token": token8})
 
 
+@app.route("/api/lumps/upload-lump", methods=["POST"])
+def upload_lump_file():
+    """Import a raw .lump binary file as-is; parse its header to populate sidecar."""
+    import base64 as _b64, datetime as _dt, hashlib as _hl
+    payload = request.get_json(force=True, silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    name     = (payload.get("name") or "Imported").strip() or "Imported"
+    data_b64 = payload.get("data_b64") or ""
+
+    try:
+        raw_bytes = _b64.b64decode(data_b64)
+    except Exception:
+        return jsonify({"error": "Invalid base64 data"}), 400
+
+    if len(raw_bytes) < 4:
+        return jsonify({"error": "File too small to be a valid LUMP (< 4 bytes)"}), 400
+    if len(raw_bytes) % 4 != 0:
+        return jsonify({"error": "LUMP file size must be a multiple of 4 bytes"}), 400
+
+    # Parse LUMP header (first uint32, big-endian)
+    header_word, = _struct.unpack('>I', raw_bytes[:4])
+    n_minus_6 = (header_word >> 23) & 0xF    # bits[26:23]
+    cw        = (header_word >> 10) & 0x1FFF  # bits[22:10]
+    typ       = (header_word >>  8) & 0x3     # bits[9:8]
+    cc        = header_word & 0xFF             # bits[7:0]
+    n         = n_minus_6 + 6
+    expected_size = 1 << n
+
+    if len(raw_bytes) > expected_size * 4:
+        return jsonify({"error": f"File size ({len(raw_bytes)} B) exceeds LUMP header size 2^{n}={expected_size} words"}), 400
+    if len(raw_bytes) < 4:
+        return jsonify({"error": "LUMP must contain at least a header word"}), 400
+
+    # Pad to full declared lump size
+    lump_size  = expected_size
+    lump_bytes = raw_bytes + b'\x00' * max(0, lump_size * 4 - len(raw_bytes))
+
+    # Map typ bits to metadata
+    _TYP_MAP = {
+        0: ("code",    "code"),
+        1: ("data",    "binary"),
+        2: ("thread",  "thread"),
+        3: ("outform", "outform"),
+    }
+    lump_type, content_type = _TYP_MAP.get(typ, ("data", "binary"))
+
+    # Token = sha256(raw file bytes)[:8]
+    token8 = _hl.sha256(raw_bytes).hexdigest()[:8]
+
+    lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
+    os.makedirs(lumps_dir, exist_ok=True)
+
+    lump_path = os.path.join(lumps_dir, f'{token8}.lump')
+    with open(lump_path, 'wb') as fh:
+        fh.write(lump_bytes)
+    LAZY_LUMPS[token8] = lump_bytes
+    LAZY_LUMPS[token8.lstrip('0') or '0'] = lump_bytes
+
+    sidecar = {
+        "token":        token8,
+        "abstraction":  name,
+        "ns_slot":      None,
+        "lump_size":    lump_size,
+        "typ":          typ,
+        "content_type": content_type,
+        "lump_type":    lump_type,
+        "cw":           cw,
+        "cc":           cc,
+        "profile":      "IoT",
+        "language":     "imported",
+        "methods":      [],
+        "capabilities": [],
+        "pet_names":    {"DR": {}, "CR": {}},
+        "mtbf":         {"consecutive_clean": 0, "total_runs": 0, "status": "unknown", "source_hash": ""},
+        "deployment":   {"target_board": "ti60-f225", "profile": "IoT",
+                         "built_at": _dt.datetime.utcnow().isoformat() + "Z",
+                         "builder": "IDE LUMP Upload"},
+        "grants":       ["E"],
+    }
+    sidecar_path = os.path.join(lumps_dir, f'{token8}.json')
+    with open(sidecar_path, 'w') as fh:
+        json.dump(sidecar, fh, indent=2)
+
+    manifest_path = os.path.join(lumps_dir, 'manifest.json')
+    manifest = []
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, 'r') as mfh:
+                manifest = json.load(mfh)
+        except Exception:
+            manifest = []
+    manifest = [e for e in manifest if e.get('token') != token8]
+    manifest.append({"token": token8, "abstraction": name, "ns_slot": None,
+                      "lump_size": lump_size, "cw": cw, "cc": cc,
+                      "methods": [], "grants": ["E"]})
+    with open(manifest_path, 'w') as mfh:
+        json.dump(manifest, mfh, indent=2)
+
+    print(f'[lumps/upload-lump] {token8} typ={typ} ({lump_type}) n={n} cw={cw} cc={cc} {len(lump_bytes)}B', flush=True)
+    return jsonify({"ok": True, "token": token8})
+
+
 def _crc16_ccitt(data_bytes):
     crc = 0xFFFF
     for b in data_bytes:

@@ -5357,11 +5357,13 @@ function _lumpImportToggleUI(ct) {
     if (!modal) return;
     const isText    = ct === 'text' || ct === 'markdown';
     const isRawImg  = ct === 'image' || ct === 'grayscale';
-    modal.querySelector('#lumpImportPasteRow').style.display = isText ? '' : 'none';
+    const isLump    = ct === 'lump';
+    modal.querySelector('#lumpImportPasteRow').style.display = (isText && !isLump) ? '' : 'none';
     modal.querySelector('#lumpImportFileRow' ).style.display = '';
     modal.querySelector('#lumpImportImgRow'  ).style.display = isRawImg ? '' : 'none';
     const fileLabel = modal.querySelector('#lumpImportFileLabel');
-    if (fileLabel) fileLabel.textContent = isText ? 'File (optional — overrides paste)' : 'File';
+    if (fileLabel) fileLabel.textContent = isText ? 'File (optional — overrides paste)' :
+                                           isLump ? 'LUMP file (.lump)' : 'File';
 }
 
 async function _submitLumpImport() {
@@ -5399,23 +5401,38 @@ async function _submitLumpImport() {
         dataB64 = btoa(binary);
     }
 
-    // Client-side size guard: max lump is 2^14 words = 65536 bytes of payload
-    const MAX_PAYLOAD_BYTES = (1 << 14) * 4 - 4;
-    const approxBytes = Math.ceil(dataB64.length * 3 / 4);
-    if (approxBytes > MAX_PAYLOAD_BYTES) {
-        errEl.textContent = `File too large: ~${(approxBytes / 1024).toFixed(0)} KB exceeds the 64 KB LUMP limit.`;
-        return;
+    // For raw .lump file uploads: parse the header on the server, skip size guard
+    if (ct === 'lump') {
+        if (!hasFile) { errEl.textContent = 'Select a .lump file.'; return; }
+        const buf = await fileEl.files[0].arrayBuffer();
+        let binary = '';
+        const bytes = new Uint8Array(buf);
+        for (const b of bytes) binary += String.fromCharCode(b);
+        dataB64 = btoa(binary);
+    } else {
+        // Client-side size guard: max lump is 2^14 words = 65536 bytes of payload
+        const MAX_PAYLOAD_BYTES = (1 << 14) * 4 - 4;
+        const approxBytes = Math.ceil(dataB64.length * 3 / 4);
+        if (approxBytes > MAX_PAYLOAD_BYTES) {
+            errEl.textContent = `File too large: ~${(approxBytes / 1024).toFixed(0)} KB exceeds the 64 KB LUMP limit.`;
+            return;
+        }
     }
 
-    const body = { name, content_type: ct, data_b64: dataB64 };
-    if (imgW > 0) body.image_width  = imgW;
-    if (imgH > 0) body.image_height = imgH;
+    const endpoint = ct === 'lump' ? '/api/lumps/upload-lump' : '/api/lumps/import';
+    const body = ct === 'lump'
+        ? { name, data_b64: dataB64 }
+        : { name, content_type: ct, data_b64: dataB64 };
+    if (ct !== 'lump') {
+        if (imgW > 0) body.image_width  = imgW;
+        if (imgH > 0) body.image_height = imgH;
+    }
 
     const submitBtn = modal.querySelector('#lumpImportSubmit');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Importing…';
     try {
-        const resp = await fetch('/api/lumps/import', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const resp = await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
         const result = await resp.json();
         if (!resp.ok || !result.ok) throw new Error(result.error || `HTTP ${resp.status}`);
         closeLumpImportModal();
