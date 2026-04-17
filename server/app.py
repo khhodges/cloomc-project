@@ -1689,7 +1689,8 @@ def import_lump():
     all_words  = ([header] + data_words)[:lump_size]
     all_words += [0] * max(0, lump_size - len(all_words))
 
-    token8 = _hl.sha256(name.encode('utf-8')).hexdigest()[:8]
+    payload_hash = _hl.sha256(raw_bytes).hexdigest()[:4]
+    token8 = (_hl.sha256(name.encode('utf-8')).hexdigest()[:4] + payload_hash)
 
     lumps_dir  = os.path.join(os.path.dirname(__file__), 'lumps')
     os.makedirs(lumps_dir, exist_ok=True)
