@@ -6157,13 +6157,13 @@ a.next-step-link:hover {
 }
 
 .lump-type-selector-dialog {
-    max-width: 560px;
+    max-width: 640px;
     width: 100%;
 }
 
 .lump-type-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 0.6rem;
     margin-bottom: 1rem;
 }

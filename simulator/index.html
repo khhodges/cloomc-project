@@ -1257,22 +1257,32 @@
             <button class="lump-type-card" onclick="selectLumpType('code')">
                 <span class="lump-type-icon">⚙</span>
                 <span class="lump-type-name">Code</span>
-                <span class="lump-type-desc">Abstraction with methods — built from the editor via Build LUMP</span>
+                <span class="lump-type-desc">Abstraction with methods — compiled from Editor source (typ=00)</span>
             </button>
             <button class="lump-type-card" onclick="selectLumpType('data')">
                 <span class="lump-type-icon">▦</span>
                 <span class="lump-type-name">Data</span>
-                <span class="lump-type-desc">Raw data block — constants, tables, packed strings (typ=01)</span>
+                <span class="lump-type-desc">Raw word array — constants, tables, binary blobs (typ=01)</span>
             </button>
             <button class="lump-type-card" onclick="selectLumpType('thread')">
                 <span class="lump-type-icon">⇄</span>
                 <span class="lump-type-name">Thread</span>
-                <span class="lump-type-desc">Concurrent thread instance with its own c-list (typ=10)</span>
+                <span class="lump-type-desc">Concurrent thread with its own capability c-list (typ=10)</span>
             </button>
-            <button class="lump-type-card" onclick="selectLumpType('outform')">
-                <span class="lump-type-icon">↗</span>
-                <span class="lump-type-name">Outform</span>
-                <span class="lump-type-desc">Remote outform reference — capability to a far abstraction (typ=11)</span>
+            <button class="lump-type-card" onclick="selectLumpType('text')">
+                <span class="lump-type-icon">𝐓</span>
+                <span class="lump-type-name">Text</span>
+                <span class="lump-type-desc">Plain text stored as Pack4 — 4 chars per word (.type=text)</span>
+            </button>
+            <button class="lump-type-card" onclick="selectLumpType('markdown')">
+                <span class="lump-type-icon">⌸</span>
+                <span class="lump-type-name">Markdown</span>
+                <span class="lump-type-desc">Markdown document stored as Pack4 words (.type=markdown)</span>
+            </button>
+            <button class="lump-type-card" onclick="selectLumpType('image')">
+                <span class="lump-type-icon">⬚</span>
+                <span class="lump-type-name">Image</span>
+                <span class="lump-type-desc">Pixel data or encoded image stored as word array (.type=image)</span>
             </button>
             <button class="lump-type-card lump-type-card-ns" onclick="selectLumpType('namespace')">
                 <span class="lump-type-icon">⊞</span>

@@ -511,12 +511,21 @@ function selectLumpType(type) {
     _selectedLumpToken = null;
     if (listEl) listEl.querySelectorAll('.lump-item').forEach(el => el.classList.remove('active'));
 
-    const labels = { code: 'Code Lump (typ=00)', data: 'Data Lump (typ=01)', thread: 'Thread Lump (typ=10)', outform: 'Outform Lump (typ=11)' };
+    const labels = {
+        code:     'Code Lump (typ=00)',
+        data:     'Data Lump (typ=01)',
+        thread:   'Thread Lump (typ=10)',
+        text:     'Text Lump (.type=text)',
+        markdown: 'Markdown Lump (.type=markdown)',
+        image:    'Image Lump (.type=image)',
+    };
     const notes = {
-        code:    'Code lumps contain abstraction methods and are built from CLOOMC++ or Assembly source in the Editor. Use <strong>Build LUMP ↓</strong> in the Editor toolbar to compile and download a deployable .lump binary.',
-        data:    'Data lumps store raw word arrays — constants, lookup tables, Pack4-encoded strings, or binary blobs. Data lump authoring via the IDE is coming in a future release.',
-        thread:  'Thread lumps encapsulate a concurrent thread instance with its own capability c-list. Thread authoring via the IDE is coming in a future release.',
-        outform: 'Outform lumps represent remote capability references to abstractions on other nodes. Outform authoring via the IDE is coming in a future release.',
+        code:     'Code lumps contain abstraction methods and are compiled from CLOOMC++ or Assembly source in the Editor. Use <strong>Build LUMP ↓</strong> in the Editor toolbar to compile and download a deployable .lump binary.',
+        data:     'Data lumps store raw word arrays — constants, lookup tables, or binary blobs. Each 32-bit word maps directly to hardware memory. Data lump authoring via the IDE is coming in a future release.',
+        thread:   'Thread lumps encapsulate a concurrent thread instance with its own capability c-list (typ=10). Thread authoring via the IDE is coming in a future release.',
+        text:     'Text lumps store plain text encoded with Pack4 — 4 ASCII characters packed into each 32-bit word. Stored as a Data lump (typ=01) with <code>.type=text</code> in the sidecar. Text authoring via the IDE is coming in a future release.',
+        markdown: 'Markdown lumps store documentation or rich text encoded with Pack4 — 4 chars per word. Stored as a Data lump (typ=01) with <code>.type=markdown</code> in the sidecar. Markdown authoring via the IDE is coming in a future release.',
+        image:    'Image lumps store pixel data or encoded image bytes as a word array (typ=01, <code>.type=image</code>). Image import via the IDE is coming in a future release.',
     };
 
     if (titleEl) titleEl.textContent = `New ${labels[type] || type}`;
