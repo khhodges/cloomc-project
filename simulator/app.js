@@ -8762,10 +8762,15 @@ function assembleAndLoad() {
         }
         listing += '\n';
         for (const m of methods) {
+            if (m.aliasOf) {
+                listing += `; method ${m.name} → alias of ${m.aliasOf}\n\n`;
+                continue;
+            }
             listing += `; method ${m.name}\n`;
+            const mCode = m.code || [];
             const comments = manifestByMethod[m.name] || {};
-            for (let i = 0; i < (m.code || []).length; i++) {
-                const w = m.code[i];
+            for (let i = 0; i < mCode.length; i++) {
+                const w = mCode[i];
                 const mnem = w === 0 ? 'NOP' : assembler.disassemble(w);
                 const comment = comments[i];
                 listing += comment ? `${mnem.padEnd(40)}; ${comment}\n` : `${mnem}\n`;
@@ -17358,7 +17363,11 @@ function compileDraft() {
 
     draft += `  Methods (${result.methods.length}):\n`;
     for (const m of result.methods) {
-        draft += `    • ${m.name}: ${m.code.length} instruction(s)\n`;
+        if (m.aliasOf) {
+            draft += `    • ${m.name}: alias of ${m.aliasOf}\n`;
+        } else {
+            draft += `    • ${m.name}: ${(m.code || []).length} instruction(s)\n`;
+        }
     }
 
     draft += `\n  Capabilities (${clistCount}):\n`;
@@ -17419,10 +17428,15 @@ function compileDraft() {
     }
 
     for (const m of result.methods) {
-        draft += `  method ${m.name}: ${m.code.length} instruction(s)\n`;
+        if (m.aliasOf) {
+            draft += `  method ${m.name}: → alias of ${m.aliasOf} (no separate code block)\n\n`;
+            continue;
+        }
+        const mCode = m.code || [];
+        draft += `  method ${m.name}: ${mCode.length} instruction(s)\n`;
         const comments = draftManifest[m.name] || {};
-        for (let i = 0; i < m.code.length; i++) {
-            const word = m.code[i];
+        for (let i = 0; i < mCode.length; i++) {
+            const word = mCode[i];
             const disasm = assembler.disassemble(word);
             const comment = comments[i];
             const line = `    ${i.toString().padStart(4)}: 0x${word.toString(16).padStart(8, '0')}  ${disasm}`;
@@ -17726,10 +17740,15 @@ function compileCLOOMC() {
     }
 
     for (const m of result.methods) {
+        if (m.aliasOf) {
+            listing += `; method ${m.name} → alias of ${m.aliasOf}\n\n`;
+            continue;
+        }
         listing += `; method ${m.name}\n`;
+        const mCode = m.code || [];
         const comments = manifestByMethod[m.name] || {};
-        for (let i = 0; i < m.code.length; i++) {
-            const word = m.code[i];
+        for (let i = 0; i < mCode.length; i++) {
+            const word = mCode[i];
             const mnem = word === 0 ? 'NOP' : assembler.disassemble(word);
             const comment = comments[i];
             listing += comment ? `${mnem.padEnd(40)}; ${comment}\n` : `${mnem}\n`;
