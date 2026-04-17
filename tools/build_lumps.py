@@ -117,6 +117,7 @@ def build_lump(payload, verbose=False):
     all_code          = []
     method_table      = []
     canonical_offsets = {}   # method name -> code-region offset, for aliasOf resolution
+    seen_bodies       = {}   # tuple(words) -> first method name that had this body
 
     for m in methods:
         alias_of = m.get('aliasOf')
@@ -142,11 +143,17 @@ def build_lump(payload, verbose=False):
             words = parse_code(m)
             if not words:
                 words = [0x1F000000]
+            method_name = m.get('name', '?')
+            body_key = tuple(words)
+            if body_key in seen_bodies:
+                print(f'WARNING: {name}: method \'{method_name}\' has identical body to \'{seen_bodies[body_key]}\'')
+            else:
+                seen_bodies[body_key] = method_name
             offset = len(all_code)
             all_code.extend(words)
-            canonical_offsets[m.get('name', '?')] = offset
+            canonical_offsets[method_name] = offset
             entry = {
-                'name'  : m.get('name', '?'),
+                'name'  : method_name,
                 'offset': offset,
                 'length': len(words),
             }
