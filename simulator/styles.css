@@ -5759,6 +5759,16 @@ a.next-step-link:hover {
 .lumps-detail-panel .panel {
     height: 100%;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#lumpsDetailContent {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .lumps-catalog-header {
@@ -6011,6 +6021,196 @@ a.next-step-link:hover {
     border-radius: 3px;
     letter-spacing: 0.5px;
     margin-left: 6px;
+}
+
+/* ── LUMP content-type badges ──────────────────────────── */
+.lump-ct-badge {
+    display: inline-block;
+    font-size: 0.52rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.4px;
+    margin-left: 5px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+.lump-ct-ns     { background: #2d7d46; color: #e0ffe0; }
+.lump-ct-code   { background: #1e3a6e; color: #7eb8ff; }
+.lump-ct-data   { background: #4a2d1e; color: #ffb87e; }
+.lump-ct-text   { background: #2d3a1e; color: #b8ff7e; }
+.lump-ct-md     { background: #1e2d4a; color: #7eb8ff; }
+.lump-ct-img    { background: #3a1e4a; color: #e07eff; }
+.lump-ct-thread { background: #1e3a3a; color: #7effea; }
+
+/* ── LUMP detail tab bar ───────────────────────────────── */
+.lump-tabs-bar {
+    display: flex;
+    gap: 2px;
+    padding: 0 0 0 0;
+    border-bottom: 1px solid rgba(100, 160, 255, 0.18);
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+.lump-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.35rem 0.8rem 0.3rem;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: color 0.15s, border-color 0.15s;
+    border-radius: 4px 4px 0 0;
+    margin-bottom: -1px;
+}
+.lump-tab:hover { color: var(--text-primary); }
+.lump-tab.lump-tab-active {
+    color: var(--church-gold, #c8a84b);
+    border-bottom-color: var(--church-gold, #c8a84b);
+    background: rgba(200, 168, 75, 0.07);
+}
+
+/* ── LUMP tab panels ───────────────────────────────────── */
+.lump-tab-panel {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+.lump-tab-panel-active {
+    display: flex;
+}
+
+/* ── LUMP code content viewer ──────────────────────────── */
+.lump-content-code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    overflow-x: auto;
+}
+.lump-code-row {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.1rem 0.2rem;
+    border-radius: 2px;
+    line-height: 1.6;
+}
+.lump-code-row:hover { background: rgba(100, 160, 255, 0.06); }
+.lump-code-addr {
+    color: #6b7280;
+    min-width: 5.2rem;
+    flex-shrink: 0;
+}
+.lump-code-hex {
+    color: #7eb8ff;
+    min-width: 6rem;
+    flex-shrink: 0;
+}
+.lump-code-instr {
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+.lump-code-method-label {
+    color: var(--church-gold, #c8a84b);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.4rem 0.2rem 0.15rem;
+    letter-spacing: 0.4px;
+    border-top: 1px solid rgba(200, 168, 75, 0.2);
+    margin-top: 0.3rem;
+}
+
+/* ── LUMP text / markdown content ──────────────────────── */
+.lump-content-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.73rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.18);
+    padding: 0.6rem 0.8rem;
+    border-radius: 4px;
+    border: 1px solid rgba(100, 160, 255, 0.1);
+    max-height: 100%;
+    overflow-y: auto;
+    margin: 0;
+    flex: 1;
+}
+.lump-content-markdown {
+    font-size: 0.78rem;
+    line-height: 1.65;
+    color: var(--text-primary);
+    padding: 0.3rem 0.2rem;
+    overflow-y: auto;
+}
+.lump-content-markdown h1, .lump-content-markdown h2, .lump-content-markdown h3 {
+    color: var(--church-gold, #c8a84b);
+    margin: 0.6rem 0 0.3rem;
+}
+.lump-content-markdown code {
+    background: rgba(100, 160, 255, 0.1);
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+.lump-content-markdown pre { overflow-x: auto; }
+
+/* ── LUMP image content ────────────────────────────────── */
+.lump-content-image {
+    display: flex;
+    flex-direction: column;
+    padding: 0.3rem 0;
+    overflow-y: auto;
+}
+
+/* ── LUMP thread content ───────────────────────────────── */
+.lump-content-thread {
+    font-size: 0.73rem;
+    overflow-y: auto;
+}
+
+/* ── LUMP import modal ─────────────────────────────────── */
+.lump-import-dialog {
+    max-width: 420px;
+    width: 95vw;
+}
+.lump-import-row {
+    margin-bottom: 0.65rem;
+}
+.lump-import-row label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+.lump-import-row input[type=text],
+.lump-import-row input[type=number],
+.lump-import-row select,
+.lump-import-row textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(100,160,255,0.2);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    padding: 0.35rem 0.5rem;
+    font-family: inherit;
+    resize: vertical;
+}
+.lump-import-row textarea { min-height: 80px; }
+.lump-import-img-pair { display: flex; gap: 0.5rem; }
+.lump-import-img-pair input { flex: 1; }
+.lump-import-err {
+    color: #ff7070;
+    font-size: 0.7rem;
+    min-height: 1rem;
+    margin-top: 0.4rem;
 }
 
 .ns-builder-form {

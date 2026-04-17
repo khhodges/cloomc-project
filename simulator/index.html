@@ -120,6 +120,7 @@
                                 <div class="ham-group-title">Install</div>
                                 <button class="ham-item" id="hamItem-builder" onclick="switchView('builder');closeHamburger()">Builder</button>
                                 <button class="ham-item" id="hamItem-lumps" onclick="switchView('lumps');closeHamburger()">Lumps</button>
+                <button class="ham-item" id="hamItem-lumps-import" onclick="switchView('lumps');closeHamburger();setTimeout(showLumpImportModal,150)">Import LUMP</button>
                                 <button class="ham-item" id="hamItem-bitstreams" onclick="switchView('builder');switchBuilderViewTab('cyberspace');closeHamburger()">Bitstreams</button>
                             </div>
                         </div>
@@ -450,6 +451,7 @@
                             <button class="btn ham-btn" id="lumpsActionsBtn" onclick="toggleLumpsActions()" data-tooltip="Actions — Namespace · Refresh">&#9776;</button>
                             <div class="ham-dropdown lumps-actions-dropdown" id="lumpsActionsDropdown" style="display:none;">
                                 <button class="ham-item" onclick="showLumpTypeSelector();closeLumpsActions()">+ LUMP</button>
+                                <button class="ham-item" onclick="showLumpImportModal();closeLumpsActions()">Import LUMP</button>
                                 <button class="ham-item" onclick="renderLumps();closeLumpsActions()">Refresh</button>
                             </div>
                         </div>
@@ -1292,6 +1294,44 @@
         </div>
         <div class="lump-type-cancel-row">
             <button class="btn" onclick="closeLumpTypeSelector()">Cancel</button>
+        </div>
+    </div>
+</div>
+<div id="lumpImportModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeLumpImportModal()">
+    <div class="modal-dialog lump-import-dialog">
+        <div class="modal-title">Import LUMP</div>
+        <div class="lump-import-row">
+            <label for="lumpImportName">Name</label>
+            <input type="text" id="lumpImportName" placeholder="e.g. splash-screen" />
+        </div>
+        <div class="lump-import-row">
+            <label for="lumpImportType">Content type</label>
+            <select id="lumpImportType" onchange="_lumpImportToggleUI(this.value)">
+                <option value="text">Text (Plain)</option>
+                <option value="markdown">Markdown</option>
+                <option value="image">Image (RGBA raw / PNG)</option>
+                <option value="data">Data (binary blob)</option>
+            </select>
+        </div>
+        <div class="lump-import-row" id="lumpImportPasteRow">
+            <label for="lumpImportPaste">Paste text</label>
+            <textarea id="lumpImportPaste" rows="5" placeholder="Paste text or Markdown here…"></textarea>
+        </div>
+        <div class="lump-import-row" id="lumpImportFileRow" style="display:none;">
+            <label for="lumpImportFile">File</label>
+            <input type="file" id="lumpImportFile" />
+        </div>
+        <div class="lump-import-row" id="lumpImportImgRow" style="display:none;">
+            <label>Image dimensions (for RGBA raw; leave blank for encoded formats)</label>
+            <div class="lump-import-img-pair">
+                <input type="number" id="lumpImportImgW" placeholder="Width px" min="1" />
+                <input type="number" id="lumpImportImgH" placeholder="Height px" min="1" />
+            </div>
+        </div>
+        <div class="lump-import-err" id="lumpImportErr"></div>
+        <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:0.75rem;">
+            <button class="btn" onclick="closeLumpImportModal()">Cancel</button>
+            <button class="btn btn-primary" id="lumpImportSubmit" onclick="_submitLumpImport()">Import</button>
         </div>
     </div>
 </div>

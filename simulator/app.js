@@ -4770,7 +4770,7 @@ function renderLumps() {
                 const isNamespace = lump.lump_type === 'namespace' || lump.typ === 10;
                 html += `<div class="lump-item-header">`;
                 html += `<span class="lump-item-name">${safeName}`;
-                if (isNamespace) html += `<span class="ns-type-badge">NS</span>`;
+                html += _lumpTypeBadge(lump);
                 html += `</span>`;
                 if (mtbf.status) {
                     const mtbfLabel = (mtbfStatus === 'unknown' || mtbfStatus === 'untested') ? 'UNKNOWN' : mtbfStatus.toUpperCase();
@@ -4814,9 +4814,17 @@ function showLumpDetail(token) {
     if (!titleEl || !contentEl) return;
 
     const isNamespace = lump.lump_type === 'namespace' || lump.typ === 10;
-    titleEl.textContent = (lump.abstraction || 'Unknown Lump') + (isNamespace ? ' — Namespace LUMP' : '');
+    const _lumpTitleLabel = _lumpContentTypeLabel(lump);
+    titleEl.textContent = (lump.abstraction || 'Unknown Lump') +
+        (isNamespace ? ' — Namespace LUMP' : ` — ${_lumpTitleLabel}`);
 
-    let html = '<div class="lump-detail-sections">';
+    const _tk = token.replace(/[^a-z0-9]/gi, '');
+    let _tabBar = `<div class="lump-tabs-bar" id="lumpTabBar_${_tk}">` +
+        `<button class="lump-tab lump-tab-active" onclick="_switchLumpTab('${_tk}','overview')">Overview</button>`;
+    if (!isNamespace) _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','content')">Content</button>`;
+    _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','hexdump')">Hex Dump</button></div>`;
+
+    let html = _tabBar + `<div class="lump-tab-panel lump-tab-panel-active" id="lumpTabOverview_${_tk}"><div class="lump-detail-sections">`;
 
     const e = _escHtml;
 
@@ -4965,14 +4973,19 @@ function showLumpDetail(token) {
     html += `<button class="btn lump-delete-btn" data-delete-token="${e(token)}">Delete Lump</button>`;
     html += '</div>';
 
-    html += '</div>';
+    html += '</div></div>';
+
+    if (!isNamespace) {
+        html += `<div class="lump-tab-panel" id="lumpTabContent_${_tk}">` +
+                `<div id="lumpContentBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
+    }
+    html += `<div class="lump-tab-panel" id="lumpTabHexdump_${_tk}">` +
+            `<div id="lumpBinBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
+
     contentEl.innerHTML = html;
     const delBtn = contentEl.querySelector('.lump-delete-btn[data-delete-token]');
     if (delBtn) delBtn.addEventListener('click', () => deleteLump(delBtn.dataset.deleteToken));
-
-    if (!isNamespace) {
-        _fetchAndShowLumpBinary(token, lump);
-    }
+    _lumpActiveTab[_tk] = 'overview';
 }
 
 async function _fetchAndShowLumpBinary(token, lump) {
@@ -5099,6 +5112,283 @@ async function _fetchAndShowLumpBinary(token, lump) {
 
     } catch (err) {
         bodyEl.textContent = `Failed to load binary: ${err.message}`;
+    }
+}
+
+const _lumpActiveTab      = {};
+const _lumpContentLoaded  = {};
+const _lumpHexLoaded      = {};
+
+function _lumpContentTypeLabel(lump) {
+    const ct = (lump.content_type || '').toLowerCase();
+    const lt = (lump.lump_type   || '').toLowerCase();
+    const typ = lump.typ;
+    if (lt === 'namespace') return 'Namespace';
+    if (ct === 'text')      return 'Text';
+    if (ct === 'markdown')  return 'Markdown';
+    if (ct === 'image')     return 'Image';
+    if (ct === 'thread' || typ === 2) return 'Thread';
+    if (ct === 'code'   || typ === 0) return 'Code';
+    if (ct === 'data'   || ct === 'binary' || typ === 1) return 'Data';
+    return 'LUMP';
+}
+
+function _lumpTypeBadge(lump) {
+    const ct = (lump.content_type || '').toLowerCase();
+    const lt = (lump.lump_type   || '').toLowerCase();
+    const typ = lump.typ;
+    if (lt === 'namespace')                         return '<span class="lump-ct-badge lump-ct-ns">NS</span>';
+    if (ct === 'text')                              return '<span class="lump-ct-badge lump-ct-text">TXT</span>';
+    if (ct === 'markdown')                          return '<span class="lump-ct-badge lump-ct-md">MD</span>';
+    if (ct === 'image')                             return '<span class="lump-ct-badge lump-ct-img">IMG</span>';
+    if (ct === 'thread' || typ === 2)               return '<span class="lump-ct-badge lump-ct-thread">THR</span>';
+    if (ct === 'code'   || typ === 0)               return '<span class="lump-ct-badge lump-ct-code">CODE</span>';
+    if (ct === 'data' || ct === 'binary' || typ === 1) return '<span class="lump-ct-badge lump-ct-data">DATA</span>';
+    return '';
+}
+
+function _switchLumpTab(tk, tab) {
+    _lumpActiveTab[tk] = tab;
+    const tabMap = { overview: `lumpTabOverview_${tk}`, content: `lumpTabContent_${tk}`, hexdump: `lumpTabHexdump_${tk}` };
+    Object.entries(tabMap).forEach(([t, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('lump-tab-panel-active', t === tab);
+    });
+    const bar = document.getElementById(`lumpTabBar_${tk}`);
+    if (bar) {
+        const btns = bar.querySelectorAll('.lump-tab');
+        btns.forEach(btn => {
+            const labelMap = { overview: 'Overview', content: 'Content', hexdump: 'Hex Dump' };
+            btn.classList.toggle('lump-tab-active', btn.textContent.trim() === labelMap[tab]);
+        });
+    }
+    const lump = _lumpsCache.find(l => (l.token || '').replace(/[^a-z0-9]/gi, '') === tk);
+    const token = lump ? lump.token : tk;
+    if (tab === 'content' && !_lumpContentLoaded[tk] && lump) {
+        _lumpContentLoaded[tk] = true;
+        _loadLumpContent(token, lump);
+    }
+    if (tab === 'hexdump' && !_lumpHexLoaded[tk] && lump) {
+        _lumpHexLoaded[tk] = true;
+        _fetchAndShowLumpBinary(token, lump);
+    }
+}
+
+function _pack4Decode(words) {
+    let str = '';
+    for (const w of words) {
+        const bytes = [(w >>> 24) & 0xFF, (w >>> 16) & 0xFF, (w >>> 8) & 0xFF, w & 0xFF];
+        for (const b of bytes) str += b === 0 ? '\0' : String.fromCharCode(b);
+    }
+    return str.replace(/\0+$/, '');
+}
+
+async function _loadLumpContent(token, lump) {
+    const tk = token.replace(/[^a-z0-9]/gi, '');
+    const bodyEl = document.getElementById(`lumpContentBody_${tk}`);
+    if (!bodyEl) return;
+    try {
+        const resp = await fetch(`/api/lump/${token}/words`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data  = await resp.json();
+        const words = data.words || [];
+        if (!words.length) throw new Error('Empty lump');
+        const ct  = (lump.content_type || '').toLowerCase();
+        const typ = lump.typ;
+        const dataWords = words.slice(1);
+        if (ct === 'code' || typ === 0) {
+            _renderLumpCodeContent(bodyEl, lump, words);
+        } else if (ct === 'text') {
+            const text = _pack4Decode(dataWords);
+            bodyEl.innerHTML = '';
+            bodyEl.className = '';
+            const pre = document.createElement('pre');
+            pre.className = 'lump-content-text';
+            pre.textContent = text || '(empty)';
+            bodyEl.appendChild(pre);
+        } else if (ct === 'markdown') {
+            const text = _pack4Decode(dataWords);
+            bodyEl.innerHTML = '';
+            bodyEl.className = 'lump-content-markdown';
+            bodyEl.innerHTML = renderMarkdown(text || '');
+        } else if (ct === 'image') {
+            _renderLumpImageContent(bodyEl, lump, dataWords);
+        } else if (ct === 'thread' || typ === 2) {
+            _renderLumpThreadContent(bodyEl, lump, words);
+        } else {
+            const text = _pack4Decode(dataWords);
+            bodyEl.innerHTML = '';
+            bodyEl.className = '';
+            const pre = document.createElement('pre');
+            pre.className = 'lump-content-text';
+            pre.textContent = text || '(no decodable content)';
+            bodyEl.appendChild(pre);
+        }
+    } catch (err) {
+        bodyEl.className = '';
+        bodyEl.textContent = `Failed to load content: ${err.message}`;
+    }
+}
+
+function _renderLumpCodeContent(bodyEl, lump, words) {
+    const e = _escHtml;
+    const methods   = lump.methods  || [];
+    const cw        = parseInt(lump.cw)        || 0;
+    const cc        = parseInt(lump.cc)        || 0;
+    const lumpSize  = parseInt(lump.lump_size) || words.length;
+    const mb = {};
+    for (const m of methods) mb[1 + (parseInt(m.offset) || 0)] = m.name;
+    const dis = w => {
+        if (typeof assembler !== 'undefined' && assembler) {
+            try { return assembler.disassemble(w >>> 0); } catch (_) {}
+        }
+        return `0x${(w >>> 0).toString(16).padStart(8, '0').toUpperCase()}`;
+    };
+    const effEnd = Math.min(cw + 1, lumpSize - cc, words.length);
+    let html = '<div class="lump-content-code">';
+    if (effEnd <= 1) {
+        html += '<div class="lumps-placeholder">No code words in this lump.</div>';
+    } else {
+        for (let i = 1; i < effEnd; i++) {
+            if (mb[i] !== undefined) html += `<div class="lump-code-method-label">\u25c6 ${e(mb[i])}</div>`;
+            const addr = (i * 4).toString(16).toUpperCase().padStart(4, '0');
+            const hex  = (words[i] >>> 0).toString(16).toUpperCase().padStart(8, '0');
+            html += `<div class="lump-code-row">` +
+                    `<span class="lump-code-addr">0x${addr}</span>` +
+                    `<span class="lump-code-hex">${hex}</span>` +
+                    `<span class="lump-code-instr">${e(dis(words[i]))}</span></div>`;
+        }
+    }
+    html += '</div>';
+    bodyEl.innerHTML = html;
+    bodyEl.className = '';
+}
+
+function _renderLumpImageContent(bodyEl, lump, dataWords) {
+    const w = parseInt(lump.image_width)  || 0;
+    const h = parseInt(lump.image_height) || 0;
+    if (!w || !h) {
+        bodyEl.className = '';
+        bodyEl.innerHTML = '<div class="lumps-placeholder">Image dimensions not set. Re-import and specify width \u00d7 height.</div>';
+        return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width  = w;
+    canvas.height = h;
+    canvas.style.cssText = 'max-width:100%;image-rendering:pixelated;border-radius:4px;display:block;margin:0.5rem 0;';
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    let byteIdx = 0;
+    for (const word of dataWords) {
+        const bytes = [(word >>> 24) & 0xFF, (word >>> 16) & 0xFF, (word >>> 8) & 0xFF, word & 0xFF];
+        for (const b of bytes) { if (byteIdx < img.data.length) img.data[byteIdx++] = b; }
+    }
+    ctx.putImageData(img, 0, 0);
+    bodyEl.innerHTML = '';
+    bodyEl.className = 'lump-content-image';
+    const info = document.createElement('div');
+    info.style.cssText = 'font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.5rem;';
+    info.textContent = `${w} \u00d7 ${h} px \u00b7 RGBA`;
+    bodyEl.appendChild(info);
+    bodyEl.appendChild(canvas);
+}
+
+function _renderLumpThreadContent(bodyEl, lump, words) {
+    const e = _escHtml;
+    const hexw = v => (v >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    const pc   = words.length > 1  ? words[1]  : 0;
+    const drVals = [];
+    for (let i = 0; i < 16; i++) drVals.push(words.length > 2 + i ? words[2 + i] : 0);
+    const callDepth = words.length > 18 ? words[18] : 0;
+    let html = '<div class="lump-content-thread"><table class="lump-detail-table"><tbody>';
+    html += `<tr><td>PC</td><td><code>0x${hexw(pc)}</code></td></tr>`;
+    html += `<tr><td>Call Depth</td><td>${callDepth}</td></tr>`;
+    html += '</tbody></table>';
+    html += '<div class="lump-section-title" style="margin-top:0.75rem;">Data Registers</div>';
+    html += '<table class="lump-detail-table"><thead><tr><th>Reg</th><th>Value</th></tr></thead><tbody>';
+    for (let i = 0; i < 16; i++) {
+        const v = drVals[i];
+        html += `<tr><td>DR${i}</td><td style="color:${v === 0 ? 'var(--text-secondary)' : 'inherit'}"><code>0x${hexw(v)}</code></td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    bodyEl.innerHTML = html;
+    bodyEl.className = '';
+}
+
+function showLumpImportModal() {
+    const m = document.getElementById('lumpImportModal');
+    if (m) {
+        m.querySelector('#lumpImportName').value = '';
+        m.querySelector('#lumpImportType').value = 'text';
+        m.querySelector('#lumpImportFile').value = '';
+        m.querySelector('#lumpImportPaste').value = '';
+        m.querySelector('#lumpImportImgW').value = '';
+        m.querySelector('#lumpImportImgH').value = '';
+        _lumpImportToggleUI(m.querySelector('#lumpImportType').value);
+        m.style.display = 'flex';
+    }
+}
+
+function closeLumpImportModal() {
+    const m = document.getElementById('lumpImportModal');
+    if (m) m.style.display = 'none';
+}
+
+function _lumpImportToggleUI(ct) {
+    const modal = document.getElementById('lumpImportModal');
+    if (!modal) return;
+    const isText  = ct === 'text' || ct === 'markdown';
+    const isImage = ct === 'image';
+    modal.querySelector('#lumpImportPasteRow').style.display = isText  ? '' : 'none';
+    modal.querySelector('#lumpImportFileRow' ).style.display = isText  ? 'none' : '';
+    modal.querySelector('#lumpImportImgRow'  ).style.display = isImage ? '' : 'none';
+}
+
+async function _submitLumpImport() {
+    const modal    = document.getElementById('lumpImportModal');
+    const name     = modal.querySelector('#lumpImportName').value.trim() || 'Imported';
+    const ct       = modal.querySelector('#lumpImportType').value;
+    const fileEl   = modal.querySelector('#lumpImportFile');
+    const pasteEl  = modal.querySelector('#lumpImportPaste');
+    const imgW     = parseInt(modal.querySelector('#lumpImportImgW').value) || 0;
+    const imgH     = parseInt(modal.querySelector('#lumpImportImgH').value) || 0;
+    const errEl    = modal.querySelector('#lumpImportErr');
+    errEl.textContent = '';
+
+    let dataB64 = '';
+    const isText = ct === 'text' || ct === 'markdown';
+    if (isText) {
+        const text = pasteEl.value;
+        if (!text.trim()) { errEl.textContent = 'Paste some text first.'; return; }
+        dataB64 = btoa(unescape(encodeURIComponent(text)));
+    } else {
+        if (!fileEl.files.length) { errEl.textContent = 'Select a file first.'; return; }
+        const buf = await fileEl.files[0].arrayBuffer();
+        let binary = '';
+        const bytes = new Uint8Array(buf);
+        for (const b of bytes) binary += String.fromCharCode(b);
+        dataB64 = btoa(binary);
+    }
+
+    const body = { name, content_type: ct, data_b64: dataB64 };
+    if (imgW > 0) body.image_width  = imgW;
+    if (imgH > 0) body.image_height = imgH;
+
+    const submitBtn = modal.querySelector('#lumpImportSubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Importing…';
+    try {
+        const resp = await fetch('/api/lumps/import', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const result = await resp.json();
+        if (!resp.ok || !result.ok) throw new Error(result.error || `HTTP ${resp.status}`);
+        closeLumpImportModal();
+        await renderLumps();
+        setTimeout(() => showLumpDetail(result.token), 300);
+    } catch (err) {
+        errEl.textContent = `Import failed: ${err.message}`;
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Import';
     }
 }
 
