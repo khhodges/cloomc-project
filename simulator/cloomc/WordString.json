@@ -153,6 +153,26 @@
       ]
     },
     {
+      "name": "IsAlpha",
+      "aliasOf": "ReturnFalse"
+    },
+    {
+      "name": "IsUpperExt",
+      "aliasOf": "IsUppercase"
+    },
+    {
+      "name": "IsPunct",
+      "aliasOf": "ReturnFalse"
+    },
+    {
+      "name": "IsLowerExt",
+      "aliasOf": "IsLowercase"
+    },
+    {
+      "name": "IsSymbol",
+      "aliasOf": "ReturnFalse"
+    },
+    {
       "name": "IsSpace",
       "code": [
         "0x7f604020",
@@ -162,6 +182,10 @@
         "0x7f0e0000",
         "0x1f000000"
       ]
+    },
+    {
+      "name": "IsAlphaNum",
+      "aliasOf": "ReturnFalse"
     },
     {
       "name": "ToUppercase",
@@ -200,6 +224,10 @@
       ]
     },
     {
+      "name": "StubExt",
+      "aliasOf": "Stub"
+    },
+    {
       "name": "NormaliseDigit",
       "code": [
         "0x7f60402f",
@@ -213,6 +241,10 @@
         "0x7f0a0000",
         "0x1f000000"
       ]
+    },
+    {
+      "name": "IsHex",
+      "aliasOf": "ReturnFalse"
     },
     {
       "name": "Offset",

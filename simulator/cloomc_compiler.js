@@ -162,7 +162,7 @@ class CLOOMCCompiler {
             for (const m of methods) {
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
-                    errors.push({ line: 0, message: `Method "${m.name}" compiles to identical machine code as "${_bodyIndex.get(fp)}" — each method must have a distinct implementation` });
+                    m.aliasOf = _bodyIndex.get(fp);
                 } else {
                     _bodyIndex.set(fp, m.name);
                 }
@@ -212,7 +212,7 @@ class CLOOMCCompiler {
             for (const m of methods) {
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
-                    errors.push({ line: 0, message: `Method "${m.name}" compiles to identical machine code as "${_bodyIndex.get(fp)}" — each method must have a distinct implementation` });
+                    m.aliasOf = _bodyIndex.get(fp);
                 } else {
                     _bodyIndex.set(fp, m.name);
                 }
@@ -1234,7 +1234,7 @@ class CLOOMCCompiler {
             for (const m of methods) {
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
-                    errors.push({ line: 0, message: `Method "${m.name}" compiles to identical machine code as "${_bodyIndex.get(fp)}" — each method must have a distinct implementation` });
+                    m.aliasOf = _bodyIndex.get(fp);
                 } else {
                     _bodyIndex.set(fp, m.name);
                 }
@@ -2543,7 +2543,7 @@ class CLOOMCCompiler {
             for (const m of methods) {
                 const fp = m.code.join(',');
                 if (_bodyIndex.has(fp)) {
-                    errors.push({ line: 0, message: `Method "${m.name}" compiles to identical machine code as "${_bodyIndex.get(fp)}" — each method must have a distinct implementation` });
+                    m.aliasOf = _bodyIndex.get(fp);
                 } else {
                     _bodyIndex.set(fp, m.name);
                 }

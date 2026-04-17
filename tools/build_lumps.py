@@ -114,27 +114,39 @@ def build_lump(payload, verbose=False):
     capabilities = payload.get('capabilities', [])
     cc = len(capabilities)
 
-    all_code     = []
-    method_table = []
-    seen_bodies  = {}
+    all_code          = []
+    method_table      = []
+    canonical_offsets = {}   # method name -> code-region offset, for aliasOf resolution
 
     for m in methods:
-        words = parse_code(m)
-        if not words:
-            words = [0x1F000000]
-        body_key = tuple(words)
-        if body_key in seen_bodies:
-            print(f'  WARNING {name}: method "{m.get("name","?")}" has identical compiled code '
-                  f'as "{seen_bodies[body_key]}" — consider removing the duplicate')
+        alias_of = m.get('aliasOf')
+        if alias_of:
+            # Alias: reuse canonical's code region — emit no new words
+            if alias_of not in canonical_offsets:
+                raise ValueError(
+                    f'{name}: method "{m.get("name","?")}" has aliasOf "{alias_of}" '
+                    f'but that canonical has not been encountered yet (must come first)')
+            offset = canonical_offsets[alias_of]
+            canon_entry = next((e for e in method_table if e['name'] == alias_of), None)
+            length = canon_entry['length'] if canon_entry else 0
+            method_table.append({
+                'name'   : m.get('name', '?'),
+                'offset' : offset,
+                'length' : length,
+                'aliasOf': alias_of,
+            })
         else:
-            seen_bodies[body_key] = m.get('name', '?')
-        offset = len(all_code)
-        all_code.extend(words)
-        method_table.append({
-            'name'  : m.get('name', '?'),
-            'offset': offset,
-            'length': len(words),
-        })
+            words = parse_code(m)
+            if not words:
+                words = [0x1F000000]
+            offset = len(all_code)
+            all_code.extend(words)
+            canonical_offsets[m.get('name', '?')] = offset
+            method_table.append({
+                'name'  : m.get('name', '?'),
+                'offset': offset,
+                'length': len(words),
+            })
 
     cw = len(all_code)
     lump_size = next_pow2_ge64(1 + cw + cc)

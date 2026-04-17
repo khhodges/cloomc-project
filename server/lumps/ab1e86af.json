@@ -5,7 +5,6 @@
   "lump_size": 512,
   "typ": 0,
   "content_type": "code",
-  "lump_type": "code",
   "cw": 281,
   "cc": 0,
   "profile": "IoT",
@@ -57,9 +56,45 @@
       "length": 9
     },
     {
+      "name": "IsAlpha",
+      "offset": 87,
+      "length": 3,
+      "aliasOf": "ReturnFalse"
+    },
+    {
+      "name": "IsUpperExt",
+      "offset": 69,
+      "length": 9,
+      "aliasOf": "IsUppercase"
+    },
+    {
+      "name": "IsPunct",
+      "offset": 87,
+      "length": 3,
+      "aliasOf": "ReturnFalse"
+    },
+    {
+      "name": "IsLowerExt",
+      "offset": 78,
+      "length": 9,
+      "aliasOf": "IsLowercase"
+    },
+    {
+      "name": "IsSymbol",
+      "offset": 87,
+      "length": 3,
+      "aliasOf": "ReturnFalse"
+    },
+    {
       "name": "IsSpace",
       "offset": 99,
       "length": 6
+    },
+    {
+      "name": "IsAlphaNum",
+      "offset": 87,
+      "length": 3,
+      "aliasOf": "ReturnFalse"
     },
     {
       "name": "ToUppercase",
@@ -77,9 +112,21 @@
       "length": 10
     },
     {
+      "name": "StubExt",
+      "offset": 115,
+      "length": 1,
+      "aliasOf": "Stub"
+    },
+    {
       "name": "NormaliseDigit",
       "offset": 126,
       "length": 10
+    },
+    {
+      "name": "IsHex",
+      "offset": 87,
+      "length": 3,
+      "aliasOf": "ReturnFalse"
     },
     {
       "name": "Offset",
@@ -126,8 +173,8 @@
   "deployment": {
     "target_board": "ti60-f225",
     "profile": "IoT",
-    "built_at": "2026-04-17T16:10:40.933740Z",
-    "builder": "build_lumps.py (deduplicated from imported binary)"
+    "built_at": "2026-04-17T16:20:00Z",
+    "builder": "build_lumps.py (deduped via aliasOf)"
   },
   "grants": [
     "E"
