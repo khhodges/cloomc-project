@@ -810,7 +810,12 @@ class ChurchSimulator {
 
         const THREAD_SW = 32;
         const THREAD_CC = 64;
-        const THREAD_N_MINUS_6 = 2;
+        // n_minus_6 is derived from the actual lump size so a programmer
+        // -chosen THREAD_LUMP_SIZE > 256 gets a header that describes the
+        // real allocation (was hardcoded to 2 ⇒ 256 words, which silently
+        // drifted from server/boot_image.py for custom Step-1 sizes — see
+        // tests/test_boot_image_matches_simulator.py).
+        const THREAD_N_MINUS_6 = Math.max(0, Math.ceil(Math.log2(THREAD_LUMP_SIZE)) - 6);
         const threadLoc = this.memory[this.NS_TABLE_BASE + 1 * this.NS_ENTRY_WORDS];
         this.memory[threadLoc] = this.packLumpHeader(THREAD_N_MINUS_6, THREAD_SW, THREAD_CC, 2);
 
@@ -849,7 +854,9 @@ class ChurchSimulator {
         const NUC_CODE_WORDS    = 17;
         const DEMO_CLIST_SIZE   = 17;
         const bootAbstrLoc      = this.memory[this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS];
-        const N_MINUS_6         = 2;
+        // Derive n_minus_6 from the configured Boot.Abstr lump size so the
+        // header tracks programmer-chosen sizes (was hardcoded to 2).
+        const N_MINUS_6         = Math.max(0, Math.ceil(Math.log2(BOOT_ABSTR_LUMP_SIZE)) - 6);
         const lumpSize          = BOOT_ABSTR_LUMP_SIZE;
         // Truncate to hardware DEMO_CLIST size — entries beyond idx 16 are simulator-only abstractions
         // not present in the boot c-list on real hardware.
@@ -864,17 +871,12 @@ class ChurchSimulator {
         for (let i = 0; i < bootClistCount; i++) {
             this.memory[bootAbstrLoc + clistStart + i] = clistGTs[i];
         }
-        // KNOWN DIVERGENCE: the loop above writes clistGTs[0] (R|X to NS slot 3
-        // per docs/boot-rom-layout.md DEMO_CLIST), then this line overwrites it
-        // with NULL. The original code commented this as "filled by SAVE
-        // epilogue", but no current boot step actually re-fills it. The boot
-        // program's BOOT_PROGRAM word 1 (LOAD CR1, CR6[0]) therefore sees a
-        // NULL token in the simulator. This pre-dates the foundation-lump
-        // architecture work and will be replaced wholesale by the
-        // programmer-authored boot image (Tasks #214–#217); for now, keep the
-        // existing behavior to avoid altering simulator semantics.
-        // See docs/foundation-lump-design.md §4.
-        this.memory[bootAbstrLoc + clistStart] = 0;
+        // C-list slot 0 = memory-manager GT for NS slot 0 (R|W over the full
+        // namespace). Matches server/boot_image.py — when a programmer-
+        // authored boot image is loaded, this slot must hand the boot code
+        // an actual capability for the memory it manages, not a NULL token.
+        // See docs/foundation-lump-design.md §4 and Tasks #214–#217/#223.
+        this.memory[bootAbstrLoc + clistStart] = this.createGT(0, 0, {R:1, W:1, X:0, L:0, S:0, E:0}, 1);
 
         // NS entry: limit17 = lumpSize - cc - 1 = 238  (valid PC range 0..237 via +1 fetch offset)
         const codeRegionLimit   = lumpSize - bootClistCount - 1;  // = 238

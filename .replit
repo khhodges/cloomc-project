@@ -15,6 +15,10 @@ author = "agent"
 task = "workflow.run"
 args = "Church Machine IDE"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "boot-image-matches-sim"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -26,6 +30,17 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "boot-image-matches-sim"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 -m pytest tests/test_boot_image_matches_simulator.py -v"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [[ports]]
 localPort = 5000
