@@ -597,11 +597,12 @@ class ChurchSimulator {
         const clistGTs = [];
 
         // Hardware-accurate device register sizes (matches boot_rom.py _MMIO_ENTRIES)
-        // LED:   5 words (LED0–LED4, one per LED; bit[0]=R drives pin)      → limit17 = 4
+        // LED:   6 words (LED0–LED5, one per LED; bit[0]=R drives pin)      → limit17 = 5
+        //        C-list slots 8–13 address each LED by index (slot - LED_CLIST_BASE)
         // UART:  3 words (TX@0, STATUS@1, RX@2)                             → limit17 = 2
         // Button:1 word  (button state bitmask)                              → limit17 = 0
         // Timer: 5 words (TICKS_LO, TICKS_HI, TOD_EPOCH, ALARM_CMP, CTL)   → limit17 = 4
-        const DEVICE_REG_LIMITS = { 11: 2, 12: 4, 13: 0, 14: 4 };
+        const DEVICE_REG_LIMITS = { 11: 2, 12: 5, 13: 0, 14: 4 };
 
         const THREAD_LUMP_SIZE = 256;
         const BOOT_ABSTR_LUMP_SIZE = 256;
@@ -652,18 +653,23 @@ class ChurchSimulator {
         const threadLoc = this.memory[this.NS_TABLE_BASE + 1 * this.NS_ENTRY_WORDS];
         this.memory[threadLoc] = this.packLumpHeader(THREAD_N_MINUS_6, THREAD_SW, THREAD_CC, 2);
 
-        // DEMO_CLIST hardware alignment: override C-List slots 8–11 with device GTs so
+        // DEMO_CLIST hardware alignment: slots 8–16 hold device GTs so
         // hardware code "LOAD CR3, CR6, 8" picks up the LED device, exactly as on Ti60 F225.
-        //   [8]  LED_DEV   R|W → NS slot 12 (5 registers: LED0–LED4, bit[0]=R drives pin)
-        //   [9]  UART_DEV  R|W → NS slot 11 (3 registers: TX@0, STATUS@1, RX@2)
-        //   [10] BTN_DEV   R   → NS slot 13 (1 register: button state bitmask)
-        //   [11] TIMER_DEV R|W → NS slot 14 (5 registers: TICKS_LO, HI, TOD, ALARM_CMP, CTL)
-        // Permissions match hardware DEMO_CLIST (boot_rom.py lines 357-360)
+        //   [8]–[13] LED[0]–LED[5]  R|W → NS slot 12 (one slot per LED; ledIndex = slot - 8)
+        //   [14] UART_DEV  R|W → NS slot 11 (3 registers: TX@0, STATUS@1, RX@2)
+        //   [15] BTN_DEV   R   → NS slot 13 (1 register: button state bitmask)
+        //   [16] TIMER_DEV R|W → NS slot 14 (5 registers: TICKS_LO, HI, TOD, ALARM_CMP, CTL)
+        // Permissions match hardware DEMO_CLIST (boot_rom.py)
         const HW_DEVICE_SLOTS = [
-            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [8]  LED_DEV   R|W (5 regs)
-            { nsIdx: 11, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [9]  UART_DEV  R|W (3 regs)
-            { nsIdx: 13, perms: {R:1,W:0,X:0,L:0,S:0,E:0} }, // [10] BTN_DEV   R   (1 reg)
-            { nsIdx: 14, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [11] TIMER_DEV R|W (5 regs)
+            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [8]  LED[0]   R|W
+            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [9]  LED[1]   R|W
+            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [10] LED[2]   R|W
+            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [11] LED[3]   R|W
+            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [12] LED[4]   R|W
+            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [13] LED[5]   R|W
+            { nsIdx: 11, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [14] UART_DEV R|W (3 regs)
+            { nsIdx: 13, perms: {R:1,W:0,X:0,L:0,S:0,E:0} }, // [15] BTN_DEV  R   (1 reg)
+            { nsIdx: 14, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [16] TIMER_DEV R|W (5 regs)
         ];
         for (let i = 0; i < HW_DEVICE_SLOTS.length; i++) {
             const d = HW_DEVICE_SLOTS[i];
@@ -672,35 +678,35 @@ class ChurchSimulator {
         clistGTs[3] = this.createGT(0, 16, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
 
         // Slot 2 (Boot.Abstr) lump layout — with lump header at word 0:
-        //   Word  0:       Lump header (magic=0x1F, n_minus_6=2→lumpSize=256, cw=17, typ=0, cc=12)
+        //   Word  0:       Lump header (magic=0x1F, n_minus_6=2→lumpSize=256, cw=17, typ=0, cc=17)
         //   Words 1–17:   Code region  (NUC_CODE_WORDS = 17 instructions; loaded by loadProgram)
-        //   Words 18–243: Freespace    (226 words, available for code growth via Patch)
-        //   Words 244–255:C-list       (12 GT words, at physical end; matching hardware DEMO_CLIST)
+        //   Words 18–238: Freespace    (221 words, available for code growth via Patch)
+        //   Words 239–255:C-list       (17 GT words, at physical end; slots 8–13=LED[0-5], 14=UART, 15=BTN, 16=TIMER)
         //   Physical backing: BOOT_ABSTR_LUMP_SIZE = 256 words (n_minus_6=2 → 2^8 = 256)
         //   → CR14: base=lump_start, limit=cw-1=16  (code region; cload reads cw from lump header)
-        //   → CR6:  base=lump_start+244, limit=cc-1=11  (c-list at physical end)
+        //   → CR6:  base=lump_start+239, limit=cc-1=16  (c-list at physical end)
         const NUC_CODE_WORDS    = 17;
-        const DEMO_CLIST_SIZE   = 12;
+        const DEMO_CLIST_SIZE   = 17;
         const bootAbstrLoc      = this.memory[this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS];
         const N_MINUS_6         = 2;
         const lumpSize          = BOOT_ABSTR_LUMP_SIZE;
-        // Truncate to hardware DEMO_CLIST size — entries beyond idx 11 are simulator-only abstractions
+        // Truncate to hardware DEMO_CLIST size — entries beyond idx 16 are simulator-only abstractions
         // not present in the boot c-list on real hardware.
         clistGTs.length         = DEMO_CLIST_SIZE;
         const bootClistCount    = DEMO_CLIST_SIZE;
-        const clistStart        = lumpSize - bootClistCount;  // = 244 (c-list at physical end)
+        const clistStart        = lumpSize - bootClistCount;  // = 239 (c-list at physical end)
 
         // Word 0: lump header — hardware reads this to simultaneously derive CR14 and CR6
         this.memory[bootAbstrLoc] = this.packLumpHeader(N_MINUS_6, NUC_CODE_WORDS, bootClistCount, 0);
 
-        // C-list at physical end (words 52–63); words 1–17 filled by loadProgram
+        // C-list at physical end (words 239–255); words 1–17 filled by loadProgram
         for (let i = 0; i < bootClistCount; i++) {
             this.memory[bootAbstrLoc + clistStart + i] = clistGTs[i];
         }
         this.memory[bootAbstrLoc + clistStart] = 0;  // GT[0] = null (filled by SAVE epilogue)
 
-        // NS entry: limit17 = lumpSize - cc - 1 = 243  (valid PC range 0..242 via +1 fetch offset)
-        const codeRegionLimit   = lumpSize - bootClistCount - 1;  // = 243
+        // NS entry: limit17 = lumpSize - cc - 1 = 238  (valid PC range 0..237 via +1 fetch offset)
+        const codeRegionLimit   = lumpSize - bootClistCount - 1;  // = 238
         const bootNSBase        = this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS;
         const bootW1            = this.packNSWord1(codeRegionLimit, 0, 0, 0, 0, 1, bootClistCount);
         this.memory[bootNSBase + 1] = bootW1;
