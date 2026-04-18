@@ -11,6 +11,8 @@ import tempfile
 import gzip as _gzip
 import requests as http_requests
 from flask import Flask, jsonify, send_from_directory, send_file, redirect, make_response, request
+
+import boot_image as _boot_image_gen
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -485,6 +487,85 @@ def boot_config_post():
     except Exception as e:
         return jsonify({"ok": False, "error": f"Failed to write boot-config.json: {e}"}), 500
     return jsonify({"ok": True, "config": cfg})
+
+# ---------------------------------------------------------------------------
+# Boot image binary generator (Task #217)
+# ---------------------------------------------------------------------------
+# The generator reads the saved boot-config.json and produces a raw 32-bit
+# little-endian memory dump of the namespace memory window — see
+# server/boot_image.py for the layout. The image is written to
+# server/lumps/boot-image.bin so the IDE can offer it as a download AND so
+# the simulator can fetch and apply it at boot via /api/boot-image/binary.
+BOOT_IMAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "lumps", "boot-image.bin")
+LUMPS_DIR = os.path.dirname(LUMPS_MANIFEST_PATH)
+
+def _read_saved_boot_config():
+    """Load and revalidate the persisted boot-config.json. Returns the
+    cfg dict on success, or (None, error_message) on failure."""
+    path = None
+    if os.path.isfile(BOOT_CONFIG_PATH):
+        path = BOOT_CONFIG_PATH
+    elif os.path.isfile(BOOT_CONFIG_LEGACY_PATH):
+        path = BOOT_CONFIG_LEGACY_PATH
+    if path is None:
+        return None, "No saved boot-config.json — open the Boot Image Designer and save first."
+    try:
+        with open(path, "r") as f:
+            cfg = json.load(f)
+    except Exception as e:
+        return None, f"Failed to read boot-config.json: {e}"
+    err = _validate_step1(cfg.get("targetBoard"), cfg.get("step1") or {})
+    if err:
+        return None, f"Saved config fails Step 1 validation: {err}"
+    s2 = cfg.get("step2")
+    if s2 is not None:
+        err2 = _validate_step2(s2, cfg["step1"], cfg.get("targetBoard"))
+        if err2:
+            return None, f"Saved config fails Step 2 validation: {err2}"
+    s3 = cfg.get("step3")
+    if s3 is not None:
+        err3 = _validate_step3(s3, cfg["step1"], cfg.get("step2"))
+        if err3:
+            return None, f"Saved config fails Step 3 validation: {err3}"
+    return cfg, None
+
+@app.route("/api/boot-image/generate", methods=["POST"])
+def boot_image_generate():
+    cfg, err = _read_saved_boot_config()
+    if err:
+        return jsonify({"ok": False, "error": err}), 400
+    try:
+        blob = _boot_image_gen.generate_boot_image(cfg, LUMPS_DIR)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Generator failed: {e}"}), 500
+    try:
+        with open(BOOT_IMAGE_PATH, "wb") as f:
+            f.write(blob)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Failed to write boot-image.bin: {e}"}), 500
+    return jsonify({
+        "ok": True,
+        "bytes": len(blob),
+        "words": len(blob) // 4,
+        "downloadUrl": "/api/boot-image/download",
+        "binaryUrl": "/api/boot-image/binary",
+    })
+
+@app.route("/api/boot-image/download", methods=["GET"])
+def boot_image_download():
+    if not os.path.isfile(BOOT_IMAGE_PATH):
+        return jsonify({"error": "boot-image.bin not generated yet"}), 404
+    return send_file(BOOT_IMAGE_PATH, mimetype="application/octet-stream",
+                     as_attachment=True, download_name="boot-image.bin")
+
+@app.route("/api/boot-image/binary", methods=["GET"])
+def boot_image_binary():
+    """Same file as /download, served inline so the simulator can fetch
+    it as an ArrayBuffer at boot without triggering a download dialog."""
+    if not os.path.isfile(BOOT_IMAGE_PATH):
+        return jsonify({"error": "boot-image.bin not generated yet"}), 404
+    return send_file(BOOT_IMAGE_PATH, mimetype="application/octet-stream")
 
 @app.route("/simulator/")
 def simulator_index():

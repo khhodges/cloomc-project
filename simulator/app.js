@@ -312,6 +312,17 @@ function init() {
     sim.on('stateChange', () => { updateDashboard(); updateLedStrip(); });
     sim.on('step', _traceRecordStep);
     sim.on('reset', clearTrace);
+    // Task #217: every reset rebuilds memory[] from scratch via
+    // _initNamespaceTable. If a programmer-generated boot image is
+    // available, overlay it now so the simulator runs from the
+    // self-supporting binary rather than the hardcoded init alone.
+    sim.on('reset', _maybeApplyBootImage);
+    // Probe once at startup — covers the case where the user navigated
+    // here after a previous session generated an image.
+    _probeBootImage().then(buf => {
+        if (buf) { window.bootImage = buf; window.bootImageAvailable = true;
+                   try { sim.loadBootImage(buf); } catch(e) { console.warn('[bootImage] apply failed:', e); } }
+    });
     sim.on('programLoaded', () => {
         if (currentView === 'namespace') updateNamespace();
         if (currentView === 'abstractions') renderAbstractions();
@@ -4538,6 +4549,78 @@ function saveBootDesigner() {
         .catch(err => {
             status.textContent = '';
             errEl.textContent = 'Save failed: ' + err;
+        });
+}
+
+// Task #217 — fetch the saved boot-image.bin (if any) without triggering
+// a 404 console error noise. Returns ArrayBuffer or null.
+function _probeBootImage() {
+    return fetch('/api/boot-image/binary')
+        .then(r => r.ok ? r.arrayBuffer() : null)
+        .catch(() => null);
+}
+
+// Reset hook: re-overlay the cached boot image (or fetch once) so the
+// programmer-authored binary survives manual resets.
+function _maybeApplyBootImage() {
+    if (window.bootImage) {
+        try { sim.loadBootImage(window.bootImage); } catch (e) { console.warn('[bootImage] apply failed:', e); }
+        return;
+    }
+    if (window.bootImageAvailable) {
+        _probeBootImage().then(buf => {
+            if (buf) { window.bootImage = buf;
+                       try { sim.loadBootImage(buf); } catch(e){ console.warn('[bootImage] apply failed:', e); } }
+        });
+    }
+}
+
+// Task #217 — Generate the binary boot image from the persisted boot
+// config. The server writes server/lumps/boot-image.bin and returns
+// download / inline-binary URLs; we surface the download link and arm
+// the simulator to load the image on the next reset.
+function generateBootImage() {
+    const result = document.getElementById('bdGenResult');
+    const errEl  = document.getElementById('bdError');
+    const btn    = document.getElementById('bdGenBtn');
+    if (result) result.textContent = 'Generating…';
+    if (errEl)  errEl.textContent  = '';
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+    fetch('/api/boot-image/generate', { method: 'POST' })
+        .then(r => r.json().then(j => ({ ok: r.ok, body: j })))
+        .then(({ ok, body }) => {
+            if (!ok || body.ok === false) {
+                if (result) result.textContent = '';
+                if (errEl)  errEl.textContent  = (body && body.error) || 'Generation failed.';
+                return;
+            }
+            const kib = (body.bytes / 1024).toFixed(1);
+            if (result) {
+                result.innerHTML =
+                    `Generated <strong>${body.bytes.toLocaleString()}</strong> bytes ` +
+                    `(${body.words.toLocaleString()} words, ${kib} KiB) — ` +
+                    `<a href="${body.downloadUrl}" download="boot-image.bin" ` +
+                    `style="color:#9bd;text-decoration:underline;">Download boot-image.bin</a>. ` +
+                    `Reset the simulator to apply this image at boot.`;
+            }
+            // Cache the freshly-generated binary so the next sim.reset()
+            // immediately overlays it (no extra round-trip needed). The
+            // 'reset' listener calls _maybeApplyBootImage which prefers
+            // window.bootImage when present.
+            window.bootImageAvailable = true;
+            _probeBootImage().then(buf => {
+                if (buf) {
+                    window.bootImage = buf;
+                    try { sim.loadBootImage(buf); } catch(e) { console.warn('[bootImage] apply failed:', e); }
+                }
+            });
+        })
+        .catch(err => {
+            if (result) result.textContent = '';
+            if (errEl)  errEl.textContent  = 'Generation failed: ' + err;
+        })
+        .finally(() => {
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
         });
 }
 

@@ -117,6 +117,37 @@ class ChurchSimulator {
         return 65536;
     }
 
+    // Task #217: overlay a server-generated boot image onto the namespace
+    // memory window. The binary is a raw 32-bit little-endian dump
+    // produced by server/boot_image.py and is exactly what `memory[]`
+    // should look like after `_initNamespaceTable()` finishes — so this
+    // method just copies the words in. Call AFTER reset() (which sized
+    // memory[] from window.bootConfig).
+    //
+    // Bytes longer than the memory window are truncated (defensive); a
+    // shorter image leaves the tail untouched. nsCount is recomputed by
+    // scanning the resulting NS table for non-zero entries so the
+    // dashboard reflects whatever the binary describes.
+    loadBootImage(arrayBuffer) {
+        if (!arrayBuffer || arrayBuffer.byteLength < 4) return false;
+        const src = new Uint32Array(arrayBuffer);
+        const n   = Math.min(src.length, this.memory.length);
+        for (let i = 0; i < n; i++) this.memory[i] = src[i] >>> 0;
+        // Recount NS entries from the table now that it's been replaced.
+        const maxEntries = (this.NS_TABLE_RESERVE / this.NS_ENTRY_WORDS) | 0;
+        let count = 0;
+        for (let i = 0; i < maxEntries; i++) {
+            const base = this.NS_TABLE_BASE + i * this.NS_ENTRY_WORDS;
+            if (this.memory[base] !== 0 || this.memory[base + 1] !== 0) {
+                count = i + 1;
+            }
+        }
+        this.nsCount = count;
+        this.output += `[BOOTIMG] Loaded ${n}-word boot image; ${count} NS entries active.\n`;
+        this.emit('stateChange', this.getState());
+        return true;
+    }
+
     initAbstractions(registry, systemAbs, deviceAbs) {
         this.abstractionRegistry = registry;
         this.systemAbstractions = systemAbs;
