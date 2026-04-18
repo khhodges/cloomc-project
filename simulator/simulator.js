@@ -88,6 +88,10 @@ const THREAD_CAPS_OFFSET = 244;
 class ChurchSimulator {
     constructor() {
         this._listeners = {};
+        // NS_TABLE_BASE is recomputed in reset() (and in the binary loaders)
+        // so it always sits at the top of the allocated namespace memory window.
+        // For the historical 65536-word memory this evaluates to 0xFD00.
+        this.NS_TABLE_RESERVE = 0x300;   // 256 entries × 3 words
         this.NS_TABLE_BASE = 0xFD00;
         this.NS_ENTRY_WORDS = 3;
         this.MAX_NS_ENTRIES = 256;
@@ -383,6 +387,7 @@ class ChurchSimulator {
         // is programmer-chosen via the Boot Image Designer (totalNamespaceWords).
         // Falls back to historical 65536 when no project boot config is loaded.
         this.memory = new Uint32Array(this._namespaceMemoryWords());
+        this.NS_TABLE_BASE = this.memory.length - this.NS_TABLE_RESERVE;
 
         this.nsLabels = {};
         this.nsCount = 0;
@@ -3361,6 +3366,7 @@ class ChurchSimulator {
         this.reset();
 
         this.memory = new Uint32Array(this._namespaceMemoryWords());
+        this.NS_TABLE_BASE = this.memory.length - this.NS_TABLE_RESERVE;
         this.nsLabels = {};
         this.nsCount = 0;
         this.nsClistMap = {};
@@ -3502,6 +3508,7 @@ class ChurchSimulator {
         this.reset();
 
         this.memory = new Uint32Array(this._namespaceMemoryWords());
+        this.NS_TABLE_BASE = this.memory.length - this.NS_TABLE_RESERVE;
         this.nsLabels = {};
         this.nsCount = 0;
         this.nsClistMap = {};

@@ -233,6 +233,16 @@ def _validate_step1(target_board, step1):
     if foundation_sum > total:
         return (f"Sum of foundational lump sizes ({foundation_sum}) exceeds "
                 f"totalNamespaceWords ({total})")
+    # The simulator reserves the top NS_TABLE_RESERVE words of the namespace
+    # window for the namespace table itself (256 entries × 3 words = 768).
+    # Foundational lumps grow upward from address 0 and must not collide
+    # with the NS table.
+    NS_TABLE_RESERVE = 0x300  # keep in sync with simulator.js
+    usable = total - NS_TABLE_RESERVE
+    if foundation_sum > usable:
+        return (f"Sum of foundational lump sizes ({foundation_sum}) exceeds the "
+                f"{usable}-word usable space (total {total} minus {NS_TABLE_RESERVE} "
+                f"reserved for the namespace table)")
     return None
 
 @app.route("/api/boot-config", methods=["GET"])

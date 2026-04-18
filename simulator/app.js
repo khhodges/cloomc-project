@@ -4317,8 +4317,14 @@ function _bdValidate() {
         err = `Total namespace memory (${total}) exceeds ${p.label} budget (${p.totalRamWords} words).`;
     }
     const sum = (nsLump||0) + (thrLump||0) + (absLump||0);
+    const NS_TABLE_RESERVE = 0x300; // 768 words; keep in sync with simulator.js
+    const usable = (total||0) - NS_TABLE_RESERVE;
     if (!err && sum > total) {
         err = `Foundational lumps sum to ${sum} words but only ${total} are budgeted.`;
+    }
+    if (!err && sum > usable) {
+        err = `Foundational lumps (${sum} words) exceed the ${usable}-word usable space ` +
+              `(total ${total} minus ${NS_TABLE_RESERVE} reserved for the namespace table).`;
     }
     errEl.textContent = err;
     saveBtn.disabled = !!err;
