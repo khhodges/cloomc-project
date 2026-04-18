@@ -1670,6 +1670,79 @@ header h1 {
     color: #bbb;
 }
 
+.led-dr0-readout {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #0d1117;
+    border-top: 1px solid #1e2a38;
+    font-size: 0.76rem;
+    flex-wrap: wrap;
+    min-height: 26px;
+}
+
+.led-dr0-label {
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.led-index-chip {
+    background: #1b2d45;
+    color: var(--church-blue);
+    border: 1px solid #2d4a6a;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 0.72rem;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.led-dr0-badge {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-family: monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.led-dr0-green {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--church-green);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+.led-dr0-grey {
+    background: rgba(160, 160, 160, 0.12);
+    color: var(--text-secondary);
+    border: 1px solid rgba(160, 160, 160, 0.25);
+}
+
+.led-dr0-red {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--error);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.led-dr0-desc {
+    color: var(--text-secondary);
+    font-size: 0.73rem;
+}
+
+.abs-led-live-section {
+    border-left: 3px solid var(--church-blue);
+}
+
+.abs-led-last-return {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    flex-wrap: wrap;
+}
+
 .hw-led-bar {
     display: flex;
     align-items: center;

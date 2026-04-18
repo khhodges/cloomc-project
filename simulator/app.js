@@ -916,6 +916,26 @@ function updateLedStrip() {
         const lit = !!((bits >> i) & 1);
         hwEl.classList.toggle('on', lit);
     }
+
+    const readoutEl   = document.getElementById('ledDR0Readout');
+    const badgeEl     = document.getElementById('ledDR0Badge');
+    const descEl      = document.getElementById('ledDR0Desc');
+    const indexChipEl = document.getElementById('ledIndexDisplay');
+    if (readoutEl && badgeEl && descEl && indexChipEl) {
+        const dr0 = sim.lastLedDR0;
+        if (dr0 === null || dr0 === undefined) {
+            readoutEl.style.display = 'none';
+        } else {
+            readoutEl.style.display = 'flex';
+            const idx = sim.lastLedIndex;
+            indexChipEl.textContent = idx !== null && idx !== undefined ? `LED ${idx}` : 'LED ?';
+            badgeEl.textContent = String(dr0);
+            badgeEl.className = 'led-dr0-badge ' + (dr0 > 0 ? 'led-dr0-green' : dr0 < 0 ? 'led-dr0-red' : 'led-dr0-grey');
+            if (dr0 > 0)      descEl.textContent = dr0 === 1 ? '(on / success)' : '(success)';
+            else if (dr0 === 0) descEl.textContent = '(off)';
+            else               descEl.textContent = dr0 === -1 ? '(invalid offset)' : '(fault)';
+        }
+    }
 }
 
 function copyLedAssembly() {
@@ -938,6 +958,7 @@ function updateDashboard() {
     updateGateLog();
     if (selectedCR !== null) updateCRDetail();
     if (pipelineViz && !pipelineViz.animating) pipelineViz.render();
+    _refreshLedAbsReadout();
 }
 
 function updateGateLog() {
@@ -7265,6 +7286,36 @@ function _nsBuild() {
     });
 }
 
+function _buildLedLiveHtml() {
+    const _dr0 = sim ? sim.lastLedDR0 : null;
+    const _idx = sim ? sim.lastLedIndex : null;
+    if (_dr0 === null || _dr0 === undefined) {
+        return '<div class="abs-note-text" id="absLedLiveBody">No LED CALL has been executed yet. ' +
+            'Step through a program that calls <code>LED.Set</code>, <code>LED.Clear</code>, <code>LED.Toggle</code>, or <code>LED.State</code> ' +
+            'and the signed DR0 result will appear here.</div>';
+    }
+    const _badgeClass = _dr0 > 0 ? 'led-dr0-green' : (_dr0 < 0 ? 'led-dr0-red' : 'led-dr0-grey');
+    let _desc;
+    if (_dr0 > 0)        _desc = _dr0 === 1 ? 'on / success' : 'success';
+    else if (_dr0 === 0) _desc = 'off';
+    else                 _desc = _dr0 === -1 ? 'invalid offset' : 'fault';
+    const _idxText = _idx !== null && _idx !== undefined ? `LED ${_idx}` : 'LED ?';
+    return `<div class="abs-led-last-return" id="absLedLiveBody">` +
+        `<span class="led-index-chip">${_idxText}</span>` +
+        `<span style="color:var(--text-secondary);font-size:0.8rem;">Last return:</span> ` +
+        `<span class="led-dr0-badge ${_badgeClass}" style="font-size:0.85rem;padding:2px 8px;">${_dr0}</span>` +
+        `<span class="led-dr0-desc" style="margin-left:6px;">(${_desc})</span>` +
+        `</div>` +
+        `<div class="abs-note-text" style="margin-top:6px;">DR0 carries the signed result for one instruction cycle after the CALL. ` +
+        `Use <code>BGE</code> (branch if &ge; 0, success) or <code>BLT</code> (branch if &lt; 0, fault) immediately after the CALL to act on the result.</div>`;
+}
+
+function _refreshLedAbsReadout() {
+    const section = document.getElementById('absLedLiveSection');
+    if (!section) return;
+    section.innerHTML = '<div class="abs-detail-label">Live DR0 Readout</div>' + _buildLedLiveHtml();
+}
+
 function showAbstractionDetail(index) {
     selectedAbsIndex = index;
     renderAbstractions();
@@ -7450,6 +7501,13 @@ function showAbstractionDetail(index) {
         html += 'receives only the capabilities explicitly passed by the caller. Parent oversight is ';
         html += 'enforced via the Family abstraction (NS[28]) which must approve all social connections. ';
         html += 'SWITCH instruction can move between namespace domains atomically.</div>';
+        html += '</div>';
+    }
+
+    if (abs.name === 'LED') {
+        html += '<div class="abs-detail-section abs-led-live-section" id="absLedLiveSection">';
+        html += '<div class="abs-detail-label">Live DR0 Readout</div>';
+        html += _buildLedLiveHtml();
         html += '</div>';
     }
 

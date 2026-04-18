@@ -385,6 +385,13 @@
                             <span id="ledBitsDisplay" class="led-bits-display">0b000000</span>
                             <button class="led-copy-btn" onclick="copyLedAssembly()">↗ Copy assembly</button>
                         </div>
+                        <div id="ledDR0Readout" class="led-dr0-readout" style="display:none;">
+                            <span class="led-dr0-label">Last CALL &rarr;</span>
+                            <span id="ledIndexDisplay" class="led-index-chip">LED ?</span>
+                            <span class="led-dr0-label">DR0 =</span>
+                            <span id="ledDR0Badge" class="led-dr0-badge led-dr0-grey">—</span>
+                            <span id="ledDR0Desc" class="led-dr0-desc"></span>
+                        </div>
                     </div>
                     <div id="editorConsole">Ready. Write Church assembly and click Assemble.</div>
                     <div id="nextStepsBox" class="next-steps-box"></div>

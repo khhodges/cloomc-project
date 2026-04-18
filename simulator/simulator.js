@@ -433,6 +433,8 @@ class ChurchSimulator {
 
         this.dr = new Array(16).fill(0);
         this._preserveDR0 = false;  // set by device CALL paths that return signed DR0
+        this.lastLedDR0 = null;     // signed DR0 from the most-recent LED CALL (null = none yet)
+        this.lastLedIndex = null;   // LED index dispatched in that CALL
 
         this.pc = 0;
         this.physicalPC = 0;
@@ -501,6 +503,8 @@ class ChurchSimulator {
         this.bootStep = 0;
         this.ledBits = 0;
         this.ledMode = 'boot';
+        this.lastLedDR0 = null;
+        this.lastLedIndex = null;
         this.output += '[PP250] Machine state cleared. Re-entering boot sequence.\n';
         this.emit('stateChange', this.getState());
     }
@@ -2546,6 +2550,9 @@ class ChurchSimulator {
                     // for one instruction so caller can branch on DR0's sign via BGE/BLT).
                     this.dr[0] = result.result;
                     this._preserveDR0 = true;
+                    this.lastLedDR0 = result.result;
+                    this.lastLedIndex = ledIndex;
+                    this.output += `DR0 = ${result.result}  [LED.${methodName} index=${ledIndex}]\n`;
                 } else if (encodedDstReg !== null) {
                     this.dr[encodedDstReg] = result.result;
                 } else {
@@ -2626,9 +2633,16 @@ class ChurchSimulator {
                     // Signed-return: write numeric result to DR0 (≥0 success, <0 fault).
                     // Set _preserveDR0 so step() skips the zero-register wipe for one cycle,
                     // allowing the caller to branch on DR0 via BGE/BLT.
+                    const _ledMethodSel = (dr1 >>> 24) & 0xFF;
+                    const _ledMethodNames = ['Set', 'Clear', 'Toggle', 'State'];
+                    const _ledMethodName = _ledMethodNames[_ledMethodSel <= 3 ? _ledMethodSel : 0] || 'Set';
+                    const _ledOffsetDisp = dr1 & 0x3F;
                     if (result && result.result !== undefined && typeof result.result === 'number') {
                         this.dr[0] = result.result;
                         this._preserveDR0 = true;
+                        this.lastLedDR0 = result.result;
+                        this.lastLedIndex = _ledOffsetDisp;
+                        this.output += `DR0 = ${result.result}  [LED.${_ledMethodName} index=${_ledOffsetDisp}]\n`;
                     }
                     if (result && !result.ok && result.fault) {
                         this.fault(result.fault, `LED driver: ${result.message}`);
@@ -3618,7 +3632,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
-        this.ledBits = 0; this.ledMode = 'boot';
+        this.ledBits = 0; this.ledMode = 'boot'; this.lastLedDR0 = null; this.lastLedIndex = null;
         this.faultLog = [];
         this._instrHistory = [];
         this.stepCount = 0;
@@ -3723,7 +3737,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
-        this.ledBits = 0; this.ledMode = 'boot';
+        this.ledBits = 0; this.ledMode = 'boot'; this.lastLedDR0 = null; this.lastLedIndex = null;
         this.faultLog = [];
         this._instrHistory = [];
         this.stepCount = 0;
