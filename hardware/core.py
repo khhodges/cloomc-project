@@ -93,6 +93,13 @@ class ChurchCore(Elaboratable):
         self.outform_result_gt = Signal(32)
         self.outform_busy     = Signal()   # to tang_nano: route UART to outform
 
+        # Test injection: allows sim tests to fire the outform without CPU.
+        # Set outform_start_in=1 for one cycle to bypass the mLoad path.
+        self.outform_start_in      = Signal()
+        self.outform_slot_id_in    = Signal(16)
+        self.outform_clist_addr_in = Signal(32)
+        self.outform_gt_raw_in     = Signal(32)
+
     def elaborate(self, platform):
         m = Module()
 
@@ -1120,10 +1127,19 @@ class ChurchCore(Elaboratable):
             ]
 
         # ── outform wiring ───────────────────────────────────────────────────
+        # outform_start_in lets simulation tests trigger the outform without
+        # going through the CPU mLoad path (outform_start_in = 1 for 1 cycle).
+        _outform_start = Signal()
+        m.d.comb += _outform_start.eq(u_shared_mload.outform_start_out | self.outform_start_in)
+
         m.d.comb += [
-            u_outform.outform_start.eq(u_shared_mload.outform_start_out),
-            u_outform.gt_raw.eq(u_shared_mload.outform_gt_raw),
-            u_outform.slot_id.eq(u_shared_mload.outform_slot_id),
+            u_outform.outform_start.eq(_outform_start),
+            u_outform.gt_raw.eq(
+                Mux(self.outform_start_in, self.outform_gt_raw_in, u_shared_mload.outform_gt_raw)
+            ),
+            u_outform.slot_id.eq(
+                Mux(self.outform_start_in, self.outform_slot_id_in, u_shared_mload.outform_slot_id)
+            ),
             u_outform.rx_valid.eq(self.outform_rx_valid),
             u_outform.rx_data.eq(self.outform_rx_data),
             self.outform_tx_valid.eq(u_outform.tx_valid),
@@ -1136,11 +1152,15 @@ class ChurchCore(Elaboratable):
         ]
 
         if self.iot_profile:
-            # Latch Mint context when mLoad fires outform_start
-            with m.If(u_shared_mload.outform_start_out):
+            # Latch Mint context when mLoad or test injection fires outform_start
+            with m.If(_outform_start):
                 m.d.sync += [
-                    mint_slot_id_reg.eq(u_shared_mload.outform_slot_id),
-                    mint_clist_addr_reg.eq(u_shared_mload.outform_clist_addr),
+                    mint_slot_id_reg.eq(
+                        Mux(self.outform_start_in, self.outform_slot_id_in, u_shared_mload.outform_slot_id)
+                    ),
+                    mint_clist_addr_reg.eq(
+                        Mux(self.outform_start_in, self.outform_clist_addr_in, u_shared_mload.outform_clist_addr)
+                    ),
                 ]
 
             # ── Watermark allocator ───────────────────────────────────────────
@@ -1207,7 +1227,7 @@ class ChurchCore(Elaboratable):
             #   Base = (192 + slot_id * 64) * 4 = 768 + (slot_id << 8)
             mint_clist_slot_base = Signal(32)  # byte addr of slot's clist in BRAM
             m.d.comb += mint_clist_slot_base.eq(
-                768 + (mint_slot_id_reg.as_value() << 8)
+                768 + (mint_slot_id_reg << 8)
             )
 
             # E-GT:  b=0 | perms=E(bit30) | typ=Inform(01<<23) | gt_seq=1(<<16) | slot_id
@@ -1288,7 +1308,7 @@ class ChurchCore(Elaboratable):
                         m.d.comb += [
                             mint_dmem_rd_en.eq(1),
                             mint_dmem_addr.eq(
-                                mint_base_reg + (mint_scan_idx_reg.as_value() << 2)
+                                mint_base_reg + (mint_scan_idx_reg << 2)
                             ),
                         ]
                         with m.If(self.dmem_rd_data != 0):
@@ -1330,7 +1350,7 @@ class ChurchCore(Elaboratable):
                         cc_off = Signal(15)
                         m.d.comb += cc_off.eq(
                             mint_lump_size_reg - mint_cc_reg
-                            + mint_copy_idx_reg.as_value()
+                            + mint_copy_idx_reg
                         )
                         m.d.comb += [
                             mint_dmem_rd_en.eq(1),
@@ -1346,7 +1366,7 @@ class ChurchCore(Elaboratable):
                         mint_clist_wr_en.eq(1),
                         mint_clist_addr_d.eq(
                             mint_clist_slot_base
-                            + (mint_copy_idx_reg.as_value() << 2)
+                            + (mint_copy_idx_reg << 2)
                         ),
                         mint_clist_wr_data_d.eq(mint_copy_data_reg),
                     ]

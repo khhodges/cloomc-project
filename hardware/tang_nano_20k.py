@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
+from amaranth.lib.memory import Memory as LibMemory
 
 from .hw_types import *
 from .layouts import GT_LAYOUT, CAP_REG_LAYOUT
@@ -40,11 +41,13 @@ class GowinBSRAM(Elaboratable):
 
 
 class ChurchTangNano20K(Elaboratable):
-    def __init__(self, clk_freq=27_000_000, baud=115200, sim_mode=False, iot_profile=False, build_sig=None):
+    def __init__(self, clk_freq=27_000_000, baud=115200, sim_mode=False,
+                 iot_profile=False, build_sig=None, test_mode=False):
         self.clk_freq = clk_freq
         self.baud = baud
         self.sim_mode = sim_mode
         self.iot_profile = iot_profile
+        self.test_mode = test_mode
         self.build_sig = build_sig or [0x00, 0x00, 0x00, 0x00]
 
         self.uart_tx = Signal(init=1)
@@ -57,6 +60,24 @@ class ChurchTangNano20K(Elaboratable):
         self.dbg_fault = Signal(4)
         self.dbg_fault_valid = Signal()
         self.dbg_boot_complete = Signal()
+
+        # Debug signals: expose core write buses so tests can observe writes
+        # without accessing internal submodule signals.
+        self.dbg_ns_wr_en      = Signal()
+        self.dbg_ns_wr_addr    = Signal(32)
+        self.dbg_ns_wr_data    = Signal(32)
+        self.dbg_clist_wr_en   = Signal()
+        self.dbg_clist_wr_addr = Signal(32)
+        self.dbg_clist_wr_data = Signal(32)
+        self.dbg_outform_busy  = Signal()
+
+        # Test injection: available when test_mode=True and iot_profile=True.
+        # Pulse test_outform_start for one cycle to fire the outform FSM.
+        if test_mode and iot_profile:
+            self.test_outform_start      = Signal()
+            self.test_outform_slot_id    = Signal(16)
+            self.test_outform_clist_addr = Signal(32)
+            self.test_outform_gt_raw     = Signal(32)
 
     def elaborate(self, platform):
         m = Module()
@@ -222,9 +243,12 @@ class ChurchTangNano20K(Elaboratable):
 
             dmem_init[511] = SLIDERULE_LUMP_HEADER
 
-            dmem = Memory(width=32, depth=2048, init=dmem_init)
+            # Use LibMemory with domain='comb' for true async reads that
+            # match the FPGA GowinBSRAM async-read behaviour and let the
+            # Mint FSM read valid data in the same cycle it sets the address.
+            dmem = LibMemory(shape=unsigned(32), depth=2048, init=dmem_init)
             m.submodules.dmem = dmem
-            dmem_rd = dmem.read_port(transparent=True)
+            dmem_rd = dmem.read_port(domain="comb")
             dmem_wr = dmem.write_port()
 
             mem_addr = Signal(11)
@@ -868,5 +892,25 @@ class ChurchTangNano20K(Elaboratable):
                     ]
                     m.d.sync += halt_idx.eq(0)
                     m.next = "SEND_HALT"
+
+        # ── Debug signal outputs (always available) ───────────────────────
+        m.d.comb += [
+            self.dbg_ns_wr_en.eq(core.ns_wr_en),
+            self.dbg_ns_wr_addr.eq(core.ns_addr),
+            self.dbg_ns_wr_data.eq(core.ns_wr_data[:32]),
+            self.dbg_clist_wr_en.eq(core.clist_wr_en),
+            self.dbg_clist_wr_addr.eq(core.clist_addr),
+            self.dbg_clist_wr_data.eq(core.clist_wr_data),
+            self.dbg_outform_busy.eq(core.outform_busy),
+        ]
+
+        # ── Test injection (test_mode=True and iot_profile=True only) ─────
+        if self.test_mode and self.iot_profile:
+            m.d.comb += [
+                core.outform_start_in.eq(self.test_outform_start),
+                core.outform_slot_id_in.eq(self.test_outform_slot_id),
+                core.outform_clist_addr_in.eq(self.test_outform_clist_addr),
+                core.outform_gt_raw_in.eq(self.test_outform_gt_raw),
+            ]
 
         return m

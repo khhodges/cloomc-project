@@ -29,6 +29,19 @@ The system employs a scale-free abstraction model with 47 abstractions across 9 
 
 45 HTML figures in `docs/figures/` — all use white backgrounds (#ffffff) with dark text/lines for clean printing. Figures cover architecture diagrams, boot sequences, dispatch styles, lambda calculus flows, namespace architecture, I/O addressing, MTBF qualification, and more. PDF patents in `docs/patents/` are regenerated from markdown sources using `tools/md_to_pdf.py` (fpdf-based, no HTML figure embedding).
 
+## Hardware Simulation Tests
+
+Three pytest tests in `tests/test_outform_iot.py` cover the IoT lazy-load pipeline:
+
+- `test_iot_lazy_load_golden` — fast FSM smoke test with mock alloc/mint drivers
+- `test_iot_lazy_load_integrated` — integration harness with real watermark allocator + Mint FSM (LibMemory, async reads)
+- `test_iot_lazy_load_toplevel` — **primary deliverable (Task #264)**: instantiates `ChurchTangNano20K(iot_profile=True, sim_mode=True, test_mode=True)`, drives UART RX bit-by-bit (16 cycles/bit, 8N1), and asserts NS + c-list writes match expected values
+
+Hardware additions that enable top-level simulation:
+- `ChurchCore`: added `outform_start_in / outform_slot_id_in / outform_clist_addr_in / outform_gt_raw_in` test-injection signals
+- `ChurchTangNano20K`: added `test_mode` param; `dbg_ns_wr_*`, `dbg_clist_wr_*`, `dbg_outform_busy` debug outputs; `test_outform_*` injection inputs when `test_mode=True and iot_profile=True`
+- `tang_nano_20k.py` sim_mode memory migrated from `amaranth.hdl.Memory(transparent=True)` (1-cycle sync read) to `amaranth.lib.memory.Memory(domain='comb')` (async/combinatorial read) to correctly simulate FPGA async BSRAM behaviour and allow Mint FSM to work in simulation
+
 ## External Dependencies
 
 - **Python/Flask:** Backend web server.
