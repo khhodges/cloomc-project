@@ -235,18 +235,19 @@ class ChurchCore(Elaboratable):
         cload_pending   = Signal()
 
         # Early declarations for Mint FSM signals used throughout elaborate()
-        mint_busy           = Signal()
-        mint_clist_wr_en    = Signal()
-        mint_clist_addr_d   = Signal(32)  # byte addr of caller's c-list slot
-        mint_e_gt_d         = Signal(32)  # computed E-GT word written to c-list
-        mint_slot_id_reg    = Signal(16)  # latched from mLoad when outform fires
-        mint_clist_addr_reg = Signal(32)  # latched from mLoad when outform fires
-        mint_lump_size_reg  = Signal(15)  # latched lump size (words)
-        mint_dmem_rd_en     = Signal()    # Mint DMEM read request
-        mint_dmem_addr      = Signal(32)  # Mint DMEM read address
-        mint_ns_wr_en       = Signal()    # Mint NS write enable
-        mint_ns_addr        = Signal(32)  # Mint NS write address
-        mint_ns_wr_data     = Signal(32)  # Mint NS write data
+        mint_busy              = Signal()
+        mint_clist_wr_en       = Signal()
+        mint_clist_addr_d      = Signal(32)  # byte addr of clist slot being written
+        mint_e_gt_d            = Signal(32)  # computed E-GT word written to caller clist
+        mint_slot_id_reg       = Signal(16)  # latched from mLoad when outform fires
+        mint_clist_addr_reg    = Signal(32)  # latched from mLoad when outform fires
+        mint_lump_size_reg     = Signal(15)  # latched lump size (words)
+        mint_dmem_rd_en        = Signal()    # Mint DMEM read request
+        mint_dmem_addr         = Signal(32)  # Mint DMEM read address
+        mint_ns_wr_en          = Signal()    # Mint NS write enable
+        mint_ns_addr           = Signal(32)  # Mint NS write address
+        mint_ns_wr_data        = Signal(32)  # Mint NS write data
+        mint_clist_wr_data_d   = Signal(32)  # clist write data (cc copy or E-GT)
 
         busy_expr = (
             u_tperm.tperm_busy | u_call.call_busy |
@@ -381,7 +382,7 @@ class ChurchCore(Elaboratable):
         with m.If(mint_clist_wr_en):
             m.d.comb += [
                 self.clist_addr.eq(mint_clist_addr_d),
-                self.clist_wr_data.eq(mint_e_gt_d),
+                self.clist_wr_data.eq(mint_clist_wr_data_d),
                 self.clist_wr_en.eq(1),
             ]
 
@@ -1160,25 +1161,37 @@ class ChurchCore(Elaboratable):
             m.d.comb += alloc_new_wm_w.eq(
                 Cat(alloc_aligned_w, C(0, 1)) + Cat(alloc_sz_w, C(0, 1))
             )
-            alloc_fits = Signal()
+            alloc_fits  = Signal()
+            alloc_n_ok  = Signal()
             m.d.comb += alloc_fits.eq(alloc_new_wm_w <= DMEM_WORDS)
+            # Enforce alloc_n in [6, 14] (lump sizes 64..16384 words)
+            m.d.comb += alloc_n_ok.eq(
+                (u_outform.alloc_n >= 6) & (u_outform.alloc_n <= 14)
+            )
 
             m.d.comb += [
-                u_outform.alloc_done.eq(u_outform.alloc_req & alloc_fits),
-                u_outform.alloc_fault.eq(u_outform.alloc_req & ~alloc_fits),
+                u_outform.alloc_done.eq(
+                    u_outform.alloc_req & alloc_fits & alloc_n_ok
+                ),
+                u_outform.alloc_fault.eq(
+                    u_outform.alloc_req & (~alloc_fits | ~alloc_n_ok)
+                ),
                 u_outform.alloc_base.eq(alloc_aligned_w << 2),
             ]
-            with m.If(u_outform.alloc_req & alloc_fits):
+            with m.If(u_outform.alloc_req & alloc_fits & alloc_n_ok):
                 m.d.sync += watermark_reg.eq(alloc_new_wm_w[:32])
 
             # ── Mint FSM ──────────────────────────────────────────────────────
             # Validates the newly downloaded lump, writes the NS entry (3 words),
-            # and patches the caller's c-list slot with a fresh E-GT.
-            mint_base_reg     = Signal(32)
-            mint_cw_reg       = Signal(13)
-            mint_cc_reg       = Signal(8)
-            mint_scan_idx_reg = Signal(14)
-            mint_hdr_reg      = Signal(32)
+            # copies the cc lump-tail GTs into the clist BRAM, then patches the
+            # caller's c-list slot with the fresh E-GT.
+            mint_base_reg      = Signal(32)
+            mint_cw_reg        = Signal(13)
+            mint_cc_reg        = Signal(8)
+            mint_scan_idx_reg  = Signal(14)
+            mint_copy_idx_reg  = Signal(8)   # loop counter for cc-word copy
+            mint_copy_data_reg = Signal(32)  # holds DMEM word between read→write cycles
+            mint_hdr_reg       = Signal(32)
 
             # NS entry byte address: CR15.base + slot_id * 12
             cr15_mint_view     = View(CAP_REG_LAYOUT, u_regs.cr15_namespace)
@@ -1186,6 +1199,15 @@ class ChurchCore(Elaboratable):
             m.d.comb += mint_ns_entry_base.eq(
                 cr15_mint_view.word1_location
                 + (mint_slot_id_reg << 3) + (mint_slot_id_reg << 2)
+            )
+
+            # c-list BRAM base for the new slot (after NS area):
+            #   NS_WORDS = 192 (16 slots × 12 words); c-list starts at byte 768.
+            #   Slot s gets 64 words = 256 bytes.
+            #   Base = (192 + slot_id * 64) * 4 = 768 + (slot_id << 8)
+            mint_clist_slot_base = Signal(32)  # byte addr of slot's clist in BRAM
+            m.d.comb += mint_clist_slot_base.eq(
+                768 + (mint_slot_id_reg.as_value() << 8)
             )
 
             # E-GT:  b=0 | perms=E(bit30) | typ=Inform(01<<23) | gt_seq=1(<<16) | slot_id
@@ -1234,13 +1256,17 @@ class ChurchCore(Elaboratable):
                     m.next = "MINT_CHECK_HDR"
 
                 with m.State("MINT_CHECK_HDR"):
-                    hdr_v   = View(LUMP_HEADER_LAYOUT, mint_hdr_reg)
-                    lsz_c   = Signal(15)
+                    hdr_v = View(LUMP_HEADER_LAYOUT, mint_hdr_reg)
+                    lsz_c = Signal(15)
                     m.d.comb += lsz_c.eq(1 << (hdr_v.n_minus_6 + 6))
                     with m.If(hdr_v.magic != 0x1F):
                         m.next = "MINT_FAULT"
                     with m.Elif(hdr_v.n_minus_6 > 8):
                         m.next = "MINT_FAULT"
+                    # Explicit cc bounds: cc must leave room for header + at least one code word
+                    with m.Elif(hdr_v.cc > (lsz_c - 2)):
+                        m.next = "MINT_FAULT"
+                    # cw must fit in the remaining space (after header and cc tail)
                     with m.Elif(hdr_v.cw > (lsz_c - hdr_v.cc - 2)):
                         m.next = "MINT_FAULT"
                     with m.Else():
@@ -1256,6 +1282,7 @@ class ChurchCore(Elaboratable):
                     scan_end_c = Signal(15)
                     m.d.comb += scan_end_c.eq(mint_lump_size_reg - mint_cc_reg - 1)
                     with m.If(mint_scan_idx_reg > scan_end_c):
+                        m.d.sync += mint_copy_idx_reg.eq(0)
                         m.next = "MINT_WRITE_NS0"
                     with m.Else():
                         m.d.comb += [
@@ -1291,12 +1318,47 @@ class ChurchCore(Elaboratable):
                         mint_ns_addr.eq(mint_ns_entry_base + 8),
                         mint_ns_wr_data.eq(mint_w3),
                     ]
-                    m.next = "MINT_WRITE_CLIST"
+                    m.next = "MINT_COPY_CLIST_RD"
 
+                # ── Copy cc words from lump tail into clist BRAM ──────────────
+                # Read from DMEM at alloc_base + (lump_size - cc + i) * 4,
+                # write to clist bus at (NS_CLIST_WORD_BASE + slot_id*64 + i) * 4.
+                with m.State("MINT_COPY_CLIST_RD"):
+                    with m.If(mint_copy_idx_reg >= mint_cc_reg):
+                        m.next = "MINT_WRITE_CLIST"
+                    with m.Else():
+                        cc_off = Signal(15)
+                        m.d.comb += cc_off.eq(
+                            mint_lump_size_reg - mint_cc_reg
+                            + mint_copy_idx_reg.as_value()
+                        )
+                        m.d.comb += [
+                            mint_dmem_rd_en.eq(1),
+                            mint_dmem_addr.eq(
+                                mint_base_reg + (cc_off << 2)
+                            ),
+                        ]
+                        m.d.sync += mint_copy_data_reg.eq(self.dmem_rd_data)
+                        m.next = "MINT_COPY_CLIST_WR"
+
+                with m.State("MINT_COPY_CLIST_WR"):
+                    m.d.comb += [
+                        mint_clist_wr_en.eq(1),
+                        mint_clist_addr_d.eq(
+                            mint_clist_slot_base
+                            + (mint_copy_idx_reg.as_value() << 2)
+                        ),
+                        mint_clist_wr_data_d.eq(mint_copy_data_reg),
+                    ]
+                    m.d.sync += mint_copy_idx_reg.eq(mint_copy_idx_reg + 1)
+                    m.next = "MINT_COPY_CLIST_RD"
+
+                # ── Write E-GT to caller's clist slot ─────────────────────────
                 with m.State("MINT_WRITE_CLIST"):
                     m.d.comb += [
                         mint_clist_wr_en.eq(1),
                         mint_clist_addr_d.eq(mint_clist_addr_reg),
+                        mint_clist_wr_data_d.eq(mint_e_gt_d),
                     ]
                     m.next = "MINT_DONE"
 
