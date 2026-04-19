@@ -1,6 +1,6 @@
 {
   "abstraction": "Loader",
-  "description": "Lazy load — fault-driven on-demand abstraction loading. Catches NULL_CAP on manifest-registered slots, fetches and installs the lump, retries the faulting CALL transparently.",
+  "description": "Lazy load — fault-driven on-demand abstraction loading. Catches NULL_CAP on manifest-registered slots, delegates to Tunnel.Fetch (method 4) to download and install the lump, then retries the faulting CALL transparently. Evict is a no-op stub until a Memory abstraction exists.",
   "token": "00130000",
   "ns_slot": 19,
   "layer": 1,
@@ -9,73 +9,68 @@
     {
       "name": "Load",
       "index": 0,
-      "description": "Fault-driven load. Catches NULL_CAP fault, looks up the manifest, fetches the lump, installs it, retries the faulting CALL.",
-      "inputs": ["DR1: target NS slot index"],
-      "outputs": ["DR1: 1 on success, 0 on failure"],
+      "description": "Fault-driven load. Delegates to Tunnel.Fetch to download and install the requested lump from the IDE. CR2 (memory write-GT) must be set by the caller (the fault handler). Returns 0 on success, non-zero on timeout/CRC/size error.",
+      "inputs": [
+        "CR2: Memory write-GT (write-perm buffer, set by fault handler)",
+        "DR1: NS slot token (identifies the requested abstraction)",
+        "DR2: expected lump size in words"
+      ],
+      "outputs": [
+        "DR0: 0 = lump installed | non-zero = error (timeout/CRC/size)"
+      ],
       "comments": [
-        "LOAD CR1, CR6, 0  — load Navana GT from c-list[0] (E perm, NS slot 5)",
-        "CALL CR1          — call Navana.Abstraction.Add(DR1=slot) to register the lump in the NS table",
-        "LOAD CR1, CR6, 1  — load Mint GT from c-list[1] (E perm, NS slot 6)",
-        "CALL CR1          — call Mint.Create to stamp a fresh GT for the newly-installed lump",
-        "LOAD CR2, CR6, 2  — load Memory GT from c-list[2] (E perm, NS slot 7)",
-        "CALL CR2          — call Memory.Allocate to commit the backing memory block",
-        "IADD DR1, DR0, #1 — DR1 = 1 (success; DR0 is hardwired-zero, used as zero source)",
-        "RETURN            — return to fault handler; faulting CALL will be retried"
+        "LOAD CR1, CR6[0]  — load Tunnel GT from c-list slot 0 into CR1",
+        "CALL CR1, 4       — call Tunnel.Fetch (method 4); DR1=token, DR2=expected_words, CR2=write-GT",
+        "RETURN            — DR0 = Tunnel.Fetch result (0=installed / non-zero=error)"
       ],
       "code": [
         "0x070B0000",
-        "0x17080000",
-        "0x070B0001",
-        "0x17080000",
-        "0x07130002",
-        "0x17100000",
-        "0x7F084001",
+        "0x170A0000",
         "0x1F000000"
       ]
     },
     {
       "name": "Prefetch",
       "index": 1,
-      "description": "Hint-driven load. A caller requests future loading of a slot without blocking. Always returns 1 (hint submitted); whether the slot was already resident is not checked at this layer.",
-      "inputs": ["DR1: target NS slot index"],
-      "outputs": ["DR1: 1 (hint submitted to Navana)"],
+      "description": "Hint-driven load. Identical to Load — calls Tunnel.Fetch which is idempotent (already-resident lumps are a no-op at the IDE bridge). Returns 0 if installed or already resident.",
+      "inputs": [
+        "CR2: Memory write-GT (write-perm buffer, set by caller)",
+        "DR1: NS slot token",
+        "DR2: expected lump size in words"
+      ],
+      "outputs": [
+        "DR0: 0 = installed or already resident | non-zero = error"
+      ],
       "comments": [
-        "LOAD CR1, CR6, 0  — load Navana GT from c-list[0] (E perm, NS slot 5)",
-        "CALL CR1          — call Navana.Abstraction.Add(DR1=slot) to enqueue a background fetch hint",
-        "IADD DR1, DR0, #1 — DR1 = 1 (hint submitted; DR0 is hardwired-zero, used as zero source)",
-        "RETURN            — return immediately; caller is not blocked"
+        "LOAD CR1, CR6[0]  — load Tunnel GT from c-list slot 0 into CR1",
+        "CALL CR1, 4       — call Tunnel.Fetch (method 4); idempotent — already-resident is fine",
+        "RETURN            — DR0 = Tunnel.Fetch result"
       ],
       "code": [
         "0x070B0000",
-        "0x17080000",
-        "0x7F084001",
+        "0x170A0000",
         "0x1F000000"
       ]
     },
     {
       "name": "Evict",
       "index": 2,
-      "description": "Unloads a cold abstraction to reclaim memory. Clears the NS slot code words and sets lump header cw=0. GT (NS entry) and c-list are preserved. Next access triggers Load again.",
-      "inputs": ["DR1: target NS slot index"],
-      "outputs": ["DR1: 1 on success, 0 on failure"],
+      "description": "Unload a cold abstraction to reclaim memory. Stub — returns 0 immediately. Full implementation requires a Memory abstraction (not yet defined). GT and c-list are preserved; the next CALL on this slot triggers Load again.",
+      "inputs": [
+        "DR1: NS slot token (not used by stub)"
+      ],
+      "outputs": [
+        "DR0: 0 (always — stub)"
+      ],
       "comments": [
-        "LOAD CR2, CR6, 2  — load Memory GT from c-list[2] (E perm, NS slot 7)",
-        "CALL CR2          — call Memory.Free(DR1=slot) to release the code region; zeroes code words and sets lump header cw=0",
-        "IADD DR1, DR0, #1 — DR1 = 1 (success; DR0 is hardwired-zero, used as zero source)",
-        "RETURN            — return; GT and c-list are preserved, next CALL on this slot triggers Loader.Load"
+        "RETURN  — stub: no Memory abstraction available yet; DR0 = 0 (no-op success)"
       ],
       "code": [
-        "0x07130002",
-        "0x17100000",
-        "0x7F084001",
         "0x1F000000"
       ]
     }
   ],
   "capabilities": [
-    { "slot": 0, "target": 5, "name": "Navana", "perm": "E" },
-    { "slot": 1, "target": 6, "name": "Mint", "perm": "E" },
-    { "slot": 2, "target": 7, "name": "Memory", "perm": "E" },
-    { "slot": 3, "target": 11, "name": "UART", "perm": "E" }
+    { "slot": 0, "target": 31, "name": "Tunnel", "perm": "E" }
   ]
 }
