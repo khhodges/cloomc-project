@@ -1,7 +1,7 @@
 {
-  "name": "Loader",
+  "abstraction": "Loader",
   "description": "Lazy load — fault-driven on-demand abstraction loading. Catches NULL_CAP on manifest-registered slots, fetches and installs the lump, retries the faulting CALL transparently.",
-  "token": "0x00130000",
+  "token": "00130000",
   "ns_slot": 19,
   "layer": 1,
   "priority": "hot",
@@ -12,7 +12,7 @@
       "description": "Fault-driven load. Catches NULL_CAP fault, looks up the manifest, fetches the lump, installs it, retries the faulting CALL.",
       "inputs": ["DR0: target NS slot index"],
       "outputs": ["DR0: 1 on success, 0 on failure"],
-      "code": "DREAD  DR1, DR0\nLOAD   CR2, CR6, 0    ; Navana GT\nLOAD   CR3, CR6, 1    ; Mint GT\nLOAD   CR4, CR6, 2    ; Memory GT\nCALL   CR4             ; Memory.Allocate\nCALL   CR2             ; Navana.Abstraction.Add\nCALL   CR3             ; Mint.Create\nDWRITE DR0, #1\nRETURN"
+      "code": ["0x1F000000"]
     },
     {
       "name": "Prefetch",
@@ -20,7 +20,7 @@
       "description": "Hint-driven load. A caller requests future loading of a slot without blocking. Returns immediately.",
       "inputs": ["DR0: target NS slot index"],
       "outputs": ["DR0: 1 if prefetch queued, 0 if already loaded"],
-      "code": "DREAD  DR1, DR0\nDWRITE DR0, #1\nRETURN"
+      "code": ["0x1F000000"]
     },
     {
       "name": "Evict",
@@ -28,7 +28,7 @@
       "description": "Unloads a cold abstraction to reclaim memory. Clears the NS slot. Next access triggers Load again.",
       "inputs": ["DR0: target NS slot index"],
       "outputs": ["DR0: 1 on success, 0 on failure"],
-      "code": "DREAD  DR1, DR0\nLOAD   CR2, CR6, 2    ; Memory GT\nCALL   CR2             ; Memory.Free\nDWRITE DR0, #1\nRETURN"
+      "code": ["0x1F000000"]
     }
   ],
   "capabilities": [
