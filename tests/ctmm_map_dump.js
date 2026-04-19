@@ -60,18 +60,11 @@ const mmioNote = MEM_WORDS === 65536
     : { name: 'IO segment', start: 'N/A', end: 'N/A', notes: `IO segment at 0xFE00 is outside this ${MEM_WORDS}-word window; MMIO handled by NS entry location field pointing to physical peripheral address` };
 
 // ── 2. NS table decode ────────────────────────────────────────────────────────
-function parseNSWord1(w) {
-    w = w >>> 0;
-    const g          = (w >>> 31) & 1;
-    const f          = (w >>> 30) & 1;
-    const b          = (w >>> 29) & 1;
-    const chainable  = (w >>> 28) & 1;
-    const gtType     = (w >>> 26) & 0x3;
-    const clistCount = (w >>> 17) & 0x1FF;
-    const limit17    = w & 0x1FFFF;
-    const typeNames  = ['NULL', 'Inform', 'Outform', 'Abstract'];
-    return { g, f, b, chainable, gtType, typeName: typeNames[gtType], clistCount, limit17 };
-}
+// Use the simulator's own parseNSWord1() so bit-field positions exactly match
+// the hardware-matching implementation in simulator.js (packNSWord1/parseNSWord1).
+// Field layout: [31]=B, [30]=F, [29]=G, [28]=chainable, [27:26]=gtType,
+//               [25:17]=clistCount, [16:0]=limit.
+const GT_TYPE_NAMES = ['NULL', 'Inform', 'Outform', 'Abstract'];
 
 const nsEntries = [];
 for (let i = 0; i < sim.nsCount; i++) {
@@ -80,50 +73,61 @@ for (let i = 0; i < sim.nsCount; i++) {
     const w1 = sim.memory[base + 1] >>> 0;
     const w2 = sim.memory[base + 2] >>> 0;
     const label = sim.nsLabels[i] || '';
-    const p = parseNSWord1(w1);
+    const p = sim.parseNSWord1(w1);   // authoritative decode from simulator
     const version = (w2 >>> 25) & 0x7F;
     const seal    = w2 & 0xFFFF;
     nsEntries.push({
         slot: i, label, w0, w1, w2,
         location: w0,
-        limit17: p.limit17,
-        gtType: p.gtType, typeName: p.typeName,
-        clistCount: p.clistCount,
-        chainable: p.chainable,
-        f: p.f, b: p.b, g: p.g,
+        limit: p.limit,               // bits[16:0] — limit field
+        gtType: p.gtType, typeName: GT_TYPE_NAMES[p.gtType] || '?',
+        clistCount: p.clistCount,     // bits[25:17]
+        chainable: p.chainable,       // bit[28]
+        f: p.f,                       // bit[30] F-flag
+        b: p.b,                       // bit[31] B-flag
+        g: p.g,                       // bit[29] G-bit (GC liveness)
         version, seal,
-        // Derive expected lump size from limit17 if it encodes a power-of-two slot
-        // For the NS slot 0 the limit17 is the full memory extent.
-        isMMIO: (w0 > NS_TABLE_BASE || w0 > MEM_WORDS) && w0 !== 0,
     });
 }
 
 // ── 3. Lump header validity ───────────────────────────────────────────────────
-// For each NS entry, read memory[location] and parse the lump header.
+// Taxonomy per task spec:
+//   VALID   — magic=0x1F and field values in range
+//   INVALID — bad magic or out-of-range fields; reason stated
+//   ABSENT  — location=0 or slot is empty (no header to check)
+//
 // Map each NS slot → expected allocSize (from _initNamespaceTable slotSizes logic)
-const THREAD_LUMP_SIZE = 256;
-const BOOT_ABSTR_LUMP_SIZE = 256;
-const NS_LUMP_SIZE = SLOT_SIZE; // 64
 const slotExpectedSize = {};
-slotExpectedSize[0] = NS_LUMP_SIZE;
-slotExpectedSize[1] = THREAD_LUMP_SIZE;
+slotExpectedSize[0] = SLOT_SIZE;   // Boot.NS (64w; location=0 → ABSENT)
+slotExpectedSize[1] = 256;         // Boot.Thread
 slotExpectedSize[2] = SLOT_SIZE;   // Boot.Abstr director
-slotExpectedSize[3] = BOOT_ABSTR_LUMP_SIZE; // Boot.Entry
-// Others default to SLOT_SIZE (64)
+slotExpectedSize[3] = 256;         // Boot.Entry
+// Slots 4+ default to SLOT_SIZE (64)
 
 const lumpHeaders = [];
 for (const e of nsEntries) {
     const loc = e.location;
-    // MMIO slots (location > memory bounds) are special; skip header check
-    if (loc === 0 && e.slot !== 0) {
-        lumpHeaders.push({ slot: e.slot, label: e.label, location: loc, status: 'ABSENT', reason: 'location=0 (null lump)' });
+
+    // ABSENT: location=0 (spec: "location=0 or slot is empty")
+    if (loc === 0) {
+        lumpHeaders.push({
+            slot: e.slot, label: e.label, location: loc,
+            status: 'ABSENT',
+            reason: 'location=0 — NS root lump descriptor; no standard lump header at word 0',
+        });
         continue;
     }
+
+    // Out-of-bounds: location beyond memory window (shouldn't happen in normal configs)
     if (loc >= MEM_WORDS) {
-        lumpHeaders.push({ slot: e.slot, label: e.label, location: loc, status: 'MMIO', reason: `MMIO device at word address 0x${loc.toString(16).toUpperCase()} (outside ${MEM_WORDS}-word namespace memory)` });
+        lumpHeaders.push({
+            slot: e.slot, label: e.label, location: loc,
+            status: 'ABSENT',
+            reason: `location 0x${loc.toString(16).toUpperCase()} is outside the ${MEM_WORDS}-word memory window`,
+        });
         continue;
     }
-    // Slot 0 (NS root) — its location is 0 (the NS lump), which starts at word 0
+
     const hdrWord = sim.memory[loc] >>> 0;
     const hdr = sim.parseLumpHeader(hdrWord);
     const expectedSize = slotExpectedSize[e.slot] !== undefined ? slotExpectedSize[e.slot] : SLOT_SIZE;
@@ -132,22 +136,22 @@ for (const e of nsEntries) {
         lumpHeaders.push({
             slot: e.slot, label: e.label, location: loc,
             hdrWord: hdrWord.toString(16).toUpperCase().padStart(8,'0'),
-            status: 'INVALID', reason: `magic=0x${hdr.magic.toString(16).toUpperCase()} (expected 0x1F)`,
-            hdr
+            status: 'INVALID',
+            reason: `magic=0x${hdr.magic.toString(16).toUpperCase()} (expected 0x1F); lump body not yet loaded`,
+            hdr,
         });
         continue;
     }
-    // Check allocSize matches expected
+    // Valid magic — check allocSize match
     const sizeOk = hdr.lumpSize === expectedSize;
-    const status = sizeOk ? 'VALID' : 'VALID_SIZE_MISMATCH';
     lumpHeaders.push({
         slot: e.slot, label: e.label, location: loc,
         hdrWord: hdrWord.toString(16).toUpperCase().padStart(8,'0'),
-        status,
+        status: 'VALID',
         hdr,
         expectedSize,
         sizeMatch: sizeOk,
-        reason: sizeOk ? null : `n_minus_6=${hdr.n_minus_6} → lumpSize=${hdr.lumpSize} but expected ${expectedSize}`,
+        sizeNote: sizeOk ? null : `lumpSize=${hdr.lumpSize} but expected ${expectedSize}`,
     });
 }
 
@@ -155,7 +159,10 @@ for (const e of nsEntries) {
 // Build intervals [loc, loc+size-1] for all lumps in memory (skip MMIO/null)
 const intervals = [];
 for (const lh of lumpHeaders) {
-    if (lh.status === 'ABSENT' || lh.status === 'MMIO') continue;
+    // Skip ABSENT slots (location=0 or out-of-bounds — no interval in memory)
+    if (lh.status === 'ABSENT') continue;
+    // For INVALID lumps (lazy/unloaded), still include the allocated slot range
+    // (the NS entry claims a 64-word slot even though the header is not yet written)
     const size = lh.hdr ? lh.hdr.lumpSize : SLOT_SIZE;
     intervals.push({ slot: lh.slot, label: lh.label, start: lh.location, end: lh.location + size - 1 });
 }
@@ -184,7 +191,7 @@ for (let i = 0; i < intervals.length; i++) {
 // ── 5. Code word decompilation ────────────────────────────────────────────────
 const disassembly = [];
 for (const lh of lumpHeaders) {
-    if (lh.status !== 'VALID' && lh.status !== 'VALID_SIZE_MISMATCH') continue;
+    if (lh.status !== 'VALID') continue;
     if (!lh.hdr || lh.hdr.cw === 0) continue;
     const loc = lh.location;
     const cw  = lh.hdr.cw;
