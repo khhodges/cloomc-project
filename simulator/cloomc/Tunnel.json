@@ -19,51 +19,96 @@
     {
       "name": "Register",
       "index": 0,
-      "description": "Send the 23-byte call-home identification packet [0xCE11 \u00b7 board_type \u00b7 fw_version \u00b7 HMAC-SHA256(4B) \u00b7 UID(8B) \u00b7 boot_reason \u00b7 last_fault \u00b7 fault_NIA(4B)] and await ACK from the IDE bridge. Replaces the hardwired B:02\u00bd boot step. Offline-safe: if no ACK within \u2248500 ms, DR0 \u2190 0 and boot continues.",
+      "description": "Send the call-home identification packet and await ACK from the IDE bridge. Replaces the hardwired B:02\u00bd boot step. Packet: [boot_reason \u00b7 last_fault \u00b7 fault_NIA]. Offline-safe: DR0 \u2264 0 if no ACK.",
       "inputs": [
         "DR1: boot_reason (0=cold, 1=warm, 2=fault-recovery)",
         "DR2: last_fault code (0 if none)",
         "DR3: fault_NIA address (0 if none)"
       ],
       "outputs": [
-        "DR0: 1 = IDE connected and ACK received | 0 = offline"
+        "DR0: 1 = IDE connected and ACK received | \u22640 = offline"
       ],
-      "code": ["0x1F000000"]
+      "comments": [
+        "LOAD  AL, CR7, CR6[0]   ; UART GT from c-list slot 0 \u2192 CR7",
+        "DWRITE DR1, CR7[0]       ; TX: boot_reason",
+        "DWRITE DR2, CR7[0]       ; TX: last_fault",
+        "DWRITE DR3, CR7[0]       ; TX: fault_NIA",
+        "DREAD  DR0, CR7[1]       ; RX: IDE ACK (1=connected, \u22640=offline)",
+        "RETURN AL, CR5"
+      ],
+      "code": [
+        "0x073B0000",
+        "0x8F0B8000",
+        "0x8F138000",
+        "0x8F1B8000",
+        "0x87038001",
+        "0x1F028000"
+      ]
     },
     {
       "name": "Send",
       "index": 1,
-      "description": "Transmit a self-identifying media packet to the IDE host. DR1 is a 4-byte ASCII FourCC type tag (open registry): TEXT=0x54455854 \u00b7 VOIC=0x564F4943 \u00b7 LUMP=0x4C554D50 \u00b7 GTKN=0x47544B4E \u00b7 JPEG=0x4A504547 \u00b7 PDF_=0x50444620 \u00b7 MP3_=0x4D503320 \u00b7 \u2026 New tags can be allocated without touching existing dispatch code. Fire-and-forget; no ACK.",
+      "description": "Transmit a self-identifying FourCC media packet to the IDE. Tag is open registry\u2014TEXT/VOIC/LUMP/GTKN/JPEG/PDF_/MP3_/\u2026 Fire-and-forget.",
       "inputs": [
-        "DR1: FourCC type tag (4-byte ASCII, open registry)",
+        "DR1: FourCC type tag (TEXT=0x54455854 \u00b7 LUMP=0x4C554D50 \u00b7 \u2026)",
         "DR2: payload word count (1\u201313)",
-        "DR3\u2026DR(2+count): payload words"
+        "DR3: first payload word"
       ],
       "outputs": [
-        "DR0: 0 = queued | 0x01 = TX buffer overrun"
+        "DR0: 0 = queued | 1 = TX buffer overrun"
       ],
-      "code": ["0x1F000000"]
+      "comments": [
+        "LOAD  AL, CR7, CR6[0]   ; UART GT \u2192 CR7",
+        "DWRITE DR1, CR7[0]       ; TX: FourCC tag word",
+        "DWRITE DR2, CR7[0]       ; TX: payload word count",
+        "DWRITE DR3, CR7[0]       ; TX: first payload word",
+        "DREAD  DR0, CR7[0]       ; TX queue status (0=OK, 1=overrun)",
+        "RETURN AL, CR5"
+      ],
+      "code": [
+        "0x073B0000",
+        "0x8F0B8000",
+        "0x8F138000",
+        "0x8F1B8000",
+        "0x87038000",
+        "0x1F028000"
+      ]
     },
     {
       "name": "Receive",
       "index": 2,
-      "description": "Block until the IDE host sends a self-identifying media packet or the timeout expires. The caller dispatches on the returned FourCC type tag (DR1). New media types are handled by extending the caller\u2019s dispatch table\u2014no change to Receive itself.",
+      "description": "Block until the IDE sends a self-identifying media packet or timeout expires. Caller dispatches on the returned FourCC tag.",
       "inputs": [
         "DR1: timeout in CPU steps (0 = wait forever)"
       ],
       "outputs": [
         "DR0: received word count (0 = timeout)",
         "DR1: FourCC type tag (TEXT \u00b7 VOIC \u00b7 LUMP \u00b7 GTKN \u00b7 \u2026)",
-        "DR2\u2026DR(n+1): payload words"
+        "DR2: first payload word"
       ],
-      "code": ["0x1F000000"]
+      "comments": [
+        "LOAD  AL, CR7, CR6[0]   ; UART GT \u2192 CR7",
+        "DWRITE DR1, CR7[0]       ; TX: timeout hint",
+        "DREAD  DR0, CR7[1]       ; RX: word count (0=timeout)",
+        "DREAD  DR1, CR7[1]       ; RX: FourCC tag",
+        "DREAD  DR2, CR7[1]       ; RX: first payload word",
+        "RETURN AL, CR5"
+      ],
+      "code": [
+        "0x073B0000",
+        "0x8F0B8000",
+        "0x87038001",
+        "0x870B8001",
+        "0x87138001",
+        "0x1F028000"
+      ]
     },
     {
       "name": "Fault",
       "index": 3,
-      "description": "Report a hardware fault with full semantic location to the IDE. High-priority: bypasses the normal send queue. Packet format: [0xFA17 \u00b7 fault_code \u00b7 ns_idx \u00b7 thread_gt \u00b7 abstr_idx \u00b7 method_idx \u00b7 instr_offset]. IDE logs the full location in the Devices view. Fire-and-forget.",
+      "description": "Report a hardware fault with full semantic location to the IDE. High-priority: bypasses the normal send queue. Packet: [fault_code \u00b7 ns_idx \u00b7 thread_gt \u00b7 abstr_idx \u00b7 method_idx \u00b7 instr_offset].",
       "inputs": [
-        "DR1: fault_code (0x10=PERM, 0x42=RANGE, 0x80=VERSION, \u2026)",
+        "DR1: fault_code (0x10=PERM, 0x42=RANGE, 0x80=VERSION \u2026)",
         "DR2: ns_idx \u2014 active namespace slot",
         "DR3: thread_gt \u2014 NS index of the faulting thread",
         "DR4: abstr_idx \u2014 NS slot of the executing abstraction",
@@ -73,33 +118,80 @@
       "outputs": [
         "DR0: 0 = transmitted | non-zero = UART error"
       ],
-      "code": ["0x1F000000"]
+      "comments": [
+        "LOAD  AL, CR7, CR6[0]   ; UART GT \u2192 CR7",
+        "DWRITE DR1, CR7[0]       ; TX: fault_code",
+        "DWRITE DR2, CR7[0]       ; TX: ns_idx",
+        "DWRITE DR3, CR7[0]       ; TX: thread_gt",
+        "DWRITE DR4, CR7[0]       ; TX: abstr_idx",
+        "DWRITE DR5, CR7[0]       ; TX: method_idx",
+        "DWRITE DR6, CR7[0]       ; TX: instr_offset",
+        "DREAD  DR0, CR7[0]       ; TX queue status \u2192 DR0",
+        "RETURN AL, CR5"
+      ],
+      "code": [
+        "0x073B0000",
+        "0x8F0B8000",
+        "0x8F138000",
+        "0x8F1B8000",
+        "0x8F238000",
+        "0x8F2B8000",
+        "0x8F338000",
+        "0x87038000",
+        "0x1F028000"
+      ]
     },
     {
       "name": "Fetch",
       "index": 4,
-      "description": "Request and receive a lump binary from the IDE by NS slot token. Validates the incoming lump (magic=0x1F, size, CRC-16) before writing to memory and updating the NS entry. Called by Loader when a NULL_CAP fault hits a cold slot. Packet: [0xFE7C \u00b7 token \u00b7 expected_words].",
+      "description": "Request and receive a lump binary from the IDE by NS slot token. Validates before installing. Called by Loader on NULL_CAP fault for a cold slot.",
       "inputs": [
-        "CR2: Memory W-GT (write-perm buffer \u2265 expected_words)",
-        "DR1: NS slot token (index of requested abstraction)",
+        "CR2: Memory write-GT (write-perm buffer \u2265 expected_words)",
+        "DR1: NS slot token (identifies the requested abstraction)",
         "DR2: expected lump size in words"
       ],
       "outputs": [
         "DR0: 0 = lump installed | non-zero = error (timeout/CRC/size)"
       ],
-      "code": ["0x1F000000"]
+      "comments": [
+        "LOAD  AL, CR7, CR6[0]   ; UART GT \u2192 CR7",
+        "DWRITE DR1, CR7[0]       ; TX: slot token request",
+        "DWRITE DR2, CR7[0]       ; TX: expected word count",
+        "DREAD  DR0, CR7[1]       ; RX: 0=installed, non-zero=error",
+        "RETURN AL, CR5"
+      ],
+      "code": [
+        "0x073B0000",
+        "0x8F0B8000",
+        "0x8F138000",
+        "0x87038001",
+        "0x1F028000"
+      ]
     },
     {
       "name": "Call",
       "index": 5,
-      "description": "Forward a CALL through the tunnel to a remote capability. Encodes the GT in CR2 as a GTKN packet (tag=0x47544B4E), transmits it, and blocks awaiting the far-end RETURN. This is the \u2018Hello Mum\u2019 primitive: CALL(CONNECT(me, mymother)). From the caller\u2019s view this is one Church instruction applied across two machines.",
+      "description": "Forward a CALL through the tunnel to a remote capability. The \u2018Hello Mum\u2019 primitive: CALL(CONNECT(me, mymother)). Encodes CR2 as a GTKN packet, transmits it, blocks awaiting far-end RETURN.",
       "inputs": [
         "CR2: remote GT (Outform type, F-bit set \u2014 far-end abstraction)"
       ],
       "outputs": [
         "DR0: far-end return value | non-zero = error / timeout"
       ],
-      "code": ["0x1F000000"]
+      "comments": [
+        "LOAD  AL, CR7, CR6[0]   ; UART GT \u2192 CR7",
+        "TPERM AL, CR2, #E        ; restrict remote GT to E-only before CALL",
+        "CALL  AL, CR2, CR2       ; invoke remote abstraction via tunnel",
+        "DREAD  DR0, CR7[1]       ; RX: far-end return value",
+        "RETURN AL, CR5"
+      ],
+      "code": [
+        "0x073B0000",
+        "0x37100008",
+        "0x17110000",
+        "0x87038001",
+        "0x1F028000"
+      ]
     }
   ],
   "capabilities": [
