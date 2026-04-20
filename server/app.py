@@ -138,13 +138,8 @@ def add_cache_control(response):
 
 @app.route("/")
 def index():
-    # Return 200 so Replit's deployment health checker doesn't see a redirect
-    # as a failure. The meta-refresh takes the browser to the actual app.
-    return (
-        '<html><head><meta http-equiv="refresh" content="0;url=/simulator/#docs">'
-        "</head><body></body></html>",
-        200,
-    )
+    landing_path = os.path.join(BASE_DIR, "landing.html")
+    return send_file(landing_path, mimetype="text/html")
 
 @app.route("/api/health")
 @app.route("/health")
