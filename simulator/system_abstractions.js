@@ -225,11 +225,11 @@ class SystemAbstractions {
                 nsIndex: DEVICE_NS_SLOTS.LED,
                 device: 'LED',
                 methods: ['Set', 'Clear', 'Toggle', 'State'],
-                call: function(sim, dr0, dr1, permMask) {
-                    // dr0[31:24] = method selector (0=Set,1=Clear,2=Toggle,3=State)
-                    // dr0[5:0]   = LED index (0-5); capability offset encoded in caller's C-list slot
-                    const method   = dr0 >>> 24;
-                    const ledIndex = dr0 & 0x3F;
+                call: function(sim, cmdWord, _unused, permMask) {
+                    // cmdWord[31:24] = method selector (0=Set,1=Clear,2=Toggle,3=State)
+                    // cmdWord[5:0]   = LED index (0-5); capability offset encoded in caller's C-list slot
+                    const method   = cmdWord >>> 24;
+                    const ledIndex = cmdWord & 0x3F;
 
                     let result;
                     if (method === 0 || method === undefined) {
@@ -482,8 +482,8 @@ class SystemAbstractions {
 
             const driverResult = navanaState.ledDriverAbstraction.call(
                 sim,
-                (method << 24) | (ledIndex & 0x3F),  // dr0: [31:24]=method, [5:0]=ledIndex
-                0,                                     // dr1 unused in capability-offset API
+                (method << 24) | (ledIndex & 0x3F),  // cmdWord: [31:24]=method, [5:0]=ledIndex
+                0,                                     // _unused in capability-offset API
                 permMask
             );
 
