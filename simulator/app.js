@@ -6160,6 +6160,7 @@ async function _saveLumpText(token, text, bodyEl, lump) {
         const _tk = token.replace(/[^a-z0-9]/gi, '');
         _lumpEditorOpen[_tk] = false;
         delete _lumpEditorDraftText[_tk];
+        _draftLsDel(_tk);
         if (statusEl) { statusEl.textContent = 'Saved.'; statusEl.style.color = 'var(--accent-green, #4caf50)'; }
         setTimeout(() => _loadLumpContent(token, lump), 800);
     } catch (err) {
@@ -6168,9 +6169,17 @@ async function _saveLumpText(token, text, bodyEl, lump) {
     }
 }
 
+const _DRAFT_LS_PREFIX = 'cm_lump_draft_';
+function _draftLsKey(tk)  { return _DRAFT_LS_PREFIX + tk; }
+function _draftLsGet(tk)  { try { return localStorage.getItem(_draftLsKey(tk)); } catch(_) { return null; } }
+function _draftLsSet(tk, v) { try { localStorage.setItem(_draftLsKey(tk), v); } catch(_) {} }
+function _draftLsDel(tk)  { try { localStorage.removeItem(_draftLsKey(tk)); } catch(_) {} }
+
 function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     const tk = token.replace(/[^a-z0-9]/gi, '');
     const hasDraft = Object.prototype.hasOwnProperty.call(_lumpEditorDraftText, tk);
+    const lsDraft  = _draftLsGet(tk);
+    const hasLsDraft = lsDraft !== null && lsDraft !== text;
     const initialText = hasDraft ? _lumpEditorDraftText[tk] : text;
     const startOpen   = !!_lumpEditorOpen[tk];
 
@@ -6194,6 +6203,29 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     const editorArea = document.createElement('div');
     editorArea.className = 'lump-edit-area';
     editorArea.style.display = 'none';
+
+    if (hasLsDraft) {
+        const restoreBanner = document.createElement('div');
+        restoreBanner.className = 'lump-draft-restore-banner';
+        restoreBanner.innerHTML =
+            '<span>Unsaved draft found from a previous session.</span>' +
+            '<button class="btn btn-sm lump-draft-restore-btn">Restore draft</button>' +
+            '<button class="btn btn-sm lump-draft-discard-btn">Discard</button>';
+        const restoreBtn  = restoreBanner.querySelector('.lump-draft-restore-btn');
+        const discardBtn2 = restoreBanner.querySelector('.lump-draft-discard-btn');
+        restoreBtn.addEventListener('click', () => {
+            ta.value = lsDraft;
+            _lumpEditorDraftText[tk] = lsDraft;
+            livePreview.innerHTML = '';
+            renderFn(livePreview, lsDraft);
+            restoreBanner.remove();
+        });
+        discardBtn2.addEventListener('click', () => {
+            _draftLsDel(tk);
+            restoreBanner.remove();
+        });
+        editorArea.appendChild(restoreBanner);
+    }
 
     const splitPane = document.createElement('div');
     splitPane.className = 'lump-edit-split';
@@ -6316,6 +6348,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     let _debounceTimer = null;
     ta.addEventListener('input', () => {
         _lumpEditorDraftText[tk] = ta.value;
+        _draftLsSet(tk, ta.value);
         clearTimeout(_debounceTimer);
         _debounceTimer = setTimeout(() => {
             livePreview.innerHTML = '';
@@ -6326,6 +6359,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
     editBtn.addEventListener('click', () => {
         _lumpEditDirty = true;
         _lumpEditorOpen[tk] = true;
+        _draftLsSet(tk, ta.value);
         editBtn.style.display = 'none';
         preview.style.display = 'none';
         editorArea.style.display = '';
@@ -6338,6 +6372,7 @@ function _buildTextEditor(token, text, bodyEl, lump, renderFn) {
         _lumpEditDirty = false;
         _lumpEditorOpen[tk] = false;
         delete _lumpEditorDraftText[tk];
+        _draftLsDel(tk);
         clearTimeout(_debounceTimer);
         ta.value = text;
         livePreview.innerHTML = '';

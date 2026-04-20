@@ -6346,6 +6346,21 @@ a.next-step-link:hover {
     gap: 0.35rem;
     width: 100%;
 }
+.lump-draft-restore-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.7rem;
+    background: #2a2208;
+    border: 1px solid #fbbf24;
+    border-radius: 4px;
+    color: #fbbf24;
+    font-size: 0.82rem;
+}
+.lump-draft-restore-banner span { flex: 1; }
+.lump-draft-restore-btn { background: #fbbf24; color: #1a1a2e; }
+.lump-draft-restore-btn:hover { background: #f59e0b; }
+.lump-draft-discard-btn { background: transparent; border: 1px solid #fbbf24; color: #fbbf24; }
 .lump-edit-split {
     display: grid;
     grid-template-columns: 1fr 6px 1fr;

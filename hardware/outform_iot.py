@@ -274,9 +274,23 @@ class ChurchOutformIoT(Elaboratable):
                         m.d.sync += byte_buf_cnt.eq(byte_buf_cnt + 1)
                 with m.Elif(timeout_cnt + 1 >= timeout_limit):
                     m.d.sync += self.outform_fault_type.eq(OUTFORM_FAULT_TIMEOUT)
-                    m.next = "FAULT"
+                    m.next = "SCRUB"
                 with m.Else():
                     m.d.sync += timeout_cnt.eq(timeout_cnt + 1)
+
+            with m.State("SCRUB"):
+                # Zero-fill the remaining (unwritten) words in the allocated
+                # region before faulting so no stale data is ever visible.
+                m.d.comb += self.outform_busy.eq(1)
+                with m.If(wr_word_cnt < total_words):
+                    m.d.comb += [
+                        self.mem_wr_addr.eq(base_reg + (wr_word_cnt << 2)),
+                        self.mem_wr_data.eq(0),
+                        self.mem_wr_en  .eq(1),
+                    ]
+                    m.d.sync += wr_word_cnt.eq(wr_word_cnt + 1)
+                with m.Else():
+                    m.next = "FAULT"
 
             with m.State("CHECK_CRC32"):
                 m.d.comb += self.outform_busy.eq(1)

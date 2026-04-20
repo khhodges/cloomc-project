@@ -168,6 +168,11 @@ class Ti60CallHome(Elaboratable):
         System clock frequency in Hz (e.g. 100_000_000 for 100 MHz).
     baud : int
         UART baud rate (default 115200).
+    ack_timeout : int or None
+        Maximum cycles to wait for the 0xCE 0x22 ACK in WAIT_ACK before
+        asserting callhome_done anyway so the board boots standalone.
+        Defaults to clk_freq * 2 (2 seconds at 100 MHz).  Pass 0 to
+        disable the timeout (wait forever — original behaviour).
 
     Ports
     -----
@@ -176,13 +181,14 @@ class Ti60CallHome(Elaboratable):
     uart_rx : Signal, in, init=1
         UART RX pin — connect to board's UART RX input.
     callhome_done : Signal, out
-        Asserted once the call-home sequence is complete (ACK received).
-        Use this to gate the normal boot FSM.
+        Asserted once the call-home sequence is complete (ACK received or
+        ACK timeout elapsed).  Use this to gate the normal boot FSM.
     """
 
-    def __init__(self, clk_freq=100_000_000, baud=115200):
-        self.clk_freq = clk_freq
-        self.baud     = baud
+    def __init__(self, clk_freq=100_000_000, baud=115200, ack_timeout=None):
+        self.clk_freq    = clk_freq
+        self.baud        = baud
+        self.ack_timeout = clk_freq * 2 if ack_timeout is None else ack_timeout
 
         self.uart_tx       = Signal(init=1)
         self.uart_rx       = Signal(init=1)
@@ -306,7 +312,14 @@ class Ti60CallHome(Elaboratable):
                     # Not 0x22 after 0xCE — restart match
                     m.d.sync += [ack_want_ce.eq(1), ack_want_22.eq(0)]
 
-        m.d.comb += self.callhome_done.eq(ack_received)
+        m.d.comb += self.callhome_done.eq(ack_received | ack_timed_out)
+
+        # ── ACK timeout counter ───────────────────────────────────────────────
+        # Counts up from 0 while in WAIT_ACK.  If ack_timeout > 0 and the
+        # counter reaches ack_timeout, callhome_done is asserted anyway so
+        # the board boots even when no host bridge is present.
+        ack_timeout_cnt = Signal(range(max(self.ack_timeout + 1, 1)))
+        ack_timed_out   = Signal()
 
         # ── Main FSM ──────────────────────────────────────────────────────────
         with m.FSM(name="callhome_fsm"):
@@ -334,12 +347,21 @@ class Ti60CallHome(Elaboratable):
             with m.State("WAIT_TX_DONE"):
                 # Drain any in-flight byte before moving to ACK wait.
                 with m.If(~tx.busy):
+                    m.d.sync += ack_timeout_cnt.eq(0)
                     m.next = "WAIT_ACK"
 
             with m.State("WAIT_ACK"):
                 # Wait for the host bridge to send 0xCE 0x22 ACK.
+                # If ack_timeout > 0 and the timer fires, proceed to DONE
+                # anyway so the board boots standalone (no host required).
                 with m.If(ack_received):
                     m.next = "DONE"
+                with m.Elif(self.ack_timeout > 0):
+                    with m.If(ack_timeout_cnt + 1 >= self.ack_timeout):
+                        m.d.sync += ack_timed_out.eq(1)
+                        m.next = "DONE"
+                    with m.Else():
+                        m.d.sync += ack_timeout_cnt.eq(ack_timeout_cnt + 1)
 
             with m.State("DONE"):
                 # callhome_done remains asserted; top-level unblocks boot FSM.

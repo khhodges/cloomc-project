@@ -418,15 +418,30 @@ def _run_timeout_subcase_payload():
     """Sub-case 3c: timeout in RECV_PAYLOAD.
 
     Sends the full header via TUNNEL_CONNECT + RECV_HDR_LEAN, completes ALLOC,
-    then sends 4 payload bytes before going silent.  Expects OUTFORM_TIMEOUT.
+    then sends 4 payload bytes (= 1 complete word) before going silent.
+
+    Expected behaviour after fix:
+      - FSM enters SCRUB state and zero-fills words 1..N-1 of the allocated
+        region before transitioning to FAULT — no stale data is ever visible.
+      - outform_fault_type == OUTFORM_TIMEOUT.
+      - outform_busy returns to 0 (not wedged).
     """
     subcase_name = "3c: RECV_PAYLOAD timeout (4 payload bytes then silent)"
     dut = ChurchOutformIoT(timeout_cycles=TIMEOUT_TEST_CYCLES)
     results = {}
 
-    PAYLOAD_LEN = 64 * 4
+    ALLOC_BASE  = 0x1000
+    # Minimum valid lump is 64 words (2^6) — DERIVE_N rejects anything smaller.
+    # Use 64 words to minimise SCRUB loop duration (63 zero-writes after the
+    # 1 real word received before the timeout fires).
+    TOTAL_WORDS = 64
+    PAYLOAD_LEN = TOTAL_WORDS * 4
     GOOD_CRC    = 0x00000000
     hdr_bytes   = _pack32_le(PAYLOAD_LEN) + _pack32_le(GOOD_CRC)
+
+    # Budget: TIMEOUT_TEST_CYCLES to fire + TOTAL_WORDS for the SCRUB loop
+    # + a small margin for state transitions.
+    WAIT_CYCLES = TIMEOUT_TEST_CYCLES + TOTAL_WORDS + 20
 
     async def testbench(ctx):
         ctx.set(dut.outform_start, 0)
@@ -435,7 +450,7 @@ def _run_timeout_subcase_payload():
         ctx.set(dut.rx_data,       0)
         ctx.set(dut.alloc_done,    0)
         ctx.set(dut.alloc_fault,   0)
-        ctx.set(dut.alloc_base,    0x1000)
+        ctx.set(dut.alloc_base,    ALLOC_BASE)
         ctx.set(dut.mint_done,     0)
         ctx.set(dut.mint_fault,    0)
         ctx.set(dut.gt_raw,        0xCAFEBABE)
@@ -469,18 +484,33 @@ def _run_timeout_subcase_payload():
         await ctx.tick()
         ctx.set(dut.alloc_done, 0)
 
+        # Send 4 bytes = 1 complete word (wr_word_cnt advances to 1)
         for _ in range(4):
             ctx.set(dut.rx_valid, 1)
-            ctx.set(dut.rx_data,  0x00)
+            ctx.set(dut.rx_data,  0xAB)   # non-zero — would be stale if not scrubbed
             await ctx.tick()
         ctx.set(dut.rx_valid, 0)
 
-        for _ in range(TIMEOUT_TEST_CYCLES + 4):
+        # Collect memory writes and the one-cycle FAULT pulse during the wait.
+        # outform_fault / outform_fault_type are combinatorial in FAULT state
+        # (which lasts exactly one cycle), so we must sample on every tick.
+        mem_writes  = {}
+        fault_seen  = False
+        fault_type  = 0
+        for _ in range(WAIT_CYCLES):
+            if ctx.get(dut.mem_wr_en):
+                addr = ctx.get(dut.mem_wr_addr)
+                data = ctx.get(dut.mem_wr_data)
+                mem_writes[addr] = data
+            if ctx.get(dut.outform_fault):
+                fault_seen = True
+                fault_type = ctx.get(dut.outform_fault_type)
             await ctx.tick()
 
-        results["fault"]      = ctx.get(dut.outform_fault)
-        results["fault_type"] = ctx.get(dut.outform_fault_type)
+        results["fault"]      = fault_seen
+        results["fault_type"] = fault_type
         results["busy"]       = ctx.get(dut.outform_busy)
+        results["mem_writes"] = mem_writes
 
         for _ in range(3):
             await ctx.tick()
@@ -494,16 +524,35 @@ def _run_timeout_subcase_payload():
         sim.run()
 
     ok = True
+    mem_writes = results.get("mem_writes", {})
+
     print(f"  [{subcase_name}] outform_fault_type : {results.get('fault_type')} "
           f"(expected {int(FaultType.OUTFORM_TIMEOUT)} = OUTFORM_TIMEOUT)")
     print(f"  [{subcase_name}] outform_busy after : {results.get('busy_after')} "
           f"(expected 0 = not wedged)")
+
+    # Words 1..TOTAL_WORDS-1 must have been scrubbed to zero.
+    # (Word 0 was written during the payload phase with the 0xAB bytes.)
+    # Spot-check words 1, 2, 32, 63 rather than all 63 to keep output terse.
+    scrub_ok = True
+    spot_words = [1, 2, TOTAL_WORDS // 2, TOTAL_WORDS - 1]
+    for i in spot_words:
+        addr = ALLOC_BASE + i * 4
+        written = mem_writes.get(addr)
+        if written != 0:
+            print(f"  FAIL [{subcase_name}]: word {i} @ {addr:#010x} = "
+                  f"{written!r} (expected 0 — SCRUB did not zero-fill)")
+            scrub_ok = False
+    if scrub_ok:
+        print(f"  [{subcase_name}] SCRUB: spot-checked words {spot_words} correctly zeroed.")
 
     if results.get("fault_type") != int(FaultType.OUTFORM_TIMEOUT):
         print(f"  FAIL [{subcase_name}]: wrong fault type — expected OUTFORM_TIMEOUT (0x19).")
         ok = False
     if results.get("busy_after") != 0:
         print(f"  FAIL [{subcase_name}]: outform_busy still high — processor is wedged!")
+        ok = False
+    if not scrub_ok:
         ok = False
     return ok
 
