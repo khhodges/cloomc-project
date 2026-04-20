@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.memory import Memory as LibMemory
 from amaranth.lib.data import View
 
 from .hw_types import *
@@ -1412,13 +1413,13 @@ class ChurchCore(Elaboratable):
             ]
 
         CR5_STACK_DEPTH = 256
-        cr5_stack = Memory(width=32, depth=CR5_STACK_DEPTH, init=[])
+        cr5_stack = LibMemory(shape=unsigned(32), depth=CR5_STACK_DEPTH, init=[])
         m.submodules.cr5_stack = cr5_stack
         cr5_stack_ptr = Signal(8, init=0)
         cr5_stack_empty = Signal()
         cr5_stack_full = Signal()
         cr5_stack_wr = cr5_stack.write_port()
-        cr5_stack_rd = cr5_stack.read_port(transparent=True)
+        cr5_stack_rd = cr5_stack.read_port(domain="comb")
 
         m.d.comb += [
             cr5_stack_empty.eq(cr5_stack_ptr == 0),

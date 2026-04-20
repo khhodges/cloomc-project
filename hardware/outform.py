@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.memory import Memory as LibMemory
 
 OUTFORM_FAULT_SIG    = 0x11
 OUTFORM_FAULT_FLAGS  = 0x12
@@ -155,9 +156,9 @@ class ChurchOutform(Elaboratable):
         crc_next = Signal(32)
         self._crc32_byte(m, crc_acc, crc_byte_in, crc_next)
 
-        win_mem = Memory(width=8, depth=DEFL_WIN_SIZE, init=[])
+        win_mem = LibMemory(shape=unsigned(8), depth=DEFL_WIN_SIZE, init=[])
         m.submodules.win_mem = win_mem
-        win_rd = win_mem.read_port(transparent=True)
+        win_rd = win_mem.read_port(domain="comb")
         win_wr = win_mem.write_port()
 
         m.d.comb += [
