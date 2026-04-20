@@ -5,14 +5,14 @@
 ## Overview
 LAMBDA is a lightweight, in-scope code application instruction. It is Church's function application (λx.body applied to argument) implemented as a native CTMM instruction. LAMBDA achieves macro-like code reuse — code exists once in memory, invoked from multiple call sites with near-zero overhead — without code duplication.
 
-LAMBDA is also one of the three **dispatch styles** for abstraction method resolution (see `docs/dispatch-styles.md`). When an abstraction uses LAMBDA dispatch, CR7's code uses `LAMBDA CRn, x` to jump directly to method bodies — the fastest path for lightweight compute operations like those in SlideRule, Abacus, and Circle.
+LAMBDA is also one of the three **dispatch styles** for abstraction method resolution (see `docs/dispatch-styles.md`). When an abstraction uses LAMBDA dispatch, CR7's code uses `LAMBDA CRn` to jump directly to method bodies — the fastest path for lightweight compute operations like those in SlideRule, Abacus, and Circle.
 
 ## Instruction Format
 ```
-LAMBDA CRn, x
+LAMBDA CRn
 ```
 - **CRn**: Capability register holding a GT with **X (Execute) permission** pointing to the code body. This is Church's lambda — the GT *is* λx.body.
-- **x**: Data register holding the argument value. This is Turing's data — the value to operate on.
+- **Argument**: Passed in a data register by convention (e.g. DR10). This is Turing's data — the value to operate on. The register is not encoded in the instruction; the caller and body share a calling convention.
 
 ## Permission: X, Not E
 - **X (Execute)**: Jump to code in the same protection domain. No C-List change, no domain crossing. The code body was already validated when its GT was loaded via mLoad.
@@ -99,8 +99,6 @@ LAMBDA = macro's speed + function's code reuse.
 
 ## Constructive Example: Clamp Function
 
-The following examples use simplified pseudocode for illustration. Register names and mnemonics are not literal CTMM assembly — actual CTMM assembly uses DR0-DR15 naming with mnemonics such as IADD, MCMP, and BRANCH.
-
 A graphics program needs to clamp RGB values to 0-255 range:
 
 ### With a macro (code duplicated 3 times):
@@ -117,29 +115,33 @@ A graphics program needs to clamp RGB values to 0-255 range:
 ```asm
 ; CR2 holds GT with X permission pointing to clamp body
 ; Process R, G, B channels
+; DR0 = 0 (zero register)
+; DR11 = R channel, DR12 = G channel, DR13 = B channel (working value passed via DR10)
 
-MV    x10, x20          ; x10 = R value
-LAMBDA CR2, x10         ; clamp R (2-3 cycles, zero stack access)
-MV    x20, x10          ; store clamped R
+IADD  DR10, DR11, #0    ; DR10 = R value
+LAMBDA CR2              ; clamp R (2-3 cycles, zero stack access)
+IADD  DR11, DR10, #0    ; store clamped R
 
-MV    x10, x21          ; x10 = G value
-LAMBDA CR2, x10         ; clamp G
-MV    x21, x10
+IADD  DR10, DR12, #0    ; DR10 = G value
+LAMBDA CR2              ; clamp G
+IADD  DR12, DR10, #0    ; store clamped G
 
-MV    x10, x22          ; x10 = B value
-LAMBDA CR2, x10         ; clamp B
-MV    x22, x10
+IADD  DR10, DR13, #0    ; DR10 = B value
+LAMBDA CR2              ; clamp B
+IADD  DR13, DR10, #0    ; store clamped B
 
 ; Clamp body (exists ONCE in memory):
 clamp_body:
-  BGE   x10, x0, .not_neg
-  MV    x10, x0
-  J     .check_high
+  MCMP   DR10, DR0        ; compare DR10 with 0
+  BRANCHGE .not_neg       ; if DR10 >= 0, skip zeroing
+  IADD   DR10, DR0, #0   ; DR10 = 0
+  BRANCH .check_high
 .not_neg:
 .check_high:
-  LI    x5, 255
-  BLE   x10, x5, .done
-  LI    x10, 255
+  IADD   DR5, DR0, #255  ; DR5 = 255
+  MCMP   DR10, DR5        ; compare DR10 with 255
+  BRANCHLE .done          ; if DR10 <= 255, in range
+  IADD   DR10, DR0, #255 ; DR10 = 255
 .done:
   RETURN                  ; fast path: restore PC from machine status
 ```
@@ -150,27 +152,33 @@ clamp_body:
 
 ```asm
 ; Apply "process" function to each array element
-; CR3 holds GT with X permission pointing to process body
-; process body itself calls a helper via CALL, then applies a transform via LAMBDA
+; CR3 = GT with X permission pointing to process body
+; CR4 = GT with R permission over current input element
+; CR5 = GT with W permission over current output element
+; CR7 = GT with E permission to a helper abstraction (used inside process body)
+; DR1 = remaining element count
 
 loop:
-  LW    x10, 0(x20)       ; load element
-  LAMBDA CR3, x10          ; apply process (fast path)
-  SW    x10, 0(x21)        ; store result
-  ADDI  x20, x20, 4
-  ADDI  x21, x21, 4
-  BNE   x20, x22, loop
+  MCMP   DR1, DR0         ; check remaining count (DR0 = 0)
+  BRANCHEQ .done          ; exit when count exhausted
+  DREAD  DR10, CR4, #0    ; load current input element
+  LAMBDA CR3              ; apply process (fast path)
+  DWRITE CR5, DR10, #0    ; store result to current output element
+  ISUB   DR1, DR1, #1     ; decrement remaining count
+  ; advance CR4/CR5 to next element (iterator updates GTs for next iteration)
+  BRANCH loop
+.done:
 
-; process body:
+; process body (pointed to by CR3's GT):
 process_body:
-  ; ... some preprocessing ...
-  CALL  CR4                ; call helper — saves LAMBDA state to stack
+  ; ... some preprocessing on DR10 ...
+  CALL  CR7, 0xF          ; call helper (E-GT in CR7) — saves LAMBDA state to stack
     ; inside helper, we can LAMBDA again:
-    ; LAMBDA CR5, x10      ; nested LAMBDA — permitted because CALL cleared the flag
+    ; LAMBDA CR8           ; nested LAMBDA — permitted because CALL cleared the flag
     ; RETURN               ; fast path return from nested LAMBDA
-  RETURN                   ; CALL return — restores LAMBDA state
-  ; ... some postprocessing ...
-  RETURN                   ; fast path return from outer LAMBDA
+  RETURN                  ; CALL return — restores LAMBDA state from stack frame
+  ; ... some postprocessing on DR10 ...
+  RETURN                  ; fast path return from outer LAMBDA
 ```
 
 ## The Church-Turing Marriage
@@ -178,8 +186,8 @@ process_body:
 | Church's Theory | Church Machine Hardware |
 |----------------|---------------|
 | λx.body (function definition) | GT with X permission in CRn |
-| Argument (bound variable) | Value in data register x |
-| Application (f applied to x) | `LAMBDA CRn, x` |
+| Argument (bound variable) | Value in data register (DR10 by convention) |
+| Application (f applied to x) | `LAMBDA CRn` |
 | Result | Value in data register after RETURN |
 | Function as first-class value | GT can be passed, stored, shared |
 | Referential transparency | Body sees only its argument in DRs, no CR side effects |
