@@ -602,6 +602,22 @@ def docs_figures(path):
     return send_from_directory(os.path.join(DOCS_DIR, "figures"), path)
 
 PATENTS_DIR = os.path.join(DOCS_DIR, "patents")
+SIX_LAWS_DIR = os.path.join(DOCS_DIR, "six-laws")
+
+@app.route("/six-laws/")
+def six_laws_index():
+    resp = make_response(send_from_directory(SIX_LAWS_DIR, "index.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+@app.route("/six-laws/files/<path:filename>")
+def six_laws_file(filename):
+    resp = make_response(send_from_directory(SIX_LAWS_DIR, filename))
+    if filename.endswith(".pdf"):
+        resp.headers["Content-Type"] = "application/pdf"
+        resp.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 @app.route("/patents/")
 def patents_index():
