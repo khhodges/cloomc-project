@@ -10878,6 +10878,7 @@ function fpgaReadBRAM() {
 }
 
 let _lastFault = null;
+let _lastRetryLump = null;
 
 function faultAlertOn() {
     const btn = document.getElementById('toolFaultBtn');
@@ -10956,6 +10957,12 @@ const _LUMP_TO_OUTFORM = {
 function showFaultModal(f) {
     const existing = document.getElementById('faultModalOverlay');
     if (existing) existing.remove();
+
+    // Snapshot the current awaitingLump so the Retry Download button can use it
+    // even if sim.awaitingLump is cleared before the user clicks.
+    if (sim.awaitingLump && sim.awaitingLump.token != null) {
+        _lastRetryLump = { token: sim.awaitingLump.token, nsIndex: sim.awaitingLump.nsIndex };
+    }
 
     // Use physicalPC (actual memory address of the faulting instruction) when available;
     // fall back to f.pc (relative PC) for pre-boot faults or older entries.
@@ -11061,11 +11068,13 @@ function showFaultModal(f) {
 
     // ── Firmware download failure callout for OUTFORM_* / LUMP_* faults ──────
     let outformSection = '';
+    let isOutformFault = false;
     {
         const outformKey = _OUTFORM_DESCRIPTIONS[f.type]
             ? f.type
             : (_LUMP_TO_OUTFORM[f.type] || null);
         if (outformKey) {
+            isOutformFault = true;
             const desc = _OUTFORM_DESCRIPTIONS[outformKey];
             outformSection = `
         <div class="fault-scope-section">
@@ -11145,6 +11154,7 @@ function showFaultModal(f) {
         <div class="modal-buttons">
             <button class="btn btn-danger" onclick="faultModalReboot()">&#x21BA; Reboot</button>
             <button class="btn btn-warning" onclick="faultModalInvestigate()">&#x1F50D; Investigate</button>
+            ${isOutformFault ? '<button class="btn btn-primary" onclick="faultModalRetryDownload()">&#x21BB; Retry Download</button>' : ''}
             <button class="btn" onclick="faultModalDismiss()">Dismiss</button>
             <button class="btn btn-muted" onclick="faultModalClearAndDismiss()" title="Clear fault state — stops the flashing alert">&#x2715; Clear</button>
         </div>`;
@@ -11184,6 +11194,22 @@ function faultModalClearAndDismiss() {
     faultModalDismiss();
     _lastFault = null;
     faultAlertOff();
+}
+
+function faultModalRetryDownload() {
+    faultModalDismiss();
+    // Prefer the live awaitingLump; fall back to the snapshot taken when the modal opened.
+    const al = (sim.awaitingLump && sim.awaitingLump.token != null) ? sim.awaitingLump : _lastRetryLump;
+    if (!al || al.token == null) {
+        const con = document.getElementById('editorConsole');
+        if (con) { con.textContent += '\n⊿ Retry Download: no pending lump token available.'; con.scrollTop = con.scrollHeight; }
+        console.warn('[faultModalRetryDownload] no awaitingLump token');
+        return;
+    }
+    const con = document.getElementById('editorConsole');
+    if (con) { con.textContent += `\n⟳ Retrying download for token=0x${al.token.toString(16)}...`; con.scrollTop = con.scrollHeight; }
+    console.log('[faultModalRetryDownload] retrying token=0x' + al.token.toString(16));
+    triggerLazyLoad({ token: al.token, nsIndex: al.nsIndex, label: sim.nsLabels[al.nsIndex] || 'entry_' + al.nsIndex });
 }
 
 // ── Lazy-load lump fetch ──────────────────────────────────────────────────────
