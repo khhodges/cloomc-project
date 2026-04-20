@@ -37,7 +37,7 @@ class CTMMSimulator {
     
     // TPERM preset codes: 0-5 data perms, 6-8 Lambda perms (L,S,E), 9-12 combos
     // Reserved codes 13-15 cause FAULT
-    // Matches Amaranth HDL canonical table (rv32_cap_amaranth/types.py TpermPreset)
+    // Matches Amaranth HDL canonical table (ctmm_cap_amaranth/types.py TpermPreset)
     getTpermMask(code) {
         const presets = {
             0:  [],                              // CLEAR: No permissions

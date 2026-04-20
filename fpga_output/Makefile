@@ -6,7 +6,7 @@
 #   Lattice ECP5:  yosys, nextpnr-ecp5, ecppack, openFPGALoader
 #
 # Usage:
-#   1. Generate Verilog: python -m rv32_cap_amaranth.gen_verilog -o fpga_output
+#   1. Generate Verilog: python -m ctmm_cap_amaranth.gen_verilog -o fpga_output
 #   2. Edit constraints file for your board
 #   3. make TARGET=ice40 synth pnr pack prog
 #      or: make TARGET=ecp5 synth pnr pack prog
@@ -43,7 +43,7 @@ endif
 all: synth pnr pack
 
 gen:
-        cd .. && python -m rv32_cap_amaranth.gen_verilog -o fpga_output
+        cd .. && python -m ctmm_cap_amaranth.gen_verilog -o fpga_output
 
 info:
         @echo "RV32-Cap FPGA Build"

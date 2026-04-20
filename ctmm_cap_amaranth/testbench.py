@@ -237,7 +237,7 @@ def run_testbench():
 
     sim.add_testbench(testbench)
 
-    with sim.write_vcd("rv32_cap_amaranth/sim_output.vcd"):
+    with sim.write_vcd("ctmm_cap_amaranth/sim_output.vcd"):
         sim.run()
 
 
