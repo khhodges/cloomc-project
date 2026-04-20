@@ -15,7 +15,7 @@ class ChurchDecoder(Elaboratable):
         [18:15]  cr_src    — 4 bits (source CR for Church ops; DR index for Turing ops)
         [14:0]   immediate — 15 bits (index / preset / mask / target / word offset)
 
-    No RISC-V encoding. No wasted bits. Every field at a fixed position.
+    Native CTMM encoding — not RISC-V derived. No wasted bits. Every field at a fixed position.
 
     Turing ops implemented: DREAD, DWRITE, BFEXT, BFINS, MCMP, IADD, ISUB,
     BRANCH, SHL, SHR.

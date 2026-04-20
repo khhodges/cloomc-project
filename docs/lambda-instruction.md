@@ -3,7 +3,7 @@
 **Status**: Architectural specification. February 14, 2026.
 
 ## Overview
-LAMBDA is a lightweight, in-scope code application instruction. It is Church's function application (λx.body applied to argument) implemented as a single RISC-V custom instruction. LAMBDA achieves macro-like code reuse — code exists once in memory, invoked from multiple call sites with near-zero overhead — without code duplication.
+LAMBDA is a lightweight, in-scope code application instruction. It is Church's function application (λx.body applied to argument) implemented as a native CTMM instruction. LAMBDA achieves macro-like code reuse — code exists once in memory, invoked from multiple call sites with near-zero overhead — without code duplication.
 
 LAMBDA is also one of the three **dispatch styles** for abstraction method resolution (see `docs/dispatch-styles.md`). When an abstraction uses LAMBDA dispatch, CR7's code uses `LAMBDA CRn, x` to jump directly to method bodies — the fastest path for lightweight compute operations like those in SlideRule, Abacus, and Circle.
 
@@ -99,7 +99,7 @@ LAMBDA = macro's speed + function's code reuse.
 
 ## Constructive Example: Clamp Function
 
-The following examples use RISC-V register naming (x0-x31, MV, BGE, BLE, LI, J) which maps to the Church Machine's data register conventions (DR0-DR15 with IADD, MCMP, BRANCH, etc.).
+The following examples use simplified pseudocode for illustration. Register names and mnemonics are not literal CTMM assembly — actual CTMM assembly uses DR0-DR15 naming with mnemonics such as IADD, MCMP, and BRANCH.
 
 A graphics program needs to clamp RGB values to 0-255 range:
 

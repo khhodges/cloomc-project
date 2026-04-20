@@ -15,7 +15,7 @@ class ChurchDecoder(Elaboratable):
         [18:15]  cr_src    — 4 bits (source capability register)
         [14:0]   immediate — 15 bits (index / preset / mask / target)
 
-    No RISC-V encoding. No wasted bits. Every field at a fixed position.
+    Native CTMM encoding — not RISC-V derived. No wasted bits. Every field at a fixed position.
     """
 
     def __init__(self):

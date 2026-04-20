@@ -12,8 +12,8 @@ class ChurchRegisters(Elaboratable):
     16 Data Registers (DR0-DR15): 32-bit each, for method selectors and return values.
     Condition Flags (N, Z, C, V): ARM-style, used for conditional execution.
 
-    DR count reduced from 32 to 16 — no RV32I ALU needs x0-x31.
-    DR0 is hardwired to zero (same convention as RISC-V x0).
+    DR count is 16 — CTMM has no general-purpose integer ALU requiring x0-x31.
+    DR0 is hardwired to zero (the CTMM zero register).
     """
 
     def __init__(self):
