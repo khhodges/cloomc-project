@@ -37,7 +37,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from amaranth import *
 from amaranth.lib.data import View
-from amaranth.sim import Simulator, Tick
+from amaranth.sim import Simulator
 
 from hardware.switch import ChurchSwitch
 from hardware.hw_types import (
@@ -85,29 +85,29 @@ def _run_switch(tgt, src_cap, max_ticks=20):
 
     ns_cap = _build_cap(gt_type=GT_TYPE_INFORM, slot_id=0, location=0x8000)
 
-    def process():
-        yield dut.cr_rd_data.eq(src_cap)
-        yield dut.cr_src.eq(0)
-        yield dut.target.eq(tgt)
-        yield dut.index.eq(0)
-        yield dut.cr15_namespace.eq(ns_cap)
-        yield dut.mem_rd_valid.eq(1)
-        yield dut.mem_rd_data.eq(0)
+    async def process(ctx):
+        ctx.set(dut.cr_rd_data.as_value(), src_cap)
+        ctx.set(dut.cr_src, 0)
+        ctx.set(dut.target, tgt)
+        ctx.set(dut.index, 0)
+        ctx.set(dut.cr15_namespace.as_value(), ns_cap)
+        ctx.set(dut.mem_rd_valid, 1)
+        ctx.set(dut.mem_rd_data, 0)
 
-        yield dut.switch_start.eq(1)
-        yield Tick()
-        yield dut.switch_start.eq(0)
+        ctx.set(dut.switch_start, 1)
+        await ctx.tick()
+        ctx.set(dut.switch_start, 0)
 
         for _ in range(max_ticks):
-            yield Tick()
-            if (yield dut.switch_fault) and first_fault[0] == FaultType.NONE:
-                first_fault[0] = (yield dut.fault_type)
+            await ctx.tick()
+            if ctx.get(dut.switch_fault) and first_fault[0] == FaultType.NONE:
+                first_fault[0] = ctx.get(dut.fault_type)
 
-        still_busy[0] = bool((yield dut.switch_busy))
+        still_busy[0] = bool(ctx.get(dut.switch_busy))
 
     sim = Simulator(dut)
     sim.add_clock(1e-6)
-    sim.add_process(process)
+    sim.add_testbench(process)
     with sim.write_vcd("/dev/null"):
         sim.run()
 
