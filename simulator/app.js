@@ -15602,6 +15602,30 @@ const WELCOME_SLIDES = [
         `Hello World from 1972 &mdash; actually means something safe.</p>`
     },
     {
+        html: `<div style="font-weight:700;color:var(--church-gold);font-size:1.05rem;margin-bottom:0.75rem;">The Church Machine &mdash; 32-bit clean-start architecture</div>` +
+        `<p style="font-size:0.88rem;line-height:1.6;margin-bottom:0.75rem;">` +
+        `The Church-Turing Meta-Machine (CTMM) is a <strong>32-bit clean-start architecture</strong> devised by Kenneth J Hamer-Hodges, FIEE. ` +
+        `It replaces the legacy von Neumann model with hardware-enforced Church instructions &mdash; ` +
+        `every capability access goes through an unforgeable Golden Token.</p>` +
+        `<div style="font-weight:600;color:var(--church-gold);font-size:0.88rem;margin-bottom:0.45rem;">The 10 Church Instructions</div>` +
+        `<table style="width:100%;border-collapse:collapse;font-size:0.8rem;line-height:1.5;">` +
+        `<thead><tr>` +
+        `<th style="text-align:left;padding:0.25rem 0.5rem;border-bottom:1px solid rgba(218,165,32,0.3);color:var(--church-gold);font-weight:600;">Instruction</th>` +
+        `<th style="text-align:left;padding:0.25rem 0.5rem;border-bottom:1px solid rgba(218,165,32,0.3);color:var(--church-gold);font-weight:600;">Description</th>` +
+        `</tr></thead><tbody>` +
+        `<tr><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">LOAD</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Copy a Golden Token from a C-List slot into a Context Register</td></tr>` +
+        `<tr style="background:rgba(255,255,255,0.03);"><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">SAVE</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Write a Context Register&rsquo;s Golden Token back into a C-List slot</td></tr>` +
+        `<tr><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">LOADX</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Load Exclusive &mdash; atomic capability load for lock-free synchronisation</td></tr>` +
+        `<tr style="background:rgba(255,255,255,0.03);"><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">SAVEX</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Store Exclusive &mdash; conditionally store only if exclusive monitor is valid</td></tr>` +
+        `<tr><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">LDM</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Load Multiple &mdash; fill several Context Registers from consecutive C-List entries</td></tr>` +
+        `<tr style="background:rgba(255,255,255,0.03);"><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">STM</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Store Multiple &mdash; write several Context Registers to consecutive C-List entries</td></tr>` +
+        `<tr><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">CALL</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Enter an abstraction &mdash; push return state and switch capability context</td></tr>` +
+        `<tr style="background:rgba(255,255,255,0.03);"><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">RETURN</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Leave an abstraction &mdash; pop return state and restore caller&rsquo;s context</td></tr>` +
+        `<tr><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">CHANGE</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Create a new thread Golden Token and load it into the Thread register (CR8)</td></tr>` +
+        `<tr style="background:rgba(255,255,255,0.03);"><td style="padding:0.2rem 0.5rem;font-family:monospace;color:#ddd;white-space:nowrap;">SWITCH</td><td style="padding:0.2rem 0.5rem;color:#bbb;">Load a capability into any system register (Thread, Interrupt, Fault, or Namespace)</td></tr>` +
+        `</tbody></table>`
+    },
+    {
         html: `<div style="font-weight:700;color:var(--church-gold);font-size:1.05rem;margin-bottom:0.75rem;">Getting started</div>` +
         `<div class="welcome-step">` +
         `<span class="welcome-step-num">1</span>` +
