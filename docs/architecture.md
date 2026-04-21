@@ -49,7 +49,7 @@ R, W, and X permissions are NOT permitted on hardware devices.
 ```
 31      25 24  23 22      16 15           0
 ┌─────────┬──────┬──────────┬─────────────┐
-│B R W X  │ typ  │  gt_seq  │  object_id  │
+│B R W X  │gt_type│  gt_seq │   slot_id   │
 │ L S E   │ [2]  │   [7]    │    [16]     │
 │  [7]    │      │          │             │
 └─────────┴──────┴──────────┴─────────────┘
@@ -57,17 +57,17 @@ R, W, and X permissions are NOT permitted on hardware devices.
 
 | Bits    | Field       | Width | Description |
 |---------|------------|-------|-------------|
-| [15:0]  | `object_id` | 16   | Namespace slot index (0–65,535) |
+| [15:0]  | `slot_id`   | 16   | Namespace slot ID (0–65,535) |
 | [22:16] | `gt_seq`    | 7    | Revocation sequence counter |
-| [24:23] | `typ`       | 2    | GT class (NULL / Inform / Outform / Abstract) |
-| [30:25] | permissions | 6    | R, W, X, L, S, E |
-| [31]    | `B`         | 1    | Bind flag |
+| [24:23] | `gt_type`   | 2    | GT class (NULL / Inform / Outform / Abstract) |
+| [30:25] | `perms`     | 6    | R, W, X, L, S, E |
+| [31]    | `b_flag`    | 1    | Bind flag |
 
 ### gt_seq (7 bits)
 
 Revocation sequence counter. Must match the `gt_seq` stored in NS Entry Word 1 bits [27:21]. On mismatch, the GT is stale — access FAULTs. Revocation is instant: increment the NS entry `gt_seq`, and every outstanding GT referencing that entry dies on next use.
 
-### object_id (16 bits)
+### slot_id (16 bits)
 
 Points to a namespace slot. Supports up to 65,536 entries.
 
@@ -84,26 +84,26 @@ Points to a namespace slot. Supports up to 65,536 entries.
 
 R and W are pure Turing permissions (data access). L, S, and E are pure Church permissions (capability access). X (Execute) bridges the two domains: it is grouped with R and W for TPERM domain purity enforcement (presets 3–5: X, RX, RWX), but it gates a Church instruction (LAMBDA) because code application is a capability-mediated operation. A code object is DATA (accessed via X), but applying it is Church's function application. This dual nature is by design — X is the permission that connects the Turing computation domain to the Church security domain.
 
-### Type (`typ`, bits [24:23])
+### Type (`gt_type`, bits [24:23])
 
 | Value | Type | Meaning |
 |-------|------|---------|
-| 00 | NULL | Zero value — no capability. A zeroed GT (typ=00) always faults on use. |
+| 00 | NULL | Zero value — no capability. A zeroed GT (gt_type=00) always faults on use. |
 | 01 | Inform | GT points to memory via an NS entry — abstractions, data objects, lumps |
 | 10 | Outform | GT references an IDE-managed dependency; lazy-loaded via Locator on first LOAD |
 | 11 | Abstract | GT IS the value — constants (pi), immutable credentials, PassKey tokens |
 
-All abstractions use **Inform (01)** GTs. The Inform GT's `object_id` indexes a namespace slot that holds the lump base address and limit. CALL loads the lump header from `raw_base` via cLoad and reads `cc` (c-list count) and `n_minus_6` (size exponent) to split the lump into code (CR14, privileged) and c-list (CR6) regions.
+All abstractions use **Inform (01)** GTs. The Inform GT's `slot_id` indexes a namespace slot that holds the lump base address and limit. CALL loads the lump header from `raw_base` via cLoad and reads `cc` (c-list count) and `n_minus_6` (size exponent) to split the lump into code (CR14, privileged) and c-list (CR6) regions.
 
 ## Namespace Table Slot Format
 
 The namespace table begins at `0xFD00`. Each entry occupies exactly **3 consecutive 32-bit words** (12 bytes):
 
 ```
-NS[object_id] byte address = 0xFD00 + object_id × 12
+NS[slot_id] byte address = 0xFD00 + slot_id × 12
 ```
 
-The table supports up to **65,536 entries** (bounded by the 16-bit `object_id` field). Slots 0–7 are reserved by the boot sequence; application abstractions start at slot 8 or higher.
+The table supports up to **65,536 entries** (bounded by the 16-bit `slot_id` field). Slots 0–7 are reserved by the boot sequence; application abstractions start at slot 8 or higher.
 
 An entry is considered **empty** when both Word 0 and Word 1 are zero.
 
@@ -126,47 +126,29 @@ The base address of the memory object (abstraction lump, data object, or device 
 ### Word 1 — Limit + gt_seq (WORD2_LAYOUT)
 
 ```
-31      28 27      21 20                  0
-┌──────────┬──────────┬────────────────────┐
-│  spare   │  gt_seq  │   limit_offset     │
-│  [3:0]   │  [6:0]   │     [20:0]         │
-└──────────┴──────────┴────────────────────┘
+31   29 28 27      21 20                  0
+┌──────┬───┬──────────┬────────────────────┐
+│spare │ G │  gt_seq  │   limit_offset     │
+│[2:0] │   │  [6:0]   │     [20:0]         │
+└──────┴───┴──────────┴────────────────────┘
 ```
 
 | Bits    | Width | Name            | Meaning |
 |---------|-------|----------------|---------|
 | [20:0]  | 21    | `limit_offset`  | Object size in words minus 1 |
 | [27:21] | 7     | `gt_seq`        | Revocation sequence counter; compared against GT `gt_seq` by ChurchNSGate. Increment to revoke all outstanding GTs instantly. |
-| [31:28] | 4     | spare           | Reserved |
+| [28]    | 1     | `g_bit`         | GC mark bit — may be set by GC; masked before integrity32 check |
+| [31:29] | 3     | spare           | Reserved |
 
 ---
 
-### Word 2 — CRC + G-bit (WORD3_LAYOUT)
+### Word 2 — integrity32 Check
 
-```
-31              17 16    15              0
-┌────────────────┬───┬────────────────────┐
-│     spare      │ G │    CRC-16          │
-│    [14:0]      │   │    [15:0]          │
-└────────────────┴───┴────────────────────┘
-```
+The 32-bit integrity32 parallel check result, computed over NS Entry Word 0 and Word 1 (with `g_bit` masked to zero before the check).
 
-| Bits    | Width | Name    | Meaning |
-|---------|-------|--------|---------|
-| [15:0]  | 16    | `crc`   | CRC-16/CCITT integrity result |
-| [16]    | 1     | `g_bit` | GC mark bit — cleared by ChurchNSGate on every NS access (G=0 = reachable) |
-| [31:17] | 15    | spare   | Reserved |
+#### integrity32 integrity
 
-#### CRC-16/CCITT integrity
-
-ChurchNSGate recomputes CRC-16/CCITT (polynomial 0x1021, init 0xFFFF) over 89 bits:
-
-```
-input = gt_word0[24:0] (25 bits) ++ NS Word 0 (32 bits) ++ NS Word 1 (32 bits)
-result compared against NS Word 2 bits [15:0]
-```
-
-A mismatch faults with `SEAL` error. The covered input includes the identifying fields of the GT and both the base address and limit/gt_seq of the NS entry — the minimum set an attacker would need to forge a valid capability.
+ChurchNSGate recomputes integrity32 over NS Entry Word 0 and Word 1 (`g_bit` cleared) and compares against NS Entry Word 2. A mismatch faults with `SEAL` error. The covered input includes the base address and limit/gt_seq of the NS entry — the minimum set an attacker would need to forge a valid capability.
 
 #### gt_seq revocation
 
@@ -202,12 +184,11 @@ The c-list count and lump size come from the **lump header** in memory, not from
 
 ```
 Offset +0   Word 0 — base      [31:0]   Lump base byte address
-Offset +1   Word 1 — limit     [31:28]  spare
-            (WORD2_LAYOUT)     [27:21]  gt_seq (7-bit revocation counter)
+Offset +1   Word 1 — limit     [31:29]  spare
+            (WORD2_LAYOUT)     [28]     g_bit (GC mark; masked before integrity32)
+                               [27:21]  gt_seq (7-bit revocation counter)
                                [20:0]   limit_offset (object size - 1 in words)
-Offset +2   Word 2 — crc       [31:17]  spare
-            (WORD3_LAYOUT)     [16]     g_bit (GC liveness, cleared on access)
-                               [15:0]   CRC-16/CCITT integrity check
+Offset +2   Word 2 — integrity [31:0]   integrity32 parallel check
 ```
 
 ## Register Architecture
@@ -216,10 +197,10 @@ Offset +2   Word 2 — crc       [31:17]  spare
 
 128-bit registers holding Golden Tokens. Each CR stores four 32-bit words (R0–R3):
 
-- **R0**: The GT itself (`B | perms | typ | gt_seq | object_id`)
+- **R0**: The GT itself (`b_flag | perms | gt_type | gt_seq | slot_id`)
 - **R1**: Lump base address (NS Entry W0)
-- **R2**: NS Entry W1 (`spare | gt_seq | limit_offset`)
-- **R3**: NS Entry W2 (`spare | g_bit | CRC-16`)
+- **R2**: NS Entry W1 (`spare | g_bit | gt_seq | limit_offset`)
+- **R3**: NS Entry W2 (integrity32 parallel check)
 
 > **Convention:** R0–R3 = the 4 words of a Capability Register. W0–W2 = the 3 words of an NS entry.
 
@@ -274,17 +255,17 @@ provisioning protocol and security model.
 
 ### Namespace Entries
 
-Each namespace entry is **3 words (12 bytes)**, stride = `object_id × 12` from the NS table base:
+Each namespace entry is **3 words (12 bytes)**, stride = `slot_id × 12` from the NS table base:
 
 - **Word 0** (base): 32-bit lump base byte address
-- **Word 1** (WORD2_LAYOUT): `spare[31:28] | gt_seq[27:21] | limit_offset[20:0]`
-- **Word 2** (WORD3_LAYOUT): `spare[31:17] | g_bit[16] | CRC-16[15:0]`
+- **Word 1** (WORD2_LAYOUT): `spare[31:29] | g_bit[28] | gt_seq[27:21] | limit_offset[20:0]`
+- **Word 2** (integrity32 check): 32-bit parallel check over Word 0 and Word 1 (g_bit masked)
 
-The NS table supports up to 65,536 entries (16-bit `object_id`).
+The NS table supports up to 65,536 entries (16-bit `slot_id`).
 
-When the GT's `object_id` identifies an abstraction lump, CALL invokes cLoad, which reads the lump header at `raw_base` to obtain `cc` (c-list count) and `n_minus_6` (size exponent) and performs the lump split. The NS entry itself contains only the base address, gt_seq, and limit_offset — no clistCount or type field.
+When the GT's `slot_id` identifies an abstraction lump, CALL invokes cLoad, which reads the lump header at `raw_base` to obtain `cc` (c-list count) and `n_minus_6` (size exponent) and performs the lump split. The NS entry itself contains only the base address, gt_seq, and limit_offset — no clistCount or type field.
 
-Integrity = CRC-16/CCITT recomputed over `gt_word0[24:0]` + NS Word 0 + NS Word 1 (89 bits), compared against NS Word 2 bits [15:0] on every ChurchNSGate access. Tamper with any covered field and the CRC fails — the GT faults on next use.
+Integrity = integrity32 recomputed over NS Word 0 and NS Word 1 (`g_bit` masked), compared against NS Word 2 on every ChurchNSGate access. Tamper with any covered field and the check fails — the GT faults on next use.
 
 ## Boot Sequence
 
@@ -303,12 +284,12 @@ After boot, the code CALLs Salvation (NS[4]) to verify the security pipeline. Sa
 
 Every capability register load passes through this pipeline:
 
-1. **GT Type Check** — `typ=00` (NULL) → FAULT immediately
+1. **GT Type Check** — `gt_type=00` (NULL) → FAULT immediately
 2. **gt_seq Match** — GT `gt_seq` must equal NS Entry Word 1 `gt_seq`
-3. **CRC-16 Verify** — CRC-16/CCITT over 89-bit input must match NS Entry Word 2 bits [15:0]
+3. **integrity32 Verify** — integrity32 over NS Word 0 and Word 1 (`g_bit` masked) must match NS Entry Word 2
 4. **Bounds Check** — Access offset must be within `[0, limit_offset]`
 5. **Permission Check** — Required permission bit must be set in GT
-6. **G-bit Reset** — NS Entry Word 2 `g_bit` cleared (GC liveness proof)
+6. **G-bit Reset** — NS Entry Word 1 bit [28] `g_bit` cleared (GC liveness proof)
 7. **CR Write** — Validated capability written to destination register
 
 mSave (write gate) performs the symmetric check for c-list writes, additionally requiring `B=1` (bit [31] of GT Word 0) on the source GT.
@@ -334,8 +315,8 @@ Instruction fetch uses CR14 ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.h
 ## CALL / RETURN
 
 CALL performs:
-1. Validate E permission on target Inform GT (`typ=01`)
-2. ChurchNSGate validates gt_seq + CRC-16 on the NS entry
+1. Validate E permission on target Inform GT (`gt_type=01`)
+2. ChurchNSGate validates gt_seq + integrity32 on the NS entry
 3. cLoad reads the **lump header** at `raw_base` → extracts `cc` (c-list count, 8-bit) and `n_minus_6` (size exponent, 4-bit)
 4. Compute lump split:
    - `lumpSize = 2^(n_minus_6 + 6)` words
@@ -356,7 +337,7 @@ CR14 and CR6 permissions are architectural invariants — X-only for code, L-onl
 
 RETURN:
 1. Pop 2-word frame from call stack
-2. ChurchNSGate revalidates caller's E-GT (Word 0): gt_seq + CRC-16 + G-bit reset (FAULT on failure)
+2. ChurchNSGate revalidates caller's E-GT (Word 0): gt_seq + integrity32 + G-bit reset (FAULT on failure)
 3. cLoad re-runs lump split on caller's lump header → re-derives CR6 (c-list) and CR14 (code)
 4. Restore PC from NIA (Word 1) and machine indicators from Word 1
 
@@ -434,7 +415,7 @@ Outform GTs (type=10) with F-bit=1 represent remote resources:
 
 Navana (NS[5]) is the sole namespace entry writer. All NS table modifications go through Navana:
 
-- **Navana.Add**: Find free NS slot, write 3-word entry (base, gt_seq+limit_offset, CRC+g_bit), return `object_id` + `gt_seq`
+- **Navana.Add**: Find free NS slot, write 3-word entry (base, g_bit+gt_seq+limit_offset, integrity32), return `slot_id` + `gt_seq`
 - **Navana.Remove**: Revoke GT (increment `gt_seq` in NS Entry Word 1), free NS slot
 - **Navana.Abstraction.Add**: Process compiled abstraction, allocate power-of-2 lump, write lump header (`cc`, `n_minus_6`), write code + c-list GTs, create NS entry, forge E-GT
 - **Navana.Abstraction.Update**: Re-carve lump or migrate to larger allocation

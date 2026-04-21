@@ -5,9 +5,9 @@
 Golden Tokens (GTs) are the fundamental unit of access control in the Church Machine architecture. Every access to a resource -- whether loading data, calling a service, or switching privilege levels -- requires a valid Golden Token that grants the necessary permissions. Golden Tokens are unforgeable: they cannot be fabricated by software, only created and managed through hardware-enforced mechanisms.
 
 A Golden Token encodes three things:
-1. **What** resource it refers to (via `object_id` — the namespace slot index)
+1. **What** resource it refers to (via `slot_id` — the namespace slot ID)
 2. **What operations** are permitted (via permission bits)
-3. **Whether it is authentic** (via CRC-16/CCITT integrity check on the NS entry)
+3. **Whether it is authentic** (via integrity32 parallel check on the NS entry)
 
 Without a valid Golden Token, no operation proceeds. Any attempt to use an invalid, expired, or insufficient token results in a FAULT.
 
@@ -20,7 +20,7 @@ The Church Machine uses a 32-bit Golden Token with a precisely defined bit layou
 ```
 31      25 24  23 22      16 15           0
 ┌─────────┬──────┬──────────┬─────────────┐
-│B R W X  │ typ  │  gt_seq  │  object_id  │
+│B R W X  │gt_type│  gt_seq │   slot_id   │
 │ L S E   │ [2]  │   [7]    │    [16]     │
 │  [7]    │      │          │             │
 └─────────┴──────┴──────────┴─────────────┘
@@ -28,11 +28,11 @@ The Church Machine uses a 32-bit Golden Token with a precisely defined bit layou
 
 | Bits  | Field      | Width | Description |
 |-------|-----------|-------|-------------|
-| [15:0]  | `object_id` | 16 | Namespace slot index (0–65,535) |
+| [15:0]  | `slot_id`   | 16 | Namespace slot ID (0–65,535) |
 | [22:16] | `gt_seq`    | 7  | Revocation sequence counter; must match NS Entry Word 1 `gt_seq` |
-| [24:23] | `typ`       | 2  | GT class (NULL / Inform / Outform / Abstract) |
-| [30:25] | permissions | 6  | R, W, X, L, S, E (see below) |
-| [31]    | `B`         | 1  | Bind flag — 1 = GT may be propagated via mSave |
+| [24:23] | `gt_type`   | 2  | GT class (NULL / Inform / Outform / Abstract) |
+| [30:25] | `perms`     | 6  | R, W, X, L, S, E (see below) |
+| [31]    | `b_flag`    | 1  | Bind flag — 1 = GT may be propagated via mSave |
 
 Each capability register in Church Machine is 128 bits wide (4 x 32-bit words):
 
@@ -40,8 +40,8 @@ Each capability register in Church Machine is 128 bits wide (4 x 32-bit words):
 |-------|---------|
 | word0 | The 32-bit Golden Token |
 | word1 | Lump base address (from NS Entry Word 0) |
-| word2 | NS Entry Word 1: `spare[31:28] \| gt_seq[27:21] \| limit_offset[20:0]` |
-| word3 | NS Entry Word 2: `spare[31:17] \| g_bit[16] \| CRC-16[15:0]` |
+| word2 | NS Entry Word 1: `spare[31:29] \| g_bit[28] \| gt_seq[27:21] \| limit_offset[20:0]` |
+| word3 | NS Entry Word 2: integrity32 check (32-bit parallel check) |
 
 ---
 
@@ -88,7 +88,7 @@ M is **not stored in the GT**. It exists only as a transient signal (`sub_m_elev
 
 ---
 
-## GT Type Field (`typ`, bits [24:23])
+## GT Type Field (`gt_type`, bits [24:23])
 
 The Church Machine includes a 2-bit type field classifying the nature of the referenced resource:
 
@@ -99,7 +99,7 @@ The Church Machine includes a 2-bit type field classifying the nature of the ref
 | 10 | Outform | GT references an IDE-managed dependency (lazy-loaded via Locator) |
 | 11 | Abstract | GT IS the value — constants, immutable credentials, PassKey tokens |
 
-NULL is architecturally distinct from all valid reference types. Any GT with `typ=00` immediately faults at ChurchNSGate before any NS lookup is performed.
+NULL is architecturally distinct from all valid reference types. Any GT with `gt_type=00` immediately faults at ChurchNSGate before any NS lookup is performed.
 
 ---
 
@@ -116,7 +116,7 @@ Church Machine includes a 7-bit `gt_seq` field in bits [22:16] of the Golden Tok
 
 ## Namespace Entry Format
 
-Each namespace entry occupies **3 consecutive 32-bit words** (12 bytes). The slot byte address is `object_id × 12` (or equivalently `object_id × 3` words) from the NS table base. The NS table supports up to **65,536 entries** (bounded by the 16-bit `object_id` field).
+Each namespace entry occupies **3 consecutive 32-bit words** (12 bytes). The slot byte address is `slot_id × 12` (or equivalently `slot_id × 3` words) from the NS table base. The NS table supports up to **65,536 entries** (bounded by the 16-bit `slot_id` field).
 
 ### Word 0 — Base Address
 
@@ -125,44 +125,27 @@ The 32-bit lump base byte address.
 ### Word 1 — Limit + gt_seq (WORD2_LAYOUT)
 
 ```
-31      28 27      21 20                  0
-┌──────────┬──────────┬────────────────────┐
-│  spare   │  gt_seq  │   limit_offset     │
-│  [3:0]   │  [6:0]   │     [20:0]         │
-└──────────┴──────────┴────────────────────┘
+31   29 28 27      21 20                  0
+┌──────┬───┬──────────┬────────────────────┐
+│spare │ G │  gt_seq  │   limit_offset     │
+│[2:0] │   │  [6:0]   │     [20:0]         │
+└──────┴───┴──────────┴────────────────────┘
 ```
 
 | Bits  | Field          | Description |
 |-------|---------------|-------------|
 | [20:0]  | `limit_offset` | Object size in words minus 1 (21-bit) |
 | [27:21] | `gt_seq`       | Revocation counter; compared against GT `gt_seq` by ChurchNSGate |
-| [31:28] | spare          | Reserved |
+| [28]    | `g_bit`        | GC mark bit — may be set by GC; masked before integrity32 check |
+| [31:29] | spare          | Reserved |
 
-### Word 2 — CRC + G-bit (WORD3_LAYOUT)
+### Word 2 — integrity32 Check
 
-```
-31              17 16    15              0
-┌────────────────┬───┬────────────────────┐
-│     spare      │ G │    CRC-16          │
-│    [14:0]      │   │    [15:0]          │
-└────────────────┴───┴────────────────────┘
-```
+The 32-bit integrity32 parallel check result, computed over NS Entry Word 0 and Word 1 (with `g_bit` masked to zero before the check).
 
-| Bits  | Field   | Description |
-|-------|--------|-------------|
-| [15:0]  | `crc`   | CRC-16/CCITT integrity check result |
-| [16]    | `g_bit` | GC mark bit — cleared on every NS access (G=0 = reachable) |
-| [31:17] | spare   | Reserved |
+### integrity32 Integrity
 
-### CRC-16/CCITT Integrity
-
-ChurchNSGate recomputes CRC-16/CCITT (polynomial 0x1021, init 0xFFFF) over 89 bits of input:
-
-- `gt_word0[24:0]` — 25 bits (the GT identifying the entry)
-- NS Entry Word 0 (base address) — 32 bits
-- NS Entry Word 1 (limit_offset + gt_seq) — 32 bits
-
-The result is compared against NS Entry Word 2 bits [15:0]. A mismatch faults with `SEAL` error, preventing use of any tampered NS entry.
+ChurchNSGate recomputes integrity32 over NS Entry Word 0 and Word 1 (`g_bit` cleared) and compares against NS Entry Word 2. A mismatch faults with `SEAL` error, preventing use of any tampered NS entry.
 
 ---
 
