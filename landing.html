@@ -32,13 +32,10 @@
         }
         .cards {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 14px;
             width: 100%;
-            max-width: 1400px;
-        }
-        @media (max-width: 1100px) {
-            .cards { grid-template-columns: repeat(3, 1fr); }
+            max-width: 1000px;
         }
         @media (max-width: 700px) {
             .cards { grid-template-columns: 1fr; }
@@ -90,42 +87,11 @@
             color: #60a5fa;
             border: 1px solid rgba(59, 130, 246, 0.2);
         }
-        .card-ctmm .feature {
-            background: rgba(139, 92, 246, 0.1);
-            color: #a78bfa;
-            border-color: rgba(139, 92, 246, 0.2);
-        }
         .card .arrow {
             margin-top: 12px;
             font-size: 0.78rem;
             color: #3b82f6;
             font-weight: 500;
-        }
-        .card-ctmm .arrow { color: #8b5cf6; }
-        .card-ctmm:hover { border-color: #8b5cf6; box-shadow: 0 8px 30px rgba(139, 92, 246, 0.12); }
-        .card-soon {
-            opacity: 0.55;
-            cursor: default;
-            position: relative;
-        }
-        .card-soon:hover {
-            border-color: #1e2a3a;
-            transform: none;
-            box-shadow: none;
-        }
-        .card-soon .arrow { color: #4a5568; }
-        .soon-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 0.6rem;
-            padding: 2px 6px;
-            border-radius: 3px;
-            background: rgba(100, 116, 139, 0.2);
-            color: #64748b;
-            border: 1px solid rgba(100, 116, 139, 0.3);
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            letter-spacing: 0.04em;
         }
         footer {
             margin-top: 20px;
@@ -144,42 +110,6 @@
         Golden Tokens enforce the Church-Turing security model with clean domain separation.
     </p>
     <div class="cards">
-        <a href="/ctmm/" class="card card-ctmm">
-            <h2>CTMM Simulator</h2>
-            <div class="tag">Sim-64 &middot; Custom ISA &middot; 32-bit Golden Tokens</div>
-            <p>
-                The Church-Turing Meta-Machine with custom instruction set,
-                namespace browser, assembly editor, capability explorer, and
-                interactive tutorials. Full authentication and state persistence.
-            </p>
-            <div class="features">
-                <span class="feature">Custom ISA</span>
-                <span class="feature">32-bit GTs</span>
-                <span class="feature">Namespace Browser</span>
-                <span class="feature">Assembly Editor</span>
-                <span class="feature">Tutorials</span>
-                <span class="feature">Auth &amp; Save</span>
-            </div>
-            <div class="arrow">Open CTMM Simulator &rarr;</div>
-        </a>
-        <div class="card card-rv32 card-soon" style="position:relative;">
-            <span class="soon-badge">coming soon</span>
-            <h2>RV32-Cap Simulator</h2>
-            <div class="tag">Sim-32 &middot; RISC-V RV32I &middot; 32-bit Golden Tokens</div>
-            <p>
-                Capability security layered onto the RISC-V RV32I base instruction set.
-                Custom opcodes for capability instructions, boot image builder,
-                and interactive simulation with documentation browser.
-            </p>
-            <div class="features">
-                <span class="feature">RISC-V RV32I</span>
-                <span class="feature">32-bit GTs</span>
-                <span class="feature">Boot Builder</span>
-                <span class="feature">Cap Instructions</span>
-                <span class="feature">Doc Browser</span>
-            </div>
-            <div class="arrow">RV32-Cap Simulator &mdash; coming soon</div>
-        </div>
         <a href="/simulator/" class="card" style="background: linear-gradient(135deg, #1a2e1e 0%, #0e1a28 100%); border-color: #4ade80;">
             <h2>Church Machine</h2>
             <div class="tag" style="color: #4ade80;">Pure Church &middot; 8 Opcodes &middot; Zero Turing Instructions</div>
@@ -198,23 +128,6 @@
             </div>
             <div class="arrow" style="color: #4ade80;">Open Church Machine &rarr;</div>
         </a>
-        <div class="card card-soon" style="background: linear-gradient(135deg, #2e1a3e 0%, #1a2e3e 100%); border-color: #4a4530; position:relative;">
-            <span class="soon-badge">coming soon</span>
-            <h2>Tunnel Test Harness</h2>
-            <div class="tag" style="color: #7a7050;">Both Simulators &middot; Side-by-Side &middot; Automated Tests</div>
-            <p>
-                Run both simulators side-by-side with automated messaging tests.
-                Kenneth-to-Priscilla, Priscilla-to-Kenneth, and ping-pong exchanges
-                with real-time test logging.
-            </p>
-            <div class="features">
-                <span class="feature">Side-by-Side</span>
-                <span class="feature">Automated</span>
-                <span class="feature">Bidirectional</span>
-                <span class="feature">Test Log</span>
-            </div>
-            <div class="arrow">Tunnel Test Harness &mdash; coming soon</div>
-        </div>
         <a href="/patents/" class="card" style="background: linear-gradient(135deg, #1a1e2e 0%, #2a1a28 100%); border-color: #f472b6;">
             <h2>Patent Portfolio</h2>
             <div class="tag" style="color: #f472b6;">8 PDFs &middot; 45 Figures &middot; April 2026</div>
