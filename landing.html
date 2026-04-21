@@ -49,6 +49,9 @@
             transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
             display: flex;
             flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
         }
         .card:hover {
             border-color: #3b82f6;
@@ -88,6 +91,8 @@
             text-decoration: none;
             cursor: pointer;
             transition: background 0.15s;
+            position: relative;
+            z-index: 1;
         }
         .card .feature:hover { background: rgba(59, 130, 246, 0.22); }
         .card .arrow {
@@ -97,6 +102,13 @@
             font-weight: 500;
             text-decoration: none;
             display: block;
+            z-index: 1;
+        }
+        /* stretch the arrow link to cover the entire card */
+        .card .arrow::after {
+            content: '';
+            position: absolute;
+            inset: 0;
         }
         .card .arrow:hover { text-decoration: underline; }
         footer {
