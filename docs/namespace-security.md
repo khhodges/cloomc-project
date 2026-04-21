@@ -141,7 +141,7 @@ This means:
 | **LOAD** | ChurchMLoad + ChurchNSGate | CRd (user-specified) |
 | **CALL** | ChurchMLoad → ChurchNSGate → cLoad | CR6 (c-list), CR14 (code) |
 | **RETURN** | ChurchMLoad (direct mode) | CR6, CR14 (re-derived from saved E-GT) |
-| **CHANGE** | ChurchMLoad + ChurchNSGate | CR12–CR15 (privileged: CR12=data fault handler, CR13=interrupt, CR14=code, CR15=namespace) |
+| **CHANGE** | ChurchMLoad + ChurchNSGate | CR12–CR15 (privileged: CR12=thread stack, CR13=interrupt, CR14=code, CR15=namespace) |
 | **SWITCH** | ChurchMLoad + ChurchNSGate | CR12–CR15 (system) |
 | **SAVE** | Bounds check only (no NSGate) | Namespace write (GT Word 0) |
 

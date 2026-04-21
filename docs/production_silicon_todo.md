@@ -14,7 +14,7 @@ This document tracks requirements for synthesizing the Church Machine Verilog to
 - All targets now functional (no more silent ignore)
 
 **Architecture notes**:
-- CR12: Data fault handler capability (system-wide, unchanged by CHANGE)
+- CR12: Thread stack capability (system-wide, unchanged by CHANGE)
 - CR13: Interrupt handler capability (system-wide, unchanged by CHANGE)
 - CR14: Code register — unchanged by CHANGE; transient, re-derived by cLoad on the next CALL
 - CR15: Namespace root — system-wide, unchanged by CHANGE; shared by all threads

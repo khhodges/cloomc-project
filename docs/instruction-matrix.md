@@ -109,7 +109,7 @@ This document maps each instruction across all implementation layers for verific
 | Register | Purpose           | Instruction Addressable | Notes |
 |:---------|:------------------|:------------------------|:------|
 | CR0-CR11 | General-purpose   | Yes (4-bit encoding)    | Programmer registers; CR6=C-List, CR8-CR11=free GP |
-| CR12     | Data Fault Handler | Privileged zone        | System-wide data fault handler; unchanged by CHANGE |
+| CR12     | Thread Stack       | Privileged zone        | System-wide thread stack register; unchanged by CHANGE |
 | CR13     | Interrupt         | Privileged zone         | System-wide interrupt handler; unchanged by CHANGE |
 | CR14     | Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)       | Privileged zone         | Per-thread code GT; re-derived by CALL via mLoad |
 | CR15     | Namespace root    | Privileged zone         | Hardwired at boot; defines system security boundary |
@@ -119,7 +119,7 @@ This document maps each instruction across all implementation layers for verific
 The five-phase boot sequence initializes the privileged zone (CR12–CR15):
 
 1. **CR15 (Namespace)**: Loaded at B:00 from hardwired boot GT — M permission only; points to the NS table
-2. **CR12 (Data Fault Handler)**: Loaded at B:02 via mLoad from NS Slot 1 — zero perms, Inform-type; encodes lump base and bounds
+2. **CR12 (Thread Stack)**: Loaded at B:02 via mLoad from NS Slot 1 — zero perms, Inform-type; encodes lump base and bounds
 3. **CR14 (Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html))**: Derived at B:04 from NS Slot 2 metadata — X permission; instruction fetch source
 4. **CR13 (Interrupt)**: Loaded at B:03 or by SWITCH from a PassKey capability — system-wide, unchanged by CHANGE
 
@@ -203,7 +203,7 @@ Only **CR13** (Tgt=101₂) and **CR15** (Tgt=111₂) are valid SWITCH targets. A
 | 001 | CR9 | FAULT — not a valid SWITCH target | GP register |
 | 010 | CR10 | FAULT — not a valid SWITCH target | GP register |
 | 011 | CR11 | FAULT — not a valid SWITCH target | GP register |
-| 100 | CR12 | FAULT — reserved | Data fault handler (system-wide; not writable via SWITCH) |
+| 100 | CR12 | FAULT — reserved | Thread stack (system-wide; not writable via SWITCH) |
 | 101 | CR13 | **Valid** — IRQ Thread | Required CRs.word1_location: `0xFFFFFFFE` |
 | 110 | CR14 | FAULT — reserved | Transient (re-derived by cLoad on each CALL) |
 | 111 | CR15 | **Valid** — Namespace | Required CRs.word1_location: `0xFFFFFFFF` |

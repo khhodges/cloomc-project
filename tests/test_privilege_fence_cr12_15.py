@@ -62,7 +62,7 @@ SCENARIOS = [
     # T8: CHANGE (opcode=4) crDst=12, crSrc=12   → success (system-wide, no ctx switch)
     dict(name="T8_CHANGE_CR12_ok", opcode=4,  crDst=12, crSrc=12, imm=1),
     # T9: CHANGE crDst=14 (per-thread context switch) → decode fence passed (no PRIV_REG);
-    #     _execChange enters save/restore path.  crSrc=12 (data fault handler GT) does not
+    #     _execChange enters save/restore path.  crSrc=12 (thread stack GT) does not
     #     carry L-perm so PERM_L fires — confirming the save path was reached, not the fence.
     dict(name="T9_CHANGE_CR14_fence_pass", opcode=4, crDst=14, crSrc=12, imm=0),
     # T10: CHANGE crDst=15 (per-thread namespace root) → same: decode fence passed.

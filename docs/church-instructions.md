@@ -159,14 +159,14 @@ All Church instructions that access the namespace route through the **mLoad mast
 |--------|--------|
 | **Permission Check** | E (Enter) on Thread Abstraction GT at CRd[idx] |
 | **Per-Thread Saved/Restored** | DR0–DR15, CR0–CR11, CR14 (code register), CR15 (namespace root), STO, PC, FLAGS |
-| **System-Wide Unchanged** | CR12 (data fault handler), CR13 (IRQ handler) |
+| **System-Wide Unchanged** | CR12 (thread stack), CR13 (IRQ handler) |
 | **G-bit Reset** | Yes — on accessed namespace entries |
 
 ---
 
 ### 6. SWITCH — Install PassKey into System Register
 
-**Purpose**: Write a PassKey capability into system register CR13 (IRQ Thread) or CR15 (Namespace root). This is the only instruction that can modify these system-wide registers, making it the privilege gate for namespace and interrupt management. CR12 (data fault handler) and CR14 (transient code-view) cannot be SWITCH targets.
+**Purpose**: Write a PassKey capability into system register CR13 (IRQ Thread) or CR15 (Namespace root). This is the only instruction that can modify these system-wide registers, making it the privilege gate for namespace and interrupt management. CR12 (thread stack) and CR14 (transient code-view) cannot be SWITCH targets.
 
 **Validation Path**: Two mandatory hardware checks before the write; namespace access via mLoad with G-bit reset.
 
@@ -189,7 +189,7 @@ All Church instructions that access the namespace route through the **mLoad mast
 | **Sentinel for CR15** | CRs.word1_location == `0xFFFFFFFF` (all-1s) |
 | **Sentinel mismatch** | CRs sentinel does not match chosen target → FAULT |
 | **G-bit Reset** | Yes — via mLoad on namespace access |
-| **Not writable by SWITCH** | CR12 (data fault handler, system-wide), CR14 (transient cLoad output) |
+| **Not writable by SWITCH** | CR12 (thread stack, system-wide), CR14 (transient cLoad output) |
 
 ---
 

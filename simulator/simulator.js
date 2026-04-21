@@ -37,7 +37,7 @@
 //
 // CAPABILITY REGISTERS (CRs)
 //   CR0–CR11   General-purpose GT holders
-//   CR12       Data fault handler (privileged, system-wide — unchanged by CHANGE)
+//   CR12       Thread stack (privileged, system-wide — unchanged by CHANGE)
 //   CR13       Interrupt handler (privileged, system-wide — unchanged by CHANGE)
 //   CR14       Code register / CLOOMC (privileged, per-thread — set by CALL, saved/restored by CHANGE)
 //   CR15       Namespace root (privileged, per-thread — saved/restored by CHANGE)
@@ -1039,8 +1039,8 @@ class ChurchSimulator {
 
             // ════════════════════════════════════════════════════════════════════
             // B:02  INIT_THRD
-            // Load the data fault handler (NS Slot 1) into CR12.
-            // CR12 is the data fault handler register: its NS entry encodes the lump
+            // Load the thread stack GT (NS Slot 1) into CR12.
+            // CR12 is the thread stack register: its NS entry encodes the lump
             // base address and total size, from which the hardware derives the stack
             // ceiling (sp_max = lumpSize − caps − 1) and heap floor.
             // Zero permissions — the hardware reads CR12 internally; programs never
@@ -1053,8 +1053,8 @@ class ChurchSimulator {
                     this.fault('BOOT', `INIT_THRD mLoad(Thread) failed: ${check12.message}`);
                     return false;
                 }
-                this._writeCR(12, gt12, check12.entry);                            // CR12 ← data fault handler token (encodes lump base + size)
-                this.output += `[BOOT] INIT_THRD — CR12 <- mLoad(Slot 1) data fault handler (zero perms, Inform)\n`;
+                this._writeCR(12, gt12, check12.entry);                            // CR12 ← thread stack token (encodes lump base + size)
+                this.output += `[BOOT] INIT_THRD — CR12 <- mLoad(Slot 1) thread stack GT (zero perms, Inform)\n`;
                 this.bootStep++;                  // advance state machine → B:03
                 this.ledBits = 0b000111;          // LED bit 2 ON = INIT_THRD complete
                 break;
@@ -1846,7 +1846,7 @@ class ChurchSimulator {
     _threadRead(absAddr, label) {
         const cr12 = this.cr[12];
         if (!cr12 || cr12.word0 === 0) {
-            this.fault('NULL_CAP', `${label}: CR12 (data fault handler) is NULL`);
+            this.fault('NULL_CAP', `${label}: CR12 (thread stack) is NULL`);
             return { ok: false };
         }
         const check = this.mLoad(cr12.word0, null, 12, absAddr);
@@ -1860,7 +1860,7 @@ class ChurchSimulator {
     _threadWrite(absAddr, value, label) {
         const cr12 = this.cr[12];
         if (!cr12 || cr12.word0 === 0) {
-            this.fault('NULL_CAP', `${label}: CR12 (data fault handler) is NULL`);
+            this.fault('NULL_CAP', `${label}: CR12 (thread stack) is NULL`);
             return false;
         }
         const check = this.mLoad(cr12.word0, null, 12, absAddr);
@@ -2853,7 +2853,7 @@ class ChurchSimulator {
         //   idx  (d.imm)   — NS slot index (identifies the thread or system GT to load).
         //
         // Semantics by destination:
-        //   CR12 (data fault handler)  system-wide: load GT directly; no per-thread save.
+        //   CR12 (thread stack)  system-wide: load GT directly; no per-thread save.
         //   CR13 (interrupt handler)   system-wide: load GT directly; no per-thread save.
         //   CR14 (code register)       per-thread:  full context switch — atomically
         //      saves the outgoing thread's per-thread registers and restores the

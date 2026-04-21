@@ -514,7 +514,7 @@ directly; B:04 LOAD_NUC no longer performs a director hop.
 | CR   | GT word      | Slot | Perms | word1 (location) | word2 (limit word) | m | Role |
 |-----:|:-------------|-----:|:------|:-----------------|:-------------------|:-:|:-----|
 | CR6  | `0x40800003` |   3  | E     | `0x0000026F`     | `0x04000010`       | 1 | C-list root → Boot.Abstr c-list base |
-| CR12 | `0x00800001` |   1  | —     | `0x00000040`     | `0x040000FF`       | 1 | Data fault handler (privileged, system-wide) |
+| CR12 | `0x00800001` |   1  | —     | `0x00000040`     | `0x040000FF`       | 1 | Thread stack (privileged, system-wide) |
 | CR14 | `0x0A800003` |   3  | RX    | `0x00000180`     | `0x04000010`       | 1 | Code fence (privileged) |
 | CR15 | `0x00800000` |   0  | —     | `0x00000000`     | `0x045E3FFF`       | 1 | NS root (privileged) |
 

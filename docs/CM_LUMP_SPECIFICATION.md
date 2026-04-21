@@ -795,7 +795,7 @@ at boot step B:02. They carry zero permissions in their stored GT Word 0
 and are of Inform-type — the hardware returns a constant on DREAD. They
 are never written to lump memory and are never accessible via DREAD.
 
-**CR12 — Data Fault Handler.** CR12 holds the privileged data fault handler capability. Its NS entry encodes the Thread lump's base address and total word count, which the hardware uses as the anchor for the stack: the effective stack zone spans `stack_min` (= `lumpSize−12−sw`,
+**CR12 — Thread Stack.** CR12 holds the privileged thread stack capability. Its NS entry encodes the Thread lump's base address and total word count, which the hardware uses as the anchor for the stack: the effective stack zone spans `stack_min` (= `lumpSize−12−sw`,
 example: 212) up to `sp_max` (= `lumpSize−12−1`, example: 243), with the
 hidden **STO** (Stack Top Offset) register tracking the current top.
 `Mint.Thread` sets STO = `sp_max` (example: 243) at Thread creation — this
@@ -955,7 +955,7 @@ thread's per-thread state and restores the incoming thread's saved state.
 
 | Register | Role |
 |----------|------|
-| **CR12** | Data fault handler (Priv zone, system-wide) — shared across all threads; cannot be written by CHANGE |
+| **CR12** | Thread stack (Priv zone, system-wide) — shared across all threads; cannot be written by CHANGE |
 | **CR13** | Interrupt handler (Priv zone, system-wide) — one handler for the whole machine; CHANGE must not re-point it |
 
 CR0–CR11 (Zone ①, the programmer-accessible capability registers) are

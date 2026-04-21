@@ -279,7 +279,7 @@ Capability registers are loaded only once per abstraction — if SlideRule is ca
 | CR0 | Reserved (return capability) |
 | CR1–CR5, CR7–CR11 | Available for abstraction GTs |
 | CR6 | Reserved (c-list base pointer) |
-| CR12–CR15 | Reserved (data fault handler, interrupt handler, code register, namespace root) |
+| CR12–CR15 | Reserved (thread stack, interrupt handler, code register, namespace root) |
 
 ### Automatic Protections
 

@@ -212,7 +212,7 @@ Hardware-initialized entries, always present after reset.
 | Index | Name | Perms | Description |
 |-------|------|-------|-------------|
 | 0 | Boot.NS | — | Namespace root. Location = NS_TABLE_BASE (0xFD00). The root of the capability tree. |
-| 1 | Boot.Thread | — | Data fault handler for the boot thread, loaded into CR12 (privileged, system-wide). Zero permissions — hardware reads it internally. |
+| 1 | Boot.Thread | — | Thread stack for the boot thread, loaded into CR12 (privileged, system-wide). Zero permissions — hardware reads it internally. |
 | 2 | Boot.CList | E | Boot abstraction c-list, loaded into CR6. Contains the boot code and initial capabilities. |
 | 3 | Boot.[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) | X | Boot code entry point, loaded into CR14 (privileged). First instruction executes from here. |
 

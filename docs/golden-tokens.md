@@ -183,7 +183,7 @@ These registers are protected from direct instruction access. The only way to wr
 | Register | Name | Role |
 |----------|------|------|
 | **CR6**  | C-List | Current capability list — the set of capabilities available to running code |
-| **CR12** | Data Fault Handler | Data fault handler capability (privileged, system-wide; loaded at boot B:02) |
+| **CR12** | Thread Stack | Thread stack capability (privileged, system-wide; loaded at boot B:02) |
 | **CR13** | Interrupt | System-wide interrupt handler capability (privileged, unchanged by CHANGE) |
 | **CR14** | Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) | Current code GT — instruction fetch source (privileged, per-thread; re-derived by CALL) |
 | **CR15** | Namespace | Namespace root — defines the security boundary of the entire system |
