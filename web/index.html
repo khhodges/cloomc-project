@@ -89,7 +89,7 @@
                     <div class="landing-description" id="landingWelcome" data-section="welcome">
                         <h2>Welcome to the CTMM Simulator</h2>
                         <p>
-                            The Church-Turing Meta-Machine (CTMM) is a revolutionary computing architecture 
+                            The Church-Turing Meta-Machine (CTMM) is a <strong>32-bit clean-start architecture</strong>
                             devised by <strong><a href="https://sipantic.blogspot.com/p/industrial-strength-computer-science_7.html">Kenneth J Hamer-Hodges, FIEE</a></strong>. It enforces failsafe 
                             security through <strong>Golden Tokens</strong> - 64-bit capability keys that 
                             govern all access control.
@@ -153,8 +153,68 @@
                             and privilege escalation - CLOOMC abstractions are rooted in the 
                             <span class="text-success">hard surface of universal cyberspace</span>.
                         </p>
+                        <p>
+                            CLOOMC is designed for the <strong>32-bit clean-start CTMM</strong> — an architecture that replaces 
+                            the legacy von Neumann model with ten hardware-enforced Church instructions, each operating 
+                            exclusively on Golden Tokens rather than raw memory addresses.
+                        </p>
                     </div>
                     
+                    <div class="church-instructions-section">
+                        <h2>The 10 Church Machine Instructions</h2>
+                        <p>The CTMM Church instruction set governs all capability and object access. Every instruction operates on Golden Tokens — never on raw addresses.</p>
+                        <table class="church-instr-table">
+                            <thead>
+                                <tr>
+                                    <th>Instruction</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>LOAD</code></td>
+                                    <td>Copy a Golden Token from a C-List slot into a Context Register</td>
+                                </tr>
+                                <tr>
+                                    <td><code>SAVE</code></td>
+                                    <td>Write a Context Register's Golden Token back into a C-List slot</td>
+                                </tr>
+                                <tr>
+                                    <td><code>LOADX</code></td>
+                                    <td>Load Exclusive — atomic capability load that sets an exclusive monitor for lock-free synchronisation</td>
+                                </tr>
+                                <tr>
+                                    <td><code>SAVEX</code></td>
+                                    <td>Store Exclusive — conditionally store a Golden Token only if the exclusive monitor is still valid</td>
+                                </tr>
+                                <tr>
+                                    <td><code>LDM</code></td>
+                                    <td>Load Multiple — fill several Context Registers from consecutive C-List entries in one instruction</td>
+                                </tr>
+                                <tr>
+                                    <td><code>STM</code></td>
+                                    <td>Store Multiple — write several Context Registers to consecutive C-List entries in one instruction</td>
+                                </tr>
+                                <tr>
+                                    <td><code>CALL</code></td>
+                                    <td>Enter an abstraction — push return state, switch capability context, and transfer control to the entry point</td>
+                                </tr>
+                                <tr>
+                                    <td><code>RETURN</code></td>
+                                    <td>Leave an abstraction — pop return state and restore the caller's capability context</td>
+                                </tr>
+                                <tr>
+                                    <td><code>CHANGE</code></td>
+                                    <td>Create a new thread Golden Token and load it into the Thread register (CR8)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>SWITCH</code></td>
+                                    <td>Load a capability into any system register (Thread, Interrupt, Fault, or Namespace)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
                     <h2>Lambda Calculus Examples</h2>
                     <div class="example-code">
                         <h3>Y-Combinator (Fixed-Point Recursion)</h3>

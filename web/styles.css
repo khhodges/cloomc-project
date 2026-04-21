@@ -6880,6 +6880,68 @@ body.tooltip-hidden [data-tooltip]:hover::after {
     font-style: italic;
 }
 
+.church-instructions-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.church-instructions-section h2 {
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-size: 1.3rem;
+}
+
+.church-instructions-section p {
+    color: var(--text-primary);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.church-instr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.church-instr-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-input);
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.church-instr-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    vertical-align: top;
+}
+
+.church-instr-table tr:last-child td {
+    border-bottom: none;
+}
+
+.church-instr-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.church-instr-table td:first-child {
+    white-space: nowrap;
+    width: 7rem;
+}
+
+.church-instr-table code {
+    font-family: 'Consolas', monospace;
+    color: var(--warning);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
 .text-warning {
     color: var(--warning);
     font-weight: 600;
