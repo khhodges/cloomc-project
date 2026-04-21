@@ -46,6 +46,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SIMULATOR_DIR = os.path.join(BASE_DIR, "simulator")
 DOCS_DIR = os.path.join(BASE_DIR, "docs")
 WEB_DIR = os.path.join(BASE_DIR, "web")
+RISCV_CAP_DIR = os.path.join(BASE_DIR, "riscv_cap")
 
 BOOT_ID = str(uuid.uuid4())
 
@@ -600,6 +601,25 @@ def simulator_index():
 def simulator_static(path):
     filepath = os.path.join(SIMULATOR_DIR, path)
     return _serve_file(filepath, os.path.basename(path))
+
+_RV32_ALLOWED_EXTENSIONS = {
+    ".html", ".js", ".css", ".json", ".png", ".jpg", ".jpeg",
+    ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot",
+}
+
+@app.route("/rv32/")
+def rv32_index():
+    index_path = os.path.join(RISCV_CAP_DIR, "index.html")
+    if os.path.isfile(index_path):
+        return send_from_directory(RISCV_CAP_DIR, "index.html")
+    return make_response("RV32-Cap simulator not found", 404)
+
+@app.route("/rv32/<path:path>")
+def rv32_static(path):
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in _RV32_ALLOWED_EXTENSIONS:
+        return make_response("Not found", 404)
+    return send_from_directory(RISCV_CAP_DIR, path)
 
 @app.route("/ctmm/")
 def ctmm_index():
