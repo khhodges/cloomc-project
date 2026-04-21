@@ -161,63 +161,6 @@
                     
 
                     <h2>Lambda Calculus Examples</h2>
-                    <div class="example-code">
-                        <h3>Y-Combinator (Fixed-Point Recursion)</h3>
-                        <pre>; Y-Combinator enables recursion
-; Y = λf.(λx.f(x x))(λx.f(x x))
-LOAD CR0, CR6, #8       ; Load Lambda abstraction
-CALL CR0                ; Enter Lambda abstraction
-MOV DR0, #0             ; Y_COMBINATOR function
-CALL CR0                ; Execute Y-Combinator
-RETURN                  ; Result in DR1</pre>
-                    </div>
-                    
-                    <div class="example-code">
-                        <h3>Church Numerals</h3>
-                        <pre>; Church encoding: numbers as functions
-; SUCC n = λf.λx.f(n f x)
-LOAD CR0, CR6, #8       ; Load Lambda abstraction
-CALL CR0                ; Enter Lambda abstraction
-MOV DR0, #1             ; CHURCH_SUCC function
-MOV DR1, #5             ; Apply to number 5
-CALL CR0                ; Returns Church 6
-RETURN</pre>
-                    </div>
-                    
-                    <div class="example-code">
-                        <h3>Church Booleans</h3>
-                        <pre>; TRUE = λx.λy.x (select first)
-; FALSE = λx.λy.y (select second)
-LOAD CR0, CR6, #8       ; Load Lambda abstraction
-CALL CR0                ; Enter Lambda abstraction
-MOV DR0, #7             ; TRUE function
-MOV DR1, #42            ; First value
-MOV DR2, #0             ; Second value
-CALL CR0                ; Returns 42 (first)
-RETURN</pre>
-                    </div>
-                    
-                    <div class="example-code">
-                        <h3>HP-35 Calculator (RPN via Lambda Calculus)</h3>
-                        <pre>; HP-35 scientific calculator rebuilt as CTMM abstraction
-; All arithmetic via Church numerals — no hardware ALU
-; Stack via nested pairs: stack = PAIR(top, rest)
-LOAD CR0, CR6, #8       ; Load Lambda abstraction
-LOAD CR1, CR6, #10      ; Load Stack abstraction
-LOAD CR2, CR6, #11      ; Load HP35 abstraction
-CALL CR2                ; Enter HP35
-MOV DR0, #0             ; DIGIT method
-MOV DR1, #3             ; Press digit 3
-CALL CR2                ; → PUSH Church(3) onto RPN stack
-MOV DR0, #3             ; ENTER — lift stack
-CALL CR2                ; stack = PAIR(3, PAIR(3, empty))
-MOV DR0, #0             ; DIGIT method
-MOV DR1, #4             ; Press digit 4
-CALL CR2                ; → PUSH Church(4) onto stack
-MOV DR0, #4             ; ADD — pops X,Y, pushes X+Y
-CALL CR2                ; CHURCH_ADD(3,4) = 7
-RETURN                  ; Result: 7 on display</pre>
-                    </div>
                 </div>
             </div>
             
