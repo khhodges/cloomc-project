@@ -28,26 +28,6 @@
                 <div class="header-right">
                     <button class="btn btn-tunnel-notify" id="btn-tunnel-notify" title="Tunnel Messages" style="display:none" onclick="showTunnelNotification()">&#x1F4E5; <span class="tunnel-badge" id="tunnel-badge">0</span></button>
                     <button id="tutorialBackToLanding" class="btn btn-back-to-landing" onclick="returnToLandingFromTutorial()" style="display: none;">← Back to Landing</button>
-                    <div id="authSection" class="auth-section">
-                        <div id="authLoading" class="auth-loading">Loading...</div>
-                        <div id="authLoggedOut" class="auth-logged-out" style="display: none;">
-                            <a href="/auth/replit_auth" class="btn btn-login tooltip-bottom" data-tooltip="Sign in to save your work and sync across devices">Sign In</a>
-                        </div>
-                        <div id="authLoggedIn" class="auth-logged-in" style="display: none;">
-                            <img id="userAvatar" src="" alt="User" class="user-avatar">
-                            <span id="userName" class="user-name"></span>
-                            <div class="user-menu-container">
-                                <button class="btn btn-menu" onclick="toggleUserMenu()" title="User menu">&#8942;</button>
-                                <div id="userMenu" class="user-dropdown-menu">
-                                    <button onclick="saveStateToServer(); toggleUserMenu();">Save State</button>
-                                    <button onclick="loadStateFromServer(); toggleUserMenu();">Load State</button>
-                                    <button id="editLandingBtn" style="display: none;" onclick="showLandingPageEditor(); toggleUserMenu();">Edit Landing Page</button>
-                                    <hr>
-                                    <a href="/auth/logout">Sign Out</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </nav>
         </header>
@@ -177,19 +157,14 @@
             </div>
             
             <div class="landing-cta">
-                <p>Sign in to access the full CTMM Simulator with interactive debugging, namespace exploration, and assembly programming.</p>
                 <div class="landing-cta-buttons">
                     <button onclick="showTutorialFromLanding()" class="btn btn-tutorial-landing">
                         View Tutorial
                     </button>
-                    <a href="/auth/replit_auth" class="btn btn-register">
-                        Sign In to Get Started
-                    </a>
                     <a href="https://github.com/khhodges/cloomc-project/blob/main/hardware/verilog/README.md" target="_blank" rel="noopener noreferrer" class="btn btn-github">
                         GitHub
                     </a>
                 </div>
-                <p class="landing-note">Join the CTMM Open Source community and explore capability-based security.</p>
             </div>
         </div>
     </section>

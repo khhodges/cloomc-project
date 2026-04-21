@@ -110,10 +110,6 @@ function getCodeStatusLabel(metadata) {
 }
 
 function switchView(viewId) {
-    if (!currentUser && viewId !== 'tutorial') {
-        window.location.href = '/auth/replit_auth';
-        return;
-    }
     
     currentView = viewId;
     
