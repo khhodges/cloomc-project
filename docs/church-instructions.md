@@ -158,9 +158,8 @@ All Church instructions that access the namespace route through the **mLoad mast
 | Aspect | Detail |
 |--------|--------|
 | **Permission Check** | E (Enter) on Thread Abstraction GT at CRd[idx] |
-| **Per-Thread Saved/Restored** | DR0–DR15, CR0–CR11, STO, PC, FLAGS |
-| **System-Wide Unchanged** | CR13 (IRQ handler), CR14 (transient code — re-derived by cLoad), CR15 (namespace root) |
-| **Thread Identity Saved/Restored** | CR12 (Thread Identity — lump base + word count) |
+| **Per-Thread Saved/Restored** | DR0–DR15, CR0–CR11, CR14 (code register), CR15 (namespace root), STO, PC, FLAGS |
+| **System-Wide Unchanged** | CR12 (data fault handler), CR13 (IRQ handler) |
 | **G-bit Reset** | Yes — on accessed namespace entries |
 
 ---

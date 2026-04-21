@@ -109,7 +109,7 @@ This document maps each instruction across all implementation layers for verific
 | Register | Purpose           | Instruction Addressable | Notes |
 |:---------|:------------------|:------------------------|:------|
 | CR0-CR11 | General-purpose   | Yes (4-bit encoding)    | Programmer registers; CR6=C-List, CR8-CR11=free GP |
-| CR12     | Thread/Fault      | Privileged zone         | Thread identity + per-thread fault handler |
+| CR12     | Data Fault Handler | Privileged zone        | System-wide data fault handler; unchanged by CHANGE |
 | CR13     | Interrupt         | Privileged zone         | System-wide interrupt handler; unchanged by CHANGE |
 | CR14     | Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)       | Privileged zone         | Per-thread code GT; re-derived by CALL via mLoad |
 | CR15     | Namespace root    | Privileged zone         | Hardwired at boot; defines system security boundary |
@@ -119,12 +119,12 @@ This document maps each instruction across all implementation layers for verific
 The five-phase boot sequence initializes the privileged zone (CR12–CR15):
 
 1. **CR15 (Namespace)**: Loaded at B:00 from hardwired boot GT — M permission only; points to the NS table
-2. **CR12 (Thread Identity)**: Loaded at B:02 via mLoad from NS Slot 1 — zero perms, Inform-type; encodes lump base and bounds
+2. **CR12 (Data Fault Handler)**: Loaded at B:02 via mLoad from NS Slot 1 — zero perms, Inform-type; encodes lump base and bounds
 3. **CR14 (Code/[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html))**: Derived at B:04 from NS Slot 2 metadata — X permission; instruction fetch source
 4. **CR13 (Interrupt)**: Loaded at B:03 or by SWITCH from a PassKey capability — system-wide, unchanged by CHANGE
 
 After boot:
-- CR12–CR15 are the privileged zone; only accessible via CALL (re-derives CR6/CR14), CHANGE (saves/restores CR12/CR14/CR15), or SWITCH (CR13/CR15 only, with PassKey)
+- CR12–CR15 are the privileged zone; only accessible via CALL (re-derives CR6/CR14), CHANGE (saves/restores CR14/CR15; CR12/CR13 unchanged), or SWITCH (CR13/CR15 only, with PassKey)
 - CR0–CR11 are the programmer-accessible GP registers (4-bit instruction field)
 - SWITCH uses a 3-bit Tgt field (CR8–CR15 address range); only Tgt=101₂ (CR13) and Tgt=111₂ (CR15) are valid
 
@@ -132,7 +132,7 @@ After boot:
 
 - [ ] JS: Check CR index validation in LOAD/SAVE — normal instructions must not address CR12-CR15
 - [ ] JS: Verify boot sequence initializes CR15, CR12, CR14 in correct phase order
-- [ ] Verilog: Check CRd/CRn field width (3 bits) in decoder
+- [ ] Verilog: Check CRd/CRn field width (4 bits, [22:19]) in decoder
 - [ ] Tutorial: Verify explanation of CR8-15 protection
 
 ---
@@ -166,32 +166,32 @@ After boot:
 
 ### SWITCH Format (32 bits)
 ```
-[31:27] = 00110 (Opcode = 6)
+[31:27] = 00101 (Opcode = 5)
 [26:23] = Cond  (4-bit condition code)
-[22]    = I     (0=Register source, 1=C-List lookup)
-[21:19] = CRn   (Source register CR0-CR7, or C-List reference for I=1)
-[18:16] = Tgt   (Target system register: 0=CR8, 1=CR9, ... 7=CR15)
-[15:6]  = Idx   (10-bit C-List index when I=1, ignored when I=0)
-[5:0]   = spare
+[22:19] = 0     (unused — crDst field; must be zero)
+[18:15] = CRn   (4-bit source register CR0-CR11 — holds the PassKey GT)
+[14:3]  = spare
+[2:0]   = Tgt   (3-bit target selector within privileged zone)
 ```
 
 ### CHANGE Format (32 bits)
 ```
-[31:27] = 00101 (Opcode = 5)
+[31:27] = 00100 (Opcode = 4)
 [26:23] = Cond  (4-bit condition code)
-[22]    = I     (0=Register source, 1=C-List lookup)
-[21:19] = CRn   (Source register CR0-CR7, or C-List reference for I=1)
-[18:16] = spare (CHANGE always targets CR8)
-[15:6]  = Idx   (10-bit C-List index when I=1, ignored when I=0)
-[5:0]   = spare
+[22:21] = 11    (fixed — marks the privileged-register bank)
+[20:19] = Tgt   (2-bit privileged target: 0=CR12, 1=CR13, 2=CR14, 3=CR15)
+[18:15] = CRs   (4-bit source capability register)
+[14:0]  = Idx   (15-bit NS slot index)
 ```
 
-### I-bit Variants
+### CHANGE Variants
 
-| I | Source | Example |
-|:--|:-------|:--------|
-| 0 | Register | `SWITCH CR2, CR15` - Install PassKey in CR2 into CR15 (Namespace) |
-| 1 | C-List | `SWITCH CR6[5], CR15` - Lookup entry 5 in CR6's C-List, install to CR15 |
+| CRd [22:19] | Tgt [20:19] | Destination | Semantics |
+|:------------|:------------|:------------|:----------|
+| 1100 (12) | 00 | CR12 | Install data-fault-handler GT (system-wide) |
+| 1101 (13) | 01 | CR13 | Install interrupt-handler GT (system-wide)  |
+| 1110 (14) | 10 | CR14 | Context switch (per-thread save/restore)    |
+| 1111 (15) | 11 | CR15 | Context switch (per-thread save/restore)    |
 
 ### Target Field Mapping
 
@@ -203,7 +203,7 @@ Only **CR13** (Tgt=101₂) and **CR15** (Tgt=111₂) are valid SWITCH targets. A
 | 001 | CR9 | FAULT — not a valid SWITCH target | GP register |
 | 010 | CR10 | FAULT — not a valid SWITCH target | GP register |
 | 011 | CR11 | FAULT — not a valid SWITCH target | GP register |
-| 100 | CR12 | FAULT — reserved | Thread Identity (managed by CHANGE only) |
+| 100 | CR12 | FAULT — reserved | Data fault handler (system-wide; not writable via SWITCH) |
 | 101 | CR13 | **Valid** — IRQ Thread | Required CRs.word1_location: `0xFFFFFFFE` |
 | 110 | CR14 | FAULT — reserved | Transient (re-derived by cLoad on each CALL) |
 | 111 | CR15 | **Valid** — Namespace | Required CRs.word1_location: `0xFFFFFFFF` |
@@ -218,13 +218,13 @@ SWITCH replaces the old M-permission check with two mandatory PassKey checks on 
    - CR15: `0xFFFFFFFF` (all-1s)
    A mismatch (e.g. presenting a CR13 PassKey to the CR15 target) faults with INVALID_OP.
 
-Source must be CR0–CR7 (3-bit encoding prevents direct access to CR8–CR15).
+Source must be CR0–CR11 (4-bit field; CR12–CR15 are privileged and require a PassKey).
 
 ---
 
 ## Notes
 
 - Opcode format: 5-bit, with Church instructions 00001-01011, Turing 10000-11111
-- CR fields: 3-bit only (0-7), physically preventing CR8-15 access
+- CR fields: 4-bit (0-11 programmer-accessible; 12-15 privileged — hardware faults on normal access)
 - LDI uses Turing format but is documented with Church for immediate loading
 - TPERM_PRESET in JS is separate case from TPERM (line 708 vs 385)

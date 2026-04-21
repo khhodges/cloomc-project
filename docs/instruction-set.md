@@ -85,7 +85,7 @@ CRd is implicit and always CR6. CALL pushes **2 words** onto the call stack:
 - **Word 0** — the caller's E-GT (used by RETURN to revalidate and re-derive CR6/CR14)
 - **Word 1** — NIA (return offset) | packed machine indicators
 
-No DRs and no other CRs are pushed. Callee inherits DR0–DR15, CR0–CR5, CR7–CR13, CR15. Sets CR6 = callee c-list (L-only), CR14 = callee code (X-only, privileged), PC = 0.
+No DRs and no other CRs are pushed. Callee inherits DR0–DR15, CR0–CR5, CR7–CR11, CR15 (caller context); CR12/CR13 are system-wide and unchanged. Sets CR6 = callee c-list (L-only), CR14 = callee code (X-only, privileged), PC = 0.
 
 ### RETURN (opcode 3)
 
@@ -113,18 +113,21 @@ If the call stack is empty, RETURN triggers a reboot (warm restart) — not a ha
 ### CHANGE (opcode 4)
 
 ```
-CHANGE CRd, CRs
+CHANGE CRd, CRs, idx
 ```
 
-Copies a Context Register from CRs to CRd. Used to move Golden Tokens between register slots.
+Privileged register write. Reads the GT at index `idx` in CRs's c-list and installs it into privileged register CRd (CR12–CR15 only; PRIV_REG fault if CRd < 12).
+
+- **CR12/CR13** (system-wide): direct write; no context switch. CR12 = data fault handler; CR13 = interrupt handler.
+- **CR14/CR15** (per-thread): full context switch — saves CR0–CR11, CR14, CR15, DRs, and PC into the current thread lump; loads the target thread's saved state. First activation starts at PC=0.
 
 ### SWITCH (opcode 5)
 
 ```
-SWITCH CRd, CRs
+SWITCH CRn, CRs
 ```
 
-Atomically swaps the contents of CRd and CRs. Used for thread context switching (swap CR8 for new thread identity).
+PassKey-gated privileged register write. Validates CRs as a system-capability Abstract GT with the hardware sentinel address for the target slot, then writes it into privileged CR12–CR15. Valid targets: CR13 (Tgt=101₂ = interrupt handler) and CR15 (Tgt=111₂ = namespace root). All other Tgt values produce INVALID_OP.
 
 ### TPERM (opcode 6)
 

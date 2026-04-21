@@ -292,7 +292,7 @@ The boot sequence follows a deterministic flow:
 
 1. **FAULT_RST**: All CRs cleared to NULL, all DRs zeroed. M-Elevation ON.
 2. **LOAD_NS**: CR15 initialized with GT to Namespace Root (Slot 0).
-3. **INIT_THRD**: CR12 initialized with Thread Identity (Slot 1).
+3. **INIT_THRD**: CR12 initialized with Data Fault Handler token (Slot 1).
 4. **INIT_CLIST**: CR6 loaded with Boot C-List (Slot 2).
 5. **LOAD_NUC**: CR14 loaded with Boot Code ([CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) from Slot 3, privileged). PC = 0.
 6. **COMPLETE**: M-Elevation OFF. Machine begins executing boot code.

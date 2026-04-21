@@ -212,7 +212,7 @@ Hardware-initialized entries, always present after reset.
 | Index | Name | Perms | Description |
 |-------|------|-------|-------------|
 | 0 | Boot.NS | — | Namespace root. Location = NS_TABLE_BASE (0xFD00). The root of the capability tree. |
-| 1 | Boot.Thread | — | Initial thread identity, loaded into CR8. Identifies the boot thread. |
+| 1 | Boot.Thread | — | Data fault handler for the boot thread, loaded into CR12 (privileged, system-wide). Zero permissions — hardware reads it internally. |
 | 2 | Boot.CList | E | Boot abstraction c-list, loaded into CR6. Contains the boot code and initial capabilities. |
 | 3 | Boot.[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) | X | Boot code entry point, loaded into CR14 (privileged). First instruction executes from here. |
 
@@ -274,7 +274,7 @@ Memory allocation for DATA objects. Allocate rounds up to the next power-of-2 (m
 
 **Methods**: Yield, Spawn, Wait, Stop
 
-Thread lifecycle management. Yield surrenders the current time slice. Spawn creates a new thread (new CR8 identity). Wait blocks until a condition is met. Stop terminates a thread.
+Thread lifecycle management. Yield surrenders the current time slice. Spawn creates a new thread (allocating a fresh thread lump). Wait blocks until a condition is met. Stop terminates a thread.
 
 **Rationale**: Thread scheduling is GT-gated. A program cannot spawn threads without holding the Scheduler capability.
 

@@ -14,7 +14,7 @@ identical.
   and compiles to the 20-instruction Church Machine instruction set.
 - **See every capability register** — click the CRs button to inspect
   all 16 capability registers in real time. Watch CR14 validate
-  instruction fetch, CR12 check thread lump access, CR5 guard the
+  instruction fetch, CR12 bound the thread lump stack, CR5 guard the
   heap.
 - **Trigger real capability faults** — try to read memory you have no
   capability for. The simulator will fault exactly the way the
@@ -442,7 +442,7 @@ runtime.** The IDE enforces them at compile time: CLOOMC validates
 capability requirements, checks bounds, generates minimum-privilege
 grants, and produces correct UART frames with CRC checksums. The
 hardware enforces them at execution time: every instruction fetch is
-checked by CR14, every thread access by CR12, every heap access by
+checked by CR14, every thread stack bounded by CR12, every heap access by
 CR5. There is no gap between what the IDE promises and what the
 machine delivers.
 
@@ -1067,7 +1067,7 @@ Model:
 
 2. **Double Checking** — every READ and every WRITE must be validated
    by a referenced capability context register. CR14 checks instruction
-   fetch. CR12 checks thread lump access. CR5 checks the heap. No
+   fetch. CR12 bounds the thread lump stack. CR5 checks the heap. No
    single point of trust — the machine cross-checks at every boundary.
 
 3. **Distribution not Centralisation** — there is no kernel, no central

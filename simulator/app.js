@@ -1059,7 +1059,7 @@ function updateCRDisplay() {
     html += '</tr></thead><tbody>';
     for (let i = 0; i < 16; i++) {
         if (i === 12) {
-            html += `<tr class="cr-separator"><td colspan="${COLS + 1}">&#9472;&#9472; Not in GT zone &#9472;&#9472; CR12 Thread Identity (Priv) \u00b7 CR13 IRQ (System) \u00b7 CR14\u201315 Privileged &#9472;&#9472;</td></tr>`;
+            html += `<tr class="cr-separator"><td colspan="${COLS + 1}">&#9472;&#9472; Not in GT zone &#9472;&#9472; CR12 Data Fault Handler (Priv) \u00b7 CR13 Interrupt Handler (System) \u00b7 CR14\u201315 Privileged &#9472;&#9472;</td></tr>`;
         }
         const cr = sim.getFormattedCR(i);
         const petCR = _petNameCRMap[i];
@@ -1096,13 +1096,13 @@ let selectedCR = null;
 // Cycles through three dashboard views:
 //   0 → CR0-CR15  (register table)
 //   1 → CR14 CLOOMC  (detail)
-//   2 → CR12 Thread  (detail)
+//   2 → CR12 Data fault handler  (detail)
 let _crCycleState = 0;
 
 const _crCycleViews = [
     { label: 'CRs',  title: 'CR0–CR15 — 128-bit Context Registers (4 × 32-bit words)' },
     { label: 'CR14', title: 'CR14 — CLOOMC' },
-    { label: 'CR12', title: 'CR12 — Thread' },
+    { label: 'CR12', title: 'CR12 — Data fault handler (system-wide, privileged)' },
 ];
 
 function cycleCRView() {
@@ -3281,7 +3281,7 @@ function updateCRDetail() {
             const _bootPreamble = [
                 { addr: 'B:00', desc: 'FAULT_RST',   decomp: 'CR0\u2013CR15 \u2190 NULL \u00b7 DR0\u2013DR15 \u2190 0' },
                 { addr: 'B:01', desc: 'LOAD_NS',     decomp: 'CR15 \u2190 NS[0] Namespace (M=1, base=0x0000, perms=none)' },
-                { addr: 'B:02', desc: 'INIT_THRD',   decomp: 'CR12 \u2190 NS[1] Thread Identity (M=1, Inform, perms=none)' },
+                { addr: 'B:02', desc: 'INIT_THRD',   decomp: 'CR12 \u2190 NS[1] data fault handler (M=1, Inform, perms=none)' },
                 { addr: 'B:02\u00BD', desc: 'CALL_HOME',  decomp: 'Tunnel.Register \u2192 23-byte packet [0xCE11, board, FW, HMAC(4), UID(8), reason, fault, NIA(4)] \u00b7 await ACK' },
                 { addr: 'B:03', desc: 'INIT_ABSTR',  decomp: 'CR6 \u2190 NS[3] Boot Abstraction (M=1, E-type, transient)' },
                 { addr: 'B:04', desc: 'LOAD_NUC',    decomp: 'CR14(M=1, R+X) + CR6(M=1, L) \u2190 header \u00b7 push sentinel \u00b7 PC\u21900' },
@@ -4912,11 +4912,11 @@ const BOOT_SEQ_CODE = {
 
     // ── Slot 1: Boot.Thread ──────────────────────────────────────────────────
     // Covers boot phase B:02 (INIT_THRD).
-    // CR12 is the "thread identity" register.  Its NS entry encodes the lump
+    // CR12 is the data fault handler register.  Its NS entry encodes the lump
     // base address and total lump size; from these the hardware derives sp_max
     // (= lumpSize − caps − 1) and the heap floor.
     1: [
-        '; Boot.Thread — Initial Thread Identity (Slot 1)',
+        '; Boot.Thread — Data Fault Handler capability (Slot 1)',
         '; Loaded into CR12 during B:02.  Zero permissions — CR12 is read only',
         '; by the hardware internally; programs do not issue mLoad/mSave through it.',
         '',
@@ -4927,11 +4927,11 @@ const BOOT_SEQ_CODE = {
         '      GT12  ← createGT(Slot=1, perms=[none], type=Inform)',
         '                                     ; zero-perm Inform GT for Slot 1 (thread lump)',
         '      entry ← mLoad(GT12, perm=none) ; boot-mode — bypasses perm check',
-        '      CR12  ← { word0=GT12, M=1,     ; thread identity token (M=1: boot-stamped)',
+        '      CR12  ← { word0=GT12, M=1,     ; data fault handler token (M=1: boot-stamped)',
         '               word1=entry.base,     ; physical base address of thread lump',
         '               word2=entry.word1,    ; limit word — encodes total lump size',
         '               word3=entry.seals }   ; version + seal field',
-        '      ; CR12 = Thread identity — Priv zone (CR12–CR15), zero perms',
+        '      ; CR12 = Data fault handler — Priv zone (CR12–CR15), zero perms',
         '      ; Hardware derives sp_max = lumpSize − caps(12) − 1 = 243 from this',
     ].join('\n'),
 
@@ -7873,13 +7873,13 @@ function getMethodPurposes(abs) {
         'Email': { 'Compose': 'Email.Compose(recipient_GT, body_GT) — allocate + send to inbox', 'Read': 'Email.Read() — dequeue from inbox c-list', 'Reply': 'Email.Reply(original_GT, body_GT) — reply in thread chain', 'Contacts': 'Email.Contacts() — list parent-approved email contacts' },
         'GC': { 'Scan': 'GC.Scan() — walk CRs + c-lists, set G-bit on live NS entries', 'Identify': 'GC.Identify() — find entries where G-bit != polarity', 'Clear': 'GC.Clear() — zero word0+word1 on garbage entries', 'Flip': 'GC.Flip() — toggle polarity for bidirectional cycle' },
         'Thread': {
-            'switchTo': 'Thread.switchTo(thread_GT) — issues CHANGE targeting thread_GT; saves the calling thread\u2019s full context (DR0\u2013DR15, PC, FLAGS, STO, CR12, CR14, CR15) into its lump, then restores the target thread\u2019s saved context and resumes it at its saved PC. Requires E perm on thread_GT.',
+            'switchTo': 'Thread.switchTo(thread_GT) — issues CHANGE targeting thread_GT; saves the calling thread\u2019s full context (DR0\u2013DR15, PC, FLAGS, STO, CR0\u2013CR11, CR14, CR15) into its lump, then restores the target thread\u2019s saved context and resumes it at its saved PC. Requires E perm on thread_GT.',
             'Kill':     'Thread.Kill(thread_GT) — terminates the target thread: suspends it via CHANGE, releases its lump via Memory.Free, revokes its Thread GT via Mint.Revoke (incrementing gt_seq so all live copies of the GT become instantly invalid). Requires E perm on thread_GT.',
-            'Compile':  'Thread.Compile(f_GT) \u2014 creates a new Thread Abstraction whose initial start abstraction is f. Calls Memory.Allocate for a fresh lump (GT zone + LIFO stack + heap + DR file), calls Mint.Create(Inform, lumpSize, 0) to mint a zero-perm Thread Identity GT (CR12 of the new thread), stores f_GT into the new thread\u2019s c-list as CR0 (the return/first-call slot), and returns the new Thread GT to the caller. The new thread is ready to run as soon as switchTo is called on its GT.',
+            'Compile':  'Thread.Compile(f_GT) \u2014 creates a new Thread Abstraction whose initial start abstraction is f. Calls Memory.Allocate for a fresh lump (GT zone + LIFO stack + heap + DR file), calls Mint.Create(Inform, lumpSize, 0) to mint a zero-perm data fault handler GT (CR12 of the new thread), stores f_GT into the new thread\u2019s c-list as CR0 (the return/first-call slot), and returns the new Thread GT to the caller. The new thread is ready to run as soon as switchTo is called on its GT.',
         },
         'Boot.Thread': {
             'run': 'Boot.Thread.run \u2014 The initial thread\u2019s continuous existence as the hardware execution context. ' +
-                   'CR12 holds the thread identity GT as an \u2018Inform\u2019: perms=[none], meaning no E-bit, so no code can invoke it via CALL. ' +
+                   'CR12 holds the data fault handler GT as an \u2018Inform\u2019: perms=[none], meaning no E-bit, so no code can invoke it via CALL. ' +
                    'The final comment in B:02 \u2014 \u201cInforms-only: cannot be used for direct CALL\u201d \u2014 means exactly this: ' +
                    'the thread does not run by being invoked. It runs because it IS the processor\u2019s current execution context \u2014 ' +
                    'the STEP controller simply advances PC through the thread\u2019s code lump each cycle. ' +
@@ -9175,7 +9175,7 @@ CALL   CR1                  ; Tunnel.Fetch:
 ; Church instruction — apply an abstraction and receive a result.
 ;
 ; CALL(CONNECT(me, mymother)):
-;   1. me       = CR8 (Inform GT — thread identity)
+;   1. me       = CR8 (Inform GT — the caller's thread GT)
 ;   2. mymother = CR2 (Outform GT — remote service, F-bit set)
 ;   3. Tunnel   = CR1 (E-GT — the tunnel itself is the channel)
 ;
@@ -9673,16 +9673,16 @@ B:02  INIT_THRD
       entry ← mLoad(GT12)       ; load NS entry for Slot 1
       CR12 ← { word0=GT12, word1=entry.base,
                word2=entry.word1_limit, word3=entry.seals }
-      ; CR12 = Thread identity — Priv zone, zero perms
+      ; CR12 = Data fault handler — Priv zone, zero perms
       ; Informs-only: cannot be used for direct CALL  ◄── see below
 
 ; ── What does the last line mean? ─────────────────
 ;
 ; CR12 holds an Inform GT: perms=[none] means no E-bit.
 ; In the Church Machine, CALL requires E perm on the GT
-; in CR6. CR12 carries the thread's *identity*, not its
-; *entry point*. It is an Inform — it answers "who am I?"
-; not "how do you call me?".
+; in CR6. CR12 holds the data fault handler capability,
+; not an *entry point*. It is an Inform — zero perms —
+; and also encodes the thread lump bounds for stack checks.
 ;
 ; The thread does NOT run by being invoked.
 ; It runs because it IS the hardware execution context:
@@ -9696,8 +9696,8 @@ B:02  INIT_THRD
 ;
 ; An Inform is a capability with zero permissions.
 ; It can be passed, stored, and compared, but never used
-; to invoke computation. The thread identity tells the
-; system "thread 0 exists here" — nothing more.`,
+; to invoke computation. The data fault handler tells the
+; system where faults route — and encodes lump bounds.`,
         },
     };
     const base = Object.assign({}, examples[abs.name] || {});
@@ -10002,7 +10002,7 @@ function _buildNIARows(prevAddr, currAddr) {
 const _BOOT_STEPS = [
     { addrStr: 'B:00', disasm: 'FAULT_RST',  label: 'Clear all CRs / DRs',    offset: null, prog: 'boot' },
     { addrStr: 'B:01', disasm: 'LOAD_NS',    label: 'CR15 \u2190 NS[0] Namespace (base=0x0000, full memory)',  offset: null, prog: 'boot' },
-    { addrStr: 'B:02', disasm: 'INIT_THRD',  label: 'CR12 \u2190 NS[1] Thread Identity', offset: null, prog: 'boot' },
+    { addrStr: 'B:02', disasm: 'INIT_THRD',  label: 'CR12 \u2190 NS[1] data fault handler', offset: null, prog: 'boot' },
     { addrStr: 'B:03', disasm: 'INIT_ABSTR \u2b64 LOAD_NUC \u2b64 COMPLETE', label: 'CR6(E) \u2190 NS[2]; CR14+CR6 \u2190 lump header; M-Elev OFF; boot done', offset: null, prog: 'boot' },
 ];
 
@@ -17019,45 +17019,45 @@ const INSTRUCTION_DATA = [
     },
     {
         opcode: 4, mnemonic: 'CHANGE', domain: 'church',
-        syntax: 'CHANGE CRd, idx',
-        brief: 'Suspend current thread \u2014 activate the Thread Abstraction at c-list offset idx in CRd',
-        encoding: 'opcode[5]=00100 | cond[4] | CRd[4] | 0[4] | idx[15]',
+        syntax: 'CHANGE CRd, CRs[idx]',
+        brief: 'Privileged register write \u2014 install a GT from CRs[idx] into privileged CR12\u2013CR15; CR14/CR15 also trigger a full per-thread context switch',
+        encoding: 'opcode[5]=00100 | cond[4] | 1[1] | 1[1] | Tgt[2] | CRs[4] | idx[15]',
         fields: [
-            { name: 'CRd', desc: 'C-list register (typically CR6) \u2014 provides the capability list to index into' },
-            { name: 'idx', desc: 'C-list offset (0\u201332767) \u2014 selects the slot in CRd\u2019s c-list that holds the Thread Abstraction GT' },
+            { name: 'Tgt', desc: '2-bit privileged target: 0=CR12 (data fault handler, system-wide), 1=CR13 (interrupt, system-wide), 2=CR14 (code register, per-thread context switch), 3=CR15 (namespace root, per-thread context switch). Bits 22:21 are fixed 11 — indicating the privileged register bank. Bits 20:19 = Tgt.' },
+            { name: 'CRs', desc: 'Source capability register providing the GT to install. At boot, CR12 itself may be used as source to initialise the data-fault-handler slot from the boot namespace.' },
+            { name: 'idx', desc: 'NS slot index within CRs \u2014 identifies the GT or Thread Abstraction to install' },
         ],
-        permission: 'Thread Abstraction GT at CRd[idx] must be valid (E permission)',
+        permission: 'Bits 22:21 must be 11 (Tgt field 0\u20133 = CR12\u2013CR15); hardware faults if CRd < 12',
         flags: 'None',
         details:
-            '  31    27│26   23│22   19│18   15│14                0\n'
-          + '  ┌──────┬──────┬──────┬──────┬───────────────────┐\n'
-          + '  │00100 │ cond │  CRd │  ─   │       idx         │\n'
-          + '  └──────┴──────┴──────┴──────┴───────────────────┘\n'
-          + '   5-bit   4-bit   4-bit  zero       15-bit\n\n'
-          + 'CRd = c-list register (typically CR6, the current c-list).\n'
-          + 'idx = offset within that c-list pointing to the Thread Abstraction GT.\n\n'
-          + 'Thread Abstraction — definition:\n'
-          + '  The physical memory region owned by this namespace for a single thread.\n'
-          + '  Layout (addresses increase downward from word 0):\n'
-          + '    Top:    CLOOMC initialisation code — provided by the IDE at slot creation\n'
-          + '    Bottom: Namespace table — pre-formatted by the IDE at slot creation\n'
-          + '  The IDE fills both regions when it mints the Thread Abstraction slot;\n'
-          + '  the running program sees only the live GT zone, stack, heap, and DRs.\n\n'
-          + 'Execution (atomic \u2014 no intermediate state is visible):\n'
-          + '  1. Index CRd at offset idx; verify the GT has E permission \u2014 FAULT on fail.\n'
-          + '  2. Suspend outgoing thread: save per-thread state into its thread lump.\n'
-          + '  3. Activate incoming thread: restore per-thread state from its thread lump.\n\n'
-          + 'Per-thread registers saved and restored:\n'
-          + '  CR0\u2013CR11  (programmer-accessible capability registers)\n'
-          + '  CR14      (code register \u2014 privileged, per-thread)\n'
-          + '  CR15      (namespace root \u2014 privileged, per-thread)\n'
-          + '  STO       (stack-top-offset hidden register \u2014 per-thread)\n'
-          + '  DR0\u2013DR15, PC, flags\n\n'
-          + 'System-wide registers unchanged during CHANGE:\n'
-          + '  CR12 (data fault handler) \u2014 shared across all threads\n'
-          + '  CR13 (interrupt handler) \u2014 shared across all threads\n\n'
-          + 'The suspended thread resumes exactly where it left off.',
-        example: 'CHANGE CR6, 3        ; Activate Thread Abstraction at c-list offset 3 in CR6',
+            '  31    27│26   23│22 21│20 19│18   15│14                0\n'
+          + '  ┌──────┬──────┬────┬────┬──────┬───────────────────┐\n'
+          + '  │00100 │ cond │ 11 │Tgt │  CRs │       idx         │\n'
+          + '  └──────┴──────┴────┴────┴──────┴───────────────────┘\n'
+          + '   5-bit   4-bit   2    2    4-bit       15-bit\n\n'
+          + 'Bits 22:21 = 11 (fixed — marks the privileged-register bank).\n'
+          + 'Tgt [bits 20:19] = 2-bit privileged-register selector:\n'
+          + '    0 = CR12  data fault handler  — system-wide\n'
+          + '    1 = CR13  interrupt handler   — system-wide\n'
+          + '    2 = CR14  code register       — per-thread context switch\n'
+          + '    3 = CR15  namespace root      — per-thread context switch\n'
+          + 'CRs = source capability providing the GT to install.\n'
+          + 'idx = NS slot index within CRs.\n\n'
+          + 'Execution semantics by destination:\n\n'
+          + '  CR12 / CR13 (system-wide): load the GT from CRs[idx] into CRd.\n'
+          + '    No per-thread save/restore occurs. CR12 and CR13 are unchanged\n'
+          + '    by any context switch.\n\n'
+          + '  CR14 / CR15 (per-thread context switch, atomic):\n'
+          + '    1. Save outgoing thread state into its context record:\n'
+          + '         CR0\u2013CR11, CR14, CR15, DR0\u2013DR15, STO, PC, flags.\n'
+          + '         CR12/CR13 are system-wide \u2014 NOT saved or restored.\n'
+          + '    2a. If the incoming thread has a saved context: restore it\n'
+          + '         (CR0\u2013CR11, CR14, CR15, DRs, STO, PC, flags) and resume.\n'
+          + '    2b. First activation: install GT from CRs[idx] into CRd\n'
+          + '         and begin execution from PC=0.\n'
+          + '  The suspended thread resumes exactly where it left off.',
+        example: 'CHANGE CR12, CR12, 1 ; B:02 INIT_THRD: load data fault handler from slot 1\n'
+               + 'CHANGE CR14, CR6, 3  ; Context switch: activate Thread Abstraction at CR6[3]',
     },
     {
         opcode: 5, mnemonic: 'SWITCH', domain: 'church',
@@ -17330,10 +17330,10 @@ const INSTRUCTION_DATA = [
         encoding: 'opcode[5]=01011 | cond[4] | DRd[4] | CRs[4] | offset[15]',
         fields: [
             { name: 'DRd', desc: 'Source data register (value to write)' },
-            { name: 'CRs', desc: 'GT pointing to data object (W permission; CR12–CR15 invalid in this field except CR14)' },
+            { name: 'CRs', desc: 'GT pointing to data object (W permission required; CR14 is not faulted at decode, but mLoad still enforces W at execution time)' },
             { name: 'imm', desc: 'Word offset within the data object' },
         ],
-        permission: 'W on CRs; CR12–CR15 invalid except CR14 (same exception as DREAD)',
+        permission: 'W on CRs (enforced at execute time by mLoad); CR14 decode-fence exception — not faulted at decode, but W is still required',
         flags: 'None',
         details:
             '  31    27│26   23│22   19│18   15│14                0\n'
@@ -17345,7 +17345,11 @@ const INSTRUCTION_DATA = [
           + 'CRs    = GT covering the data object (must have W permission).\n'
           + 'offset = word offset within the protected region.\n\n'
           + 'mLoad validates: version, seal, W permission, base+offset within limit.\n'
-          + 'Works on memory, device registers, or any GT-protected address range.',
+          + 'Works on memory, device registers, or any GT-protected address range.\n\n'
+          + 'CR14 decode exception: the privilege-register decode fence does not fault\n'
+          + 'on CR14 in the CRs field (same exception as DREAD). mLoad still requires\n'
+          + 'W permission at execute time — the carve-out is a decode-fence rule only.\n'
+          + 'Decode fault rule: fault = (CRs >= 12) AND NOT (CRs == 14).',
         example: 'DWRITE DR3, CR2, 4   ; Write DR3 to word 4 of data object CR2',
     },
     {
@@ -17783,11 +17787,12 @@ Memory layout (word 0 = base address, addresses increase downward):
   [tail] C-List       CR0–CR11 (12 words, fixed tail)
 
 STO register = current stack top (word index).
-CHANGE saves current DRs into [1–16], loads new thread's DRs, swaps CR6/CR14/CR15.`,
+CHANGE saves current DRs into [1–16] and per-thread CRs (CR0–CR11, CR14, CR15); CR12/CR13 are system-wide and unchanged.`,
         example: `; CLOOMC compiler places locals in DR registers
 ; On CALL, hardware saves DR0–DR15 in thread header
-; CHANGE instruction:
-CHANGE CR0, 1        ; switch to thread at CR0, use slot 1 for context`
+; CHANGE instruction — write privileged register from NS entry:
+CHANGE CR14, CR6, 3  ; context switch to Thread Abstraction at CR6[3]
+CHANGE CR12, CR12, 1 ; install data fault handler from NS slot 1`
     },
     {
         id: 'namespace',
@@ -17807,7 +17812,7 @@ User abstractions:
 Boot sequence (B:00–B:04, 5 steps):
   B:00  FAULT_RST — clear registers
   B:01  LOAD_NS   — load namespace GT into CR15
-  B:02  INIT_THRD — mLoad CR12 from NS Slot 1 (Thread identity)
+  B:02  INIT_THRD — mLoad CR12 from NS Slot 1 (data fault handler)
   B:03  INIT_ABSTR — mLoad CR6  from NS Slot 2 (Boot abstraction)
   B:04  LOAD_NUC + COMPLETE — CR14+CR6 from lump header; M-Elev OFF (indivisible)
 

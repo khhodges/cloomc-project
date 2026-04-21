@@ -37,10 +37,10 @@
 //
 // CAPABILITY REGISTERS (CRs)
 //   CR0–CR11   General-purpose GT holders
-//   CR12       Thread identity (privileged)
-//   CR13       IRQ / system reserved
-//   CR14       Privileged
-//   CR15       Current abstraction (set by CALL, cleared by RETURN)
+//   CR12       Data fault handler (privileged, system-wide — unchanged by CHANGE)
+//   CR13       Interrupt handler (privileged, system-wide — unchanged by CHANGE)
+//   CR14       Code register / CLOOMC (privileged, per-thread — set by CALL, saved/restored by CHANGE)
+//   CR15       Namespace root (privileged, per-thread — saved/restored by CHANGE)
 //   CR6        C-list root — points to the abstraction's capability list
 //
 // BOOT SEQUENCE  (_bootStep)
@@ -1039,8 +1039,8 @@ class ChurchSimulator {
 
             // ════════════════════════════════════════════════════════════════════
             // B:02  INIT_THRD
-            // Load the Thread descriptor (NS Slot 1) into CR12.
-            // CR12 is the "thread identity" register: its NS entry encodes the lump
+            // Load the data fault handler (NS Slot 1) into CR12.
+            // CR12 is the data fault handler register: its NS entry encodes the lump
             // base address and total size, from which the hardware derives the stack
             // ceiling (sp_max = lumpSize − caps − 1) and heap floor.
             // Zero permissions — the hardware reads CR12 internally; programs never
@@ -1053,8 +1053,8 @@ class ChurchSimulator {
                     this.fault('BOOT', `INIT_THRD mLoad(Thread) failed: ${check12.message}`);
                     return false;
                 }
-                this._writeCR(12, gt12, check12.entry);                            // CR12 ← thread identity token (encodes lump base + size)
-                this.output += `[BOOT] INIT_THRD — CR12 <- mLoad(Slot 1) Thread identity (zero perms, Inform)\n`;
+                this._writeCR(12, gt12, check12.entry);                            // CR12 ← data fault handler token (encodes lump base + size)
+                this.output += `[BOOT] INIT_THRD — CR12 <- mLoad(Slot 1) data fault handler (zero perms, Inform)\n`;
                 this.bootStep++;                  // advance state machine → B:03
                 this.ledBits = 0b000111;          // LED bit 2 ON = INIT_THRD complete
                 break;
@@ -1846,7 +1846,7 @@ class ChurchSimulator {
     _threadRead(absAddr, label) {
         const cr12 = this.cr[12];
         if (!cr12 || cr12.word0 === 0) {
-            this.fault('NULL_CAP', `${label}: CR12 (thread register) is NULL`);
+            this.fault('NULL_CAP', `${label}: CR12 (data fault handler) is NULL`);
             return { ok: false };
         }
         const check = this.mLoad(cr12.word0, null, 12, absAddr);
@@ -1860,7 +1860,7 @@ class ChurchSimulator {
     _threadWrite(absAddr, value, label) {
         const cr12 = this.cr[12];
         if (!cr12 || cr12.word0 === 0) {
-            this.fault('NULL_CAP', `${label}: CR12 (thread register) is NULL`);
+            this.fault('NULL_CAP', `${label}: CR12 (data fault handler) is NULL`);
             return false;
         }
         const check = this.mLoad(cr12.word0, null, 12, absAddr);
@@ -2043,6 +2043,42 @@ class ChurchSimulator {
             this.emit('step', result);
             this.emit('stateChange', this.getState());
             return result;
+        }
+
+        // ── Hardware privilege fence ──────────────────────────────────────────────
+        // CR12–CR15 are hardware-privileged; normal instructions may not name them.
+        // Rule: fault = (reg >= 12) AND NOT (opcode ∈ {DREAD,DWRITE} AND reg == 14)
+        //   CHANGE (opcode 4): fully exempt from the decode fence — crDst is checked
+        //     inside _execChange (must be 12–15). crSrc is also unrestricted: the boot
+        //     sequence uses `CHANGE CR12, CR12, 1` where crSrc==12 (the only instruction
+        //     that may reach into the privileged bank as a source is CHANGE itself).
+        //   DREAD (opcode 10) / DWRITE (opcode 11): may use CR14 as the source
+        //     capability field to access read-only data packed after HALT in the
+        //     code lump (`DREAD DR, CR14, offset` pattern).
+        if (d.opcode !== 4) {
+            // crDst encodes a CR index only for Church opcodes (0–9).
+            // Turing opcodes (10–19) put a DR index in the same bit field — do not fence them.
+            const isChurchOp = (d.opcode <= 9);
+            if (isChurchOp && d.crDst >= 12) {
+                this.fault('PRIV_REG', `${this.opName(d.opcode)}: CR${d.crDst} is privileged — only CHANGE may write CR12–CR15`);
+                return null;
+            }
+            // crSrc is a true CR index only for specific opcodes; exclude the rest:
+            //   0 (LOAD), 1 (SAVE)           — crSrc is the c-list CR ✓
+            //   2 (CALL)                      — crSrc is a METHOD SELECTOR (0–15), NOT a CR ✗
+            //   3 (RETURN)                    — crSrc is in the zero/mask field (always 0) ✓
+            //   5 (SWITCH)                    — crSrc is the register to swap ✓
+            //   6 (TPERM), 7 (LAMBDA)         — crSrc unused (stays 0, no false fault) ✓
+            //   8 (ELOADCALL), 9 (XLOADLAMBDA)— crSrc is the c-list CR ✓
+            //   10 (DREAD), 11 (DWRITE)       — crSrc is a CR (with CR14 exception)
+            //   12–19 (other Turing)          — crSrc is a DR index, not a CR ✗
+            const isDreadDwrite = (d.opcode === 10 || d.opcode === 11);
+            // Opcodes where crSrc genuinely carries a CR index (privilege fence applies):
+            const crSrcIsCapReg = [0, 1, 5, 8, 9, 10, 11].includes(d.opcode);
+            if (crSrcIsCapReg && d.crSrc >= 12 && !(isDreadDwrite && d.crSrc === 14)) {
+                this.fault('PRIV_REG', `${this.opName(d.opcode)}: CR${d.crSrc} is privileged — DREAD/DWRITE may use CR14 as source; all other instructions must use CR0–CR11`);
+                return null;
+            }
         }
 
         let result = null;
@@ -2367,7 +2403,7 @@ class ChurchSimulator {
 
         const base = nsEntry.word0_location;
         const label = this.nsLabels[check.index] || 'abstraction';
-        let cr7Desc = '';
+        let cr14Desc = '';
 
         const hdrCheck = this.mLoad(sourceGT, 'E', d.crDst, base);
         if (!hdrCheck.ok) {
@@ -2412,7 +2448,7 @@ class ChurchSimulator {
             };
             // CR6 lives in the CALL stack frame (written above); NOT in the caps zone
 
-            cr7Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(RX M=1,cw=${cw},lim=0..${cw-1}) CR6(E M=1,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
+            cr14Desc = `, hdr=0x${hdrWord.toString(16).toUpperCase().padStart(8,'0')} → CR14+CR6 simultaneous: CR14(RX M=1,cw=${cw},lim=0..${cw-1}) CR6(E M=1,cc=${cc},base=0x${(base+clistStart).toString(16).toUpperCase()})`;
         } else {
             // Non-lump-header path: write E-only GT to CR6 (strip L/S from device GT) + M.
             // Matches boot LOAD_NUC convention: CR6 = E perm (recursive CALL via CR6).
@@ -2437,7 +2473,7 @@ class ChurchSimulator {
                             const cr14Check = this.mLoad(cr14GTVal, 'X', undefined);
                             if (cr14Check.ok) {
                                 this._writeCR(14, cr14GTVal, cr14Check.entry);
-                                cr7Desc = `, CR14 <- X-GT(Slot ${cr14Parsed.index})`;
+                                cr14Desc = `, CR14 <- X-GT(Slot ${cr14Parsed.index})`;
                             }
                         }
                     }
@@ -2445,7 +2481,7 @@ class ChurchSimulator {
             }
         }
 
-        const desc = `CALL CR${d.crDst} -> ${label}${cr7Desc}`;
+        const desc = `CALL CR${d.crDst} -> ${label}${cr14Desc}`;
         this.output += desc + '\n';
         const prevPC = this.pc;
         this.pc = 0;
@@ -2811,19 +2847,40 @@ class ChurchSimulator {
     _execChange(d) {
         this._flushLambdaCache();
 
+        // CHANGE CRd, CRs[idx]
+        //   CRd  (d.crDst) — destination: must be a privileged register CR12–CR15.
+        //   CRs  (d.crSrc) — source capability used to access the NS entry.
+        //   idx  (d.imm)   — NS slot index (identifies the thread or system GT to load).
+        //
+        // Semantics by destination:
+        //   CR12 (data fault handler)  system-wide: load GT directly; no per-thread save.
+        //   CR13 (interrupt handler)   system-wide: load GT directly; no per-thread save.
+        //   CR14 (code register)       per-thread:  full context switch — atomically
+        //      saves the outgoing thread's per-thread registers and restores the
+        //      incoming thread's saved state (if any), then resumes at its saved PC.
+        //   CR15 (namespace root)      per-thread:  same full context switch as CR14.
+        //
+        // Per-thread save covers: CR0–CR11, CR14, CR15, DR0–DR15, STO, PC, FLAGS.
+        // CR12 and CR13 are system-wide — never saved or restored per-thread.
+
+        if (d.crDst < 12) {
+            this.fault('PRIV_REG', `CHANGE: target CR${d.crDst} is not privileged — CHANGE may only write CR12–CR15`);
+            return null;
+        }
+
         const srcGT = this.cr[d.crSrc].word0;
         if (srcGT === 0) {
-            this.fault('NULL_CAP', `CHANGE: CR${d.crSrc} is NULL`);
+            this.fault('NULL_CAP', `CHANGE: CR${d.crSrc} (source) is NULL`);
             return null;
         }
         const targetIdx = d.imm;
         if (targetIdx >= this.nsCount || !this.isNSEntryValid(targetIdx)) {
-            this.fault('BOUNDS', `CHANGE: index ${targetIdx} out of bounds`);
+            this.fault('BOUNDS', `CHANGE: NS index ${targetIdx} out of bounds`);
             return null;
         }
         const entry = this.readNSEntry(targetIdx);
         if (!entry) {
-            this.fault('BOUNDS', `CHANGE: entry ${targetIdx} is null`);
+            this.fault('BOUNDS', `CHANGE: NS entry ${targetIdx} is null`);
             return null;
         }
         const gtRead = this._capRead(d.crSrc, entry.word0_location, null, `CHANGE CR${d.crDst}`);
@@ -2832,11 +2889,58 @@ class ChurchSimulator {
             return null;
         }
         const gt = gtRead.value || 0;
+
+        // ── System-wide registers (CR12/CR13): direct privileged write, no save ──
+        if (d.crDst === 12 || d.crDst === 13) {
+            if (!this._writeCR(d.crDst, gt, entry)) return null;
+            const desc = `CHANGE CR${d.crDst} (system-wide; CR12/CR13 unchanged by context switch) <- [CR${d.crSrc}+${targetIdx}]`;
+            this.output += desc + '\n';
+            this.pc++;
+            return { pc: this.pc - 1, instr: d, desc };
+        }
+
+        // ── Per-thread registers (CR14/CR15): full context switch ─────────────────
+        // 1. Save outgoing thread state (CR0–CR11, CR14, CR15, DR0–DR15, STO, PC+1).
+        //    CR12/CR13 are system-wide and excluded from the per-thread snapshot.
+        if (!this._threadContextMap) this._threadContextMap = new Map();
+        const outSlot = this._currentThreadSlot ?? null;
+        this._threadContextMap.set(outSlot, {
+            crs:   this.cr.slice(0, 12).map(c => ({ ...c })),  // CR0–CR11 only
+            cr14:  { ...this.cr[14] },
+            cr15:  { ...this.cr[15] },
+            drs:   [...this.dr],
+            flags: { ...this.flags },
+            sto:   this.sto,
+            pc:    this.pc + 1,   // resume at the instruction *after* this CHANGE
+        });
+
+        const inState = this._threadContextMap.get(targetIdx);
+
+        // 2a. Restore incoming thread state if it was previously suspended.
+        //     Use the incoming thread's own saved CR14/CR15 (not the instruction's gt).
+        if (inState) {
+            for (let i = 0; i < 12; i++) this.cr[i] = { ...inState.crs[i] };
+            this.cr[14] = { ...inState.cr14 };
+            this.cr[15] = { ...inState.cr15 };
+            this.dr = [...inState.drs];
+            this.flags = { ...inState.flags };
+            this.sto = inState.sto;
+            this._currentThreadSlot = targetIdx;
+            const resumePC = inState.pc;
+            const desc = `CHANGE CR${d.crDst} (context switch: CR0–CR11+CR14+CR15+DRs saved for slot ${outSlot !== null ? outSlot : 'boot'}; resuming slot ${targetIdx} at PC=${resumePC}; CR12/CR13 unchanged)`;
+            this.output += desc + '\n';
+            this.pc = resumePC;   // resume at saved PC (no additional increment)
+            return { pc: resumePC, instr: d, desc };
+        }
+
+        // 2b. First activation of this thread slot: install the gt from the instruction
+        //     and start the new thread at PC=0.
         if (!this._writeCR(d.crDst, gt, entry)) return null;
-        const desc = `CHANGE CR${d.crDst}, [CR${d.crSrc}] idx=${targetIdx}`;
+        this._currentThreadSlot = targetIdx;
+        const desc = `CHANGE CR${d.crDst} (context switch: CR0–CR11+CR14+CR15+DRs saved for slot ${outSlot !== null ? outSlot : 'boot'}; first activation of slot ${targetIdx} — starting at PC=0; CR12/CR13 unchanged) <- [CR${d.crSrc}+${targetIdx}]`;
         this.output += desc + '\n';
-        this.pc++;
-        return { pc: this.pc - 1, instr: d, desc };
+        this.pc = 0;   // first activation always begins at PC=0
+        return { pc: 0, instr: d, desc };
     }
 
     _execSwitch(d) {
@@ -3028,7 +3132,7 @@ class ChurchSimulator {
             return null;
         }
 
-        // Validate the slot GT and gather TPERM / CR7 data before touching any CRs.
+        // Validate the slot GT and gather TPERM / CR14 data before touching any CRs.
         const tpermCheck = this.mLoad(slotGT, 'E', undefined);
         if (!tpermCheck.ok) {
             this.fault(tpermCheck.fault, `ELOADCALL TPERM: CR${d.crDst}: ${tpermCheck.message}`);
@@ -3036,20 +3140,20 @@ class ChurchSimulator {
         }
         const clistEntry = tpermCheck.entry;
         const clistLoc = clistEntry.word0_location;
-        const cr7Read = this.mLoad(slotGT, 'E', undefined, clistLoc);
-        if (!cr7Read.ok) {
-            this.fault(cr7Read.fault, `ELOADCALL CR7 clist[0]: ${cr7Read.message}`);
+        const cr14Read = this.mLoad(slotGT, 'E', undefined, clistLoc);
+        if (!cr14Read.ok) {
+            this.fault(cr14Read.fault, `ELOADCALL CR14 clist[0]: ${cr14Read.message}`);
             return null;
         }
-        const cr7GT = this.memory[clistLoc];
-        let cr7Check = null;
-        if (cr7GT !== 0) {
-            const cr7Parsed = this.parseGT(cr7GT);
-            if (cr7Parsed.type === 1) {
-                const cr7Entry = this.readNSEntry(cr7Parsed.index);
-                if (cr7Entry) {
-                    const chk = this.mLoad(cr7GT, 'X', undefined);
-                    if (chk.ok) cr7Check = chk;
+        const cr14GT = this.memory[clistLoc];
+        let cr14Check = null;
+        if (cr14GT !== 0) {
+            const cr14Parsed = this.parseGT(cr14GT);
+            if (cr14Parsed.type === 1) {
+                const cr14Entry = this.readNSEntry(cr14Parsed.index);
+                if (cr14Entry) {
+                    const chk = this.mLoad(cr14GT, 'X', undefined);
+                    if (chk.ok) cr14Check = chk;
                 }
             }
         }
@@ -3083,11 +3187,11 @@ class ChurchSimulator {
         });
         this.sto = (savedSTO_ec - 2) & 0xFFF;
 
-        // Now write the loaded GT and set up CR6/CR7 for the callee context.
+        // Now write the loaded GT and set up CR6/CR14 for the callee context.
         if (!this._writeCR(d.crDst, slotGT, entry)) return null;
-        if (cr7Check) {
+        if (cr14Check) {
             this._writeCR(6, slotGT, clistEntry);
-            this._writeCR(7, cr7GT, cr7Check.entry);
+            this._writeCR(14, cr14GT, cr14Check.entry);
         }
 
         const label = this.nsLabels[targetIdx] || 'abstraction';
@@ -3174,7 +3278,9 @@ class ChurchSimulator {
         const loc = srcCR.word1;
         const offset = d.imm;
         const absAddr = (loc + offset) >>> 0;
-        const check = this.mLoad(dataGT, 'R', d.crSrc, absAddr);
+        // CR14 exception: code register is X-only; permit DREAD with X permission in place of R.
+        const dreadPerm = (d.crSrc === 14) ? 'X' : 'R';
+        const check = this.mLoad(dataGT, dreadPerm, d.crSrc, absAddr);
         if (!check.ok) {
             this.fault(check.fault, `DREAD: CR${d.crSrc}: ${check.message}`);
             return null;

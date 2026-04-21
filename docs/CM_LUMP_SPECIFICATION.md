@@ -795,9 +795,7 @@ at boot step B:02. They carry zero permissions in their stored GT Word 0
 and are of Inform-type — the hardware returns a constant on DREAD. They
 are never written to lump memory and are never accessible via DREAD.
 
-**CR12 — Thread Identity.** CR12 specifically encodes the Thread lump's
-base address and total word count. It acts as the hardware anchor for the
-stack: the effective stack zone spans `stack_min` (= `lumpSize−12−sw`,
+**CR12 — Data Fault Handler.** CR12 holds the privileged data fault handler capability. Its NS entry encodes the Thread lump's base address and total word count, which the hardware uses as the anchor for the stack: the effective stack zone spans `stack_min` (= `lumpSize−12−sw`,
 example: 212) up to `sp_max` (= `lumpSize−12−1`, example: 243), with the
 hidden **STO** (Stack Top Offset) register tracking the current top.
 `Mint.Thread` sets STO = `sp_max` (example: 243) at Thread creation — this
@@ -939,11 +937,13 @@ the simulator writes 0 to DR0 unconditionally after every instruction.
 On every **CHANGE** (context switch), the hardware saves the outgoing
 thread's per-thread state and restores the incoming thread's saved state.
 
-**Saved and restored by CHANGE:**
+**Saved and restored by CHANGE (per-thread):**
 
 | Register | Role |
 |----------|------|
-| **CR12** | Thread Identity (Priv zone) — lump base + word count |
+| **CR0–CR11** | Programmer-accessible capability registers (GT zone) — already persisted live by mLoad |
+| **CR14** | Code register (Priv zone, per-thread) — X-only code GT for instruction fetch |
+| **CR15** | Namespace root (Priv zone, per-thread) — re-installed from saved state |
 | **CR5** | Heap GT — re-installed from incoming Zone ④ bounds automatically |
 | **STO** | Stack Top Offset hidden register — current stack depth |
 | **DR0–DR15** | All 16 data registers |
@@ -955,18 +955,15 @@ thread's per-thread state and restores the incoming thread's saved state.
 
 | Register | Role |
 |----------|------|
-| **CR13** | IRQ handler — one handler for the whole machine; CHANGE must not re-point it |
-| **CR14** | Transient code-view (X) — re-derived by cLoad on the next CALL, not stored |
-| **CR15** | Namespace root — all threads in the same application share one namespace |
+| **CR12** | Data fault handler (Priv zone, system-wide) — shared across all threads; cannot be written by CHANGE |
+| **CR13** | Interrupt handler (Priv zone, system-wide) — one handler for the whole machine; CHANGE must not re-point it |
 
-CR0–CR4 and CR6–CR11 (Zone ①, the live capability registers) are **not**
-saved on CHANGE — they are saved and restored only by explicit SAVE/LOAD
-instructions within the thread. CR5 is the exception: CHANGE re-installs it
-from the incoming thread's Zone ④ bounds automatically.
-
-CR7–CR11 (Prog zone) are saved as part of Zone ① via SAVE/LOAD, not
-via CHANGE. The boot sequence does not touch them; they start at whatever
-value Zone ① carries in the `*.thread.zip` binary.
+CR0–CR11 (Zone ①, the programmer-accessible capability registers) are
+**implicitly** kept in sync by mLoad — every time mLoad loads a GT into
+CR_N it writes the same word back to lump word N. CHANGE does not need to
+explicitly save them; they are always current in the lump. On restore,
+CHANGE reads the incoming thread's GT zone from its lump to reload CR0–CR11.
+CR5 is additionally re-installed from the incoming thread's Zone ④ bounds.
 
 ---
 

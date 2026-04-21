@@ -279,7 +279,7 @@ The canonical pattern for Church Machine programs is to execute CHANGE as the ve
 ### Why CHANGE first?
 
 After boot, the machine has:
-- CR8 set to the Thread identity GT (from INIT_THRD boot phase, M-elevated)
+- CR12 set to the data fault handler GT (from INIT_THRD boot phase, M-elevated)
 - CR6 set to the c-list (from INIT_CLIST boot phase)
 - CR14 set to the [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) code GT (from LOAD_NUC boot phase)
 - All other CRs are NULL

@@ -129,12 +129,12 @@ The CHANGE instruction performs thread context switching by modifying the thread
 | **Operation** | Full atomic thread swap via thread table |
 | **Context Saved** | DR0-DR15, CR0-CR11, STO, PC, FLAGS, LAMBDA state |
 | **Context Loaded** | Incoming thread's DR0-DR15, CR0-CR11, STO, PC, FLAGS, LAMBDA state; CR5 re-installed from incoming Zone ④ bounds |
-| **CR12 — Unchanged** | Thread Identity — saved/restored per-thread (lump base + word count) |
+| **CR12 — Unchanged** | Data fault handler — system-wide, shared by all threads |
 | **CR13 — Unchanged** | Interrupt handler — system-wide, shared by all threads |
-| **CR14 — Unchanged** | Code register — transient, re-derived by cLoad on the next CALL |
-| **CR15 — Unchanged** | Namespace root — system-wide, shared by all threads |
+| **CR14 — Saved/Restored** | Code register — per-thread, saved and restored with each context switch |
+| **CR15 — Saved/Restored** | Namespace root — per-thread, saved and restored with each context switch |
 
-CHANGE performs a full atomic swap of per-thread state: data registers DR0–DR15, the 12 programmer-accessible capability registers CR0–CR11, the hidden STO (Stack Top Offset), PC, condition FLAGS, and LAMBDA state. CR5 (Heap GT) is re-installed automatically from the incoming thread's Zone ④ bounds. CR12 (thread identity), CR13 (interrupt handler), CR14 (code register), and CR15 (namespace root) are never touched by CHANGE — CR13 and CR15 are system-wide, CR14 is transient. To write CR13 or CR15, code must use SWITCH — the explicit privilege gate — presenting the correct PassKey.
+CHANGE performs a full atomic swap of per-thread state: data registers DR0–DR15, the 12 programmer-accessible capability registers CR0–CR11, the hidden STO (Stack Top Offset), PC, condition FLAGS, and LAMBDA state. CR5 (Heap GT) is re-installed automatically from the incoming thread's Zone ④ bounds. CR14 (code register) and CR15 (namespace root) are per-thread and are saved and restored by CHANGE. CR12 (data fault handler) and CR13 (interrupt handler) are system-wide and are never touched by CHANGE — they remain constant across all threads. To write CR13 or CR15, code must use SWITCH — the explicit privilege gate — presenting the correct PassKey.
 
 ### THREAD_HDR — Hidden Per-Thread Machine Register
 
