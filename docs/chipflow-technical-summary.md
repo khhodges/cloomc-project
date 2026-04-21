@@ -36,7 +36,7 @@ GT_LAYOUT (32 bits):
   slot_id  [15:0]   — 16-bit namespace slot ID
   gt_seq   [22:16]  — 7-bit version / sequence number
   gt_type  [24:23]  — 2-bit type: NULL/Inform/Outform/Abstract
-  perms    [30:25]  — 6-bit permissions: B R W X L S E
+  perms    [30:25]  — 6-bit permissions: R W X L S E
   b_flag   [31]     — 1-bit batch flag
 
 Permission Bits (perms[30:25]):
