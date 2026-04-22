@@ -10,6 +10,7 @@
 #   make prog            — flash full profile to Tang Nano 20K
 #   make prog-iot        — flash IoT profile to Tang Nano 20K
 #   make ti60            — generate synthesis-ready Verilog + resource report for Ti60 F225
+#   make check-cr7       — check synthesised Verilog for stale CR7 signal names
 #   make clean           — remove generated files
 
 DEVICE   := GW2AR-LV18QN88C8/I7
@@ -27,7 +28,7 @@ JSON_IOT     := $(PROJ_IOT).json
 PNR_JSON_IOT := $(PROJ_IOT)_pnr.json
 PACK_IOT     := $(PROJ_IOT).fs
 
-.PHONY: pnr pack prog tang-iot pnr-iot pack-iot prog-iot clean ti60
+.PHONY: pnr pack prog tang-iot pnr-iot pack-iot prog-iot clean ti60 check-cr7
 
 pnr: $(PNR_JSON)
 $(PNR_JSON): $(JSON) $(CST)
@@ -70,6 +71,10 @@ prog-iot: $(PACK_IOT)
 ti60:
 	@echo "=== Ti60 F225 Build Flow ==="
 	cd .. && ./build_ti60.sh build
+
+check-cr7:
+	@echo "=== Checking for stale CR7 signal names in synthesised Verilog ==="
+	cd .. && bash scripts/check_stale_cr7.sh
 
 clean:
 	rm -f $(PNR_JSON) $(PACK) $(PNR_JSON_IOT) $(PACK_IOT)

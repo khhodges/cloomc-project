@@ -35,6 +35,10 @@ args = "boot-image-upload-endpoint"
 task = "workflow.run"
 args = "boot-image-serve-endpoints"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check-stale-cr7"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -101,6 +105,17 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python -m pytest tests/test_boot_image_serve_endpoints.py -v"
+
+[[workflows.workflow]]
+name = "check-stale-cr7"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/check_stale_cr7.sh"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [[ports]]
 localPort = 5000
