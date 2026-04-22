@@ -5872,11 +5872,10 @@ a.next-step-link:hover {
 }
 
 .lumps-actions-dropdown {
-    right: 0;
-    left: auto;
     flex-direction: column;
     min-width: 130px;
     grid-template-columns: none;
+    z-index: 10001;
 }
 
 .lumps-placeholder {

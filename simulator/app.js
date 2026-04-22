@@ -532,10 +532,22 @@ function closeEditorActions() {
 }
 
 function toggleLumpsActions() {
-    const dd = document.getElementById('lumpsActionsDropdown');
+    const dd  = document.getElementById('lumpsActionsDropdown');
+    const btn = document.getElementById('lumpsActionsBtn');
     if (!dd) return;
     const open = dd.style.display !== 'none';
-    dd.style.display = open ? 'none' : 'flex';
+    if (open) {
+        dd.style.display = 'none';
+    } else {
+        if (btn) {
+            const r = btn.getBoundingClientRect();
+            dd.style.position = 'fixed';
+            dd.style.top      = (r.bottom + 4) + 'px';
+            dd.style.right    = (window.innerWidth - r.right) + 'px';
+            dd.style.left     = 'auto';
+        }
+        dd.style.display = 'flex';
+    }
 }
 
 function closeLumpsActions() {
