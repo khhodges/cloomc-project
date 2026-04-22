@@ -1159,7 +1159,7 @@ class ChurchSimulator {
                 const entryNSEntry  = entryCheck.entry;                             // NS entry for boot entry abstraction
                 const entryNSParsed = this.parseNSWord1(entryNSEntry.word1_limit);
                 if (entryNSParsed.f === 1) {                                        // Far-lumps not supported at boot
-                    this.fault('FAR', `LOAD_NUC: ${_b4Label} has F-bit set (Far) — not supported at boot`);
+                    this.fault('F_BIT', `LOAD_NUC: ${_b4Label} has F-bit set (Far) — not supported at boot`);
                     return false;
                 }
                 const bootEntrySlot = this.bootEntrySlot;
@@ -1482,7 +1482,7 @@ class ChurchSimulator {
             return { ok: false, fault: 'BIND', message: `GT has B=0 — not bindable to c-list` };
         }
         if (!farPass) {
-            return { ok: false, fault: 'FAR', message: `target slot ${targetIdx} is FAR (F=1) — requires HTTP/tunnel access` };
+            return { ok: false, fault: 'F_BIT', message: `target slot ${targetIdx} is FAR (F=1) — requires HTTP/tunnel access` };
         }
         if (!rangePass) {
             const rBase = rangeInfo.base;
@@ -2370,7 +2370,7 @@ class ChurchSimulator {
         const nsEntry = check.entry;
         const word1 = this.parseNSWord1(nsEntry.word1_limit);
         if (word1.f === 1) {
-            this.fault('FAR', `CALL: ${callCrLabel} has F-bit set (Far)`);
+            this.fault('F_BIT', `CALL: ${callCrLabel} has F-bit set (Far)`);
             return null;
         }
 

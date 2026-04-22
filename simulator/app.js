@@ -11019,7 +11019,7 @@ function faultClear() {
 const _FAULT_COLORS = {
     BOUNDS:       '#e05555', NULL_CAP:    '#e05555', PERM_X:       '#e07030',
     PERMISSION:   '#e07030', VERSION:     '#c0a030', SEAL:         '#c0a030',
-    BIND:         '#c0a030', FAR:         '#c08030', DOMAIN_PURITY:'#e05555',
+    BIND:         '#c0a030', F_BIT:       '#c08030', DOMAIN_PURITY:'#e05555',
     BOOT:         '#e05555', MATH_ERROR:  '#c0a030', DOMAIN_ERROR: '#c0a030',
     STACK_OVERFLOW:'#e05555', STACK_UNDERFLOW:'#e05555', TYPE: '#e05555',
     RANGE:        '#e05555',
@@ -11037,7 +11037,7 @@ const _FAULT_CODES = {
     OUTFORM_CRC:0x15, OUTFORM_ALLOC:0x16, OUTFORM_MINT:0x17, OUTFORM_HDR:0x18,
     RANGE:        0x10,   // stack overflow manifests as RANGE violation on CR14 (same code)
     // Software-only (no hardware code):
-    PERM:null, FAR:null, BOOT:null, MATH_ERROR:null,
+    PERM:null, BOOT:null, MATH_ERROR:null,
     DOMAIN_ERROR:null, HANDLER:null, PERMISSION:null, TYPE:null,
     LUMP_MAGIC:null, LUMP_SIZE:null, LUMP_LAYOUT:null, LUMP_OOM:null,
 };
