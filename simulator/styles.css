@@ -5271,7 +5271,7 @@ a.next-step-link:hover {
 
 .abs-item {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 0.5rem;
     padding: 0.45rem 0.5rem;
@@ -10740,9 +10740,9 @@ tr.itrace-fault td { color: #ff9999; }
 .impl-dot-tested    { background: var(--impl-tested);    box-shadow: 0 0 5px var(--impl-tested); }
 .impl-dot-released  { background: var(--impl-released);  box-shadow: 0 0 5px var(--impl-released); }
 
-/* abs-item: add third column for the status dot */
+/* abs-item: columns — boot-entry btn | name | profile badge | status dot */
 .abs-item {
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: auto 1fr auto auto;
 }
 .abs-item-dot {
     width: 8px; height: 8px;
