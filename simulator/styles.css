@@ -9321,6 +9321,28 @@ pre:hover .code-copy-btn {
     color: #c0906a;
     font-weight: 600;
 }
+.gate-loc-step-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: #e8a070;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(232, 160, 112, 0.4);
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+}
+.gate-loc-step-link:hover {
+    color: #ffbe88;
+    text-decoration-color: rgba(255, 190, 136, 0.7);
+}
+.fault-step-link {
+    font-family: inherit;
+    font-size: inherit;
+}
 .gate-loc-sep {
     color: #604040;
     user-select: none;
@@ -11759,6 +11781,15 @@ tr.itrace-fault td { color: #ff9999; }
 }
 .trace-row-skipped td {
     opacity: 0.35;
+}
+.trace-row-highlighted {
+    background: rgba(232, 160, 80, 0.15) !important;
+    outline: 1px solid rgba(232, 160, 80, 0.5);
+    animation: trace-highlight-fade 2s ease-out forwards;
+}
+@keyframes trace-highlight-fade {
+    0%   { background: rgba(232, 160, 80, 0.35); outline-color: rgba(232, 160, 80, 0.9); }
+    100% { background: rgba(232, 160, 80, 0.08); outline-color: rgba(232, 160, 80, 0.25); }
 }
 .trace-td-changed {
     color: #f1c40f !important;

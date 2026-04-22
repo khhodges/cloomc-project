@@ -1084,7 +1084,7 @@ function updateGateLog() {
                 instrStr = `${ctx.opName}&nbsp;CR${ctx.crDst},&nbsp;CR${ctx.crSrc},&nbsp;#${ctx.imm}`;
             }
             html += `<div class="gate-location">`;
-            html += `<span class="gate-loc-step">Step&nbsp;#${ctx.step}</span>`;
+            html += `<button class="gate-loc-step gate-loc-step-link" onclick="jumpToTraceStep(${ctx.step})" title="Jump to this step in the Trace view">Step&nbsp;#${ctx.step}</button>`;
             html += `<span class="gate-loc-sep">&middot;</span>`;
             html += `<span class="gate-loc-pc">PC&nbsp;=&nbsp;${ctx.pc}</span>`;
             html += `<span class="gate-loc-sep">&middot;</span>`;
@@ -11310,7 +11310,7 @@ function showFaultModal(f) {
             </div>
             <div class="fault-detail-row">
                 <span class="fault-detail-label">Step</span>
-                <span class="fault-detail-value">${f.step}</span>
+                <span class="fault-detail-value"><button class="gate-loc-step-link fault-step-link" onclick="faultModalDismiss();jumpToTraceStep(${f.step})" title="Jump to this step in the Trace view">#${f.step}</button></span>
             </div>
             ${historyHtml ? `<div class="fault-detail-row fault-history-row">
                 <span class="fault-detail-label">History</span>
@@ -21478,6 +21478,7 @@ function _traceBuildRow(idx) {
     const entry = _traceData[idx];
     const prev = idx > 0 ? _traceData[idx - 1] : null;
     const tr = document.createElement('tr');
+    tr.dataset.step = entry.step;
     if (entry.skipped) tr.className = 'trace-row-skipped';
 
     const cells = [
@@ -21535,6 +21536,20 @@ function renderTraceView() {
     }
     const wrap = document.getElementById('traceTableWrap');
     if (wrap) wrap.scrollTop = wrap.scrollHeight;
+}
+
+function jumpToTraceStep(stepNum) {
+    switchView('trace');
+    if (_traceRenderedCount < _traceData.length) {
+        _traceFlushRender();
+    }
+    const tbody = document.getElementById('traceTableBody');
+    if (!tbody) return;
+    const target = tbody.querySelector(`tr[data-step="${stepNum}"]`);
+    if (!target) return;
+    document.querySelectorAll('.trace-row-highlighted').forEach(el => el.classList.remove('trace-row-highlighted'));
+    target.classList.add('trace-row-highlighted');
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 function initCodeCopyButtons() {
