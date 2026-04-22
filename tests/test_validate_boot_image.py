@@ -18,6 +18,7 @@ from server.boot_image import (  # noqa: E402
     NS_TABLE_RESERVE,
     NS_ENTRY_WORDS,
     BOOT_ABSTR_NS_SLOT,
+    BOOT_IMAGE_FORMAT_TAG,
     generate_boot_image,
     validate_boot_image,
 )
@@ -48,6 +49,16 @@ def _zero_ns_slot(image_bytes, cfg, slot):
     words = list(struct.unpack(f"<{total}I", image_bytes))
     words[slot_base]     = 0
     words[slot_base + 1] = 0
+    return struct.pack(f"<{total}I", *words)
+
+
+def _set_format_tag(image_bytes, cfg, tag_value):
+    """Return a copy of image_bytes with the format-version tag set to tag_value."""
+    total = int(cfg["step1"]["totalNamespaceWords"])
+    ns_table_base = total - NS_TABLE_RESERVE
+    tag_idx = ns_table_base - 1
+    words = list(struct.unpack(f"<{total}I", image_bytes))
+    words[tag_idx] = tag_value & 0xFFFFFFFF
     return struct.pack(f"<{total}I", *words)
 
 
@@ -117,3 +128,51 @@ def test_validate_boot_image_error_message_is_descriptive():
     total = int(cfg["step1"]["totalNamespaceWords"])
     with pytest.raises(ValueError, match=r"BOOT fault"):
         validate_boot_image(null_image, total)
+
+
+def test_validate_boot_image_rejects_zero_format_tag():
+    """validate_boot_image raises ValueError when format-version tag is zero (stale image)."""
+    cfg = _default_cfg()
+    image = generate_boot_image(cfg, LUMPS_DIR)
+    stale_image = _set_format_tag(image, cfg, 0)
+    total = int(cfg["step1"]["totalNamespaceWords"])
+    with pytest.raises(ValueError, match=r"format-version tag mismatch"):
+        validate_boot_image(stale_image, total)
+
+
+def test_validate_boot_image_rejects_wrong_format_tag():
+    """validate_boot_image raises ValueError when format-version tag is wrong (old version)."""
+    cfg = _default_cfg()
+    image = generate_boot_image(cfg, LUMPS_DIR)
+    stale_image = _set_format_tag(image, cfg, 0xB0070247)
+    total = int(cfg["step1"]["totalNamespaceWords"])
+    with pytest.raises(ValueError, match=r"format-version tag mismatch"):
+        validate_boot_image(stale_image, total)
+
+
+def test_validate_boot_image_format_tag_error_message_is_descriptive():
+    """The ValueError for a bad tag shows both actual and expected values."""
+    cfg = _default_cfg()
+    image = generate_boot_image(cfg, LUMPS_DIR)
+    stale_image = _set_format_tag(image, cfg, 0xDEADBEEF)
+    total = int(cfg["step1"]["totalNamespaceWords"])
+    with pytest.raises(ValueError, match=r"0xdeadbeef"):
+        validate_boot_image(stale_image, total)
+
+
+def test_validate_boot_image_format_tag_error_mentions_stale():
+    """The ValueError for a bad tag mentions regeneration."""
+    cfg = _default_cfg()
+    image = generate_boot_image(cfg, LUMPS_DIR)
+    stale_image = _set_format_tag(image, cfg, 0)
+    total = int(cfg["step1"]["totalNamespaceWords"])
+    with pytest.raises(ValueError, match=r"stale"):
+        validate_boot_image(stale_image, total)
+
+
+def test_validate_boot_image_correct_format_tag_passes():
+    """validate_boot_image does not raise when the format tag is the current BOOT_IMAGE_FORMAT_TAG."""
+    cfg = _default_cfg()
+    image = generate_boot_image(cfg, LUMPS_DIR)
+    total = int(cfg["step1"]["totalNamespaceWords"])
+    validate_boot_image(image, total)

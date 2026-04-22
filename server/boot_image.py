@@ -229,11 +229,14 @@ def make_version_seals(gt_seq, location, limit17):
 def validate_boot_image(image_bytes, total_namespace_words=None):
     """Inspect the NS table inside a boot image and raise ValueError early.
 
-    Checks every mandatory NS slot (0, 1, BOOT_ABSTR_NS_SLOT=3) and raises
-    ValueError if both word0 and word1 are zero.  A zeroed mandatory slot
-    causes the simulator's isNSEntryValid() to return false, producing a
-    BOOT fault at runtime; catching it here surfaces the problem with a
-    clear Python-level error before the image ever reaches the harness.
+    Checks that the format-version tag at mem[ns_table_base - 1] equals
+    BOOT_IMAGE_FORMAT_TAG, and that every mandatory NS slot (0, 1,
+    BOOT_ABSTR_NS_SLOT=3) is non-zero.  A wrong or zero tag means the
+    image was produced by a stale generator and would be rejected by
+    loadBootImage() in the simulator; a zeroed mandatory slot causes
+    isNSEntryValid() to return false, producing a BOOT fault at runtime.
+    Catching both here surfaces version mismatches and slot problems with
+    a clear Python-level error before the image ever reaches the harness.
 
     ``total_namespace_words`` defaults to ``len(image_bytes) // 4``; pass
     the explicit value from the config dict when available so the check is
@@ -243,8 +246,9 @@ def validate_boot_image(image_bytes, total_namespace_words=None):
     Task #247) and is not checked.
 
     Raises:
-        ValueError: if any mandatory slot is zeroed, or the image is too
-                    small to contain the NS table at all.
+        ValueError: if the format-version tag is wrong, any mandatory slot
+                    is zeroed, or the image is too small to contain the NS
+                    table at all.
     """
     if total_namespace_words is None:
         total_namespace_words = len(image_bytes) // 4
@@ -257,6 +261,19 @@ def validate_boot_image(image_bytes, total_namespace_words=None):
             f"({n_words} words, expected {total})"
         )
     words = struct.unpack(f"<{n_words}I", image_bytes[: n_words * 4])
+    tag_idx = ns_table_base - 1
+    if tag_idx < 0 or tag_idx >= n_words:
+        raise ValueError(
+            f"validate_boot_image: image too small to contain format-version tag "
+            f"(ns_table_base={ns_table_base}, image_words={n_words})"
+        )
+    actual_tag = words[tag_idx]
+    if actual_tag != BOOT_IMAGE_FORMAT_TAG:
+        raise ValueError(
+            f"validate_boot_image: format-version tag mismatch at word {tag_idx}: "
+            f"got 0x{actual_tag:08x}, expected 0x{BOOT_IMAGE_FORMAT_TAG:08x}; "
+            "the boot image is stale and must be regenerated"
+        )
     for slot in _MANDATORY_NS_SLOTS:
         base = ns_table_base + slot * NS_ENTRY_WORDS
         if base + 1 >= n_words:
