@@ -633,6 +633,14 @@ def boot_image_upload():
     except Exception:
         return jsonify({"ok": False, "error": "Invalid base64 data"}), 400
 
+    # Reachable via HTTP: base64.b64decode("") == b"", and the earlier
+    # `data_b64 is None` check does not catch an empty string.  A client
+    # that sends {"data_b64": ""} (which is what base64.b64encode(b"")
+    # produces) will reach this guard rather than the None-check above.
+    # The guard also provides defensive depth if this function is ever
+    # invoked directly with b"" (bypassing the HTTP layer).
+    # Covered by test_upload_empty_image_returns_400 in
+    # tests/test_boot_image_upload_endpoint.py.
     if len(image_bytes) == 0:
         return jsonify({"ok": False, "error": "Boot image is empty"}), 400
     if len(image_bytes) % 4 != 0:
