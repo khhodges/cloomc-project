@@ -31,6 +31,10 @@ args = "hardware-sim"
 task = "workflow.run"
 args = "boot-image-upload-endpoint"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "boot-image-serve-endpoints"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -86,6 +90,17 @@ args = "python -m pytest tests/test_boot_image_upload_endpoint.py -v"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "boot-image-serve-endpoints"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -m pytest tests/test_boot_image_serve_endpoints.py -v"
 
 [[ports]]
 localPort = 5000
