@@ -6,6 +6,32 @@ from .core import ChurchCore
 from .tang_nano_20k import ChurchTangNano20K
 
 
+_STALE_CR7_PATTERN = "cr7_wr_"
+
+
+def _check_stale_cr7(verilog_text, output_path):
+    """Abort if stale CR7 signal names are present in freshly-generated Verilog.
+
+    This is an early-exit guard: if hardware/core.py still emits the old
+    cr7_wr_* names the build stops immediately with a clear message rather than
+    silently producing a dirty netlist.
+    """
+    matches = verilog_text.count(_STALE_CR7_PATTERN)
+    if matches:
+        import sys
+        print(
+            f"\nERROR: {output_path} contains {matches} occurrence(s) of "
+            f"'{_STALE_CR7_PATTERN}' — stale CR7 signal names detected.",
+            file=sys.stderr,
+        )
+        print(
+            "Verify that hardware/core.py uses the CR14 names throughout "
+            "and re-run generation.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def _patch_clocks(verilog_text):
     """Fix Amaranth's disconnected clocks: thread `clk` through the hierarchy.
 
@@ -119,6 +145,8 @@ def generate_core_verilog(output_dir="build"):
     verilog_text = convert(core, ports=ports)
 
     output_path = os.path.join(output_dir, "church_core.v")
+    _check_stale_cr7(verilog_text, output_path)
+
     with open(output_path, "w") as f:
         f.write(verilog_text)
 
@@ -146,6 +174,8 @@ def generate_tang_nano_20k_verilog(output_dir="build"):
     verilog_text = _patch_rst(verilog_text)
 
     output_path = os.path.join(output_dir, "church_tang_nano_20k.v")
+    _check_stale_cr7(verilog_text, output_path)
+
     with open(output_path, "w") as f:
         f.write(verilog_text)
 
@@ -178,6 +208,8 @@ def generate_core_iot_verilog(output_dir="build"):
     verilog_text = convert(core, ports=ports)
 
     output_path = os.path.join(output_dir, "church_core_iot.v")
+    _check_stale_cr7(verilog_text, output_path)
+
     with open(output_path, "w") as f:
         f.write(verilog_text)
 
@@ -205,6 +237,8 @@ def generate_tang_nano_20k_iot_verilog(output_dir="build"):
     verilog_text = _patch_rst(verilog_text)
 
     output_path = os.path.join(output_dir, "church_tang_nano_20k_iot.v")
+    _check_stale_cr7(verilog_text, output_path)
+
     with open(output_path, "w") as f:
         f.write(verilog_text)
 

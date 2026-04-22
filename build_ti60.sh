@@ -22,6 +22,10 @@ fi
 echo "  Verilog OK: $V_FILE ($(wc -c < "$V_FILE") bytes)"
 
 echo ""
+echo "=== Step 1b: Checking for stale CR7 signal names ==="
+bash "$(dirname "$0")/scripts/check_stale_cr7.sh" "$V_FILE"
+
+echo ""
 echo "=== Step 2: Yosys resource estimation ==="
 STAT_LOG="$OUTPUT_DIR/ti60_yosys_stat.log"
 

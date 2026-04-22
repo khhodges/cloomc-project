@@ -11,10 +11,16 @@
 
 set -euo pipefail
 
-VERILOG_FILES=(
-    "verilog/church_core.v"
-    "verilog/church_tang_nano_20k.v"
-)
+# If file paths are supplied as arguments, check those; otherwise fall back to
+# the canonical synthesised-output locations.
+if [ "$#" -gt 0 ]; then
+    VERILOG_FILES=("$@")
+else
+    VERILOG_FILES=(
+        "verilog/church_core.v"
+        "verilog/church_tang_nano_20k.v"
+    )
+fi
 
 PATTERN="cr7_wr_"
 

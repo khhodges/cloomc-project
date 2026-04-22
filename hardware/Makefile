@@ -9,8 +9,8 @@
 #   make tang-iot        — IoT profile: generate Verilog + place-and-route + pack
 #   make prog            — flash full profile to Tang Nano 20K
 #   make prog-iot        — flash IoT profile to Tang Nano 20K
-#   make ti60            — generate synthesis-ready Verilog + resource report for Ti60 F225
-#   make check-cr7       — check synthesised Verilog for stale CR7 signal names
+#   make ti60            — generate synthesis-ready Verilog + CR7 check + resource report for Ti60 F225
+#   make check-cr7       — check synthesised Verilog for stale CR7 signal names (also runs automatically inside ti60)
 #   make clean           — remove generated files
 
 DEVICE   := GW2AR-LV18QN88C8/I7
