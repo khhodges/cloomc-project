@@ -578,7 +578,14 @@ def boot_image_generate():
 def boot_image_download():
     if not os.path.isfile(BOOT_IMAGE_PATH):
         return jsonify({"error": "boot-image.bin not generated yet"}), 404
-    return send_file(BOOT_IMAGE_PATH, mimetype="application/octet-stream",
+    with open(BOOT_IMAGE_PATH, "rb") as _f:
+        _image_bytes = _f.read()
+    try:
+        _boot_image_gen.validate_boot_image(_image_bytes)
+    except ValueError as _e:
+        logging.error("boot_image_download: stale or invalid boot image on disk: %s", _e)
+        return jsonify({"error": f"Boot image on disk is stale or invalid: {_e}"}), 500
+    return send_file(io.BytesIO(_image_bytes), mimetype="application/octet-stream",
                      as_attachment=True, download_name="boot-image.bin")
 
 @app.route("/api/boot-image/binary", methods=["GET"])
@@ -587,7 +594,14 @@ def boot_image_binary():
     it as an ArrayBuffer at boot without triggering a download dialog."""
     if not os.path.isfile(BOOT_IMAGE_PATH):
         return jsonify({"error": "boot-image.bin not generated yet"}), 404
-    return send_file(BOOT_IMAGE_PATH, mimetype="application/octet-stream")
+    with open(BOOT_IMAGE_PATH, "rb") as _f:
+        _image_bytes = _f.read()
+    try:
+        _boot_image_gen.validate_boot_image(_image_bytes)
+    except ValueError as _e:
+        logging.error("boot_image_binary: stale or invalid boot image on disk: %s", _e)
+        return jsonify({"error": f"Boot image on disk is stale or invalid: {_e}"}), 500
+    return send_file(io.BytesIO(_image_bytes), mimetype="application/octet-stream")
 
 @app.route("/api/boot-image/upload", methods=["POST"])
 def boot_image_upload():
