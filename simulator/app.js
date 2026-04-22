@@ -611,6 +611,10 @@ function selectLumpType(type) {
 let _viewLocked = false;
 function switchView(viewId) {
     if (_viewLocked) return;
+    if (viewId !== currentView && currentView === 'trace') {
+        document.querySelectorAll('.trace-row-highlighted').forEach(el => el.classList.remove('trace-row-highlighted'));
+        document.querySelectorAll('.trace-gatelog-back').forEach(el => el.remove());
+    }
     if (viewId !== currentView) previousView = currentView;
     currentView = viewId;
     window.location.hash = viewId;
