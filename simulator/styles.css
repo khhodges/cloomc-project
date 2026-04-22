@@ -9246,6 +9246,66 @@ pre:hover .code-copy-btn {
     border: 1px solid rgba(200, 130, 30, 0.4);
 }
 
+/* ── Gate Log panel title bar ───────────────────────────────────────────── */
+.gate-log-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.gate-log-titlebar .panel-title {
+    flex: 1;
+    margin: 0;
+}
+.gate-reset-btn {
+    flex-shrink: 0;
+    background: rgba(40, 60, 90, 0.85);
+    color: #8bc4f0;
+    border: 1px solid rgba(100, 160, 220, 0.4);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+.gate-reset-btn:hover {
+    background: rgba(60, 100, 150, 0.9);
+    color: #cde6ff;
+    border-color: rgba(140, 200, 255, 0.6);
+}
+
+/* ── Gate-log fault location footer ────────────────────────────────────── */
+.gate-location {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px 4px 8px;
+    font-size: 10px;
+    background: rgba(120, 30, 30, 0.18);
+    border-top: 1px solid rgba(200, 80, 80, 0.18);
+    border-radius: 0 0 4px 4px;
+    color: #c0906a;
+    font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+}
+.gate-loc-step {
+    color: #c0906a;
+    font-weight: 600;
+}
+.gate-loc-sep {
+    color: #604040;
+    user-select: none;
+}
+.gate-loc-pc {
+    color: #a08060;
+}
+.gate-loc-instr {
+    color: #d4b080;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
 .gate-label {
     color: #e8e0d0;
     font-weight: 500;

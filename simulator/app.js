@@ -1046,6 +1046,19 @@ function updateGateLog() {
             html += `<span class="gate-flag">B=${a.b}</span><span class="gate-flag">F=${a.f}</span>`;
         }
         html += `</div>`;
+        // Fault location footer — only shown when an instruction context is available
+        // (i.e. fault came from a runtime step(), not a boot-phase _bootStep()).
+        if (!pass && a.stepCtx) {
+            const ctx = a.stepCtx;
+            const instrStr = `${ctx.opName}&nbsp;CR${ctx.crDst},&nbsp;CR${ctx.crSrc},&nbsp;#${ctx.imm}`;
+            html += `<div class="gate-location">`;
+            html += `<span class="gate-loc-step">Step&nbsp;#${ctx.step}</span>`;
+            html += `<span class="gate-loc-sep">&middot;</span>`;
+            html += `<span class="gate-loc-pc">PC&nbsp;=&nbsp;${ctx.pc}</span>`;
+            html += `<span class="gate-loc-sep">&middot;</span>`;
+            html += `<span class="gate-loc-instr">${instrStr}</span>`;
+            html += `</div>`;
+        }
         html += `</div>`;
     }
     container.innerHTML = html;
@@ -11570,6 +11583,32 @@ function resetSim() {
     const con = document.getElementById('editorConsole');
     if (con) con.textContent = '';
     slowBoot();
+}
+
+// Fast-reset, complete the boot sequence immediately, then land on the
+// CR14 step view.  Bound to the "↺ Reset & Step" button in the Gate Log panel.
+function resetAndStep() {
+    faultAlertOff();
+    if (pipelineViz) pipelineViz.setNIA(null);
+    _defaultProgramLoaded = false;
+    sim.reset();
+    _initLazyLoadManifest();
+    pipelineViz.reset();
+    bootAnimating = false;
+    const con = document.getElementById('editorConsole');
+    if (con) con.textContent = '';
+    // Complete boot immediately (no animation) so the machine is ready to step.
+    while (!sim.bootComplete && !sim.halted) {
+        try { sim._bootStep(); } catch(e) {
+            console.error('resetAndStep _bootStep error:', e);
+            updateDashboard();
+            return;
+        }
+    }
+    if (!sim.halted) _autoLoadDefaultProgram();
+    updateDashboard();
+    switchView('dashboard');
+    openCRDetail(14);
 }
 
 function runGC() {

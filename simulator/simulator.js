@@ -551,6 +551,7 @@ class ChurchSimulator {
         this.lambdaCachedFrame = null;
         this.faultLog = [];
         this._instrHistory = [];
+        this._currentInstrLabel = null;
 
         // Boot Image Designer Step 1 (Task #214): namespace memory window size
         // is programmer-chosen via the Boot Image Designer (totalNamespaceWords).
@@ -625,6 +626,7 @@ class ChurchSimulator {
         this.ledBits = 0;
         this.ledMode = 'boot';
         this.lastSignedReturn = null;
+        this._currentInstrLabel = null;
         this.output += '[PP250] Machine state cleared. Re-entering boot sequence.\n';
         this.emit('stateChange', this.getState());
     }
@@ -1382,6 +1384,7 @@ class ChurchSimulator {
             },
             b: bBit, f: fBit,
             result: (versionMatch && sealValid && permPass && rangePass) ? 'pass' : 'fail',
+            stepCtx: this._currentInstrLabel || null,
         };
         if (rangeInfo) auditEntry.checks.range = rangeInfo;
         this.auditLog.push(auditEntry);
@@ -1464,6 +1467,7 @@ class ChurchSimulator {
             },
             b: bBit, f: fBit,
             result: (srcVersionMatch && srcSealValid && bindPass && farPass && rangePass) ? 'pass' : 'fail',
+            stepCtx: this._currentInstrLabel || null,
         };
         if (rangeInfo) saveAudit.checks.range = rangeInfo;
         this.auditLog.push(saveAudit);
@@ -2131,6 +2135,17 @@ class ChurchSimulator {
                 return null;
             }
         }
+
+        // Capture current instruction context so mLoad/mSave audit entries can
+        // include a "location" row (Step#, PC, decoded instruction) for fault display.
+        this._currentInstrLabel = {
+            pc:     this.pc,
+            step:   this.stepCount,
+            opName: this.opName(d.opcode),
+            crDst:  d.crDst,
+            crSrc:  d.crSrc,
+            imm:    d.imm,
+        };
 
         let result = null;
         switch (d.opcode) {
@@ -3727,6 +3742,7 @@ class ChurchSimulator {
             checks,
             b: null, f: null,
             result: (magicPass && ccPass && typPass) ? 'pass' : 'fail',
+            stepCtx: this._currentInstrLabel || null,
         });
     }
 

@@ -26,7 +26,7 @@
     })();
     </script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0a1a'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='22' font-weight='bold' fill='%23daa520' text-anchor='middle'%3E%CE%BB%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="styles.css?v=20260422c">
+    <link rel="stylesheet" href="styles.css?v=20260422d">
     <style>
         .app-loading {
             position: fixed; inset: 0; z-index: 99999;
@@ -242,7 +242,10 @@
         </div>
         <div id="dashPanel-gatelog" class="dash-panel">
             <div class="panel">
-                <div class="panel-title">Gate Log — mLoad / mSave from last Step</div>
+                <div class="gate-log-titlebar">
+                    <span class="panel-title">Gate Log &mdash; mLoad / mSave from last Step</span>
+                    <button class="btn btn-sm gate-reset-btn" onclick="resetAndStep()" data-tooltip="Reset &amp; Step — Fast-boot the machine and open the CR14 step view">&#x21BA;&nbsp;Reset&nbsp;&amp;&nbsp;Step</button>
+                </div>
                 <div id="gateLogContent"></div>
             </div>
         </div>
