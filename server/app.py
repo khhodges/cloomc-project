@@ -603,6 +603,11 @@ def boot_image_binary():
         return jsonify({"error": f"Boot image on disk is stale or invalid: {_e}"}), 500
     return send_file(io.BytesIO(_image_bytes), mimetype="application/octet-stream")
 
+@app.route("/api/boot-image/exists", methods=["GET"])
+def boot_image_exists():
+    """Return whether a boot-image.bin currently exists on disk."""
+    return jsonify({"exists": os.path.isfile(BOOT_IMAGE_PATH)})
+
 @app.route("/api/boot-image/upload", methods=["POST"])
 def boot_image_upload():
     """Accept an externally-supplied boot image binary, validate it, and save.

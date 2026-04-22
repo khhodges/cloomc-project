@@ -4775,7 +4775,25 @@ function handleBootImageUpload(input) {
     const file = input.files && input.files[0];
     if (!file) return;
     input.value = '';
-    uploadBootImageFile(file);
+    fetch('/api/boot-image/exists')
+        .then(r => r.json())
+        .then(({ exists }) => {
+            if (exists) {
+                const ok = window.confirm(
+                    'A boot image already exists on the server.\n\n' +
+                    'Uploading will permanently replace it. Continue?'
+                );
+                if (!ok) return;
+            }
+            uploadBootImageFile(file);
+        })
+        .catch(() => {
+            const ok = window.confirm(
+                'Could not verify whether a boot image already exists on the server.\n\n' +
+                'Uploading may overwrite an existing image. Continue?'
+            );
+            if (ok) uploadBootImageFile(file);
+        });
 }
 
 function updateNamespace() {
