@@ -1015,7 +1015,9 @@ function updateGateLog() {
                     ? 'MAGIC'
                     : `MAGIC&nbsp;(0x${v.rawMagic.toString(16)}&nbsp;&#x2192;&nbsp;0x1F)`;
             } else if (k === 'cc') {
-                label = 'CC&nbsp;&gt;&nbsp;0';
+                label = 'CC';
+            } else if (k === 'typ') {
+                label = 'TYPE';
             } else if (k === 'perm' && v.perm) {
                 label = `PERM&nbsp;(${v.perm})`;
             } else if (k === 'range') {

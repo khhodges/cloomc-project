@@ -1173,8 +1173,10 @@ class ChurchSimulator {
                 {
                     const magicPass = hdr.valid;
                     const ccPass    = magicPass && (hdr.cc > 0);
+                    const typPass   = magicPass && (hdr.typ === 1);   // must be Inform (typ=1)
                     const lumpChecks = { magic: { pass: magicPass, rawMagic: hdr.magic } };
-                    if (magicPass) lumpChecks.cc = { pass: ccPass };
+                    if (magicPass) lumpChecks.cc  = { pass: ccPass };
+                    if (magicPass) lumpChecks.typ = { pass: typPass, typVal: hdr.typ };
                     this.auditLog.push({
                         gate: 'Lump.Header',
                         label: _b4Label,
@@ -1182,7 +1184,7 @@ class ChurchSimulator {
                         requiredPerm: null,
                         checks: lumpChecks,
                         b: null, f: null,
-                        result: (magicPass && ccPass) ? 'pass' : 'fail',
+                        result: (magicPass && ccPass && typPass) ? 'pass' : 'fail',
                     });
                 }
 
