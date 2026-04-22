@@ -539,7 +539,7 @@
             <div id="bdDropZone"
                  ondragover="event.preventDefault();event.dataTransfer.dropEffect='copy';this.style.borderColor='#9bd';this.style.background='#162436';"
                  ondragleave="this.style.borderColor='#555';this.style.background='#111';"
-                 ondrop="event.preventDefault();this.style.borderColor='#555';this.style.background='#111';var f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)uploadBootImageFile(f);"
+                 ondrop="event.preventDefault();this.style.borderColor='#555';this.style.background='#111';var f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f){if(!f.name.toLowerCase().endsWith('.bin')&&f.type!=='application/octet-stream'){document.getElementById('bdError').textContent='Only .bin boot image files are accepted. Please drop a valid .bin file.';}else{document.getElementById('bdError').textContent='';uploadBootImageFile(f);}}"
                  style="margin-top:14px;border:2px dashed #555;border-radius:5px;padding:14px;text-align:center;font-size:0.83rem;color:#888;background:#111;cursor:default;transition:border-color 0.15s,background 0.15s;">
                 Drop a <code style="color:#aaa;">.bin</code> boot image file here to upload
             </div>
