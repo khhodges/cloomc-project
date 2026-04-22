@@ -188,10 +188,10 @@ class ChurchSimulator {
         if (!arrayBuffer || arrayBuffer.byteLength < 4) return false;
         const src = new Uint32Array(arrayBuffer);
 
-        // Format-version guard: reject binaries generated before Task #247
-        // (Boot.Abstr director elimination — slot 2 is now a free/null entry).
+        // Format-version guard: reject binaries generated before Task #355
+        // (boot-entry metadata word at NS_TABLE_BASE - 2 introduced).
         // Tag written by boot_image.py at mem[NS_TABLE_BASE - 1].
-        const BOOT_IMAGE_FORMAT_TAG = 0xB0070247;  // must match boot_image.py
+        const BOOT_IMAGE_FORMAT_TAG = 0xB0070355;  // must match boot_image.py
         const tagIdx = src.length - this.NS_TABLE_RESERVE - 1;
         if (tagIdx >= 0 && tagIdx < src.length) {
             if ((src[tagIdx] >>> 0) !== BOOT_IMAGE_FORMAT_TAG) {
@@ -1024,10 +1024,10 @@ class ChurchSimulator {
         this.memory[this.NS_TABLE_BASE - 2] = this.bootEntrySlot >>> 0;
         // Format-version tag: written immediately before the NS table (at
         // NS_TABLE_BASE - 1) so that loadBootImage() can detect and reject
-        // stale binaries. Bumped to 0x247 (Task #247) — Boot.Abstr director
-        // eliminated; slot 2 is now a free/null NS entry.
+        // stale binaries. Bumped to 0x355 (Task #355) — boot-entry metadata
+        // word added at NS_TABLE_BASE - 2.
         // Must match boot_image.py BOOT_IMAGE_FORMAT_TAG and loadBootImage().
-        const BOOT_IMAGE_FORMAT_TAG_INIT = 0xB0070247;
+        const BOOT_IMAGE_FORMAT_TAG_INIT = 0xB0070355;
         this.memory[this.NS_TABLE_BASE - 1] = BOOT_IMAGE_FORMAT_TAG_INIT >>> 0;
     }
 
@@ -1169,7 +1169,7 @@ class ChurchSimulator {
                 const hdrWord  = this.memory[base] >>> 0;                           // raw 32-bit lump header word
                 const hdr      = this.parseLumpHeader(hdrWord);                     // decode {magic, cc, cw, lumpSize, valid}
                 if (!hdr.valid) {
-                    this.fault('BOOT', `LOAD_NUC: LED flash lump header magic=0x${hdr.magic.toString(16)} (expected 0x1F)`);
+                    this.fault('BOOT', `LOAD_NUC: ${_b4Label} lump header magic=0x${hdr.magic.toString(16)} (expected 0x1F)`);
                     return false;
                 }
                 const cw         = hdr.cw;                                          // code-word count
@@ -1177,7 +1177,7 @@ class ChurchSimulator {
                 const lumpSz     = hdr.lumpSize;                                    // total lump size in 32-bit words
                 const clistStart = lumpSz - cc;                                     // c-list begins at physical end of lump
                 if (cc === 0) {
-                    this.fault('BOOT', 'LOAD_NUC: LED flash lump header cc=0 — no C-List');
+                    this.fault('BOOT', `LOAD_NUC: ${_b4Label} lump header cc=0 — no C-List`);
                     return false;
                 }
 

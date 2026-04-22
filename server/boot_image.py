@@ -51,7 +51,7 @@ BOOT_ABSTR_NS_SLOT   = 3   # NS slot holding the Boot Abstraction lump (Boot.Abs
 # Format-version tag written to mem[NS_TABLE_BASE - 1] so loadBootImage()
 # can reject stale binaries. Bumped to 0x247 (Task #247) when Boot.Abstr
 # director was eliminated: slot 2 is now a free/null NS entry.
-BOOT_IMAGE_FORMAT_TAG = 0xB0070247  # "BOOT 0247" — must match simulator.js
+BOOT_IMAGE_FORMAT_TAG = 0xB0070355  # "BOOT 0355" — must match simulator.js; bumped Task #355 (boot-entry metadata word)
 
 # Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM
 # (Task #237). Written into Boot.Abstr lump code region so the binary matches
