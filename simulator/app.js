@@ -4707,10 +4707,8 @@ function generateBootImage() {
         });
 }
 
-function handleBootImageUpload(input) {
-    const file = input.files && input.files[0];
+function uploadBootImageFile(file) {
     if (!file) return;
-    input.value = '';
     const result  = document.getElementById('bdGenResult');
     const errEl   = document.getElementById('bdError');
     const upBtn   = document.getElementById('bdUploadBtn');
@@ -4771,6 +4769,13 @@ function handleBootImageUpload(input) {
         if (genBtn) { genBtn.disabled = false; genBtn.style.opacity = '1'; }
     };
     reader.readAsArrayBuffer(file);
+}
+
+function handleBootImageUpload(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    input.value = '';
+    uploadBootImageFile(file);
 }
 
 function updateNamespace() {

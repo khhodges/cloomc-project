@@ -536,6 +536,14 @@
 
             <div id="bdError" style="margin-top:12px;font-size:0.85rem;color:#f55;min-height:1.2em;"></div>
 
+            <div id="bdDropZone"
+                 ondragover="event.preventDefault();event.dataTransfer.dropEffect='copy';this.style.borderColor='#9bd';this.style.background='#162436';"
+                 ondragleave="this.style.borderColor='#555';this.style.background='#111';"
+                 ondrop="event.preventDefault();this.style.borderColor='#555';this.style.background='#111';var f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)uploadBootImageFile(f);"
+                 style="margin-top:14px;border:2px dashed #555;border-radius:5px;padding:14px;text-align:center;font-size:0.83rem;color:#888;background:#111;cursor:default;transition:border-color 0.15s,background 0.15s;">
+                Drop a <code style="color:#aaa;">.bin</code> boot image file here to upload
+            </div>
+
             <input type="file" id="bdUploadInput" accept=".bin,application/octet-stream" style="display:none;" onchange="handleBootImageUpload(this)">
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
                 <button class="btn btn-sm" onclick="closeBootDesigner()" style="background:#333;color:#ddd;border:1px solid #555;">Cancel</button>
