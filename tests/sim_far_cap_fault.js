@@ -187,9 +187,11 @@ function fail(msg) { ERRORS.push(msg); }
 
 // ─── Test 4: mSave fires F_BIT when the TARGET NS slot has F=1 ───────────────
 //
-// The mSave gate at simulator.js ~line 1484 checks the F-bit on the TARGET slot
-// (not the source).  _execSave always passes targetIdx=null so this branch can
-// only be exercised by calling mSave directly.  This test does exactly that:
+// The mSave gate checks the F-bit on the TARGET slot (not the source).
+// _execSave now resolves the C-list NS index and passes it as targetIdx, so
+// the Far-bit policy is enforced symmetrically with CALL/LOAD.  This test
+// exercises the same gate directly (bypassing the SAVE instruction path) and
+// serves as the regression anchor ensuring the check remains correct.
 //
 //   1. Boot the simulator so valid NS entries exist.
 //   2. Build a synthetic GT for bootEntrySlot with B=1 (so bindPass succeeds)

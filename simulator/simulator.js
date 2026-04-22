@@ -2272,13 +2272,19 @@ class ChurchSimulator {
             this.fault('NULL_CAP', `SAVE: CR${d.crDst} is NULL`);
             return null;
         }
-        const saveCheck = this.mSave(srcGT, null, d.crDst);
+        // Resolve the destination C-list NS index before calling mSave so that
+        // the Far-bit (F=1) policy is enforced symmetrically with CALL/LOAD.
+        // A SAVE that would write a capability into a Far-namespace C-list slot
+        // must fault with F_BIT — previously targetIdx=null made that check
+        // unreachable for every SAVE instruction (bug).
+        const clistGT = this.cr[d.crSrc].word0;
+        const clistTargetIdx = (clistGT !== 0) ? this.parseGT(clistGT).index : null;
+        const saveCheck = this.mSave(srcGT, clistTargetIdx, d.crDst);
         if (!saveCheck.ok) {
             this.fault(saveCheck.fault, `SAVE: CR${d.crDst}: ${saveCheck.message}`);
             return null;
         }
         const savedCap = this.lastCapability;
-        const clistGT = this.cr[d.crSrc].word0;
         if (clistGT === 0) {
             this.fault('NULL_CAP', `SAVE: CR${d.crSrc} C-List is NULL`);
             return null;
