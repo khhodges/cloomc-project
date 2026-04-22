@@ -64,7 +64,7 @@ module ctmm_core
     logic [3:0]  cr_rd_addr, cr_wr_addr;
     golden_token_t cr_rd_data, cr_wr_data;
     logic        cr_wr_en;
-    golden_token_t cr6_clist, cr7_cloomc, cr8_thread, cr15_namespace;
+    golden_token_t cr6_clist, cr14_cloomc, cr8_thread, cr15_namespace;
     capability_reg_t cr12_cap;  // Full CR12 for THREAD_HDR: word1_location = incoming thread lump base
     golden_token_t cr6_wr_data, cr7_wr_data, cr8_wr_data, cr15_wr_data;
     golden_token_t cr9_wr_data, cr10_wr_data, cr11_wr_data, cr12_wr_data, cr13_wr_data, cr14_wr_data;
@@ -150,7 +150,7 @@ module ctmm_core
         .cr_wr_data     (cr_wr_data),
         .cr_wr_en       (cr_wr_en),
         .cr6_clist      (cr6_clist),
-        .cr7_cloomc     (cr7_cloomc),
+        .cr14_cloomc    (cr14_cloomc),
         .cr8_thread     (cr8_thread),
         .cr15_namespace (cr15_namespace),
         .cr12_cap       (cr12_cap),

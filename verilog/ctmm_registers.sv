@@ -9,7 +9,7 @@
 //
 // Special Registers:
 //   CR6:  Current C-List
-//   CR7:  CLOOMC Nucleus (Function Abstraction Code)
+//   CR14: CLOOMC Nucleus (Function Abstraction Code)
 //   CR8:  Suspended Thread State
 //   CR9:  Interrupt Thread
 //   CR10: Double Fault Recovery Thread
@@ -50,7 +50,7 @@ module ctmm_registers
     
     // Special register direct access (for fast paths)
     output capability_reg_t cr6_clist,        // CR6: Current C-List
-    output capability_reg_t cr7_cloomc,       // CR7: CLOOMC Nucleus (Function Abstraction Code)
+    output capability_reg_t cr14_cloomc,      // CR14: CLOOMC Nucleus (Function Abstraction Code)
     output capability_reg_t cr8_thread,       // CR8: Suspended Thread State
     output capability_reg_t cr12_cap,         // CR12: incoming thread capability (word1_location = lump base after CHANGE)
     output capability_reg_t cr15_namespace,   // CR15: Namespace root
@@ -133,7 +133,7 @@ module ctmm_registers
     
     // Special register outputs
     assign cr6_clist      = cap_regs[CR_CLIST];
-    assign cr7_cloomc     = cap_regs[CR_NUCLEUS];
+    assign cr14_cloomc    = cap_regs[CR_CLOOMC];
     assign cr8_thread     = cap_regs[CR_THREAD];
     assign cr12_cap       = cap_regs[12];
     assign cr15_namespace = cap_regs[CR_NAMESPACE];
