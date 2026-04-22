@@ -25,14 +25,13 @@ GT_TYPE_ABSTRACT = 0b11
 NUM_CAP_REGS = 16
 NUM_DATA_REGS = 16
 
-CR_HEAP      = 5
-CR_CLIST     = 6
-CR_CLOOMC    = 14
-CR_THREAD    = 12
-CR_INTERRUPT = 13
-CR_THREAD_STACK = 12
-CR_CODE      = 14
-CR_NAMESPACE = 15
+CR_HEAP         = 5
+CR_CLIST        = 6
+CR_THREAD_STACK = 12   # CR12: thread stack capability (canonical name)
+CR_INTERRUPT    = 13
+CR_CLOOMC       = 14   # CR14: code register / CLOOMC (canonical name)
+CR_CODE         = 14   # alias for CR_CLOOMC — kept for call/cload hardware modules
+CR_NAMESPACE    = 15
 
 GT_SEQ_BITS     = 7
 GT_SLOT_ID_BITS = 16

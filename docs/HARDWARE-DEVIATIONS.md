@@ -53,11 +53,12 @@ Authoritative sources: `hardware/hw_types.py`, `hardware/layouts.py`, `hardware/
 
 ### D-4: CR Register Remap (Dual Names)
 
-- **Hardware** (`hw_types.py`): `CR_THREAD = 12`, `CR_THREAD_STACK = 12` (same register). `CR_CODE = 14`, `CR_CLOOMC = 14` (same register).
-- **Docs**: `architecture.md` lines 227–229 uses both names. The dual naming is documented but creates potential confusion about whether these are distinct registers or aliases.
-- **Decision**: Should docs standardize on one canonical name per register, or keep both names with explicit alias notation?
+**CR12 — RESOLVED**: `CR_THREAD = 12` (old alias) has been removed from `hw_types.py`. The single canonical constant is now `CR_THREAD_STACK = 12`. The one caller in `hardware/registers.py` was updated to use `CR_THREAD_STACK`.
+
+**CR14 — OPEN**: `CR_CODE = 14` and `CR_CLOOMC = 14` both remain in `hw_types.py`. `CR_CLOOMC` is the canonical semantic name; `CR_CODE` is retained as an explicit alias used by the `call`/`cload` hardware modules. Both names are annotated with inline comments.
+- **Decision remaining**: Should `CR_CODE` callers (`hardware/core.py`, `hardware/cload.py`, `hardware/registers.py`) be migrated to `CR_CLOOMC`? Alternatively, keep `CR_CODE` as an intentional alias for the instruction-fetch role.
 - **Affected files**: `architecture.md`, `boot-permission-rules.md`
-- **Pending task**: None currently tracked — architect to decide naming convention
+- **Pending task**: None currently tracked — architect to decide whether to unify CR14 names
 
 ### D-5: Navana.Init Wiring
 

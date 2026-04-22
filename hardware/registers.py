@@ -86,7 +86,7 @@ class ChurchRegisters(Elaboratable):
         m.d.comb += [
             self.cr5_heap.eq(cap_regs[CR_HEAP]),
             self.cr6_clist.eq(cap_regs[CR_CLIST]),
-            self.cr12_thread.eq(cap_regs[CR_THREAD]),
+            self.cr12_thread.eq(cap_regs[CR_THREAD_STACK]),
             self.cr13_interrupt.eq(cap_regs[CR_INTERRUPT]),
             self.cr14_code.eq(cap_regs[CR_CODE]),
             self.cr15_namespace.eq(cap_regs[CR_NAMESPACE]),
