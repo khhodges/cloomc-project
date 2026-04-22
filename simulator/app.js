@@ -4888,7 +4888,7 @@ function hideNSEntryTooltip() {
 
 let selectedAbsIndex = null;
 let absCollapsedLayers = {};
-let bootEntrySlot = parseInt(localStorage.getItem('bootEntrySlot') || '3', 10);
+let bootEntrySlot = (() => { const s = parseInt(localStorage.getItem('bootEntrySlot'), 10); return Number.isFinite(s) ? Math.max(0, Math.min(255, s)) : 3; })();
 let userMethodData = {};
 let userMethodLists = {};
 
