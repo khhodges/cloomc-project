@@ -21548,7 +21548,20 @@ function jumpToTraceStep(stepNum) {
     const target = tbody.querySelector(`tr[data-step="${stepNum}"]`);
     if (!target) return;
     document.querySelectorAll('.trace-row-highlighted').forEach(el => el.classList.remove('trace-row-highlighted'));
+    document.querySelectorAll('.trace-gatelog-back').forEach(el => el.remove());
     target.classList.add('trace-row-highlighted');
+    const firstTd = target.querySelector('td');
+    if (firstTd) {
+        const backBtn = document.createElement('button');
+        backBtn.className = 'trace-gatelog-back';
+        backBtn.title = 'Return to Gate Log';
+        backBtn.textContent = '\u2190 Gate Log';
+        backBtn.addEventListener('click', function() {
+            switchView('dashboard');
+            switchDashTab('gatelog');
+        });
+        firstTd.insertBefore(backBtn, firstTd.firstChild);
+    }
     target.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
