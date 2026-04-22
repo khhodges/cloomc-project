@@ -48,6 +48,11 @@ DEVICE_REG_LIMITS = {11: 2, 12: 5, 13: 0, 14: 4}
 
 BOOT_ABSTR_NS_SLOT   = 3   # NS slot holding the Boot Abstraction lump (Boot.Abstr)
 
+# Mandatory NS slots — every valid boot image must have a non-zero entry here.
+# Slot 2 is intentionally null/free (Boot.Abstr director eliminated — Task #247)
+# and is therefore excluded from this set.
+_MANDATORY_NS_SLOTS = (0, 1, BOOT_ABSTR_NS_SLOT)  # slots 0, 1, 3
+
 # Format-version tag written to mem[NS_TABLE_BASE - 1] so loadBootImage()
 # can reject stale binaries. Bumped to 0x247 (Task #247) when Boot.Abstr
 # director was eliminated: slot 2 is now a free/null NS entry.
@@ -217,6 +222,56 @@ def compute_seal(location, limit17):
 
 def make_version_seals(gt_seq, location, limit17):
     return _u32(((gt_seq & 0x7F) << 25) | (compute_seal(location, limit17) & 0xFFFF))
+
+
+# ----- pre-flight validator --------------------------------------------------
+
+def validate_boot_image(image_bytes, total_namespace_words=None):
+    """Inspect the NS table inside a boot image and raise ValueError early.
+
+    Checks every mandatory NS slot (0, 1, BOOT_ABSTR_NS_SLOT=3) and raises
+    ValueError if both word0 and word1 are zero.  A zeroed mandatory slot
+    causes the simulator's isNSEntryValid() to return false, producing a
+    BOOT fault at runtime; catching it here surfaces the problem with a
+    clear Python-level error before the image ever reaches the harness.
+
+    ``total_namespace_words`` defaults to ``len(image_bytes) // 4``; pass
+    the explicit value from the config dict when available so the check is
+    exact even if the image has trailing padding.
+
+    Slot 2 is intentionally null/free (Boot.Abstr director eliminated —
+    Task #247) and is not checked.
+
+    Raises:
+        ValueError: if any mandatory slot is zeroed, or the image is too
+                    small to contain the NS table at all.
+    """
+    if total_namespace_words is None:
+        total_namespace_words = len(image_bytes) // 4
+    total = total_namespace_words
+    ns_table_base = total - NS_TABLE_RESERVE
+    n_words = len(image_bytes) // 4
+    if n_words < total:
+        raise ValueError(
+            f"validate_boot_image: image is too small "
+            f"({n_words} words, expected {total})"
+        )
+    words = struct.unpack(f"<{n_words}I", image_bytes[: n_words * 4])
+    for slot in _MANDATORY_NS_SLOTS:
+        base = ns_table_base + slot * NS_ENTRY_WORDS
+        if base + 1 >= n_words:
+            raise ValueError(
+                f"validate_boot_image: image too small to contain NS slot {slot} "
+                f"(base={base}, image_words={n_words})"
+            )
+        word0 = words[base]
+        word1 = words[base + 1]
+        if word0 == 0 and word1 == 0:
+            raise ValueError(
+                f"validate_boot_image: mandatory NS slot {slot} is zeroed "
+                f"(word0=0x{word0:08x}, word1=0x{word1:08x}); "
+                "the boot image is invalid and would cause a BOOT fault at runtime"
+            )
 
 
 # ----- main generator --------------------------------------------------------
@@ -475,4 +530,10 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
             mem[phys + i] = body[i] & 0xFFFFFFFF
 
     # ----- Pack ----------------------------------------------------------
-    return struct.pack(f"<{total}I", *mem)
+    image = struct.pack(f"<{total}I", *mem)
+
+    # Pre-flight sanity check: catch a zeroed mandatory NS slot now rather
+    # than waiting for the simulator to fault at runtime.
+    validate_boot_image(image, total)
+
+    return image
