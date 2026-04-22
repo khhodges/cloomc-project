@@ -1153,13 +1153,13 @@ class ChurchSimulator {
                     return false;
                 }
                 if (entryCheck.parsed.type !== 1) {                                                        // must be Inform (type=1)
-                    this.fault('BOOT', `LOAD_NUC: ${_b4Label} type is ${entryCheck.parsed.typeName}, must be Inform`);
+                    this.fault('TYPE', `LOAD_NUC: ${_b4Label} type is ${entryCheck.parsed.typeName}, must be Inform`);
                     return false;
                 }
                 const entryNSEntry  = entryCheck.entry;                             // NS entry for boot entry abstraction
                 const entryNSParsed = this.parseNSWord1(entryNSEntry.word1_limit);
                 if (entryNSParsed.f === 1) {                                        // Far-lumps not supported at boot
-                    this.fault('BOOT', `LOAD_NUC: ${_b4Label} has F-bit set (Far) — FAULT`);
+                    this.fault('FAR', `LOAD_NUC: ${_b4Label} has F-bit set (Far) — not supported at boot`);
                     return false;
                 }
                 const bootEntrySlot = this.bootEntrySlot;
@@ -1169,7 +1169,7 @@ class ChurchSimulator {
                 const hdrWord  = this.memory[base] >>> 0;                           // raw 32-bit lump header word
                 const hdr      = this.parseLumpHeader(hdrWord);                     // decode {magic, cc, cw, lumpSize, valid}
                 if (!hdr.valid) {
-                    this.fault('BOOT', `LOAD_NUC: ${_b4Label} lump header magic=0x${hdr.magic.toString(16)} (expected 0x1F)`);
+                    this.fault('LUMP_MAGIC', `LOAD_NUC: ${_b4Label} lump header magic=0x${hdr.magic.toString(16)} (expected 0x1F) — lump not installed or memory zeroed`);
                     return false;
                 }
                 const cw         = hdr.cw;                                          // code-word count
@@ -1177,7 +1177,7 @@ class ChurchSimulator {
                 const lumpSz     = hdr.lumpSize;                                    // total lump size in 32-bit words
                 const clistStart = lumpSz - cc;                                     // c-list begins at physical end of lump
                 if (cc === 0) {
-                    this.fault('BOOT', `LOAD_NUC: ${_b4Label} lump header cc=0 — no C-List`);
+                    this.fault('LUMP_LAYOUT', `LOAD_NUC: ${_b4Label} lump header cc=0 — no C-List (lump has no capability slots)`);
                     return false;
                 }
 

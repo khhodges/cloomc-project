@@ -11039,14 +11039,18 @@ const _FAULT_CODES = {
     // Software-only (no hardware code):
     PERM:null, FAR:null, BOOT:null, MATH_ERROR:null,
     DOMAIN_ERROR:null, HANDLER:null, PERMISSION:null, TYPE:null,
+    LUMP_MAGIC:null, LUMP_SIZE:null, LUMP_LAYOUT:null, LUMP_OOM:null,
 };
 
-// Human-readable descriptions for firmware download (outform) fault codes.
+// Human-readable descriptions for firmware download (outform) fault codes
+// and lump structural integrity fault codes.
 const _OUTFORM_DESCRIPTIONS = {
     OUTFORM_CRC:   'CRC-32 mismatch in the downloaded lump — the binary was corrupted in transit. Try re-downloading or re-flashing.',
     OUTFORM_ALLOC: 'Memory allocator rejected the lump — not enough free lump space to install this abstraction. Evict unused lumps and retry.',
     OUTFORM_MINT:  'Capability minting failed during lump install — the lump\u2019s GT could not be sealed. Check lump permissions and slot type.',
     OUTFORM_HDR:   'Lump header validation failed — bad length or alignment in the downloaded binary. The lump file may be truncated or malformed.',
+    LUMP_MAGIC:    'Lump header magic byte is invalid — the slot has no compiled lump installed, or memory has been zeroed. Compile and install an abstraction into this namespace slot, then retry the boot.',
+    LUMP_LAYOUT:   'Lump capability-list length is zero (cc=0) — the lump has no C-List. The lump binary may be corrupt or was compiled without any capability slots. Recompile and reinstall the abstraction.',
 };
 // Map simulator-internal LUMP_* fault names to their OUTFORM_* equivalents.
 const _LUMP_TO_OUTFORM = {
@@ -11168,7 +11172,7 @@ function showFaultModal(f) {
         }
     }
 
-    // ── Firmware download failure callout for OUTFORM_* / LUMP_* faults ──────
+    // ── Firmware download / lump integrity failure callout ────────────────────
     let outformSection = '';
     let isOutformFault = false;
     {
@@ -11178,9 +11182,11 @@ function showFaultModal(f) {
         if (outformKey) {
             isOutformFault = true;
             const desc = _OUTFORM_DESCRIPTIONS[outformKey];
+            const isLumpFault = f.type.startsWith('LUMP_');
+            const sectionLabel = isLumpFault ? '&#x26A0; Lump Integrity Failure' : '&#x26A0; Firmware Download Failure';
             outformSection = `
         <div class="fault-scope-section">
-            <div class="fault-scope-label">&#x26A0; Firmware Download Failure</div>
+            <div class="fault-scope-label">${sectionLabel}</div>
             <div class="fault-scope-detail">${desc}</div>
         </div>`;
         }
