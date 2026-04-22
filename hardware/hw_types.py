@@ -27,6 +27,7 @@ NUM_DATA_REGS = 16
 
 CR_HEAP         = 5
 CR_CLIST        = 6
+CR_NUCLEUS      = 7
 CR_THREAD_STACK = 12   # CR12: thread stack capability (canonical name)
 CR_INTERRUPT    = 13
 CR_CLOOMC       = 14   # CR14: code register / CLOOMC (canonical name)

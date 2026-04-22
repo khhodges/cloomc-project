@@ -47,7 +47,6 @@ class ChurchELoadCall(Elaboratable):
         m = Module()
 
         CR6_CLIST = 6
-        CR7_NUCLEUS = 7
         MAX_SRC_REG = 5
 
         u_mload = ChurchMLoad()
@@ -92,7 +91,7 @@ class ChurchELoadCall(Elaboratable):
             with m.Default():
                 m.d.comb += [
                     mload_src.eq(CR6_CLIST),
-                    mload_dst.eq(CR7_NUCLEUS),
+                    mload_dst.eq(CR_NUCLEUS),
                     mload_index.eq(0),
                 ]
 
