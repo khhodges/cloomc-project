@@ -209,7 +209,7 @@ Special assignments (from `hardware/hw_types.py`):
 - **CR6**:  Current capability list (CR_CLIST) — entered via CALL (programmer-accessible)
 - **CR12**: Thread stack (CR_THRSTK) — privileged, system-wide
 - **CR13**: Interrupt handler (CR_INTERRUPT) — privileged, system-wide (unchanged by CHANGE)
-- **CR14**: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) / Code (CR_[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) / CR_CODE) — instruction fetch source, X-only (privileged, per-thread)
+- **CR14**: [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) (CR_CLOOMC) — instruction fetch source, X-only (privileged, per-thread)
 - **CR15**: Namespace root (CR_NAMESPACE) — privileged, per-thread
 
 ### Data Registers (DR0–DR15)
