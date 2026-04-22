@@ -250,7 +250,9 @@ class SystemAbstractions {
 
         this.registry.bindMethod(2, 'ReadParam', function(sim, args) {
             const key = (args && args.dr1 !== undefined) ? (args.dr1 >>> 0) : 0;
-            if (key >= 64) {
+            // 64-word lump: lump[0]=header; data words are lump[1..63] → keys 0..62.
+            // Key 63+ would map past the end of the lump into the next slot's memory.
+            if (key >= 63) {
                 return { ok: true, result: 0xFFFFFFFF,
                          message: 'Startup.Config.ReadParam: KEY_OOB' };
             }
@@ -261,11 +263,14 @@ class SystemAbstractions {
         this.registry.bindMethod(2, 'WriteParam', function(sim, args) {
             const key   = (args && args.dr1 !== undefined) ? (args.dr1 >>> 0) : 0;
             const value = (args && args.dr2 !== undefined) ? (args.dr2 >>> 0) : 0;
+            // Keys 0-2 are read-only (entry_slot, config_version, flags).
             if (key < 3) {
                 return { ok: false, result: 2,
                          message: `Startup.Config.WriteParam: READ_ONLY (key ${key})` };
             }
-            if (key >= 64) {
+            // 64-word lump: lump[0]=header; data words are lump[1..63] → keys 0..62.
+            // Key 63+ would corrupt the next slot's memory.
+            if (key >= 63) {
                 return { ok: false, result: 1,
                          message: 'Startup.Config.WriteParam: KEY_OOB' };
             }
@@ -297,7 +302,7 @@ class SystemAbstractions {
         this.registry.bindMethod(2, 'Reset', function(sim, args) {
             setData(sim, 0, STARTUP_CONFIG_DEFAULT_ENTRY); // entry_slot = 4 (LED flash, default)
             setData(sim, 2, 0);                             // flags = 0
-            for (let k = 3; k < 64; k++) setData(sim, k, 0); // fault_count + user params = 0
+            for (let k = 3; k < 63; k++) setData(sim, k, 0); // fault_count + user params = 0
             // data[1] (config_version) is intentionally preserved across Reset
             return { ok: true, result: 0, message: 'Startup.Config.Reset → ok' };
         });

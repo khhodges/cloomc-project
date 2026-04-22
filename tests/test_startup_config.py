@@ -208,9 +208,19 @@ def test_method_ReadParam_config_version():
     assert _h()["ReadParam_key1"]["result"] == STARTUP_CONFIG_VERSION
 
 
-def test_method_ReadParam_oob():
-    """ReadParam(64) returns 0xFFFFFFFF (KEY_OOB sentinel)."""
+def test_method_ReadParam_last_valid_key():
+    """ReadParam(62) returns a non-OOB value — key 62 is valid (default 0)."""
+    assert _h()["ReadParam_key62"]["result"] != 0xFFFFFFFF
+
+
+def test_method_ReadParam_oob_key63():
+    """ReadParam(63) returns 0xFFFFFFFF — key 63 is past the 64-word lump boundary."""
     assert _h()["ReadParam_oob"]["result"] == 0xFFFFFFFF
+
+
+def test_method_ReadParam_oob_key64():
+    """ReadParam(64) also returns 0xFFFFFFFF (deeply OOB)."""
+    assert _h()["ReadParam_oob64"]["result"] == 0xFFFFFFFF
 
 
 def test_method_WriteParam_and_roundtrip():
@@ -219,14 +229,29 @@ def test_method_WriteParam_and_roundtrip():
     assert _h()["ReadParam_key5"]["result"] == 0xABCD
 
 
+def test_method_WriteParam_last_valid_key():
+    """WriteParam(62, 0x1234) returns 0=ok (key 62 is the last writable key)."""
+    assert _h()["WriteParam_key62"]["result"] == 0
+
+
 def test_method_WriteParam_readonly():
     """WriteParam(1, ...) returns 2=READ_ONLY (header words are protected)."""
     assert _h()["WriteParam_ro"]["result"] == 2
 
 
-def test_method_WriteParam_oob():
-    """WriteParam(64, ...) returns 1=KEY_OOB."""
+def test_method_WriteParam_oob_key63():
+    """WriteParam(63, ...) returns 1=KEY_OOB — must not write past the lump end."""
     assert _h()["WriteParam_oob"]["result"] == 1
+
+
+def test_method_WriteParam_oob_does_not_corrupt_boot_abstr():
+    """WriteParam(63, 0xDEADBEEF) must not overwrite Boot.Abstr's lump header."""
+    assert _h()["WriteParam_oob_boot_abstr_hdr_unchanged"] is True
+
+
+def test_method_WriteParam_oob_key64():
+    """WriteParam(64, ...) also returns 1=KEY_OOB (deeply OOB)."""
+    assert _h()["WriteParam_oob64"]["result"] == 1
 
 
 def test_method_Validate_bitmask():

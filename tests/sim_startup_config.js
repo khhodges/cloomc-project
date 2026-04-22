@@ -82,9 +82,17 @@ out.ReadParam_key0 = { result: rp0.result };
 const rp1 = call('ReadParam', { dr1: 1 });
 out.ReadParam_key1 = { result: rp1.result };
 
-// ReadParam(64) — out-of-bounds → 0xFFFFFFFF
-const rpOob = call('ReadParam', { dr1: 64 });
+// ReadParam(62) — last valid key
+const rp62 = call('ReadParam', { dr1: 62 });
+out.ReadParam_key62 = { result: rp62.result };
+
+// ReadParam(63) — first OOB key → 0xFFFFFFFF
+const rpOob = call('ReadParam', { dr1: 63 });
 out.ReadParam_oob = { result: rpOob.result };
+
+// ReadParam(64) — also OOB → 0xFFFFFFFF
+const rpOob64 = call('ReadParam', { dr1: 64 });
+out.ReadParam_oob64 = { result: rpOob64.result };
 
 // WriteParam(5, 0xABCD) — ok
 const wp = call('WriteParam', { dr1: 5, dr2: 0xABCD });
@@ -94,13 +102,27 @@ out.WriteParam_ok = { result: wp.result };
 const rp5 = call('ReadParam', { dr1: 5 });
 out.ReadParam_key5 = { result: rp5.result };
 
+// WriteParam(62, 0x1234) — last valid writable key
+const wp62 = call('WriteParam', { dr1: 62, dr2: 0x1234 });
+out.WriteParam_key62 = { result: wp62.result };
+
 // WriteParam(1, 0) — READ_ONLY (key 0..2 are protected)
 const wpRo = call('WriteParam', { dr1: 1, dr2: 0 });
 out.WriteParam_ro = { result: wpRo.result };
 
-// WriteParam(64, 0) — KEY_OOB
-const wpOob = call('WriteParam', { dr1: 64, dr2: 0 });
+// WriteParam(63, 0xDEAD) — KEY_OOB (lump only has 63 data words at keys 0-62)
+// Record Boot.Abstr header BEFORE, attempt write, verify header unchanged.
+const oobBootAbstrBase = sim.NS_TABLE_BASE + 3 * sim.NS_ENTRY_WORDS;
+const oobBootAbstrLoc  = sim.memory[oobBootAbstrBase] >>> 0;
+const bootAbstrHdrBefore = sim.memory[oobBootAbstrLoc] >>> 0;
+const wpOob = call('WriteParam', { dr1: 63, dr2: 0xDEADBEEF });
+const bootAbstrHdrAfter  = sim.memory[oobBootAbstrLoc] >>> 0;
 out.WriteParam_oob = { result: wpOob.result };
+out.WriteParam_oob_boot_abstr_hdr_unchanged = (bootAbstrHdrBefore === bootAbstrHdrAfter);
+
+// WriteParam(64, 0) — also KEY_OOB
+const wpOob64 = call('WriteParam', { dr1: 64, dr2: 0 });
+out.WriteParam_oob64 = { result: wpOob64.result };
 
 // Validate — all four foundational slots should be non-null → 0xF
 const val = call('Validate');
