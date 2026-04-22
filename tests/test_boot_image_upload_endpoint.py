@@ -206,6 +206,19 @@ def test_upload_malformed_base64_returns_400(client, bad_b64):
     )
 
 
+def test_empty_image_guard_direct():
+    """Call _validate_boot_image_bytes(b"") directly — no HTTP layer involved.
+
+    This is a companion to test_upload_empty_image_returns_400.  It confirms
+    that the guard is independently exercised via the factored-out helper and
+    would remain covered even if the HTTP routing changed.
+    """
+    from server.app import _validate_boot_image_bytes
+
+    with pytest.raises(ValueError, match="Boot image is empty"):
+        _validate_boot_image_bytes(b"")
+
+
 def test_upload_empty_image_returns_400(client):
     """POST a zero-byte image must return 400 with 'Boot image is empty'.
 

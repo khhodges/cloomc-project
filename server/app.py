@@ -608,6 +608,21 @@ def boot_image_exists():
     """Return whether a boot-image.bin currently exists on disk."""
     return jsonify({"exists": os.path.isfile(BOOT_IMAGE_PATH)})
 
+def _validate_boot_image_bytes(image_bytes):
+    """Raise ValueError if image_bytes fails the basic structural checks.
+
+    This helper is factored out of boot_image_upload() so the guards can be
+    exercised in unit tests without going through the HTTP layer.
+
+    Raises:
+        ValueError: with a human-readable message if the image is rejected.
+    """
+    if len(image_bytes) == 0:
+        raise ValueError("Boot image is empty")
+    if len(image_bytes) % 4 != 0:
+        raise ValueError("Boot image size must be a multiple of 4 bytes")
+
+
 @app.route("/api/boot-image/upload", methods=["POST"])
 def boot_image_upload():
     """Accept an externally-supplied boot image binary, validate it, and save.
@@ -639,12 +654,12 @@ def boot_image_upload():
     # produces) will reach this guard rather than the None-check above.
     # The guard also provides defensive depth if this function is ever
     # invoked directly with b"" (bypassing the HTTP layer).
-    # Covered by test_upload_empty_image_returns_400 in
-    # tests/test_boot_image_upload_endpoint.py.
-    if len(image_bytes) == 0:
-        return jsonify({"ok": False, "error": "Boot image is empty"}), 400
-    if len(image_bytes) % 4 != 0:
-        return jsonify({"ok": False, "error": "Boot image size must be a multiple of 4 bytes"}), 400
+    # Covered by test_upload_empty_image_returns_400 and
+    # test_empty_image_guard_direct in tests/test_boot_image_upload_endpoint.py.
+    try:
+        _validate_boot_image_bytes(image_bytes)
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
 
     try:
         _boot_image_gen.validate_boot_image(image_bytes)
