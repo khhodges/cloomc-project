@@ -742,7 +742,16 @@ class CTMMCapCore(Elaboratable):
         ]
 
         # M-window shadow data sources (Mux: mgt_set_trigger > cr15_m_set).
-        # For the cr15_m_set path, compute integrity32 here so WRITEBACK passes.
+        # CALL path (mgt_set_trigger): DR11-DR15 sourced from fetched NS entry — this
+        # is the authoritative path for a full 5-word shadow (GT + location + limit +
+        # integrity + seals).
+        # Test-port path (cr15_m_set): DR11-DR14 sourced from current CR15 fields +
+        # computed integrity32; DR15=0 intentionally (seals not available via test port).
+        # NOTE: Because DR15=0, seals.version=0; the writeback version check
+        #   (GT.version == seals.version) will only pass for GT.version=0.
+        #   cr15_m_set is a debug/injection port and must only be used with
+        #   version-0 GTs.  Production code must go through the CALL path.
+        # Writeback validates only DR11-DR14; DR15/XR15 is advisory only.
         cr15_ns_mset_view = View(CAP_REG_LAYOUT, u_regs.cr15_namespace)
         cr15_m_set_integrity = Signal(32)
         integrity32_amaranth(
@@ -770,7 +779,7 @@ class CTMMCapCore(Elaboratable):
             ),
             u_regs.m_set_dr15.eq(
                 Mux(u_call.mgt_set_trigger, u_call.mgt_ns_seals,
-                    cr15_ns_mset_view.word3_seals)  # cr15_m_set: preserve word3_seals from CR15
+                    0)  # cr15_m_set path: XR15 not populated from test port (Task #440 step 3)
             ),
         ]
 

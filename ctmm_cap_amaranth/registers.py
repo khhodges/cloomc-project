@@ -61,12 +61,15 @@ class CTMMCapRegisters(Elaboratable):
         self.m_set_dr14 = Signal(32)   # NS entry word2_integrity
         self.m_set_dr15 = Signal(32)   # NS entry word3_abstract_gt (advisory seals)
 
-        # Combinatorial read of the M-window XRs (always valid)
+        # Combinatorial read of the M-window XRs (always valid).
+        # XR11 = GT word, XR12 = NS_location, XR13 = NS_limit (authority),
+        # XR14 = NS_integrity (4-word core shadow for WRITEBACK).
+        # XR15 = NS_seals (advisory; 0 when set via cr15_m_set test port).
         self.m_xr11 = Signal(32)
         self.m_xr12 = Signal(32)
         self.m_xr13 = Signal(32)
-        self.m_xr14 = Signal(32)
-        self.m_xr15 = Signal(32)
+        self.m_xr14 = Signal(32)   # added for Task #440: 5-word M-window shadow
+        self.m_xr15 = Signal(32)   # NS_seals advisory; 0 on cr15_m_set path
 
         # Current M-flag state (combinatorial from cr15_m_reg)
         self.cr15_m_flag = Signal()

@@ -174,8 +174,8 @@ class CTMMCapCall(Elaboratable):
 
             with m.State("CHECK_PERM"):
                 with m.If(src_gt.gt_type == GT_TYPE_ABSTRACT):
-                    # M-GT dispatch: latch the Abstract GT word and fetch 3 NS entry
-                    # words (location/limit/integrity) from Mem[CR15.loc + index<<4].
+                    # M-GT dispatch: latch the Abstract GT word and fetch all 4 NS
+                    # entry words (location/limit/integrity/seals) via 16-byte stride.
                     # No lump or stack frame — M-window set fires at M_FETCH_DONE.
                     m.d.sync += mgt_gt_lat.eq(src_view.word0_gt.as_value())
                     m.next = "M_FETCH_NS0"
@@ -264,7 +264,7 @@ class CTMMCapCall(Elaboratable):
 
             # ── M-GT dispatch states ──────────────────────────────────────────
             # Entered from CHECK_PERM when src GT has gt_type == GT_TYPE_ABSTRACT.
-            # Reads 3 NS entry words (location/limit/integrity) using 16-byte stride.
+            # Reads all 4 NS entry words (location/limit/integrity/seals) using 16-byte stride.
             # mgt_set_trigger fires for one cycle at M_FETCH_DONE; no lump is loaded.
 
             with m.State("M_FETCH_NS0"):

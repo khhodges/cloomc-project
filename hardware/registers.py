@@ -83,12 +83,14 @@ class ChurchRegisters(Elaboratable):
         self.m_set_dr14 = Signal(32)
         self.m_set_dr15 = Signal(32)
 
-        # Combinatorial reads of the M-window DRs (always valid)
+        # Combinatorial reads of the M-window DRs (always valid).
+        # DR11 = Abstract GT word, DR12 = NS_location, DR13 = NS_authority,
+        # DR14 = NS_integrity  (4-word core shadow for WRITEBACK; DR15 = NS_seals advisory).
         self.m_dr11 = Signal(32)
         self.m_dr12 = Signal(32)
         self.m_dr13 = Signal(32)
-        self.m_dr14 = Signal(32)
-        self.m_dr15 = Signal(32)
+        self.m_dr14 = Signal(32)   # added for Task #440: 5-word M-window shadow
+        self.m_dr15 = Signal(32)   # NS_seals (advisory); 0 on cr15_m_set path
 
         # Current M-flag state
         self.cr15_m_flag = Signal()

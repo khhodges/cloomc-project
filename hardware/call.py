@@ -585,8 +585,9 @@ class ChurchCall(Elaboratable):
 
             # ── M-GT dispatch states ──────────────────────────────────────────
             # Entered from CHECK_PERM when src GT has gt_type == GT_TYPE_ABSTRACT.
-            # Reads 3 NS entry words (location/authority/integrity) via the direct
-            # memory bus and then fires mgt_set_trigger for one cycle (M_FETCH_DONE).
+            # Reads all 4 NS entry words (location, authority, integrity, seals)
+            # via the direct memory bus; mgt_set_trigger pulses for one cycle at
+            # M_FETCH_DONE to populate DR11-DR15 in hardware/registers.py.
             # No lump is loaded, no stack frame is pushed, nia_set is NOT asserted.
 
             with m.State("M_FETCH_NS0"):

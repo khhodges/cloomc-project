@@ -273,32 +273,84 @@ def run_testbench():
         # Freeze instruction execution for all M-window sub-tests
         ctx.set(dut.imem_valid, 0)
 
-        # ── 12A: M-set populates XR11-XR14 from CR15 ────────────────────
-        ctx.set(dut.cr15_m_set, 1)
-        await ctx.tick()          # m_set fires: XR11-XR14 ← CR15 words; cr15_m_reg ← 1
-        ctx.set(dut.cr15_m_set, 0)
-        await ctx.tick()          # state settles
+        # ── 12A: Real Abstract-GT CALL populates 5-word M-window shadow ────
+        # End-to-end test for M-GT auto-dispatch from CALL instruction.
+        # 5-word shadow layout:
+        #   XR11 = Abstract GT word (from src cap register)
+        #   XR12 = NS entry word0_location
+        #   XR13 = NS entry word1_limit (authority)
+        #   XR14 = NS entry word2_integrity (read directly from memory, not recomputed)
+        #   XR15 = NS entry word3_seals (advisory annotation)
+        #
+        # Pre-load CR1 with an Abstract GT; serve the 4-word NS entry via
+        # dmem_rd_data (mem_rd_valid is always 1 in simulation — one cycle per fetch).
+
+        A12_GT_INDEX   = 3
+        A12_GT_VERSION = 0
+        a12_gt_word = build_gt(A12_GT_INDEX, 0, gt_type=GT_TYPE_ABSTRACT,
+                               version=A12_GT_VERSION)
+
+        ctx.set(dut.dbg_cap_wr_en,   1)
+        ctx.set(dut.dbg_cap_wr_addr, 1)
+        ctx.set(dut.dbg_cap_wr_data, {
+            "word0_gt":       {"gt_type": GT_TYPE_ABSTRACT, "perms": 0,
+                               "index": A12_GT_INDEX, "version": A12_GT_VERSION},
+            "word1_location": 0,
+            "word2_limit":    0,
+            "word3_seals":    0,
+        })
+        await ctx.tick()    # cap_regs[1] ← Abstract GT
+        ctx.set(dut.dbg_cap_wr_en, 0)
+
+        # NS entry at CR15.word1_location + (A12_GT_INDEX << 4) = 0 + 0x30.
+        A12_NS_LOC  = 0x4000
+        A12_NS_AUTH = 0x00020008
+        A12_NS_INT  = integrity32(A12_NS_LOC, A12_NS_AUTH)
+        A12_NS_SEAL = (A12_GT_VERSION << 25) | 0x5678   # version=0, seal=0x5678
+
+        A12_CALL = encode_church(ChurchOpcode.CALL, cr_dst=0, cr_src=1)
+        ctx.set(dut.dmem_rd_data, A12_NS_LOC)   # pre-arm NS0 for M_FETCH_NS0
+        ctx.set(dut.imem_data,    A12_CALL)
+        ctx.set(dut.imem_valid,   1)
+        await ctx.tick()                         # IDLE → CHECK_SRC (call_start fires)
+        ctx.set(dut.imem_valid, 0)               # freeze — prevent re-issue
+
+        await ctx.tick()    # CHECK_SRC  → READ_SRC
+        await ctx.tick()    # READ_SRC   → CHECK_PERM  (src_reg_latched ← cap_regs[1])
+        await ctx.tick()    # CHECK_PERM → M_FETCH_NS0 (Abstract GT detected)
+
+        # M_FETCH_NS0: ns_loc_lat ← A12_NS_LOC
+        await ctx.tick()    # M_FETCH_NS0 → M_FETCH_NS1
+        ctx.set(dut.dmem_rd_data, A12_NS_AUTH)
+        await ctx.tick()    # M_FETCH_NS1 → M_FETCH_NS2  (ns_auth_lat ← A12_NS_AUTH)
+        ctx.set(dut.dmem_rd_data, A12_NS_INT)
+        await ctx.tick()    # M_FETCH_NS2 → M_FETCH_NS3  (ns_int_lat  ← A12_NS_INT)
+        ctx.set(dut.dmem_rd_data, A12_NS_SEAL)
+        await ctx.tick()    # M_FETCH_NS3 → M_FETCH_DONE (ns_seal_lat ← A12_NS_SEAL)
+        await ctx.tick()    # M_FETCH_DONE→ IDLE (mgt_set_trigger fires; XR11-XR15 set)
 
         m_flag = ctx.get(dut.cr15_m_flag)
         xr11   = ctx.get(dut.dbg_m_xr11)
         xr12   = ctx.get(dut.dbg_m_xr12)
         xr13   = ctx.get(dut.dbg_m_xr13)
         xr14   = ctx.get(dut.dbg_m_xr14)
-        # Boot sets CR15.word0_gt = INFORM GT (index=0, perms=0, version=0) = 0
-        # The other CR15 words are 0 (not set during boot)
-        boot_ns_gt = build_gt(0, 0, gt_type=GT_TYPE_INFORM, version=0)  # = 0
+        xr15   = ctx.get(dut.dbg_m_xr15)
 
-        # XR14 is now the integrity tag: integrity32(XR12=CR15.loc=0, XR13=CR15.limit=0)
-        expected_xr14 = integrity32(0, 0)   # = 0xDEADBEEF when both inputs are 0
-        assert m_flag == 1, f"cr15_m_flag should be 1 after M-set, got {m_flag}"
-        assert xr11 == boot_ns_gt, (
-            f"XR11 should equal CR15.word0_gt={boot_ns_gt:#010x}, got {xr11:#010x}")
-        assert xr12 == 0, f"XR12 should equal CR15.word1_location=0, got {xr12:#010x}"
-        assert xr13 == 0, f"XR13 should equal CR15.word2_limit=0, got {xr13:#010x}"
-        assert xr14 == expected_xr14, (
-            f"XR14 should equal integrity32(loc=0,lim=0)={expected_xr14:#010x}, "
-            f"got {xr14:#010x}")
-        print("  PASS 12A: M-set populates XR11-XR14 with GT/NS-loc/NS-auth/integrity32; "
+        assert m_flag == 1, f"cr15_m_flag should be 1 after Abstract CALL, got {m_flag}"
+        assert xr11 == a12_gt_word, (
+            f"XR11 should be Abstract GT {a12_gt_word:#010x}, got {xr11:#010x}")
+        assert xr12 == A12_NS_LOC, (
+            f"XR12 should be NS_LOC={A12_NS_LOC:#010x}, got {xr12:#010x}")
+        assert xr13 == A12_NS_AUTH, (
+            f"XR13 should be NS_AUTH={A12_NS_AUTH:#010x}, got {xr13:#010x}")
+        assert xr14 == A12_NS_INT, (
+            f"XR14 should be NS_INT={A12_NS_INT:#010x}, got {xr14:#010x}")
+        # XR15: CALL path populates it with NS word3_seals (advisory seals word).
+        # The cr15_m_set test port sets XR15=0 (verified in 12C).
+        assert xr15 == A12_NS_SEAL, (
+            f"XR15 should be NS_SEAL={A12_NS_SEAL:#010x} (CALL path), got {xr15:#010x}")
+        print("  PASS 12A: Abstract-GT CALL → M_FETCH_NS0-NS3 → 5-word shadow: "
+              "XR11=GT, XR12=NS-loc, XR13=NS-auth, XR14=NS-integrity, XR15=NS-seals; "
               "cr15_m_flag=1")
 
         # ── 12B: Valid M-writeback via trigger — M cleared, no fault ─────
@@ -320,6 +372,11 @@ def run_testbench():
         await ctx.tick()          # Re-set M=1
         ctx.set(dut.cr15_m_set, 0)
         await ctx.tick()          # Settle
+        # Verify cr15_m_set test-port semantics: XR15 must be 0 (seals not available
+        # via the test port; only the CALL path populates XR15 with NS word3_seals).
+        xr15_after_mset = ctx.get(dut.dbg_m_xr15)
+        assert xr15_after_mset == 0, (
+            f"XR15 should be 0 after cr15_m_set (test-port path), got {xr15_after_mset:#010x}")
 
         m_flag_pre_change = ctx.get(dut.cr15_m_flag)
         assert m_flag_pre_change == 1, "M should be set before CHANGE test"
@@ -340,7 +397,8 @@ def run_testbench():
         print("  PASS 12C: CHANGE does not reset M-flag (M preserved across CHANGE)")
 
         # ── 12D: Integrity mismatch in WRITEBACK → INVALID_OP fault ─────
-        # M=1 from test 12C; XR11=INFORM GT (valid), XR12=0, XR13=0, XR14=0xDEADBEEF.
+        # M=1 from test 12C; XR11=Abstract GT (valid, non-NULL); XR12=A12_NS_LOC,
+        # XR13=A12_NS_AUTH, XR14=A12_NS_INT (from cr15_m_set after 12B writeback).
         # Corrupt XR14 via ADDI so integrity32(XR12,XR13) ≠ XR14.
         assert ctx.get(dut.cr15_m_flag) == 1, "M should still be 1 entering 12D"
         corrupt_integrity = 0x42
@@ -357,8 +415,8 @@ def run_testbench():
             f"XR14 should be {corrupt_integrity:#x} after ADDI, got {xr14_corrupt:#010x}")
         assert ctx.get(dut.cr15_m_flag) == 1, "M should still be 1 before integrity check"
 
-        # Trigger M-writeback — XR11=INFORM GT (valid) → WRITEBACK state.
-        # integrity32(XR12=0, XR13=0)=0xDEADBEEF ≠ XR14=0x42 → integrity fail → INVALID_OP
+        # Trigger M-writeback — XR11=Abstract GT (valid, non-NULL) → WRITEBACK state.
+        # integrity32(A12_NS_LOC, A12_NS_AUTH) ≠ 0x42 → integrity fail → INVALID_OP
         ctx.set(dut.cr15_m_writeback_trigger, 1)
         await ctx.tick()          # IDLE: latch XR11-XR14, xr11_valid=1 → WRITEBACK
         ctx.set(dut.cr15_m_writeback_trigger, 0)
@@ -423,7 +481,7 @@ def run_testbench():
         # After 12E step-3, M=0. Re-set M=1 with valid shadow, then corrupt XR11
         # to carry a NULL GT so the IDLE validator rejects it before WRITEBACK.
         ctx.set(dut.cr15_m_set, 1)
-        await ctx.tick()          # M=1; XR11=boot_ns_gt=0 (INFORM), XR14=0xDEADBEEF
+        await ctx.tick()          # M=1; XR11=Abstract GT (from CR15 after 12B writeback)
         ctx.set(dut.cr15_m_set, 0)
         await ctx.tick()          # Settle
 

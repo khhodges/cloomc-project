@@ -15,6 +15,15 @@ CAP_REG_LAYOUT = StructLayout({
     "word3_seals":    unsigned(32),
 })
 
+# 4-word Namespace Entry layout (stride = index << 4, i.e. 16 bytes per entry):
+#   word0_location   (+0):  lump base byte address (32-bit pointer)
+#   word1_limit      (+4):  WORD2_LAYOUT — limit, g_bit, gt_seq (authority word)
+#   word2_integrity  (+8):  integrity32(word0_location, word1_limit) — 32-bit check
+#   word3_seals      (+12): FNV seal for mLoad validation (version|seal)
+#
+# The Abstract GT word from the source cap register is the 5th word of the
+# CR15 M-window shadow (XR11 = GT, XR12 = word0_location, XR13 = word1_limit,
+# XR14 = word2_integrity).  word3_seals is advisory and carried in XR15.
 NS_ENTRY_LAYOUT = StructLayout({
     "word0_location":  unsigned(32),
     "word1_limit":     unsigned(32),
