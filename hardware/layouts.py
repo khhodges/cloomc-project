@@ -51,6 +51,11 @@ NS_ENTRY_LAYOUT = StructLayout({
     "word3_abstract_gt": GT_LAYOUT,
 })
 
+SEALS_LAYOUT = StructLayout({
+    "seal":    unsigned(25),
+    "version": unsigned(7),
+})
+
 COND_FLAGS_LAYOUT = StructLayout({
     "N": unsigned(1),
     "Z": unsigned(1),

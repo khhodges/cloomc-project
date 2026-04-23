@@ -3,7 +3,7 @@ from amaranth.lib.memory import Memory as LibMemory
 from amaranth.lib.data import View
 
 from .hw_types import *
-from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, WORD2_LAYOUT, COND_FLAGS_LAYOUT, LUMP_HEADER_LAYOUT
+from .layouts import GT_LAYOUT, CAP_REG_LAYOUT, WORD2_LAYOUT, COND_FLAGS_LAYOUT, LUMP_HEADER_LAYOUT, SEALS_LAYOUT
 from .integrity32 import integrity32_amaranth
 from .boot_rom import NUC_LUMP_BASE, NUC_PROGRAM_CW
 from .registers import ChurchRegisters
@@ -1585,6 +1585,22 @@ class ChurchCore(Elaboratable):
             mwin_gtseq_ok.eq(mwin_dr11_gt_seq == mwin_dr13_gt_seq),
         ]
 
+        # Seal check — DR15[24:0] must equal fnv32(DR12, DR13) & 0x1FFFFFF.
+        # Recomputes the one-round FNV-1a hash of the NS entry location (DR12)
+        # and limit/authority (DR13) and compares the lower 25 bits against the
+        # stored seal field.  A mismatch means the seals word was replaced with a
+        # stale or replayed value since the M-window was set.
+        mwin_seal_computed = Signal(32)
+        mwin_seal_masked   = Signal(25)
+        mwin_seal_ok       = Signal()
+        m.d.comb += [
+            mwin_seal_computed.eq(
+                ((FNV_OFFSET_32 ^ mwin_dr12_lat) * FNV_PRIME_32) ^ mwin_dr13_lat
+            ),
+            mwin_seal_masked.eq(mwin_seal_computed[:25]),
+            mwin_seal_ok.eq(mwin_seal_masked == View(SEALS_LAYOUT, mwin_dr15_lat).seal),
+        ]
+
         with m.FSM(name="mwin"):
             with m.State("IDLE"):
                 m.d.comb += [
@@ -1611,9 +1627,11 @@ class ChurchCore(Elaboratable):
 
             with m.State("WRITEBACK"):
                 m.d.comb += mwin_busy.eq(1)
-                # Full validation: integrity32(DR12,DR13)==DR14 AND GT.gt_seq==NS_auth.gt_seq.
-                # Both must pass to write back; either failure → INVALID_OP + M-clear.
-                with m.If(mwin_integrity_ok & mwin_gtseq_ok):
+                # Full validation: all three checks must pass; any failure → INVALID_OP + M-clear.
+                #   integrity32(DR12,DR13)==DR14        (integrity_ok)
+                #   GT.gt_seq==NS_auth.gt_seq           (gtseq_ok — revocation via gt_seq fields)
+                #   fnv32(DR12,DR13)&0x1FFFFFF==DR15[24:0]  (seal_ok — replay gap closed)
+                with m.If(mwin_integrity_ok & mwin_gtseq_ok & mwin_seal_ok):
                     mwin_wr_view = View(CAP_REG_LAYOUT, mwin_cr_wr_data)
                     m.d.comb += [
                         mwin_wr_view.word0_gt.eq(mwin_dr11_lat),

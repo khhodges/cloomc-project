@@ -25,10 +25,6 @@ args = "boot-image-loads-and-boots"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "hardware-sim"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "boot-image-upload-endpoint"
 
 [[workflows.workflow.tasks]]
@@ -38,6 +34,10 @@ args = "boot-image-serve-endpoints"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "check-stale-cr7"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "hardware-sim"
 
 [[workflows.workflow]]
 name = "Church Machine IDE"
@@ -74,17 +74,6 @@ args = "python -m pytest tests/test_boot_image_loads_and_boots.py -v"
 isValidation = true
 
 [[workflows.workflow]]
-name = "hardware-sim"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python -m ctmm_cap_amaranth.testbench"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
 name = "boot-image-upload-endpoint"
 author = "agent"
 
@@ -116,6 +105,17 @@ args = "bash scripts/check_stale_cr7.sh"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "hardware-sim"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -m ctmm_cap_amaranth.testbench && python -m hardware.test_mwin_seal"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 5000
