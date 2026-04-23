@@ -405,6 +405,84 @@ function makeCallLEDSim(dr1Method) {
     pass(label);
 })();
 
+// ─── M-window round-trip writeback ───────────────────────────────────────────
+// Verifies that _clearMWindow(crIdx, true) writes DR11–DR15 back into the CR.
+
+(function testMWindowWritebackRoundTrip() {
+    const label = 'M-window round-trip: _setMWindow then _clearMWindow(writeBack=true) updates CR';
+    const sim = makeSim();
+
+    // Initialise CR[2] with known sentinel values
+    sim.cr[2].word0 = 0x11111111;
+    sim.cr[2].word1 = 0x22222222;
+    sim.cr[2].word2 = 0x33333333;
+    sim.cr[2].word3 = 0x44444444;
+    sim.cr[2].word4 = 0x55555555;
+
+    // Open the M-window: CR[2] words → DR11–DR15
+    sim._setMWindow(2);
+    if (sim.cr[2].m !== 1) { fail(label, 'Expected cr[2].m=1 after _setMWindow'); return; }
+    if (sim.dr[11] !== 0x11111111) { fail(label, `DR11=${sim.dr[11].toString(16)} expected 0x11111111`); return; }
+
+    // Modify DR11–DR15 (simulating an M-abstraction write)
+    sim.dr[11] = 0xAAAAAAAA >>> 0;
+    sim.dr[12] = 0xBBBBBBBB >>> 0;
+    sim.dr[13] = 0xCCCCCCCC >>> 0;
+    sim.dr[14] = 0xDDDDDDDD >>> 0;
+    sim.dr[15] = 0xEEEEEEEE >>> 0;
+
+    // Close the M-window with writeBack=true: DR11–DR15 → CR[2] words
+    sim._clearMWindow(2, true);
+    if (sim.cr[2].m !== 0) { fail(label, 'Expected cr[2].m=0 after _clearMWindow'); return; }
+
+    if (sim.cr[2].word0 !== (0xAAAAAAAA >>> 0)) {
+        fail(label, `cr[2].word0=${sim.cr[2].word0.toString(16)} expected 0xAAAAAAAA`); return; }
+    if (sim.cr[2].word1 !== (0xBBBBBBBB >>> 0)) {
+        fail(label, `cr[2].word1=${sim.cr[2].word1.toString(16)} expected 0xBBBBBBBB`); return; }
+    if (sim.cr[2].word2 !== (0xCCCCCCCC >>> 0)) {
+        fail(label, `cr[2].word2=${sim.cr[2].word2.toString(16)} expected 0xCCCCCCCC`); return; }
+    if (sim.cr[2].word3 !== (0xDDDDDDDD >>> 0)) {
+        fail(label, `cr[2].word3=${sim.cr[2].word3.toString(16)} expected 0xDDDDDDDD`); return; }
+    if (sim.cr[2].word4 !== (0xEEEEEEEE >>> 0)) {
+        fail(label, `cr[2].word4=${sim.cr[2].word4.toString(16)} expected 0xEEEEEEEE`); return; }
+    pass(label);
+})();
+
+// ─── M-reset at CALL boundary ─────────────────────────────────────────────────
+// Verifies that executing CALL resets M=1 on every CR (including bystander CRs).
+
+(function testMResetAtCallBoundary() {
+    const label = 'M-reset at CALL boundary: all CRn(M) cleared to 0';
+    const sim = makeSimWithDevAbs();
+
+    // Load Abstract LED[0] GT into CR0 (same setup as LED CALL tests)
+    const ab_data = (ChurchSimulator.DEVICE_CLASS_LED << 8) | 0;
+    const ledGT = sim.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1, W:1}, 0, ab_data);
+    sim.cr[0].word0 = ledGT;
+    sim.dr[1] = 3 >>> 0; // DR1=3 → State (read-only, no side-effects on LED state)
+
+    // Manually assert M=1 on bystander CRs (not involved in the CALL)
+    sim.cr[5].m = 1;
+    sim.cr[9].m = 1;
+    sim.cr[14].m = 1;
+
+    // Execute the Abstract LED CALL — _resetAllMBits() fires at the CALL boundary
+    const instr = enc(2, AL, 0, 0, 0); // CALL opcode=2, crDst=0
+    const r = stepPreBoot(sim, instr);
+    if (!r) {
+        fail(label, `step() returned null (fault): ${(sim.faultLog.slice(-1)[0]||{}).message}`);
+        return;
+    }
+
+    // All M bits must be 0 after the CALL
+    for (let i = 0; i < 16; i++) {
+        if (sim.cr[i].m !== 0) {
+            fail(label, `cr[${i}].m=${sim.cr[i].m} expected 0 after CALL`); return;
+        }
+    }
+    pass(label);
+})();
+
 // ─── Report ──────────────────────────────────────────────────────────────────
 
 if (ERRORS.length > 0) {

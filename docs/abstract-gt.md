@@ -120,8 +120,27 @@ DWRITE), not through mLoad.
 
 ### CALL
 
-CALL on an Abstract GT is `INVALID_OP`.  Abstract GTs carry no lump, so
-there is nothing to execute.  Use DREAD/DWRITE for I/O devices.
+CALL on an Abstract I/O GT routes to the **Abstract Manager** via the M-window
+and dispatches a device method.  No mLoad occurs; the GT descriptor is decoded
+from DR11 (set by `_setMWindow`) before dispatching.
+
+```
+CALL CR0              ; CR0 holds Abstract LED[0] GT, DR1[1:0] = method selector
+  → Abstract Manager → _dispatchAbstractCall
+  → DR1[1:0] = 0b00 (Set)  → ledBits |= (1 << 0); DR1 ← 1 (new state)
+  → DR1[1:0] = 0b01 (Clear) → ledBits &= ~(1 << 0); DR1 ← 0 (new state)
+  → DR1[1:0] = 0b10 (Toggle) → ledBits ^= (1 << 0); DR1 ← new state
+  → DR1[1:0] = 0b11 (State)  → DR1 ← (ledBits >> 0) & 1
+  ; No mLoad, no lump access
+```
+
+The method selector is encoded in **DR1[1:0]** before the CALL instruction.
+The result (new LED state: 0=off, 1=on) is written back to DR1 after dispatch.
+M-window is used internally (CR→DR11–DR15) but is cleared with `writeBack=false`
+after dispatch — the GT descriptor word itself is never modified by a CALL.
+
+For Abstract GT types other than I/O, or unknown ab_types, CALL faults with
+`INVALID_OP`.
 
 ---
 
