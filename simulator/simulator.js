@@ -302,6 +302,16 @@ class ChurchSimulator {
                 coldCount++;
                 entry.loaded = false;
                 entry.loadCount = 0;
+                // Mark NS entry as Outform (gtType=2) so the Mode 2 lazy-load
+                // path fires in _execCall when a CALL arrives on this slot.
+                // Warm entries keep gtType=1 (Inform) so Mode 1 restore fires
+                // correctly on them — do not change warm entries here.
+                const coldNsBase = this.NS_TABLE_BASE + slot * this.NS_ENTRY_WORDS;
+                const coldW1 = this.memory[coldNsBase + 1];
+                const coldW1f = this.parseNSWord1(coldW1);
+                this.memory[coldNsBase + 1] = this.packNSWord1(
+                    coldW1f.limit, coldW1f.b, coldW1f.f, coldW1f.g,
+                    coldW1f.chainable, 2 /* Outform */, coldW1f.clistCount);
             }
         }
         if (warmCount + coldCount > 0) {
@@ -439,6 +449,22 @@ class ChurchSimulator {
             const parsedW1 = this.parseNSWord1(nsW1);
             this.memory[nsBase + 0] = loc >>> 0;
             this.memory[nsBase + 2] = this.makeVersionSeals(gt_seq, loc, parsedW1.limit);
+        }
+
+        // Outform → Inform promotion: if the NS entry's gtType is still 2 (Outform,
+        // written by initLazyManifest for cold slots), flip it to 1 (Inform) now that
+        // the lump is resident.  Subsequent GT derivations from this NS entry will
+        // carry type=1 so the normal Inform CALL path fires without re-triggering Mode 2.
+        {
+            const promNsBase = this.NS_TABLE_BASE + slotIndex * this.NS_ENTRY_WORDS;
+            const promW1 = this.memory[promNsBase + 1];
+            const promW1f = this.parseNSWord1(promW1);
+            if (promW1f.gtType === 2) {
+                this.memory[promNsBase + 1] = this.packNSWord1(
+                    promW1f.limit, promW1f.b, promW1f.f, promW1f.g,
+                    promW1f.chainable, 1 /* Inform */, promW1f.clistCount);
+                this.output += `[LOADER] NS[${slotIndex}] Outform→Inform promotion in NS entry word1\n`;
+            }
         }
 
         entry.loaded = true;
@@ -2537,15 +2563,36 @@ class ChurchSimulator {
     }
 
     _execCall(d) {
-        const sourceGT = this.cr[d.crDst].word0;
+        let sourceGT = this.cr[d.crDst].word0;
         if (sourceGT === 0) {
             this.fault('NULL_CAP', `CALL: CR${d.crDst} is NULL`);
             return null;
         }
-        const srcParsed = this.parseGT(sourceGT);
+        let srcParsed = this.parseGT(sourceGT);
         if (srcParsed.type === 0) {
             this.fault('TYPE', `CALL: GT type is NULL — cannot CALL a NULL GT`);
             return;
+        }
+        // Mode 2 — Outform: the abstraction's lump has never been installed.
+        // Intercept before the type-guard so Outform GTs trigger the lazy loader
+        // rather than faulting with "GT type is Outform, must be Inform or Abstract".
+        if (srcParsed.type === 2) {
+            const nsSlot = srcParsed.index;
+            this.output += `[LOADER] CALL: CR${d.crDst} is Outform GT (NS[${nsSlot}]) — dispatching Loader (Mode 2)...\n`;
+            const loaded = this._dispatchLoaderLoad(nsSlot);
+            if (!loaded) {
+                this.fault('CODE_NOT_RESIDENT', `CALL: CR${d.crDst} Outform lazy load failed for slot ${nsSlot}`);
+                return null;
+            }
+            // Promote the live CR from Outform→Inform: read fresh NS entry, rebuild GT with type=1.
+            // Update word0 in-place so word2, word3, and m are preserved.
+            const nsW2 = this.memory[this.NS_TABLE_BASE + nsSlot * this.NS_ENTRY_WORDS + 2];
+            const gt_seq = (nsW2 >>> 25) & 0x7F;
+            const informGT = this.createGT(gt_seq, nsSlot, srcParsed.permissions, 1);
+            this.cr[d.crDst].word0 = informGT;
+            sourceGT = informGT;
+            srcParsed = this.parseGT(informGT);
+            this.output += `[LOADER] CALL: Outform→Inform promotion complete for NS[${nsSlot}], proceeding with CALL CR${d.crDst}\n`;
         }
         if (srcParsed.type !== 1 && srcParsed.type !== 3) {
             this.fault('TYPE', `CALL: GT type is ${srcParsed.typeName}, must be Inform or Abstract`);
@@ -2587,7 +2634,7 @@ class ChurchSimulator {
                     if (!loaded) {
                         this.fault('CODE_NOT_RESIDENT', `CALL: CR${d.crDst} lazy load failed for slot ${callTargetIdx}`);
                         return null;
-                        // TODO Mode 2 (OBJ_NOT_RESIDENT): GT type Abstract → Loader.Construct
+                        // Mode 2 (Outform / OBJ_NOT_RESIDENT) is handled above before the type-guard.
                     }
                     this.output += `[LOADER] CALL: slot ${callTargetIdx} lump restored, proceeding with CALL CR${d.crDst}\n`;
                 }
