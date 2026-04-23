@@ -58,7 +58,7 @@ _MANDATORY_NS_SLOTS = (0, 1, STARTUP_CONFIG_NS_SLOT, BOOT_ABSTR_NS_SLOT)  # slot
 # Format-version tag written to mem[NS_TABLE_BASE - 1] so loadBootImage()
 # can reject stale binaries. Bumped to 0x396 (Task #396) when Startup.Config
 # was added at NS slot 2 and Boot.Abstr's c-list[4] was rewired to it.
-BOOT_IMAGE_FORMAT_TAG = 0xB0070396  # "BOOT 0396" — must match simulator.js; bumped Task #396
+BOOT_IMAGE_FORMAT_TAG = 0xB0070406  # "BOOT 0406" — must match simulator.js; bumped Task #406 (Abstract LED GTs)
 
 # Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM
 # (Task #237). Written into Boot.Abstr lump code region so the binary matches
@@ -95,6 +95,37 @@ def _abstract_gt_word(perms_dict):
         (32 if perms_dict.get("E") else 0)
     )
     return (mask & 0x3F) << 25
+
+
+# Abstract GT device-class constants (Task #406) — must match simulator.js
+DEVICE_CLASS_LED     = 0x01
+DEVICE_CLASS_UART    = 0x02
+DEVICE_CLASS_BUTTON  = 0x03
+DEVICE_CLASS_TIMER   = 0x04
+DEVICE_CLASS_DISPLAY = 0x05
+
+AB_TYPE_IO          = 0x00
+AB_TYPE_M_ELEVATION = 0x01
+
+
+def create_abstract_gt(ab_type, rw_perms, gt_seq, ab_data):
+    """Encode a self-describing Abstract GT word (type=0b11).
+
+    Layout: [31:27]=ab_type  [26:25]=R/W  [24:23]=0b11  [22:16]=gt_seq  [15:0]=ab_data
+    Only R and W are valid perm bits; X/L/S/E/B are repurposed as ab_type.
+    Mirrors simulator.js createAbstractGT().
+    """
+    # Layout: bit[26]=R, bit[25]=W  (R is the higher bit per spec)
+    r_bit = 1 if rw_perms.get("R") else 0
+    w_bit = 1 if rw_perms.get("W") else 0
+    return _u32(
+        ((ab_type & 0x1F) << 27) |
+        (r_bit            << 26) |   # R at bit[26]
+        (w_bit            << 25) |   # W at bit[25]
+        (0b11             << 23) |
+        ((gt_seq & 0x7F)  << 16) |
+        (ab_data & 0xFFFF)
+    )
 
 
 # Default abstraction catalog — ports simulator.js _getAbstractionCatalog()
@@ -473,16 +504,16 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
     DEMO_CLIST_SIZE = 17
 
     # Hardware device GTs (clist slots 8..16) — match simulator.js HW_DEVICE_SLOTS.
+    # Slots 8–13: Abstract LED GTs (Task #406) — type=0b11, no NS slot, no lump.
     rw_perms = {"R":1,"W":1}
-    hw_slots = [(12, rw_perms)] * 6 + [
-        (11, rw_perms),
-        (13, {"R":1}),
-        (14, rw_perms),
-    ]
     while len(clist_gts) < 17:
         clist_gts.append(0)
-    for off, (ns_idx, perms) in enumerate(hw_slots):
-        clist_gts[8 + off] = create_gt(0, ns_idx, perms, 1)
+    for led_idx in range(6):
+        ab_data = ((DEVICE_CLASS_LED & 0xFF) << 8) | (led_idx & 0xFF)
+        clist_gts[8 + led_idx] = create_abstract_gt(AB_TYPE_IO, rw_perms, 0, ab_data)
+    clist_gts[14] = create_gt(0, 11, rw_perms,   1)   # UART_DEV  R|W
+    clist_gts[15] = create_gt(0, 13, {"R":1},     1)   # BTN_DEV   R
+    clist_gts[16] = create_gt(0, 14, rw_perms,   1)   # TIMER_DEV R|W
 
     # Memory-manager GT at c-list[0]: R|W capability over NS slot 0 (full namespace).
     mem_mgr_gt = create_gt(0, 0, {"R":1, "W":1}, 1)

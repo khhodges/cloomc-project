@@ -3850,13 +3850,31 @@ function _renderGTRow(idx, addr, word) {
         return `<tr><td style="color:rgba(200,155,60,0.7);">${idx}</td><td>0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td><td style="color:rgba(206,145,120,0.6);">${hex}</td><td><span style="color:#666;">0 (empty)</span></td></tr>`;
     }
     const p = sim.parseGT(word);
-    const permStr = (p.permissions.B ? 'B' : '-') + (p.permissions.R ? 'R' : '-') + (p.permissions.W ? 'W' : '-') + (p.permissions.X ? 'X' : '-') + (p.permissions.L ? 'L' : '-') + (p.permissions.S ? 'S' : '-') + (p.permissions.E ? 'E' : '-');
-    const label = sim.nsLabels[p.index] || '';
-    let decoded = `<span style="color:rgba(78,201,176,0.7);">${p.typeName}</span>`;
-    decoded += ` <span style="color:rgba(200,155,60,0.55);">[${permStr}]</span>`;
-    decoded += ` \u2192 idx <span style="color:rgba(86,156,214,0.7);">${p.index}</span>`;
-    if (label) decoded += ` <span style="color:rgba(156,220,254,0.6);">(${label})</span>`;
-    decoded += ` seq${p.gt_seq}`;
+    let decoded;
+    if (p.type === 3) {
+        // Abstract GT (Task #406): decode ab_type / device_class / device_data
+        const ab = sim.parseAbstractGT(word);
+        const rwStr = (ab.R ? 'R' : '-') + (ab.W ? 'W' : '-');
+        const AB_TYPE_NAMES   = { 0: 'I/O', 1: 'M-Elevation' };
+        const DEVICE_CLASSES  = { 1: 'LED', 2: 'UART', 3: 'Button', 4: 'Timer', 5: 'Display' };
+        const abTypeName   = AB_TYPE_NAMES[ab.ab_type] || `0x${ab.ab_type.toString(16).toUpperCase()}`;
+        const deviceName   = DEVICE_CLASSES[ab.device_class] || `dc=0x${ab.device_class.toString(16).toUpperCase()}`;
+        const deviceDetail = ab.ab_type === 0
+            ? ` ${deviceName}[${ab.device_data}]`
+            : ` 0x${ab.ab_data.toString(16).toUpperCase()}`;
+        decoded  = `<span style="color:rgba(52,211,153,0.9);">Abstract</span>`;
+        decoded += ` <span style="color:rgba(200,155,60,0.55);">[${rwStr}]</span>`;
+        decoded += ` <span style="color:rgba(156,220,254,0.7);">${abTypeName}${deviceDetail}</span>`;
+        decoded += ` <span style="color:#555;">seq${ab.gt_seq}</span>`;
+    } else {
+        const permStr = (p.permissions.B ? 'B' : '-') + (p.permissions.R ? 'R' : '-') + (p.permissions.W ? 'W' : '-') + (p.permissions.X ? 'X' : '-') + (p.permissions.L ? 'L' : '-') + (p.permissions.S ? 'S' : '-') + (p.permissions.E ? 'E' : '-');
+        const label = sim.nsLabels[p.index] || '';
+        decoded  = `<span style="color:rgba(78,201,176,0.7);">${p.typeName}</span>`;
+        decoded += ` <span style="color:rgba(200,155,60,0.55);">[${permStr}]</span>`;
+        decoded += ` \u2192 idx <span style="color:rgba(86,156,214,0.7);">${p.index}</span>`;
+        if (label) decoded += ` <span style="color:rgba(156,220,254,0.6);">(${label})</span>`;
+        decoded += ` seq${p.gt_seq}`;
+    }
     return `<tr><td style="color:rgba(200,155,60,0.7);">${idx}</td><td>0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td><td style="color:rgba(206,145,120,0.6);">${hex}</td><td>${decoded}</td></tr>`;
 }
 

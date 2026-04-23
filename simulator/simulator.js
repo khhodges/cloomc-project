@@ -192,7 +192,7 @@ class ChurchSimulator {
         // Format-version guard: reject binaries generated before Task #396
         // (Startup.Config at NS slot 2; Boot.Abstr c-list[4] wired to it).
         // Tag written by boot_image.py at mem[NS_TABLE_BASE - 1].
-        const BOOT_IMAGE_FORMAT_TAG = 0xB0070396;  // must match boot_image.py
+        const BOOT_IMAGE_FORMAT_TAG = 0xB0070406;  // must match boot_image.py; bumped Task #406 (Abstract LED GTs)
         const tagIdx = src.length - this.NS_TABLE_RESERVE - 1;
         if (tagIdx >= 0 && tagIdx < src.length) {
             if ((src[tagIdx] >>> 0) !== BOOT_IMAGE_FORMAT_TAG) {
@@ -963,26 +963,19 @@ class ChurchSimulator {
 
         // DEMO_CLIST hardware alignment: slots 8–16 hold device GTs so
         // hardware code "LOAD CR3, CR6, 8" picks up the LED device, exactly as on Ti60 F225.
-        //   [8]–[13] LED[0]–LED[5]  R|W → NS slot 12 (one slot per LED; ledIndex = slot - 8)
+        //   [8]–[13] LED[0]–LED[5] Abstract GTs (type=0b11, ab_type=I/O, device_class=LED, device_data=0-5)
+        //            No NS slot, no lump — capability entirely encoded in the 32-bit GT word (Task #406).
         //   [14] UART_DEV  R|W → NS slot 11 (3 registers: TX@0, STATUS@1, RX@2)
         //   [15] BTN_DEV   R   → NS slot 13 (1 register: button state bitmask)
         //   [16] TIMER_DEV R|W → NS slot 14 (5 registers: TICKS_LO, HI, TOD, ALARM_CMP, CTL)
-        // Permissions match hardware DEMO_CLIST (boot_rom.py)
-        const HW_DEVICE_SLOTS = [
-            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [8]  LED[0]   R|W
-            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [9]  LED[1]   R|W
-            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [10] LED[2]   R|W
-            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [11] LED[3]   R|W
-            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [12] LED[4]   R|W
-            { nsIdx: 12, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [13] LED[5]   R|W
-            { nsIdx: 11, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [14] UART_DEV R|W (3 regs)
-            { nsIdx: 13, perms: {R:1,W:0,X:0,L:0,S:0,E:0} }, // [15] BTN_DEV  R   (1 reg)
-            { nsIdx: 14, perms: {R:1,W:1,X:0,L:0,S:0,E:0} }, // [16] TIMER_DEV R|W (5 regs)
-        ];
-        for (let i = 0; i < HW_DEVICE_SLOTS.length; i++) {
-            const d = HW_DEVICE_SLOTS[i];
-            clistGTs[8 + i] = this.createGT(0, d.nsIdx, d.perms, 1);
+        for (let ledIdx = 0; ledIdx < 6; ledIdx++) {
+            const ab_data = ((ChurchSimulator.DEVICE_CLASS_LED & 0xFF) << 8) | (ledIdx & 0xFF);
+            clistGTs[8 + ledIdx] = this.createAbstractGT(
+                ChurchSimulator.AB_TYPE_IO, {R:1, W:1}, 0, ab_data);
         }
+        clistGTs[14] = this.createGT(0, 11, {R:1,W:1,X:0,L:0,S:0,E:0}, 1); // UART_DEV
+        clistGTs[15] = this.createGT(0, 13, {R:1,W:0,X:0,L:0,S:0,E:0}, 1); // BTN_DEV
+        clistGTs[16] = this.createGT(0, 14, {R:1,W:1,X:0,L:0,S:0,E:0}, 1); // TIMER_DEV
         const NUC_CODE_WORDS    = 17;
         const DEMO_CLIST_SIZE   = 17;
         // Truncate to hardware DEMO_CLIST size — entries beyond idx 16 are simulator-only abstractions
@@ -1045,7 +1038,7 @@ class ChurchSimulator {
         // stale binaries. Bumped to 0x396 (Task #396) — Startup.Config at slot 2,
         // Boot.Abstr c-list[4] rewired to Startup.Config GT.
         // Must match boot_image.py BOOT_IMAGE_FORMAT_TAG and loadBootImage().
-        const BOOT_IMAGE_FORMAT_TAG_INIT = 0xB0070396;
+        const BOOT_IMAGE_FORMAT_TAG_INIT = 0xB0070406;  // bumped Task #406 (Abstract LED GTs)
         this.memory[this.NS_TABLE_BASE - 1] = BOOT_IMAGE_FORMAT_TAG_INIT >>> 0;
     }
 
@@ -1321,6 +1314,47 @@ class ChurchSimulator {
         const i = (slotId  & 0xFFFF)      >>> 0;
         return (p | t | s | i) >>> 0;
     }
+
+    // Abstract GT helpers (Task #406) ─────────────────────────────────────────
+    // Layout: [31:27]=ab_type  [26:25]=R/W  [24:23]=0b11(type)  [22:16]=gt_seq  [15:0]=ab_data
+    // ab_data for ab_type=0x00 I/O: [15:8]=device_class  [7:0]=device_data
+    static AB_TYPE_IO          = 0x00;   // I/O device (LED, UART, Button, Timer, Display)
+    static AB_TYPE_M_ELEVATION = 0x01;   // M Abstraction — sets CRn(M=1)
+
+    static DEVICE_CLASS_LED     = 0x01;
+    static DEVICE_CLASS_UART    = 0x02;
+    static DEVICE_CLASS_BUTTON  = 0x03;
+    static DEVICE_CLASS_TIMER   = 0x04;
+    static DEVICE_CLASS_DISPLAY = 0x05;
+
+    createAbstractGT(ab_type, perms, gt_seq, ab_data) {
+        // Only R and W are valid perm bits for Abstract GTs (X/L/S/E/B are repurposed as ab_type).
+        // Layout: bit[26]=R, bit[25]=W  (R is the higher bit per spec)
+        const rBit = perms.R ? 1 : 0;
+        const wBit = perms.W ? 1 : 0;
+        return (
+            ((ab_type & 0x1F) << 27) |
+            (rBit             << 26) |   // R at bit[26]
+            (wBit             << 25) |   // W at bit[25]
+            (0b11             << 23) |   // type = Abstract
+            ((gt_seq & 0x7F)  << 16) |
+            (ab_data & 0xFFFF)
+        ) >>> 0;
+    }
+
+    parseAbstractGT(gt32) {
+        gt32 = gt32 >>> 0;
+        const ab_type      = (gt32 >>> 27) & 0x1F;
+        const R            = (gt32 >>> 26) & 1;
+        const W            = (gt32 >>> 25) & 1;
+        const type         = (gt32 >>> 23) & 0x3;   // always 0b11 for Abstract
+        const gt_seq       = (gt32 >>> 16) & 0x7F;
+        const ab_data      = gt32 & 0xFFFF;
+        const device_class = (ab_data >>> 8) & 0xFF;
+        const device_data  = ab_data & 0xFF;
+        return { ab_type, R, W, type, gt_seq, ab_data, device_class, device_data };
+    }
+    // ──────────────────────────────────────────────────────────────────────────
 
     getPermBits(permsObj) {
         let bits = 0;
@@ -2410,6 +2444,15 @@ class ChurchSimulator {
             this.fault('TYPE', `CALL: GT type is ${srcParsed.typeName}, must be Inform or Abstract`);
             return null;
         }
+        // Abstract GT intercept: type=0b11 carries no lump and no NS slot.
+        // CALL on an Abstract GT is INVALID — use DREAD/DWRITE for I/O GTs.
+        if (srcParsed.type === 3) {
+            const abInfo = this.parseAbstractGT(sourceGT);
+            const abTypeHex = abInfo.ab_type.toString(16).toUpperCase();
+            const dcHex     = abInfo.device_class.toString(16).toUpperCase();
+            this.fault('INVALID_OP', `CALL: Abstract GT (ab_type=0x${abTypeHex} device_class=0x${dcHex}) has no executable lump — use DREAD/DWRITE for I/O`);
+            return null;
+        }
         const callTargetIdx = srcParsed.index;
         if (this.lazyManifest[callTargetIdx] && !this.lazyManifest[callTargetIdx].loaded) {
             // Mode 1 — Restore: NS entry is valid but lump header magic is 0x00
@@ -3409,12 +3452,89 @@ class ChurchSimulator {
         return { pc: this.pc - 1, instr: d, desc, pipeline: this._xloadlambdaPipeline(d, label) };
     }
 
+    // ── Abstract Manager (Task #406) ─────────────────────────────────────────
+    // Dispatches DREAD / DWRITE on Abstract GTs (type=0b11) without mLoad.
+    // Called from _execDread / _execDwrite when the GT's type bits are 0b11.
+
+    _abstractLedLabel(deviceData) {
+        return `Abstract LED[${deviceData}]`;
+    }
+
+    _dispatchAbstractDread(gt32, drIdx, instrOffset) {
+        const info = this.parseAbstractGT(gt32);
+        if (!info.R) {
+            this.fault('PERM_R', `DREAD: Abstract GT lacks R permission`);
+            return null;
+        }
+        if (info.ab_type === ChurchSimulator.AB_TYPE_IO) {
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_LED) {
+                const ledIdx = info.device_data;
+                const value  = (this.ledBits >>> ledIdx) & 1;
+                this._writeDR(drIdx, value);
+                const label = this._abstractLedLabel(ledIdx);
+                const desc  = `DREAD DR${drIdx} ← ${value} [${label} = ${value ? 'ON' : 'OFF'}]`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'DREAD', desc: `Read ${label}`, perm: 'R', status: 'pass' },
+                ]};
+            }
+        }
+        this.fault('INVALID_OP', `DREAD: Abstract GT ab_type=0x${info.ab_type.toString(16).toUpperCase()} device_class=0x${info.device_class.toString(16).toUpperCase()} not handled`);
+        return null;
+    }
+
+    _dispatchAbstractDwrite(gt32, drIdx, instrOffset) {
+        const info = this.parseAbstractGT(gt32);
+        if (!info.W) {
+            this.fault('PERM_W', `DWRITE: Abstract GT lacks W permission`);
+            return null;
+        }
+        if (info.ab_type === ChurchSimulator.AB_TYPE_IO) {
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_LED) {
+                const ledIdx = info.device_data;
+                const value  = this.dr[drIdx] >>> 0;
+                if (value & 1) {
+                    this.ledBits |= (1 << ledIdx);
+                } else {
+                    this.ledBits &= ~(1 << ledIdx);
+                }
+                this.ledMode = 'program';
+                // Sync to thread lump DR zone so hardware-accurate DR home is maintained.
+                if (drIdx < 16) {
+                    const dw12 = this.cr[12];
+                    const dwThreadBase = dw12 && dw12.word1;
+                    if (dwThreadBase) {
+                        const dwHomeAddr = (dwThreadBase + 1 + drIdx) >>> 0;
+                        if (dwHomeAddr < this.memory.length) {
+                            this.memory[dwHomeAddr] = value;
+                        }
+                    }
+                }
+                const label = this._abstractLedLabel(ledIdx);
+                const desc  = `DWRITE DR${drIdx} → ${label} ← ${value} (${value & 1 ? 'ON' : 'OFF'})`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'DWRITE', desc: `Write ${label} ← ${value}`, perm: 'W', status: 'pass' },
+                ]};
+            }
+        }
+        this.fault('INVALID_OP', `DWRITE: Abstract GT ab_type=0x${info.ab_type.toString(16).toUpperCase()} device_class=0x${info.device_class.toString(16).toUpperCase()} not handled`);
+        return null;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     _execDread(d) {
         const drIdx = d.crDst;
         const dataGT = this.cr[d.crSrc].word0;
         if (dataGT === 0) {
             this.fault('NULL_CAP', `DREAD: CR${d.crSrc} is NULL`);
             return null;
+        }
+        // Abstract GT intercept (type=0b11): bypass mLoad, route to Abstract Manager.
+        if (((dataGT >>> 23) & 0x3) === 3) {
+            return this._dispatchAbstractDread(dataGT, drIdx, d.imm);
         }
         const srcCR = this.cr[d.crSrc];
         const loc = srcCR.word1;
@@ -3457,6 +3577,10 @@ class ChurchSimulator {
         if (dataGT === 0) {
             this.fault('NULL_CAP', `DWRITE: CR${d.crSrc} is NULL`);
             return null;
+        }
+        // Abstract GT intercept (type=0b11): bypass mLoad, route to Abstract Manager.
+        if (((dataGT >>> 23) & 0x3) === 3) {
+            return this._dispatchAbstractDwrite(dataGT, drIdx, d.imm);
         }
         const srcCR = this.cr[d.crSrc];
         const loc = srcCR.word1;
