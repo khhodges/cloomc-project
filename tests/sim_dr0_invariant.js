@@ -266,34 +266,34 @@ function assertDR0Zero(sim, label) {
     pass(label);
 })();
 
-// ─── CALL → LED signed-return path ───────────────────────────────────────────
-// These tests exercise the path that was previously guarded by _preserveDR0.
-// Each LED method returns { preserveDR1: true, result: <signed> }, which causes
-// _recordSignedReturn() to write the result to DR1 while step() zeros DR0.
+// ─── CALL → Abstract LED CALL dispatch path ──────────────────────────────────
+// Task #406: LED[0] is now an Abstract GT (type=0b11, no NS slot, no lump).
+// CALL on an Abstract LED GT routes to _dispatchAbstractCall via the M-window.
+// DR1[1:0] = method selector (0=Set, 1=Clear, 2=Toggle, 3=State).
+// DR1 is written back with the LED state (0=off, 1=on) after each method.
+// DR0 must remain zero (step() zeros DR0 after every instruction).
 
-function makeCallLEDSim(dr3Method) {
+function makeCallLEDSim(dr1Method) {
     const sim = makeSimWithDevAbs();
 
-    // Build an E-permission GT for NS slot 12 (LED abstraction).
-    // NS slot 12 is set up by _initNamespaceTable() with gt_seq=0 and valid seal.
-    const ledGT = sim.createGT(0, 12, {R:0, W:0, X:0, L:1, S:1, E:1}, 1);
+    // Build an Abstract LED GT for LED[0] (Task #406: no NS slot, no lump).
+    // ab_type=I/O (0x00), device_class=LED (0x01), device_data=0 (pin 0).
+    const ab_data = (ChurchSimulator.DEVICE_CLASS_LED << 8) | 0;
+    const ledGT = sim.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1, W:1}, 0, ab_data);
     sim.cr[0].word0 = ledGT;
-    // word1 = NS entry 12's location (not strictly required for abstraction CALL,
-    // but set for completeness so the CR looks valid).
-    const ledNS = sim.readNSEntry(12);
-    if (ledNS) sim.cr[0].word1 = ledNS.word0_location;
+    sim.cr[0].word1 = 0;   // Abstract GTs have no physical lump — word1 is unused
 
-    // DR3 selects the LED method: 0=Set, 1=Clear, 2=Toggle, 3=State
-    sim.dr[3] = dr3Method >>> 0;
+    // DR1 selects the LED method: 0=Set, 1=Clear, 2=Toggle, 3=State
+    sim.dr[1] = dr1Method >>> 0;
 
     return sim;
 }
 
-// LED.Set: turns the LED on (offset 0); returns signed 1 on success.
+// LED.Set: turns LED[0] on; DR1 = new LED state (1 = on).
 (function testCallLEDSet() {
     const label = 'CALL CR0 → LED.Set (preserveDR1 signed-return)';
-    const sim = makeCallLEDSim(0); // DR3=0 → Set
-    const instr = enc(2, AL, 0, 0, 0); // CALL opcode=2, crDst=0, imm=0 (legacy mode)
+    const sim = makeCallLEDSim(0); // DR1=0 → Set
+    const instr = enc(2, AL, 0, 0, 0); // CALL opcode=2, crDst=0
     const r = stepPreBoot(sim, instr);
     if (!r) {
         fail(label, `step() returned null (fault): ${(sim.faultLog.slice(-1)[0]||{}).message}`);
@@ -301,15 +301,15 @@ function makeCallLEDSim(dr3Method) {
     }
     if (!assertDR0Zero(sim, label)) return;
     if ((sim.dr[1] | 0) !== 1) {
-        fail(label, `DR1=${sim.dr[1] | 0} expected 1 (LED.Set success)`); return;
+        fail(label, `DR1=${sim.dr[1] | 0} expected 1 (LED[0] now on)`); return;
     }
     pass(label);
 })();
 
-// LED.Clear: turns the LED off (offset 0); returns signed 1 on success.
+// LED.Clear: turns LED[0] off; DR1 = new LED state (0 = off).
 (function testCallLEDClear() {
     const label = 'CALL CR0 → LED.Clear (preserveDR1 signed-return)';
-    const sim = makeCallLEDSim(1); // DR3=1 → Clear
+    const sim = makeCallLEDSim(1); // DR1=1 → Clear
     const instr = enc(2, AL, 0, 0, 0);
     const r = stepPreBoot(sim, instr);
     if (!r) {
@@ -317,16 +317,16 @@ function makeCallLEDSim(dr3Method) {
         return;
     }
     if (!assertDR0Zero(sim, label)) return;
-    if ((sim.dr[1] | 0) !== 1) {
-        fail(label, `DR1=${sim.dr[1] | 0} expected 1 (LED.Clear success)`); return;
+    if ((sim.dr[1] | 0) !== 0) {
+        fail(label, `DR1=${sim.dr[1] | 0} expected 0 (LED[0] now off)`); return;
     }
     pass(label);
 })();
 
-// LED.Toggle: toggles the LED (offset 0); returns signed 1 on success.
+// LED.Toggle: LED[0] starts off, toggle → on; DR1 = new state (1 = on).
 (function testCallLEDToggle() {
     const label = 'CALL CR0 → LED.Toggle (preserveDR1 signed-return)';
-    const sim = makeCallLEDSim(2); // DR3=2 → Toggle
+    const sim = makeCallLEDSim(2); // DR1=2 → Toggle
     const instr = enc(2, AL, 0, 0, 0);
     const r = stepPreBoot(sim, instr);
     if (!r) {
@@ -335,15 +335,15 @@ function makeCallLEDSim(dr3Method) {
     }
     if (!assertDR0Zero(sim, label)) return;
     if ((sim.dr[1] | 0) !== 1) {
-        fail(label, `DR1=${sim.dr[1] | 0} expected 1 (LED.Toggle success)`); return;
+        fail(label, `DR1=${sim.dr[1] | 0} expected 1 (LED[0] toggled on)`); return;
     }
     pass(label);
 })();
 
-// LED.State: reads LED state (offset 0, initially off); returns signed 0 (off).
+// LED.State: reads LED[0] state (initially off = 0); DR1 = 0.
 (function testCallLEDState() {
     const label = 'CALL CR0 → LED.State (preserveDR1 signed-return, result=0=off)';
-    const sim = makeCallLEDSim(3); // DR3=3 → State
+    const sim = makeCallLEDSim(3); // DR1=3 → State
     const instr = enc(2, AL, 0, 0, 0);
     const r = stepPreBoot(sim, instr);
     if (!r) {
@@ -351,9 +351,9 @@ function makeCallLEDSim(dr3Method) {
         return;
     }
     if (!assertDR0Zero(sim, label)) return;
-    // LED 0 initial state = off → State returns 0
+    // LED[0] initial state = off → State returns 0
     if ((sim.dr[1] | 0) !== 0) {
-        fail(label, `DR1=${sim.dr[1] | 0} expected 0 (LED off)`); return;
+        fail(label, `DR1=${sim.dr[1] | 0} expected 0 (LED[0] off)`); return;
     }
     pass(label);
 })();
@@ -361,24 +361,24 @@ function makeCallLEDSim(dr3Method) {
 // Confirm LED.State returns 1 (on) after LED.Set has been called.
 (function testCallLEDStateAfterSet() {
     const label = 'CALL CR0 → LED.State = 1 after LED.Set';
-    const sim = makeCallLEDSim(0); // Set first
+    const sim = makeCallLEDSim(0); // DR1=0 → Set first
     const setInstr   = enc(2, AL, 0, 0, 0);
     const stateInstr = enc(2, AL, 0, 0, 0);
 
-    // Step 1: LED.Set
+    // Step 1: LED.Set — DR1=0 (Set method)
     sim.memory[0] = setInstr;
-    sim.step(); // DR3=0 → Set; advance PC to 1
+    sim.step(); // Set LED[0] on; DR1 = 1; advance PC to 1
     if (sim.halted) { fail(label, 'faulted during LED.Set step'); return; }
     if (!assertDR0Zero(sim, label + ' after Set')) return;
 
-    // Step 2: LED.State — change DR3 to 3 (State) before next step
-    sim.dr[3] = 3 >>> 0;
+    // Step 2: LED.State — change DR1 to 3 (State) before next step
+    sim.dr[1] = 3 >>> 0;
     sim.memory[1] = stateInstr;
     const r = sim.step();
     if (!r) { fail(label, `step() returned null after Set`); return; }
     if (!assertDR0Zero(sim, label + ' after State')) return;
     if ((sim.dr[1] | 0) !== 1) {
-        fail(label, `DR1=${sim.dr[1] | 0} expected 1 (LED on after Set)`); return;
+        fail(label, `DR1=${sim.dr[1] | 0} expected 1 (LED[0] on after Set)`); return;
     }
     pass(label);
 })();

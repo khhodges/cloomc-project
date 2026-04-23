@@ -245,3 +245,55 @@ def test_uart_btn_timer_clist_slots_remain_inform():
         )
 
 
+# ── perm validation (Task #406 requirement) ──────────────────────────────────
+
+@pytest.mark.parametrize("bad_perm", ["X", "L", "S", "E", "B"])
+def test_create_abstract_gt_rejects_illegal_perms(bad_perm):
+    """create_abstract_gt raises ValueError for X/L/S/E/B perm bits."""
+    with pytest.raises(ValueError, match=bad_perm):
+        create_abstract_gt(AB_TYPE_IO, {bad_perm: 1}, 0, 0x0100)
+
+
+def test_create_abstract_gt_accepts_only_rw():
+    """create_abstract_gt accepts R and W without raising."""
+    gt = create_abstract_gt(AB_TYPE_IO, {"R": 1, "W": 1}, 0, 0x0100)
+    assert (gt >> 26) & 1 == 1   # R at bit[26]
+    assert (gt >> 25) & 1 == 1   # W at bit[25]
+
+
+def test_create_abstract_gt_no_perms_ok():
+    """create_abstract_gt with empty perms dict is valid."""
+    gt = create_abstract_gt(AB_TYPE_IO, {}, 0, 0x0100)
+    assert (gt >> 25) & 0x3 == 0   # neither R nor W
+
+
+# ── LED NS slot 12 freed (Task #406 requirement) ─────────────────────────────
+
+def test_led_ns_slot_12_is_freed():
+    """NS slot 12 (LED) must have an all-zero NS table entry (freed, not allocated)."""
+    cfg = {"step1": {
+        "totalNamespaceWords": 16384,
+        "namespaceLumpWords": 64,
+        "threadLumpWords": 256,
+        "abstractionLumpWords": 256,
+    }}
+    img = generate_boot_image(cfg, LUMPS_DIR)
+    words = struct.unpack(f"<{len(img) // 4}I", img)
+    total = len(words)
+    ns_table_base = total - NS_TABLE_RESERVE
+    # NS slot 12: 4 words starting at ns_table_base + 12 * NS_ENTRY_WORDS
+    slot12_base = ns_table_base + 12 * NS_ENTRY_WORDS
+    entry_words = [words[slot12_base + i] for i in range(NS_ENTRY_WORDS)]
+    assert all(w == 0 for w in entry_words), (
+        f"NS slot 12 should be all zeros (freed), got {[hex(w) for w in entry_words]}"
+    )
+
+
+def test_led_catalog_slot_12_is_none():
+    """DEFAULT_ABSTRACTION_CATALOG[12] must be None (LED NS slot freed)."""
+    from server.boot_image import DEFAULT_ABSTRACTION_CATALOG
+    assert DEFAULT_ABSTRACTION_CATALOG[12] is None, (
+        "Slot 12 should be None (freed), got: " + repr(DEFAULT_ABSTRACTION_CATALOG[12])
+    )
+
+

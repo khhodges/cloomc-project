@@ -44,7 +44,7 @@ SLOT_SIZE        = 0x40         # 64 words
 
 # Hardware-accurate device register limits (matches simulator.js
 # DEVICE_REG_LIMITS and hardware/boot_rom.py _MMIO_ENTRIES).
-DEVICE_REG_LIMITS = {11: 2, 12: 5, 13: 0, 14: 4}
+DEVICE_REG_LIMITS = {11: 2, 13: 0, 14: 4}     # slot 12 (LED) freed — Task #406
 
 BOOT_ABSTR_NS_SLOT   = 3   # NS slot holding the Boot Abstraction lump (Boot.Abstr)
 STARTUP_CONFIG_NS_SLOT = 2   # NS slot holding Startup.Config (Task #396)
@@ -114,7 +114,16 @@ def create_abstract_gt(ab_type, rw_perms, gt_seq, ab_data):
     Layout: [31:27]=ab_type  [26:25]=R/W  [24:23]=0b11  [22:16]=gt_seq  [15:0]=ab_data
     Only R and W are valid perm bits; X/L/S/E/B are repurposed as ab_type.
     Mirrors simulator.js createAbstractGT().
+
+    Raises ValueError if any of X/L/S/E/B are present in rw_perms — those bits
+    are repurposed as ab_type and must never appear as perm keys.
     """
+    illegal = [k for k in ("X", "L", "S", "E", "B") if rw_perms.get(k)]
+    if illegal:
+        raise ValueError(
+            f"create_abstract_gt: {', '.join(illegal)} are not valid perm bits for "
+            f"Abstract GTs — they are repurposed as ab_type.  Use only R and W."
+        )
     # Layout: bit[26]=R, bit[25]=W  (R is the higher bit per spec)
     r_bit = 1 if rw_perms.get("R") else 0
     w_bit = 1 if rw_perms.get("W") else 0
@@ -145,7 +154,7 @@ DEFAULT_ABSTRACTION_CATALOG = [
     ("Stack",         {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, True),
     ("DijkstraFlag",  {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, False),
     ("UART",          {"R":0,"W":0,"X":0,"L":1,"S":1,"E":1}, False),
-    ("LED",           {"R":0,"W":0,"X":0,"L":1,"S":1,"E":1}, False),
+    None,             # slot 12 freed — LED NS slot eliminated (Task #406); Abstract LED GTs need no NS entry
     ("Button",        {"R":0,"W":0,"X":0,"L":1,"S":0,"E":1}, False),
     ("Timer",         {"R":0,"W":0,"X":0,"L":1,"S":1,"E":1}, False),
     ("Display",       {"R":0,"W":0,"X":0,"L":1,"S":1,"E":1}, False),

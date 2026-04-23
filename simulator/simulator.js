@@ -529,7 +529,7 @@ class ChurchSimulator {
     reset() {
         this.cr = [];
         for (let i = 0; i < 16; i++) {
-            this.cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0, m: 0 };
+            this.cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0, word4: 0, m: 0 };
         }
 
         this.dr = new Array(16).fill(0);
@@ -781,7 +781,7 @@ class ChurchSimulator {
             { label: 'Stack',         perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
             { label: 'DijkstraFlag',  perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'UART',          perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
-            { label: 'LED',           perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
+            null,              // slot 12 freed — LED NS slot eliminated (Task #406); Abstract LED GTs need no NS entry
             { label: 'Button',        perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
             { label: 'Timer',         perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
             { label: 'Display',       perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
@@ -836,7 +836,7 @@ class ChurchSimulator {
         // UART:  3 words (TX@0, STATUS@1, RX@2)                             → limit17 = 2
         // Button:1 word  (button state bitmask)                              → limit17 = 0
         // Timer: 5 words (TICKS_LO, TICKS_HI, TOD_EPOCH, ALARM_CMP, CTL)   → limit17 = 4
-        const DEVICE_REG_LIMITS = { 11: 2, 12: 5, 13: 0, 14: 4 };
+        const DEVICE_REG_LIMITS = { 11: 2, 13: 0, 14: 4 };  // slot 12 (LED) freed — Task #406
 
         // Boot Image Designer Step 1 (Task #214): if a project boot config has
         // been saved by the IDE, use the programmer-chosen lump sizes. Otherwise
@@ -1330,6 +1330,13 @@ class ChurchSimulator {
     createAbstractGT(ab_type, perms, gt_seq, ab_data) {
         // Only R and W are valid perm bits for Abstract GTs (X/L/S/E/B are repurposed as ab_type).
         // Layout: bit[26]=R, bit[25]=W  (R is the higher bit per spec)
+        const illegal = ['X','L','S','E','B'].filter(k => perms[k]);
+        if (illegal.length) {
+            throw new Error(
+                `createAbstractGT: ${illegal.join(',')} are not valid perm bits for Abstract GTs ` +
+                `— they are repurposed as ab_type.  Use only R and W.`
+            );
+        }
         const rBit = perms.R ? 1 : 0;
         const wBit = perms.W ? 1 : 0;
         return (
@@ -1910,7 +1917,7 @@ class ChurchSimulator {
     }
 
     _clearCR(crIdx) {
-        this.cr[crIdx] = { word0: 0, word1: 0, word2: 0, word3: 0, m: 0 };
+        this.cr[crIdx] = { word0: 0, word1: 0, word2: 0, word3: 0, word4: 0, m: 0 };
         if (crIdx <= 11 && crIdx !== 6) {
             const threadBase = this.cr[12] && this.cr[12].word1;
             if (threadBase) {
@@ -1918,6 +1925,41 @@ class ChurchSimulator {
             }
         }
     }
+
+    // ── M-Window helpers (Task #406) ─────────────────────────────────────────
+    // The M Abstraction uses CR15 as an inspection/modification window.
+    // When M=1 is set on CRn, the 5 words of CRn are copied to DR11–DR15
+    // so the Abstract Manager can decode them as data.  Clearing M writes
+    // DR11–DR15 back (completing the round-trip) and resets CRn.m = 0.
+    // Only CR15 can hold M=1 (hardware enforces via single 4-input AND gate).
+
+    _setMWindow(crIdx) {
+        const cr = this.cr[crIdx];
+        cr.m = 1;
+        this.dr[11] = cr.word0 >>> 0;
+        this.dr[12] = cr.word1 >>> 0;
+        this.dr[13] = cr.word2 >>> 0;
+        this.dr[14] = cr.word3 >>> 0;
+        this.dr[15] = (cr.word4 !== undefined ? cr.word4 : 0) >>> 0;
+    }
+
+    _clearMWindow(crIdx, writeBack = true) {
+        const cr = this.cr[crIdx];
+        if (writeBack) {
+            cr.word0 = this.dr[11] >>> 0;
+            cr.word1 = this.dr[12] >>> 0;
+            cr.word2 = this.dr[13] >>> 0;
+            cr.word3 = this.dr[14] >>> 0;
+            cr.word4 = this.dr[15] >>> 0;
+        }
+        cr.m = 0;
+    }
+
+    _resetAllMBits() {
+        // CALL and RETURN boundaries reset CRn(M) on every CR.
+        for (let i = 0; i < 16; i++) this.cr[i].m = 0;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     checkCondition(condCode) {
         const { N, Z, C, V } = this.flags;
@@ -2445,13 +2487,11 @@ class ChurchSimulator {
             return null;
         }
         // Abstract GT intercept: type=0b11 carries no lump and no NS slot.
-        // CALL on an Abstract GT is INVALID — use DREAD/DWRITE for I/O GTs.
+        // CALL routes to the Abstract Manager (M-window: DR11=GT descriptor).
+        // M is reset at every CALL boundary per architecture spec.
         if (srcParsed.type === 3) {
-            const abInfo = this.parseAbstractGT(sourceGT);
-            const abTypeHex = abInfo.ab_type.toString(16).toUpperCase();
-            const dcHex     = abInfo.device_class.toString(16).toUpperCase();
-            this.fault('INVALID_OP', `CALL: Abstract GT (ab_type=0x${abTypeHex} device_class=0x${dcHex}) has no executable lump — use DREAD/DWRITE for I/O`);
-            return null;
+            this._resetAllMBits();
+            return this._dispatchAbstractCall(d, sourceGT);
         }
         const callTargetIdx = srcParsed.index;
         if (this.lazyManifest[callTargetIdx] && !this.lazyManifest[callTargetIdx].loaded) {
@@ -2559,6 +2599,7 @@ class ChurchSimulator {
             }
         }
         this.sto = (savedSTO - 2) & 0xFFF;
+        this._resetAllMBits();   // CALL boundary: M is reset on all CRs (architecture rule)
 
         const base = nsEntry.word0_location;
         const label = this.nsLabels[check.index] || 'abstraction';
@@ -2953,6 +2994,7 @@ class ChurchSimulator {
             return null;
         }
 
+        this._resetAllMBits();   // RETURN boundary: M is reset on all CRs (architecture rule)
         if (frame.savedCRs) {
             const tnBaseRet = this.cr[12] && this.cr[12].word1;
             for (let i = 0; i < frame.savedCRs.length; i++) {
@@ -3453,40 +3495,52 @@ class ChurchSimulator {
     }
 
     // ── Abstract Manager (Task #406) ─────────────────────────────────────────
-    // Dispatches DREAD / DWRITE on Abstract GTs (type=0b11) without mLoad.
-    // Called from _execDread / _execDwrite when the GT's type bits are 0b11.
+    // Dispatches DREAD / DWRITE / CALL on Abstract GTs (type=0b11) without
+    // mLoad.  Uses the M-window: _setMWindow copies the CR words to DR11–DR15
+    // so the manager decodes from DR11 (not by raw bit-bashing the GT word).
+    // Called from _execDread / _execDwrite / _execCall when GT type = 0b11.
 
     _abstractLedLabel(deviceData) {
         return `Abstract LED[${deviceData}]`;
     }
 
-    _dispatchAbstractDread(gt32, drIdx, instrOffset) {
-        const info = this.parseAbstractGT(gt32);
+    _dispatchAbstractDread(crIdx, drIdx, instrOffset) {
+        // M-window: copy CR words to DR11–DR15, decode from DR11.
+        this._setMWindow(crIdx);
+        const info = this.parseAbstractGT(this.dr[11]);
         if (!info.R) {
+            this._clearMWindow(crIdx, false);
             this.fault('PERM_R', `DREAD: Abstract GT lacks R permission`);
             return null;
         }
+        let result = null;
         if (info.ab_type === ChurchSimulator.AB_TYPE_IO) {
             if (info.device_class === ChurchSimulator.DEVICE_CLASS_LED) {
                 const ledIdx = info.device_data;
                 const value  = (this.ledBits >>> ledIdx) & 1;
                 this._writeDR(drIdx, value);
+                this._clearMWindow(crIdx, false);   // read: idempotent writeback
                 const label = this._abstractLedLabel(ledIdx);
                 const desc  = `DREAD DR${drIdx} ← ${value} [${label} = ${value ? 'ON' : 'OFF'}]`;
                 this.output += desc + '\n';
                 this.pc++;
                 return { pc: this.pc - 1, desc, pipeline: [
-                    { stage: 'DREAD', desc: `Read ${label}`, perm: 'R', status: 'pass' },
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'DREAD',    desc: `Read ${label}`, perm: 'R', status: 'pass' },
                 ]};
             }
         }
+        this._clearMWindow(crIdx, false);
         this.fault('INVALID_OP', `DREAD: Abstract GT ab_type=0x${info.ab_type.toString(16).toUpperCase()} device_class=0x${info.device_class.toString(16).toUpperCase()} not handled`);
         return null;
     }
 
-    _dispatchAbstractDwrite(gt32, drIdx, instrOffset) {
-        const info = this.parseAbstractGT(gt32);
+    _dispatchAbstractDwrite(crIdx, drIdx, instrOffset) {
+        // M-window: copy CR words to DR11–DR15, decode from DR11.
+        this._setMWindow(crIdx);
+        const info = this.parseAbstractGT(this.dr[11]);
         if (!info.W) {
+            this._clearMWindow(crIdx, false);
             this.fault('PERM_W', `DWRITE: Abstract GT lacks W permission`);
             return null;
         }
@@ -3511,16 +3565,58 @@ class ChurchSimulator {
                         }
                     }
                 }
+                this._clearMWindow(crIdx, false);   // write: idempotent writeback (GT unchanged)
                 const label = this._abstractLedLabel(ledIdx);
                 const desc  = `DWRITE DR${drIdx} → ${label} ← ${value} (${value & 1 ? 'ON' : 'OFF'})`;
                 this.output += desc + '\n';
                 this.pc++;
                 return { pc: this.pc - 1, desc, pipeline: [
-                    { stage: 'DWRITE', desc: `Write ${label} ← ${value}`, perm: 'W', status: 'pass' },
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'DWRITE',   desc: `Write ${label} ← ${value}`, perm: 'W', status: 'pass' },
                 ]};
             }
         }
+        this._clearMWindow(crIdx, false);
         this.fault('INVALID_OP', `DWRITE: Abstract GT ab_type=0x${info.ab_type.toString(16).toUpperCase()} device_class=0x${info.device_class.toString(16).toUpperCase()} not handled`);
+        return null;
+    }
+
+    _dispatchAbstractCall(d, gt32) {
+        // Abstract GT CALL: use M-window to decode GT from DR11, then route to
+        // the appropriate Abstract Manager method.  M is already reset by _execCall
+        // (CALL boundary rule).  This method sets CRn(M=1) just for the dispatch.
+        const crIdx = d.crDst;
+        this._setMWindow(crIdx);
+        const info = this.parseAbstractGT(this.dr[11]);
+        if (info.ab_type === ChurchSimulator.AB_TYPE_IO) {
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_LED) {
+                const ledIdx  = info.device_data;
+                const method  = this.dr[1] & 0x3;   // DR1[1:0]: 0=Set 1=Clear 2=Toggle 3=State
+                const METHOD_NAMES = ['Set','Clear','Toggle','State'];
+                let ledResult;
+                switch (method) {
+                    case 0: this.ledBits |= (1 << ledIdx);  ledResult = 1; break;  // Set (turnOn)
+                    case 1: this.ledBits &= ~(1 << ledIdx); ledResult = 0; break;  // Clear (turnOff)
+                    case 2: this.ledBits ^= (1 << ledIdx);  ledResult = (this.ledBits >>> ledIdx) & 1; break; // Toggle
+                    case 3: ledResult = (this.ledBits >>> ledIdx) & 1; break;       // State (read)
+                }
+                this.ledMode = 'program';
+                this._writeDR(1, ledResult);
+                this._clearMWindow(crIdx, false);   // RETURN resets M anyway; writeback idempotent
+                const label = this._abstractLedLabel(ledIdx);
+                const desc  = `CALL ${label}.${METHOD_NAMES[method]} → DR1=${ledResult}`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'CALL',     desc, status: 'pass' },
+                ]};
+            }
+        }
+        this._clearMWindow(crIdx, false);
+        const abTypeHex = info.ab_type.toString(16).toUpperCase();
+        const dcHex     = info.device_class.toString(16).toUpperCase();
+        this.fault('INVALID_OP', `CALL: Abstract GT (ab_type=0x${abTypeHex} device_class=0x${dcHex}) has no CALL methods — use DREAD/DWRITE`);
         return null;
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -3533,8 +3629,9 @@ class ChurchSimulator {
             return null;
         }
         // Abstract GT intercept (type=0b11): bypass mLoad, route to Abstract Manager.
+        // Pass crIdx so the M-window helper can read the 5 CR words directly.
         if (((dataGT >>> 23) & 0x3) === 3) {
-            return this._dispatchAbstractDread(dataGT, drIdx, d.imm);
+            return this._dispatchAbstractDread(d.crSrc, drIdx, d.imm);
         }
         const srcCR = this.cr[d.crSrc];
         const loc = srcCR.word1;
@@ -3579,8 +3676,9 @@ class ChurchSimulator {
             return null;
         }
         // Abstract GT intercept (type=0b11): bypass mLoad, route to Abstract Manager.
+        // Pass crIdx so the M-window helper can read the 5 CR words directly.
         if (((dataGT >>> 23) & 0x3) === 3) {
-            return this._dispatchAbstractDwrite(dataGT, drIdx, d.imm);
+            return this._dispatchAbstractDwrite(d.crSrc, drIdx, d.imm);
         }
         const srcCR = this.cr[d.crSrc];
         const loc = srcCR.word1;
