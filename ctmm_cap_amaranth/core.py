@@ -682,6 +682,20 @@ class CTMMCapCore(Elaboratable):
             mwin_version_ok.eq(mwin_gt_version == mwin_seal_version),
         ]
 
+        # gt_seq revocation check — mirrors hardware/core.py mwin_gtseq_ok.
+        # XR11[22:16] holds GT.gt_seq in the hardware GT_LAYOUT (hardware/layouts.py).
+        # XR13[27:21] holds NS_auth.gt_seq in WORD2_LAYOUT (hardware/layouts.py).
+        # Both fields are zero in the standard simulation GT encoding when the upper
+        # index bits are zero; a mismatch at these raw bit positions signals a stale GT.
+        mwin_gt_gtseq  = Signal(7)
+        mwin_ns_gtseq  = Signal(7)
+        mwin_gtseq_ok  = Signal()
+        m.d.comb += [
+            mwin_gt_gtseq.eq(mwin_xr11_lat[16:23]),
+            mwin_ns_gtseq.eq(mwin_xr13_lat[21:28]),
+            mwin_gtseq_ok.eq(mwin_gt_gtseq == mwin_ns_gtseq),
+        ]
+
         with m.FSM(name="mwin"):
             with m.State("IDLE"):
                 m.d.comb += mwin_busy.eq(0)
@@ -700,9 +714,11 @@ class CTMMCapCore(Elaboratable):
 
             with m.State("WRITEBACK"):
                 m.d.comb += mwin_busy.eq(1)
-                # Full validation: integrity32(XR12,XR13)==XR14 AND GT.version==seals.version.
-                # Both must pass; either failure → INVALID_OP + M-clear.
-                with m.If(mwin_integrity_ok & mwin_version_ok):
+                # Full validation: all three checks must pass; any failure → INVALID_OP + M-clear.
+                #   integrity32(XR12,XR13)==XR14  (integrity_ok)
+                #   GT.version==seals.version      (version_ok — revocation via XR11[31:25]/XR15[31:25])
+                #   XR11[22:16]==XR13[27:21]       (gtseq_ok  — revocation via hardware gt_seq fields)
+                with m.If(mwin_integrity_ok & mwin_version_ok & mwin_gtseq_ok):
                     mwin_wr_view = View(CAP_REG_LAYOUT, mwin_cr_wr_data)
                     m.d.comb += [
                         mwin_wr_view.word0_gt.eq(mwin_xr11_lat),

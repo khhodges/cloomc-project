@@ -635,9 +635,123 @@ def run_testbench():
         print("  PASS 12H: Real Abstract-GT CALL → M_FETCH_NS0-NS3 → "
               "XR11-XR15 populated, M-flag=1, CR5 stack empty")
 
+        # ── 12I: Valid integrity + gt_seq revocation mismatch → INVALID_OP fault ─
+        # (Task #442: dedicated test for the gt_seq revocation check in M-window
+        # WRITEBACK — isolated from the integrity mismatch path in 12D.)
+        #
+        # The hardware gt_seq revocation check compares:
+        #   XR11[22:16]  — GT.gt_seq   (hardware GT_LAYOUT field, per hardware/layouts.py)
+        #   XR13[27:21]  — NS_auth.gt_seq (WORD2_LAYOUT field, per hardware/layouts.py)
+        #
+        # To produce a non-zero GT.gt_seq at bits [22:16], we exploit the simulation
+        # GT encoding: in build_gt(index, ...), index occupies XR11[24:8], so
+        # XR11[22:16] = index[14:8].  Using index=0x500 → XR11[22:16] = 5.
+        # NS_AUTH = 0x00000010 keeps XR13[27:21] = 0 (gt_seq mismatch: 5 ≠ 0).
+        # NS_INT = integrity32(NS_LOC, NS_AUTH) → integrity_ok=True (untouched).
+        # NS_SEAL carries version=I12_GT_VERSION → version_ok=True (matches XR11).
+        # Only gtseq_ok=False triggers the fault.
+        #
+        # Step 1: resolve the M=1 state left by 12H via a valid writeback.
+        assert ctx.get(dut.cr15_m_flag) == 1, "12I: M should be 1 from 12H before cleanup"
+        ctx.set(dut.cr15_m_writeback_trigger, 1)
+        await ctx.tick()          # IDLE: latch 12H shadow (all checks OK) → WRITEBACK
+        ctx.set(dut.cr15_m_writeback_trigger, 0)
+        await ctx.tick()          # WRITEBACK succeeds (integrity/version/gtseq all ok) → IDLE
+        assert ctx.get(dut.cr15_m_flag) == 0, "12I: M should be 0 after 12H cleanup writeback"
+
+        # Step 2: set up an Abstract GT in CR1 with index=0x500.
+        # build_gt packs index at bits[24:8], so XR11[22:16] = (0x500 >> 8) & 0x7F = 5.
+        I12_GT_INDEX   = 0x500
+        I12_GT_VERSION = 3
+        i12_gt_word = build_gt(I12_GT_INDEX, 0, gt_type=GT_TYPE_ABSTRACT,
+                               version=I12_GT_VERSION)
+        gt_gtseq_i = (i12_gt_word >> 16) & 0x7F   # should be 5
+
+        ctx.set(dut.dbg_cap_wr_en,   1)
+        ctx.set(dut.dbg_cap_wr_addr, 1)
+        ctx.set(dut.dbg_cap_wr_data, {
+            "word0_gt":       {"gt_type": GT_TYPE_ABSTRACT, "perms": 0,
+                               "index": I12_GT_INDEX, "version": I12_GT_VERSION},
+            "word1_location": 0,
+            "word2_limit":    0,
+            "word3_seals":    0,
+        })
+        await ctx.tick()    # cap_regs[1] ← Abstract GT (index=0x500)
+        ctx.set(dut.dbg_cap_wr_en, 0)
+
+        # Step 3: trigger CALL cr1 → M_FETCH_NS0-NS3.
+        # NS_AUTH = 0x00000010: bits[27:21] = 0 → ns_gtseq = 0 ≠ 5 = gt_gtseq.
+        # NS_INT = integrity32(NS_LOC, NS_AUTH) → integrity_ok=True.
+        # NS_SEAL = (I12_GT_VERSION << 25) | 0xBEEF → seals.version=3 = GT.version → version_ok=True.
+        I12_NS_LOC  = 0x6000
+        I12_NS_AUTH = 0x00000010   # bits[27:21]=0 → ns_gtseq=0
+        I12_NS_INT  = integrity32(I12_NS_LOC, I12_NS_AUTH)
+        I12_NS_SEAL = (I12_GT_VERSION << 25) | 0xBEEF
+        ns_gtseq_i  = (I12_NS_AUTH >> 21) & 0x7F   # should be 0
+
+        assert gt_gtseq_i != ns_gtseq_i, (
+            f"12I: pre-check: GT gt_seq={gt_gtseq_i} should differ from NS gt_seq={ns_gtseq_i}")
+
+        I12_CALL = encode_church(ChurchOpcode.CALL, cr_dst=0, cr_src=1)
+        ctx.set(dut.dmem_rd_data, I12_NS_LOC)
+        ctx.set(dut.imem_data,    I12_CALL)
+        ctx.set(dut.imem_valid,   1)
+        await ctx.tick()                     # IDLE → CHECK_SRC
+        ctx.set(dut.imem_valid, 0)
+
+        await ctx.tick()    # CHECK_SRC  → READ_SRC
+        await ctx.tick()    # READ_SRC   → CHECK_PERM
+        await ctx.tick()    # CHECK_PERM → M_FETCH_NS0
+
+        await ctx.tick()    # M_FETCH_NS0 → M_FETCH_NS1
+        ctx.set(dut.dmem_rd_data, I12_NS_AUTH)
+        await ctx.tick()    # M_FETCH_NS1 → M_FETCH_NS2
+        ctx.set(dut.dmem_rd_data, I12_NS_INT)
+        await ctx.tick()    # M_FETCH_NS2 → M_FETCH_NS3
+        ctx.set(dut.dmem_rd_data, I12_NS_SEAL)
+        await ctx.tick()    # M_FETCH_NS3 → M_FETCH_DONE
+        await ctx.tick()    # M_FETCH_DONE → IDLE (mgt_set_trigger fires; XR11-XR15 set)
+
+        xr11_i = ctx.get(dut.dbg_m_xr11)
+        xr13_i = ctx.get(dut.dbg_m_xr13)
+        xr14_i = ctx.get(dut.dbg_m_xr14)
+        assert ctx.get(dut.cr15_m_flag) == 1, "12I: M should be 1 after Abstract CALL"
+        assert xr11_i == i12_gt_word, (
+            f"12I: XR11 should be i12_gt_word={i12_gt_word:#010x}, got {xr11_i:#010x}")
+        assert (xr11_i >> 16) & 0x7F == 5, (
+            f"12I: XR11[22:16] (GT.gt_seq) should be 5, got {(xr11_i >> 16) & 0x7F}")
+        assert xr13_i == I12_NS_AUTH, (
+            f"12I: XR13 should be NS_AUTH={I12_NS_AUTH:#010x}, got {xr13_i:#010x}")
+        assert (xr13_i >> 21) & 0x7F == 0, (
+            f"12I: XR13[27:21] (NS.gt_seq) should be 0, got {(xr13_i >> 21) & 0x7F}")
+        assert xr14_i == I12_NS_INT, (
+            f"12I: XR14 should be NS_INT={I12_NS_INT:#010x}, got {xr14_i:#010x}")
+
+        # Step 4: trigger M-writeback.
+        # integrity32(I12_NS_LOC, I12_NS_AUTH) == XR14 → integrity_ok=True.
+        # XR11.version=3 == XR15.seals.version=3          → version_ok=True.
+        # XR11[22:16]=5  ≠  XR13[27:21]=0                 → gtseq_ok=False.
+        # Combined: integrity_ok & version_ok & gtseq_ok = False → INVALID_OP fault, M cleared.
+        ctx.set(dut.cr15_m_writeback_trigger, 1)
+        await ctx.tick()          # IDLE: latch XR11-XR15, xr11_valid=1 → WRITEBACK
+        ctx.set(dut.cr15_m_writeback_trigger, 0)
+        fault_v_i = ctx.get(dut.fault_valid)
+        fault_t_i = ctx.get(dut.fault)
+        await ctx.tick()          # WRITEBACK: gtseq_ok=False → m_clear_en=1, fault → IDLE
+        m_flag_after_i = ctx.get(dut.cr15_m_flag)
+
+        assert fault_v_i == 1, (
+            f"12I: Expected fault on gt_seq mismatch, got fault_valid={fault_v_i}")
+        assert fault_t_i == FaultType.INVALID_OP, (
+            f"12I: Expected INVALID_OP on gt_seq mismatch, got fault={fault_t_i}")
+        assert m_flag_after_i == 0, (
+            f"12I: M should be cleared after gt_seq fault, got {m_flag_after_i}")
+        print("  PASS 12I: Valid integrity + gt_seq revocation mismatch "
+              "(XR11[22:16]=5 ≠ XR13[27:21]=0) in WRITEBACK → INVALID_OP, M cleared")
+
         print("  PASS: All M-window lifecycle cases verified "
               "(set / writeback / CHANGE / integrity-fault / restore / "
-              "null-gt-fault / no-stack-push / real-call-path)")
+              "null-gt-fault / no-stack-push / real-call-path / gt_seq-fault)")
 
         print("\n" + "=" * 60)
         print("CTMMCap Amaranth Testbench — All Tests Complete")
