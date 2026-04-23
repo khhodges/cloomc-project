@@ -263,6 +263,112 @@ def run_testbench():
         print("  PASS: gt_type extraction from bits[24:23] correct for all four types")
         print("  NOTE: DREAD/DWRITE/CALL on gt_type=0b11 → INVALID_OP fault (hardware stub)")
 
+        # ====================================================================
+        # TEST 12 — CR15 M-Window Lifecycle (Task #432)
+        # ====================================================================
+        print("\n[TEST 12] CR15 M-Window Hardware Lifecycle (Task #432)")
+        print("-" * 50)
+
+        # Freeze instruction execution for all M-window sub-tests
+        ctx.set(dut.imem_valid, 0)
+
+        # ── 12A: M-set populates XR11-XR14 from CR15 ────────────────────
+        ctx.set(dut.cr15_m_set, 1)
+        await ctx.tick()          # m_set fires: XR11-XR14 ← CR15 words; cr15_m_reg ← 1
+        ctx.set(dut.cr15_m_set, 0)
+        await ctx.tick()          # state settles
+
+        m_flag = ctx.get(dut.cr15_m_flag)
+        xr11   = ctx.get(dut.dbg_m_xr11)
+        xr12   = ctx.get(dut.dbg_m_xr12)
+        xr13   = ctx.get(dut.dbg_m_xr13)
+        xr14   = ctx.get(dut.dbg_m_xr14)
+        # Boot sets CR15.word0_gt = INFORM GT (index=0, perms=0, version=0) = 0
+        # The other CR15 words are 0 (not set during boot)
+        boot_ns_gt = build_gt(0, 0, gt_type=GT_TYPE_INFORM, version=0)  # = 0
+
+        assert m_flag == 1, f"cr15_m_flag should be 1 after M-set, got {m_flag}"
+        assert xr11 == boot_ns_gt, (
+            f"XR11 should equal CR15.word0_gt={boot_ns_gt:#010x}, got {xr11:#010x}")
+        assert xr12 == 0, f"XR12 should equal CR15.word1_location=0, got {xr12:#010x}"
+        assert xr13 == 0, f"XR13 should equal CR15.word2_limit=0, got {xr13:#010x}"
+        assert xr14 == 0, f"XR14 should equal CR15.word3_seals=0, got {xr14:#010x}"
+        print("  PASS 12A: M-set copies CR15→XR11-XR14; cr15_m_flag=1")
+
+        # ── 12B: Valid M-writeback via trigger — M cleared, no fault ─────
+        ctx.set(dut.cr15_m_writeback_trigger, 1)
+        await ctx.tick()          # IDLE: latch XR11-XR14, xr11_valid=1 → WRITEBACK
+        ctx.set(dut.cr15_m_writeback_trigger, 0)
+        # FSM is now in WRITEBACK state: CR15 ← XR11-XR14, m_clear_en=1, → IDLE
+        await ctx.tick()          # WRITEBACK executes
+        await ctx.tick()          # FSM back in IDLE, cr15_m_reg=0 settled
+
+        m_flag_wb = ctx.get(dut.cr15_m_flag)
+        fault_v   = ctx.get(dut.fault_valid)
+        assert m_flag_wb == 0, f"M should be cleared after valid writeback, got {m_flag_wb}"
+        assert fault_v == 0, f"No fault expected on valid M-writeback, got {fault_v}"
+        print("  PASS 12B: Valid M-writeback clears M-flag, raises no fault")
+
+        # ── 12C: CHANGE preserves M (CHANGE does not trigger M-writeback) ─
+        ctx.set(dut.cr15_m_set, 1)
+        await ctx.tick()          # Re-set M=1
+        ctx.set(dut.cr15_m_set, 0)
+        await ctx.tick()          # Settle
+
+        m_flag_pre_change = ctx.get(dut.cr15_m_flag)
+        assert m_flag_pre_change == 1, "M should be set before CHANGE test"
+
+        # CHANGE cr_src=5 (CR5 has PERM_MASK_L|S from boot; CHANGE requires L-perm)
+        # CHANGE writes CR5's GT into CR8 (effective_target=0 → CR8+0=CR8)
+        change_instr = encode_church(ChurchOpcode.CHANGE, cr_dst=0, cr_src=5, index=0)
+        ctx.set(dut.imem_data, change_instr)
+        ctx.set(dut.imem_valid, 1)
+        await ctx.tick()          # CHANGE executes (single-cycle op)
+        ctx.set(dut.imem_valid, 0)
+        await ctx.tick()          # Settle
+
+        m_flag_post_change = ctx.get(dut.cr15_m_flag)
+        assert m_flag_post_change == 1, (
+            "M should be preserved after CHANGE — CHANGE does not trigger M-writeback FSM, "
+            f"got cr15_m_flag={m_flag_post_change}")
+        print("  PASS 12C: CHANGE does not reset M-flag (M preserved across CHANGE)")
+
+        # ── 12D: Invalid M-writeback (NULL GT in XR11) → INVALID_OP fault ─
+        # M=1 from test 12C. Write NULL_GT to XR11 via ADDI instruction.
+        # NULL_GT = build_null_gt() = GT_TYPE_NULL encoded = 0b10 = 2
+        null_gt_val = build_null_gt()   # = 2 in ctmm_cap_amaranth encoding
+        addi_null = encode_ctmm_i(
+            null_gt_val, 0, int(CTMMFunct3ArithI.ADDI), 11, int(CTMMOpcode.ARITHI))
+        ctx.set(dut.imem_data, addi_null)
+        ctx.set(dut.imem_valid, 1)
+        await ctx.tick()          # ADDI fires: XR11 ← null_gt_val = 2
+        ctx.set(dut.imem_valid, 0)
+        await ctx.tick()          # XR11=null_gt_val settles
+
+        xr11_null = ctx.get(dut.dbg_m_xr11)
+        assert xr11_null == null_gt_val, (
+            f"XR11 should be NULL_GT={null_gt_val}, got {xr11_null}")
+        assert ctx.get(dut.cr15_m_flag) == 1, "M should still be 1 before invalid writeback"
+
+        # Trigger M-writeback — XR11[1:0]=0b10=GT_TYPE_NULL → FAULT
+        ctx.set(dut.cr15_m_writeback_trigger, 1)
+        await ctx.tick()          # IDLE: latch XR11-XR14, xr11_valid=0 → FAULT
+        ctx.set(dut.cr15_m_writeback_trigger, 0)
+        # FSM is now in FAULT state — read fault signals here
+        fault_v_d = ctx.get(dut.fault_valid)
+        fault_t_d = ctx.get(dut.fault)
+        await ctx.tick()          # FAULT executes: m_clear_en=1, fault raised → IDLE
+        m_flag_after_fault = ctx.get(dut.cr15_m_flag)
+
+        assert fault_v_d == 1, (
+            f"Expected fault on NULL GT M-writeback, got fault_valid={fault_v_d}")
+        assert fault_t_d == FaultType.INVALID_OP, (
+            f"Expected INVALID_OP fault on NULL GT writeback, got fault={fault_t_d}")
+        assert m_flag_after_fault == 0, (
+            f"M should be cleared after invalid writeback fault, got {m_flag_after_fault}")
+        print("  PASS 12D: NULL GT in XR11 → INVALID_OP fault, M cleared")
+        print("  PASS: All M-window lifecycle cases verified (set / writeback / CHANGE / fault)")
+
         print("\n" + "=" * 60)
         print("CTMMCap Amaranth Testbench — All Tests Complete")
         print("=" * 60)

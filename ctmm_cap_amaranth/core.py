@@ -20,6 +20,19 @@ class CTMMCapCore(Elaboratable):
         self.imem_data = Signal(32)
         self.imem_valid = Signal()
 
+        # M-window ports
+        # cr15_m_set:              trigger M-set (copy CR15→XR11-XR14, set M=1)
+        # cr15_m_writeback_trigger: act like call_complete/return_complete for M-window FSM
+        # cr15_m_flag:             current M-flag state (output, combinatorial)
+        # dbg_m_xr11..14:         combinatorial read of the M-window XRs (for testbench)
+        self.cr15_m_set               = Signal()
+        self.cr15_m_writeback_trigger = Signal()
+        self.cr15_m_flag              = Signal()
+        self.dbg_m_xr11               = Signal(32)
+        self.dbg_m_xr12               = Signal(32)
+        self.dbg_m_xr13               = Signal(32)
+        self.dbg_m_xr14               = Signal(32)
+
         self.dmem_addr = Signal(32)
         self.dmem_rd_en = Signal()
         self.dmem_rd_data = Signal(32)
@@ -116,7 +129,8 @@ class CTMMCapCore(Elaboratable):
         switch_target = u_decoder.switch_target
 
         exec_enable = Signal()
-        m.d.comb += exec_enable.eq(self.boot_complete & self.imem_valid)
+        mwin_busy   = Signal()
+        m.d.comb += exec_enable.eq(self.boot_complete & self.imem_valid & ~mwin_busy)
 
         lambda_start_sig = Signal()
         m.d.comb += lambda_start_sig.eq(
@@ -411,19 +425,28 @@ class CTMMCapCore(Elaboratable):
             u_regs.clear_all.eq(clear_all),
         ]
 
+        # M-window FSM CR-write signals (wired below in the FSM; declared here for scope)
+        mwin_cr_wr_en   = Signal()
+        mwin_cr_wr_data = Signal(CAP_REG_LAYOUT)
+        mwin_m_clear_en = Signal()
+        mwin_fault_sig  = Signal()
+        mwin_fault_type = Signal(4)
+
         m.d.comb += [
             u_regs.cr_wr_addr.eq(
-                Mux(u_tperm.tperm_busy, u_tperm.cr_wr_addr,
-                    Mux(u_call.call_busy, u_call.cr_wr_addr,
-                        Mux(u_return.busy, u_return.cr_wr_addr, 0)))
+                Mux(mwin_cr_wr_en, CR_NAMESPACE,
+                    Mux(u_tperm.tperm_busy, u_tperm.cr_wr_addr,
+                        Mux(u_call.call_busy, u_call.cr_wr_addr,
+                            Mux(u_return.busy, u_return.cr_wr_addr, 0))))
             ),
             u_regs.cr_wr_data.eq(
-                Mux(u_tperm.tperm_busy, u_tperm.cr_wr_data,
-                    Mux(u_call.call_busy, u_call.cr_wr_data,
-                        Mux(u_return.busy, u_return.cr_wr_data, 0)))
+                Mux(mwin_cr_wr_en, mwin_cr_wr_data,
+                    Mux(u_tperm.tperm_busy, u_tperm.cr_wr_data,
+                        Mux(u_call.call_busy, u_call.cr_wr_data,
+                            Mux(u_return.busy, u_return.cr_wr_data, 0))))
             ),
             u_regs.cr_wr_en.eq(
-                u_tperm.cr_wr_en | u_call.cr_wr_en | u_return.cr_wr_en
+                mwin_cr_wr_en | u_tperm.cr_wr_en | u_call.cr_wr_en | u_return.cr_wr_en
             ),
         ]
 
@@ -586,6 +609,82 @@ class CTMMCapCore(Elaboratable):
             u_save.mem_wr_done.eq(1),
         ]
 
+        # -----------------------------------------------------------------------
+        # M-window FSM
+        # Triggered when (call_complete | return_complete | cr15_m_writeback_trigger)
+        # AND cr15_m_flag=1.
+        # Reads the latched XR11-XR14 (combinatorial) and validates the GT in XR11.
+        # If valid → write XR11-XR14 to CR15 + clear M.
+        # If invalid → clear M + raise INVALID_OP fault.
+        # CHANGE does NOT trigger this FSM — M is preserved across CHANGE.
+        # -----------------------------------------------------------------------
+        mwin_xr11_lat = Signal(32)
+        mwin_xr12_lat = Signal(32)
+        mwin_xr13_lat = Signal(32)
+        mwin_xr14_lat = Signal(32)
+
+        m_trigger = Signal()
+        m.d.comb += m_trigger.eq(
+            u_call.call_complete | u_return.complete | self.cr15_m_writeback_trigger
+        )
+
+        # XR11 gt_type lives at bits [1:0] in the ctmm_cap_amaranth layout
+        xr11_gt_type = u_regs.m_xr11[:2]
+        xr11_valid   = Signal()
+        m.d.comb += xr11_valid.eq(xr11_gt_type != GT_TYPE_NULL)
+
+        with m.FSM(name="mwin"):
+            with m.State("IDLE"):
+                m.d.comb += mwin_busy.eq(0)
+                with m.If(m_trigger & u_regs.cr15_m_flag):
+                    m.d.sync += [
+                        mwin_xr11_lat.eq(u_regs.m_xr11),
+                        mwin_xr12_lat.eq(u_regs.m_xr12),
+                        mwin_xr13_lat.eq(u_regs.m_xr13),
+                        mwin_xr14_lat.eq(u_regs.m_xr14),
+                    ]
+                    with m.If(xr11_valid):
+                        m.next = "WRITEBACK"
+                    with m.Else():
+                        m.next = "FAULT"
+
+            with m.State("WRITEBACK"):
+                m.d.comb += mwin_busy.eq(1)
+                mwin_wr_view = View(CAP_REG_LAYOUT, mwin_cr_wr_data)
+                m.d.comb += [
+                    mwin_wr_view.word0_gt.eq(mwin_xr11_lat),
+                    mwin_wr_view.word1_location.eq(mwin_xr12_lat),
+                    mwin_wr_view.word2_limit.eq(mwin_xr13_lat),
+                    mwin_wr_view.word3_seals.eq(mwin_xr14_lat),
+                    mwin_cr_wr_en.eq(1),
+                    mwin_m_clear_en.eq(1),
+                ]
+                m.next = "IDLE"
+
+            with m.State("FAULT"):
+                m.d.comb += mwin_busy.eq(1)
+                m.d.comb += [
+                    mwin_fault_sig.eq(1),
+                    mwin_fault_type.eq(FaultType.INVALID_OP),
+                    mwin_m_clear_en.eq(1),
+                ]
+                m.next = "IDLE"
+
+        # Wire M-set and M-clear from the test-injection port and FSM
+        m.d.comb += [
+            u_regs.m_set_en.eq(self.cr15_m_set),
+            u_regs.m_clear_en.eq(mwin_m_clear_en),
+        ]
+
+        # Expose M-window observability signals
+        m.d.comb += [
+            self.cr15_m_flag.eq(u_regs.cr15_m_flag),
+            self.dbg_m_xr11.eq(u_regs.m_xr11),
+            self.dbg_m_xr12.eq(u_regs.m_xr12),
+            self.dbg_m_xr13.eq(u_regs.m_xr13),
+            self.dbg_m_xr14.eq(u_regs.m_xr14),
+        ]
+
         CR5_STACK_DEPTH = 256
         cr5_stack = Memory(width=32, depth=CR5_STACK_DEPTH, init=[])
         m.submodules.cr5_stack = cr5_stack
@@ -629,6 +728,8 @@ class CTMMCapCore(Elaboratable):
             m.d.comb += [self.fault.eq(u_return.fault_type), self.fault_valid.eq(1)]
         with m.Elif(u_save.save_fault):
             m.d.comb += [self.fault.eq(u_save.fault_type), self.fault_valid.eq(1)]
+        with m.Elif(mwin_fault_sig):
+            m.d.comb += [self.fault.eq(mwin_fault_type), self.fault_valid.eq(1)]
         with m.Else():
             m.d.comb += [self.fault.eq(FaultType.NONE), self.fault_valid.eq(0)]
 

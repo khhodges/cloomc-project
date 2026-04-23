@@ -220,6 +220,72 @@ History:
 
 ---
 
+## CR15 M-Window Hardware Mechanism (Task #432)
+
+### Overview
+
+The **M-window** grants a thread momentary write-access to its own namespace
+CR (CR15).  It is implemented entirely in hardware via a 1-bit M-flag latch
+and a 3-register shadow copy (DR11–DR13).
+
+### M-flag lifecycle
+
+| Event | M-flag before | Action | M-flag after |
+|-------|--------------|--------|--------------|
+| M-set (`cr15_m_set`) | 0 | Copy CR15 → DR11–DR13; set flag | **1** |
+| Valid writeback (`cr15_m_writeback_trigger`, DR11 non-NULL) | 1 | Pack DR11–DR13 → CR15 via `cr_wr`; clear flag | **0** |
+| NULL GT writeback (`cr15_m_writeback_trigger`, DR11 NULL) | 1 | Raise `INVALID_OP` fault; clear flag | **0** |
+| CHANGE / cross-domain RETURN | 1 | No FSM trigger; flag preserved | **1** |
+| Global reset (`clear_all`) | any | Wipe all registers | **0** |
+
+### Signal map
+
+| Signal | Direction | Width | Purpose |
+|--------|-----------|-------|---------|
+| `cr15_m_set` | in | 1 | Pulse to copy CR15 shadow + set M-flag |
+| `cr15_m_writeback_trigger` | in | 1 | Pulse to validate DR11 and initiate writeback |
+| `cr15_m_flag` | out | 1 | Current M-flag (combinatorial) |
+| `dbg_m_dr11/12/13` | out | 32 | Shadow DR reads for test inspection |
+| `m_set_en` (registers) | in | 1 | Enable CR15 → DR11–DR13 copy + set flag |
+| `m_clear_en` (registers) | in | 1 | Clear M-flag (no writeback) |
+
+### FSM states
+
+The M-window FSM lives inside `ChurchCore` / `CTMMCapCore`:
+
+```
+IDLE ──(trigger + valid DR11)──→ WRITEBACK ──→ IDLE
+     └─(trigger + NULL DR11) ──→ FAULT     ──→ IDLE
+```
+
+- **IDLE**: M-set is a combinatorial single-cycle enable (no state change needed).
+- **WRITEBACK** (1 cycle): `mwin_cr_wr_en` + `mwin_m_clear_en` → CR15 updated.
+- **FAULT** (1 cycle): `mwin_fault_valid` (`INVALID_OP`) + `mwin_m_clear_en`.
+
+`mwin_busy` is HIGH in WRITEBACK and FAULT only, stalling instruction fetch.
+
+### Validation (NULL GT check)
+
+In the **Amaranth simulator** model (`ctmm_cap_amaranth`):
+- GT_TYPE_NULL = `0b10`; bits `[1:0]` of DR11 (word0_gt).
+
+In the **production hardware** (`hardware`):
+- GT_TYPE_NULL = `0b00`; bits `[24:23]` of DR11 (word0_gt gt_type field).
+
+A NULL GT in DR11 at writeback time raises `INVALID_OP` (0xB) and clears M.
+
+### Implementation files
+
+| File | Role |
+|------|------|
+| `ctmm_cap_amaranth/registers.py` | M-flag latch, m_set_en/m_clear_en, m_xr11–14 |
+| `ctmm_cap_amaranth/core.py` | M-window FSM, test-injection ports, fault mux |
+| `hardware/registers.py` | Production register file: M-flag + DR11–DR13 shadow |
+| `hardware/core.py` | Production M-window FSM, writeback priority in cr_wr mux |
+| `ctmm_cap_amaranth/testbench.py` | Test 12 A–D: M-set / writeback / CHANGE / fault |
+
+---
+
 ## Related Tasks
 
 | Task | Description |
@@ -227,4 +293,4 @@ History:
 | #406 | This task — Abstract GT encoding, LED c-list slots 8–13 |
 | #430 | Amaranth HDL core changes (FPGA synthesis) |
 | #431 | UART, Button, Timer as Abstract GTs |
-| #432 | Full hardware implementation of the CR→DR M-window |
+| #432 | CR15 M-window hardware: M-flag latch, DR11–DR13 shadow, FSM writeback |

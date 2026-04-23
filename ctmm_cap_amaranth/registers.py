@@ -45,12 +45,30 @@ class CTMMCapRegisters(Elaboratable):
 
         self.clear_all = Signal()
 
+        # M-window controls — CR15 M-flag
+        # m_set_en:   copy CR15 words → XR11-XR14, XR15=0, set cr15_m_flag
+        # m_clear_en: clear cr15_m_flag (no writeback; used on fault path)
+        self.m_set_en   = Signal()
+        self.m_clear_en = Signal()
+
+        # Combinatorial read of the M-window XRs (always valid)
+        self.m_xr11 = Signal(32)
+        self.m_xr12 = Signal(32)
+        self.m_xr13 = Signal(32)
+        self.m_xr14 = Signal(32)
+
+        # Current M-flag state (combinatorial from cr15_m_reg)
+        self.cr15_m_flag = Signal()
+
     def elaborate(self, platform):
         m = Module()
 
         cap_regs = Array([Signal(CAP_REG_LAYOUT, name=f"cr{i}") for i in range(NUM_CAP_REGS)])
         data_regs = Array([Signal(32, name=f"x{i}") for i in range(NUM_DATA_REGS)])
         flags_reg = Signal(COND_FLAGS_LAYOUT)
+
+        # M-flag latch — only CR15 can have M=1
+        cr15_m_reg = Signal()
 
         m.d.comb += self.cr_rd_data.eq(cap_regs[self.cr_rd_addr])
 
@@ -71,12 +89,22 @@ class CTMMCapRegisters(Elaboratable):
             self.cr15_namespace.eq(cap_regs[CR_NAMESPACE]),
         ]
 
+        # M-window: combinatorial reads of XR11-XR14
+        m.d.comb += [
+            self.m_xr11.eq(data_regs[11]),
+            self.m_xr12.eq(data_regs[12]),
+            self.m_xr13.eq(data_regs[13]),
+            self.m_xr14.eq(data_regs[14]),
+            self.cr15_m_flag.eq(cr15_m_reg),
+        ]
+
         with m.If(self.clear_all):
             for i in range(NUM_CAP_REGS):
                 m.d.sync += cap_regs[i].eq(0)
             for i in range(NUM_DATA_REGS):
                 m.d.sync += data_regs[i].eq(0)
             m.d.sync += flags_reg.eq(0)
+            m.d.sync += cr15_m_reg.eq(0)
         with m.Else():
             with m.If(self.cr_wr_en):
                 m.d.sync += cap_regs[self.cr_wr_addr].eq(self.cr_wr_data)
@@ -98,8 +126,22 @@ class CTMMCapRegisters(Elaboratable):
                     cr_view = View(CAP_REG_LAYOUT, cap_regs[i])
                     m.d.sync += cr_view.word0_gt.eq(self.cr_gt_wr_data[i])
 
+            # Normal XR write (lower priority than m_set_en for XR11-XR14)
             with m.If(self.xr_wr_en & (self.xr_wr_addr != 0)):
                 m.d.sync += data_regs[self.xr_wr_addr].eq(self.xr_wr_data)
+
+            # M-set: copy CR15 → XR11-XR14, XR15=0, set flag
+            # Placed AFTER xr_wr_en so m_set_en wins for XR11-XR15
+            cr15_view = View(CAP_REG_LAYOUT, cap_regs[CR_NAMESPACE])
+            with m.If(self.m_set_en):
+                m.d.sync += cr15_m_reg.eq(1)
+                m.d.sync += data_regs[11].eq(cr15_view.word0_gt)
+                m.d.sync += data_regs[12].eq(cr15_view.word1_location)
+                m.d.sync += data_regs[13].eq(cr15_view.word2_limit)
+                m.d.sync += data_regs[14].eq(cr15_view.word3_seals)
+                m.d.sync += data_regs[15].eq(0)
+            with m.Elif(self.m_clear_en):
+                m.d.sync += cr15_m_reg.eq(0)
 
             with m.If(self.flags_wr_en):
                 m.d.sync += flags_reg.eq(self.flags_in)

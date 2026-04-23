@@ -64,12 +64,29 @@ class ChurchRegisters(Elaboratable):
         self.cr_b_clear_mask = Signal(12)
         self.cr_null_mask    = Signal(12)
 
+        # M-window controls — CR15 M-flag
+        # m_set_en:   copy CR15 words → DR11-DR13 (3-word hardware CR), DR14=0, set flag
+        # m_clear_en: clear cr15_m_flag (no writeback; used on fault path)
+        self.m_set_en   = Signal()
+        self.m_clear_en = Signal()
+
+        # Combinatorial reads of the M-window DRs (always valid)
+        self.m_dr11 = Signal(32)
+        self.m_dr12 = Signal(32)
+        self.m_dr13 = Signal(32)
+
+        # Current M-flag state
+        self.cr15_m_flag = Signal()
+
     def elaborate(self, platform):
         m = Module()
 
         cap_regs = Array([Signal(CAP_REG_LAYOUT, name=f"cr{i}") for i in range(NUM_CAP_REGS)])
         data_regs = Array([Signal(32, name=f"dr{i}") for i in range(NUM_DATA_REGS)])
         flags_reg = Signal(COND_FLAGS_LAYOUT)
+
+        # M-flag latch — single bit associated with CR15 only
+        cr15_m_reg = Signal()
 
         m.d.comb += self.cr_rd_data.eq(cap_regs[self.cr_rd_addr])
 
@@ -92,12 +109,21 @@ class ChurchRegisters(Elaboratable):
             self.cr15_namespace.eq(cap_regs[CR_NAMESPACE]),
         ]
 
+        # M-window: combinatorial DR11-DR13 reads and flag output
+        m.d.comb += [
+            self.m_dr11.eq(data_regs[11]),
+            self.m_dr12.eq(data_regs[12]),
+            self.m_dr13.eq(data_regs[13]),
+            self.cr15_m_flag.eq(cr15_m_reg),
+        ]
+
         with m.If(self.clear_all):
             for i in range(NUM_CAP_REGS):
                 m.d.sync += cap_regs[i].eq(0)
             for i in range(NUM_DATA_REGS):
                 m.d.sync += data_regs[i].eq(0)
             m.d.sync += flags_reg.eq(0)
+            m.d.sync += cr15_m_reg.eq(0)
         with m.Else():
             with m.If(self.cr_wr_en):
                 m.d.sync += cap_regs[self.cr_wr_addr].eq(self.cr_wr_data)
@@ -125,8 +151,21 @@ class ChurchRegisters(Elaboratable):
                     cr_view = View(CAP_REG_LAYOUT, cap_regs[i])
                     m.d.sync += cr_view.word0_gt.b_flag.eq(0)
 
+            # Normal DR write (lower priority than m_set_en for DR11-DR13)
             with m.If(self.dr_wr_en & (self.dr_wr_addr != 0)):
                 m.d.sync += data_regs[self.dr_wr_addr].eq(self.dr_wr_data)
+
+            # M-set: copy CR15 words → DR11-DR13 (3-word CR), DR14=0, set flag
+            # Placed AFTER dr_wr_en so m_set_en takes priority for DR11-DR13
+            cr15_view_w = View(CAP_REG_LAYOUT, cap_regs[CR_NAMESPACE])
+            with m.If(self.m_set_en):
+                m.d.sync += cr15_m_reg.eq(1)
+                m.d.sync += data_regs[11].eq(cr15_view_w.word0_gt)
+                m.d.sync += data_regs[12].eq(cr15_view_w.word1_location)
+                m.d.sync += data_regs[13].eq(cr15_view_w.word2_w2)
+                m.d.sync += data_regs[14].eq(0)
+            with m.Elif(self.m_clear_en):
+                m.d.sync += cr15_m_reg.eq(0)
 
             with m.If(self.flags_wr_en):
                 m.d.sync += flags_reg.eq(self.flags_in)

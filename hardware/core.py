@@ -102,6 +102,18 @@ class ChurchCore(Elaboratable):
         self.outform_clist_addr_in = Signal(32)
         self.outform_gt_raw_in     = Signal(32)
 
+        # M-window (CR15 namespace M-flag latch + DR11-DR13 shadow) — Task #432
+        # cr15_m_set: pulse to copy CR15 → DR11-DR13 and set M-flag (test injection)
+        # cr15_m_writeback_trigger: pulse to validate DR11 and write back to CR15
+        # cr15_m_flag: current M-flag state (combinatorial read)
+        # dbg_m_dr11/12/13: combinatorial reads of DR11-DR13 for test inspection
+        self.cr15_m_set               = Signal()
+        self.cr15_m_writeback_trigger = Signal()
+        self.cr15_m_flag              = Signal()
+        self.dbg_m_dr11               = Signal(32)
+        self.dbg_m_dr12               = Signal(32)
+        self.dbg_m_dr13               = Signal(32)
+
     def elaborate(self, platform):
         m = Module()
 
@@ -243,6 +255,14 @@ class ChurchCore(Elaboratable):
         cross_domain_ret = Signal()
         cload_pending   = Signal()
 
+        # Early declarations for M-window FSM — CR15 M-flag latch + DR11-DR13 shadow
+        mwin_busy              = Signal()
+        mwin_cr_wr_en          = Signal()
+        mwin_cr_wr_data        = Signal(CAP_REG_LAYOUT)
+        mwin_m_set_en          = Signal()
+        mwin_m_clear_en        = Signal()
+        mwin_fault_valid       = Signal()
+
         # Early declarations for Mint FSM signals used throughout elaborate()
         mint_busy              = Signal()
         mint_clist_wr_en       = Signal()
@@ -267,7 +287,8 @@ class ChurchCore(Elaboratable):
             u_cload.cload_busy | cload_pending |
             fence_pending_reg |
             u_outform.outform_busy |
-            mint_busy
+            mint_busy |
+            mwin_busy
         )
         if not self.iot_profile:
             busy_expr = busy_expr | (
@@ -527,26 +548,36 @@ class ChurchCore(Elaboratable):
             cr_wr_en_extra = u_cload.cr_wr_en
         m.d.comb += [
             u_regs.cr_wr_addr.eq(
-                Mux(boot_cap_wr_en, boot_cap_wr_addr,
-                    Mux(u_shared_mload.cr_wr_en, u_shared_mload.cr_wr_addr,
-                        Mux(u_tperm.cr_wr_en, u_tperm.cr_wr_addr,
-                            Mux(u_call.cr_wr_en, u_call.cr_wr_addr,
-                                Mux(u_return.cr_wr_en, u_return.cr_wr_addr,
-                                    cr_wr_addr_inner)))))
+                Mux(mwin_cr_wr_en, CR_NAMESPACE,
+                    Mux(boot_cap_wr_en, boot_cap_wr_addr,
+                        Mux(u_shared_mload.cr_wr_en, u_shared_mload.cr_wr_addr,
+                            Mux(u_tperm.cr_wr_en, u_tperm.cr_wr_addr,
+                                Mux(u_call.cr_wr_en, u_call.cr_wr_addr,
+                                    Mux(u_return.cr_wr_en, u_return.cr_wr_addr,
+                                        cr_wr_addr_inner))))))
             ),
             u_regs.cr_wr_data.eq(
-                Mux(boot_cap_wr_en, boot_cap_wr_data,
-                    Mux(u_shared_mload.cr_wr_en, u_shared_mload.cr_wr_data,
-                        Mux(u_tperm.cr_wr_en, u_tperm.cr_wr_data,
-                            Mux(u_call.cr_wr_en, u_call.cr_wr_data,
-                                Mux(u_return.cr_wr_en, u_return.cr_wr_data,
-                                    cr_wr_data_inner)))))
+                Mux(mwin_cr_wr_en, mwin_cr_wr_data,
+                    Mux(boot_cap_wr_en, boot_cap_wr_data,
+                        Mux(u_shared_mload.cr_wr_en, u_shared_mload.cr_wr_data,
+                            Mux(u_tperm.cr_wr_en, u_tperm.cr_wr_data,
+                                Mux(u_call.cr_wr_en, u_call.cr_wr_data,
+                                    Mux(u_return.cr_wr_en, u_return.cr_wr_data,
+                                        cr_wr_data_inner))))))
             ),
             u_regs.cr_wr_en.eq(
-                boot_cap_wr_en |
+                mwin_cr_wr_en | boot_cap_wr_en |
                 u_shared_mload.cr_wr_en | u_tperm.cr_wr_en | u_call.cr_wr_en |
                 u_return.cr_wr_en | cr_wr_en_extra
             ),
+            # M-window set/clear connect to u_regs controls
+            u_regs.m_set_en.eq(mwin_m_set_en),
+            u_regs.m_clear_en.eq(mwin_m_clear_en),
+            # Expose M-flag and shadow DR reads
+            self.cr15_m_flag.eq(u_regs.cr15_m_flag),
+            self.dbg_m_dr11.eq(u_regs.m_dr11),
+            self.dbg_m_dr12.eq(u_regs.m_dr12),
+            self.dbg_m_dr13.eq(u_regs.m_dr13),
         ]
 
         with m.If(u_return.reboot_request):
@@ -1445,6 +1476,75 @@ class ChurchCore(Elaboratable):
         with m.Elif(u_return.complete & ~u_return.fault_valid & ~cr5_stack_empty):
             m.d.sync += cr5_stack_ptr.eq(cr5_stack_ptr - 1)
 
+        # -----------------------------------------------------------------------
+        # M-window FSM — CR15 M-flag latch + DR11-DR13 shadow (Task #432)
+        # States: IDLE(0) → WRITEBACK(1) or FAULT(2) → IDLE
+        #
+        # IDLE: default outputs low.  Two entry triggers (single-cycle pulses):
+        #   - cr15_m_set (test injection): fires mwin_m_set_en immediately (combinatorial
+        #     enable into u_regs, latched next cycle).  No FSM state change needed.
+        #   - cr15_m_writeback_trigger: validates DR11 gt_type; advances to WRITEBACK or
+        #     FAULT next cycle and holds mwin_busy high.
+        # WRITEBACK: drive mwin_cr_wr_en (pack DR11-DR13 → CR15) + mwin_m_clear_en,
+        #            then return to IDLE.
+        # FAULT: assert mwin_fault_valid + mwin_m_clear_en, then return to IDLE.
+        # mwin_busy is HIGH in WRITEBACK and FAULT states only (not IDLE).
+        # -----------------------------------------------------------------------
+        mwin_state_reg = Signal(2)   # 0=IDLE 1=WRITEBACK 2=FAULT
+
+        # Combinatorial: decode DR11 gt_type (bits[24:23]) for NULL check.
+        # In hardware, GT_TYPE_NULL = 0b00 at bits[24:23].
+        mwin_xr11_valid = Signal()
+        m.d.comb += mwin_xr11_valid.eq(u_regs.m_dr11[23:25] != GT_TYPE_NULL)
+
+        # Pack DR11-DR13 into a 3-word CAP_REG_LAYOUT for the CR writeback.
+        mwin_packed = Signal(CAP_REG_LAYOUT)
+        mwin_packed_view = View(CAP_REG_LAYOUT, mwin_packed)
+        m.d.comb += [
+            mwin_packed_view.word0_gt.eq(u_regs.m_dr11),
+            mwin_packed_view.word1_location.eq(u_regs.m_dr12),
+            mwin_packed_view.word2_w2.eq(u_regs.m_dr13),
+        ]
+
+        # Default: all M-window outputs low
+        m.d.comb += [
+            mwin_busy.eq(0),
+            mwin_cr_wr_en.eq(0),
+            mwin_cr_wr_data.eq(0),
+            mwin_m_set_en.eq(0),
+            mwin_m_clear_en.eq(0),
+            mwin_fault_valid.eq(0),
+        ]
+
+        with m.Switch(mwin_state_reg):
+            with m.Case(0):  # IDLE
+                # cr15_m_set: single-cycle M-set (drives u_regs.m_set_en; no FSM state change)
+                with m.If(self.cr15_m_set):
+                    m.d.comb += mwin_m_set_en.eq(1)
+                # cr15_m_writeback_trigger: validate DR11 and advance to WRITEBACK or FAULT
+                with m.If(self.cr15_m_writeback_trigger):
+                    with m.If(mwin_xr11_valid):
+                        m.d.sync += mwin_state_reg.eq(1)  # → WRITEBACK
+                    with m.Else():
+                        m.d.sync += mwin_state_reg.eq(2)  # → FAULT
+
+            with m.Case(1):  # WRITEBACK
+                m.d.comb += [
+                    mwin_busy.eq(1),
+                    mwin_cr_wr_en.eq(1),
+                    mwin_cr_wr_data.eq(mwin_packed),
+                    mwin_m_clear_en.eq(1),
+                ]
+                m.d.sync += mwin_state_reg.eq(0)  # → IDLE
+
+            with m.Case(2):  # FAULT (NULL GT in DR11)
+                m.d.comb += [
+                    mwin_busy.eq(1),
+                    mwin_fault_valid.eq(1),
+                    mwin_m_clear_en.eq(1),
+                ]
+                m.d.sync += mwin_state_reg.eq(0)  # → IDLE
+
         # fetch_bounds_fault: active when nia_reg escapes the active code fence.
         # Also drives cond_exec_enable low (via the declaration above) so that no
         # instruction can start in the same cycle — decode side effects are suppressed
@@ -1490,6 +1590,8 @@ class ChurchCore(Elaboratable):
             m.d.comb += [self.fault.eq(u_cload.cload_fault_type), self.fault_valid.eq(1)]
         with m.Elif(u_outform.outform_fault):
             m.d.comb += [self.fault.eq(u_outform.outform_fault_type), self.fault_valid.eq(1)]
+        with m.Elif(mwin_fault_valid):
+            m.d.comb += [self.fault.eq(FaultType.INVALID_OP), self.fault_valid.eq(1)]
         with m.Else():
             m.d.comb += [self.fault.eq(FaultType.NONE), self.fault_valid.eq(0)]
 
