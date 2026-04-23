@@ -192,7 +192,7 @@ class ChurchSimulator {
         // Format-version guard: reject binaries generated before Task #396
         // (Startup.Config at NS slot 2; Boot.Abstr c-list[4] wired to it).
         // Tag written by boot_image.py at mem[NS_TABLE_BASE - 1].
-        const BOOT_IMAGE_FORMAT_TAG = 0xB0070406;  // must match boot_image.py; bumped Task #406 (Abstract LED GTs)
+        const BOOT_IMAGE_FORMAT_TAG = 0xB0070431;  // must match boot_image.py; bumped Task #431 (Abstract UART/Button/Timer GTs)
         const tagIdx = src.length - this.NS_TABLE_RESERVE - 1;
         if (tagIdx >= 0 && tagIdx < src.length) {
             if ((src[tagIdx] >>> 0) !== BOOT_IMAGE_FORMAT_TAG) {
@@ -571,6 +571,9 @@ class ChurchSimulator {
         this.bootStep = 0;
         this.ledBits = 0;
         this.ledMode = 'boot';
+        this.uartRegs    = [0, 0, 0];      // TX@0, STATUS@1 (1=ready), RX@2
+        this.buttonState = 0;              // button bitmask (reg 0)
+        this.timerRegs   = [0, 0, 0, 0, 0]; // TICKS_LO@0, HI@1, TOD@2, ALARM_CMP@3, CTL@4
         this.lastCapability = null;
         this.auditLog = [];
         this.awaitingLump = null;
@@ -626,6 +629,9 @@ class ChurchSimulator {
         this.bootStep = 0;
         this.ledBits = 0;
         this.ledMode = 'boot';
+        this.uartRegs    = [0, 0, 0];
+        this.buttonState = 0;
+        this.timerRegs   = [0, 0, 0, 0, 0];
         this.lastSignedReturn = null;
         this._currentInstrLabel = null;
         this.output += '[PP250] Machine state cleared. Re-entering boot sequence.\n';
@@ -780,10 +786,10 @@ class ChurchSimulator {
             { label: 'Scheduler',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Stack',         perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
             { label: 'DijkstraFlag',  perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
-            { label: 'UART',          perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
+            null,              // slot 11 freed — UART NS slot eliminated (Task #431); Abstract UART GTs need no NS entry
             null,              // slot 12 freed — LED NS slot eliminated (Task #406); Abstract LED GTs need no NS entry
-            { label: 'Button',        perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'Timer',         perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
+            null,              // slot 13 freed — Button NS slot eliminated (Task #431); Abstract Button GTs need no NS entry
+            null,              // slot 14 freed — Timer NS slot eliminated (Task #431); Abstract Timer GTs need no NS entry
             { label: 'Display',       perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
             { label: 'SlideRule',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
             { label: 'Abacus',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
@@ -830,13 +836,13 @@ class ChurchSimulator {
         const clistChildren = [];
         const clistGTs = [];
 
-        // Hardware-accurate device register sizes (matches boot_rom.py _MMIO_ENTRIES)
-        // LED:   6 words (LED0–LED5, one per LED; bit[0]=R drives pin)      → limit17 = 5
-        //        C-list slots 8–13 address each LED by index (slot - LED_CLIST_BASE)
-        // UART:  3 words (TX@0, STATUS@1, RX@2)                             → limit17 = 2
-        // Button:1 word  (button state bitmask)                              → limit17 = 0
-        // Timer: 5 words (TICKS_LO, TICKS_HI, TOD_EPOCH, ALARM_CMP, CTL)   → limit17 = 4
-        const DEVICE_REG_LIMITS = { 11: 2, 13: 0, 14: 4 };  // slot 12 (LED) freed — Task #406
+        // Device register NS limits — all I/O devices migrated to Abstract GTs; no Inform NS entries remain.
+        // LED:    freed Task #406 (slot 12); Abstract GTs in c-list[8]–[13].
+        // UART:   freed Task #431 (slot 11); Abstract GT  in c-list[14].
+        // Button: freed Task #431 (slot 13); Abstract GT  in c-list[15].
+        // Timer:  freed Task #431 (slot 14); Abstract GT  in c-list[16].
+        // Display (slot 15) is next in the migration roadmap.
+        const DEVICE_REG_LIMITS = {};  // no device register Inform NS entries remain
 
         // Boot Image Designer Step 1 (Task #214): if a project boot config has
         // been saved by the IDE, use the programmer-chosen lump sizes. Otherwise
@@ -965,17 +971,21 @@ class ChurchSimulator {
         // hardware code "LOAD CR3, CR6, 8" picks up the LED device, exactly as on Ti60 F225.
         //   [8]–[13] LED[0]–LED[5] Abstract GTs (type=0b11, ab_type=I/O, device_class=LED, device_data=0-5)
         //            No NS slot, no lump — capability entirely encoded in the 32-bit GT word (Task #406).
-        //   [14] UART_DEV  R|W → NS slot 11 (3 registers: TX@0, STATUS@1, RX@2)
-        //   [15] BTN_DEV   R   → NS slot 13 (1 register: button state bitmask)
-        //   [16] TIMER_DEV R|W → NS slot 14 (5 registers: TICKS_LO, HI, TOD, ALARM_CMP, CTL)
+        //   [14] UART_DEV  R|W → Abstract GT (device_class=UART,  device_data=0=TX)    — Task #431
+        //   [15] BTN_DEV   R   → Abstract GT (device_class=BUTTON, device_data=0=state) — Task #431
+        //   [16] TIMER_DEV R|W → Abstract GT (device_class=TIMER,  device_data=0=TICKS_LO) — Task #431
         for (let ledIdx = 0; ledIdx < 6; ledIdx++) {
             const ab_data = ((ChurchSimulator.DEVICE_CLASS_LED & 0xFF) << 8) | (ledIdx & 0xFF);
             clistGTs[8 + ledIdx] = this.createAbstractGT(
                 ChurchSimulator.AB_TYPE_IO, {R:1, W:1}, 0, ab_data);
         }
-        clistGTs[14] = this.createGT(0, 11, {R:1,W:1,X:0,L:0,S:0,E:0}, 1); // UART_DEV
-        clistGTs[15] = this.createGT(0, 13, {R:1,W:0,X:0,L:0,S:0,E:0}, 1); // BTN_DEV
-        clistGTs[16] = this.createGT(0, 14, {R:1,W:1,X:0,L:0,S:0,E:0}, 1); // TIMER_DEV
+        // Slots 14–16: Abstract I/O GTs (Task #431) — no NS slot, no lump
+        clistGTs[14] = this.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1,W:1}, 0,
+            ((ChurchSimulator.DEVICE_CLASS_UART   & 0xFF) << 8) | 0);  // UART_DEV  R|W  reg0=TX
+        clistGTs[15] = this.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1},     0,
+            ((ChurchSimulator.DEVICE_CLASS_BUTTON & 0xFF) << 8) | 0);  // BTN_DEV   R    reg0=state
+        clistGTs[16] = this.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1,W:1}, 0,
+            ((ChurchSimulator.DEVICE_CLASS_TIMER  & 0xFF) << 8) | 0);  // TIMER_DEV R|W  reg0=TICKS_LO
         const NUC_CODE_WORDS    = 17;
         const DEMO_CLIST_SIZE   = 17;
         // Truncate to hardware DEMO_CLIST size — entries beyond idx 16 are simulator-only abstractions
@@ -1038,7 +1048,7 @@ class ChurchSimulator {
         // stale binaries. Bumped to 0x396 (Task #396) — Startup.Config at slot 2,
         // Boot.Abstr c-list[4] rewired to Startup.Config GT.
         // Must match boot_image.py BOOT_IMAGE_FORMAT_TAG and loadBootImage().
-        const BOOT_IMAGE_FORMAT_TAG_INIT = 0xB0070406;  // bumped Task #406 (Abstract LED GTs)
+        const BOOT_IMAGE_FORMAT_TAG_INIT = 0xB0070431;  // bumped Task #431 (Abstract UART/Button/Timer GTs)
         this.memory[this.NS_TABLE_BASE - 1] = BOOT_IMAGE_FORMAT_TAG_INIT >>> 0;
     }
 
@@ -3519,7 +3529,7 @@ class ChurchSimulator {
                 const ledIdx = info.device_data;
                 const value  = (this.ledBits >>> ledIdx) & 1;
                 this._writeDR(drIdx, value);
-                this._clearMWindow(crIdx, false);   // read: idempotent writeback
+                this._clearMWindow(crIdx, false);
                 const label = this._abstractLedLabel(ledIdx);
                 const desc  = `DREAD DR${drIdx} ← ${value} [${label} = ${value ? 'ON' : 'OFF'}]`;
                 this.output += desc + '\n';
@@ -3527,6 +3537,62 @@ class ChurchSimulator {
                 return { pc: this.pc - 1, desc, pipeline: [
                     { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
                     { stage: 'DREAD',    desc: `Read ${label}`, perm: 'R', status: 'pass' },
+                ]};
+            }
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_UART) {
+                const regIdx = info.device_data;
+                if (regIdx > 2) {
+                    this._clearMWindow(crIdx, false);
+                    this.fault('INVALID_OP', `DREAD: UART device_data=${regIdx} out of range [0..2]`);
+                    return null;
+                }
+                const value = this.uartRegs[regIdx] >>> 0;
+                this._writeDR(drIdx, value);
+                this._clearMWindow(crIdx, false);
+                const regName = ['TX', 'STATUS', 'RX'][regIdx];
+                const desc = `DREAD DR${drIdx} ← ${value} [UART.${regName}]`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'DREAD',    desc: `Read UART.${regName}`, perm: 'R', status: 'pass' },
+                ]};
+            }
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_BUTTON) {
+                const regIdx = info.device_data;
+                if (regIdx !== 0) {
+                    this._clearMWindow(crIdx, false);
+                    this.fault('INVALID_OP', `DREAD: Button device_data=${regIdx} out of range [0..0]`);
+                    return null;
+                }
+                const value = this.buttonState >>> 0;
+                this._writeDR(drIdx, value);
+                this._clearMWindow(crIdx, false);
+                const desc = `DREAD DR${drIdx} ← 0x${value.toString(16).toUpperCase()} [Button.state]`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'DREAD',    desc: `Read Button.state`, perm: 'R', status: 'pass' },
+                ]};
+            }
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_TIMER) {
+                const regIdx = info.device_data;
+                if (regIdx > 4) {
+                    this._clearMWindow(crIdx, false);
+                    this.fault('INVALID_OP', `DREAD: Timer device_data=${regIdx} out of range [0..4]`);
+                    return null;
+                }
+                const value = this.timerRegs[regIdx] >>> 0;
+                this._writeDR(drIdx, value);
+                this._clearMWindow(crIdx, false);
+                const regName = ['TICKS_LO', 'TICKS_HI', 'TOD_EPOCH', 'ALARM_CMP', 'CTL'][regIdx];
+                const desc = `DREAD DR${drIdx} ← ${value} [Timer.${regName}]`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'DREAD',    desc: `Read Timer.${regName}`, perm: 'R', status: 'pass' },
                 ]};
             }
         }
@@ -3565,7 +3631,7 @@ class ChurchSimulator {
                         }
                     }
                 }
-                this._clearMWindow(crIdx, false);   // write: idempotent writeback (GT unchanged)
+                this._clearMWindow(crIdx, false);
                 const label = this._abstractLedLabel(ledIdx);
                 const desc  = `DWRITE DR${drIdx} → ${label} ← ${value} (${value & 1 ? 'ON' : 'OFF'})`;
                 this.output += desc + '\n';
@@ -3573,6 +3639,44 @@ class ChurchSimulator {
                 return { pc: this.pc - 1, desc, pipeline: [
                     { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
                     { stage: 'DWRITE',   desc: `Write ${label} ← ${value}`, perm: 'W', status: 'pass' },
+                ]};
+            }
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_UART) {
+                const regIdx = info.device_data;
+                if (regIdx > 2) {
+                    this._clearMWindow(crIdx, false);
+                    this.fault('INVALID_OP', `DWRITE: UART device_data=${regIdx} out of range [0..2]`);
+                    return null;
+                }
+                const value = this.dr[drIdx] >>> 0;
+                this.uartRegs[regIdx] = value;
+                this._clearMWindow(crIdx, false);
+                const regName = ['TX', 'STATUS', 'RX'][regIdx];
+                const desc = `DWRITE DR${drIdx} → UART.${regName} ← ${value}`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'DWRITE',   desc: `Write UART.${regName} ← ${value}`, perm: 'W', status: 'pass' },
+                ]};
+            }
+            if (info.device_class === ChurchSimulator.DEVICE_CLASS_TIMER) {
+                const regIdx = info.device_data;
+                if (regIdx > 4) {
+                    this._clearMWindow(crIdx, false);
+                    this.fault('INVALID_OP', `DWRITE: Timer device_data=${regIdx} out of range [0..4]`);
+                    return null;
+                }
+                const value = this.dr[drIdx] >>> 0;
+                this.timerRegs[regIdx] = value;
+                this._clearMWindow(crIdx, false);
+                const regName = ['TICKS_LO', 'TICKS_HI', 'TOD_EPOCH', 'ALARM_CMP', 'CTL'][regIdx];
+                const desc = `DWRITE DR${drIdx} → Timer.${regName} ← ${value}`;
+                this.output += desc + '\n';
+                this.pc++;
+                return { pc: this.pc - 1, desc, pipeline: [
+                    { stage: 'M-Window', desc: `CR${crIdx}(M=1) → DR11 = GT descriptor`, status: 'pass' },
+                    { stage: 'DWRITE',   desc: `Write Timer.${regName} ← ${value}`, perm: 'W', status: 'pass' },
                 ]};
             }
         }

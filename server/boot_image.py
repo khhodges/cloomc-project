@@ -44,7 +44,7 @@ SLOT_SIZE        = 0x40         # 64 words
 
 # Hardware-accurate device register limits (matches simulator.js
 # DEVICE_REG_LIMITS and hardware/boot_rom.py _MMIO_ENTRIES).
-DEVICE_REG_LIMITS = {11: 2, 13: 0, 14: 4}     # slot 12 (LED) freed — Task #406
+DEVICE_REG_LIMITS = {}  # slots 11 (UART), 12 (LED), 13 (Button), 14 (Timer) freed — Tasks #406 and #431
 
 BOOT_ABSTR_NS_SLOT   = 3   # NS slot holding the Boot Abstraction lump (Boot.Abstr)
 STARTUP_CONFIG_NS_SLOT = 2   # NS slot holding Startup.Config (Task #396)
@@ -58,7 +58,7 @@ _MANDATORY_NS_SLOTS = (0, 1, STARTUP_CONFIG_NS_SLOT, BOOT_ABSTR_NS_SLOT)  # slot
 # Format-version tag written to mem[NS_TABLE_BASE - 1] so loadBootImage()
 # can reject stale binaries. Bumped to 0x396 (Task #396) when Startup.Config
 # was added at NS slot 2 and Boot.Abstr's c-list[4] was rewired to it.
-BOOT_IMAGE_FORMAT_TAG = 0xB0070406  # "BOOT 0406" — must match simulator.js; bumped Task #406 (Abstract LED GTs)
+BOOT_IMAGE_FORMAT_TAG = 0xB0070431  # "BOOT 0431" — must match simulator.js; bumped Task #431 (Abstract UART/Button/Timer GTs)
 
 # Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM
 # (Task #237). Written into Boot.Abstr lump code region so the binary matches
@@ -153,10 +153,10 @@ DEFAULT_ABSTRACTION_CATALOG = [
     ("Scheduler",     {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, False),
     ("Stack",         {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, True),
     ("DijkstraFlag",  {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, False),
-    ("UART",          {"R":0,"W":0,"X":0,"L":1,"S":1,"E":1}, False),
+    None,             # slot 11 freed — UART NS slot eliminated (Task #431); Abstract UART GTs need no NS entry
     None,             # slot 12 freed — LED NS slot eliminated (Task #406); Abstract LED GTs need no NS entry
-    ("Button",        {"R":0,"W":0,"X":0,"L":1,"S":0,"E":1}, False),
-    ("Timer",         {"R":0,"W":0,"X":0,"L":1,"S":1,"E":1}, False),
+    None,             # slot 13 freed — Button NS slot eliminated (Task #431); Abstract Button GTs need no NS entry
+    None,             # slot 14 freed — Timer NS slot eliminated (Task #431); Abstract Timer GTs need no NS entry
     ("Display",       {"R":0,"W":0,"X":0,"L":1,"S":1,"E":1}, False),
     ("SlideRule",     {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, True),
     ("Abacus",        {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, True),
@@ -520,9 +520,13 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
     for led_idx in range(6):
         ab_data = ((DEVICE_CLASS_LED & 0xFF) << 8) | (led_idx & 0xFF)
         clist_gts[8 + led_idx] = create_abstract_gt(AB_TYPE_IO, rw_perms, 0, ab_data)
-    clist_gts[14] = create_gt(0, 11, rw_perms,   1)   # UART_DEV  R|W
-    clist_gts[15] = create_gt(0, 13, {"R":1},     1)   # BTN_DEV   R
-    clist_gts[16] = create_gt(0, 14, rw_perms,   1)   # TIMER_DEV R|W
+    # Slots 14–16: Abstract I/O GTs — Task #431 (no NS slot, no lump; fully self-describing)
+    clist_gts[14] = create_abstract_gt(AB_TYPE_IO, rw_perms,  0,
+                        (DEVICE_CLASS_UART   << 8) | 0)   # UART_DEV  R|W  reg0=TX
+    clist_gts[15] = create_abstract_gt(AB_TYPE_IO, {"R":1},  0,
+                        (DEVICE_CLASS_BUTTON << 8) | 0)   # BTN_DEV   R    reg0=state
+    clist_gts[16] = create_abstract_gt(AB_TYPE_IO, rw_perms,  0,
+                        (DEVICE_CLASS_TIMER  << 8) | 0)   # TIMER_DEV R|W  reg0=TICKS_LO
 
     # Memory-manager GT at c-list[0]: R|W capability over NS slot 0 (full namespace).
     mem_mgr_gt = create_gt(0, 0, {"R":1, "W":1}, 1)

@@ -1,6 +1,6 @@
 # Abstract GTs — Self-Describing Device Capabilities
 
-*Introduced in Task #406.*
+*Introduced in Task #406; UART, Button, and Timer migrated in Task #431.*
 
 ## Overview
 
@@ -72,7 +72,7 @@ ab_data[7:0]   =  device_data    (register or pin index within the device)
 | `0x04`         | Timer   | TICKS_LO=0 … CTL=4 |
 | `0x05`         | Display | DMA register offset |
 
-### LED example — c-list slots 8–13
+### LED example — c-list slots 8–13 (Task #406)
 
 ```
 Slot 8:  Abstract GT  ab_type=I/O  R|W  LED[0]  → 0x07800100
@@ -91,6 +91,31 @@ Word breakdown for `0x07800100` (LED[0]):
 - bits[22:16] = `0b0000000` → gt_seq = 0
 - bits[15:8]  = `0x01`    → device_class = LED
 - bits[7:0]   = `0x00`    → device_data = pin 0
+
+### UART, Button, Timer — c-list slots 14–16 (Task #431)
+
+```
+Slot 14: Abstract GT  ab_type=I/O  R|W  UART[0]   → 0x07800200  (TX register)
+Slot 15: Abstract GT  ab_type=I/O  R    Button[0]  → 0x05800300  (state register)
+Slot 16: Abstract GT  ab_type=I/O  R|W  Timer[0]   → 0x07800400  (TICKS_LO register)
+```
+
+NS slots 11 (UART), 13 (Button), 14 (Timer) are freed — no lump, no NS entry.
+To access a different UART register (e.g. RX), create a new Abstract GT with
+`device_data=2`: `ab_data = (DEVICE_CLASS_UART << 8) | 2` → GT word `0x07800202`.
+
+DREAD/DWRITE dispatch uses `device_data` to select the register:
+
+```
+DREAD  DR1, CR_UART, 0    ; CR_UART holds UART[0] GT
+  → Abstract Manager → UART.TX read → DR1 ← uartRegs[0]
+
+DWRITE DR1, CR_TIMER, 0   ; DR1=0xDEAD → write Timer TICKS_LO
+  → Abstract Manager → Timer.TICKS_LO write → timerRegs[0] = DR1
+
+DREAD  DR1, CR_BUTTON, 0  ; CR_BUTTON holds Button[0] GT (R only)
+  → Abstract Manager → Button.state read → DR1 ← buttonState
+```
 
 ---
 
@@ -185,9 +210,13 @@ gt = create_abstract_gt(AB_TYPE_IO, {"R": 1, "W": 1}, 0, ab_data)
 
 ## Format Tag
 
-`BOOT_IMAGE_FORMAT_TAG = 0xB0070406` — bumped from `0x0396` (Task #396) when
-Abstract LED GTs replaced the Inform LED GTs in c-list slots 8–13.  Both
-`server/boot_image.py` and `simulator/simulator.js` must agree on this value.
+`BOOT_IMAGE_FORMAT_TAG = 0xB0070431` — bumped from `0xB0070406` (Task #406) when
+Abstract UART/Button/Timer GTs replaced the Inform GTs in c-list slots 14–16.
+Both `server/boot_image.py` and `simulator/simulator.js` must agree on this value.
+
+History:
+- `0xB0070406` (Task #406): Abstract LED GTs (slots 8–13); NS slot 12 freed
+- `0xB0070431` (Task #431): Abstract UART/Button/Timer GTs (slots 14–16); NS slots 11/13/14 freed
 
 ---
 

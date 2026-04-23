@@ -111,10 +111,10 @@ def test_ab_type_constants():
 
 # ── BOOT_IMAGE_FORMAT_TAG ────────────────────────────────────────────────────
 
-def test_boot_image_format_tag_is_task_406():
-    """BOOT_IMAGE_FORMAT_TAG was bumped to 0xB0070406 for Task #406."""
-    assert BOOT_IMAGE_FORMAT_TAG == 0xB0070406, (
-        f"Expected 0xB0070406, got 0x{BOOT_IMAGE_FORMAT_TAG:08X}"
+def test_boot_image_format_tag_is_task_431():
+    """BOOT_IMAGE_FORMAT_TAG was bumped to 0xB0070431 for Task #431."""
+    assert BOOT_IMAGE_FORMAT_TAG == 0xB0070431, (
+        f"Expected 0xB0070431, got 0x{BOOT_IMAGE_FORMAT_TAG:08X}"
     )
 
 
@@ -225,8 +225,8 @@ def test_led_clist_slots_rw_permissions():
         assert W == 1, f"c-list[{8+led_idx}] missing W bit"
 
 
-def test_uart_btn_timer_clist_slots_remain_inform():
-    """UART (slot 14), BTN (15), TIMER (16) remain Inform GTs (type=0b01)."""
+def test_uart_btn_timer_clist_slots_are_abstract_gts():
+    """UART (c-list 14), BTN (15), TIMER (16) are Abstract GTs (type=0b11) — Task #431."""
     cfg = {"step1": {
         "totalNamespaceWords": 16384,
         "namespaceLumpWords": 64,
@@ -235,13 +235,24 @@ def test_uart_btn_timer_clist_slots_remain_inform():
     }}
     img = generate_boot_image(cfg, LUMPS_DIR)
     clist = _get_clist_words(img, cfg)
-    for slot_idx, expected_ns in [(14, 11), (15, 13), (16, 14)]:
+    expected = [
+        (14, DEVICE_CLASS_UART,   0),   # UART   reg0=TX
+        (15, DEVICE_CLASS_BUTTON, 0),   # Button reg0=state
+        (16, DEVICE_CLASS_TIMER,  0),   # Timer  reg0=TICKS_LO
+    ]
+    for slot_idx, expected_class, expected_data in expected:
         gt = clist[slot_idx]
-        gt_type = (gt >> 23) & 0x3
-        ns_idx  = gt & 0xFFFF
-        assert gt_type == 1, f"c-list[{slot_idx}] type={gt_type}, expected 1 (Inform)"
-        assert ns_idx == expected_ns, (
-            f"c-list[{slot_idx}] NS idx={ns_idx}, expected {expected_ns}"
+        gt_type      = (gt >> 23) & 0x3
+        device_class = (gt >>  8) & 0xFF
+        device_data  = gt & 0xFF
+        assert gt_type == 3, (
+            f"c-list[{slot_idx}] type={gt_type}, expected 3 (Abstract)"
+        )
+        assert device_class == expected_class, (
+            f"c-list[{slot_idx}] device_class=0x{device_class:02X}, expected 0x{expected_class:02X}"
+        )
+        assert device_data == expected_data, (
+            f"c-list[{slot_idx}] device_data={device_data}, expected {expected_data}"
         )
 
 
@@ -295,5 +306,59 @@ def test_led_catalog_slot_12_is_none():
     assert DEFAULT_ABSTRACTION_CATALOG[12] is None, (
         "Slot 12 should be None (freed), got: " + repr(DEFAULT_ABSTRACTION_CATALOG[12])
     )
+
+
+# ── UART/Button/Timer NS slots 11/13/14 freed (Task #431 requirement) ─────────
+
+def test_uart_btn_timer_ns_slots_are_freed():
+    """NS slots 11 (UART), 13 (Button), 14 (Timer) must be all-zero (freed)."""
+    cfg = {"step1": {
+        "totalNamespaceWords": 16384,
+        "namespaceLumpWords": 64,
+        "threadLumpWords": 256,
+        "abstractionLumpWords": 256,
+    }}
+    img = generate_boot_image(cfg, LUMPS_DIR)
+    words = struct.unpack(f"<{len(img) // 4}I", img)
+    total = len(words)
+    ns_table_base = total - NS_TABLE_RESERVE
+    for slot_idx in (11, 13, 14):
+        base = ns_table_base + slot_idx * NS_ENTRY_WORDS
+        entry_words = [words[base + i] for i in range(NS_ENTRY_WORDS)]
+        assert all(w == 0 for w in entry_words), (
+            f"NS slot {slot_idx} should be all zeros (freed), "
+            f"got {[hex(w) for w in entry_words]}"
+        )
+
+
+def test_uart_btn_timer_catalog_slots_are_none():
+    """DEFAULT_ABSTRACTION_CATALOG[11], [13], [14] must be None (NS slots freed)."""
+    from server.boot_image import DEFAULT_ABSTRACTION_CATALOG
+    for slot_idx in (11, 13, 14):
+        assert DEFAULT_ABSTRACTION_CATALOG[slot_idx] is None, (
+            f"Slot {slot_idx} should be None (freed), got: "
+            + repr(DEFAULT_ABSTRACTION_CATALOG[slot_idx])
+        )
+
+
+def test_uart_btn_perms_in_abstract_gts():
+    """UART c-list[14] has R|W; Button c-list[15] has R only; Timer c-list[16] has R|W."""
+    cfg = {"step1": {
+        "totalNamespaceWords": 16384,
+        "namespaceLumpWords": 64,
+        "threadLumpWords": 256,
+        "abstractionLumpWords": 256,
+    }}
+    img = generate_boot_image(cfg, LUMPS_DIR)
+    clist = _get_clist_words(img, cfg)
+    uart_gt   = clist[14]
+    btn_gt    = clist[15]
+    timer_gt  = clist[16]
+    assert (uart_gt  >> 26) & 1 == 1, "UART GT missing R"
+    assert (uart_gt  >> 25) & 1 == 1, "UART GT missing W"
+    assert (btn_gt   >> 26) & 1 == 1, "Button GT missing R"
+    assert (btn_gt   >> 25) & 1 == 0, "Button GT should not have W"
+    assert (timer_gt >> 26) & 1 == 1, "Timer GT missing R"
+    assert (timer_gt >> 25) & 1 == 1, "Timer GT missing W"
 
 
