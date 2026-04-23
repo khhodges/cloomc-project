@@ -2600,11 +2600,6 @@ class ChurchSimulator {
             return null;
         }
         const nsEntry = check.entry;
-        const word1 = this.parseNSWord1(nsEntry.word1_limit);
-        if (word1.f === 1) {
-            this.fault('F_BIT', `CALL: ${callCrLabel} has F-bit set (Far)`);
-            return null;
-        }
 
         const handler = this.nsHandlers[check.index];
         if (handler) {
