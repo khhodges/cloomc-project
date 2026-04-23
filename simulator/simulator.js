@@ -2455,6 +2455,37 @@ class ChurchSimulator {
             this.fault('BOUNDS', `LOAD: entry ${targetIdx} is null`);
             return null;
         }
+        // Mode 2 — Outform: the GT in the c-list slot carries type=2.
+        // Two sub-cases:
+        //   (a) First cold load (!loaded): dispatch the Loader to install the lump,
+        //       then promote Outform→Inform in the NS entry and destination CR.
+        //   (b) Already installed (loaded=true, but c-list slot still holds the
+        //       stale Outform GT): skip the Loader call, promote inline so the CR
+        //       consistently receives an Inform GT on every LOAD.
+        if (slotParsed.type === 2) {
+            const manifest2 = this.lazyManifest[targetIdx];
+            if (manifest2 && !manifest2.loaded) {
+                this.output += `[LOADER] LOAD: CR${d.crDst} is Outform GT (NS[${targetIdx}]) — dispatching Loader (Mode 2)...\n`;
+                const loaded = this._dispatchLoaderLoad(targetIdx);
+                if (!loaded) {
+                    this.fault('CODE_NOT_RESIDENT', `LOAD: CR${d.crDst} Outform lazy load failed for slot ${targetIdx}`);
+                    return null;
+                }
+            }
+            // Promote the GT from Outform→Inform regardless of whether the loader
+            // just ran or the lump was already resident — the c-list slot is not
+            // rewritten so any LOAD from it must canonicalise to Inform.
+            const nsW2 = this.memory[this.NS_TABLE_BASE + targetIdx * this.NS_ENTRY_WORDS + 2];
+            const gt_seq = (nsW2 >>> 25) & 0x7F;
+            const informGT = this.createGT(gt_seq, targetIdx, slotParsed.permissions, 1);
+            const freshEntry = this.readNSEntry(targetIdx);
+            if (!this._writeCR(d.crDst, informGT, freshEntry)) return null;
+            const label = this.nsLabels[targetIdx] || 'entry_' + targetIdx;
+            const desc = `LOAD CR${d.crDst}, [CR${d.crSrc} + ${d.imm}] -> ${label} [Mode 2 lazy loaded]`;
+            this.output += desc + '\n';
+            this.pc++;
+            return { pc: this.pc - 1, instr: d, desc };
+        }
         if (this.lazyManifest[targetIdx] && !this.lazyManifest[targetIdx].loaded) {
             // Mode 1 — Restore: NS entry is valid but lump header magic is 0x00
             // (entire lump was zeroed on eviction).  Dispatch the Loader to
