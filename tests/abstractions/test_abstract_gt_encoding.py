@@ -142,7 +142,7 @@ def _get_clist_words(img_bytes, cfg):
     ns_size     = int(step1["namespaceLumpWords"])
     abstr_size  = int(step1["abstractionLumpWords"])
     BOOT_ABSTR_NS_SLOT = 3
-    DEMO_CLIST_SIZE = 17
+    DEMO_CLIST_SIZE = 18
 
     words = list(struct.unpack(f"<{total}I", img_bytes))
     ns_table_base = total - NS_TABLE_RESERVE
@@ -226,7 +226,8 @@ def test_led_clist_slots_rw_permissions():
 
 
 def test_uart_btn_timer_clist_slots_are_abstract_gts():
-    """UART (c-list 14), BTN (15), TIMER (16) are Abstract GTs (type=0b11) — Task #431."""
+    """UART (c-list 14), BTN (15), TIMER (17) are Abstract GTs (type=0b11).
+    TIMER moved from slot 16→17 to free slot 16 for SlideRule (Inform GT)."""
     cfg = {"step1": {
         "totalNamespaceWords": 16384,
         "namespaceLumpWords": 64,
@@ -238,7 +239,7 @@ def test_uart_btn_timer_clist_slots_are_abstract_gts():
     expected = [
         (14, DEVICE_CLASS_UART,   0),   # UART   reg0=TX
         (15, DEVICE_CLASS_BUTTON, 0),   # Button reg0=state
-        (16, DEVICE_CLASS_TIMER,  0),   # Timer  reg0=TICKS_LO
+        (17, DEVICE_CLASS_TIMER,  0),   # Timer  reg0=TICKS_LO  (moved from 16)
     ]
     for slot_idx, expected_class, expected_data in expected:
         gt = clist[slot_idx]
@@ -254,6 +255,12 @@ def test_uart_btn_timer_clist_slots_are_abstract_gts():
         assert device_data == expected_data, (
             f"c-list[{slot_idx}] device_data={device_data}, expected {expected_data}"
         )
+    # Slot 16 must now be an Inform GT (type=0b01) pointing to SlideRule (NS idx 16)
+    sliderule_gt = clist[16]
+    gt_type = (sliderule_gt >> 23) & 0x3
+    ns_idx  = sliderule_gt & 0xFFFF
+    assert gt_type == 1, f"c-list[16] type={gt_type}, expected 1 (Inform, SlideRule)"
+    assert ns_idx  == 16, f"c-list[16] NS idx={ns_idx}, expected 16 (SlideRule)"
 
 
 # ── perm validation (Task #406 requirement) ──────────────────────────────────
@@ -342,7 +349,8 @@ def test_uart_btn_timer_catalog_slots_are_none():
 
 
 def test_uart_btn_perms_in_abstract_gts():
-    """UART c-list[14] has R|W; Button c-list[15] has R only; Timer c-list[16] has R|W."""
+    """UART c-list[14] has R|W; Button c-list[15] has R only; Timer c-list[17] has R|W.
+    c-list[16] is now SlideRule Inform GT with E perm only."""
     cfg = {"step1": {
         "totalNamespaceWords": 16384,
         "namespaceLumpWords": 64,
@@ -351,14 +359,19 @@ def test_uart_btn_perms_in_abstract_gts():
     }}
     img = generate_boot_image(cfg, LUMPS_DIR)
     clist = _get_clist_words(img, cfg)
-    uart_gt   = clist[14]
-    btn_gt    = clist[15]
-    timer_gt  = clist[16]
-    assert (uart_gt  >> 26) & 1 == 1, "UART GT missing R"
-    assert (uart_gt  >> 25) & 1 == 1, "UART GT missing W"
-    assert (btn_gt   >> 26) & 1 == 1, "Button GT missing R"
-    assert (btn_gt   >> 25) & 1 == 0, "Button GT should not have W"
-    assert (timer_gt >> 26) & 1 == 1, "Timer GT missing R"
-    assert (timer_gt >> 25) & 1 == 1, "Timer GT missing W"
+    uart_gt      = clist[14]
+    btn_gt       = clist[15]
+    sliderule_gt = clist[16]
+    timer_gt     = clist[17]
+    assert (uart_gt      >> 26) & 1 == 1, "UART GT missing R"
+    assert (uart_gt      >> 25) & 1 == 1, "UART GT missing W"
+    assert (btn_gt       >> 26) & 1 == 1, "Button GT missing R"
+    assert (btn_gt       >> 25) & 1 == 0, "Button GT should not have W"
+    assert (timer_gt     >> 26) & 1 == 1, "Timer GT missing R"
+    assert (timer_gt     >> 25) & 1 == 1, "Timer GT missing W"
+    # SlideRule Inform GT: E perm (bit 5 of 7-bit perm field = bit 30 of GT word)
+    assert (sliderule_gt >> 30) & 1 == 1, "SlideRule GT missing E perm"
+    assert (sliderule_gt >> 26) & 1 == 0, "SlideRule GT should not have R"
+    assert (sliderule_gt >> 25) & 1 == 0, "SlideRule GT should not have W"
 
 

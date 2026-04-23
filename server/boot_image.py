@@ -510,30 +510,34 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
     mem[thread_loc] = pack_lump_header(_ns_n_minus_6(thread_size), 32, 64, 2)
 
     NUC_CODE_WORDS  = 17
-    DEMO_CLIST_SIZE = 17
+    DEMO_CLIST_SIZE = 18
 
-    # Hardware device GTs (clist slots 8..16) — match simulator.js HW_DEVICE_SLOTS.
+    # Hardware device GTs (clist slots 8..17) — match simulator.js HW_DEVICE_SLOTS.
     # Slots 8–13: Abstract LED GTs (Task #406) — type=0b11, no NS slot, no lump.
     rw_perms = {"R":1,"W":1}
-    while len(clist_gts) < 17:
+    while len(clist_gts) < 18:
         clist_gts.append(0)
     for led_idx in range(6):
         ab_data = ((DEVICE_CLASS_LED & 0xFF) << 8) | (led_idx & 0xFF)
         clist_gts[8 + led_idx] = create_abstract_gt(AB_TYPE_IO, rw_perms, 0, ab_data)
-    # Slots 14–16: Abstract I/O GTs — Task #431 (no NS slot, no lump; fully self-describing)
+    # Slots 14–15: Abstract I/O GTs — Task #431 (no NS slot, no lump; fully self-describing)
     clist_gts[14] = create_abstract_gt(AB_TYPE_IO, rw_perms,  0,
                         (DEVICE_CLASS_UART   << 8) | 0)   # UART_DEV  R|W  reg0=TX
     clist_gts[15] = create_abstract_gt(AB_TYPE_IO, {"R":1},  0,
                         (DEVICE_CLASS_BUTTON << 8) | 0)   # BTN_DEV   R    reg0=state
-    clist_gts[16] = create_abstract_gt(AB_TYPE_IO, rw_perms,  0,
+    # Slot 16: SlideRule Inform GT (NS slot 16, E-perm, gt_seq=0).
+    # TIMER_DEV was erroneously here (Task #431); c-list slot 16 must carry SlideRule
+    # because compiled code uses "CALL CRn, CR6, 16" to invoke SlideRule methods.
+    clist_gts[16] = create_gt(0, 16, {"E":1}, 1)          # SlideRule  E   -> NS idx 16
+    # Slot 17: TIMER_DEV moved from slot 16 (simulator-only; not in boot ROM image).
+    clist_gts[17] = create_abstract_gt(AB_TYPE_IO, rw_perms,  0,
                         (DEVICE_CLASS_TIMER  << 8) | 0)   # TIMER_DEV R|W  reg0=TICKS_LO
 
     # Memory-manager GT at c-list[0]: R|W capability over NS slot 0 (full namespace).
     mem_mgr_gt = create_gt(0, 0, {"R":1, "W":1}, 1)
     clist_gts[0] = mem_mgr_gt
 
-    # Truncate to hardware DEMO_CLIST size (entries beyond idx 16 are
-    # simulator-only and not part of the boot ROM image).
+    # Truncate to DEMO_CLIST_SIZE (slot 17 TIMER_DEV is simulator-only).
     clist_gts = clist_gts[:DEMO_CLIST_SIZE]
 
     # ----- Boot.Abstr lump (NS slot 3) ------------------------------------
@@ -541,7 +545,7 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
     #   Word  0:      Lump header (n_minus_6, cw=NUC_CODE_WORDS, cc=DEMO_CLIST_SIZE)
     #   Words 1–17:   Code region (loaded by the boot program loader)
     #   Words 18..(end-DEMO_CLIST_SIZE-1): Freespace
-    #   Words (end-DEMO_CLIST_SIZE)..(end-1): C-list (17 GTs at physical end)
+    #   Words (end-DEMO_CLIST_SIZE)..(end-1): C-list (18 GTs at physical end)
     # B:04 derives CR14 (R+X) and CR6 (E) from this lump's header.
     boot_entry_loc     = locations[BOOT_ABSTR_NS_SLOT]
     entry_lump_size    = abstr_size

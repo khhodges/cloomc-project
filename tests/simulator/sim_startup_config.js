@@ -172,7 +172,7 @@ out.nsCount = sim.nsCount | 0;
 // Boot.Abstr lump is at NS_TABLE_BASE + 3*NS_ENTRY_WORDS → word0 = physical location
 const bootAbstrLoc = sim.memory[sim.NS_TABLE_BASE + 3 * sim.NS_ENTRY_WORDS];
 const bootAbstrLumpSize = 256; // BOOT_ABSTR_LUMP_SIZE default
-const clistStart = bootAbstrLumpSize - 17; // DEMO_CLIST_SIZE = 17
+const clistStart = bootAbstrLumpSize - 18; // DEMO_CLIST_SIZE = 18
 const clist4Word = sim.memory[bootAbstrLoc + clistStart + 4];
 // GT index bits [8:0] = NS slot index
 const gtIndex = clist4Word & 0x1FF;

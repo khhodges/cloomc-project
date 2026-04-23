@@ -187,7 +187,7 @@ def test_boot_image_boot_abstr_clist4_points_to_startup_config():
     # Boot.Abstr lump location from NS table slot 3
     base = _ns_table_base(words, cfg)
     boot_abstr_loc = words[base + BOOT_ABSTR_NS_SLOT * NS_ENTRY_WORDS]
-    DEMO_CLIST_SIZE = 17
+    DEMO_CLIST_SIZE = 18
     clist_start = abstr_size - DEMO_CLIST_SIZE
     clist4_gt = words[boot_abstr_loc + clist_start + 4]
     # GT bits[8:0] = NS slot index

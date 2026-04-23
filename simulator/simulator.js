@@ -1010,12 +1010,18 @@ class ChurchSimulator {
             ((ChurchSimulator.DEVICE_CLASS_UART   & 0xFF) << 8) | 0);  // UART_DEV  R|W  reg0=TX
         clistGTs[15] = this.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1},     0,
             ((ChurchSimulator.DEVICE_CLASS_BUTTON & 0xFF) << 8) | 0);  // BTN_DEV   R    reg0=state
-        clistGTs[16] = this.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1,W:1}, 0,
+        // Slot 16: SlideRule Inform GT (NS slot 16, E-perm, gt_seq=0)
+        // TIMER_DEV was erroneously placed here (Task #431); it conflicted with SlideRule at
+        // NS slot 16. CALL instructions that reference SlideRule use "CALL CRn, CR6, 16"
+        // (see app-absdetail.js) — so c-list slot 16 must carry the SlideRule GT, not TIMER_DEV.
+        clistGTs[16] = this.createGT(0, 16, {E:1}, 1);  // SlideRule  E   -> NS idx 16
+        // Slot 17: TIMER_DEV moved from slot 16 to avoid NS-slot conflict
+        clistGTs[17] = this.createAbstractGT(ChurchSimulator.AB_TYPE_IO, {R:1,W:1}, 0,
             ((ChurchSimulator.DEVICE_CLASS_TIMER  & 0xFF) << 8) | 0);  // TIMER_DEV R|W  reg0=TICKS_LO
         const NUC_CODE_WORDS    = 17;
-        const DEMO_CLIST_SIZE   = 17;
-        // Truncate to hardware DEMO_CLIST size — entries beyond idx 16 are simulator-only abstractions
-        // not present in the boot c-list on real hardware.
+        const DEMO_CLIST_SIZE   = 18;
+        // Slots 0–16 map to NS slots 0–16 (or contain hardware-device Abstract GTs at 8–15).
+        // Slot 17 (TIMER_DEV) is simulator-only; not present in the boot c-list on real hardware.
         clistGTs.length         = DEMO_CLIST_SIZE;
 
         // Memory-manager GT at c-list[0]: covers full namespace memory (NS slot 0).
