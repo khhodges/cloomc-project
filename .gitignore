@@ -10,6 +10,10 @@ cabal.sandbox.config
 .ghc.environment.*
 server/boot-config.json
 # Generated VCD simulation traces and build artifacts
-build/*.vcd
+# Note: the two canonical sim waveforms are tracked intentionally.
 /tmp/*.vcd
+build/*.vcd
 **/*.vcd
+!ctmm_amaranth/sim_output.vcd
+!build/church_pico_ice_test.vcd
+!build/church_change_sto_test.vcd
