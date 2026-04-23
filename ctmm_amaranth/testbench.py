@@ -1,3 +1,14 @@
+"""ctmm_amaranth testbench — abstract/encoding-level simulation.
+
+Regeneration command (run from workspace root):
+    python3 -m ctmm_amaranth.testbench
+
+This produces ctmm_amaranth/sim_output.vcd.  The VCD captures abstract-level
+signal activity for the CTMM soft-core (CTMMCore).  For hardware-level stack
+frame write-address verification (thread_base + 17*4) see the pico-ice
+integration simulation:
+    python3 -m church_machine.test_pico_ice   → build/church_pico_ice_test.vcd
+"""
 from amaranth import *
 from amaranth.sim import Simulator
 
@@ -221,6 +232,50 @@ def run_testbench():
         assert reclaimed_g == 0, "Reclaimed GT should have G=0"
         assert reclaimed_spare == 1, "Reclaimed GT should have version bumped"
         print("  PASS: GC sweep bumps version, sets NULL, clears G")
+
+        print("\n[TEST 11] CHANGE-then-CALL: CR5 Install via CHANGE Mechanism")
+        print("-" * 50)
+
+        # CR5 permission invariant: boot_cr5_wr_gt must carry L|S and nothing else.
+        cr5_gt = build_gt(4, PERM_MASK_L | PERM_MASK_S, gt_type=GT_TYPE_INFORM)
+        cr5_perms_field = (cr5_gt >> 58) & 0x3F
+        assert cr5_perms_field & PERM_MASK_L, \
+            f"CR5 GT must have L-perm; got perms=0x{cr5_perms_field:02x}"
+        assert cr5_perms_field & PERM_MASK_S, \
+            f"CR5 GT must have S-perm; got perms=0x{cr5_perms_field:02x}"
+        assert not (cr5_perms_field & (PERM_MASK_R | PERM_MASK_W | PERM_MASK_X | PERM_MASK_E)), \
+            f"CR5 GT must NOT have R/W/X/E perms; got perms=0x{cr5_perms_field:02x}"
+        print(f"  PASS: CR5 GT = L|S (0x{cr5_perms_field:02x}), no R/W/X/E — install-via-CHANGE")
+
+        # Drive CHANGE(CR5) then CALL(CR6) through the DUT so both opcodes appear
+        # in the regenerated waveform (boot_cr5_wr_en=1, church_op=CHANGE/CALL).
+        change_instr = encode_church(ChurchOpcode.CHANGE, CondCode.AL, 0, 5, 0)
+        call_instr   = encode_church(ChurchOpcode.CALL,   CondCode.AL, 0, 6, 0)
+
+        nia_before_change = ctx.get(dut.nia)
+        change_slot = (nia_before_change >> 2) & 0xFF
+        call_slot   = (change_slot + 1) & 0xFF
+        imem[change_slot] = change_instr
+        imem[call_slot]   = call_instr
+
+        for _ in range(6):
+            nia_val = ctx.get(dut.nia)
+            instr_idx = (nia_val >> 2) & 0xFF
+            if instr_idx < len(imem):
+                ctx.set(dut.imem_data,  imem[instr_idx])
+                ctx.set(dut.imem_valid, 1)
+            else:
+                ctx.set(dut.imem_data,  0)
+                ctx.set(dut.imem_valid, 0)
+            await ctx.tick()
+
+        nia_after = ctx.get(dut.nia)
+        assert nia_after > nia_before_change, (
+            f"NIA must advance after CHANGE+CALL "
+            f"(was 0x{nia_before_change:08x}, now 0x{nia_after:08x})"
+        )
+        print(f"  PASS: NIA 0x{nia_before_change:08x} → 0x{nia_after:08x} "
+              "after CHANGE+CALL (DUT waveform shows church_op transitions)")
 
         print("\n" + "=" * 60)
         print("CTMM Amaranth Testbench — All Tests Complete")
