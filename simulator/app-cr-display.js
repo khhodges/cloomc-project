@@ -339,8 +339,9 @@ function switchCRDetailTab(tab) {
     document.querySelectorAll('.crd-menu-item[data-tab]').forEach(it => it.classList.remove('crd-menu-item-active'));
     const menuItem = document.querySelector(`.crd-menu-item[data-tab="${tab}"]`);
     if (menuItem) menuItem.classList.add('crd-menu-item-active');
-    const lbl = document.getElementById('crdMenuActiveLabel');
-    if (lbl) lbl.textContent = tab === 'register' ? 'Register' : tab === 'binary' ? 'Binary' : tab === 'api' ? 'API' : 'Content';
+    document.querySelectorAll('.crd-tab').forEach(b => b.classList.remove('active'));
+    const activeTabBtn = document.querySelector(`.crd-tab[onclick*="'${tab}'"]`);
+    if (activeTabBtn) activeTabBtn.classList.add('active');
     document.querySelectorAll('.crd-panel').forEach(p => p.style.display = 'none');
     const panel = document.getElementById('crdPanel-' + tab);
     if (panel) panel.style.display = 'block';

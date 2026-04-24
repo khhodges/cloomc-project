@@ -2809,6 +2809,16 @@ a.next-step-link:hover {
     border-color: #38bdf8;
 }
 
+/* ── Visible tab strip inside the menu bar (Abstraction CRs only) ──────── */
+.crd-tab-strip {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    align-items: center;
+    flex: 1;
+    padding: 0 6px;
+}
+
 /* ── Hamburger menu bar (replaces flat crd-tabs strip) ─────────────────── */
 .crd-menu-bar {
     display: flex;
