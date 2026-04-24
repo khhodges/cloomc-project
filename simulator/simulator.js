@@ -1155,6 +1155,20 @@ class ChurchSimulator {
                 }
                 this._writeCR(12, gt12, check12.entry);                            // CR12 ← thread stack token (encodes lump base + size)
                 this.output += `[BOOT] INIT_THRD — CR12 <- mLoad(Slot 1) thread stack GT (zero perms, Inform)\n`;
+
+                // Establish CR5 (Heap) as an RW capability over the thread lump —
+                // consistent with CHANGE CR12 hardware behaviour which synthesizes CR5
+                // from the incoming thread's lump header at the same time it sets CR12.
+                const _threadBase12 = check12.entry.word0_location;
+                const _threadHdrWord12 = this.memory[_threadBase12] >>> 0;
+                const _threadHdr12 = this.parseLumpHeader(_threadHdrWord12);
+                const _threadCC12 = _threadHdr12.valid ? _threadHdr12.cc : 0;
+                const _heapStart12 = 1 + 16 + _threadCC12;                        // first word above header + DR zone + c-list
+                const _spMax12 = (_threadHdr12.valid ? _threadHdr12.lumpSize : 256) - 12 - 1;
+                const gt5 = this.createGT(0, 1, {R:1,W:1,X:0,L:0,S:0,E:0}, 1);  // RW Inform GT for the thread lump (Slot 1)
+                this._writeCR(5, gt5, check12.entry);                              // CR5 ← heap RW token (base=thread lump, perms=RW)
+                this.output += `[BOOT] INIT_THRD — CR5 <- thread heap (RW, Inform, Slot 1) heap=[+${_heapStart12}..+${_spMax12}] (CHANGE-consistent)\n`;
+
                 this.bootStep++;                  // advance state machine → B:03
                 this.ledBits = 0b000111;          // LED bit 2 ON = INIT_THRD complete
                 break;
