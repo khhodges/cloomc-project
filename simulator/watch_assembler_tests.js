@@ -2,63 +2,90 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
-const WATCH_FILES = [
-  path.resolve(__dirname, 'assembler.js'),
-  path.resolve(__dirname, 'assembler_test.js'),
-];
+const SIMULATOR_DIR = __dirname;
 
-let running = false;
-let pending = false;
-let debounceTimer = null;
+function discoverTestFiles() {
+  return fs.readdirSync(SIMULATOR_DIR)
+    .filter(f => f.endsWith('_test.js'))
+    .map(f => path.resolve(SIMULATOR_DIR, f));
+}
 
-function runTests() {
-  if (running) {
-    pending = true;
+function sourceFileForTest(testFile) {
+  const base = path.basename(testFile, '_test.js') + '.js';
+  const candidate = path.resolve(SIMULATOR_DIR, base);
+  return fs.existsSync(candidate) ? candidate : null;
+}
+
+const runningTests = new Set();
+const pendingTests = new Set();
+const debounceTimers = {};
+
+function runTest(testFile) {
+  const label = path.basename(testFile);
+
+  if (runningTests.has(testFile)) {
+    pendingTests.add(testFile);
     return;
   }
-  running = true;
-  pending = false;
+
+  runningTests.add(testFile);
+  pendingTests.delete(testFile);
 
   const timestamp = new Date().toISOString();
-  console.log(`\n[${timestamp}] Running assembler tests...`);
+  console.log(`\n[${timestamp}] Running ${label}...`);
 
-  const child = spawn('node', [path.resolve(__dirname, 'assembler_test.js')], {
+  const child = spawn('node', [testFile], {
     stdio: 'inherit',
-    cwd: path.resolve(__dirname, '..'),
+    cwd: path.resolve(SIMULATOR_DIR, '..'),
   });
 
   child.on('close', (code) => {
     const ts = new Date().toISOString();
     if (code === 0) {
-      console.log(`[${ts}] Tests passed.`);
+      console.log(`[${ts}] ${label}: passed.`);
     } else {
-      console.log(`[${ts}] Tests FAILED (exit code ${code}).`);
+      console.log(`[${ts}] ${label}: FAILED (exit code ${code}).`);
     }
-    running = false;
-    if (pending) {
-      runTests();
+    runningTests.delete(testFile);
+    if (pendingTests.has(testFile)) {
+      runTest(testFile);
     }
   });
 }
 
-function onChange(filename) {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    console.log(`\nChange detected in: ${filename}`);
-    runTests();
+function scheduleTest(testFile, changedFile) {
+  clearTimeout(debounceTimers[testFile]);
+  debounceTimers[testFile] = setTimeout(() => {
+    console.log(`\nChange detected in: ${path.basename(changedFile)} — scheduling ${path.basename(testFile)}`);
+    runTest(testFile);
   }, 200);
 }
 
-for (const file of WATCH_FILES) {
-  if (!fs.existsSync(file)) {
-    console.warn(`Warning: watch target does not exist: ${file}`);
-    continue;
+function watchFile(filePath, testFile) {
+  if (!fs.existsSync(filePath)) {
+    console.warn(`Warning: watch target does not exist: ${filePath}`);
+    return;
   }
-  fs.watch(file, (eventType) => {
-    onChange(path.basename(file));
-  });
-  console.log(`Watching: ${file}`);
+  fs.watch(filePath, () => scheduleTest(testFile, filePath));
+  console.log(`Watching: ${filePath}`);
 }
 
-console.log('Assembler test watcher started. Running tests now...\n');
-runTests();
+const testFiles = discoverTestFiles();
+
+if (testFiles.length === 0) {
+  console.log('No *_test.js files found in simulator/. Nothing to watch.');
+  process.exit(0);
+}
+
+for (const testFile of testFiles) {
+  const sourceFile = sourceFileForTest(testFile);
+  if (sourceFile) {
+    watchFile(sourceFile, testFile);
+  }
+  watchFile(testFile, testFile);
+}
+
+console.log(`\nSimulator test watcher started (${testFiles.length} test file(s) found). Running all tests now...\n`);
+for (const testFile of testFiles) {
+  runTest(testFile);
+}

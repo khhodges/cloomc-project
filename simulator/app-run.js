@@ -5635,7 +5635,7 @@ function openSettings() {
     renderProgressReport();
     renderFamilyIntroQR();
     const releaseEl = document.getElementById('settingsReleasePublishedAt');
-    if (releaseEl) releaseEl.textContent = '2026-03-29 22:15 UTC';
+    if (releaseEl) releaseEl.textContent = '2026-04-24 UTC';
     const anyPerm = hasAnyPopupDismissedPerm();
     const showAllCheck = document.getElementById('showAllPopupsCheck');
     if (showAllCheck) showAllCheck.checked = !anyPerm;
@@ -5702,6 +5702,7 @@ function closeSettings() {
 
 function showReleaseHistory() {
     const history = [
+        { date: '2026-04-24 UTC', title: 'Assembler Upgrades, Editor Polish & Test Infrastructure', changes: ['Named method syntax in CALL: write CALL SlideRule.Multiply or CALL CR11, Multiply — the assembler looks up the method index automatically from the loaded abstraction conventions', 'Disassembler now outputs dot-notation (CALL SlideRule.Multiply) instead of raw method indices', 'BRANCH labels round-trip through assemble/disassemble; out-of-range BRANCH targets caught at assemble time with a clear error message', 'Error panel entries are clickable — clicking a compiler or assembler error jumps the editor to the exact failing line', 'Error lines highlighted in the assembly editor gutter (red marker on the broken line)', 'LUMP header strip gains a Shrink button; resize is available for all lump types, not just code lumps', 'Boot Lump (NS slot 3, LED flash) added to the Lump Repository view', 'Keyboard shortcuts added to the hamburger menu; single-character activators for all menu items', 'Fix CALL step display and step-into: stepping into a CALL now shows the correct target CR and method', 'Assembler regression test suite with 30+ named-method CALL test cases registered as a named validation step', 'Simulator test watcher (watch_assembler_tests.js) extended to discover and run all *_test.js files automatically'] },
         { date: '2026-04-16 UTC', title: 'LUMP Hardware Verification Fixes', changes: ['Fixed Build LUMP binary: removed embedded method dispatch table (raw word offsets were incorrectly written as code words that the FPGA would try to execute as instructions)', 'Method offsets in sidecar metadata now start at 0, matching the Python build_lumps.py spec and the manifest.json format used by FPGA tooling', 'Added Export Lump as Patch flow: pick any pre-built .lump file, validate the header (magic 0x1F, size, cw, cc), and wrap all words into a .patch file for FPGA flashing via patch_fpga.py', 'Byte-order correctness: .lump files remain big-endian per spec; Lump→Patch automatically byte-swaps each word to little-endian for the UART PATCH_LUMP protocol', 'Lump→Patch button added to editor toolbar, editor actions dropdown, and CRD FPGA action bar', 'Lump→Patch prompts for target BRAM word address (default 0x0100) and produces a CHPF v1 .patch with CRC-16/CCITT and RUN sentinel'] },
         { date: '2026-04-16 UTC', title: 'One-Click Build LUMP', changes: ['Build LUMP button: one-click compile-to-binary for any CLOOMC++ abstraction in any language mode', 'Produces spec-compliant .lump binary: header (magic 0x1F + n-6 + cw + typ + cc), code region, c-list, big-endian uint32', 'Console shows full lump layout: header hex, methods with offsets, capability list, freespace, file size', 'Available in toolbar (green button) and Editor Actions dropdown; auto-disabled in Assembly mode'] },
         { date: '2026-04-16 UTC', title: 'English String Abstraction', changes: ['EN: String example — 14 of 15 planned methods for packed 4-char-per-word string operations written in plain English (ReplaceChar deferred: requires bitwise AND/OR masking not yet in English translator)', 'Pack4/Unpack, IsLetter/IsDigit/IsUpper/IsLower/IsSpace, ToUpper/ToLower, CharToDigit/DigitToChar, ReverseWord, CompareWords, CountLetters', 'Byte extraction via shift-and-subtract (no bfext needed) — pure English front-end, zero hardware dependencies', 'New EN: String tab in CLOOMC++ IDE with category-organized source and ASCII reference header'] },
@@ -6071,6 +6072,25 @@ function welcomeSkip() {
 }
 
 const WHATS_NEW_FEATURES = [
+    {
+        title: "Named method syntax",
+        html: `<div style="font-weight:700;color:var(--church-gold);font-size:1.05rem;margin-bottom:0.75rem;">&#x1F4AC; CALL SlideRule.Multiply &mdash; write what you mean</div>` +
+            `<p style="font-size:0.9rem;line-height:1.65;margin-bottom:0.75rem;">` +
+            `You can now write <code style="background:#1a1a2e;padding:0.15rem 0.4rem;border-radius:3px;color:var(--church-gold);">CALL SlideRule.Multiply</code> or ` +
+            `<code style="background:#1a1a2e;padding:0.15rem 0.4rem;border-radius:3px;color:var(--church-gold);">CALL CR11, Multiply</code> ` +
+            `instead of looking up method indices by hand. The assembler resolves the method name automatically from the abstraction's loaded conventions.</p>` +
+            `<p style="font-size:0.88rem;color:#aaa;line-height:1.5;margin:0;">` +
+            `The disassembler also produces dot-notation output, so what you write is what you read back.</p>`
+    },
+    {
+        title: "Clickable error panel",
+        html: `<div style="font-weight:700;color:var(--church-gold);font-size:1.05rem;margin-bottom:0.75rem;">&#x1F4CD; Click an error &mdash; jump straight to the line</div>` +
+            `<p style="font-size:0.9rem;line-height:1.65;margin-bottom:0.75rem;">` +
+            `Compiler and assembler errors in the error panel are now clickable. Click any message and the editor scrolls to the ` +
+            `exact failing line and highlights it in the gutter &mdash; no more manually counting lines to find your mistake.</p>` +
+            `<p style="font-size:0.88rem;color:#aaa;line-height:1.5;margin:0;">` +
+            `BRANCH out-of-range errors are also caught at assemble time with a clear message.</p>`
+    },
     {
         title: "One-command flash",
         html: `<div style="font-weight:700;color:var(--church-gold);font-size:1.05rem;margin-bottom:0.75rem;">&#x26A1; flash.sh &mdash; one command to build and flash</div>` +
