@@ -3,6 +3,44 @@ class AbstractionRegistry {
         this.abstractions = {};
         this.layers = {};
         this._registerAll();
+        this._loadStats();
+    }
+
+    _statsKey() {
+        return 'church_abstraction_stats';
+    }
+
+    _saveStats() {
+        try {
+            const data = {};
+            for (const idx in this.abstractions) {
+                const a = this.abstractions[idx];
+                data[idx] = {
+                    invokeCount: a.invokeCount,
+                    faultCount: a.faultCount,
+                    firstActiveTime: a.firstActiveTime,
+                    lastFaultTime: a.lastFaultTime
+                };
+            }
+            localStorage.setItem(this._statsKey(), JSON.stringify(data));
+        } catch (e) {}
+    }
+
+    _loadStats() {
+        try {
+            const raw = localStorage.getItem(this._statsKey());
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            for (const idx in data) {
+                const a = this.abstractions[idx];
+                if (!a) continue;
+                const saved = data[idx];
+                if (saved.invokeCount != null) a.invokeCount = saved.invokeCount;
+                if (saved.faultCount != null) a.faultCount = saved.faultCount;
+                if (saved.firstActiveTime != null) a.firstActiveTime = saved.firstActiveTime;
+                if (saved.lastFaultTime != null) a.lastFaultTime = saved.lastFaultTime;
+            }
+        } catch (e) {}
     }
 
     createAbstraction(index, name, layer, methods, description, options) {
@@ -71,6 +109,7 @@ class AbstractionRegistry {
         a.faultCount++;
         a.lastFaultTime = Date.now();
         if (!a.firstActiveTime) a.firstActiveTime = Date.now();
+        this._saveStats();
     }
 
     activate(index) {
@@ -158,6 +197,7 @@ class AbstractionRegistry {
         if (!fn) return { ok: false, fault: 'METHOD', message: `Method ${methodName} not found on ${a.name}` };
         a.invokeCount++;
         if (!a.firstActiveTime) a.firstActiveTime = Date.now();
+        this._saveStats();
         return fn(sim, args);
     }
 

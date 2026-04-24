@@ -573,16 +573,17 @@ function updateCRDetail() {
                     html += `<tr><td style="color:var(--church-blue)">Source hash</td><td><code>${_mtbf.source_hash}</code></td></tr>`;
                 }
             }
-            html += `<tr><td style="color:var(--church-blue);width:130px;">Live invocations</td><td>${_rtInvokes !== null ? _rtInvokes : '\u2014'}</td></tr>`;
-            html += `<tr><td style="color:var(--church-blue);width:130px;">Live fault count</td><td>${_rtFaults !== null ? _rtFaults : '\u2014'}</td></tr>`;
+            html += `<tr><td style="color:var(--church-blue);width:130px;">Invocations</td><td>${_rtInvokes !== null ? _rtInvokes : '\u2014'}</td></tr>`;
+            html += `<tr><td style="color:var(--church-blue);width:130px;">Fault count</td><td>${_rtFaults !== null ? _rtFaults : '\u2014'}</td></tr>`;
             const _liveFaultRateStr = (_rtInvokes === null || _rtFaults === null) ? '\u2014'
                                     : _rtInvokes === 0 ? '0.00%'
                                     : ((_rtFaults / _rtInvokes) * 100).toFixed(2) + '%';
-            html += `<tr><td style="color:var(--church-blue)">Live fault rate</td><td>${_liveFaultRateStr}</td></tr>`;
+            html += `<tr><td style="color:var(--church-blue)">Fault rate</td><td>${_liveFaultRateStr}</td></tr>`;
             const _liveMTBFStr = _rtFaults === null ? '\u2014'
                                : _rtMTBF != null    ? (_rtMTBF / 1000).toFixed(1) + 's'
                                : '\u221e (no faults)';
-            html += `<tr><td style="color:var(--church-blue)">Live MTBF</td><td>${_liveMTBFStr}</td></tr>`;
+            html += `<tr><td style="color:var(--church-blue)">MTBF</td><td>${_liveMTBFStr}</td></tr>`;
+            html += `<tr><td colspan="2" style="color:var(--text-secondary);font-size:0.78rem;font-style:italic;padding-top:4px;">Counts are cumulative across sessions</td></tr>`;
             html += '</tbody></table>';
         }
         html += '</div>';
