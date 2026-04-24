@@ -39,6 +39,21 @@ function showLumpDetail(token) {
         _headerStrip += `<span class="lump-hs-chip"><span class="lump-hs-label">CW</span>${parseInt(lump.cw)}</span>`;
     if (lump.cc !== undefined && lump.cc !== null)
         _headerStrip += `<span class="lump-hs-chip"><span class="lump-hs-label">CC</span>${parseInt(lump.cc)}</span>`;
+    // Resize button — only for standalone lumps (not the synthetic boot lump)
+    if (lump.lump_type !== 'boot') {
+        const _curSize  = parseInt(lump.lump_size) || 0;
+        const _cw       = parseInt(lump.cw) || 0;
+        const _cc       = parseInt(lump.cc) || 0;
+        const _minCont  = 1 + _cw + _cc;
+        let   _minSize  = 64;
+        while (_minSize < _minCont) _minSize *= 2;
+        if (_curSize > _minSize) {
+            const _saved = _curSize - _minSize;
+            _headerStrip += `<button class="lump-hs-resize-btn" onclick="_resizeLump('${_e(lump.token)}')" title="Remove unused freespace — shrink from ${_curSize}w to ${_minSize}w (save ${_saved}w)">Shrink to ${_minSize}w ▼</button>`;
+        } else {
+            _headerStrip += `<span class="lump-hs-chip lump-hs-minimal" title="Lump is already at minimum size (1 + ${_cw} + ${_cc} = ${_minCont} → ${_curSize}w)">Minimal ✓</span>`;
+        }
+    }
     _headerStrip += `</div>`;
 
     let _tabBar = `<div class="lump-tabs-bar" id="lumpTabBar_${_tk}">` +
@@ -1415,6 +1430,38 @@ async function _submitLumpImport() {
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Import';
+    }
+}
+
+async function _resizeLump(token) {
+    const btn = document.querySelector('.lump-hs-resize-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Shrinking…'; }
+    try {
+        const resp = await fetch(`/api/lump/${token}/resize`, { method: 'POST' });
+        const data = await resp.json();
+        if (!resp.ok) {
+            appendOutput(`Resize failed: ${data.error || resp.status}`, 'error');
+            if (btn) { btn.disabled = false; btn.textContent = btn._origText || 'Shrink ▼'; }
+            return;
+        }
+        if (data.already_minimal) {
+            appendOutput(`Lump 0x${token} is already at minimum size (${data.lump_size}w)`, 'info');
+            if (btn) { btn.disabled = false; btn.textContent = btn._origText || 'Shrink ▼'; }
+            return;
+        }
+        // Update the cached lump record and refresh the detail view.
+        const idx = _lumpsCache.findIndex(l => l.token === token);
+        if (idx !== -1) {
+            _lumpsCache[idx].lump_size = data.lump_size;
+            delete _lumpContentLoaded[token];
+            delete _lumpHexLoaded[token];
+            showLumpDetail(_lumpsCache[idx]);
+        }
+        renderLumps();
+        appendOutput(`Lump 0x${token} shrunk: ${data.old_size}w → ${data.lump_size}w (saved ${data.saved_words}w)`, 'info');
+    } catch (err) {
+        appendOutput(`Resize error: ${err.message}`, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = btn._origText || 'Shrink ▼'; }
     }
 }
 

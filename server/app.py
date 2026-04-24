@@ -2509,6 +2509,112 @@ def put_lump_content(token):
     return jsonify({"ok": True, "token": key8, "cw": cw, "lump_size": lump_size})
 
 
+@app.route("/api/lump/<token_hex>/resize", methods=["POST"])
+def resize_lump(token_hex):
+    """Repack a LUMP to its minimum power-of-2 size by removing freespace.
+
+    Keeps the code region (first cw words after the header) and c-list (last cc
+    words) intact; removes the unused freespace words between them.  The new
+    lump size is the smallest power of 2 >= (1 + cw + cc), minimum 64 words.
+
+    Only standalone .lump files can be resized.  Synthetic lumps (e.g. the boot
+    lump extracted from boot-image.bin) are rejected with a 400 error.
+    """
+    import math as _math
+    raw   = token_hex.lower()
+    key8  = (raw[:8] if len(raw) >= 8 else raw).zfill(8)
+    lumps_dir    = os.path.join(os.path.dirname(__file__), 'lumps')
+    lump_path    = os.path.join(lumps_dir, f'{key8}.lump')
+    sidecar_path = os.path.join(lumps_dir, f'{key8}.json')
+
+    if not os.path.isfile(lump_path):
+        return jsonify({"error": f"Lump {key8} has no standalone file — only standalone lumps can be resized"}), 400
+
+    data = LAZY_LUMPS.get(key8)
+    if data is None:
+        with open(lump_path, 'rb') as fh:
+            data = fh.read()
+
+    num_words = len(data) // 4
+    if num_words < 1:
+        return jsonify({"error": "Lump data is too short"}), 400
+
+    words = list(_struct.unpack(f'>{num_words}I', data[:num_words * 4]))
+    hdr = words[0]
+    if (hdr >> 27) & 0x1F != 0x1F:
+        return jsonify({"error": "Bad lump magic in header word"}), 400
+
+    n_minus_6 = (hdr >> 23) & 0xF
+    cw        = (hdr >> 10) & 0x1FFF
+    cc        = hdr & 0xFF
+    typ       = (hdr >> 8) & 0x3
+    old_size  = 1 << (n_minus_6 + 6)
+
+    if old_size != num_words:
+        return jsonify({"error": f"Header size mismatch: header says {old_size}w, file has {num_words}w"}), 400
+
+    # Minimum lump size: header + code + c-list, rounded up to next power of 2, min 64.
+    min_content = 1 + cw + cc
+    new_n = max(6, _math.ceil(_math.log2(max(min_content, 2))))
+    new_n = min(new_n, 14)
+    new_size = 1 << new_n
+
+    if new_size >= old_size:
+        return jsonify({"ok": True, "already_minimal": True,
+                        "lump_size": old_size, "cw": cw, "cc": cc})
+
+    # Re-pack: new header | code words | freespace zeros | c-list words.
+    code_words  = words[1:1 + cw]
+    clist_words = words[old_size - cc:old_size] if cc > 0 else []
+    freespace   = new_size - 1 - cw - cc
+    new_words   = [_pack_lump_header(new_n - 6, cw, cc, typ)]
+    new_words  += code_words
+    new_words  += [0] * freespace
+    new_words  += clist_words
+
+    if len(new_words) != new_size:
+        return jsonify({"error": f"Internal repack error: got {len(new_words)} words, expected {new_size}"}), 500
+
+    lump_bytes = _struct.pack(f'>{new_size}I', *[int(w) & 0xFFFFFFFF for w in new_words])
+    with open(lump_path, 'wb') as fh:
+        fh.write(lump_bytes)
+    LAZY_LUMPS[key8] = lump_bytes
+    LAZY_LUMPS[key8.lstrip('0') or '0'] = lump_bytes
+
+    # Update sidecar JSON.
+    sidecar = {}
+    if os.path.isfile(sidecar_path):
+        try:
+            with open(sidecar_path, 'r') as fh:
+                sidecar = json.load(fh)
+        except Exception:
+            pass
+    sidecar['lump_size'] = new_size
+    with open(sidecar_path, 'w') as fh:
+        json.dump(sidecar, fh, indent=2)
+
+    # Update manifest entry if present.
+    manifest_path = os.path.join(lumps_dir, 'manifest.json')
+    manifest = []
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, 'r') as fh:
+                manifest = json.load(fh)
+        except Exception:
+            pass
+    for entry in manifest:
+        if entry.get('token') == key8:
+            entry['lump_size'] = new_size
+            break
+    with open(manifest_path, 'w') as fh:
+        json.dump(manifest, fh, indent=2)
+
+    print(f'[lump/resize] {key8}: {old_size}w → {new_size}w (cw={cw}, cc={cc}, saved {old_size - new_size}w)', flush=True)
+    return jsonify({"ok": True, "already_minimal": False,
+                    "old_size": old_size, "lump_size": new_size,
+                    "cw": cw, "cc": cc, "saved_words": old_size - new_size})
+
+
 @app.route("/api/lumps/import", methods=["POST"])
 def import_lump():
     """Pack an uploaded file (base64) into a data LUMP and save with sidecar."""

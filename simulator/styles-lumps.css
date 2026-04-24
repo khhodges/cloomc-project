@@ -191,6 +191,41 @@
     letter-spacing: 0.3px;
     margin-right: 1px;
 }
+.lump-hs-resize-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 0.63rem;
+    font-family: 'Courier New', monospace;
+    padding: 2px 9px;
+    border-radius: 4px;
+    background: rgba(100, 210, 120, 0.09);
+    border: 1px solid rgba(100, 210, 120, 0.28);
+    color: #88dd99;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+}
+.lump-hs-resize-btn:hover:not(:disabled) {
+    background: rgba(100, 210, 120, 0.2);
+    border-color: rgba(100, 210, 120, 0.5);
+    color: #aaffbb;
+}
+.lump-hs-resize-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.lump-hs-minimal {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 0.63rem;
+    font-family: 'Courier New', monospace;
+    color: #778877;
+    background: none;
+    border: 1px solid rgba(100, 180, 100, 0.15);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}
 
 /* ── LUMP tab bar ──────────────────────────────────────── */
 .lump-tabs-bar {
