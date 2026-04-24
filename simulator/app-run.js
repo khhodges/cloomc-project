@@ -781,6 +781,7 @@ function slowBoot() {
                 return;
             }
             const _slowPhaseNum = sim.bootStep + 1;  // capture before _bootStep() — case 6 (COMPLETE) doesn't increment bootStep
+            sim.auditLog = [];
             sim._bootStep();
             const con = document.getElementById('editorConsole');
             if (con) {
@@ -790,7 +791,14 @@ function slowBoot() {
             }
             if (pipelineViz) {
                 pipelineViz.setNIA(_bootNIARows(sim.bootStep));
-                pipelineViz.render();
+                if (pipelineViz.mode === 'audit') {
+                    pipelineViz.showFullPipeline(sim.auditLog.map(a => {
+                        const checks = Object.entries(a.checks || {}).map(([k, v]) => ({ name: k.toUpperCase(), pass: v.pass, perm: v.perm || null }));
+                        return { stage: a.gate, type: a.gate, desc: `${a.gate}(NS[${a.nsIndex}]="${a.label}"${a.requiredPerm ? ', '+a.requiredPerm : ''})`, label: a.label, nsIndex: a.nsIndex, requiredPerm: a.requiredPerm, checks, status: a.result, b: a.b, f: a.f };
+                    }));
+                } else {
+                    pipelineViz.render();
+                }
             }
             updateDashboard();
             _bootAnimTimer = setTimeout(nextPhase, delay);
