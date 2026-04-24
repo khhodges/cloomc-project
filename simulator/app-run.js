@@ -382,6 +382,12 @@ function stepSim() {
         const con = document.getElementById('editorConsole');
         if (con) {
             con.textContent += `\n[${sim.stepCount}] ${result.desc || 'executed'}`;
+            if (Array.isArray(result.pipeline)) {
+                for (const s of result.pipeline) {
+                    const stagePad = (s.stage || '').padEnd(6);
+                    con.textContent += `\n     \u2192 ${stagePad}  ${s.desc || ''}`;
+                }
+            }
             con.scrollTop = con.scrollHeight;
         }
         if (pipelineViz) {
@@ -391,11 +397,25 @@ function stepSim() {
             } else if (result.pipeline) {
                 pipelineViz.showFullPipeline(result.pipeline);
             }
+        } else if (result.pipeline) {
+            _pendingPipelineBuffer = { pc: result.physicalPC ?? result.pc, pipeline: result.pipeline };
+            setTimeout(_flushPendingPipelineBuffer, 0);
         }
     }
     updateDashboard();
     switchView('dashboard');
     openCRDetail(14);
+}
+
+let _pendingPipelineBuffer = null;
+
+function _flushPendingPipelineBuffer() {
+    if (pipelineViz && _pendingPipelineBuffer) {
+        const buf = _pendingPipelineBuffer;
+        _pendingPipelineBuffer = null;
+        pipelineViz.setNIA(_buildNIARows(buf.pc, sim._nextPhysicalAddr()));
+        pipelineViz.showFullPipeline(buf.pipeline);
+    }
 }
 
 let walkRunning = false;

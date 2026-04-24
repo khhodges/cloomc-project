@@ -2895,11 +2895,13 @@ class ChurchSimulator {
                     }
 
                     this.pc++;
+                    const pkReturnPC = this.pc;
                     return { pc: this.pc - 1, instr: d, desc, pipeline: [
-                        { stage: 'CALL', desc: 'Enter Navana (PassKey gate)', perm: 'E', status: 'pass' },
+                        ...this._callBoundaryStages(d, label),
                         { stage: 'VALIDATE', desc: `PassKey validated for ${result.result.device}`, status: 'pass' },
                         { stage: 'GRANT', desc: 'CR1 <- E-perm LED driver', status: 'pass' },
-                        { stage: 'RETURN', desc: 'Exit Navana', status: 'pass' },
+                        { stage: 'RETN', desc: `Returned to PC=${pkReturnPC}`, status: 'pass' },
+                        { stage: 'ATOMIC', desc: 'Registered abstraction \u2014 no step-into', status: 'info' },
                     ]};
                 }
             }
@@ -2934,10 +2936,12 @@ class ChurchSimulator {
                 : `CALL CR${d.crDst} -> ${label}.${methodName} [abstraction dispatch]`;
             this.output += desc + '\n';
 
+            let navDispatchResult = null;
             if (this.abstractionRegistry) {
                 const result = this.abstractionRegistry.dispatchMethod(check.index, methodName, this, {
                     dr1: argDR1, dr2: argDR2
                 });
+                navDispatchResult = result;
                 if (result && result.message) {
                     this.output += `  ${result.message}\n`;
                 }
@@ -2952,19 +2956,28 @@ class ChurchSimulator {
                     this.fault(result.fault, `${label}.${methodName}: ${result.message}`);
                     this.pc++;
                     return { pc: this.pc - 1, instr: d, desc, pipeline: [
-                        { stage: 'CALL', desc: `Enter ${label} abstraction`, perm: 'E', status: 'pass' },
-                        { stage: 'DISPATCH', desc: `${label}.${methodName}`, status: 'fail' },
+                        ...this._callBoundaryStages(d, label),
                         { stage: 'FAULT', desc: `${result.fault}: ${result.message}`, status: 'fail' },
+                        { stage: 'ATOMIC', desc: 'Registered abstraction \u2014 no step-into', status: 'info' },
                     ]};
                 }
             }
 
-            this.pc++;
-            return { pc: this.pc - 1, instr: d, desc, pipeline: [
-                { stage: 'CALL', desc: `Enter ${label} abstraction`, perm: 'E', status: 'pass' },
-                { stage: 'DISPATCH', desc: `${label}.${methodName}`, status: 'pass' },
-                { stage: 'RETURN', desc: `Exit ${label}`, status: 'pass' },
-            ]};
+            {
+                const retVal = navDispatchResult && navDispatchResult.ok && navDispatchResult.result !== undefined && typeof navDispatchResult.result === 'number' ? navDispatchResult.result : null;
+                const navDstReg = encodedDstReg !== null ? encodedDstReg : 1;
+                const execDesc = retVal !== null
+                    ? `${label}.${methodName}(DR1=${argDR1}, DR2=${argDR2}) \u2192 DR${navDstReg}=${retVal}`
+                    : `${label}.${methodName}(DR1=${argDR1}, DR2=${argDR2})`;
+                this.pc++;
+                const returnPC = this.pc;
+                return { pc: this.pc - 1, instr: d, desc, pipeline: [
+                    ...this._callBoundaryStages(d, label),
+                    { stage: 'EXEC', desc: execDesc, status: 'pass' },
+                    { stage: 'RETN', desc: `Returned to PC=${returnPC}`, status: 'pass' },
+                    { stage: 'ATOMIC', desc: 'Registered abstraction \u2014 no step-into', status: 'info' },
+                ]};
+            }
         }
 
         let methodIndex, argDR1, argDR2, desc, encodedDstReg;
@@ -3009,6 +3022,7 @@ class ChurchSimulator {
             : (abstraction.methods[0] || 'Apply');
         this.output += desc + '\n';
 
+        let genDispatchResult = null;
         if (this.abstractionRegistry) {
             // For LED (NS 12): ledIndex = d.imm - LED_CLIST_BASE (the call-site C-list offset).
             // _execCall sets check.ledIndex after mLoad; handler validates range 0–5.
@@ -3019,6 +3033,7 @@ class ChurchSimulator {
             const result = this.abstractionRegistry.dispatchMethod(check.index, methodName, this, {
                 dr1: argDR1, dr2: argDR2, ledIndex
             });
+            genDispatchResult = result;
             if (result && result.message) {
                 this.output += `  ${result.message}\n`;
             }
@@ -3045,19 +3060,28 @@ class ChurchSimulator {
                 this.fault(result.fault, `${label}.${methodName}: ${result.message}`);
                 this.pc++;
                 return { pc: this.pc - 1, instr: d, desc, pipeline: [
-                    { stage: 'CALL', desc: `Enter ${label} abstraction`, perm: 'E', status: 'pass' },
-                    { stage: 'DISPATCH', desc: `${label}.${methodName}`, status: 'fail' },
+                    ...this._callBoundaryStages(d, label),
                     { stage: 'FAULT', desc: `${result.fault}: ${result.message}`, status: 'fail' },
+                    { stage: 'ATOMIC', desc: 'Registered abstraction \u2014 no step-into', status: 'info' },
                 ]};
             }
         }
 
-        this.pc++;
-        return { pc: this.pc - 1, instr: d, desc, pipeline: [
-            { stage: 'CALL', desc: `Enter ${label} abstraction`, perm: 'E', status: 'pass' },
-            { stage: 'DISPATCH', desc: `${label}.${methodName}`, status: 'pass' },
-            { stage: 'RETURN', desc: `Exit ${label}`, status: 'pass' },
-        ]};
+        {
+            const retVal = genDispatchResult && genDispatchResult.result !== undefined && typeof genDispatchResult.result === 'number' ? genDispatchResult.result : null;
+            const dstReg = encodedDstReg !== null ? encodedDstReg : 1;
+            const execDesc = retVal !== null
+                ? `${label}.${methodName}(DR1=${argDR1}, DR2=${argDR2}) \u2192 DR${dstReg}=${retVal}`
+                : `${label}.${methodName}(DR1=${argDR1}, DR2=${argDR2})`;
+            this.pc++;
+            const returnPC = this.pc;
+            return { pc: this.pc - 1, instr: d, desc, pipeline: [
+                ...this._callBoundaryStages(d, label),
+                { stage: 'EXEC', desc: execDesc, status: 'pass' },
+                { stage: 'RETN', desc: `Returned to PC=${returnPC}`, status: 'pass' },
+                { stage: 'ATOMIC', desc: 'Registered abstraction \u2014 no step-into', status: 'info' },
+            ]};
+        }
     }
 
     _selectNavanaMethod(d) {
@@ -4260,15 +4284,21 @@ class ChurchSimulator {
         ];
     }
 
+    _callBoundaryStages(d, label) {
+        return [
+            { stage: 'LOAD',  desc: `Read target GT from CR${d.crDst}`, perm: 'L', status: 'pass' },
+            { stage: 'TPERM', desc: `Verify E permission on target`, perm: 'E', status: 'pass' },
+            { stage: 'PUSH',  desc: `Push E-GT (word 0) + frame word (SZ=1): FLAGS|PC|SZ|STO`, status: 'pass' },
+            { stage: 'CALL',  desc: `Enter ${label}, CR6/CR14 derived, PC\u21900`, status: 'pass' },
+        ];
+    }
+
     _callPipeline(d, label) {
         const stages = [];
         if (this._mwinWbFired) {
-            stages.push({ stage: 'MWIN_WB', desc: `M-window writeback: DR11–DR13 → CR15, M cleared`, status: 'pass' });
+            stages.push({ stage: 'MWIN_WB', desc: `M-window writeback: DR11\u2013DR13 \u2192 CR15, M cleared`, status: 'pass' });
         }
-        stages.push({ stage: 'LOAD',  desc: `Read target GT from CR${d.crDst}`, perm: 'L', status: 'pass' });
-        stages.push({ stage: 'TPERM', desc: `Verify E permission on target`, perm: 'E', status: 'pass' });
-        stages.push({ stage: 'PUSH',  desc: `Push E-GT (word 0) + frame word (SZ=1): FLAGS|PC|SZ|STO`, status: 'pass' });
-        stages.push({ stage: 'CALL',  desc: `Enter ${label}, CR6/CR14 derived, PC←0`, status: 'pass' });
+        stages.push(...this._callBoundaryStages(d, label));
         return stages;
     }
 

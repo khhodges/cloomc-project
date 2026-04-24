@@ -257,10 +257,12 @@ class PipelineVisualizer {
                 html += '</div>';
             } else {
                 html += `<div class="audit-instr-step ${isDone ? 'instr-done' : ''}">`;
-                html += `<span class="instr-stage-badge">${step.stage || step.type || 'OP'}</span>`;
+                const badgeExtra = step.status === 'info' ? ' instr-badge-info' : '';
+                html += `<span class="instr-stage-badge${badgeExtra}">${step.stage || step.type || 'OP'}</span>`;
                 html += `<span class="instr-desc">${step.desc || ''}</span>`;
                 if (step.status === 'pass') html += `<span class="instr-status-ok">\u2713</span>`;
                 if (step.status === 'fail') html += `<span class="instr-status-fail">\u2717</span>`;
+                if (step.status === 'info') html += `<span class="instr-status-info">\u2139</span>`;
                 html += '</div>';
             }
         }

@@ -385,6 +385,8 @@ tr.itrace-fault td { color: #ff9999; }
 
 .instr-status-ok  { color: #33cc66; font-weight: bold; }
 .instr-status-fail { color: #cc3344; font-weight: bold; }
+.instr-status-info { color: #888888; font-weight: bold; }
+.instr-badge-info  { background: #444444; color: #aaaaaa; }
 
 .pipeline-fault {
     color: #cc3344;
