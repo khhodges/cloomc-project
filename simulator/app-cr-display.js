@@ -966,13 +966,49 @@ function editCRCodeInEditor() {
     while (trimLen > 0 && rawWords[trimLen - 1] === 0) trimLen--;
     const trimmedWords = rawWords.slice(0, trimLen);
 
+    const _branchCondNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
+
+    const branchTargetSet = new Set();
+    for (let i = 0; i < trimmedWords.length; i++) {
+        const w = trimmedWords[i] >>> 0;
+        if (((w >>> 27) & 0x1F) !== 17) continue;
+        const rawImm = w & 0x7FFF;
+        const soff = (rawImm & 0x4000) ? (rawImm | 0xFFFF8000) : rawImm;
+        const target = i + soff;
+        if (target >= 0 && target < trimmedWords.length) {
+            branchTargetSet.add(target);
+        }
+    }
+
+    const sortedTargets = Array.from(branchTargetSet).sort((a, b) => a - b);
+    const labelMap = new Map();
+    sortedTargets.forEach((idx, n) => labelMap.set(idx, `L${n}`));
+
     const lines = [];
     lines.push(`; Disassembly of CR${crIdx}  NS[${nsIdx}]  @ 0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}  (${codeLimit} word${codeLimit !== 1 ? 's' : ''})`);
     if (trimmedWords.length === 0) {
         lines.push('; (empty lump)');
     } else {
-        for (const word of trimmedWords) {
-            lines.push(word === 0 ? 'NOP' : asm.disassemble(word));
+        for (let i = 0; i < trimmedWords.length; i++) {
+            const word = trimmedWords[i] >>> 0;
+            if (labelMap.has(i)) {
+                lines.push(labelMap.get(i) + ':');
+            }
+            if (((word >>> 27) & 0x1F) === 17) {
+                const rawImm = word & 0x7FFF;
+                const soff = (rawImm & 0x4000) ? (rawImm | 0xFFFF8000) : rawImm;
+                const target = i + soff;
+                const condCode = (word >>> 23) & 0xF;
+                const mnemonic = 'BRANCH' + _branchCondNames[condCode];
+                const labelName = labelMap.get(target);
+                if (labelName !== undefined) {
+                    lines.push(`${mnemonic}  ${labelName}`);
+                } else {
+                    lines.push(asm.disassemble(word));
+                }
+            } else {
+                lines.push(word === 0 ? 'NOP' : asm.disassemble(word));
+            }
         }
     }
 
