@@ -1455,7 +1455,7 @@ async function _resizeLump(token) {
             _lumpsCache[idx].lump_size = data.lump_size;
             delete _lumpContentLoaded[token];
             delete _lumpHexLoaded[token];
-            showLumpDetail(_lumpsCache[idx]);
+            showLumpDetail(token);
         }
         renderLumps();
         appendOutput(`Lump 0x${token} shrunk: ${data.old_size}w → ${data.lump_size}w (saved ${data.saved_words}w)`, 'info');
