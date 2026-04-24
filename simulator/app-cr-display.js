@@ -42,10 +42,10 @@ function updateCRDisplay() {
         const nullCls = cr.isNull ? ' cr-null' : ' cr-active';
         const groupCls = meta.group === 'system' ? ' cr-system' : meta.group === 'privil' ? ' cr-privil' : (meta.role === 'arch' ? ' cr-arch' : '');
         const clickable = !cr.isNull ? ' cr-clickable' : '';
-        html += `<tr class="${nullCls}${groupCls}${clickable}" onmouseenter="showCRPopup(event,${i})" onmouseleave="hideCRPopup()" ${!cr.isNull ? `onclick="openCRDetail(${i})"` : ''}>`;
+        html += `<tr class="${nullCls}${groupCls}${clickable}" ${!cr.isNull ? `onclick="openCRDetail(${i})"` : ''}>`;
         html += `<td class="cr-idx">${i}</td>`;
         html += `<td class="cr-m ${cr.mBit ? 'cr-m-set' : ''}">${cr.mBit}</td>`;
-        html += `<td class="cr-name">${name}</td>`;
+        html += `<td class="cr-name" onmouseenter="showCRPopup(event,${i})" onmouseleave="hideCRPopup()">${name}</td>`;
         html += `<td><span class="cr-role-badge cr-role-${meta.role}">${meta.badge}</span></td>`;
         html += `<td class="cr-gt">0x${cr.word0_gt}</td>`;
         html += `<td class="cr-perms">[${cr.perms}]</td>`;
