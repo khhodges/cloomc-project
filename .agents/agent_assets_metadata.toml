@@ -108,3 +108,9 @@ id = "eiYBntSt3zQIyTEnzBhkP"
 uri = "file://six-laws-review.pdf"
 type = "pdf"
 title = "The Six Laws of CLOOMC — Broadsheet PDF"
+
+[[outputs]]
+id = "7S22tuQ3M-IwaQCmzL7YR"
+uri = "file://attached_assets/CLOOMC_Manifesto.md"
+type = "text"
+title = "The CLOOMC Manifesto"
