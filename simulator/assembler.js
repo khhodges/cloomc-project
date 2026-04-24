@@ -377,7 +377,11 @@ class ChurchAssembler {
                                 if (idx === crDst) { absName = name; break; }
                             }
                         }
-                        if (absName && this.methodConventions[absName]) {
+                        if (!absName) {
+                            this.errors.push({ line: lineNum, message: `CR${crDst} has no known abstraction binding — use a numeric selector (0–15) or load an abstraction into CR${crDst} with LOAD first.` });
+                        } else if (!this.methodConventions[absName]) {
+                            this.errors.push({ line: lineNum, message: `No method conventions registered for "${absName}" (bound to CR${crDst}). Cannot resolve method name "${rawTok2}".` });
+                        } else {
                             const methodEntry = this.methodConventions[absName][rawTok2];
                             if (methodEntry !== undefined) {
                                 const idx = methodEntry.index;
@@ -388,10 +392,8 @@ class ChurchAssembler {
                                 }
                             } else {
                                 const known = Object.keys(this.methodConventions[absName]).join(', ');
-                                this.errors.push({ line: lineNum, message: `"${rawTok2}" is not a known method of ${absName}. Known methods: ${known}.` });
+                                this.errors.push({ line: lineNum, message: `"${rawTok2}" is not a known method of ${absName} (bound to CR${crDst}). Known methods: ${known}.` });
                             }
-                        } else {
-                            crSrc = this._parseCRorBare(parts[2], lineNum);
                         }
                     } else {
                         crSrc = this._parseCRorBare(parts[2], lineNum);
