@@ -7,6 +7,32 @@
     outline: 1px solid rgba(239, 68, 68, 0.4);
 }
 
+/* ── Error line body highlight overlay ──────────────────────────────────── */
+.asm-error-overlay {
+    position: absolute;
+    left: calc(3.5rem + 1px);
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.asm-error-overlay-inner {
+    position: relative;
+    width: 100%;
+}
+
+.asm-error-line-bg {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(239, 68, 68, 0.13);
+    border-left: 3px solid rgba(239, 68, 68, 0.5);
+    box-sizing: border-box;
+}
+
 /* ── Breakpoint button ───────────────────────────────────────────────────── */
 .btn-break {
     background: #1c1a1a;

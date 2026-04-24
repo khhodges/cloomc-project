@@ -3126,6 +3126,8 @@ function syncLineScroll() {
     const gutter = document.getElementById('lineNumbers');
     if (editor && gutter) {
         gutter.scrollTop = editor.scrollTop;
+        const overlay = document.getElementById('asmErrorOverlay');
+        if (overlay) overlay.scrollTop = editor.scrollTop;
     }
 }
 

@@ -61,7 +61,12 @@ function _highlightAsmErrorLines(errors) {
     document.querySelectorAll('#lineNumbers span.line-num-error').forEach(function(el) {
         el.classList.remove('line-num-error');
     });
+
+    var overlay = document.getElementById('asmErrorOverlay');
+    if (overlay) overlay.innerHTML = '';
+
     if (!errors || errors.length === 0) return;
+
     var minLine = null;
     errors.forEach(function(e) {
         if (!e.line) return;
@@ -69,15 +74,40 @@ function _highlightAsmErrorLines(errors) {
         if (span) span.classList.add('line-num-error');
         if (minLine === null || e.line < minLine) minLine = e.line;
     });
-    if (minLine) {
-        var editor = document.getElementById('asmEditor');
-        if (editor) {
-            var style = getComputedStyle(editor);
-            var lineHeight = parseFloat(style.lineHeight) || 19.2;
-            var paddingTop = parseFloat(style.paddingTop) || 0;
-            var targetScrollTop = paddingTop + (minLine - 1) * lineHeight - editor.clientHeight / 3;
-            editor.scrollTop = Math.max(0, targetScrollTop);
-        }
+
+    var editor = document.getElementById('asmEditor');
+    if (editor && overlay) {
+        var style = getComputedStyle(editor);
+        var lineHeight = parseFloat(style.lineHeight) || 19.2;
+        var paddingTop = parseFloat(style.paddingTop) || 0;
+        var totalLines = editor.value.split('\n').length;
+
+        var inner = document.createElement('div');
+        inner.className = 'asm-error-overlay-inner';
+        inner.style.height = (paddingTop * 2 + totalLines * lineHeight) + 'px';
+
+        var seenLines = {};
+        errors.forEach(function(e) {
+            if (!e.line || seenLines[e.line]) return;
+            seenLines[e.line] = true;
+            var div = document.createElement('div');
+            div.className = 'asm-error-line-bg';
+            div.style.top = (paddingTop + (e.line - 1) * lineHeight) + 'px';
+            div.style.height = lineHeight + 'px';
+            inner.appendChild(div);
+        });
+
+        overlay.appendChild(inner);
+        overlay.scrollTop = editor.scrollTop;
+    }
+
+    if (minLine && editor) {
+        var style2 = getComputedStyle(editor);
+        var lineHeight2 = parseFloat(style2.lineHeight) || 19.2;
+        var paddingTop2 = parseFloat(style2.paddingTop) || 0;
+        var targetScrollTop = paddingTop2 + (minLine - 1) * lineHeight2 - editor.clientHeight / 3;
+        editor.scrollTop = Math.max(0, targetScrollTop);
+        if (overlay) overlay.scrollTop = editor.scrollTop;
     }
 }
 
