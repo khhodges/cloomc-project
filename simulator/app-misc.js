@@ -1071,15 +1071,35 @@ function _traceRecordStep(result) {
         dr: state.dr.slice(),
         flags: { N: state.flags.N, Z: state.flags.Z, C: state.flags.C, V: state.flags.V },
         sto: state.sto,
+        gateChecks: (sim.auditLog && sim.auditLog.length > 0) ? sim.auditLog.map(function(a) {
+            return {
+                gate: a.gate,
+                label: a.label,
+                nsIndex: a.nsIndex,
+                result: a.result,
+                requiredPerm: a.requiredPerm,
+                desc: a.desc,
+                checks: a.checks ? Object.assign({}, a.checks) : null,
+            };
+        }) : null,
     };
     if (_traceData.length >= _TRACE_MAX) {
         const removeCount = _traceData.length - _TRACE_MAX + 1000;
         _traceData.splice(0, removeCount);
         const tbody = document.getElementById('traceTableBody');
         if (tbody) {
-            const rows = tbody.children;
-            const domRemove = Math.min(removeCount, rows.length);
-            for (let r = 0; r < domRemove; r++) tbody.removeChild(rows[0]);
+            // Each trace entry may produce multiple DOM rows (one main instruction
+            // row with data-step set, plus zero or more gate-check sub-rows that
+            // lack data-step). Remove rows from the top until we have evicted
+            // removeCount main-instruction rows (or exhausted the DOM).
+            const domTarget = Math.min(removeCount, _traceRenderedCount);
+            let mainRowsRemoved = 0;
+            while (mainRowsRemoved < domTarget && tbody.children.length > 0) {
+                const first = tbody.children[0];
+                const isMain = first.dataset && first.dataset.step !== undefined;
+                tbody.removeChild(first);
+                if (isMain) mainRowsRemoved++;
+            }
         }
         _traceRenderedCount = Math.max(0, _traceRenderedCount - removeCount);
     }
@@ -1113,6 +1133,8 @@ function _traceFlushRender() {
 function _traceBuildRow(idx) {
     const entry = _traceData[idx];
     const prev = idx > 0 ? _traceData[idx - 1] : null;
+    const frag = document.createDocumentFragment();
+
     const tr = document.createElement('tr');
     tr.dataset.step = entry.step;
     if (entry.skipped) tr.className = 'trace-row-skipped';
@@ -1154,7 +1176,118 @@ function _traceBuildRow(idx) {
         stoTd.className = 'trace-td-changed';
     }
     tr.appendChild(stoTd);
-    return tr;
+    frag.appendChild(tr);
+
+    // ── Gate-check sub-rows (mLoad / mSave fault details) ────────────────────
+    if (entry.gateChecks && entry.gateChecks.length > 0) {
+        for (let gi = 0; gi < entry.gateChecks.length; gi++) {
+            const gc = entry.gateChecks[gi];
+            const hasChecks = gc.checks && Object.keys(gc.checks).length > 0;
+            const clickable = hasChecks || gc.desc;
+            if (!clickable) continue;
+
+            // Build summary string (truncated)
+            let summary = '';
+            if (gc.desc) {
+                summary = gc.desc;
+            } else if (hasChecks) {
+                const failedNames = Object.entries(gc.checks)
+                    .filter(function(kv) { return kv[1] && kv[1].pass === false; })
+                    .map(function(kv) { return kv[0].toUpperCase(); });
+                if (failedNames.length > 0) {
+                    summary = 'FAIL: ' + failedNames.join(', ');
+                } else {
+                    summary = gc.result === 'pass' ? 'pass' : (gc.result || '');
+                    if (gc.requiredPerm) summary += ' perm=' + gc.requiredPerm;
+                }
+            } else {
+                summary = gc.result || '';
+            }
+            const truncated = summary.length > 60 ? summary.slice(0, 60) + '\u2026' : summary;
+            const isFail = gc.result === 'fail';
+            const detailRowId = 'trace-gate-detail-' + entry.step + '-' + gi;
+
+            // Summary row
+            const sumTr = document.createElement('tr');
+            sumTr.className = 'crd-fault-row';
+            if (isFail) sumTr.style.color = 'var(--church-red,#e05555)';
+            sumTr.dataset.detailId = detailRowId;
+            sumTr.onclick = function() { window.__crdToggleFaultDetail(this.dataset.detailId, this); };
+
+            const gateTd = document.createElement('td');
+            gateTd.className = 'cr-idx';
+            gateTd.textContent = '';
+            sumTr.appendChild(gateTd);
+
+            const evtTd = document.createElement('td');
+            evtTd.textContent = gc.gate || '\u2014';
+            evtTd.colSpan = 2;
+            sumTr.appendChild(evtTd);
+
+            const detTd = document.createElement('td');
+            detTd.style.fontSize = '0.78rem';
+            detTd.colSpan = 25;
+            detTd.textContent = truncated;
+            sumTr.appendChild(detTd);
+
+            frag.appendChild(sumTr);
+
+            // Detail row (hidden, contains crd-check-grid)
+            const detTr = document.createElement('tr');
+            detTr.id = detailRowId;
+            detTr.className = 'crd-fault-detail-row';
+            detTr.style.display = 'none';
+
+            const detCell = document.createElement('td');
+            detCell.colSpan = 28;
+
+            // Build crd-check-grid HTML
+            let detailHtml = '';
+            if (hasChecks) {
+                detailHtml += '<div class="crd-check-grid">';
+                for (const ck of Object.keys(gc.checks)) {
+                    const cv = gc.checks[ck];
+                    if (!cv || typeof cv !== 'object') continue;
+                    const pass = cv.pass !== false;
+                    const badgeClass = pass ? 'pass' : 'fail';
+                    const badgeLabel = pass ? 'OK' : 'FAIL';
+                    let valStr = '';
+                    if (ck === 'perm') {
+                        valStr = cv.perm ? 'requires ' + cv.perm : '';
+                        if (!pass) valStr += (valStr ? ' \u2014 ' : '') + 'missing';
+                    } else if (ck === 'range') {
+                        const addr = '0x' + (cv.address >>> 0).toString(16);
+                        const base = '0x' + (cv.base >>> 0).toString(16);
+                        const lim  = '0x' + (cv.limit >>> 0).toString(16);
+                        valStr = pass
+                            ? addr + ' in [' + base + '..' + lim + ']'
+                            : addr + ' outside [' + base + '..' + lim + ']';
+                    } else if (ck === 'version' && !pass) {
+                        valStr = 'GT seq mismatch';
+                    } else if (ck === 'seal' && !pass) {
+                        valStr = 'CRC invalid';
+                    } else if (ck === 'bind' && !pass) {
+                        valStr = 'bind check failed';
+                    } else if (ck === 'far' && !pass) {
+                        valStr = 'far check failed';
+                    }
+                    detailHtml += '<span class="crd-check-item">';
+                    detailHtml += '<span class="crd-check-name">' + ck + '</span>';
+                    detailHtml += '<span class="crd-check-badge ' + badgeClass + '">' + badgeLabel + '</span>';
+                    if (valStr) detailHtml += '<span class="crd-check-value">' + valStr + '</span>';
+                    detailHtml += '</span>';
+                }
+                detailHtml += '</div>';
+            } else if (gc.desc) {
+                detailHtml = '<span style="color:var(--text-secondary);font-size:0.76rem;">' + gc.desc + '</span>';
+            }
+            detCell.innerHTML = detailHtml;
+            detTr.appendChild(detCell);
+            frag.appendChild(detTr);
+        }
+    }
+
+    return frag;
 }
 
 function clearTrace() {
