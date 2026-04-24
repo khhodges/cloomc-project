@@ -4471,3 +4471,58 @@ a.next-step-link:hover {
     font-size: 0.74rem;
 }
 
+/* ── Lump Authorship inline edit ───────────────────────────────────────────── */
+.lump-authorship-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lump-meta-edit-toggle {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.5rem;
+    background: transparent;
+    border: 1px solid rgba(100, 160, 255, 0.3);
+    color: var(--church-blue, #4fc3f7);
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.lump-meta-edit-toggle:hover {
+    background: rgba(100, 160, 255, 0.1);
+}
+
+.lump-meta-edit-form {
+    margin-top: 0.4rem;
+}
+
+.lump-meta-edit-table td:last-child {
+    padding: 0.2rem 0.4rem;
+}
+
+.lump-meta-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(100, 160, 255, 0.25);
+    border-radius: 3px;
+    color: var(--text-primary, #e0e0f0);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.lump-meta-input:focus {
+    border-color: rgba(100, 160, 255, 0.55);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.lump-meta-edit-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+    padding-top: 0.35rem;
+}
+

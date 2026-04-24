@@ -271,5 +271,7 @@
   },
   "grants": [
     "E"
-  ]
+  ],
+  "author": "Final Author",
+  "version": "3.0.0"
 }

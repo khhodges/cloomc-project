@@ -508,12 +508,17 @@ function updateCRDetail() {
     {
         const _mfst = _lumpManifests[nsIdx];
         const _owAbs = sim.abstractionRegistry && sim.abstractionRegistry.getAbstraction && sim.abstractionRegistry.getAbstraction(nsIdx);
+        const _owSidecar = (typeof _lumpsCache !== 'undefined')
+            ? _lumpsCache.find(l => l.ns_slot !== null && l.ns_slot !== undefined && parseInt(l.ns_slot) === nsIdx)
+            : null;
         html += '<div class="crd-lump-section">';
         html += '<div class="crd-lump-section-label">Ownership</div>';
         if (_mfst) {
             html += '<table class="cr-table cr-detail-words"><tbody>';
             const _owRows = [
                 ['Name',           _absName],
+                ['Author',         _owSidecar && _owSidecar.author],
+                ['Version',        _owSidecar && _owSidecar.version],
                 ['Profile',        _mfst.profile],
                 ['Grants',         Array.isArray(_mfst.grants) && _mfst.grants.length ? _mfst.grants.join(', ') : (_mfst.grants || null)],
                 ['Built at',       _mfst.deployment && _mfst.deployment.built_at],
@@ -523,7 +528,7 @@ function updateCRDetail() {
             let _anyOwRow = false;
             for (const [k, v] of _owRows) {
                 if (v == null || v === '' || v === false) continue;
-                html += `<tr><td style="color:var(--church-blue);width:130px;">${k}</td><td>${v}</td></tr>`;
+                html += `<tr><td style="color:var(--church-blue);width:130px;">${k}</td><td>${_escHtml(String(v))}</td></tr>`;
                 _anyOwRow = true;
             }
             if (!_anyOwRow) {
@@ -548,6 +553,12 @@ function updateCRDetail() {
             if (_owAbs.methods && _owAbs.methods.length > 0) {
                 html += `<tr><td style="color:var(--church-blue)">Methods</td><td style="font-size:0.82rem;">${_owAbs.methods.map(_escHtml).join(', ')}</td></tr>`;
             }
+            html += '</tbody></table>';
+        } else if (_owSidecar && (_owSidecar.author || _owSidecar.version)) {
+            html += '<table class="cr-table cr-detail-words"><tbody>';
+            html += `<tr><td style="color:var(--church-blue);width:130px;">Name</td><td>${_escHtml(_absName)}</td></tr>`;
+            if (_owSidecar.author) html += `<tr><td style="color:var(--church-blue)">Author</td><td>${_escHtml(_owSidecar.author)}</td></tr>`;
+            if (_owSidecar.version) html += `<tr><td style="color:var(--church-blue)">Version</td><td>${_escHtml(_owSidecar.version)}</td></tr>`;
             html += '</tbody></table>';
         } else {
             html += '<div style="color:var(--text-secondary);font-style:italic;">(no ownership metadata \u2014 compile and publish to add)</div>';

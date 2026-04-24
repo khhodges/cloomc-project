@@ -1132,7 +1132,9 @@
     ],
     "grants": [
       "E"
-    ]
+    ],
+    "author": "Final Author",
+    "version": "3.0.0"
   },
   {
     "token": "00001f00",

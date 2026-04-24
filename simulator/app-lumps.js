@@ -142,6 +142,35 @@ function showLumpDetail(token) {
         if (grants.length > 0) html += `<tr><td>Grants</td><td>[${grants.map(g => e(g)).join(', ')}]</td></tr>`;
         html += '</tbody></table>';
         html += '</div>';
+
+        {
+            const _metaTk = e(lump.token);
+            const _metaAuthor = lump.author || '';
+            const _metaVersion = lump.version || '';
+            const _metaId = `lumpMeta_${_tk}`;
+            html += '<div class="lump-detail-section">';
+            html += '<div class="lump-section-title lump-authorship-title">Authorship';
+            html += `<button class="lump-meta-edit-toggle btn" onclick="_toggleLumpMetaEdit('${_metaId}')" title="Edit author and version">&#9998; Edit</button>`;
+            html += '</div>';
+            html += `<div id="${_metaId}_display">`;
+            html += '<table class="lump-detail-table"><tbody>';
+            html += `<tr><td>Author</td><td>${_metaAuthor ? e(_metaAuthor) : '<span style="color:var(--text-secondary);font-style:italic;">not set</span>'}</td></tr>`;
+            html += `<tr><td>Version</td><td>${_metaVersion ? e(_metaVersion) : '<span style="color:var(--text-secondary);font-style:italic;">not set</span>'}</td></tr>`;
+            html += '</tbody></table>';
+            html += '</div>';
+            html += `<div id="${_metaId}_form" class="lump-meta-edit-form" style="display:none;">`;
+            html += '<table class="lump-detail-table lump-meta-edit-table"><tbody>';
+            html += `<tr><td>Author</td><td><input type="text" id="${_metaId}_author" class="lump-meta-input" value="${e(_metaAuthor)}" placeholder="e.g. Alice Smith" maxlength="128"></td></tr>`;
+            html += `<tr><td>Version</td><td><input type="text" id="${_metaId}_version" class="lump-meta-input" value="${e(_metaVersion)}" placeholder="e.g. 1.0.0" maxlength="64"></td></tr>`;
+            html += '</tbody></table>';
+            html += `<div class="lump-meta-edit-actions">`;
+            html += `<button class="btn lump-edit-save-btn" onclick="_saveLumpMeta('${_metaTk}','${_metaId}')">Save</button>`;
+            html += `<button class="btn lump-edit-cancel-btn" onclick="_toggleLumpMetaEdit('${_metaId}')">Cancel</button>`;
+            html += `<span id="${_metaId}_status" class="lump-edit-status"></span>`;
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+        }
     }
 
     if (!isNamespace) {
@@ -448,6 +477,52 @@ async function _saveLumpText(token, text, bodyEl, lump) {
         _draftLsDel(_tk);
         if (statusEl) { statusEl.textContent = 'Saved.'; statusEl.style.color = 'var(--accent-green, #4caf50)'; }
         setTimeout(() => _loadLumpContent(token, lump), 800);
+    } catch (err) {
+        if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.style.color = 'var(--red, #e53935)'; }
+        if (saveBtn) saveBtn.disabled = false;
+    }
+}
+
+function _toggleLumpMetaEdit(metaId) {
+    const displayEl = document.getElementById(metaId + '_display');
+    const formEl    = document.getElementById(metaId + '_form');
+    if (!displayEl || !formEl) return;
+    const isOpen = formEl.style.display !== 'none';
+    displayEl.style.display = isOpen ? '' : 'none';
+    formEl.style.display    = isOpen ? 'none' : '';
+    const statusEl = document.getElementById(metaId + '_status');
+    if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; }
+}
+
+async function _saveLumpMeta(token, metaId) {
+    const authorEl  = document.getElementById(metaId + '_author');
+    const versionEl = document.getElementById(metaId + '_version');
+    const statusEl  = document.getElementById(metaId + '_status');
+    const saveBtn   = document.querySelector(`#${metaId}_form .lump-edit-save-btn`);
+    if (!authorEl || !versionEl) return;
+    const author  = authorEl.value.trim();
+    const version = versionEl.value.trim();
+    if (saveBtn) saveBtn.disabled = true;
+    if (statusEl) { statusEl.textContent = 'Saving\u2026'; statusEl.style.color = ''; }
+    try {
+        const resp = await fetch(`/api/lump/${token}/meta`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ author, version }),
+        });
+        const result = await resp.json();
+        if (!resp.ok) throw new Error(result.error || `HTTP ${resp.status}`);
+        const lump = _lumpsCache.find(l => l.token === token);
+        if (lump) { lump.author = author; lump.version = version; }
+        if (statusEl) { statusEl.textContent = 'Saved.'; statusEl.style.color = 'var(--accent-green, #4caf50)'; }
+        if (saveBtn) saveBtn.disabled = false;
+        const displayEl = document.getElementById(metaId + '_display');
+        if (displayEl) {
+            const tds = displayEl.querySelectorAll('td:last-child');
+            const e = _escHtml;
+            if (tds[0]) tds[0].innerHTML = author ? e(author) : '<span style="color:var(--text-secondary);font-style:italic;">not set</span>';
+            if (tds[1]) tds[1].innerHTML = version ? e(version) : '<span style="color:var(--text-secondary);font-style:italic;">not set</span>';
+        }
     } catch (err) {
         if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.style.color = 'var(--red, #e53935)'; }
         if (saveBtn) saveBtn.disabled = false;

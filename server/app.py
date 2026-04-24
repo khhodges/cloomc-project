@@ -2315,6 +2315,8 @@ def save_lump():
         "cc":           metadata.get("cc", 0),
         "profile":      metadata.get("profile", "IoT"),
         "language":     metadata.get("language", "unknown"),
+        "author":       metadata.get("author", ""),
+        "version":      metadata.get("version", ""),
         "methods":      metadata.get("methods", []),
         "capabilities": metadata.get("capabilities", []),
         "pet_names": {
@@ -2358,6 +2360,8 @@ def save_lump():
         "lump_size":   len(words),
         "cw":          sidecar["cw"],
         "cc":          sidecar["cc"],
+        "author":      sidecar.get("author", ""),
+        "version":     sidecar.get("version", ""),
         "methods":     sidecar["methods"],
         "grants":      sidecar["grants"]
     })
@@ -2507,6 +2511,69 @@ def put_lump_content(token):
 
     print(f'[lumps/content PUT] {key8} cw={cw} lump_size={lump_size} {len(lump_bytes)}B', flush=True)
     return jsonify({"ok": True, "token": key8, "cw": cw, "lump_size": lump_size})
+
+
+@app.route("/api/lump/<token>/meta", methods=["PATCH"])
+def patch_lump_meta(token):
+    """Update author and version metadata fields in a saved lump's sidecar JSON.
+
+    Expects JSON body with any of:
+      author  — string author name
+      version — string version string
+    Only the supplied fields are updated; others are left unchanged.
+    Returns {"ok": true, "token": token8} on success.
+    """
+    raw   = token.lower()
+    key8  = (raw[:8] if len(raw) >= 8 else raw).zfill(8)
+
+    lumps_dir    = os.path.join(os.path.dirname(__file__), 'lumps')
+    sidecar_path = os.path.join(lumps_dir, f'{key8}.json')
+    if not os.path.isfile(sidecar_path):
+        return jsonify({"error": "Lump sidecar not found"}), 404
+
+    payload = request.get_json(force=True, silent=True) or {}
+
+    try:
+        with open(sidecar_path, 'r') as fh:
+            sidecar = json.load(fh)
+    except Exception as exc:
+        return jsonify({"error": f"Could not read sidecar: {exc}"}), 500
+
+    updated = False
+    for field in ("author", "version"):
+        if field in payload:
+            sidecar[field] = str(payload[field])
+            updated = True
+
+    if not updated:
+        return jsonify({"ok": True, "token": key8, "message": "No fields updated"}), 200
+
+    try:
+        with open(sidecar_path, 'w') as fh:
+            json.dump(sidecar, fh, indent=2)
+    except Exception as exc:
+        return jsonify({"error": f"Could not write sidecar: {exc}"}), 500
+
+    manifest_path = os.path.join(lumps_dir, 'manifest.json')
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, 'r') as fh:
+                manifest = json.load(fh)
+            changed = False
+            for entry in manifest:
+                if entry.get('token') == key8:
+                    for field in ("author", "version"):
+                        if field in payload:
+                            entry[field] = sidecar[field]
+                    changed = True
+            if changed:
+                with open(manifest_path, 'w') as fh:
+                    json.dump(manifest, fh, indent=2)
+        except Exception:
+            pass
+
+    print(f'[lumps/meta PATCH] {key8} author={sidecar.get("author","")} version={sidecar.get("version","")}', flush=True)
+    return jsonify({"ok": True, "token": key8})
 
 
 @app.route("/api/lump/<token_hex>/resize", methods=["POST"])
