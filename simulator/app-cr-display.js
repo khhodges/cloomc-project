@@ -550,7 +550,7 @@ function showZonePopup(evt, zone, nsIdx) {
                 const gt = sim.parseGT ? sim.parseGT(f.egt) : null;
                 if (gt && gt.type !== 0) {
                     const perms = Object.entries(gt.permissions || {}).filter(([,v])=>v).map(([k])=>k).join('') || 'none';
-                    const lbl = (sim.nsLabels && sim.nsLabels[gt.index]) || '';
+                    const lbl = (typeof _gtPetName === 'function') ? _gtPetName(f.egt) : ((sim.nsLabels && sim.nsLabels[gt.index]) || '');
                     egtStr = `${gt.typeName} s=${gt.index}${lbl?' <span class="zdp-lbl">('+lbl+')</span>':''} [${perms}]`;
                 } else {
                     egtStr = hexW(f.egt);
@@ -592,7 +592,7 @@ function showZonePopup(evt, zone, nsIdx) {
             let decoded = hexW(word);
             if (gt && gt.type !== 0) {
                 const perms = Object.entries(gt.permissions || {}).filter(([,v])=>v).map(([k])=>k).join('') || 'none';
-                const lbl = (sim.nsLabels && sim.nsLabels[gt.index]) || '';
+                const lbl = (typeof _gtPetName === 'function') ? _gtPetName(word) : ((sim.nsLabels && sim.nsLabels[gt.index]) || '');
                 decoded = `<span class="zdp-hex">${hexW(word)}</span> <span class="zdp-note">${gt.typeName}</span> s=${gt.index}${lbl?' <span class="zdp-lbl">('+lbl+')</span>':''} [${perms}]`;
             }
             html += `<tr><td style="color:#f4b942;">CR${i}</td><td>${decoded}</td></tr>`;
@@ -874,7 +874,7 @@ function showCRPopup(evt, crIdx) {
                 } else {
                     const gt = sim.parseGT(gtWord);
                     const perms = (gt.permissions.B?'B':'-')+(gt.permissions.R?'R':'-')+(gt.permissions.W?'W':'-')+(gt.permissions.X?'X':'-')+(gt.permissions.L?'L':'-')+(gt.permissions.S?'S':'-')+(gt.permissions.E?'E':'-');
-                    const lbl = (sim.nsLabels && sim.nsLabels[gt.index]) || '';
+                    const lbl = (typeof _gtPetName === 'function') ? _gtPetName(gtWord) : ((sim.nsLabels && sim.nsLabels[gt.index]) || '');
                     const lblStr = lbl ? ` <span class="zdp-lbl">(${lbl})</span>` : '';
                     html += `<tr><td style="color:#f4b942;">[${j}]</td><td class="zdp-hex">${hexW(gtWord)} <span class="zdp-note">${gt.typeName}</span> s=${gt.index}${lblStr} [${perms}]</td></tr>`;
                 }

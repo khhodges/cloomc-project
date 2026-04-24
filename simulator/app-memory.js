@@ -725,6 +725,19 @@ function toggleNSDetail(idx) {
     updateNamespace();
 }
 
+function _gtPetName(gtWord) {
+    gtWord = gtWord >>> 0;
+    if (!gtWord) return '';
+    const p = sim.parseGT(gtWord);
+    if (p.type === 3) {
+        const ab = sim.parseAbstractGT(gtWord);
+        const DC = { 1: 'LED', 2: 'UART', 3: 'Button', 4: 'Timer', 5: 'Display' };
+        if (ab.ab_type === 0) return `${DC[ab.device_class] || 'dc' + ab.device_class}[${ab.device_data}]`;
+        return `M-Elev 0x${ab.ab_data.toString(16).toUpperCase()}`;
+    }
+    return (sim.nsLabels && sim.nsLabels[p.index]) ? sim.nsLabels[p.index] : '';
+}
+
 function _renderGTRow(idx, addr, word) {
     const hex = '0x' + (word >>> 0).toString(16).toUpperCase().padStart(8, '0');
     if (word === 0) {
@@ -850,7 +863,7 @@ function renderBootNSImage() {
                 continue;
             }
             const gt       = sim.parseGT(gtWord);
-            const slotLabel= sim.nsLabels[gt.index] || '-';
+            const slotLabel= _gtPetName(gtWord) || '-';
             const perms    = gt.permissions;
             const permStr  = Object.entries(perms).filter(([,v])=>v).map(([k])=>k).join('') || 'none';
             const tCol     = typeColors[gt.type] || '#888';
@@ -995,7 +1008,7 @@ function renderThreadMemoryLayout(nsIndex) {
                 const gt = sim.parseGT(word);
                 if (gt.type !== 0) {
                     const perms = Object.entries(gt.permissions).filter(([,v])=>v).map(([k])=>k).join('') || 'none';
-                    const lbl = sim.nsLabels[gt.index] || '';
+                    const lbl = _gtPetName(word);
                     decoded = `GT → <span style="color:#38bdf8;">${gt.typeName}</span> Slot=${gt.index}${lbl?' <i style="color:#93c5fd;">('+lbl+')</i>':''} [${perms}]`;
                 } else {
                     const returnPC = niaBits;
@@ -1022,7 +1035,7 @@ function renderThreadMemoryLayout(nsIndex) {
         } else {
             const gt = sim.parseGT(word);
             const perms = Object.entries(gt.permissions).filter(([,v])=>v).map(([k])=>k).join('') || 'none';
-            const lbl = sim.nsLabels[gt.index] || '';
+            const lbl = _gtPetName(word);
             decoded = `<span style="color:#60a5fa;">${gt.typeName}</span> Slot=${gt.index}${lbl ? ' <i style="color:#93c5fd;">('+lbl+')</i>' : ''} p=[${perms}] seq${gt.gt_seq}`;
         }
         html += `<tr><td style="color:#f4b942;">CR${i}</td><td style="color:#555;">+${off}</td><td style="font-family:monospace;">${addrOf(off)}</td><td style="color:rgba(206,145,120,0.9);font-family:monospace;">${hex}</td><td>${decoded}</td></tr>`;
