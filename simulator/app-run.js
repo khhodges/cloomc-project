@@ -294,13 +294,14 @@ function _buildNIARows(prevAddr, currAddr) {
 }
 
 const _BOOT_STEPS = [
-    { addrStr: 'B:00',  disasm: 'FAULT_RST',  label: 'Capture fault context \u2192 clear all CRs / DRs',                           offset: null, prog: 'boot' },
-    { addrStr: 'B:01',  disasm: 'LOAD_NS',    label: 'CR15 \u2190 NS[0] Namespace (base=0x0000, full memory)',                        offset: null, prog: 'boot' },
-    { addrStr: 'B:02',  disasm: 'INIT_THRD',  label: 'CR12 \u2190 NS[1] thread stack GT \u00b7 CR5(RW) \u2190 heap (CHANGE-consistent)', offset: null, prog: 'boot' },
-    { addrStr: 'B:02\u00bd', disasm: 'CALL_HOME', label: 'Tunnel.Register \u2192 23-byte packet \u00b7 await ACK',                   offset: null, prog: 'boot' },
-    { addrStr: 'B:03',  disasm: 'INIT_ABSTR', label: 'CR6(E) \u2190 NS[3] Boot.Abstr \u26a1 LED flash',                              offset: null, prog: 'boot' },
-    { addrStr: 'B:04',  disasm: 'LOAD_NUC',   label: 'CR14(R+X) + CR6(L) \u2190 lump header \u00b7 push sentinel \u00b7 PC\u21900', offset: null, prog: 'boot' },
-    { addrStr: 'B:05',  disasm: 'COMPLETE',   label: 'bootComplete \u2190 true \u00b7 M-elevation OFF \u00b7 dispatch begins',        offset: null, prog: 'boot' },
+    { addrStr: 'B:00',   disasm: 'FAULT_RST',  label: 'Capture fault context \u2192 clear all CRs / DRs',                              offset: null, prog: 'boot' },
+    { addrStr: 'B:01',   disasm: 'LOAD_NS',    label: 'CR15 \u2190 NS[0] Namespace (base=0x0000, full memory)',                         offset: null, prog: 'boot' },
+    { addrStr: 'B:02',   disasm: 'INIT_THRD',  label: 'CR12 \u2190 NS[1] thread stack GT (zero perms, Inform)',                         offset: null, prog: 'boot' },
+    { addrStr: 'B:02a',  disasm: 'INIT_HEAP',  label: 'CR5(RW) \u2190 thread heap \u00b7 CHANGE-consistent synthesis',                  offset: null, prog: 'boot' },
+    { addrStr: 'B:02\u00bd', disasm: 'CALL_HOME', label: 'Tunnel.Register \u2192 23-byte packet \u00b7 await ACK',                      offset: null, prog: 'boot' },
+    { addrStr: 'B:03',   disasm: 'INIT_ABSTR', label: 'CR6(E) \u2190 NS[3] Boot.Abstr',                                                 offset: null, prog: 'boot' },
+    { addrStr: 'B:04',   disasm: 'LOAD_NUC',   label: 'CR14(R+X) + CR6(E) \u2190 lump header \u00b7 push sentinel \u00b7 PC\u21900',   offset: null, prog: 'boot' },
+    { addrStr: 'B:05',   disasm: 'COMPLETE',   label: 'bootComplete \u2190 true \u00b7 M-elevation OFF \u00b7 dispatch begins',          offset: null, prog: 'boot' },
 ];
 
 function _bootNIARows(bootStep) {

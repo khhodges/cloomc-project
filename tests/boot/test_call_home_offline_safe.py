@@ -1,14 +1,14 @@
 """Headless test: CALL_HOME (B:02½) is offline-safe.
 
-Drives the simulator through all 7 boot steps with no abstraction registry
+Drives the simulator through all 8 boot steps with no abstraction registry
 (and no uartRegs) present and asserts that:
 
-  1. CALL_HOME runs as its own atomic step (bootStepBefore=3, bootStepAfter=4).
-  2. bootStep advances from 3 to 4 during that iteration.
+  1. CALL_HOME runs as its own atomic step (bootStepBefore=4, bootStepAfter=5).
+  2. bootStep advances from 4 to 5 during that iteration.
   3. The console output for that step contains the expected log line:
        [BOOT] CALL_HOME — ... ACK=0 (offline)
-  4. The simulator does NOT halt: bootComplete == True and bootStep == 6 after
-     exactly 7 _bootStep() calls (case 6 / B:05 COMPLETE sets bootComplete=True
+  4. The simulator does NOT halt: bootComplete == True and bootStep == 7 after
+     exactly 8 _bootStep() calls (case 7 / B:05 COMPLETE sets bootComplete=True
      without incrementing bootStep).
 """
 import base64
@@ -78,7 +78,7 @@ def test_call_home_offline_safe():
     image = generate_boot_image(cfg, LUMPS_DIR)
     status = _run_harness(cfg, image)
 
-    # ---- (4) must not halt; must complete all 7 phases --------------------
+    # ---- (4) must not halt; must complete all 8 phases --------------------
     assert status["halted"] is False, (
         f"simulator halted during boot — CALL_HOME may have blocked; "
         f"status={status}"
@@ -87,28 +87,28 @@ def test_call_home_offline_safe():
         f"bootComplete is False after driving _bootStep(); "
         f"reached bootStep={status['bootStep']}, iterations={status['iterations']}"
     )
-    assert status["bootStep"] == 6, (
-        f"expected bootStep=6 after full boot (case 6 / B:05 COMPLETE does not "
+    assert status["bootStep"] == 7, (
+        f"expected bootStep=7 after full boot (case 7 / B:05 COMPLETE does not "
         f"increment bootStep, it sets bootComplete=true instead), "
         f"got {status['bootStep']}"
     )
-    assert status["iterations"] == 7, (
-        f"expected exactly 7 _bootStep() calls, got {status['iterations']}"
+    assert status["iterations"] == 8, (
+        f"expected exactly 8 _bootStep() calls, got {status['iterations']}"
     )
 
     # ---- (1) & (2) CALL_HOME is its own atomic step -----------------------
-    # Iteration 4 (1-indexed) drives bootStep from 3 → 4 (case 3 = CALL_HOME).
+    # Iteration 5 (1-indexed) drives bootStep from 4 → 5 (case 4 = CALL_HOME).
     snapshots = status["stepSnapshots"]
-    assert len(snapshots) == 7, (
-        f"expected 7 step snapshots, got {len(snapshots)}"
+    assert len(snapshots) == 8, (
+        f"expected 8 step snapshots, got {len(snapshots)}"
     )
-    call_home_snap = snapshots[3]   # 0-indexed: the 4th call
-    assert call_home_snap["bootStepBefore"] == 3, (
-        f"CALL_HOME snapshot: expected bootStepBefore=3, "
+    call_home_snap = snapshots[4]   # 0-indexed: the 5th call
+    assert call_home_snap["bootStepBefore"] == 4, (
+        f"CALL_HOME snapshot: expected bootStepBefore=4, "
         f"got {call_home_snap['bootStepBefore']}"
     )
-    assert call_home_snap["bootStepAfter"] == 4, (
-        f"CALL_HOME snapshot: expected bootStepAfter=4, "
+    assert call_home_snap["bootStepAfter"] == 5, (
+        f"CALL_HOME snapshot: expected bootStepAfter=5, "
         f"got {call_home_snap['bootStepAfter']}"
     )
 

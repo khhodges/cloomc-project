@@ -597,6 +597,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this._initThrdEntry = null;
         this.callHomeStatus = null;
         this.callHomeTimestamp = null;
         this.ledBits = 0;
@@ -657,6 +658,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this._initThrdEntry = null;
         this.callHomeStatus = null;
         this.callHomeTimestamp = null;
         this.ledBits = 0;
@@ -1219,19 +1221,34 @@ class ChurchSimulator {
                 }
                 this._writeCR(12, gt12, check12.entry);                            // CR12 ← thread stack token (encodes lump base + size)
                 this.output += `[BOOT] INIT_THRD — CR12 <- mLoad(Slot 1) thread stack GT (zero perms, Inform)\n`;
+                // Stash the thread NS entry for use in B:02a INIT_HEAP (case 3)
+                this._initThrdEntry = check12.entry;
+                this.bootStep++;                  // advance state machine → B:02a
+                this.ledBits = 0b000011;          // LED bit 1 still on; bit 2 reserved for INIT_HEAP
+                break;
+            }
 
-                // Establish CR5 (Heap) as an RW capability over the thread lump —
-                // consistent with CHANGE CR12 hardware behaviour which synthesizes CR5
-                // from the incoming thread's lump header at the same time it sets CR12.
-                const _threadBase12 = check12.entry.word0_location;
+            // ════════════════════════════════════════════════════════════════════
+            // B:02a  INIT_HEAP  (case 3)
+            // Establish CR5 (Heap) as an RW capability over the thread lump.
+            // Consistent with CHANGE CR12 hardware behaviour which synthesizes CR5
+            // from the incoming thread's lump header at the same time it sets CR12.
+            // ════════════════════════════════════════════════════════════════════
+            case 3: {
+                const _initThrdEntry = this._initThrdEntry;
+                if (!_initThrdEntry) {
+                    this.fault('BOOT', 'INIT_HEAP: missing thread NS entry from B:02 INIT_THRD');
+                    return false;
+                }
+                const _threadBase12   = _initThrdEntry.word0_location;
                 const _threadHdrWord12 = this.memory[_threadBase12] >>> 0;
-                const _threadHdr12 = this.parseLumpHeader(_threadHdrWord12);
-                const _threadCC12 = _threadHdr12.valid ? _threadHdr12.cc : 0;
-                const _heapStart12 = 1 + 16 + _threadCC12;                        // first word above header + DR zone + c-list
-                const _spMax12 = (_threadHdr12.valid ? _threadHdr12.lumpSize : 256) - 12 - 1;
+                const _threadHdr12    = this.parseLumpHeader(_threadHdrWord12);
+                const _threadCC12     = _threadHdr12.valid ? _threadHdr12.cc : 0;
+                const _heapStart12    = 1 + 16 + _threadCC12;                     // first word above header + DR zone + c-list
+                const _spMax12        = (_threadHdr12.valid ? _threadHdr12.lumpSize : 256) - 12 - 1;
                 const gt5 = this.createGT(0, 1, {R:1,W:1,X:0,L:0,S:0,E:0}, 1);  // RW Inform GT for the thread lump (Slot 1)
-                this._writeCR(5, gt5, check12.entry);                              // CR5 ← heap RW token (base=thread lump, perms=RW)
-                this.output += `[BOOT] INIT_THRD — CR5 <- thread heap (RW, Inform, Slot 1) heap=[+${_heapStart12}..+${_spMax12}] (CHANGE-consistent)\n`;
+                this._writeCR(5, gt5, _initThrdEntry);                             // CR5 ← heap RW token (base=thread lump, perms=RW)
+                this.output += `[BOOT] INIT_HEAP — CR5 <- thread heap (RW, Inform, Slot 1) heap=[+${_heapStart12}..+${_spMax12}] (CHANGE-consistent)\n`;
                 // Synthetic audit entry so the TSB Audit panel shows the CR5 heap
                 // synthesis as an explicit capability gate (not an mLoad — the GT is
                 // created directly by the boot state machine, CHANGE-consistent).
@@ -1247,16 +1264,15 @@ class ChurchSimulator {
                     },
                     b: 0, f: 0,
                     result: 'pass',
-                    stepCtx: 'INIT_THRD CR5←heap',
+                    stepCtx: 'INIT_HEAP CR5←heap',
                 });
-
-                this.bootStep++;                  // advance state machine → B:03
-                this.ledBits = 0b000111;          // LED bit 2 ON = INIT_THRD complete
+                this.bootStep++;                  // advance state machine → B:02½
+                this.ledBits = 0b000111;          // LED bit 2 ON = INIT_HEAP complete
                 break;
             }
 
             // ════════════════════════════════════════════════════════════════════
-            // B:02½  CALL_HOME  (case 3)
+            // B:02½  CALL_HOME  (case 4)
             // Send the Tunnel.Register identification packet and await ACK.
             // Offline-safe: always advances bootStep regardless of ACK result.
             // When the abstraction registry is available, dispatches via
@@ -1264,7 +1280,7 @@ class ChurchSimulator {
             // (write boot_reason/last_fault/fault_NIA to uartRegs[0], read ACK
             // from uartRegs[1]).
             // ════════════════════════════════════════════════════════════════════
-            case 3: {
+            case 4: {
                 const _bootReason = (this.faultLog && this.faultLog.length > 0) ? 2 : 0; // 0=cold, 2=fault-recovery
                 const _lastFault  = (this.faultLog && this.faultLog.length > 0)
                     ? (this.faultLog[this.faultLog.length - 1].type || 0) : 0;
@@ -1323,13 +1339,13 @@ class ChurchSimulator {
             }
 
             // ════════════════════════════════════════════════════════════════════
-            // B:03  INIT_ABSTR  (case 4)
+            // B:03  INIT_ABSTR  (case 5)
             // Load Boot.Abstr (NS Slot 3) into CR6 with E-perm.
             // Slot 2 is a free/null entry — Task #247.
             // The E-type GT written here is snapshotted as oldCR6GT in B:04 and
             // saved to the sentinel call frame in the thread stack.
             // ════════════════════════════════════════════════════════════════════
-            case 4: {
+            case 5: {
                 const gt6 = this.createGT(0, this.bootEntrySlot, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);  // E-perm GT for boot entry
                 const check6 = this.mLoad(gt6, null, undefined);                                    // M-elevation mLoad; validates boot entry NS entry
                 const _b3Label = (this.nsLabels && this.nsLabels[this.bootEntrySlot]) || `Slot ${this.bootEntrySlot}`;
@@ -1354,7 +1370,7 @@ class ChurchSimulator {
             }
 
             // ════════════════════════════════════════════════════════════════════
-            // B:04  LOAD_NUC  (case 5)
+            // B:04  LOAD_NUC  (case 6)
             // "Load Nucleus": the hardware's CALL microcode for Boot.Abstr.
             // Slot 2 is a free/null entry (Task #247).
             //
@@ -1367,7 +1383,7 @@ class ChurchSimulator {
             //      the lump header — exactly as CALL microcode does at runtime.
             //   5. Set PC = 0 (first instruction of Boot.Abstr).
             // ════════════════════════════════════════════════════════════════════
-            case 5: {
+            case 6: {
                 // ── Step 1: Direct E-perm mLoad of boot entry abstraction ────────────
                 const _b4Label    = (this.nsLabels && this.nsLabels[this.bootEntrySlot]) || `Slot ${this.bootEntrySlot}`;
                 const bootEntryGT = this.createGT(0, this.bootEntrySlot, {R:0,W:0,X:0,L:0,S:0,E:1}, 1); // E-GT for boot entry
@@ -1491,10 +1507,10 @@ class ChurchSimulator {
             }
 
             // ════════════════════════════════════════════════════════════════════
-            // B:05  COMPLETE  (case 6)
+            // B:05  COMPLETE  (case 7)
             // Run Startup.Config.Execute(), drop M-elevation, mark boot done.
             // ════════════════════════════════════════════════════════════════════
-            case 6: {
+            case 7: {
                 // Startup.Config.Execute(): automatic dispatch (mirrors
                 // BOOT_ROM_WORDS[7] CALL via c-list[4]) under M-elevation so the
                 // pre-checks always run even if Boot.Thread lacks S-perm.
@@ -4814,6 +4830,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this._initThrdEntry = null;
         this.callHomeStatus = null;
         this.callHomeTimestamp = null;
         this.ledBits = 0; this.ledMode = 'boot'; this.lastSignedReturn = null;
@@ -4921,6 +4938,7 @@ class ChurchSimulator {
         this.bootComplete = false;
         this.mElevation = false;
         this.bootStep = 0;
+        this._initThrdEntry = null;
         this.callHomeStatus = null;
         this.callHomeTimestamp = null;
         this.ledBits = 0; this.ledMode = 'boot'; this.lastSignedReturn = null;
