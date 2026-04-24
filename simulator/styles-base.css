@@ -45,8 +45,8 @@ header {
 header h1 {
     font-size: 1.2rem;
     color: var(--church-gold);
-    white-space: nowrap;
     letter-spacing: 1px;
+    line-height: 1.25;
 }
 
 header h1 a {
