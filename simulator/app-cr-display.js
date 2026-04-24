@@ -641,6 +641,10 @@ function _startAutoFade() {
 
 function cancelHideCRPopup() {
     if (_crPopupTimer) { clearTimeout(_crPopupTimer); _crPopupTimer = null; }
+}
+
+function enterCRPopup() {
+    cancelHideCRPopup();
     _cancelAutoFade();
 }
 
@@ -801,6 +805,7 @@ function showDRPopup(evt, drIdx) {
     pop.innerHTML = dismissBtn + html;
     pop.style.display = 'block';
     _positionPopup(pop, evt);
+    cancelHideCRPopup();
     _startAutoFade();
 }
 
@@ -955,6 +960,7 @@ function showCRPopup(evt, crIdx) {
     pop.innerHTML = dismissBtn + html;
     pop.style.display = 'block';
     _positionPopup(pop, evt);
+    cancelHideCRPopup();
     _startAutoFade();
 }
 
