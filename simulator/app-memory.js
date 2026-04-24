@@ -150,6 +150,13 @@ function updateCRDetail() {
     {
         html += '<div class="cr-detail-section">';
         html += '<div class="cr-detail-heading">Code View \u2014 Executable Memory</div>';
+        // Sticky patch badge — shown when a patch is queued to survive reset
+        if (typeof _stickyPatches !== 'undefined' && _stickyPatches[nsIdx]) {
+            html += `<div class="crd-sticky-badge">` +
+                `\uD83D\uDD12\u202FSticky patch active \u2014 re-applied after every reset.` +
+                `<button class="crd-sticky-clear" onclick="clearStickyPatch(${nsIdx})" title="Remove sticky patch">\u2715\u202FClear</button>` +
+                `</div>`;
+        }
         const baseLoc   = _baseLoc;
         const limitVal  = _limitVal;
         const asm       = new ChurchAssembler();

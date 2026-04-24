@@ -746,6 +746,11 @@ let _bootAnimTimer = null;
 let _bootAuditAccum = [];
 let _defaultProgramLoaded = false;
 function _autoLoadDefaultProgram() {
+    // Re-apply any sticky patches (set via patchSimulator()) that should survive
+    // reset.  Safe to call here because the NS table and lump addresses are stable
+    // after every boot sequence completes.
+    if (typeof _reapplyStickyPatches === 'function') _reapplyStickyPatches();
+
     if (_defaultProgramLoaded) {
         if (lastAssembledWords && lastAssembledWords.length > 0) {
             sim.loadProgram(lastAssembledWords, 0);

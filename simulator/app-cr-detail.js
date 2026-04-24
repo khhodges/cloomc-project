@@ -1,5 +1,10 @@
 var _activeAsmErrors = [];
 
+// ── Sticky Patches ────────────────────────────────────────────────────────
+// Keyed by nsIdx. Each entry: { words, newCW, nsIdx, crIdx, src }.
+// Re-applied automatically after every boot sequence completes.
+var _stickyPatches = {};
+
 function _jumpToAsmLine(lineNum) {
     var editor = document.getElementById('asmEditor');
     if (!editor || !lineNum) return;
@@ -407,6 +412,7 @@ function patchSimulator() {
 
     const ed = document.getElementById('asmEditor');
     const srcHash = ed ? _quickHash(ed.value) : '';
+    const src = ed ? ed.value : '';
     const logEl = document.getElementById('crInjectLog');
     if (logEl) { logEl.style.display = 'block'; logEl.textContent = ''; }
     let result;
@@ -423,10 +429,69 @@ function patchSimulator() {
             _simRunHistory = [];
             _simRunHash = srcHash;
         }
+        // Store sticky patch — survives reset+boot, re-applied automatically
+        _stickyPatches[result.nsIdx] = {
+            words: result.newWords,
+            newCW: result.newCW,
+            nsIdx: result.nsIdx,
+            crIdx: selectedCR,
+            src,
+        };
         _updateMtbfIndicator();
         updateCRDetail();
     }
 }
+
+// Re-apply all sticky patches from _stickyPatches after a boot sequence.
+// Called by _autoLoadDefaultProgram() (app-run.js) on every boot completion.
+window._reapplyStickyPatches = function() {
+    const entries = Object.entries(_stickyPatches);
+    if (entries.length === 0) return;
+    for (const [nsIdxStr, patch] of entries) {
+        const nsIdx2 = parseInt(nsIdxStr);
+        const nse = sim.readNSEntry(nsIdx2);
+        if (!nse) continue;
+        const baseLoc2 = nse.word0_location >>> 0;
+        if (baseLoc2 === 0 || baseLoc2 >= sim.memory.length) continue;
+
+        const hdr2 = sim.parseLumpHeader(sim.memory[baseLoc2] >>> 0);
+        if (!hdr2.valid) continue;
+
+        const { words, newCW } = patch;
+        const oldCW2 = hdr2.cw;
+        const codeStart2 = baseLoc2 + 1;
+
+        for (let i = 0; i < newCW; i++) {
+            if (codeStart2 + i < sim.memory.length)
+                sim.memory[codeStart2 + i] = words[i] >>> 0;
+        }
+        for (let i = newCW; i < oldCW2; i++) {
+            if (codeStart2 + i < sim.memory.length)
+                sim.memory[codeStart2 + i] = 0;
+        }
+
+        if (newCW !== oldCW2) {
+            const hdrW = sim.memory[baseLoc2] >>> 0;
+            sim.memory[baseLoc2] = ((hdrW & ~(0x1FFF << 10)) | ((newCW & 0x1FFF) << 10)) >>> 0;
+
+            const nsBase2 = sim.NS_TABLE_BASE + nsIdx2 * sim.NS_ENTRY_WORDS;
+            const oldW1   = sim.memory[nsBase2 + 1] >>> 0;
+            const oldW2   = sim.memory[nsBase2 + 2] >>> 0;
+            const w1f     = sim.parseNSWord1(oldW1);
+            const newW1   = sim.packNSWord1(newCW, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, w1f.clistCount);
+            sim.memory[nsBase2 + 1] = newW1;
+            const gtSeq  = (oldW2 >>> 25) & 0x7F;
+            sim.memory[nsBase2 + 2] = sim.makeVersionSeals(gtSeq, baseLoc2, newCW);
+        }
+        console.log('[sticky] Re-applied patch NS[' + nsIdx2 + '] (' + newCW + 'w)');
+    }
+};
+
+// Remove a sticky patch by NS slot index (called from the Code tab clear button).
+window.clearStickyPatch = function(nsIdx) {
+    delete _stickyPatches[nsIdx];
+    if (typeof updateCRDetail === 'function') updateCRDetail();
+};
 
 async function patchFPGA() {
     const logEl = document.getElementById('crInjectLog');

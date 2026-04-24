@@ -4344,6 +4344,37 @@ a.next-step-link:hover {
     margin-bottom: 0.5rem;
 }
 
+/* ── Sticky Patch badge (Code tab) ────────────────────────────────────────── */
+.crd-sticky-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.3rem 0.6rem;
+    margin-bottom: 0.5rem;
+    background: rgba(251,191,36,0.1);
+    border: 1px solid rgba(251,191,36,0.35);
+    border-radius: 5px;
+    font-size: 0.72rem;
+    color: #fbbf24;
+}
+
+.crd-sticky-clear {
+    margin-left: auto;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.68rem;
+    font-family: inherit;
+    font-weight: 600;
+    background: rgba(251,191,36,0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,0.3);
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.crd-sticky-clear:hover {
+    background: rgba(251,191,36,0.25);
+}
+
 /* ── Lump Compress / Save toolbar ─────────────────────────────────────────── */
 .crd-lump-actions {
     display: flex;
