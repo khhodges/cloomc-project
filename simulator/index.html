@@ -68,7 +68,8 @@
         #hamDropdown.ham-open { display:grid !important; }
         .ham-group { display:flex; flex-direction:column; border-right:1px solid var(--border,#2a2a4a); padding:0.2rem 0; }
         .ham-group:last-child { border-right:none; }
-        .ham-item { width:100%; box-sizing:border-box; }
+        .ham-item { width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; }
+        .ham-kbd { font-family:'Courier New',monospace; font-size:0.62rem; color:#555577; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:1px 4px; letter-spacing:0.2px; flex-shrink:0; }
     </style>
 </head>
 <body>
@@ -92,26 +93,26 @@
                             <div class="ham-group">
                                 <div class="ham-group-title">Develop</div>
                                 <button class="ham-item" id="hamItem-editor" onclick="switchView('editor');closeHamburger()">Create</button>
-                                <button class="ham-item" id="hamItem-repl" onclick="switchView('repl');closeHamburger()">Math</button>
-                                <button class="ham-item" id="hamItem-namespace" onclick="switchView('namespace');closeHamburger()">Namespace</button>
+                                <button class="ham-item" id="hamItem-repl" onclick="switchView('repl');closeHamburger()">Math<kbd class="ham-kbd">Ctrl+M</kbd></button>
+                                <button class="ham-item" id="hamItem-namespace" onclick="switchView('namespace');closeHamburger()">Namespace<kbd class="ham-kbd">Ctrl+N</kbd></button>
                                 <button class="ham-item" id="hamItem-memory" onclick="switchView('memory');closeHamburger()">Memory Dump</button>
                             </div>
                             <div class="ham-group">
                                 <div class="ham-group-title">Test</div>
-                                <button class="ham-item" id="hamItem-dashboard" onclick="openSimulatorFromMenu()">Simulator</button>
+                                <button class="ham-item" id="hamItem-dashboard" onclick="openSimulatorFromMenu()">Simulator<kbd class="ham-kbd">Ctrl+D</kbd></button>
                                 <button class="ham-item" id="hamItem-dashboard-dr" onclick="switchView('dashboard');switchDashTab('dr');closeHamburger()">Data Registers</button>
                                 <button class="ham-item" id="hamItem-dashboard-gatelog" onclick="switchView('dashboard');switchDashTab('gatelog');closeHamburger()">Gate Log</button>
                                 <button class="ham-item" id="hamItem-dashboard-state" onclick="switchView('dashboard');switchDashTab('state');closeHamburger()">Machine State</button>
-                                <button class="ham-item" id="hamItem-pipeline" onclick="switchView('pipeline');closeHamburger()">Pipeline</button>
-                                <button class="ham-item" id="hamItem-trace" onclick="switchView('trace');closeHamburger()">Trace</button>
-                                <button class="ham-item" id="hamItem-gc" onclick="switchView('gc');closeHamburger()">GC</button>
+                                <button class="ham-item" id="hamItem-pipeline" onclick="switchView('pipeline');closeHamburger()">Pipeline<kbd class="ham-kbd">Ctrl+P</kbd></button>
+                                <button class="ham-item" id="hamItem-trace" onclick="switchView('trace');closeHamburger()">Trace<kbd class="ham-kbd">Ctrl+T</kbd></button>
+                                <button class="ham-item" id="hamItem-gc" onclick="switchView('gc');closeHamburger()">GC<kbd class="ham-kbd">Ctrl+G</kbd></button>
                             </div>
                             <div class="ham-group">
                                 <div class="ham-group-title">Review</div>
-                                <button class="ham-item" id="hamItem-abstractions" onclick="switchView('abstractions');closeHamburger()">Abstractions</button>
-                                <button class="ham-item" id="hamItem-tutorial" onclick="switchView('tutorial');closeHamburger()">Tutorial</button>
-                                <button class="ham-item" id="hamItem-reference" onclick="switchView('reference');closeHamburger()">Reference</button>
-                                <button class="ham-item" id="hamItem-docs" onclick="switchView('docs');closeHamburger()">Docs</button>
+                                <button class="ham-item" id="hamItem-abstractions" onclick="switchView('abstractions');closeHamburger()">Abstractions<kbd class="ham-kbd">Ctrl+A</kbd></button>
+                                <button class="ham-item" id="hamItem-tutorial" onclick="switchView('tutorial');closeHamburger()">Tutorial<kbd class="ham-kbd">Ctrl+U</kbd></button>
+                                <button class="ham-item" id="hamItem-reference" onclick="switchView('reference');closeHamburger()">Reference<kbd class="ham-kbd">Ctrl+F</kbd></button>
+                                <button class="ham-item" id="hamItem-docs" onclick="switchView('docs');closeHamburger()">Docs<kbd class="ham-kbd">Ctrl+Y</kbd></button>
                                 <button class="ham-item" id="hamItem-sitemap" onclick="switchView('sitemap');closeHamburger()">Site Map</button>
                             </div>
                             <div class="ham-group">
@@ -122,13 +123,13 @@
                             </div>
                             <div class="ham-group">
                                 <div class="ham-group-title">Configure</div>
-                                <button class="ham-item" id="hamItem-devices" onclick="switchView('devices');closeHamburger()">Devices</button>
+                                <button class="ham-item" id="hamItem-devices" onclick="switchView('devices');closeHamburger()">Devices<kbd class="ham-kbd">Ctrl+V</kbd></button>
                                 <button class="ham-item" id="hamItem-github" onclick="switchView('github');closeHamburger()">GitHub</button>
                             </div>
                             <div class="ham-group">
                                 <div class="ham-group-title">Install</div>
-                                <button class="ham-item" id="hamItem-builder" onclick="switchView('builder');closeHamburger()">Builder</button>
-                                <button class="ham-item" id="hamItem-lumps" onclick="switchView('lumps');closeHamburger()">Lumps</button>
+                                <button class="ham-item" id="hamItem-builder" onclick="switchView('builder');closeHamburger()">Builder<kbd class="ham-kbd">Ctrl+B</kbd></button>
+                                <button class="ham-item" id="hamItem-lumps" onclick="switchView('lumps');closeHamburger()">Lumps<kbd class="ham-kbd">Ctrl+L</kbd></button>
                 <button class="ham-item" id="hamItem-lumps-import" onclick="switchView('lumps');closeHamburger();setTimeout(showLumpImportModal,150)">Import LUMP</button>
                                 <button class="ham-item" id="hamItem-bitstreams" onclick="switchView('builder');switchBuilderViewTab('cyberspace');closeHamburger()">Bitstreams</button>
                             </div>
