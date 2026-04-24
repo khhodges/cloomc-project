@@ -54,6 +54,6 @@ def test_branch_label_roundtrip_harness():
     assert "[PASS]" in stdout, f"No [PASS] markers in harness output:\n{stdout}"
 
     pass_count = stdout.count("[PASS]")
-    assert pass_count >= 5, (
-        f"Expected at least 5 [PASS] markers, got {pass_count}:\n{stdout}"
+    assert pass_count >= 7, (
+        f"Expected at least 7 [PASS] markers, got {pass_count}:\n{stdout}"
     )

@@ -273,6 +273,59 @@ function reassemble(lines, testLabel) {
     pass(label);
 })();
 
+// ─── Bounds-check error tests ─────────────────────────────────────────────────
+
+// Helper: assemble source and expect exactly one error whose message matches
+// the bounds-check pattern.  Returns true on success, false on failure.
+function assembleExpectBoundsError(source, testLabel) {
+    const asm = new ChurchAssembler();
+    const result = asm.assemble(source);
+
+    if (result.errors.length === 0) {
+        fail(testLabel, 'Expected a bounds-check error but assemble() reported no errors');
+        return false;
+    }
+    if (result.errors.length !== 1) {
+        fail(testLabel, `Expected exactly 1 error, got ${result.errors.length}: ${JSON.stringify(result.errors)}`);
+        return false;
+    }
+    const msg = result.errors[0].message;
+    if (!/outside the code lump/.test(msg)) {
+        fail(testLabel, `Error message does not mention "outside the code lump": "${msg}"`);
+        return false;
+    }
+    return true;
+}
+
+// Test 6: BRANCH with a negative offset that escapes below address 0.
+//
+//   Single-word lump:
+//     Word 0: BRANCH -1  →  target = 0 + (-1) = -1 < 0  ← out of range
+//
+// Pass 3 must reject this with exactly one bounds-check error.
+(function testNegativeOffsetEscapesBelow() {
+    const label = 'BRANCH bounds-check: negative offset escapes below 0 (single-word lump)';
+    const source = 'BRANCH -1';
+    if (assembleExpectBoundsError(source, label)) {
+        pass(label);
+    }
+})();
+
+// Test 7: BRANCH with a positive offset that escapes at or past totalWords.
+//
+//   Two-word lump:
+//     Word 0: NOP
+//     Word 1: BRANCH +2  →  target = 1 + 2 = 3 >= 2 (totalWords)  ← out of range
+//
+// Pass 3 must reject this with exactly one bounds-check error.
+(function testPositiveOffsetEscapesAbove() {
+    const label = 'BRANCH bounds-check: positive offset escapes past end of lump';
+    const source = 'NOP\nBRANCH +2';
+    if (assembleExpectBoundsError(source, label)) {
+        pass(label);
+    }
+})();
+
 // ─── Report ───────────────────────────────────────────────────────────────────
 
 if (ERRORS.length > 0) {
