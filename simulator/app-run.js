@@ -313,6 +313,16 @@ function _bootNIARows(bootStep) {
 
 function stepSim() {
     if (!sim.bootComplete) {
+        // If the boot animation is running (Boot button was clicked), cancel it
+        // so the user can step through boot manually.
+        if (bootAnimating) {
+            if (_bootAnimTimer !== null) { clearTimeout(_bootAnimTimer); _bootAnimTimer = null; }
+            bootAnimating = false;
+        }
+        const con = document.getElementById('editorConsole');
+        if (con && sim.bootStep === 0 && con.textContent.trim() === '') {
+            con.textContent = '--- Stepping through boot sequence ---\n(Click Step to advance one phase at a time)';
+        }
         sim.auditLog = [];
         try {
             sim._bootStep();
@@ -321,7 +331,6 @@ function stepSim() {
             updateDashboard();
             return;
         }
-        const con = document.getElementById('editorConsole');
         if (con) {
             con.textContent += `\n[boot ${sim.bootStep}/4] ${sim.output.split('\n').filter(l => l).pop()}`;
             con.scrollTop = con.scrollHeight;
@@ -706,6 +715,7 @@ function walkNext() {
 }
 
 let bootAnimating = false;
+let _bootAnimTimer = null;
 let _defaultProgramLoaded = false;
 function _autoLoadDefaultProgram() {
     if (_defaultProgramLoaded) {
@@ -744,6 +754,7 @@ function slowBoot() {
         try {
             if (sim.bootComplete || sim.halted) {
                 bootAnimating = false;
+                _bootAnimTimer = null;
                 const con = document.getElementById('editorConsole');
                 if (con) {
                     if (sim.halted) {
@@ -770,9 +781,10 @@ function slowBoot() {
                 pipelineViz.render();
             }
             updateDashboard();
-            setTimeout(nextPhase, delay);
+            _bootAnimTimer = setTimeout(nextPhase, delay);
         } catch(e) {
             bootAnimating = false;
+            _bootAnimTimer = null;
             console.error('slowBoot nextPhase error:', e);
             if (pipelineViz) pipelineViz.render();
             updateDashboard();
@@ -1540,6 +1552,7 @@ function faultModalReboot() {
     sim.reset();
     _initLazyLoadManifest();
     pipelineViz.reset();
+    if (_bootAnimTimer !== null) { clearTimeout(_bootAnimTimer); _bootAnimTimer = null; }
     bootAnimating = false;
     const con = document.getElementById('editorConsole');
     if (con) con.textContent = '';
@@ -1804,6 +1817,7 @@ function resetSim() {
     sim.reset();
     _initLazyLoadManifest();
     pipelineViz.reset();
+    if (_bootAnimTimer !== null) { clearTimeout(_bootAnimTimer); _bootAnimTimer = null; }
     bootAnimating = false;
     const con = document.getElementById('editorConsole');
     if (con) con.textContent = '';
@@ -1819,6 +1833,7 @@ function resetAndStep() {
     sim.reset();
     _initLazyLoadManifest();
     pipelineViz.reset();
+    if (_bootAnimTimer !== null) { clearTimeout(_bootAnimTimer); _bootAnimTimer = null; }
     bootAnimating = false;
     const con = document.getElementById('editorConsole');
     if (con) con.textContent = '';
