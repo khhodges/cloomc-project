@@ -121,11 +121,13 @@ function updateCRDetail() {
             const _bootPreamble = [
                 { addr: 'B:00', desc: 'FAULT_RST',   decomp: 'CR0\u2013CR15 \u2190 NULL \u00b7 DR0\u2013DR15 \u2190 0' },
                 { addr: 'B:01', desc: 'LOAD_NS',     decomp: 'CR15 \u2190 NS[0] Namespace (M=1, base=0x0000, perms=none)' },
-                { addr: 'B:02', desc: 'INIT_THRD',   decomp: 'CR12 \u2190 NS[1] thread stack GT (M=1, Inform, perms=none) \u00b7 CR5 \u2190 heap (RW, Inform, Slot\u00a01)' },
-                { addr: 'B:02\u00BD', desc: 'CALL_HOME',  decomp: 'Tunnel.Register \u2192 23-byte packet [0xCE11, board, FW, HMAC(4), UID(8), reason, fault, NIA(4)] \u00b7 await ACK' },
-                { addr: 'B:03', desc: 'INIT_ABSTR',  decomp: `CR6 \u2190 NS[${bootEntrySlot}] \u26a1 ${_beLabel} (M=1, E-type, transient)` },
-                { addr: 'B:04', desc: 'LOAD_NUC',    decomp: 'CR14(M=1, R+X) + CR6(M=1, L) \u2190 header \u00b7 push sentinel \u00b7 PC\u21900' },
-                { addr: 'B:05', desc: 'COMPLETE',    decomp: 'bootComplete \u2190 true \u00b7 new CRs get M=0 \u00b7 dispatch begins' },
+                { addr: 'B:02', desc: 'INIT_THRD',   decomp: 'CR12 \u2190 NS[1] thread stack GT (M=1, Inform, zero perms)' },
+                { addr: 'B:03', desc: 'INIT_HEAP',   decomp: 'CR5(RW) \u2190 thread heap \u00b7 CHANGE-consistent synthesis' },
+                { addr: 'B:04', desc: 'CALL_HOME',   decomp: 'Tunnel.Register \u2192 23-byte packet [0xCE11, board, FW, HMAC(4), UID(8), reason, fault, NIA(4)] \u00b7 await ACK' },
+                { addr: 'B:05', desc: 'INIT_ABSTR',  decomp: `CR6(E) \u2190 NS[${bootEntrySlot}] \u26a1 ${_beLabel} (M=1, pre-CALL token)` },
+                { addr: 'B:06', desc: 'NUC_CLIST',   decomp: `CR6(M=1, E) \u2190 ${_beLabel} c-list \u00b7 push sentinel` },
+                { addr: 'B:07', desc: 'NUC_CODE',    decomp: 'CR14(M=1, R+X) \u2190 lump code \u00b7 PC\u21900' },
+                { addr: 'B:08', desc: 'COMPLETE',    decomp: 'bootComplete \u2190 true \u00b7 M-elevation OFF \u00b7 dispatch begins' },
             ];
             const _arrowTd = _brArrows.hasBranches ? '<td class="br-arrow-col"></td>' : '';
             for (const bp of _bootPreamble) {
@@ -244,7 +246,17 @@ function updateCRDetail() {
         html += '<div class="cr-detail-section">';
         html += '<div class="cr-detail-heading">C-List View \u2014 Capability Slots</div>';
         const clistBase = cr.word1_location >>> 0;
-        const clistCount = cr.limit17 + 1;
+        // Derive cc from the lump header (authoritative source), falling back to
+        // the NS entry's clistCount field, then to the legacy limit17+1 formula.
+        const _clNSE   = sim.readNSEntry(nsIdx);
+        const _clBase  = _clNSE ? (_clNSE.word0_location >>> 0) : 0;
+        const _clHdr   = (_clBase > 0 && _clBase < sim.memory.length)
+                         ? sim.parseLumpHeader(sim.memory[_clBase] >>> 0)
+                         : { valid: false };
+        const _clNSLim = sim.parseNSWord1(cr.word2_limit_raw);
+        const clistCount = (_clHdr.valid && _clHdr.cc > 0)
+                           ? _clHdr.cc
+                           : (_clNSLim.clistCount > 0 ? _clNSLim.clistCount : cr.limit17 + 1);
         html += '<table class="cr-table"><thead><tr>';
         html += '<th>Slot</th><th>GT Word</th><th>NS Idx</th><th>Type</th><th>Perms</th><th>Pet Name</th>';
         html += '</tr></thead><tbody>';
