@@ -102,6 +102,17 @@ The "Build LUMP" button compiles any CLOOMC++ abstraction and produces a deploya
 
 Token assignment: from provided token hint, or `ns_slot << 8`, or SHA-256 hash of abstraction name. The manifest (`server/lumps/manifest.json`) is auto-updated on each save. Saved lumps are also loaded into `LAZY_LUMPS` in-memory for immediate serving via `GET /api/lump/<token>`.
 
+## Testing
+
+**Unit / headless tests** — run directly with Node.js:
+- `node simulator/assembler_test.js` — assembler regression suite
+- `node simulator/lump_warning_test.js` — "no LUMP" warning logic (jsdom-backed, fake timers)
+
+**Browser-level E2E tests** — Playwright, configured in `playwright.config.js`:
+- `tests/e2e/lump_warning.spec.js` — confirms the "No compiled LUMP found" toast appears and auto-dismisses when the user double-clicks an abstraction that has no compiled LUMP
+- Run with: `npm run test:e2e` (requires Chrome system libraries; use `npx playwright install --with-deps chromium` in a Debian/Ubuntu environment)
+- Route interception ensures `/api/lumps/list` returns `[]` for deterministic results
+
 ## Namespace LUMP Builder
 
 The "New Namespace LUMP" workflow (accessible via "+ Namespace" button in the LUMP Repository toolbar) lets users create Namespace LUMPs (`typ=10`, `cw=0`). The builder form supports:
