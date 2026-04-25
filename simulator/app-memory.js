@@ -745,6 +745,7 @@ function updateCRDetail() {
         const _rtInvokes = _abs ? (_abs.invokeCount  || 0) : null;
         const _rtMTBF   = (_abs && _rtFaults > 0 && sim.abstractionRegistry.getMTBF)
                           ? sim.abstractionRegistry.getMTBF(nsIdx) : null;
+        const _errCount  = (sim.auditLog || []).filter(e => e.nsIndex === nsIdx).length;
 
         html += '<div class="crd-lump-section">';
         html += '<div class="crd-lump-section-label">MTBF Reliability</div>';
@@ -773,6 +774,7 @@ function updateCRDetail() {
             }
             html += `<tr><td style="color:var(--church-blue);width:130px;">Invocations</td><td>${_rtInvokes !== null ? _rtInvokes : '\u2014'}</td></tr>`;
             html += `<tr><td style="color:var(--church-blue);width:130px;">Fault count</td><td>${_rtFaults !== null ? _rtFaults : '\u2014'}</td></tr>`;
+            html += `<tr><td style="color:var(--church-blue);width:130px;">Error count</td><td>${_errCount}</td></tr>`;
             const _liveFaultRateStr = (_rtInvokes === null || _rtFaults === null) ? '\u2014'
                                     : _rtInvokes === 0 ? '0.00%'
                                     : ((_rtFaults / _rtInvokes) * 100).toFixed(2) + '%';
@@ -781,7 +783,7 @@ function updateCRDetail() {
                                : _rtMTBF != null    ? (_rtMTBF / 1000).toFixed(1) + 's'
                                : '\u221e (no faults)';
             html += `<tr><td style="color:var(--church-blue)">MTBF</td><td>${_liveMTBFStr}</td></tr>`;
-            html += `<tr><td colspan="2" style="color:var(--text-secondary);font-size:0.78rem;font-style:italic;padding-top:4px;">Counts are cumulative across sessions</td></tr>`;
+            html += `<tr><td colspan="2" style="color:var(--text-secondary);font-size:0.78rem;font-style:italic;padding-top:4px;">Invocations and Fault count are cumulative across sessions \u00b7 Error count is session-only (cleared after clean boot)</td></tr>`;
             html += '</tbody></table>';
         }
         html += '</div>';

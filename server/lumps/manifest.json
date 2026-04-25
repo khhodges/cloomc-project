@@ -1378,5 +1378,19 @@
       }
     ],
     "grants": []
+  },
+  {
+    "token": "00000300",
+    "abstraction": "LED flash",
+    "ns_slot": 3,
+    "lump_size": 64,
+    "cw": 17,
+    "cc": 1,
+    "author": "",
+    "version": "",
+    "methods": [],
+    "grants": [
+      "E"
+    ]
   }
 ]
