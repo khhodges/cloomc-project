@@ -1790,3 +1790,29 @@ function _goToAbstractionByName(name) {
     showAbstractionDetail(abs.index);
 }
 
+async function _goToLumpByAbstractionName(name) {
+    if (!name) return;
+    // Warm cache: check immediately without a network round-trip.
+    if (_lumpsCache.length > 0) {
+        const existing = _lumpsCache.find(l => l.abstraction === name);
+        if (!existing) return;
+        _pendingLumpAbstractionName = name;
+        switchView('lumps');
+        return;
+    }
+    // Cold cache: fetch to find out whether a matching LUMP exists before
+    // navigating — spec says "nothing happens" if no LUMP exists.
+    try {
+        const r = await fetch('/api/lumps/list');
+        if (!r.ok) return;
+        const lumps = await r.json();
+        _lumpsCache = lumps;
+        const existing = lumps.find(l => l.abstraction === name);
+        if (!existing) return;
+        _pendingLumpAbstractionName = name;
+        switchView('lumps');
+    } catch (e) {
+        // Network error: do nothing rather than navigating blindly.
+    }
+}
+

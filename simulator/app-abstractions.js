@@ -441,7 +441,7 @@ function renderAbstractions() {
                 const dotColor = IMPL_STATUS_COLORS[best] || '#9ca3af';
                 const dotTitle = IMPL_STATUS_LABELS[best] || best;
                 const isBootEntry = abs.index === bootEntrySlot;
-                html += `<div class="abs-item${isActive ? ' active' : ''}" onclick="showAbstractionDetail(${abs.index})">`;
+                html += `<div class="abs-item${isActive ? ' active' : ''}" onclick="showAbstractionDetail(${abs.index})" ondblclick="event.stopPropagation();_goToLumpByAbstractionName(abstractionRegistry.getAbstraction(${abs.index}).name)" title="Double-click to jump to this abstraction&#39;s LUMP in the Repository">`;
                 const absProfile = _getAbstractionProfile(abs);
                 const profileBadgeClass = absProfile === 'Full' ? 'profile-badge-full' : 'profile-badge-iot';
                 html += `<span class="abs-item-idx abs-boot-entry-btn${isBootEntry ? ' boot-entry-active' : ''}" onclick="event.stopPropagation();setBootEntrySlot(${abs.index})" title="${isBootEntry ? 'Current boot entry' : 'Set as boot entry'}">${isBootEntry ? '\u26a1' : abs.index}</span>`;
@@ -499,6 +499,7 @@ function _syncBootEntryFromSim() {
 
 let _lumpsCache = [];
 let _selectedLumpToken = null;
+let _pendingLumpAbstractionName = null;
 let _nsdgTooltipData = {};
 let _lumpEditDirty = false;
 
@@ -519,6 +520,11 @@ async function renderLumps() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const lumps = await r.json();
         _lumpsCache = lumps;
+        if (_pendingLumpAbstractionName) {
+            const _matched = lumps.find(l => l.abstraction === _pendingLumpAbstractionName);
+            if (_matched) _selectedLumpToken = _matched.token;
+            _pendingLumpAbstractionName = null;
+        }
         if (!lumps || lumps.length === 0) {
             listEl.innerHTML = '<div class="lumps-placeholder">No lumps saved yet. Use Build LUMP in the editor to compile and save an abstraction.</div>';
             return;
