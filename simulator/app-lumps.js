@@ -1795,7 +1795,10 @@ async function _goToLumpByAbstractionName(name) {
     // Warm cache: check immediately without a network round-trip.
     if (_lumpsCache.length > 0) {
         const existing = _lumpsCache.find(l => l.abstraction === name);
-        if (!existing) return;
+        if (!existing) {
+            _showFpgaToast('No LUMP found', 'No compiled LUMP found for \u201c' + name + '\u201d', 'warn', 2000);
+            return;
+        }
         _pendingLumpAbstractionName = name;
         switchView('lumps');
         return;
@@ -1808,7 +1811,10 @@ async function _goToLumpByAbstractionName(name) {
         const lumps = await r.json();
         _lumpsCache = lumps;
         const existing = lumps.find(l => l.abstraction === name);
-        if (!existing) return;
+        if (!existing) {
+            _showFpgaToast('No LUMP found', 'No compiled LUMP found for \u201c' + name + '\u201d', 'warn', 2000);
+            return;
+        }
         _pendingLumpAbstractionName = name;
         switchView('lumps');
     } catch (e) {
