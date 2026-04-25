@@ -241,6 +241,9 @@ class PipelineVisualizer {
 
         html += '<div class="pipeline-title">TSB Audit — mLoad / mSave Gates</div>';
         html += '<div class="pipeline-subtitle">Every capability gate shown as an explicit instruction-level audit step</div>';
+        html += '<label class="sim-autoboot-label" id="autoBootLabel" title="When checked, opening Simulator from the menu runs the boot sequence automatically" style="margin:0.35rem 0 0.1rem 0;align-self:flex-start;">'
+             +  '<input type="checkbox" id="autoBootChk" onchange="saveAutoBootPref()"> Auto-boot on open'
+             +  '</label>';
         html += this._renderNIA();
 
         if (steps.length === 0) {
@@ -338,6 +341,7 @@ class PipelineVisualizer {
 
         html += '</div>';
         this.container.innerHTML = html;
+        if (typeof restoreAutoBootPref === 'function') restoreAutoBootPref();
     }
 
     _cycleComparison() {
