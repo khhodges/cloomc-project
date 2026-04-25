@@ -2849,38 +2849,94 @@ a.next-step-link:hover {
     color: #fff;
 }
 .crd-action-btn {
-    padding: 0.22rem 0.6rem;
-    font-size: 0.72rem;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
     font-weight: 600;
     font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
     background: rgba(58,134,255,0.1);
     color: #7ab4ff;
-    border: 1px solid rgba(58,134,255,0.3);
-    border-radius: 4px;
+    border: 2px solid rgba(58,134,255,0.35);
+    border-radius: 5px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .crd-action-btn:hover:not(:disabled) {
     background: rgba(58,134,255,0.22);
-    border-color: rgba(58,134,255,0.6);
+    border-color: rgba(58,134,255,0.65);
     color: #acd0ff;
 }
 .crd-action-btn-compress {
     background: rgba(100,210,120,0.08);
     color: #88dd99;
-    border-color: rgba(100,210,120,0.28);
+    border-color: rgba(100,210,120,0.35);
 }
 .crd-action-btn-compress:hover:not(:disabled) {
     background: rgba(100,210,120,0.2);
-    border-color: rgba(100,210,120,0.5);
+    border-color: rgba(100,210,120,0.6);
     color: #aaffbb;
 }
 .crd-action-btn-dim,
 .crd-action-btn:disabled {
     opacity: 0.4;
     cursor: default;
+}
+
+/* ── C-List POLA strip ──────────────────────────────────────────────────── */
+.clist-pola-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255,180,50,0.07);
+    border: 1px solid rgba(255,180,50,0.25);
+    border-radius: 5px;
+    font-size: 0.78rem;
+}
+.clist-pola-label {
+    font-weight: 700;
+    color: #f5a623;
+    letter-spacing: 0.04em;
+    font-size: 0.7rem;
+    background: rgba(245,166,35,0.15);
+    border: 1px solid rgba(245,166,35,0.35);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+}
+.clist-pola-msg {
+    color: #c8a060;
+    flex: 1;
+    min-width: 8rem;
+}
+.clist-pola-btn {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: rgba(245,166,35,0.1);
+    color: #f5a623;
+    border: 1px solid rgba(245,166,35,0.4);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+}
+.clist-pola-btn:hover {
+    background: rgba(245,166,35,0.22);
+    border-color: rgba(245,166,35,0.7);
+    color: #ffc940;
+}
+.clist-pola-compress-hint {
+    color: #88dd99;
+    font-size: 0.73rem;
+    font-style: italic;
 }
 .crd-menu-active-label {
     font-size: 0.82rem;

@@ -339,6 +339,15 @@ function updateCRDetail() {
         const _refCodeBase  = _clBase + 1;
         const _refCodeCount = (_clHdr.valid && _clHdr.cw > 0) ? _clHdr.cw : 0;
         const _refSlots     = _refCodeCount > 0 ? _computeReferencedCListSlots(_refCodeBase, _refCodeCount) : null;
+        // POLA strip — count unreferenced non-null GTs + trailing-trim eligible slots
+        { let _pu = 0, _pt = 0;
+          for (let _i = 0; _i < _clistCount; _i++) { const _gw = sim.memory[_clistBase + _i] >>> 0; if (_gw !== 0 && _refSlots && !_refSlots.has(_i)) _pu++; }
+          for (let _i = _clistCount - 1; _i >= 0; _i--) { const _gw = sim.memory[_clistBase + _i] >>> 0; if (_gw === 0 || (_refSlots && !_refSlots.has(_i))) _pt++; else break; }
+          if (_pu > 0) html += `<div class="clist-pola-strip"><span class="clist-pola-label">POLA</span>` +
+              `<span class="clist-pola-msg">${_pu} unreferenced GT slot${_pu !== 1 ? 's' : ''} detected</span>` +
+              `<button class="clist-pola-btn" onclick="zeroAllUnrefSlots(${nsIdx})">&#xD7;\u202FZero all unref</button>` +
+              (_pt > 0 ? `<span class="clist-pola-compress-hint">\u2192 enables \u2913\u202FCompress (${_pt} tail slot${_pt !== 1 ? 's' : ''} eligible)</span>` : '') +
+              `</div>`; }
         html += '<table class="cr-table"><thead><tr>';
         html += '<th>Slot</th><th>GT Word</th><th>NS Idx</th><th>Type</th><th>Perms</th><th>Pet Name</th><th></th>';
         html += '</tr></thead><tbody>';
@@ -391,6 +400,15 @@ function updateCRDetail() {
         const _ref2CodeBase  = _baseLoc + 1;
         const _ref2CodeCount = (_lumpHdr.valid && _lumpHdr.cw > 0) ? _lumpHdr.cw : 0;
         const _ref2Slots     = _ref2CodeCount > 0 ? _computeReferencedCListSlots(_ref2CodeBase, _ref2CodeCount) : null;
+        // POLA strip — count unreferenced non-null GTs + trailing-trim eligible slots
+        { let _pu2 = 0, _pt2 = 0;
+          for (let _i = 0; _i < _lumpHdr.cc; _i++) { const _gw = sim.memory[_lumpClistBase + _i] >>> 0; if (_gw !== 0 && _ref2Slots && !_ref2Slots.has(_i)) _pu2++; }
+          for (let _i = _lumpHdr.cc - 1; _i >= 0; _i--) { const _gw = sim.memory[_lumpClistBase + _i] >>> 0; if (_gw === 0 || (_ref2Slots && !_ref2Slots.has(_i))) _pt2++; else break; }
+          if (_pu2 > 0) html += `<div class="clist-pola-strip"><span class="clist-pola-label">POLA</span>` +
+              `<span class="clist-pola-msg">${_pu2} unreferenced GT slot${_pu2 !== 1 ? 's' : ''} detected</span>` +
+              `<button class="clist-pola-btn" onclick="zeroAllUnrefSlots(${nsIdx})">&#xD7;\u202FZero all unref</button>` +
+              (_pt2 > 0 ? `<span class="clist-pola-compress-hint">\u2192 enables \u2913\u202FCompress (${_pt2} tail slot${_pt2 !== 1 ? 's' : ''} eligible)</span>` : '') +
+              `</div>`; }
         html += '<table class="cr-table"><thead><tr>';
         html += '<th>Slot</th><th>GT Word</th><th>NS Idx</th><th>Type</th><th>Perms</th><th>Pet Name</th><th></th>';
         html += '</tr></thead><tbody>';
@@ -2807,6 +2825,45 @@ function zeroLumpSlot(addr) {
     sim.memory[addr] = 0;
     updateCRDetail();
 }
+
+// Zero all unreferenced (non-null) GT slots in the c-list of NS[nsIdx].
+// Implements Principle of Least Authority: every GT that no instruction
+// references via CR6 is cleared, minimising ambient authority. After zeroing,
+// trailing null slots become eligible for removal by lumpCompress().
+window.zeroAllUnrefSlots = function(nsIdx) {
+    if (!sim) return;
+    const nse = sim.readNSEntry(nsIdx);
+    if (!nse) return;
+    const baseLoc = nse.word0_location >>> 0;
+    if (baseLoc === 0 || baseLoc >= sim.memory.length) return;
+    const hdr = sim.parseLumpHeader(sim.memory[baseLoc] >>> 0);
+    if (!hdr.valid || hdr.cc === 0) return;
+
+    const clistBase = baseLoc + hdr.lumpSize - hdr.cc;
+    const refSlots  = _computeReferencedCListSlots(baseLoc + 1, hdr.cw);
+
+    let zeroed = 0;
+    for (let i = 0; i < hdr.cc; i++) {
+        const addr = clistBase + i;
+        if ((sim.memory[addr] >>> 0) !== 0 && !refSlots.has(i)) {
+            sim.memory[addr] = 0;
+            zeroed++;
+        }
+    }
+
+    updateCRDetail();
+
+    const absName = (sim.nsLabels && sim.nsLabels[nsIdx]) || 'Unnamed';
+    if (typeof showPatchModal === 'function') {
+        showPatchModal(
+            zeroed > 0,
+            `POLA \u2014 NS${nsIdx} \u201C${absName}\u201D`,
+            zeroed > 0
+                ? `Zeroed ${zeroed} unreferenced GT slot${zeroed !== 1 ? 's' : ''}.\nUse \u2913\u202FCompress to shrink the lump.`
+                : 'No unreferenced GT slots found \u2014 already minimal authority.'
+        );
+    }
+};
 
 // ── Boot Sequence Code ─────────────────────────────────────────────────────
 // Actual hardware boot steps that install each Layer-0 abstraction.
