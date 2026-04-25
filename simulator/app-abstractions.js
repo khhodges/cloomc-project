@@ -568,10 +568,9 @@ async function renderLumps() {
         });
 
         if (_selectedLumpToken) {
-            const sel = _lumpsCache.find(l => l.token === _selectedLumpToken);
-            if (sel && (sel.lump_type === 'namespace' || sel.typ === 10)) {
-                showLumpDetail(_selectedLumpToken);
-            }
+            // Always re-render the detail panel so compress/POLA/save changes
+            // (lump_size, cc, etc.) are reflected without a manual click.
+            showLumpDetail(_selectedLumpToken);
         }
     } catch (err) {
         listEl.innerHTML = `<div class="lumps-placeholder">Error loading lumps: ${_escHtml(err.message)}</div>`;

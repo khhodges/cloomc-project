@@ -2386,6 +2386,7 @@ def save_lump():
                     _bif.write(blob_bi)
                 boot_refreshed = True
                 print(f'[lumps] boot-image.bin regenerated ({len(blob_bi)} bytes)', flush=True)
+                _load_boot_abstr_lump()   # refresh _BOOT_ABSTR_META / LAZY_LUMPS['00000003']
             else:
                 boot_refresh_note = f'boot config unavailable: {err_bi}'
         except Exception as _bie:
@@ -2433,10 +2434,12 @@ def list_lumps():
                 pass
         result.append(entry)
 
-    # Prepend the Boot Abstraction (NS slot 3, "LED flash") as a synthetic entry.
-    # It is baked into boot-image.bin and is not a standalone .lump file, so it
-    # would otherwise be absent from the repository view.
+    # Prepend the Boot Abstraction (NS slot 3, "LED flash") as a synthetic entry
+    # extracted live from boot-image.bin.  Any manifest entry with token "00000300"
+    # (written by /api/lumps/save when POLA/compress edits Boot.Abstr) would
+    # duplicate it, so filter those out first.
     if _BOOT_ABSTR_META:
+        result = [e for e in result if e.get('token') not in ('00000300', '00000003')]
         result = [dict(_BOOT_ABSTR_META)] + result
 
     return jsonify(result)
