@@ -103,6 +103,16 @@ function updateCRDetail() {
             html += `<button class="crd-action-btn" onclick="editCRCodeInEditor()" title="Edit \u2014 Load this code lump into the assembly editor">\u270E\u202FEdit</button>`;
             html += `<button class="crd-action-btn" onclick="patchSimulator()" title="Patch \u2014 Assemble editor code and write it directly into simulator memory at this lump\u2019s base address.">\u21A9\u202FPatch</button>`;
         }
+        if (_lumpHdr.valid) {
+            const _cmpLsz = _lumpHdr.lumpSize;
+            let _cmpMin = 64;
+            while (_cmpMin < (1 + _lumpHdr.cw + _lumpHdr.cc)) _cmpMin <<= 1;
+            const _canCmp2 = _cmpMin < _cmpLsz;
+            html += `<button class="crd-action-btn crd-action-btn-compress${_canCmp2 ? '' : ' crd-action-btn-dim'}" ` +
+                    `onclick="${_canCmp2 ? `lumpCompress(${nsIdx})` : ''}" ` +
+                    `${_canCmp2 ? '' : 'disabled '}` +
+                    `title="${_canCmp2 ? `Compress \u2014 remove ${_cmpLsz - _cmpMin}w of freespace (${_cmpLsz}w \u2192 ${_cmpMin}w)` : 'Already at minimum size'}">\u2913\u202FCompress</button>`;
+        }
         html += '</div>';
     }
     if (showThread) {

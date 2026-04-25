@@ -2862,10 +2862,25 @@ a.next-step-link:hover {
     flex-shrink: 0;
     transition: background 0.15s, border-color 0.15s;
 }
-.crd-action-btn:hover {
+.crd-action-btn:hover:not(:disabled) {
     background: rgba(58,134,255,0.22);
     border-color: rgba(58,134,255,0.6);
     color: #acd0ff;
+}
+.crd-action-btn-compress {
+    background: rgba(100,210,120,0.08);
+    color: #88dd99;
+    border-color: rgba(100,210,120,0.28);
+}
+.crd-action-btn-compress:hover:not(:disabled) {
+    background: rgba(100,210,120,0.2);
+    border-color: rgba(100,210,120,0.5);
+    color: #aaffbb;
+}
+.crd-action-btn-dim,
+.crd-action-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
 .crd-menu-active-label {
     font-size: 0.82rem;
