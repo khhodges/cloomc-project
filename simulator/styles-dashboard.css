@@ -2848,6 +2848,25 @@ a.next-step-link:hover {
     background: #3a86ff;
     color: #fff;
 }
+.crd-action-btn {
+    padding: 0.22rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: rgba(58,134,255,0.1);
+    color: #7ab4ff;
+    border: 1px solid rgba(58,134,255,0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.crd-action-btn:hover {
+    background: rgba(58,134,255,0.22);
+    border-color: rgba(58,134,255,0.6);
+    color: #acd0ff;
+}
 .crd-menu-active-label {
     font-size: 0.82rem;
     font-weight: 700;
@@ -2855,10 +2874,15 @@ a.next-step-link:hover {
     letter-spacing: 0.03em;
     padding: 0 0.15rem;
 }
+.crd-hamburger-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
 .crd-menu-dropdown {
     position: absolute;
     top: calc(100% + 4px);
-    left: 0;
+    right: 0;
+    left: auto;
     z-index: 200;
     background: #0c1825;
     border: 1px solid #2a5a8a;

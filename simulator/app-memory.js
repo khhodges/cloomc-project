@@ -14,13 +14,15 @@ function updateCRDetail() {
     const name = petCR || localNames[crIdx] || '';
 
     if (cr.isNull) {
-        titleEl.textContent = `CR${crIdx}${name ? ' \u2014 ' + name : ''} (NULL)`;
+        titleEl.innerHTML = '';
+        titleEl.style.display = 'none';
         contentEl.innerHTML = '<div style="color:var(--text-secondary);padding:1rem;">Register is empty (all words zero).</div>';
         contentEl.classList.remove('crd-content-thread');
         return;
     }
 
-    titleEl.innerHTML = `CR${crIdx}${name ? ' \u2014 <span style="color:var(--church-blue)">' + name + '</span>' : ''} <button class="btn btn-sm" onclick="switchDashTab(\'cr\')" style="margin-left:1rem;font-size:0.7rem;">\u2190 Back</button>`;
+    titleEl.innerHTML = '';
+    titleEl.style.display = 'none';
 
     const parsedPerms = sim.parseGT(sim.cr[crIdx].word0).permissions;
     const hasX = parsedPerms.X;
@@ -97,6 +99,10 @@ function updateCRDetail() {
         html += `<button class="crd-tab${crDetailTab==='clist'?' active':''}" onclick="switchCRDetailTab('clist')">C-List</button>`;
         html += `<button class="crd-tab${crDetailTab==='api'?' active':''}" onclick="switchCRDetailTab('api')">API</button>`;
         html += `<button class="crd-tab${crDetailTab==='lump'?' active':''}" onclick="switchCRDetailTab('lump')">Lump</button>`;
+        if (showEditButton) {
+            html += `<button class="crd-action-btn" onclick="editCRCodeInEditor()" title="Edit \u2014 Load this code lump into the assembly editor">\u270E\u202FEdit</button>`;
+            html += `<button class="crd-action-btn" onclick="patchSimulator()" title="Patch \u2014 Assemble editor code and write it directly into simulator memory at this lump\u2019s base address.">\u21A9\u202FPatch</button>`;
+        }
         html += '</div>';
     }
     if (showThread) {
@@ -109,6 +115,7 @@ function updateCRDetail() {
         html += `<button class="crd-tab crd-tab-zone" onclick="scrollToThreadZone(1)" onmouseenter="showZonePopup(event,1,${nsIdx})" onmouseleave="hideZonePopup()">①\u202FCaps</button>`;
         html += `</span>`;
     }
+    html += '<div class="crd-hamburger-wrap">';
     html += `<button class="crd-hamburger" onclick="toggleCRDetailMenu(event)" title="Views &amp; Actions">&#x2630;</button>`;
     html += '<div class="crd-menu-dropdown" id="crdMenuDropdown" style="display:none">';
     if (!showCode) {
@@ -120,10 +127,6 @@ function updateCRDetail() {
         html += `<button class="crd-menu-item${crDetailTab==='api'?' crd-menu-item-active':''}" data-tab="api" onclick="switchCRDetailTab('api');toggleCRDetailMenu()">API</button>`;
     }
     if (showEditButton) {
-        html += '<div class="crd-menu-divider"></div>';
-        html += '<div class="crd-menu-section-label">Simulator</div>';
-        html += `<button class="crd-menu-item crd-menu-item-action" onclick="editCRCodeInEditor();toggleCRDetailMenu()" title="Edit \u2014 Load this code lump into the assembly editor">&#x270E; Edit</button>`;
-        html += `<button class="crd-menu-item crd-menu-item-action" onclick="patchSimulator();toggleCRDetailMenu()" title="Patch \u2014 Assemble editor code and write it directly into simulator memory at this lump\u2019s base address. Updates lump header, NS limit, and CRC automatically.">&#x21A9; Patch</button>`;
         html += '<div class="crd-menu-divider"></div>';
         html += '<div class="crd-menu-section-label">FPGA</div>';
         html += `<button class="crd-menu-item crd-menu-item-fpga" onclick="patchFPGA();toggleCRDetailMenu()" title="Patch FPGA \u2014 Runs Patch Simulator first, then uploads the updated lump to the Ti60 F225 over WebSerial (UART). Requires an active hardware connection.">&#x21A9; Patch FPGA</button>`;
@@ -138,6 +141,7 @@ function updateCRDetail() {
         html += '<div class="crd-menu-divider"></div>';
         html += `<button class="crd-menu-item crd-menu-item-publish" onclick="publishToLibrary();toggleCRDetailMenu()" title="Publish \u2014 Compile and publish this abstraction to the Mum Tunnel Library on GitHub, including machine words, c-list, source, and metadata.">&#x21E1; Publish</button>`;
     }
+    html += '</div>';
     html += '</div>';
     html += '</div>';
 
