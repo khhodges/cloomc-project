@@ -1677,8 +1677,12 @@ function showFaultModal(f) {
                     }
                 }
             }
-            const rowOnclick = (isFault && _editLineNum)
-                ? ` onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}" style="cursor:pointer"`
+            const rowOnclick = isFault
+                ? (_editLineNum
+                    ? ` onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}" style="cursor:pointer"`
+                    : (ns && ns.nsIdx != null
+                        ? ` onclick="faultModalOpenBinaryLump(${ns.nsIdx})" title="Click to open lump in code view" style="cursor:pointer"`
+                        : ''))
                 : '';
             const cls = isFault ? ' class="itrace-fault"' : '';
             traceRows += `<tr${cls}${rowOnclick}><td class="itrace-step">${h.step}</td><td class="itrace-addr">${addr}</td><td class="itrace-raw">${rawHex}</td><td class="itrace-instr">${instrHtml}${clistAnnotation}</td></tr>`;
@@ -1709,11 +1713,13 @@ function showFaultModal(f) {
     dialog.className = 'modal-dialog fault-dialog';
     const _editOnclick = _editLineNum
         ? `onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}"`
-        : '';
+        : (ns && ns.nsIdx != null
+            ? `onclick="faultModalOpenBinaryLump(${ns.nsIdx})" title="Click to open lump in code view"`
+            : '');
     const _editBadge = _editLineNum
         ? `<span class="fault-edit-hint">&#x270E; line&nbsp;${_editLineNum}</span>`
-        : '';
-    const _msgClass = _editLineNum ? 'fault-modal-message fault-msg-editable' : 'fault-modal-message';
+        : (ns && ns.nsIdx != null ? `<span class="fault-edit-hint">&#x270E; view lump</span>` : '');
+    const _msgClass = (_editLineNum || (ns && ns.nsIdx != null)) ? 'fault-modal-message fault-msg-editable' : 'fault-modal-message';
     dialog.innerHTML = `
         <div class="fault-modal-header">
             <span class="fault-type-badge" style="background:${color}22;border-color:${color};color:${color}">${f.type}</span>
@@ -1737,12 +1743,16 @@ function showFaultModal(f) {
                 <span class="fault-detail-value"><code>${pcHex}</code></span>
             </div>
             <div class="fault-detail-row fault-instr-row"
-                 onclick="faultModalOpenEditor(${_editLineNum || 'null'})"
-                 title="${_editLineNum ? `Click to open editor at line ${_editLineNum}` : 'Click to open editor'}">
+                 ${_editLineNum
+                    ? `onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}"`
+                    : (ns && ns.nsIdx != null
+                        ? `onclick="faultModalOpenBinaryLump(${ns.nsIdx})" title="Click to open lump in code view"`
+                        : `onclick="faultModalOpenEditor(null)" title="Click to open editor"`)}
+                 style="cursor:pointer">
                 <span class="fault-detail-label">Instruction</span>
                 <span class="fault-detail-value">
                     <code class="fault-instr-code">${_petDisasm(disasm, _scopeBadOffsetStr)}</code>
-                    <span class="fault-instr-edit-hint">&#x270E;${_editLineNum ? `&nbsp;line&nbsp;${_editLineNum}` : '&nbsp;edit'}</span>
+                    <span class="fault-instr-edit-hint">&#x270E;${_editLineNum ? `&nbsp;line&nbsp;${_editLineNum}` : (ns && ns.nsIdx != null ? '&nbsp;view lump' : '&nbsp;edit')}</span>
                 </span>
             </div>
             ${_faultCListPetName != null ? `<div class="fault-detail-row">
@@ -1782,6 +1792,41 @@ function faultModalOpenEditor(lineNum) {
     faultModalDismiss();
     switchView('editor');
     if (lineNum) _jumpToAsmLine(lineNum);
+}
+
+function faultModalOpenBinaryLump(nsIdx) {
+    faultModalDismiss();
+    // Prefer an executable CR (X permission, or M-bit + CR7) over any other match.
+    let foundExec = -1;
+    let foundAny  = -1;
+    for (let c = 0; c < 16; c++) {
+        const cr = sim.cr[c];
+        if (!cr || !cr.word0) continue;
+        try {
+            const parsed = sim.parseGT(cr.word0);
+            if (parsed.index !== nsIdx) continue;
+            if (foundAny < 0) foundAny = c;
+            const hasX = parsed.permissions && parsed.permissions.X;
+            const crMbit = cr.m;
+            const showCode = hasX || (crMbit && c === 7);
+            if (showCode && foundExec < 0) foundExec = c;
+        } catch(e) {}
+    }
+    const found   = foundExec >= 0 ? foundExec : foundAny;
+    const isExec  = foundExec >= 0;
+    if (found >= 0) {
+        switchView('dashboard');
+        if (typeof openCRDetail === 'function') {
+            openCRDetail(found);
+            if (isExec) {
+                setTimeout(() => {
+                    if (typeof switchCRDetailTab === 'function') switchCRDetailTab('code');
+                }, 60);
+            }
+        }
+    } else {
+        switchView('editor');
+    }
 }
 
 function faultModalEditCode(crIdx) {
