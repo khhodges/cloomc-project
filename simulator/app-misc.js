@@ -1005,7 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const _asmEd = document.getElementById('asmEditor');
         if (_asmEd) {
             _asmEd.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
                     e.preventDefault();
                     if (typeof showEditorCListPopup === 'function') showEditorCListPopup(e);
                 }
