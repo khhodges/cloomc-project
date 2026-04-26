@@ -1258,10 +1258,10 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
     if (cc > 0) {
         html += `<div class="lump-clist-section"><div class="lump-clist-title">MyGoldenTokens <span class="lump-gt-count">(${cc} ${cc === 1 ? 'capability' : 'capabilities'})</span></div>`;
         html += `<div class="lump-gt-chips">`;
+        const _gtCRPetNames = (lump.pet_names || {}).CR || {};
         for (let s = 0; s < cc; s++) {
             const wIdx   = clistStart + s;
             const wVal   = wIdx < words.length ? (words[wIdx] >>> 0) : 0;
-            const resolved = wVal ? _clistName(wVal) : '';
 
             // Decode GT word fields (32-bit format)
             const gtSlotId = wVal & 0xFFFF;                       // bits[15:0]  — NS slot index
@@ -1279,16 +1279,13 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                         `<span class="lump-gt-chip-meta lump-gt-meta-null">#${s}</span>` +
                         `</div>`;
             } else {
-                const _lm   = _lumpsCache ? _lumpsCache.find(l => {
-                    const h = wVal.toString(16).padStart(8, '0');
-                    const t = (l.token || '').toLowerCase();
-                    return t === h || t.replace(/^0+/, '') === h.replace(/^0+/, '');
-                }) : null;
-                const petName = resolved || (_lm ? (_lm.abstraction || '') : '');
-                const nsLabel  = abstractionRegistry && abstractionRegistry.abstractions && abstractionRegistry.abstractions[gtSlotId]
-                    ? (abstractionRegistry.abstractions[gtSlotId].name || '')
+                // Pet name priority: manifest CR pet_names → token lookup → abstractionRegistry → numeric fallback
+                const manifestName = _gtCRPetNames[s] || _gtCRPetNames[String(s)] || '';
+                const tokenName    = wVal ? _clistName(wVal) : '';
+                const absName      = abstractionRegistry && abstractionRegistry.abstractions
+                    ? (abstractionRegistry.abstractions[gtSlotId] || {}).name || ''
                     : '';
-                const displayName = petName || nsLabel;
+                const displayName  = manifestName || tokenName || absName;
                 const nameHtml = displayName
                     ? `<span class="lump-gt-chip-name">${e(displayName)}</span>`
                     : `<span class="lump-gt-chip-name lump-gt-name-unresolved">NS[${gtSlotId}]</span>`;
