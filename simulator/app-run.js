@@ -1825,7 +1825,15 @@ function faultModalOpenBinaryLump(nsIdx) {
             }
         }
     } else {
-        switchView('editor');
+        switchView('namespace');
+        if (typeof nsExpandedSlot !== 'undefined' && typeof updateNamespace === 'function') {
+            nsExpandedSlot = nsIdx;
+            updateNamespace();
+            setTimeout(() => {
+                const row = document.getElementById('ns-row-' + nsIdx);
+                if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 80);
+        }
     }
 }
 
