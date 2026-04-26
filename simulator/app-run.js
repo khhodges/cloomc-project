@@ -1729,7 +1729,7 @@ function showFaultModal(f) {
             <button class="btn btn-danger" onclick="faultModalReboot()">&#x21BA; Reboot</button>
             <button class="btn btn-warning" onclick="faultModalInvestigate()">&#x1F50D; Investigate</button>
             ${isOutformFault ? '<button class="btn btn-primary" onclick="faultModalRetryDownload()">&#x21BB; Retry Download</button>' : ''}
-            <button class="btn btn-primary" onclick="faultModalEditCode(14)" title="Open CR14 code view to inspect and correct the faulting instruction">&#x270E; Edit Code</button>
+            <button class="btn btn-primary" onclick="faultModalEditCode()" title="Open the assembly editor to inspect and correct the faulting code">&#x270E; Edit Code</button>
             <button class="btn btn-muted" onclick="faultModalClearAndDismiss()" title="Clear fault state — stops the flashing alert">&#x2715; Clear</button>
         </div>
         <div class="${_msgClass}" ${_editOnclick}>${_transformFaultMsg(f.message)}${_editBadge}</div>
@@ -1831,13 +1831,7 @@ function faultModalOpenBinaryLump(nsIdx) {
 
 function faultModalEditCode(crIdx) {
     faultModalDismiss();
-    switchView('dashboard');
-    if (typeof openCRDetail === 'function') {
-        openCRDetail(crIdx != null ? crIdx : 14);
-        setTimeout(() => {
-            if (typeof switchCRDetailTab === 'function') switchCRDetailTab('code');
-        }, 60);
-    }
+    switchView('editor');
 }
 
 function faultModalReboot() {
