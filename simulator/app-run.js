@@ -1945,44 +1945,27 @@ function faultModalOpenEditor(lineNum) {
 
 function faultModalOpenBinaryLump(nsIdx) {
     faultModalDismiss();
-    // Prefer an executable CR (X permission, or M-bit + CR7) over any other match.
-    let foundExec = -1;
-    let foundAny  = -1;
-    for (let c = 0; c < 16; c++) {
-        const cr = sim.cr[c];
-        if (!cr || !cr.word0) continue;
-        try {
-            const parsed = sim.parseGT(cr.word0);
-            if (parsed.index !== nsIdx) continue;
-            if (foundAny < 0) foundAny = c;
-            const hasX = parsed.permissions && parsed.permissions.X;
-            const crMbit = cr.m;
-            const showCode = hasX || (crMbit && c === 7);
-            if (showCode && foundExec < 0) foundExec = c;
-        } catch(e) {}
+    // Prefer opening the lump directly in the editor (CREATE view).
+    if (typeof _lumpsCache !== 'undefined' && _lumpsCache) {
+        var lump = null;
+        for (var li = 0; li < _lumpsCache.length; li++) {
+            var ns = parseInt(_lumpsCache[li].ns_slot);
+            if (!isNaN(ns) && ns === nsIdx) { lump = _lumpsCache[li]; break; }
+        }
+        if (lump && lump.token && typeof openLumpInEditor === 'function') {
+            openLumpInEditor(lump.token);
+            return;
+        }
     }
-    const found   = foundExec >= 0 ? foundExec : foundAny;
-    const isExec  = foundExec >= 0;
-    if (found >= 0) {
-        switchView('dashboard');
-        if (typeof openCRDetail === 'function') {
-            openCRDetail(found);
-            if (isExec) {
-                setTimeout(() => {
-                    if (typeof switchCRDetailTab === 'function') switchCRDetailTab('code');
-                }, 60);
-            }
-        }
-    } else {
-        switchView('namespace');
-        if (typeof nsExpandedSlot !== 'undefined' && typeof updateNamespace === 'function') {
-            nsExpandedSlot = nsIdx;
-            updateNamespace();
-            setTimeout(() => {
-                const row = document.getElementById('ns-row-' + nsIdx);
-                if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 80);
-        }
+    // Fallback: open namespace view scrolled to the relevant slot.
+    switchView('namespace');
+    if (typeof nsExpandedSlot !== 'undefined' && typeof updateNamespace === 'function') {
+        nsExpandedSlot = nsIdx;
+        updateNamespace();
+        setTimeout(function() {
+            var row = document.getElementById('ns-row-' + nsIdx);
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 80);
     }
 }
 
