@@ -1288,7 +1288,7 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                 const displayName  = manifestName || tokenName || simNsName;
                 const nameHtml = displayName
                     ? `<span class="lump-gt-chip-name">${e(displayName)}</span>`
-                    : `<span class="lump-gt-chip-name lump-gt-name-unresolved">NS[${gtSlotId}]</span>`;
+                    : `<span class="lump-gt-chip-name lump-gt-name-unresolved">CR${s}</span>`;
                 html += `<div class="lump-gt-chip" data-slot="${s}">` +
                         `<span class="lump-gt-chip-dot"></span>` +
                         nameHtml +
