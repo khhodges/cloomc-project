@@ -297,11 +297,13 @@ function showLumpDetail(token) {
     if (delBtn) delBtn.addEventListener('click', () => deleteLump(delBtn.dataset.deleteToken));
     const editBtn = contentEl.querySelector('.lump-edit-btn[data-edit-token]');
     if (editBtn) editBtn.addEventListener('click', () => openLumpInEditor(editBtn.dataset.editToken));
-    _lumpActiveTab[_tk] = 'overview';
+    _lumpActiveTab[_tk] = isNamespace ? 'overview' : 'content';
     const nsdgWrap = contentEl.querySelector('.ns-dep-graph-wrap[id]');
     if (nsdgWrap) _initNsDepGraphPanZoom(nsdgWrap.id);
-    const restoreTab = (_lumpEditorOpen[_tk] && !isNamespace) ? 'content' : _prevTab;
-    if (restoreTab !== 'overview') _switchLumpTab(_tk, restoreTab);
+    // For non-namespace lumps the default tab is 'content'; honour any prior/editor tab on top of that
+    const _defaultTab = isNamespace ? 'overview' : 'content';
+    const restoreTab = (_lumpEditorOpen[_tk] && !isNamespace) ? 'content' : (_prevTab && _prevTab !== 'overview' ? _prevTab : _defaultTab);
+    _switchLumpTab(_tk, restoreTab);
 }
 
 async function _fetchAndShowLumpBinary(token, lump) {
