@@ -1,3 +1,23 @@
+function _resolveCListPetName(gtWord) {
+    if (!gtWord || gtWord === 0) return null;
+    try {
+        const parsed = sim.parseGT(gtWord);
+        if (parsed.type === 3) {
+            const ab = sim.parseAbstractGT(gtWord);
+            const DEVICE_CLASSES = { 1: 'LED', 2: 'UART', 3: 'Button', 4: 'Timer', 5: 'Display' };
+            if (ab.ab_type === 0) {
+                const dc = DEVICE_CLASSES[ab.device_class] || `dc${ab.device_class}`;
+                return `${dc}[${ab.device_data}]`;
+            } else {
+                const AB_TYPE_NAMES = { 0: 'I/O', 1: 'M-Elevation' };
+                return `${AB_TYPE_NAMES[ab.ab_type] || `ab${ab.ab_type}`} 0x${ab.ab_data.toString(16).toUpperCase()}`;
+            }
+        } else {
+            return (sim.nsLabels && sim.nsLabels[parsed.index]) ? sim.nsLabels[parsed.index] : null;
+        }
+    } catch(e) { return null; }
+}
+
 function updateCRDetail() {
     if (selectedCR === null) return;
     const titleEl = document.getElementById('crDetailTitle');
@@ -325,6 +345,9 @@ function updateCRDetail() {
                     : _wrapRegHover(asm.disassemble(word));
             } else {
                 decoded = _wrapRegHover(asm.disassemble(word));
+            }
+            if (_lumpClistBase > 0 && typeof _wrapCListHover === 'function') {
+                decoded = _wrapCListHover(decoded, _lumpClistBase, _lumpHdr.cc || 0);
             }
             const bpDot    = isBP ? '<span class="bp-dot" title="Breakpoint">&#x25CF;</span> ' : '';
             const _clobberIcon = _clobberInfos

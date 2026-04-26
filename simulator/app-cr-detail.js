@@ -1166,6 +1166,20 @@ function _wrapRegHover(html) {
     return _wrapDRHover(_wrapCRHover(html));
 }
 
+function _wrapCListHover(html, clistBase, cc) {
+    if (!clistBase || clistBase <= 0) return html;
+    const ccArg = (cc > 0) ? `,${cc}` : '';
+    return html.replace(
+        /(<span[^>]*onmouseenter="showCRPopup\(event,6\)"[^>]*>CR6<\/span>)(\[0x([0-9A-Fa-f]+)\])/g,
+        function(m, _cr6Span, slotBracket, hexDigits) {
+            const slotIdx = parseInt(hexDigits, 16);
+            const newCR6 = `<span class="cr-hover-target clist-cr6-hover" onmouseenter="showCListPopup(event,${clistBase}${ccArg})" onmouseleave="hideCRPopup()">CR6</span>`;
+            const newSlot = `<span class="clist-slot-hover" onmouseenter="showCListSlotPopup(event,${clistBase},${slotIdx}${ccArg})" onmouseleave="hideCRPopup()">${slotBracket}</span>`;
+            return newCR6 + newSlot;
+        }
+    );
+}
+
 function _crTag(crNum, crPets) {
     const pet = crPets && crPets[crNum];
     return pet ? `${pet.toLowerCase()}(CR${crNum})` : `CR${crNum}`;

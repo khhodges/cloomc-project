@@ -3256,6 +3256,114 @@ a.next-step-link:hover {
     border-bottom-color: #a855f7;
 }
 
+.clist-cr6-hover {
+    cursor: help;
+    border-bottom: 1px dotted rgba(244,185,66,0.55);
+    transition: color 0.15s;
+}
+.clist-cr6-hover:hover {
+    color: #f4b942;
+    border-bottom-color: #f4b942;
+}
+
+/* ── C-List popup: selectable pet names ──────────────────────────────── */
+.clist-select-hint {
+    font-size: 0.67rem;
+    color: #6b7280;
+    padding: 2px 10px 5px;
+    font-style: italic;
+    border-bottom: 1px solid rgba(100,140,200,0.1);
+    margin-bottom: 2px;
+}
+.clist-select-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.clist-sel-idx {
+    color: #f4b942;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.76rem;
+    padding: 2px 6px;
+    width: 2.2rem;
+    white-space: nowrap;
+}
+.clist-sel-name {
+    color: #7dd3fc;
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.12s, color 0.12s;
+    user-select: none;
+    font-weight: 600;
+}
+.clist-sel-name:hover {
+    background: rgba(125,211,252,0.12);
+    color: #bae6fd;
+}
+.clist-sel-arrow {
+    font-size: 0.65rem;
+    color: #4b8ab0;
+    vertical-align: middle;
+    margin-left: 3px;
+    opacity: 0.6;
+    transition: opacity 0.1s;
+}
+.clist-sel-name:hover .clist-sel-arrow {
+    opacity: 1;
+    color: #7dd3fc;
+}
+
+/* ── mLoad check result badges ────────────────────────────────────────── */
+.mload-section-hdr {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b8faf;
+    padding: 5px 8px 3px;
+    border-top: 1px solid rgba(100,140,200,0.15);
+    border-bottom: 1px solid rgba(100,140,200,0.08);
+}
+.mload-lbl {
+    color: #9ca3af;
+    font-size: 0.76rem;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.mload-pass {
+    color: #4ade80;
+    font-weight: 700;
+    font-size: 0.74rem;
+}
+.mload-fail {
+    color: #f87171;
+    font-weight: 700;
+    font-size: 0.74rem;
+}
+.mload-overall {
+    padding: 4px 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-top: 1px solid rgba(100,140,200,0.15);
+    text-align: right;
+}
+.mload-overall-pass { color: #4ade80; }
+.mload-overall-fail { color: #f87171; }
+
+.clist-slot-hover {
+    cursor: help;
+    color: #e8c87a;
+    border-bottom: 1px dashed rgba(244,185,66,0.4);
+    border-radius: 2px;
+    transition: color 0.15s, background 0.15s;
+}
+.clist-slot-hover:hover {
+    color: #f4d080;
+    background: rgba(244,185,66,0.10);
+    border-bottom-color: #f4b942;
+}
+
 .dr-hover-row {
     cursor: help;
     transition: background 0.12s;

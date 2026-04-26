@@ -1424,6 +1424,33 @@ function showFaultModal(f) {
           }).join('')
         : '';
 
+    // ── C-List pet name for the faulting instruction ───────────────────────
+    // When the faulting instruction is a LOAD or CALL that reads from CR6 (the
+    // C-List register), resolve the pet name of the referenced slot and surface
+    // it in the fault description.
+    let _faultCListSlot = null;
+    let _faultCListPetName = null;
+    {
+        const _op = (word >>> 27) & 0x1F;
+        const _isLoadOrCall = (_op === 0 || _op === 2); // LOAD=0, CALL=2
+        if (_isLoadOrCall) {
+            const _crSrc = (word >>> 15) & 0xF;
+            if (_crSrc === 6 && sim.cr && sim.cr[6]) {
+                const _slotIdx = word & 0x7FFF;
+                const _clistBase = sim.cr[6].word1 >>> 0;
+                const _slotAddr = _clistBase + _slotIdx;
+                if (sim.memory && _slotAddr < sim.memory.length) {
+                    const _slotGT = sim.memory[_slotAddr] >>> 0;
+                    const _name = (typeof _resolveCListPetName === 'function') ? _resolveCListPetName(_slotGT) : null;
+                    if (_name) {
+                        _faultCListSlot = _slotIdx;
+                        _faultCListPetName = _name;
+                    }
+                }
+            }
+        }
+    }
+
     // ── Capability register snapshot ──────────────────────────────────────
     const crSnap = f.crSnapshot || [];
     let crTableRows = '';
@@ -1434,12 +1461,14 @@ function showFaultModal(f) {
             const typeChar = ['\u2014','I','O','A'][p.type] || '?';
             const perms = ['R','W','X','L','S','E'].filter(k => p.permissions[k]).join('') || '\u2014';
             const base  = c.word1 ? '0x'+((c.word1>>>0).toString(16).toUpperCase()) : '\u2014';
+            const crName = (typeof _resolveCListPetName === 'function') ? (_resolveCListPetName(c.word0) || '\u2014') : '\u2014';
             crTableRows += `<tr>
                 <td class="freg-name">CR${i}</td>
                 <td class="freg-type">${typeChar}</td>
                 <td class="freg-slot">S${p.index}</td>
                 <td class="freg-perms">${perms}</td>
                 <td class="freg-base">${base}</td>
+                <td class="freg-petname">${crName}</td>
             </tr>`;
         } catch(e) {}
     });
@@ -1448,7 +1477,7 @@ function showFaultModal(f) {
             <div class="fault-regs-label">Capability Registers</div>
             <div class="fault-regs-scroll">
                 <table class="fault-regs-table">
-                    <thead><tr><th>Reg</th><th>Type</th><th>Slot</th><th>Perms</th><th>Base</th></tr></thead>
+                    <thead><tr><th>Reg</th><th>Type</th><th>Slot</th><th>Perms</th><th>Base</th><th>Name</th></tr></thead>
                     <tbody>${crTableRows}</tbody>
                 </table>
             </div>
@@ -1523,6 +1552,13 @@ function showFaultModal(f) {
                 return `offset ${badHex} outside valid range [0x0000..${maxHex.slice(1)}`;
             }
         );
+        // Annotate clist[N] references with the resolved pet name when available
+        if (_faultCListPetName != null && _faultCListSlot != null) {
+            s = s.replace(
+                new RegExp(`clist\\[${_faultCListSlot}\\]`, 'g'),
+                `clist[${_faultCListSlot}]\u00a0<span class="fault-clist-petname">(${_faultCListPetName})</span>`
+            );
+        }
         return s;
     }
 
@@ -1631,13 +1667,19 @@ function showFaultModal(f) {
             traceRows += `<tr${cls}${rowOnclick}><td class="itrace-step">${h.step}</td><td class="itrace-addr">${addr}</td><td class="itrace-raw">${rawHex}</td><td class="itrace-instr">${instrHtml}</td></tr>`;
         }
         instrTraceSection = `
-        <div class="fault-trace-section">
-            <div class="fault-trace-label">Instruction Trace (last ${instrTrace.length})</div>
-            <div class="fault-trace-scroll">
-                <table class="fault-trace-table">
-                    <thead><tr><th>Step</th><th>Address</th><th>Raw</th><th>Instruction</th></tr></thead>
-                    <tbody>${traceRows}</tbody>
-                </table>
+        <div class="fault-trace-section fault-trace-collapsible">
+            <div class="fault-trace-toggle" onclick="this.closest('.fault-trace-collapsible').classList.toggle('fault-trace-open')" title="Click to expand/collapse instruction trace">
+                <span class="fault-trace-toggle-arrow">&#x25B6;</span>
+                <span class="fault-trace-toggle-label">TRACE</span>
+                <span class="fault-trace-toggle-count">(last ${instrTrace.length} instruction${instrTrace.length !== 1 ? 's' : ''})</span>
+            </div>
+            <div class="fault-trace-body">
+                <div class="fault-trace-scroll">
+                    <table class="fault-trace-table">
+                        <thead><tr><th>Step</th><th>Address</th><th>Raw</th><th>Instruction</th></tr></thead>
+                        <tbody>${traceRows}</tbody>
+                    </table>
+                </div>
             </div>
         </div>`;
     }
@@ -1664,7 +1706,7 @@ function showFaultModal(f) {
             <button class="btn btn-danger" onclick="faultModalReboot()">&#x21BA; Reboot</button>
             <button class="btn btn-warning" onclick="faultModalInvestigate()">&#x1F50D; Investigate</button>
             ${isOutformFault ? '<button class="btn btn-primary" onclick="faultModalRetryDownload()">&#x21BB; Retry Download</button>' : ''}
-            <button class="btn" onclick="faultModalDismiss()">Dismiss</button>
+            <button class="btn btn-primary" onclick="faultModalEditCode(14)" title="Open CR14 code view to inspect and correct the faulting instruction">&#x270E; Edit Code</button>
             <button class="btn btn-muted" onclick="faultModalClearAndDismiss()" title="Clear fault state — stops the flashing alert">&#x2715; Clear</button>
         </div>
         <div class="${_msgClass}" ${_editOnclick}>${_transformFaultMsg(f.message)}${_editBadge}</div>
@@ -1677,10 +1719,19 @@ function showFaultModal(f) {
                 <span class="fault-detail-label">PC</span>
                 <span class="fault-detail-value"><code>${pcHex}</code></span>
             </div>
-            <div class="fault-detail-row">
+            <div class="fault-detail-row fault-instr-row"
+                 onclick="faultModalOpenEditor(${_editLineNum || 'null'})"
+                 title="${_editLineNum ? `Click to open editor at line ${_editLineNum}` : 'Click to open editor'}">
                 <span class="fault-detail-label">Instruction</span>
-                <span class="fault-detail-value"><code>${_petDisasm(disasm, _scopeBadOffsetStr)}</code></span>
+                <span class="fault-detail-value">
+                    <code class="fault-instr-code">${_petDisasm(disasm, _scopeBadOffsetStr)}</code>
+                    <span class="fault-instr-edit-hint">&#x270E;${_editLineNum ? `&nbsp;line&nbsp;${_editLineNum}` : '&nbsp;edit'}</span>
+                </span>
             </div>
+            ${_faultCListPetName != null ? `<div class="fault-detail-row">
+                <span class="fault-detail-label">C-List</span>
+                <span class="fault-detail-value"><code>clist[${_faultCListSlot}]</code> <span class="fault-clist-petname">${_faultCListPetName}</span></span>
+            </div>` : ''}
             <div class="fault-detail-row">
                 <span class="fault-detail-label">Location</span>
                 <span class="fault-detail-value">${nsStr}</span>
@@ -1714,6 +1765,17 @@ function faultModalOpenEditor(lineNum) {
     faultModalDismiss();
     switchView('editor');
     if (lineNum) _jumpToAsmLine(lineNum);
+}
+
+function faultModalEditCode(crIdx) {
+    faultModalDismiss();
+    switchView('dashboard');
+    if (typeof openCRDetail === 'function') {
+        openCRDetail(crIdx != null ? crIdx : 14);
+        setTimeout(() => {
+            if (typeof switchCRDetailTab === 'function') switchCRDetailTab('code');
+        }, 60);
+    }
 }
 
 function faultModalReboot() {

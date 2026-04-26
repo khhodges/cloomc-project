@@ -816,6 +816,141 @@ function showDRPopup(evt, drIdx) {
     _startAutoFade();
 }
 
+function clistSelectName(lbl) {
+    hideCRPopup(true);
+    const ed = document.getElementById('asmEditor');
+    if (!ed) return;
+    const start = ed.selectionStart;
+    const end   = ed.selectionEnd;
+    const val   = ed.value;
+    ed.value = val.substring(0, start) + lbl + val.substring(end);
+    ed.selectionStart = ed.selectionEnd = start + lbl.length;
+    if (typeof switchView === 'function') switchView('editor');
+    setTimeout(() => {
+        ed.focus();
+        ed.dispatchEvent(new Event('input', { bubbles: true }));
+    }, 60);
+}
+
+function showCListPopup(evt, clistBase, cc) {
+    if (_crPopupSuppressed) return;
+    cancelHideCRPopup();
+    const pop = document.getElementById('cr-hover-popup');
+    if (!pop || !sim) return;
+
+    const hexW = w => '0x' + (w >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    const limit = (cc > 0 && cc <= 64) ? cc : 32;
+
+    let html = `<div class="zdp-title" style="border-color:#f4b942;color:#f4b942;">CR6 &middot; C-List (${limit} slot${limit !== 1 ? 's' : ''})</div>`;
+    html += `<div class="clist-select-hint">Click a name to insert into editor</div>`;
+    html += `<table class="clist-select-table">`;
+    let anyEntry = false;
+    for (let j = 0; j < limit; j++) {
+        const addr = clistBase + j;
+        if (addr >= sim.memory.length) break;
+        const gtWord = sim.memory[addr] >>> 0;
+        if (gtWord === 0) {
+            html += `<tr><td class="clist-sel-idx">[${j}]</td><td class="zdp-dim" colspan="2">null</td></tr>`;
+        } else {
+            anyEntry = true;
+            const lbl = (typeof _gtPetName === 'function') ? _gtPetName(gtWord) : '';
+            const safeLbl = lbl ? lbl.replace(/\\/g, '\\\\').replace(/'/g, "\\'") : '';
+            const nameCell = lbl
+                ? `<td class="clist-sel-name" onclick="clistSelectName('${safeLbl}')" title="Insert '${lbl}' at cursor">${lbl} <span class="clist-sel-arrow">&#x2B9E;</span></td>`
+                : `<td class="zdp-hex" style="font-size:0.71rem;">${hexW(gtWord)}</td>`;
+            const nsCell = lbl ? `<td class="zdp-hex" style="font-size:0.71rem;">${hexW(gtWord)}</td>` : `<td></td>`;
+            html += `<tr><td class="clist-sel-idx">[${j}]</td>${nameCell}${nsCell}</tr>`;
+        }
+    }
+    if (!anyEntry) html += `<tr><td colspan="3" class="zdp-empty">C-List is empty</td></tr>`;
+    html += `</table>`;
+
+    const dismissBtn = `<button class="zdp-dismiss" onclick="hideCRPopup(true)" title="Close">&times;</button>`;
+    pop.innerHTML = dismissBtn + html;
+    pop.style.display = 'block';
+    _positionPopup(pop, evt);
+    cancelHideCRPopup();
+    _startAutoFade();
+}
+
+function showCListSlotPopup(evt, clistBase, slotIdx, cc) {
+    if (_crPopupSuppressed) return;
+    cancelHideCRPopup();
+    const pop = document.getElementById('cr-hover-popup');
+    if (!pop || !sim) return;
+
+    const hexW = w => '0x' + (w >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    const addr = clistBase + slotIdx;
+    let html = '';
+
+    const _ck = pass => pass
+        ? `<span class="mload-pass">&#x2713; PASS</span>`
+        : `<span class="mload-fail">&#x2717; FAIL</span>`;
+
+    if (addr >= sim.memory.length) {
+        html += `<div class="zdp-title" style="border-color:#ef4444;color:#f87171;">clist[${slotIdx}] &middot; OUT OF RANGE</div>`;
+        html += `<table><tr><td colspan="2" class="zdp-dim">Address ${hexW(addr)} exceeds memory</td></tr></table>`;
+    } else {
+        const gtWord = sim.memory[addr] >>> 0;
+        const lbl = (gtWord !== 0 && typeof _gtPetName === 'function') ? _gtPetName(gtWord) : '';
+        const titleLbl = lbl ? ` \u2014 ${lbl}` : (gtWord === 0 ? ' \u00B7 NULL' : '');
+        const titleColor = gtWord === 0 ? '#374151' : '#f4b942';
+        const titleBorder = gtWord === 0 ? '#374151' : '#f4b942';
+        const titleText = gtWord === 0 ? '#6b7280' : '#f4b942';
+        html += `<div class="zdp-title" style="border-color:${titleBorder};color:${titleText};">clist[${slotIdx}]${titleLbl}</div>`;
+        html += `<table>`;
+
+        if (gtWord !== 0) {
+            html += `<tr><td>GT word</td><td class="zdp-hex">${hexW(gtWord)}</td></tr>`;
+            if (lbl) html += `<tr><td>Pet name</td><td class="zdp-note">${lbl}</td></tr>`;
+            if (sim.parseGT) {
+                const gt = sim.parseGT(gtWord);
+                if (gt) {
+                    const perms = (gt.permissions.B?'B':'-')+(gt.permissions.R?'R':'-')+(gt.permissions.W?'W':'-')+(gt.permissions.X?'X':'-')+(gt.permissions.L?'L':'-')+(gt.permissions.S?'S':'-')+(gt.permissions.E?'E':'-');
+                    html += `<tr><td>Type</td><td class="zdp-val">${gt.typeName || '?'}</td></tr>`;
+                    html += `<tr><td>NS slot</td><td class="zdp-val">${gt.index}</td></tr>`;
+                    html += `<tr><td>Perms</td><td class="zdp-val">${perms}</td></tr>`;
+                }
+            }
+        } else {
+            html += `<tr><td colspan="2" class="zdp-dim">Slot is unloaded / empty</td></tr>`;
+        }
+
+        html += `<tr><td colspan="2" class="mload-section-hdr">mLoad check &mdash; LOAD CR&middot;, CR6[${slotIdx}]</td></tr>`;
+
+        const cr6Word0 = (sim.cr && sim.cr[6]) ? (sim.cr[6].word0 >>> 0) : 0;
+        let versionPass = false, sealPass = false;
+        if (cr6Word0 !== 0 && sim.parseGT && sim.readNSEntry && sim.validateMAC) {
+            const parsedCR6 = sim.parseGT(cr6Word0);
+            if (parsedCR6 && parsedCR6.index < sim.nsCount) {
+                const nsEntry = sim.readNSEntry(parsedCR6.index);
+                if (nsEntry) {
+                    const nsGtSeq = (nsEntry.word2_seals >>> 25) & 0x7F;
+                    versionPass = parsedCR6.gt_seq === nsGtSeq;
+                    sealPass    = sim.validateMAC(nsEntry);
+                }
+            }
+        }
+        const boundsPass = (cc > 0) ? (slotIdx < cc) : (addr < sim.memory.length);
+        const slotPass   = gtWord !== 0;
+        const overallPass = versionPass && sealPass && boundsPass && slotPass;
+
+        html += `<tr><td class="mload-lbl">CR6 version</td><td>${_ck(versionPass)}</td></tr>`;
+        html += `<tr><td class="mload-lbl">CR6 seal</td><td>${_ck(sealPass)}</td></tr>`;
+        html += `<tr><td class="mload-lbl">Bounds</td><td>${_ck(boundsPass)} <span class="zdp-dim">[${slotIdx}${cc > 0 ? '/' + cc : ''}]</span></td></tr>`;
+        html += `<tr><td class="mload-lbl">Slot GT</td><td>${_ck(slotPass)}</td></tr>`;
+        html += `<tr><td colspan="2" class="mload-overall ${overallPass ? 'mload-overall-pass' : 'mload-overall-fail'}">${overallPass ? '&#x2713; mLoad PASS' : '&#x2717; mLoad FAIL'}</td></tr>`;
+        html += `</table>`;
+    }
+
+    const dismissBtn = `<button class="zdp-dismiss" onclick="hideCRPopup(true)" title="Close">&times;</button>`;
+    pop.innerHTML = dismissBtn + html;
+    pop.style.display = 'block';
+    _positionPopup(pop, evt);
+    cancelHideCRPopup();
+    _startAutoFade();
+}
+
 function showCRPopup(evt, crIdx) {
     if (_crPopupSuppressed) return;
     cancelHideCRPopup();

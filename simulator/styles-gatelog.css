@@ -349,6 +349,53 @@
     padding: 4px 10px;
     border-bottom: 1px solid rgba(100,180,220,0.12);
 }
+.fault-trace-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #88bbdd;
+    background: rgba(0,0,0,0.22);
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(100,180,220,0.12);
+    transition: background 0.12s, color 0.12s;
+}
+.fault-trace-toggle:hover {
+    background: rgba(100,180,220,0.10);
+    color: #aad8f8;
+}
+.fault-trace-toggle-arrow {
+    display: inline-block;
+    font-size: 0.6rem;
+    transition: transform 0.18s;
+    color: #6699bb;
+    line-height: 1;
+}
+.fault-trace-toggle-count {
+    font-weight: 400;
+    color: #6699bb;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    margin-left: 2px;
+}
+.fault-trace-body {
+    display: none;
+}
+.fault-trace-section.fault-trace-open .fault-trace-body {
+    display: block;
+}
+.fault-trace-section.fault-trace-open .fault-trace-toggle-arrow {
+    transform: rotate(90deg);
+}
+.fault-trace-section.fault-trace-open .fault-trace-toggle {
+    border-bottom: 1px solid rgba(100,180,220,0.18);
+}
+
 .fault-trace-scroll {
     overflow-x: auto;
     max-height: 160px;
