@@ -35,6 +35,14 @@
     flex: 1;
 }
 
+.fault-modal-actions {
+    margin-top: 0;
+    margin-bottom: 0.85rem;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
 .fault-modal-message {
     font-size: 0.86rem;
     color: var(--text-primary);
@@ -46,6 +54,34 @@
     font-family: var(--font-mono, monospace);
     line-height: 1.5;
     word-break: break-word;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.fault-msg-editable {
+    cursor: pointer;
+    border-left-color: rgba(255, 150, 0, 0.55);
+    transition: background 0.15s, border-left-color 0.15s;
+}
+
+.fault-msg-editable:hover {
+    background: rgba(200,40,40,0.15);
+    border-left-color: #ffaa33;
+}
+
+.fault-edit-hint {
+    display: inline-block;
+    font-size: 0.71rem;
+    background: rgba(255, 150, 0, 0.15);
+    color: #ffaa33;
+    border: 1px solid rgba(255, 150, 0, 0.35);
+    border-radius: 3px;
+    padding: 1px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: var(--font-mono, monospace);
 }
 
 .fault-detail-grid {

@@ -368,7 +368,12 @@ class ChurchAssembler {
             }
         }
 
+        this._lastLineNums = lineNums.slice();
         return { words, errors: this.errors, warnings: this.warnings, labels: this.labels };
+    }
+
+    getLastLineNums() {
+        return this._lastLineNums || [];
     }
 
     _assembleLine(line, lineNum, addr) {

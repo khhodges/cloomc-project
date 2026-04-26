@@ -1526,6 +1526,17 @@ function showFaultModal(f) {
         return s;
     }
 
+    // ── Click-to-edit: resolve physicalPC → source line number ───────────────
+    // ns.offset is the word offset from the lump base (including header word at 0).
+    // lineNums[instrIdx] (instrIdx = ns.offset - 1) gives the source editor line.
+    const _editLineNum = (() => {
+        if (!ns || ns.offset === undefined || ns.offset < 1 || !assembler) return null;
+        const instrIdx = ns.offset - 1;
+        const lns = assembler.getLastLineNums ? assembler.getLastLineNums() : [];
+        const ln = lns[instrIdx];
+        return (typeof ln === 'number' && ln > 0) ? ln : null;
+    })();
+
     // ── Find the faulting trace entry (used by scope section below) ───────────
     const _faultTraceEntry = (f.instrHistory || []).find(h => h.step === f.faultStep)
                           || ((f.instrHistory || []).length > 0 ? f.instrHistory[f.instrHistory.length - 1] : null);
@@ -1613,8 +1624,11 @@ function showFaultModal(f) {
             const rawDisasm = assembler ? assembler.disassemble(h.raw) : `${h.opName} CR${h.crDst}, CR${h.crSrc}, ${h.imm}`;
             const isFault = (f.faultStep != null && h.step === f.faultStep);
             const instrHtml = _petDisasm(rawDisasm, isFault ? _scopeBadOffsetStr : null);
+            const rowOnclick = (isFault && _editLineNum)
+                ? ` onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}" style="cursor:pointer"`
+                : '';
             const cls = isFault ? ' class="itrace-fault"' : '';
-            traceRows += `<tr${cls}><td class="itrace-step">${h.step}</td><td class="itrace-addr">${addr}</td><td class="itrace-raw">${rawHex}</td><td class="itrace-instr">${instrHtml}</td></tr>`;
+            traceRows += `<tr${cls}${rowOnclick}><td class="itrace-step">${h.step}</td><td class="itrace-addr">${addr}</td><td class="itrace-raw">${rawHex}</td><td class="itrace-instr">${instrHtml}</td></tr>`;
         }
         instrTraceSection = `
         <div class="fault-trace-section">
@@ -1634,12 +1648,26 @@ function showFaultModal(f) {
 
     const dialog = document.createElement('div');
     dialog.className = 'modal-dialog fault-dialog';
+    const _editOnclick = _editLineNum
+        ? `onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}"`
+        : '';
+    const _editBadge = _editLineNum
+        ? `<span class="fault-edit-hint">&#x270E; line&nbsp;${_editLineNum}</span>`
+        : '';
+    const _msgClass = _editLineNum ? 'fault-modal-message fault-msg-editable' : 'fault-modal-message';
     dialog.innerHTML = `
         <div class="fault-modal-header">
             <span class="fault-type-badge" style="background:${color}22;border-color:${color};color:${color}">${f.type}</span>
             <span class="fault-modal-title">Machine Fault</span>
         </div>
-        <div class="fault-modal-message">${_transformFaultMsg(f.message)}</div>
+        <div class="modal-buttons fault-modal-actions">
+            <button class="btn btn-danger" onclick="faultModalReboot()">&#x21BA; Reboot</button>
+            <button class="btn btn-warning" onclick="faultModalInvestigate()">&#x1F50D; Investigate</button>
+            ${isOutformFault ? '<button class="btn btn-primary" onclick="faultModalRetryDownload()">&#x21BB; Retry Download</button>' : ''}
+            <button class="btn" onclick="faultModalDismiss()">Dismiss</button>
+            <button class="btn btn-muted" onclick="faultModalClearAndDismiss()" title="Clear fault state — stops the flashing alert">&#x2715; Clear</button>
+        </div>
+        <div class="${_msgClass}" ${_editOnclick}>${_transformFaultMsg(f.message)}${_editBadge}</div>
         <div class="fault-detail-grid">
             <div class="fault-detail-row">
                 <span class="fault-detail-label">Code</span>
@@ -1670,14 +1698,7 @@ function showFaultModal(f) {
         ${outformSection}
         ${instrTraceSection}
         ${crSection}
-        ${drSection}
-        <div class="modal-buttons">
-            <button class="btn btn-danger" onclick="faultModalReboot()">&#x21BA; Reboot</button>
-            <button class="btn btn-warning" onclick="faultModalInvestigate()">&#x1F50D; Investigate</button>
-            ${isOutformFault ? '<button class="btn btn-primary" onclick="faultModalRetryDownload()">&#x21BB; Retry Download</button>' : ''}
-            <button class="btn" onclick="faultModalDismiss()">Dismiss</button>
-            <button class="btn btn-muted" onclick="faultModalClearAndDismiss()" title="Clear fault state — stops the flashing alert">&#x2715; Clear</button>
-        </div>`;
+        ${drSection}`;
 
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
@@ -1687,6 +1708,12 @@ function showFaultModal(f) {
 function faultModalDismiss() {
     const el = document.getElementById('faultModalOverlay');
     if (el) el.remove();
+}
+
+function faultModalOpenEditor(lineNum) {
+    faultModalDismiss();
+    switchView('editor');
+    if (lineNum) _jumpToAsmLine(lineNum);
 }
 
 function faultModalReboot() {
