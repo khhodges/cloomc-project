@@ -1112,18 +1112,18 @@ function updateFPGAStatusBtn() {
     const btn = document.getElementById('fpgaConnBtn');
     if (!btn) return;
     if (typeof TangSerial === 'undefined') {
-        btn.className = 'btn fpga-conn-btn';
-        btn.textContent = '⬡ FPGA';
+        btn.className = 'ham-item fpga-conn-btn';
+        btn.textContent = 'FPGA';
         btn.title = 'WebSerial not available';
         return;
     }
     if (TangSerial.isConnected()) {
-        btn.className = 'btn fpga-conn-btn fpga-connected';
-        btn.textContent = '⬡ FPGA ✓';
+        btn.className = 'ham-item fpga-conn-btn fpga-connected';
+        btn.textContent = 'FPGA ✓';
         btn.setAttribute('data-tooltip', 'FPGA Connected — click to disconnect');
     } else {
-        btn.className = 'btn fpga-conn-btn fpga-disconnected';
-        btn.textContent = '⬡ FPGA';
+        btn.className = 'ham-item fpga-conn-btn fpga-disconnected';
+        btn.textContent = 'FPGA';
         btn.setAttribute('data-tooltip', 'FPGA Disconnected — click to connect');
     }
 }
