@@ -676,7 +676,7 @@ function showZonePopup(evt, zone, nsIdx) {
 }
 
 let _crPopupTimer = null;
-let _crPopupSuppressed = false;
+let _crPopupSuppressed = true;
 let _crPopupSuppressTimer = null;
 let _crAutoFadeTimer = null;
 
@@ -1228,7 +1228,7 @@ var _editorCREditCR = null;
 var _editorCREditNS = null;
 
 function showEditorCListPopup(evt) {
-    _crPopupSuppressed = false;
+    return;
     cancelHideCRPopup();
     const pop = document.getElementById('cr-hover-popup');
     if (!pop) return;
