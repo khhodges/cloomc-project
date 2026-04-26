@@ -1285,9 +1285,12 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                     return t === h || t.replace(/^0+/, '') === h.replace(/^0+/, '');
                 }) : null;
                 const petName = resolved || (_lm ? (_lm.abstraction || '') : '');
+                const nsLabel  = abstractionRegistry && abstractionRegistry.abstractions && abstractionRegistry.abstractions[gtSlotId]
+                    ? (abstractionRegistry.abstractions[gtSlotId].name || '')
+                    : '';
                 const nameHtml = petName
                     ? `<span class="lump-gt-chip-name">${e(petName)}</span>`
-                    : `<span class="lump-gt-chip-name lump-gt-name-unresolved">NS[${gtSlotId}]</span>`;
+                    : `<span class="lump-gt-chip-name lump-gt-name-unresolved">NS[${e(nsLabel || String(gtSlotId))}]</span>`;
                 html += `<div class="lump-gt-chip" data-slot="${s}">` +
                         `<span class="lump-gt-chip-dot"></span>` +
                         nameHtml +
