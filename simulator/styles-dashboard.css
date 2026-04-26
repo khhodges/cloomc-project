@@ -3530,7 +3530,7 @@ a.next-step-link:hover {
     line-height: 1.45;
     white-space: pre-wrap;
 }
-.fpga-toast-fade { opacity: 0; }
+.fpga-toast-fade { opacity: 0; visibility: hidden; }
 
 .cr-inject-bar {
     display: flex;
