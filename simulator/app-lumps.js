@@ -1259,18 +1259,17 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
         html += `<div class="lump-clist-section"><div class="lump-clist-title">MyGoldenTokens <span class="lump-gt-count">(${cc} ${cc === 1 ? 'capability' : 'capabilities'})</span></div>`;
         html += `<div class="lump-gt-chips">`;
         const _gtCRPetNames = (lump.pet_names || {}).CR || {};
+
+        // Abstract GT device-class names (bits[15:8] of ab_data when ab_type=0 IO)
+        const _abDevClass = ['?','LED','UART','Button','Timer','Display'];
+
         for (let s = 0; s < cc; s++) {
             const wIdx   = clistStart + s;
             const wVal   = wIdx < words.length ? (words[wIdx] >>> 0) : 0;
 
-            // Decode GT word fields (32-bit format)
-            const gtSlotId = wVal & 0xFFFF;                       // bits[15:0]  — NS slot index
-            const gtSeq    = (wVal >>> 16) & 0x7F;                // bits[22:16] — revocation version
-            const gtType   = (wVal >>> 23) & 0x3;                 // bits[24:23] — type
-            const gtPerms  = (wVal >>> 25) & 0x3F;                // bits[30:25] — 6-bit perms (RWXLSE)
-            const gtTypeStr = ['NULL','Inf','Out','Abs'][gtType];
-            const permLabels = 'RWXLSE';
-            const permStr = permLabels.split('').map((c, i) => (gtPerms >> i) & 1 ? c : '-').join('');
+            // Common GT fields
+            const gtType = (wVal >>> 23) & 0x3;   // bits[24:23]: 0=NULL 1=Inf 2=Out 3=Abs
+            const gtSeq  = (wVal >>> 16) & 0x7F;  // bits[22:16]: revocation counter
 
             if (!wVal) {
                 html += `<div class="lump-gt-chip lump-gt-chip-null">` +
@@ -1278,17 +1277,56 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                         `<span class="lump-gt-chip-name lump-gt-name-null">— empty —</span>` +
                         `<span class="lump-gt-chip-meta lump-gt-meta-null">#${s}</span>` +
                         `</div>`;
-            } else {
-                // Pet name priority: manifest CR pet_names → token lookup → sim.nsLabels → numeric fallback
+
+            } else if (gtType === 3) {
+                // ── Abstract GT: layout is [31:27]=ab_type [26]=R [25]=W [24:23]=11 [22:16]=gt_seq [15:0]=ab_data
+                const abType      = (wVal >>> 27) & 0x1F;
+                const rBit        = (wVal >>> 26) & 1;
+                const wBit        = (wVal >>> 25) & 1;
+                const abData      = wVal & 0xFFFF;
+                const devClass    = (abData >>> 8) & 0xFF;
+                const devData     = abData & 0xFF;
+                const permStr     = (rBit ? 'R' : '-') + (wBit ? 'W' : '-');
+
+                // Pet name from manifest first, then derive from device class
                 const manifestName = _gtCRPetNames[s] || _gtCRPetNames[String(s)] || '';
-                const tokenName    = wVal ? _clistName(wVal) : '';
+                let   derivedName  = '';
+                if (!manifestName) {
+                    if (abType === 0) {  // IO device
+                        const cls = _abDevClass[devClass] || `Dev${devClass}`;
+                        derivedName = `${cls}[${devData}]`;
+                    } else if (abType === 1) {
+                        derivedName = 'M-Elevation';
+                    } else {
+                        derivedName = `Abs[${abType}]`;
+                    }
+                }
+                const displayName = manifestName || derivedName;
+                const nameHtml = `<span class="lump-gt-chip-name">${e(displayName)}</span>`;
+                const clsLabel = abType === 0 ? (_abDevClass[devClass] || `Dev${devClass}`) : `ab${abType}`;
+                html += `<div class="lump-gt-chip" data-slot="${s}">` +
+                        `<span class="lump-gt-chip-dot"></span>` +
+                        nameHtml +
+                        `<span class="lump-gt-chip-meta">${permStr} · Abs · ${clsLabel} · v${gtSeq}</span>` +
+                        `</div>`;
+
+            } else {
+                // ── Inform / Outform GT: layout is [30:25]=perms(RWXLSE) [24:23]=type [22:16]=gt_seq [15:0]=slot_id
+                const gtSlotId  = wVal & 0xFFFF;
+                const gtPerms   = (wVal >>> 25) & 0x3F;
+                const gtTypeStr = ['NULL','Inf','Out','Abs'][gtType];
+                const permStr   = 'RWXLSE'.split('').map((c, i) => (gtPerms >> i) & 1 ? c : '-').join('');
+
+                // Pet name priority: manifest CR → token lookup → sim.nsLabels → ns slot number
+                const manifestName = _gtCRPetNames[s] || _gtCRPetNames[String(s)] || '';
+                const tokenName    = _clistName(wVal);
                 const simNsName    = (typeof sim !== 'undefined' && sim && sim.nsLabels)
                     ? (sim.nsLabels[gtSlotId] || '')
                     : '';
                 const displayName  = manifestName || tokenName || simNsName;
                 const nameHtml = displayName
                     ? `<span class="lump-gt-chip-name">${e(displayName)}</span>`
-                    : `<span class="lump-gt-chip-name lump-gt-name-unresolved">CR${s}</span>`;
+                    : `<span class="lump-gt-chip-name lump-gt-name-unresolved">NS[${gtSlotId}]</span>`;
                 html += `<div class="lump-gt-chip" data-slot="${s}">` +
                         `<span class="lump-gt-chip-dot"></span>` +
                         nameHtml +
