@@ -1078,6 +1078,8 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
 
     const effEnd = Math.min(cw + 1, lumpSize - cc > 0 ? lumpSize - cc : cw + 1, words.length);
     let html = '<div class="lump-content-code">';
+    html += '<div class="lump-methods-section">';
+    html += '<div class="lump-methods-title">MyMethods</div>';
     if (effEnd <= 1) {
         html += '<div class="lumps-placeholder">No code words in this lump.</div>';
     } else {
@@ -1085,17 +1087,45 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
         const crAlias = {};  // crNum → slot index (int)
         let _curMethodObj = null;
         let instrRelIdx   = 0;
+        let _methodCardOpen = false;
+        let _methodCardIdx  = 0;
 
         for (let i = 1; i < effEnd; i++) {
             // Method boundary → reset per-method register aliases and update DR pet names
             if (mb[i] !== undefined) {
+                if (_methodCardOpen) html += '</div>';  // close previous method card
                 const auto = autoDetected ? ' <span class="lump-meth-auto" title="Auto-detected boundary">[~]</span>' : '';
-                html += `<div class="lump-code-method-label">\u25c6 ${e(mb[i])}${auto}</div>`;
+                const cardId = `lump-mc-${_methodCardIdx++}`;
+                html += `<div class="lump-method-card" id="${cardId}">` +
+                        `<div class="lump-method-card-header">` +
+                        `<span class="lump-method-card-name">\u25c6 ${e(mb[i])}${auto}</span>` +
+                        `<button class="lump-method-toggle-btn" onclick="(function(btn){` +
+                            `var card=btn.closest('.lump-method-card');` +
+                            `var shown=card.getAttribute('data-binary')==='1';` +
+                            `card.setAttribute('data-binary',shown?'0':'1');` +
+                            `btn.textContent=shown?'Show binary':'Hide binary';` +
+                        `})(this)">Show binary</button>` +
+                        `</div>`;
+                _methodCardOpen = true;
                 for (const k of Object.keys(crAlias)) delete crAlias[k];
                 _curMethodDRMap = methodDRPetNames[mb[i]] || {};
                 _curMethodObj   = mbObj[i] || null;
                 instrRelIdx     = 0;
                 html += _renderDocstring(_curMethodObj);
+            } else if (!_methodCardOpen) {
+                // Code words before first detected boundary — open an implicit card
+                const cardId = `lump-mc-${_methodCardIdx++}`;
+                html += `<div class="lump-method-card" id="${cardId}">` +
+                        `<div class="lump-method-card-header">` +
+                        `<span class="lump-method-card-name">\u25c6 (code)</span>` +
+                        `<button class="lump-method-toggle-btn" onclick="(function(btn){` +
+                            `var card=btn.closest('.lump-method-card');` +
+                            `var shown=card.getAttribute('data-binary')==='1';` +
+                            `card.setAttribute('data-binary',shown?'0':'1');` +
+                            `btn.textContent=shown?'Show binary':'Hide binary';` +
+                        `})(this)">Show binary</button>` +
+                        `</div>`;
+                _methodCardOpen = true;
             }
 
             const w    = words[i] >>> 0;
@@ -1122,8 +1152,10 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
             // Build symbolic annotation (capability arrow shown next to mnemonic)
             let ann = '';
             const _nsOrClistName = idx => {
+                const fromClist = clistSlotName[idx];
+                if (fromClist && !fromClist.startsWith('0x')) return fromClist;
                 const nsEntry = abstractionRegistry && abstractionRegistry.abstractions[idx];
-                return (nsEntry ? nsEntry.name : null) || clistSlotName[idx];
+                return (nsEntry ? nsEntry.name : null) || fromClist;
             };
             if ((op === 0 || op === 4) && crSrc === 6 && cc > 0) {
                 const nm = _nsOrClistName(imm);
@@ -1152,8 +1184,8 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                 });
             }
             html += `<div class="lump-code-row">` +
-                    `<span class="lump-code-addr">0x${addr}</span>` +
-                    `<span class="lump-code-hex">${hex}</span>` +
+                    `<span class="lump-code-addr lump-code-binary">\u00A00x${addr}</span>` +
+                    `<span class="lump-code-hex lump-code-binary">${hex}</span>` +
                     `<span class="lump-code-instr">${e(disText)}${ann ? ' ' + ann : ''}</span>` +
                     `<span class="lump-code-comment">; ${e(commentText)}</span></div>`;
 
@@ -1164,8 +1196,9 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                 for (const k of Object.keys(crAlias)) delete crAlias[k];
             }
         }
+        if (_methodCardOpen) html += '</div>';  // close last method card
     }
-    html += '</div>';
+    html += '</div></div>';  // close .lump-methods-section and .lump-content-code
 
     // Built-in data words section
     const dw          = parseInt(lump.dw)          || 0;
@@ -1220,21 +1253,43 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
         html += '</div></div>';
     }
 
-    // C-list viewer
+    // MyGoldenTokens (C-list viewer)
     if (cc > 0) {
-        html += `<div class="lump-clist-section"><div class="lump-clist-title">C-List — ${cc} entr${cc === 1 ? 'y' : 'ies'}</div><div class="lump-clist-table">`;
+        html += `<div class="lump-clist-section"><div class="lump-clist-title">MyGoldenTokens <span class="lump-gt-count">(${cc} ${cc === 1 ? 'capability' : 'capabilities'})</span></div>`;
+        html += `<div class="lump-gt-chips">`;
         for (let s = 0; s < cc; s++) {
             const wIdx = clistStart + s;
             const wVal = wIdx < words.length ? (words[wIdx] >>> 0) : 0;
-            const hexTok = wVal.toString(16).padStart(8, '0');
+            const hexTok = wVal.toString(16).toUpperCase().padStart(8, '0');
             const resolved = wVal ? _clistName(wVal) : '';
-            html += `<div class="lump-clist-row">` +
-                    `<span class="lump-clist-idx">[${s}]</span>` +
-                    `<span class="lump-clist-tok">0x${hexTok}</span>` +
-                    `<span class="lump-clist-name">${resolved ? e(resolved) : '<span class="lump-clist-null">—</span>'}</span>` +
-                    `</div>`;
+            const permBits = wVal & 0x1F;
+            const permStr  = permBits.toString(2).padStart(5, '0');
+            if (!wVal) {
+                html += `<div class="lump-gt-chip lump-gt-chip-null">` +
+                        `<span class="lump-gt-chip-dot lump-gt-dot-null"></span>` +
+                        `<span class="lump-gt-chip-name lump-gt-name-null">empty</span>` +
+                        `<span class="lump-gt-chip-idx">[${s}]</span>` +
+                        `</div>`;
+            } else {
+                const label = resolved || `0x${hexTok}`;
+                html += `<div class="lump-gt-chip" data-slot="${s}">` +
+                        `<span class="lump-gt-chip-dot"></span>` +
+                        `<span class="lump-gt-chip-name">${e(label)}</span>` +
+                        `<span class="lump-gt-chip-idx">[${s}]</span>` +
+                        `<button class="lump-gt-chip-btn" title="Show binary details" onclick="(function(btn){` +
+                            `var p=document.getElementById('lump-gt-detail-popup');` +
+                            `if(!p){p=document.createElement('div');p.id='lump-gt-detail-popup';document.body.appendChild(p);` +
+                            `document.addEventListener('click',function(ev){if(!p.contains(ev.target)&&!ev.target.classList.contains('lump-gt-chip-btn'))p.style.display='none';});}` +
+                            `p.innerHTML='<div class=\\'lump-gt-popup-row\\'><span class=\\'lump-gt-popup-lbl\\'>Slot</span><span class=\\'lump-gt-popup-val\\'>${s}</span></div>' +` +
+                                `'<div class=\\'lump-gt-popup-row\\'><span class=\\'lump-gt-popup-lbl\\'>Token</span><span class=\\'lump-gt-popup-val\\'>0x${hexTok}</span></div>' +` +
+                                `'<div class=\\'lump-gt-popup-row\\'><span class=\\'lump-gt-popup-lbl\\'>Perms</span><span class=\\'lump-gt-popup-val\\'>${permStr} (${permBits})</span></div>';` +
+                            `var r=btn.getBoundingClientRect();` +
+                            `p.style.display='block';p.style.top=(r.bottom+6)+'px';p.style.left=Math.min(r.left,window.innerWidth-180)+'px';` +
+                        `})(this)">\u22EF</button>` +
+                        `</div>`;
+            }
         }
-        html += '</div></div>';
+        html += `</div></div>`;
     }
 
     bodyEl.innerHTML = html;
