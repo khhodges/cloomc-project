@@ -1268,21 +1268,24 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
             if (!wVal) {
                 html += `<div class="lump-gt-chip lump-gt-chip-null">` +
                         `<span class="lump-gt-chip-dot lump-gt-dot-null"></span>` +
-                        `<span class="lump-gt-chip-name lump-gt-name-null">empty</span>` +
+                        `<span class="lump-gt-chip-name lump-gt-name-null">— empty —</span>` +
                         `<span class="lump-gt-chip-meta lump-gt-meta-null">#${s}</span>` +
                         `</div>`;
             } else {
-                const label = resolved || `0x${hexTok}`;
                 const _lm = _lumpsCache ? _lumpsCache.find(l => {
                     const h = wVal.toString(16).padStart(8, '0');
                     const t = (l.token || '').toLowerCase();
                     return t === h || t.replace(/^0+/, '') === h.replace(/^0+/, '');
                 }) : null;
-                const typeLabel = _lm ? _lumpContentTypeLabel(_lm) : '—';
+                const typeLabel = _lm ? _lumpContentTypeLabel(_lm) : '?';
+                const petName   = resolved || (_lm ? (_lm.abstraction || '') : '');
+                const nameHtml  = petName
+                    ? `<span class="lump-gt-chip-name">${e(petName)}</span>`
+                    : `<span class="lump-gt-chip-name lump-gt-name-unresolved">0x${hexTok}</span>`;
                 html += `<div class="lump-gt-chip" data-slot="${s}">` +
                         `<span class="lump-gt-chip-dot"></span>` +
-                        `<span class="lump-gt-chip-name">${e(label)}</span>` +
-                        `<span class="lump-gt-chip-meta">${e(typeLabel)} · ${permStr} · #${s}</span>` +
+                        nameHtml +
+                        `<span class="lump-gt-chip-meta">0x${hexTok} · ${e(typeLabel)} · ${permStr} · #${s}</span>` +
                         `</div>`;
             }
         }

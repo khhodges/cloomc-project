@@ -470,13 +470,19 @@
     font-weight: 400;
     font-style: italic;
 }
+.lump-gt-name-unresolved {
+    color: #8899aa;
+    font-weight: 400;
+    font-style: italic;
+}
 .lump-gt-chip-meta {
     color: #6b7280;
-    font-size: 0.63rem;
+    font-size: 0.62rem;
     font-weight: 400;
     margin-left: auto;
     flex-shrink: 0;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
+    font-family: 'Courier New', monospace;
 }
 .lump-gt-meta-null {
     color: #333;
