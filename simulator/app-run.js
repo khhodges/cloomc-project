@@ -1892,6 +1892,7 @@ function showFaultModal(f) {
         <div class="fault-modal-header">
             <span class="fault-type-badge" style="background:${color}22;border-color:${color};color:${color}">${f.type}</span>
             <span class="fault-modal-title">Machine Fault</span>
+            <button class="fault-modal-close" onclick="faultModalDismiss()" title="Close">&times;</button>
         </div>
         <div class="modal-buttons fault-modal-actions">
             <button class="btn btn-danger" onclick="faultModalReboot()">&#x21BA; Reboot</button>
