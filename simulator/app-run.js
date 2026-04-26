@@ -6076,6 +6076,14 @@ function _renderBuildNextSteps(isTi60) {
     ).join('');
 }
 
+function toggleBuildNextSteps() {
+    var el = document.getElementById('buildNextSteps');
+    var ch = document.getElementById('buildNextStepsChevron');
+    if (!el) return;
+    var collapsed = el.classList.toggle('collapsed');
+    if (ch) ch.textContent = collapsed ? '\u25BA' : '\u25BC';
+}
+
 function initHardwareBuildPanel() {
     const sel = document.getElementById('hardwareBoardSel');
     if (sel) sel.value = getSelectedBoard();

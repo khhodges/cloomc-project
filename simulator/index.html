@@ -715,8 +715,10 @@
                     <div class="build-file-list" id="buildFileList">
                         <div class="build-file-empty">No build yet.</div>
                     </div>
-                    <div class="build-details-section-title" style="margin-top:1rem;">Next Steps</div>
-                    <div class="build-next-steps" id="buildNextSteps">
+                    <div class="build-details-section-title build-next-steps-title" id="buildNextStepsTitle" style="margin-top:1rem;" onclick="toggleBuildNextSteps()">
+                        <span>Next Steps</span><span class="build-next-steps-chevron" id="buildNextStepsChevron">&#9658;</span>
+                    </div>
+                    <div class="build-next-steps collapsed" id="buildNextSteps">
                         <div class="build-file-empty">Build first to see instructions.</div>
                     </div>
                 </div>

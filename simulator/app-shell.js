@@ -664,7 +664,13 @@ function switchView(viewId) {
     if (viewId === 'lumps') renderLumps();
     if (viewId === 'pipeline') pipelineViz.render();
     if (viewId === 'builder' && typeof initBuilder === 'function') initBuilder();
-    if (viewId === 'builder') initHardwareBuildPanel();
+    if (viewId === 'builder') {
+        initHardwareBuildPanel();
+        var _bns = document.getElementById('buildNextSteps');
+        var _bnc = document.getElementById('buildNextStepsChevron');
+        if (_bns) _bns.classList.add('collapsed');
+        if (_bnc) _bnc.textContent = '\u25BA';
+    }
     if (viewId === 'devices') loadDeviceList();
     if (viewId === 'editor') {
         if (!_editorCREditActive) {

@@ -621,10 +621,28 @@
     padding: 0.4rem 0;
 }
 
+.build-next-steps-title {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.build-next-steps-chevron {
+    font-size: 0.6rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
 .build-next-steps {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+}
+
+.build-next-steps.collapsed {
+    display: none;
 }
 
 .build-step-row {
