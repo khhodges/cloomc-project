@@ -3123,16 +3123,19 @@ a.next-step-link:hover {
     right: 6px;
     background: none;
     border: none;
-    color: #6b8faf;
-    font-size: 1.1rem;
+    color: #8ab4d4;
+    font-size: 1.35rem;
     line-height: 1;
     cursor: pointer;
     padding: 2px 5px;
     border-radius: 4px;
+    opacity: 0.75;
+    transition: color 0.15s, opacity 0.15s;
 }
 #zone-data-popup .zdp-dismiss:hover {
-    color: #e2e8f0;
-    background: rgba(255,255,255,0.08);
+    color: #e05050;
+    opacity: 1;
+    background: rgba(255,255,255,0.06);
 }
 #zone-data-popup .zdp-title {
     font-size: 0.72rem;
@@ -3193,16 +3196,19 @@ a.next-step-link:hover {
     right: 6px;
     background: none;
     border: none;
-    color: #6b8faf;
-    font-size: 1.1rem;
+    color: #8ab4d4;
+    font-size: 1.35rem;
     line-height: 1;
     cursor: pointer;
     padding: 2px 5px;
     border-radius: 4px;
+    opacity: 0.75;
+    transition: color 0.15s, opacity 0.15s;
 }
 #cr-hover-popup .zdp-dismiss:hover {
-    color: #e2e8f0;
-    background: rgba(255,255,255,0.08);
+    color: #e05050;
+    opacity: 1;
+    background: rgba(255,255,255,0.06);
 }
 #cr-hover-popup .zdp-title {
     font-size: 0.72rem;
