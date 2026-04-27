@@ -1,0 +1,80 @@
+-- ENGLISH: Contact Stage 2 — Abstraction-Level Pet Names
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- This is the Stage 2 program from the namespace vocabulary
+-- tutorial (§Stage 2), written in plain-English CLOOMC++.
+-- It shows what developer code looks like once platform
+-- abstractions — Identity, WordString, and Mint — are sealed
+-- in the namespace, but before a domain abstraction like
+-- Contact exists.
+--
+-- What changed from Stage 1:
+--   - Raw register names (CR3, DR1, #2) are gone from
+--     the method body.
+--   - Identity.Lookup, WordString.GetCharCount, and Mint.Create
+--     replace manual DREAD/DWRITE sequences against unnamed
+--     device registers.
+--   - The pet-name compiler resolves each abstraction name
+--     to the correct LOAD CRn + CALL sequence automatically.
+--   - The developer no longer needs to know which c-list slot
+--     holds each GT, or which capability register the compiler
+--     assigns to each abstraction.
+--
+-- What is still missing compared to Stage 3:
+--   - There is no name for the act of *connecting* a contact.
+--     The developer still assembles the connection logic
+--     manually: look up an address, create a session token,
+--     write to a device register.
+--   - The concept of a *medium* (voice, text, email) does not
+--     exist in the vocabulary. It is buried inside a raw DWRITE
+--     to device register 4.
+--   - "myMother" is a string literal. The application has no
+--     type for a person. The caller must pass names as raw
+--     strings rather than as typed identity tokens.
+--   - The routing step (DWRITE sessionToken, CR3, 4) exposes an
+--     internal device register that Stage 3 hides entirely
+--     inside the Contact seal.
+--
+-- In Stage 3, Contact.Connect(me, myMother) replaces all of
+-- this with a single call. The platform details — identity
+-- resolution, medium selection, session allocation, routing —
+-- are sealed inside the Contact lump and are structurally
+-- unreachable from any external caller.
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create an abstraction called ContactStage2
+
+It needs Identity and WordString and Mint
+
+-- run: assemble a connection the Stage 2 way.
+--
+-- Looks up "myMother" by name, validates the returned
+-- address, allocates a session token via Mint, then hands
+-- the token to the routing device. The DWRITE is the one
+-- step Stage 3 will eliminate — in Stage 3 the Contact
+-- abstraction handles routing internally.
+--
+-- Returns: sessionToken
+
+Add a method called run
+
+-- Look up "myMother" by name — Identity knows how to resolve this.
+-- The compiler assigns Identity a capability register automatically.
+Set addressToken to the result of calling Identity.Lookup with "myMother"
+
+-- Validate the returned address has a non-zero length.
+-- WordString.GetCharCount replaces a manual byte-counting loop.
+Set charCount to the result of calling WordString.GetCharCount with addressToken
+
+-- Allocate a new token for the outgoing session.
+-- Mint.Create replaces a hand-coded DREAD/DWRITE sequence against
+-- a memory manager whose internal logic is now hidden behind its seal.
+Set sessionToken to the result of calling Mint.Create with 128 and 3
+
+-- Hand the session token to the routing device.
+-- This DWRITE is the one thing Stage 3 will eliminate: in Stage 3 the
+-- Contact abstraction handles routing internally, so the caller never
+-- needs to know that device register 4 exists.
+DWRITE sessionToken, CR3, 4
+
+Return sessionToken

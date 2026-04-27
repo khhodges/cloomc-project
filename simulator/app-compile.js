@@ -362,7 +362,7 @@ function onLangChange(restoring) {
     if (btnBuildLumpMenu) btnBuildLumpMenu.disabled = (lang === 'assembly');
 
     const langExampleGroups = {
-        english: ['cloomc_english_hello', 'cloomc_english_counter', 'cloomc_english_string', 'cloomc_english_loops', 'cloomc_english_contact'],
+        english: ['cloomc_english_hello', 'cloomc_english_counter', 'cloomc_english_string', 'cloomc_english_loops', 'cloomc_english_contact', 'cloomc_english_contact_stage2'],
         assembly: ['ada_note_g', 'selftest', 'load_save', 'bernoulli', 'conditional', 'gc_test', 'turing_test', 'led_blink', 'salvation', 'perm_attack', 'bind_attack', 'tperm_halt'],
         javascript: ['cloomc_hello', 'cloomc_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_counter', 'cloomc_sliderule', 'cloomc_contact', 'cloomc_contact_stage2', 'cloomc_contact_call', 'cloomc_stack_overflow', 'cloomc_recall_demo'],
         haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_church_lambda', 'cloomc_sliderule_hs'],
@@ -1143,7 +1143,8 @@ function loadCLOOMCExample(name) {
         'sliderule': '/simulator/cloomc/sliderule.cloomc',
         'contact': '/simulator/cloomc/Contact.cloomc',
         'contact_stage2': '/simulator/cloomc/ContactStage2.cloomc',
-        'contact_call': '/simulator/cloomc/ContactCall.cloomc'
+        'contact_call': '/simulator/cloomc/ContactCall.cloomc',
+        'english_contact_stage2': '/simulator/cloomc/english/ContactStage2.cloomc'
     };
     if (fileExamples[name]) {
         fetch(fileExamples[name])
@@ -2385,7 +2386,7 @@ abstraction Feedback {
     if (sel) {
         const isHaskell = ['church_math','church_pair','church_case','church_lambda','sliderule_hs'].includes(name);
         const isSymbolic = ['ada_note_g', 'bernoulli_numbers'].includes(name);
-        const isEnglish = ['english_hello','english_counter','english_string','english_loops','english_contact'].includes(name);
+        const isEnglish = ['english_hello','english_counter','english_string','english_loops','english_contact','english_contact_stage2'].includes(name);
         const isLambda = ['lambda_church','lambda_booleans','lambda_pairs','lambda_ycomb','lambda_sliderule','lambda_fixedpoint','lambda_rational','lambda_church_vs_compiled'].includes(name);
         sel.value = isLambda ? 'lambda' : isEnglish ? 'english' : isSymbolic ? 'symbolic' : isHaskell ? 'haskell' : 'javascript';
     }
