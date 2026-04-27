@@ -9,7 +9,7 @@ The binary computer is frozen in time. Born of Cold War necessity, supplier conv
 
 We do not propose another patch, because patching cannot fix hardware or protect civilization in the Information Age.
 
-We propose the architecture that should have been built first: the Church-Turing machine, grounded in the Lambda Calculus, governed by capability-based addressing, and protected by six laws that are not policies but mathematical facts. These laws do not require trust. They require only that the hardware enforce them, and the hardware can.
+We propose the architecture that could have been built first: the Church-Turing machine, grounded in the Lambda Calculus, governed by capability-based addressing, and protected by six laws that are not policies but mathematical facts. These laws do not require trust. They require only that the hardware enforce them, and the hardware can.
 
 This is the CLOOMC Manifesto. It is a declaration of the six principles on which a failsafe, democratic, and mathematically civilised cyberspace must be built.
 
