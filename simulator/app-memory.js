@@ -294,6 +294,16 @@ function updateCRDetail() {
 
         const _brLabelCondNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
         const _brCondLong       = ['Equal','Not Equal','Carry Set','Carry Clear','Minus','Plus','Overflow Set','Overflow Clear','Higher','Lower or Same','Greater or Equal','Less Than','Greater Than','Less or Equal','Always','Never'];
+        const _injectCondTooltip = (html, condCode) => {
+            if (condCode === 14) return html;
+            const abbr = _brLabelCondNames[condCode];
+            if (!abbr) return html;
+            return html.replace(
+                new RegExp(`^([A-Z]+)(${abbr})(\\s|$)`),
+                (m, prefix, ca, tail) =>
+                    `${prefix}<span class="cond-abbr" title="${ca}\u00A0\u2014\u00A0${_brCondLong[condCode]}">${ca}</span>${tail}`
+            );
+        };
         const _brTargetSet = new Set();
         for (let i = 0; i < _codeWords.length; i++) {
             const _w = _codeWords[i] >>> 0;
@@ -346,9 +356,9 @@ function updateCRDetail() {
                 const _labelName = _brLabelMap.get(_tgt);
                 decoded = _labelName !== undefined
                     ? _wrapRegHover(`${_mnemonicHtml}\u00A0\u00A0${_labelName}`)
-                    : _wrapRegHover(asm.disassemble(word));
+                    : _injectCondTooltip(_wrapRegHover(asm.disassemble(word)), _condCode);
             } else {
-                decoded = _wrapRegHover(asm.disassemble(word));
+                decoded = _injectCondTooltip(_wrapRegHover(asm.disassemble(word)), (word >>> 23) & 0xF);
             }
             if (_lumpClistBase > 0 && typeof _wrapCListHover === 'function') {
                 decoded = _wrapCListHover(decoded, _lumpClistBase, _lumpHdr.cc || 0);

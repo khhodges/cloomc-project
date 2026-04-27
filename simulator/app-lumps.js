@@ -1169,6 +1169,15 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
     const _lumpCondAbbr = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
     const _condLong     = ['Equal','Not Equal','Carry Set','Carry Clear','Minus','Plus','Overflow Set','Overflow Clear','Higher','Lower or Same','Greater or Equal','Less Than','Greater Than','Less or Equal','Always','Never'];
     const _condSpan = (abbr, idx) => `<span class="cond-abbr" title="${abbr}\u00A0\u2014\u00A0${_condLong[idx]}">${abbr}</span>`;
+    const _injectCondTooltip = (escapedHtml, condCode) => {
+        if (condCode === 14) return escapedHtml;
+        const abbr = _lumpCondAbbr[condCode];
+        if (!abbr) return escapedHtml;
+        return escapedHtml.replace(
+            new RegExp(`^([A-Z]+)(${abbr})(\\s|$)`),
+            (m, prefix, ca, tail) => `${prefix}${_condSpan(ca, condCode)}${tail}`
+        );
+    };
     const _lumpCodeWords = [];
     for (let _ci = 1; _ci < effEnd; _ci++) _lumpCodeWords.push(words[_ci] >>> 0);
 
@@ -1322,7 +1331,7 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
                     `<span class="lump-code-addr lump-code-binary">\u00A00x${addr}</span>` +
                     `<span class="lump-code-hex lump-code-binary">${hex}</span>` +
                     `<span class="lump-code-comment">${_colorizeComment(commentText)}</span>` +
-                    `<span class="lump-code-instr">${disHtml !== null ? disHtml : e(disText)}${ann ? ' ' + ann : ''}</span>` +
+                    `<span class="lump-code-instr">${disHtml !== null ? disHtml : _injectCondTooltip(e(disText), cond)}${ann ? ' ' + ann : ''}</span>` +
                     `</div>`;
 
             instrRelIdx++;
