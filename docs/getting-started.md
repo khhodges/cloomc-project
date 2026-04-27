@@ -30,7 +30,7 @@ The IDE has eight views, accessible via the toolbar:
 |------|---------|
 | **Dashboard** | Register inspection (CR0–CR15, DR0–DR15), machine state, flags |
 | **Code** | Assembly editor with syntax highlighting, examples, assemble/deploy |
-| **Namespace** | Browse all namespace entries with their GTs, versions, and permissions |
+| **Namespace** | Browse all namespace entries with their GTs, versions, and permissions — see the [Namespace Vocabulary Tutorial](namespace-vocabulary-tutorial.md) to understand how a namespace grows from raw registers into application-level vocabulary |
 | **Abstractions** | Catalog of all 45 security blocks across 9 layers |
 | **Pipeline** | Visual 7-step security pipeline (mLoad validation) |
 | **Tutorial** | Guided lessons with explanations |

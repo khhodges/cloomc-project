@@ -480,6 +480,10 @@ methods. An abstraction is not a library, a module, or a package. It is
 a logical entity that lives in the namespace, cannot be forged, and can
 only be reached through a capability you have been explicitly granted.
 
+> To see how a namespace evolves from raw hardware registers into a
+> rich, application-level vocabulary, read the
+> [Namespace Vocabulary Tutorial](namespace-vocabulary-tutorial.md).
+
 This changes what software means. When you call `SlideRule.Sin`, you are
 not jumping to an address — you are presenting a capability to the
 hardware. The hardware checks it. If the check fails, it faults. If it
