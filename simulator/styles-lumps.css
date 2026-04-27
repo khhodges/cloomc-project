@@ -2163,7 +2163,8 @@
 
 .tutorial-selector {
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.35rem;
     margin-bottom: 0.5rem;
     padding: 0.4rem;
     background: var(--bg-card);
@@ -2177,15 +2178,16 @@
 }
 
 .tutorial-selector .btn-tut-select {
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.75rem;
     border-radius: 6px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     background: transparent;
     color: var(--text-secondary);
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.2s;
-    flex: 1;
+    flex: 0 0 auto;
+    white-space: nowrap;
     text-align: center;
 }
 
@@ -2885,10 +2887,8 @@ pre:hover .code-copy-btn {
         font-size: 0.55rem;
         padding: 0.2rem 0.3rem;
     }
-    .tutorial-selector {
-        flex-direction: column;
-    }
 }
+
 
 .hp35-tile-grid {
     display: flex;
