@@ -43,8 +43,22 @@
 //  19  SHR        shift right           DR ← DR >> n  (logical)
 //
 // CONDITION CODES  (ARM-compatible, bits[26:23])
-//   EQ=0  NE=1  CS=2  CC=3  MI=4  PL=5  VS=6  VC=7
-//   HI=8  LS=9  GE=10 LT=11 GT=12 LE=13 AL=14 NV=15
+//   0  EQ  Equal                     Z=1
+//   1  NE  Not Equal                 Z=0
+//   2  CS  Carry Set                 C=1
+//   3  CC  Carry Clear               C=0
+//   4  MI  Minus (negative)          N=1
+//   5  PL  Plus (positive or zero)   N=0
+//   6  VS  Overflow Set              V=1
+//   7  VC  Overflow Clear            V=0
+//   8  HI  Higher (unsigned)         C=1 & Z=0
+//   9  LS  Lower or Same (unsigned)  C=0 | Z=1
+//  10  GE  Greater or Equal (signed) N=V
+//  11  LT  Less Than (signed)        N≠V
+//  12  GT  Greater Than (signed)     Z=0 & N=V
+//  13  LE  Less or Equal (signed)    Z=1 | N≠V
+//  14  AL  Always                    (unconditional)
+//  15  NV  Never                     (never executes)
 //
 // ASSEMBLY SYNTAX  (one instruction per line)
 //   MNEMONIC  [.COND]  operand, operand, ...
