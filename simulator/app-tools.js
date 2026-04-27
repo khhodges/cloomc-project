@@ -131,6 +131,8 @@ function selectTutorial(which) {
         englishLoopsTutorial.render('tutorialView');
     } else if (which === 'englishstring' && englishStringTutorial) {
         englishStringTutorial.render('tutorialView');
+    } else if (which === 'englishcontact' && englishContactTutorial) {
+        englishContactTutorial.render('tutorialView');
     } else if (churchTutorial) {
         churchTutorial.render('tutorialView');
     }
@@ -189,6 +191,15 @@ function _ensureTutorialObjects() {
         } else if (typeof window !== 'undefined' && window.EnglishStringTutorial) {
             englishStringTutorial = new window.EnglishStringTutorial();
             window.englishStringTutorial = englishStringTutorial;
+        }
+    }
+    if (!englishContactTutorial) {
+        if (typeof EnglishContactTutorial !== 'undefined') {
+            englishContactTutorial = new EnglishContactTutorial();
+            window.englishContactTutorial = englishContactTutorial;
+        } else if (typeof window !== 'undefined' && window.EnglishContactTutorial) {
+            englishContactTutorial = new window.EnglishContactTutorial();
+            window.englishContactTutorial = englishContactTutorial;
         }
     }
 }

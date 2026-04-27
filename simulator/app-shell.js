@@ -104,6 +104,7 @@ let nsTutorial = null;
 let secureBootTutorial = null;
 let englishLoopsTutorial = null;
 let englishStringTutorial = null;
+let englishContactTutorial = null;
 let activeTutorial = 'sliderule';
 let cloomcCompiler = null;
 let currentView = 'dashboard';
@@ -764,6 +765,8 @@ function switchView(viewId) {
             englishLoopsTutorial.render('tutorialView');
         } else if (activeTutorial === 'englishstring' && englishStringTutorial) {
             englishStringTutorial.render('tutorialView');
+        } else if (activeTutorial === 'englishcontact' && englishContactTutorial) {
+            englishContactTutorial.render('tutorialView');
         } else if (churchTutorial) {
             churchTutorial.render('tutorialView');
         }
