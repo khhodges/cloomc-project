@@ -482,7 +482,8 @@ function compileDraftAssembly(source, con) {
     const result = assembler.assemble(source);
     if (result.errors.length > 0) {
         const errText = result.errors.map(e => `Line ${e.line}: ${e.message}`).join('\n');
-        if (con) { con.textContent = `Assembly Draft — errors:\n${errText}`; con.scrollTop = 0; }
+        const _asmSrc = _getActiveSourceLabel(); const _asmSrcH = _asmSrc ? ` · ${_asmSrc}` : '';
+        if (con) { con.textContent = `Assembly Draft${_asmSrcH} — errors:\n${errText}`; con.scrollTop = 0; }
         if (typeof _showAsmErrors === 'function') _showAsmErrors(result.errors);
         showNextSteps('error');
         return;
@@ -548,7 +549,8 @@ function compileDraft() {
 
     if (result.errors.length > 0) {
         const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
-        if (con) { con.textContent = `CLOOMC++ Draft — compilation errors:\n${errText}`; con.scrollTop = 0; }
+        const _dSrc = _getActiveSourceLabel(); const _dSrcH = _dSrc ? ` · ${_dSrc}` : '';
+        if (con) { con.textContent = `CLOOMC++ Draft${_dSrcH} — compilation errors:\n${errText}`; con.scrollTop = 0; }
         showNextSteps('error');
         return;
     }
@@ -944,7 +946,8 @@ function compileCLOOMC() {
 
     if (result.errors.length > 0) {
         const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
-        if (con) { con.textContent = `CLOOMC++ compilation errors:\n${errText}`; con.scrollTop = 0; }
+        const _cmpSrc = _getActiveSourceLabel(); const _cmpSrcH = _cmpSrc ? ` · ${_cmpSrc}` : '';
+        if (con) { con.textContent = `CLOOMC++ compilation errors${_cmpSrcH}:\n${errText}`; con.scrollTop = 0; }
         if (typeof _showAsmErrors === 'function') _showAsmErrors(result.errors);
         showNextSteps('error');
         return;
@@ -1010,7 +1013,8 @@ function compileAndCreateAbstraction() {
 
     if (result.errors.length > 0) {
         const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
-        if (con) con.textContent = `CLOOMC++ compilation errors:\n${errText}`;
+        const _cab2Src = _getActiveSourceLabel(); const _cab2SrcH = _cab2Src ? ` · ${_cab2Src}` : '';
+        if (con) con.textContent = `CLOOMC++ compilation errors${_cab2SrcH}:\n${errText}`;
         showNextSteps('error');
         return;
     }

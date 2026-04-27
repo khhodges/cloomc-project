@@ -884,12 +884,29 @@ class CLOOMCCompiler {
         return { name: 'Dispatch', code, visibility: 'public' };
     }
 
+    _parseCRFull(name) {
+        const up = (name || '').toUpperCase();
+        const direct = up.match(/^CR(\d+)$/);
+        if (direct) return parseInt(direct[1]);
+        if (up === 'CODE') return 14;
+        if (up === 'CLIST') return 6;
+        if (this._crLocals && this._crLocals[name] !== undefined) return this._crLocals[name];
+        if (this._crCompileMethod) {
+            const idx = this._crCompileMethod.params.indexOf(name);
+            if (idx >= 0) return 2 + idx;
+        }
+        return 0;
+    }
+
     _compileMethod(method, rom, capNames) {
         const errors = [];
         const code = [];
         const manifest = [];
         const locals = {};
         let nextLocal = this.DR_LOCALS_START;
+        this._crLocals = {};
+        this._crAlloc = { next: 7 };
+        this._crCompileMethod = method;
 
         for (const param of method.params) {
             const paramIdx = method.params.indexOf(param);
@@ -1081,8 +1098,7 @@ class CLOOMCCompiler {
 
         const readMatch = expr.match(/^(?:read|DREAD)\s*\(\s*(\w+)\s*,\s*(.+)\s*\)$/);
         if (readMatch) {
-            const crName = readMatch[1].toUpperCase();
-            const crIdx = this._parseCR(crName);
+            const crIdx = this._parseCRFull(readMatch[1]);
             const offsetExpr = readMatch[2].trim();
             const offset = parseInt(offsetExpr) || 0;
             const dr = this._allocTemp(locals);
@@ -1136,7 +1152,7 @@ class CLOOMCCompiler {
 
         const writeMatch = text.match(/^(?:write|DWRITE)\s*\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(.+)\s*\)$/);
         if (writeMatch) {
-            const crIdx = this._parseCR(writeMatch[1].toUpperCase());
+            const crIdx = this._parseCRFull(writeMatch[1]);
             const offset = parseInt(writeMatch[2]) || 0;
             const valDR = this._resolveExpr(writeMatch[3], code, locals, rom, errors, stmt.lineNum, method);
             manifest.push({ src: stmt.lineNum, addr: code.length, desc: `DWRITE CR${crIdx}, ${offset}` });
@@ -1153,6 +1169,18 @@ class CLOOMCCompiler {
             const imm = ((pos & 0x1F) << 5) | (width & 0x1F);
             manifest.push({ src: stmt.lineNum, addr: code.length, desc: `BFINS DR${dstDR}, DR${valDR}` });
             code.push(this.encode(this.opcodes.BFINS, 14, dstDR, valDR, imm));
+            return;
+        }
+
+        // tperm(var, PERM) — restrict permissions on a capability register
+        const tpermMatch = text.match(/^tperm\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)$/);
+        if (tpermMatch) {
+            const crIdx = this._parseCRFull(tpermMatch[1]);
+            const permName = tpermMatch[2].toUpperCase();
+            const permBits = { E: 1, W: 2, R: 4, F: 8, EW: 3, ER: 5, EF: 9, WR: 6, WF: 10, RF: 12, EWR: 7, EWF: 11, ERF: 13, WRF: 14, EWRF: 15 };
+            const permMask = permBits[permName] !== undefined ? permBits[permName] : parseInt(permName) || 0;
+            manifest.push({ src: stmt.lineNum, addr: code.length, desc: `TPERM CR${crIdx}, #${permName}` });
+            code.push(this.encode(this.opcodes.TPERM, 14, crIdx, 0, permMask));
             return;
         }
 
@@ -1204,6 +1232,15 @@ class CLOOMCCompiler {
             return;
         }
 
+        // call(cr_var) — bare call through a capability register (no arg marshalling)
+        const callCapMatch = text.match(/^call\s*\(\s*(\w+)\s*\)$/);
+        if (callCapMatch) {
+            const crIdx = this._parseCRFull(callCapMatch[1]);
+            manifest.push({ src: stmt.lineNum, addr: code.length, desc: `CALL CR${crIdx}` });
+            code.push(this.encode(this.opcodes.CALL, 14, crIdx, crIdx, 0));
+            return;
+        }
+
         const callMatch = text.match(/^(?:(\w+)\s*=\s*)?call\s*\(\s*(\w+)\.(\w+)\s*\(\s*(.*?)\s*\)\s*\)$/);
         if (callMatch) {
             const resultVar = callMatch[1] || null;
@@ -1239,6 +1276,19 @@ class CLOOMCCompiler {
                     code.push(this.encode(this.opcodes.IADD, 14, dr, this.DR_ARGS_START, 0));
                 }
             }
+            return;
+        }
+
+        // var = load(CRx, n) — load capability from c-list slot n of CRx into a tracked CR local
+        const loadCRAssign = text.match(/^(?:(?:var|let|const)\s+)?(\w+)\s*=\s*load\s*\(\s*(\w+)\s*,\s*(\d+)\s*\)$/);
+        if (loadCRAssign) {
+            const varName = loadCRAssign[1];
+            const srcCR = this._parseCRFull(loadCRAssign[2]);
+            const offset = parseInt(loadCRAssign[3]);
+            const destCR = this._crAlloc.next++;
+            this._crLocals[varName] = destCR;
+            manifest.push({ src: stmt.lineNum, addr: code.length, desc: `LOAD CR${destCR}, CR${srcCR}[${offset}] (${varName})` });
+            code.push(this.encode(this.opcodes.LOAD, 14, destCR, srcCR, offset & 0x7FFF));
             return;
         }
 
