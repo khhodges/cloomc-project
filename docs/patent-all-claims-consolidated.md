@@ -1,19 +1,19 @@
-# CHURCH-TURING META-MACHINE
+# CHURCH-TURING META-MACHINE, CLOOMC Capability-Limited/Object-Oriented/Machine-Code
 ## Consolidated Claims Document for the Patent Office
 
 ---
 
 **Inventor**: Kenneth James Hamer-Hodges
 
-**Filed**: February – April 2026 (four applications, consolidated below)
+**Search**: February – April 2026 (four applications, consolidated below)
 
-**Classification**: Computer Architecture · Hardware Security · Capability-Based Computing · Lambda Calculus Processor · Compiler Architecture · I/O Virtualization · Network Security · Vulnerability Elimination by Construction
+**Classification**: Computer Architecture · Distributed Digital Security · Hardware & Software · Networked Security · Capability-Based Computing · Lambda Calculus Processor · Compiler Architecture · I/O Virtualization · Network Security · Vulnerability Elimination by Construction
 
 ---
 
 ## SUMMARY OF THE INVENTION
 
-The Church-Turing Meta-Machine (CTMM) is a processor architecture that enforces all access control through unforgeable capability tokens called **Golden Tokens (GTs)**, validated by a dual-gate Trusted Security Base. The architecture integrates Church's lambda calculus with Turing's computational model through clean domain separation and eliminates entire classes of known vulnerabilities by construction rather than by mitigation.
+The Church-Turing Meta-Machine (CTMM) uses CLOOMC, fail-safe, machine code in a processor architecture that enforces all access control through unforgeable capability tokens called **Golden Tokens (GTs)**, validated by a dual-gate Trusted Security Base. The architecture integrates Church's lambda calculus with Turing's computational model through clean domain separation that flawlessly eliminates entire classes of known vulnerabilities in computer science by proactive design construction rather than by reactive software mitigation.
 
 ### Core Principles
 
@@ -21,10 +21,10 @@ The Church-Turing Meta-Machine (CTMM) is a processor architecture that enforces 
 Every capability is an unforgeable 128-bit token with a 2-bit Type field (Inform, Outform, NULL, Abstract) and six permission bits organised into mutually exclusive Turing-domain (R Read, W Write, X Execute) and Church-domain (L Load, S Save, E Enter) sets. Capability registers hold capabilities exclusively; data registers hold values exclusively.
 
 **2. Dual-Gate Trusted Security Base**
-The entire trusted computing base is two hardware gates, totalling fewer than 400 lines of synthesisable HDL — five orders of magnitude smaller than Linux, two orders of magnitude smaller than seL4.
+The entire trusted computing base is two hardware gates, totalling fewer than 400 lines of synthesisable HDL — five orders of magnitude smaller than Linux, two orders of magnitude smaller than seL4 and adding the additional power of secure, trusted Lambda Calculus mathematics.
 
 - **mLoad (Read Gate)**: Validates every read-side capability operation: permission check → bounds check → version match → MAC/seal validation → G-bit reset → register write → thread shadow update.
-- **mSave (Write Gate)**: Validates every write of a GT to a C-List: source version match → seal validation → target bounds check → B-bit (bind) check → F-bit routing → seal recomputation → G-bit reset → commit.
+- **mSave (Write Gate)**: Validates every write of a GT to a C-List: source version match → seal validation → target bounds check → B-bit (bind) check → F-bit routing → seal recomputation → G-bit reset → commit, and B-bit authority to share and save a GT.
 
 **3. LAMBDA Instruction**
 A dedicated hardware instruction implementing Church's function application within the current protection domain, using Execute (X) permission. Unlike CALL (which crosses domain boundaries with a full stack frame), LAMBDA saves only a return address to machine-status registers and branches to the code body at near-zero overhead. This makes Church's lambda calculus a first-class hardware primitive.
@@ -39,7 +39,7 @@ In its Pure Church variant the processor exposes only six instructions to softwa
 No central operating system, virtual memory, privilege rings, or superuser. All system services are atomic abstractions accessed exclusively through Golden Tokens. The architecture achieves seven security zeros: zero OS required, zero virtual memory, zero privilege escalation, zero superuser, zero unauthorised code execution, zero unauthorised data access, zero containment escape.
 
 **7. Universal Computation Target**
-A fixed 20-instruction set — 10 Church-domain, 10 Turing-domain — to which programs written in fundamentally different paradigms (imperative JavaScript, functional Haskell, natural-language English) compile through a multi-front-end compiler (CLOOMC++). The compiler is architecturally outside the trusted computing base: no compiler bug can produce a security violation.
+A small 20-instruction set — 10 Church-domain, 10 Turing-domain — to which programs written in fundamentally different paradigms (imperative JavaScript, functional Haskell, natural-language English, symbolic machine code) compile through a multi-front-end compiler (CLOOMC++). The compiler is architecturally outside the trusted computing base: no compiler bug can produce a security violation.
 
 **8. Abstract GT I/O and Network Addressing**
 A novel GT type (`Abstract`, gt_type = 11₂) whose location field holds a hardware-routed sentinel address rather than a namespace slot index. This unifies I/O peripherals, network tunnels, and system resources under the same unforgeable capability model. A single Home Base Tunnel (0xFF000000) is the sole outbound network gateway. Structural capability scoping — not policy filtering — enables verifiably crime-free services.
@@ -48,7 +48,7 @@ A novel GT type (`Abstract`, gt_type = 11₂) whose location field holds a hardw
 LAMBDA CR6 (the capability list register established by the CALL lump split) provides optimal O(1) recursive self-invocation: the return address written on each re-entry is invariant, making each re-entry idempotent. Two RETURN instructions suffice for any recursion depth. No stack frames, no hardware counter, no additional registers beyond those already present for single-level LAMBDA.
 
 **10. Deterministic Garbage Collection**
-A four-phase (Scan-Identify-Clear-Flip) PP250 garbage collection algorithm with a bidirectional G-bit integrated into both mLoad and mSave. Version-based GT invalidation prevents use-after-free. GC is implemented as a safe Turing abstraction — an atomic Turing machine behind a Church-callable entry.
+A four-phase (Scan-Identify-Clear-Flip) PP250 garbage collection algorithm but with a bidirectional G-bit integrated into both mLoad and mSave. Version-based GT invalidation prevents use-after-free. GC is implemented as a safe Turing abstraction — an atomic Turing machine behind a Church-callable entry.
 
 ---
 
