@@ -2691,6 +2691,68 @@ def patch_lump_meta(token):
     return jsonify({"ok": True, "token": key8})
 
 
+@app.route("/api/lump/<token_hex>/clist/<int:slot_index>", methods=["PATCH"])
+def patch_lump_clist_slot(token_hex, slot_index):
+    """Write a single GT word into a specific c-list slot of a standalone .lump binary.
+
+    Expects JSON body: { "gt_word": <uint32> }
+
+    The .lump binary is big-endian uint32 words.  The c-list occupies the last
+    `cc` words of the lump; slot 0 is the last-cc-th word.
+
+    Returns { "ok": true, "token": ..., "slot": ..., "gt_word": ... }
+    """
+    raw  = token_hex.lower()
+    key8 = (raw[:8] if len(raw) >= 8 else raw).zfill(8)
+
+    lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
+    lump_path = os.path.join(lumps_dir, f'{key8}.lump')
+    if not os.path.isfile(lump_path):
+        return jsonify({"error": f"No standalone .lump file for token {key8}"}), 404
+
+    payload = request.get_json(force=True, silent=True) or {}
+    gt_word = payload.get("gt_word")
+    if gt_word is None:
+        return jsonify({"error": "Missing 'gt_word' in request body"}), 400
+    gt_word = int(gt_word) & 0xFFFFFFFF
+
+    with open(lump_path, 'rb') as fh:
+        raw_bytes = fh.read()
+    n_words = len(raw_bytes) // 4
+    if n_words < 2:
+        return jsonify({"error": "Lump file too short"}), 400
+
+    words = list(_struct.unpack(f'>{n_words}I', raw_bytes[:n_words * 4]))
+
+    hdr = words[0]
+    if (hdr >> 27) & 0x1F != 0x1F:
+        return jsonify({"error": "Bad lump magic in header word"}), 400
+
+    n_minus_6 = (hdr >> 23) & 0xF
+    cc        = hdr & 0xFF
+    lump_size = 1 << (n_minus_6 + 6)
+
+    if cc == 0:
+        return jsonify({"error": "Lump has no c-list (cc=0)"}), 400
+    if slot_index < 0 or slot_index >= cc:
+        return jsonify({"error": f"slot_index {slot_index} out of range (cc={cc})"}), 400
+    if lump_size > n_words:
+        return jsonify({"error": "Lump size exceeds file length"}), 400
+
+    word_pos = lump_size - cc + slot_index
+    words[word_pos] = gt_word
+
+    new_bytes = _struct.pack(f'>{n_words}I', *words)
+    with open(lump_path, 'wb') as fh:
+        fh.write(new_bytes)
+
+    LAZY_LUMPS[key8] = new_bytes
+    LAZY_LUMPS[key8.lstrip('0') or '0'] = new_bytes
+
+    print(f'[clist PATCH] {key8} slot={slot_index} gt_word=0x{gt_word:08x}', flush=True)
+    return jsonify({"ok": True, "token": key8, "slot": slot_index, "gt_word": gt_word})
+
+
 @app.route("/api/lump/<token_hex>/resize", methods=["POST"])
 def resize_lump(token_hex):
     """Repack a LUMP to its minimum power-of-2 size by removing freespace.

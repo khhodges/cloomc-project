@@ -507,6 +507,210 @@
 .lump-gt-meta-null {
     color: #333;
 }
+
+/* Empty slot — clickable "+" affordance */
+.lump-gt-chip-empty {
+    cursor: pointer;
+}
+.lump-gt-chip-empty:hover {
+    border-color: rgba(100, 200, 120, 0.35);
+    background: rgba(100, 200, 120, 0.06);
+}
+.lump-gt-empty-btn {
+    display: inline-block;
+    margin-left: auto;
+    color: #3a6;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.12s;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
+.lump-gt-chip-empty:hover .lump-gt-empty-btn { opacity: 1; }
+
+/* ── GT Slot Picker modal ─────────────────────────────────── */
+.gtpick-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10500;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.gtpick-panel {
+    background: #13131e;
+    border: 1px solid rgba(100, 160, 255, 0.25);
+    border-radius: 8px;
+    width: 420px;
+    max-width: 94vw;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    overflow: hidden;
+}
+.gtpick-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.75rem 0.45rem;
+    border-bottom: 1px solid rgba(100,160,255,0.12);
+    background: rgba(100,160,255,0.05);
+    flex-shrink: 0;
+}
+.gtpick-title {
+    font-weight: 700;
+    color: #7eb8ff;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+}
+.gtpick-close {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px 4px;
+    line-height: 1;
+}
+.gtpick-close:hover { color: #aaa; }
+
+.gtpick-selected-bar {
+    padding: 0.3rem 0.75rem;
+    background: rgba(100, 200, 120, 0.08);
+    border-bottom: 1px solid rgba(100, 200, 120, 0.18);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+    flex-shrink: 0;
+}
+.gtpick-sel-label { color: #7dd3a8; font-weight: 600; }
+.gtpick-sel-slot  { color: #6b7280; }
+
+.gtpick-search {
+    margin: 0.5rem 0.6rem 0.3rem;
+    padding: 0.28rem 0.5rem;
+    background: #0d0d18;
+    border: 1px solid rgba(100,160,255,0.2);
+    border-radius: 4px;
+    color: #d0d8e8;
+    font-family: inherit;
+    font-size: 0.73rem;
+    outline: none;
+    flex-shrink: 0;
+}
+.gtpick-search:focus { border-color: rgba(100,160,255,0.5); }
+
+.gtpick-list {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    padding: 0.2rem 0;
+    min-height: 80px;
+    max-height: 240px;
+}
+.gtpick-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.22rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.08s;
+}
+.gtpick-row:hover     { background: rgba(100,160,255,0.08); }
+.gtpick-row-sel       { background: rgba(100,200,120,0.1); }
+.gtpick-row-sel:hover { background: rgba(100,200,120,0.15); }
+.gtpick-slot  { color: #6b7280; min-width: 2.5rem; flex-shrink: 0; }
+.gtpick-badge { font-size: 0.67rem; min-width: 2.2rem; flex-shrink: 0; font-weight: 600; }
+.gtpick-label { color: #c8d8e8; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.gtpick-opts {
+    padding: 0.4rem 0.75rem 0.3rem;
+    border-top: 1px solid rgba(100,160,255,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex-shrink: 0;
+}
+.gtpick-opt-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.gtpick-opt-label {
+    color: #6b7280;
+    font-size: 0.68rem;
+    min-width: 5.5rem;
+    flex-shrink: 0;
+}
+.gtpick-select {
+    background: #0d0d18;
+    border: 1px solid rgba(100,160,255,0.18);
+    border-radius: 3px;
+    color: #c8d8e8;
+    font-family: inherit;
+    font-size: 0.72rem;
+    padding: 2px 4px;
+}
+.gtpick-perms { display: flex; gap: 0.5rem; }
+.gtpick-perm-lbl {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    color: #8a9aaa;
+    font-size: 0.7rem;
+    cursor: pointer;
+    user-select: none;
+}
+.gtpick-perm-lbl input { cursor: pointer; accent-color: #7eb8ff; }
+
+.gtpick-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem 0.55rem;
+    border-top: 1px solid rgba(100,160,255,0.1);
+    flex-shrink: 0;
+}
+.gtpick-btn {
+    padding: 0.26rem 0.7rem;
+    border-radius: 4px;
+    border: 1px solid;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.73rem;
+    font-weight: 600;
+    transition: opacity 0.12s;
+}
+.gtpick-btn:disabled { opacity: 0.35; cursor: default; }
+.gtpick-btn-assign {
+    background: rgba(100,200,120,0.15);
+    border-color: rgba(100,200,120,0.4);
+    color: #7dd3a8;
+}
+.gtpick-btn-assign:not(:disabled):hover { background: rgba(100,200,120,0.25); }
+.gtpick-btn-cancel {
+    background: rgba(100,100,130,0.12);
+    border-color: rgba(100,100,130,0.25);
+    color: #8a9aaa;
+}
+.gtpick-btn-cancel:hover { background: rgba(100,100,130,0.2); }
+.gtpick-new-hint {
+    margin-left: auto;
+    color: #555;
+    font-size: 0.68rem;
+}
+.gtpick-new-hint a {
+    color: var(--church-gold, #c8a84b);
+    text-decoration: none;
+}
+.gtpick-new-hint a:hover { text-decoration: underline; }
+
 #lump-gt-detail-popup {
     display: none;
     position: fixed;

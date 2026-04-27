@@ -1392,10 +1392,12 @@ function _renderLumpCodeContent(bodyEl, lump, words) {
             const gtSeq  = (wVal >>> 16) & 0x7F;  // bits[22:16]: revocation counter
 
             if (!wVal) {
-                html += `<div class="lump-gt-chip lump-gt-chip-null">` +
+                const _safeToken = e(token || '');
+                html += `<div class="lump-gt-chip lump-gt-chip-null lump-gt-chip-empty" title="Slot ${s} is empty — click to assign a capability" onclick="_openGTSlotPicker(${JSON.stringify(token || '')},${s},this)">` +
                         `<span class="lump-gt-chip-dot lump-gt-dot-null"></span>` +
                         `<span class="lump-gt-chip-name lump-gt-name-null">— empty —</span>` +
                         `<span class="lump-gt-chip-meta lump-gt-meta-null">#${s}</span>` +
+                        `<span class="lump-gt-empty-btn" title="Assign capability">+</span>` +
                         `</div>`;
 
             } else if (gtType === 3) {
@@ -2165,5 +2167,174 @@ function openLumpInEditor(token) {
     if (typeof _updateMtbfIndicator    === 'function') _updateMtbfIndicator();
     var outEl = document.getElementById('assemblyOutput');
     if (outEl) outEl.innerHTML = '';
+}
+
+// ── GT Slot Picker ────────────────────────────────────────────────────────────
+// Opened when the user clicks an empty c-list chip in the LUMP content view.
+// Lets the user pick an existing NS entry (Inform or Outform GT) or be guided
+// to create a new LUMP/ABSTRACT from the compiler.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _openGTSlotPicker(lumpToken, slotIndex, chipEl) {
+    if (!lumpToken) {
+        alert('Cannot assign GT: this LUMP has no persistent token (save it first).');
+        return;
+    }
+
+    // Remove any existing picker modal
+    const prev = document.getElementById('gt-slot-picker-modal');
+    if (prev) prev.remove();
+
+    // Gather NS entries from sim
+    const entries = [];
+    if (typeof sim !== 'undefined' && sim && typeof sim.readNSEntry === 'function') {
+        const count = sim.nsCount || 0;
+        for (let i = 0; i < count; i++) {
+            const ent = sim.readNSEntry(i);
+            if (!ent) continue;
+            const label = (sim.nsLabels && sim.nsLabels[i]) || ent.label || '';
+            const gtTypeNum = ent.gtType || 0;  // 0=NULL 1=Inf 2=Out 3=Abs
+            if (gtTypeNum === 0 && !label) continue;  // skip truly empty unnamed slots
+            entries.push({
+                slot: i,
+                label,
+                gtType: gtTypeNum,
+                gtTypeStr: ['NULL', 'Inf', 'Out', 'Abs'][gtTypeNum] || '?',
+                word2: ent.word2_seals >>> 0,
+            });
+        }
+    }
+
+    const _e = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const typeColors = { NULL: '#555', Inf: '#7dd3a8', Out: '#7eb8ff', Abs: '#c8a84b' };
+
+    const entriesHtml = entries.length
+        ? entries.map(en =>
+            `<div class="gtpick-row" data-slot="${en.slot}" data-type="${en.gtTypeNum}" data-word2="${en.word2}" onclick="_gtPickSelect(${en.slot},${en.word2},'${_e(en.label)}','${en.gtTypeStr}')">` +
+            `<span class="gtpick-slot">#${en.slot}</span>` +
+            `<span class="gtpick-badge" style="color:${typeColors[en.gtTypeStr]||'#888'}">${_e(en.gtTypeStr)}</span>` +
+            `<span class="gtpick-label">${_e(en.label || `(NS slot ${en.slot})`)}</span>` +
+            `</div>`
+          ).join('')
+        : '<div style="color:#666;padding:0.5rem;font-size:0.75rem;font-style:italic">No NS entries found — boot the machine first.</div>';
+
+    const permsLabels = ['R','W','X','L','S','E'];
+    const permsHtml = permsLabels.map((p, i) =>
+        `<label class="gtpick-perm-lbl" title="${{R:'Read',W:'Write',X:'Execute',L:'Load',S:'Store',E:'Enter'}[p]}">` +
+        `<input type="checkbox" id="gtpick-perm-${p}" value="${i}" checked> ${p}</label>`
+    ).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'gt-slot-picker-modal';
+    modal.className = 'gtpick-backdrop';
+    modal.innerHTML = `
+<div class="gtpick-panel" onclick="event.stopPropagation()">
+  <div class="gtpick-header">
+    <span class="gtpick-title">Assign capability to slot #${slotIndex}</span>
+    <button class="gtpick-close" onclick="document.getElementById('gt-slot-picker-modal').remove()" title="Cancel">✕</button>
+  </div>
+
+  <div class="gtpick-selected-bar" id="gtpick-selected-bar" style="display:none">
+    <span class="gtpick-sel-label" id="gtpick-sel-label"></span>
+    <span class="gtpick-sel-slot"  id="gtpick-sel-slot"></span>
+  </div>
+
+  <input class="gtpick-search" id="gtpick-search" type="text" placeholder="Search by name or slot number…" oninput="_gtPickFilter()" autocomplete="off">
+
+  <div class="gtpick-list" id="gtpick-list">${entriesHtml}</div>
+
+  <div class="gtpick-opts">
+    <div class="gtpick-opt-row">
+      <span class="gtpick-opt-label">Type</span>
+      <select id="gtpick-type" class="gtpick-select">
+        <option value="1" selected>Inform (data / read-only cap)</option>
+        <option value="2">Outform (code / callable cap)</option>
+      </select>
+    </div>
+    <div class="gtpick-opt-row">
+      <span class="gtpick-opt-label">Permissions</span>
+      <span class="gtpick-perms">${permsHtml}</span>
+    </div>
+  </div>
+
+  <div class="gtpick-footer">
+    <button class="gtpick-btn gtpick-btn-assign" id="gtpick-assign-btn" disabled onclick="_gtPickCommit('${_e(lumpToken)}',${slotIndex})">Assign GT</button>
+    <button class="gtpick-btn gtpick-btn-cancel" onclick="document.getElementById('gt-slot-picker-modal').remove()">Cancel</button>
+    <span class="gtpick-new-hint">New LUMP? <a href="#" onclick="document.getElementById('gt-slot-picker-modal').remove();_switchTab('compile');return false;">Open compiler →</a></span>
+  </div>
+</div>`;
+
+    modal.addEventListener('click', () => modal.remove());
+    document.body.appendChild(modal);
+
+    // Track selected NS slot
+    window._gtPickState = { nsSlot: null, gtSeq: 0 };
+    document.getElementById('gtpick-search').focus();
+}
+
+function _gtPickSelect(nsSlot, word2, label, typeStr) {
+    window._gtPickState = { nsSlot, gtSeq: (word2 >>> 25) & 0x7F };
+    const bar    = document.getElementById('gtpick-selected-bar');
+    const labEl  = document.getElementById('gtpick-sel-label');
+    const slotEl = document.getElementById('gtpick-sel-slot');
+    if (bar && labEl && slotEl) {
+        labEl.textContent  = label || `NS slot ${nsSlot}`;
+        slotEl.textContent = ` · NS #${nsSlot} · ${typeStr}`;
+        bar.style.display  = 'flex';
+    }
+    document.querySelectorAll('.gtpick-row').forEach(r => r.classList.toggle('gtpick-row-sel', parseInt(r.dataset.slot) === nsSlot));
+    const btn = document.getElementById('gtpick-assign-btn');
+    if (btn) btn.disabled = false;
+}
+
+function _gtPickFilter() {
+    const q = (document.getElementById('gtpick-search')?.value || '').toLowerCase();
+    document.querySelectorAll('.gtpick-row').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+}
+
+async function _gtPickCommit(lumpToken, slotIndex) {
+    const state = window._gtPickState || {};
+    if (state.nsSlot === null || state.nsSlot === undefined) return;
+
+    const typeEl  = document.getElementById('gtpick-type');
+    const gtType  = typeEl ? parseInt(typeEl.value) : 1;
+    const permsLabels = ['R','W','X','L','S','E'];
+    let perms = 0;
+    permsLabels.forEach((p, i) => {
+        if (document.getElementById(`gtpick-perm-${p}`)?.checked) perms |= (1 << i);
+    });
+
+    // Build GT word: bits[30:25]=perms  bits[24:23]=type  bits[22:16]=gt_seq  bits[15:0]=ns_slot
+    const gt_word = (((perms & 0x3F) << 25) | ((gtType & 0x3) << 23) |
+                     ((state.gtSeq & 0x7F) << 16) | (state.nsSlot & 0xFFFF)) >>> 0;
+
+    const btn = document.getElementById('gtpick-assign-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+    try {
+        const resp = await fetch(`/api/lump/${lumpToken}/clist/${slotIndex}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gt_word }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) throw new Error(data.error || 'Server error');
+
+        document.getElementById('gt-slot-picker-modal')?.remove();
+
+        // Reload the content tab to reflect the newly assigned GT
+        const selLump = _lumpsCache && _lumpsCache.find(l => (l.token || '').toLowerCase() === lumpToken.toLowerCase());
+        if (selLump) {
+            const tk = (selLump.token || '').replace(/[^a-z0-9]/gi, '');
+            _lumpContentLoaded[tk] = false;   // force fresh fetch
+            _switchLumpTab(tk, 'content');
+        }
+    } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Assign GT'; }
+        alert(`Failed to assign GT: ${err.message}`);
+    }
 }
 
