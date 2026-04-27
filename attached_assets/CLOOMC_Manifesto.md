@@ -11,7 +11,7 @@ We do not propose another patch, because patching cannot fix hardware or protect
 
 We propose the architecture that could have been built first: the Church-Turing machine, grounded in the Lambda Calculus, governed by capability-based addressing, and protected by six laws that are not policies but mathematical facts. These laws do not require trust. They require only that the hardware enforce them, and the hardware can.
 
-This is the CLOOMC Manifesto. It is a declaration of the six principles on which a failsafe, democratic, and mathematically civilised cyberspace must be built.
+This is the CLOOMC Manifesto. It is a declaration of the six principles of Capability-Limited/Object-Oriented/Machine-code on which a failsafe, democratic, and mathematically civilised cyberspace must be built.
 
 ---
 
