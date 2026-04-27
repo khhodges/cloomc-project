@@ -244,8 +244,8 @@ method run [pet name] {
 <p>The pet-name compiler translates <code>Contact.Connect(me, myMother)</code> into five machine instructions:</p>
 <ol>
 <li>Load the <code>Contact</code> GT from the c-list into a capability register</li>
-<li>Load the <code>me</code> GT into DR1</li>
-<li>Load the <code>myMother</code> GT into DR2</li>
+<li>Load the <code>me</code> GT into CR1</li>
+<li>Load the <code>myMother</code> GT into CR2</li>
 <li>Set DR0 to selector <strong>1</strong> (the Connect selector)</li>
 <li>Emit a <strong>CALL</strong> to the Contact lump</li>
 </ol>
