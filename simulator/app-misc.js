@@ -998,6 +998,20 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(err => { console.warn('[bootConfig] prefetch failed:', err); });
     _bootCfgReady.finally(() => {
         init();
+        // Restore the fault log from the previous session so the Gate Log still
+        // shows old faults (with the correct lump-name snapshot) after a reload.
+        if (typeof _restoreFaultLog === 'function') {
+            _restoreFaultLog();
+            if (sim && sim.faultLog && sim.faultLog.length > 0) {
+                // Wire _lastFault so the recall button opens the modal rather than
+                // calling faultClear() (which takes the else branch when null).
+                if (typeof _lastFault !== 'undefined' && _lastFault === null) {
+                    _lastFault = sim.faultLog[sim.faultLog.length - 1];
+                }
+                if (typeof updateGateLog === 'function') updateGateLog();
+                if (typeof faultAlertOn === 'function') faultAlertOn();
+            }
+        }
         initAllTabOverflows();
         adjustViewTop();
         initCodeCopyButtons();

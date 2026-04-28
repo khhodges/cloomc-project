@@ -1100,6 +1100,8 @@ function runSim() {
         try { updateDashboard(); } catch(e) { console.error('finishRun updateDashboard:', e); }
         switchView('dashboard');
         openCRDetail(14);
+        // Persist the fault log so it survives a page reload.
+        _saveFaultLog();
     }
 
     // Kick off the first batch
@@ -1464,6 +1466,7 @@ function faultClear() {
     _defaultProgramLoaded = false;
     _bootAuditAccum = [];
     _clearLumpPetNames();
+    try { localStorage.removeItem(_FAULT_LOG_LS_KEY); } catch(e) {}
     sim.reset();
     _initLazyLoadManifest();
     pipelineViz.reset();
@@ -1564,6 +1567,7 @@ function _saveFaultNote(f, note) {
             localStorage.removeItem(_faultNoteKey(f));
         }
     } catch(e) {}
+    _saveFaultLog();
 }
 
 function _loadFaultNote(f) {
@@ -1579,6 +1583,69 @@ function _clearAllFaultNotes() {
         }
         for (const k of keys) localStorage.removeItem(k);
     } catch(e) {}
+    try { localStorage.removeItem(_FAULT_LOG_LS_KEY); } catch(e) {}
+}
+
+// ── Fault-log localStorage persistence ───────────────────────────────────────
+const _FAULT_LOG_LS_KEY = 'cm_fault_log';
+
+// The subset of fault-object fields we serialise (skips the large instrHistory array).
+const _FAULT_LOG_FIELDS = ['type','message','pc','physicalPC','step','faultStep','userNote',
+                           '_nsSnapshot','crSnapshot','drSnapshot','flagsSnapshot'];
+
+function _saveFaultLog() {
+    try {
+        if (!sim || !sim.faultLog || sim.faultLog.length === 0) {
+            localStorage.removeItem(_FAULT_LOG_LS_KEY);
+            return;
+        }
+        const slim = sim.faultLog.map(f => {
+            // Eagerly resolve the ns snapshot when it hasn't been set yet
+            // (the modal sets it lazily; we want it persisted even if the modal
+            // was never opened in this session).
+            if (!Object.prototype.hasOwnProperty.call(f, '_nsSnapshot')) {
+                const _pc = (f.physicalPC !== undefined && f.physicalPC !== null) ? f.physicalPC : f.pc;
+                f._nsSnapshot = _nsOwnerOf(_pc);
+            }
+            const out = {};
+            for (const k of _FAULT_LOG_FIELDS) {
+                if (Object.prototype.hasOwnProperty.call(f, k)) out[k] = f[k];
+            }
+            // Persist the raw instruction word so disasm survives a reload.
+            const _histEntry = (f.instrHistory || []).find(h => h.step === f.faultStep)
+                            || (f.instrHistory && f.instrHistory.length
+                                ? f.instrHistory[f.instrHistory.length - 1] : null);
+            if (_histEntry && _histEntry.raw !== undefined) out._faultRawWord = _histEntry.raw;
+            return out;
+        });
+        localStorage.setItem(_FAULT_LOG_LS_KEY, JSON.stringify(slim));
+    } catch(e) {}
+}
+
+function _restoreFaultLog() {
+    try {
+        const raw = localStorage.getItem(_FAULT_LOG_LS_KEY);
+        if (!raw) return;
+        const faults = JSON.parse(raw);
+        if (!Array.isArray(faults) || faults.length === 0) return;
+        // Basic shape validation: skip entries that lack a fault type or step.
+        const valid = faults.filter(f => f && typeof f.type === 'string' && typeof f.step === 'number');
+        if (valid.length === 0) return;
+        for (const f of valid) {
+            // Reconstruct a synthetic instrHistory so showFaultModal can get the raw word.
+            if (f._faultRawWord !== undefined && !f.instrHistory) {
+                f.instrHistory = [{ step: f.faultStep != null ? f.faultStep : f.step, raw: f._faultRawWord }];
+            }
+            // Fill userNote from the dedicated note key if not embedded in the slim entry.
+            if (!f.userNote) {
+                const storedNote = _loadFaultNote(f);
+                if (storedNote) f.userNote = storedNote;
+            }
+        }
+        if (sim && sim.faultLog) {
+            sim.faultLog = valid;
+        }
+    } catch(e) { console.warn('[_restoreFaultLog] failed:', e); }
 }
 
 function showFaultModal(f) {

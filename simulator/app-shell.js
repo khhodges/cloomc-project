@@ -347,6 +347,9 @@ function init() {
         appendOutput(`FAULT [${f.type}]: ${f.message}`, 'error');
         _lastFault = f;
         faultAlertOn();
+        // Persist the updated fault log so this fault survives a page reload,
+        // even when triggered via single-step / stepSim rather than a full run.
+        if (typeof _saveFaultLog === 'function') _saveFaultLog();
         try {
             showFaultModal(f);
         } catch(err) {
