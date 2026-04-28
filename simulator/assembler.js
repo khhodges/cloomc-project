@@ -72,14 +72,30 @@
 //   ; B:N  marks a tutorial breakpoint (integer N)
 //
 // LABEL SUPPORT
-//   Labels are defined with "name:" on their own line (before any instruction).
-//   BRANCH instructions accept a label name as the operand instead of a raw
-//   signed offset.  The assembler resolves label → signed relative offset
-//   automatically.  Numeric offsets still work unchanged.
-//   Example:
-//       loop_top:
-//           ISUB DR1, DR1, #1
-//           BRANCHNE loop_top      ; equivalent to BRANCHNE -1
+//   Labels are defined with "name:" on their own line.
+//   They serve two purposes:
+//
+//   1. BRANCH target (signed PC-relative offset)
+//      BRANCH / BRANCHcond accept a label instead of a raw signed integer.
+//      The assembler computes:  offset = label_word - branch_word  (signed).
+//      Numeric offsets still work unchanged.  Forward references are resolved
+//      in pass 1 before encoding, so labels may appear after the branch.
+//      Example:
+//          loop_top:
+//              ISUB DR1, DR1, #1
+//              BRANCHNE loop_top      ; equivalent to BRANCHNE -1
+//
+//   2. DREAD CR14 data-constant address (absolute word offset)
+//      When reading an inline WORD constant from the current lump via CR14,
+//      the imm operand may be a label name instead of a raw number.
+//      The assembler substitutes the label's absolute word position.
+//      Both  #label  and  label  (without #) are accepted.
+//      Example:
+//          DREAD  DR1, CR14, #V1   ; read inline constant labelled V1
+//          DREAD  DR2, CR14, V2    ; same — # prefix is optional
+//          RETURN
+//          V1:  WORD 42
+//          V2:  WORD 99
 //
 // NAMED ABSTRACTION SYMBOLS  (NS shorthand)
 //   The assembler accepts registered abstraction names wherever a CR source

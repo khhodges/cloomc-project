@@ -611,6 +611,167 @@ const NS_SYMBOLS = { 'SlideRule': 3 };
     assert('W4 WORD opcode is 0x1E not 0-19', (w >>> 27) === 0x1E, `opcode=${(w>>>27).toString(16)}`);
 }
 
+// ── Branch labels ─────────────────────────────────────────────────────────────
+
+// BL1: backward branch label — BRANCHNE loop_top where loop_top is before the instruction
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        'loop_top:',
+        '  ISUB DR1, DR1, #1',
+        '  BRANCHNE loop_top',
+    ].join('\n'));
+    assert('BL1 backward label: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    assert('BL1 backward label: 2 words', r.words.length === 2, `len=${r.words.length}`);
+    // loop_top=0, BRANCHNE at addr=1 → offset = 0-1 = -1 → encoded as 0x7FFF in 15-bit signed
+    const bImm = r.words[1] & 0x7FFF;
+    assert('BL1 backward label: offset = -1 (0x7FFF)', bImm === 0x7FFF, `imm=0x${bImm.toString(16)}`);
+}
+
+// BL2: forward branch label — BRANCH AL done where done: is after
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        '  BRANCH done',
+        '  ISUB DR1, DR1, #1',
+        'done:',
+        '  RETURN',
+    ].join('\n'));
+    assert('BL2 forward label: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    // done=2, BRANCH at addr=0 → offset = 2-0 = 2
+    const fImm = r.words[0] & 0x7FFF;
+    assert('BL2 forward label: offset = 2', fImm === 2, `imm=0x${fImm.toString(16)}`);
+}
+
+// BL3: conditional suffix on branch label — BRANCHGT
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        '  ISUB DR1, DR1, #1',
+        '  BRANCHGT skip',
+        '  ISUB DR2, DR2, #1',
+        'skip:',
+        '  RETURN',
+    ].join('\n'));
+    assert('BL3 BRANCHGT forward label: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    // skip=3, BRANCHGT at addr=1 → offset = 3-1 = 2
+    const cImm = r.words[1] & 0x7FFF;
+    assert('BL3 BRANCHGT forward label: offset = 2', cImm === 2, `imm=0x${cImm.toString(16)}`);
+}
+
+// BL4: undefined label → error with helpful message
+{
+    const a = new ChurchAssembler();
+    a.assemble('  BRANCH no_such_label');
+    assert('BL4 undefined label: produces an error', a.errors.length > 0,
+        'expected an error');
+    assert('BL4 undefined label: error mentions label name',
+        a.errors.some(e => e.message.includes('no_such_label')),
+        a.errors.map(e => e.message).join('; '));
+}
+
+// BL5: two labels in same program, each BRANCH targets the correct one
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        'alpha:',
+        '  ISUB DR1, DR1, #1',
+        '  BRANCHNE alpha',    // addr=1 → offset = 0-1 = -1 = 0x7FFF
+        'beta:',
+        '  ISUB DR2, DR2, #1',
+        '  BRANCHNE beta',     // addr=4 → offset = 3-4 = -1 = 0x7FFF
+    ].join('\n'));
+    assert('BL5 two labels: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    assert('BL5 alpha branch offset = -1', (r.words[1] & 0x7FFF) === 0x7FFF,
+        `got 0x${(r.words[1]&0x7FFF).toString(16)}`);
+    assert('BL5 beta branch offset = -1',  (r.words[3] & 0x7FFF) === 0x7FFF,
+        `got 0x${(r.words[3]&0x7FFF).toString(16)}`);
+}
+
+// ── DREAD CR14 labels ─────────────────────────────────────────────────────────
+
+// DL1: DREAD DR1, CR14, #V1 where V1: is a labelled WORD constant
+//      Program: 2 instructions, then label at word 2, then WORD 42
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        '  ISUB DR1, DR1, #1',       // word 0
+        '  RETURN',                   // word 1
+        'V1:',
+        '  WORD 42',                  // word 2
+    ].join('\n'));
+    assert('DL1 WORD label: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    assert('DL1 WORD label: V1 in labels at offset 2',
+        a.labels['V1'] === 2, `V1=${a.labels['V1']}`);
+}
+
+// DL2: DREAD encodes label as absolute offset — #V1 with hash prefix
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        '  DREAD DR1, CR14, #V1',    // word 0 → imm should be 2
+        '  RETURN',                   // word 1
+        'V1:',
+        '  WORD 99',                  // word 2
+    ].join('\n'));
+    assert('DL2 DREAD #label: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    const dImm = r.words[0] & 0x7FFF;
+    assert('DL2 DREAD #label: imm = 2 (absolute offset of V1)', dImm === 2,
+        `imm=${dImm}`);
+}
+
+// DL3: DREAD encodes label without hash prefix — V1 (no #)
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        '  DREAD DR1, CR14, V1',     // word 0 → imm should be 2
+        '  RETURN',                   // word 1
+        'V1:',
+        '  WORD 99',                  // word 2
+    ].join('\n'));
+    assert('DL3 DREAD label (no #): no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    const dImm2 = r.words[0] & 0x7FFF;
+    assert('DL3 DREAD label (no #): imm = 2', dImm2 === 2, `imm=${dImm2}`);
+}
+
+// DL4: DREAD undefined label → error
+{
+    const a = new ChurchAssembler();
+    a.assemble('  DREAD DR1, CR14, unknown_const');
+    assert('DL4 DREAD undefined label: produces an error', a.errors.length > 0,
+        'expected error for unknown_const');
+    assert('DL4 DREAD undefined label: error mentions token',
+        a.errors.some(e => e.message.includes('unknown_const')),
+        a.errors.map(e => e.message).join('; '));
+}
+
+// DL5: multiple WORD labels — each DREAD gets the right offset
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble([
+        '  DREAD DR1, CR14, V1',     // word 0 → imm=3
+        '  DREAD DR2, CR14, V2',     // word 1 → imm=4
+        '  RETURN',                   // word 2
+        'V1:',
+        '  WORD 10',                  // word 3
+        'V2:',
+        '  WORD 20',                  // word 4
+    ].join('\n'));
+    assert('DL5 multi WORD labels: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    assert('DL5 V1 offset = 3', (r.words[0] & 0x7FFF) === 3,
+        `imm0=${r.words[0]&0x7FFF}`);
+    assert('DL5 V2 offset = 4', (r.words[1] & 0x7FFF) === 4,
+        `imm1=${r.words[1]&0x7FFF}`);
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);
