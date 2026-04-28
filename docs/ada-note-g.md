@@ -562,7 +562,7 @@ The trace tables above are hand-computed and analytically verified. This section
 
 1. Open the Church Machine IDE.
 2. Click the **Code** tab in the toolbar.
-3. Click the **Ada Note G** preset tab (labelled "Ada Note G" in the example row). This loads `simulator/cloomc/ada_note_g.cloomc` directly. Alternatively, paste the contents of that file into the editor.
+3. Click the **Ada Note G** preset button. This loads `ada_note_g.cloomc` directly into the editor with one click — no manual copy-paste required.
 4. Click **Assemble**. The status bar should confirm a successful compilation with no errors and report the number of assembled words.
 5. Click **Run** (or **Run to HALT**) to execute the program to completion. The simulator halts on the `halt` instruction at the end of `compute()`.
 
