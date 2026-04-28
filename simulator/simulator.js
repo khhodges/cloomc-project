@@ -1470,15 +1470,25 @@ class ChurchSimulator {
 
                 // ── Step 2: Read Boot.Abstr lump header (word 0) ──────────────────────
                 const base     = entryNSEntry.word0_location;                       // physical base of Boot.Abstr lump
-                const hdrWord  = this.memory[base] >>> 0;                           // raw 32-bit lump header word
-                const hdr      = this.parseLumpHeader(hdrWord);                     // decode {magic, cc, cw, lumpSize, valid}
+                let hdrWord  = this.memory[base] >>> 0;                             // raw 32-bit lump header word
+                let hdr      = this.parseLumpHeader(hdrWord);                       // decode {magic, cc, cw, lumpSize, valid}
 
                 // ── Audit: record lump-header check in Gate Log ────────────────────────
                 this._auditLumpHeader(this.bootEntrySlot, _b4Label, hdr);
 
                 if (!hdr.valid) {
-                    this.fault('LUMP_MAGIC', `NUC_CLIST: ${_b4Label} lump header magic=0x${hdr.magic.toString(16)} (expected 0x1F) — lump not installed or memory zeroed`);
-                    return false;
+                    // Lump may be warm (zeroed by initLazyManifest). Try lazy-restore
+                    // before faulting — warm slots have their code evicted at init but
+                    // their bootUpload data is still in the manifest.
+                    if (this.lazyLoad(bootEntrySlot)) {
+                        hdrWord = this.memory[base] >>> 0;
+                        hdr     = this.parseLumpHeader(hdrWord);
+                        this._auditLumpHeader(bootEntrySlot, _b4Label, hdr);
+                    }
+                    if (!hdr.valid) {
+                        this.fault('LUMP_MAGIC', `NUC_CLIST: ${_b4Label} lump header magic=0x${hdr.magic.toString(16)} (expected 0x1F) — lump not installed or memory zeroed`);
+                        return false;
+                    }
                 }
                 const cw         = hdr.cw;                                          // code-word count
                 const cc         = hdr.cc;                                          // c-list word count
