@@ -142,6 +142,7 @@ function assembleAndLoad() {
             const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
             if (con) con.textContent = `CLOOMC++ errors:\n${errText}`;
             window._assemblerSymbols = null;
+            switchCodeTab('console');
             showNextSteps('error');
             return;
         }
@@ -321,6 +322,7 @@ function assembleAndLoad() {
         lastAssembledWords = null;
         const _errSaveBtn = document.getElementById('btnSaveNS');
         if (_errSaveBtn) _errSaveBtn.disabled = true;
+        switchCodeTab('console');
         if (typeof _showAsmErrors === 'function') _showAsmErrors(result.errors);
         showNextSteps('error');
         return;

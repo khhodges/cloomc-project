@@ -391,7 +391,6 @@
                     <span class="preset-notice-icon">&#x2139;</span>
                     <span class="preset-notice-text">Integer arithmetic only — load the CLOOMC preset for exact fractions.</span>
                 </div>
-                <div id="asmErrorPanel" class="asm-error-panel" style="display:none;"></div>
                 <div class="code-editor-wrap">
                     <div class="line-numbers" id="lineNumbers"></div>
                     <div id="asmErrorOverlay" class="asm-error-overlay" aria-hidden="true"></div>
@@ -406,6 +405,7 @@
                     <button class="sidebar-tab" id="codeTabHistory" onclick="switchCodeTab('history')" data-tooltip="History — Stories and context about Church Machine concepts">History</button>
                     <button class="sidebar-tab" id="codeTabJs" onclick="switchCodeTab('js')" data-tooltip="JS Source — Browse the simulator JS files that implement the boot code">JS</button>
                 </div>
+                <div id="asmErrorPanel" class="asm-error-panel" style="display:none;"></div>
                 <div id="codeConsoleContent" style="display:flex;">
                     <div id="ledStrip" class="led-strip">
                         <div class="led-strip-leds">
@@ -1444,7 +1444,7 @@
     <script src="app-abstractions.js?v=20260425r"></script>
     <script src="app-lumps.js?v=20260428n"></script>
     <script src="app-absdetail.js?v=20260426b"></script>
-    <script src="app-run.js?v=20260428c"></script>
+    <script src="app-run.js?v=20260428d"></script>
     <script src="app-compile.js?v=20260427a"></script>
     <script src="app-misc.js?v=20260424b"></script>
 <div id="lumpTypeSelectorModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeLumpTypeSelector()">
