@@ -3854,6 +3854,10 @@ HALT
         if (sel) sel.value = 'assembly';
         if (typeof historySetCodeExample === 'function') historySetCodeExample(name);
     }
+    const noticeBar = document.getElementById('presetNoticeBar');
+    if (noticeBar) {
+        noticeBar.style.display = (name === 'ada_note_g') ? 'flex' : 'none';
+    }
 }
 
 var _polaChangedLines = [];

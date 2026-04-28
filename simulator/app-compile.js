@@ -1160,6 +1160,8 @@ function loadCLOOMCExample(name) {
                 const sel = document.getElementById('langSelector');
                 if (sel) sel.value = 'cloomc';
                 if (typeof historySetCodeExample === 'function') historySetCodeExample(name);
+                const nb = document.getElementById('presetNoticeBar');
+                if (nb) nb.style.display = 'none';
             })
             .catch(err => console.error('Failed to load example:', err));
         return;
@@ -2393,5 +2395,7 @@ abstraction Feedback {
     }
 
     if (typeof historySetCodeExample === 'function') historySetCodeExample(name);
+    const noticeBar = document.getElementById('presetNoticeBar');
+    if (noticeBar) noticeBar.style.display = 'none';
 }
 

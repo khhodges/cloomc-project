@@ -740,3 +740,28 @@
     margin-right: 0.25rem;
 }
 
+.preset-notice-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background: rgba(56, 139, 253, 0.1);
+    border: 1px solid rgba(56, 139, 253, 0.35);
+    border-left: 3px solid #388bfd;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 0.3rem;
+    flex-shrink: 0;
+}
+
+.preset-notice-icon {
+    color: #60a5fa;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.preset-notice-text {
+    font-size: 0.78rem;
+    color: #93c5fd;
+    line-height: 1.4;
+}
+
