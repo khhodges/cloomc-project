@@ -2,8 +2,8 @@
 
 ## Executive Summary
 
-**Total Abstractions**: 45  
-**Total Methods**: ~213  
+**Total Abstractions**: 49  
+**Total Methods**: ~229  
 **Estimated Implementation Timeline**: 18–24 weeks (4.5–6 months) in continuation mode  
 **Team Size Assumption**: 2 engineers (1 hardware/core, 1 software/applications)  
 **Critical Path**: Tiers 0–3 (hardware + math); Tier 5+ can proceed in parallel
@@ -165,6 +165,26 @@ Deterministic GC with PP250 bidirectional G-bit.
 
 ---
 
+### **Layer 9 — Tier A Post-Launch (4 abstractions, 16 methods)**
+
+Foundational services required within 3 months of launch: persistent storage, wall-clock time, asynchronous notification, and device identity.
+
+| # | Name | Methods | Count | Role |
+|---|------|---------|-------|------|
+| 47 | Store | Get, Set, Create, Delete, List | 5 | GT-gated persistent key-value storage |
+| 48 | Clock | Now, Elapsed, Mark, Alarm | 4 | Wall-clock time + timestamp Abstract GTs |
+| 49 | Notify | Subscribe, Unsubscribe, Dispatch, Pending | 4 | Asynchronous inbound event signalling |
+| 50 | Identity | Attest, Verify, Bind | 3 | Device-bound unforgeable identity GT |
+
+**Status**: 🔴 Missing (not yet started)  
+**Blocking Issues**:
+- Store: NVM page allocator + Outform GT for Home Base endpoint
+- Clock: Clock lump binary + Tunnel epoch-sync at boot (`/api/time`)
+- Notify: Notify lump binary + Tunnel `0x10–0x1F` frame type extension
+- Identity: Identity lump binary + hardware UID → Abstract GT binding at boot
+
+---
+
 ## Method Count Summary
 
 | Layer | Abstractions | Methods | Status |
@@ -178,7 +198,8 @@ Deterministic GC with PP250 bidirectional G-bit.
 | 6 (IDE) | 4 | 15 | 🟡 40% |
 | 7 (Internet) | 6 | 24 | 🔴 0% |
 | 8 (GC) | 1 | 4 | 🟡 70% |
-| **TOTAL** | **45** | **213** | **~22%** |
+| 9 (Tier A Post-Launch) | 4 | 16 | 🔴 Missing |
+| **TOTAL** | **49** | **229** | **~20%** |
 
 ---
 
@@ -398,7 +419,8 @@ Deterministic GC with PP250 bidirectional G-bit.
 | 7 | 3w | 4 | 15 | IDE tooling |
 | 8 | 2w | 1 | 4 | GC + security hardening |
 | 9 | 4w | 8 | 107 | Integration + full system test |
-| **TOTAL** | **24 weeks** | **45** | **213** | End-to-end CTMM |
+| **Tier A** | **≤12w post-launch** | **4** | **16** | Store + Clock + Notify + Identity |
+| **TOTAL** | **24w + Tier A** | **49** | **229** | End-to-end CTMM + Tier A |
 
 ---
 
@@ -496,11 +518,12 @@ Phase 0 (Unblock) ──→ Phase 1 (Hardware) ──→ Phase 2 (Concurrency) �
 **Phase 7**: ✅ Browser navigates (simulated); Messenger sends/receives; Email routable  
 **Phase 8**: ✅ GC reclaims stale entries; no stale GTs used  
 **Phase 9**: ✅ Full integration: 45 abstractions callable in any combination; 9 layers hierarchical; all 14 DoS prevention claims validated; security audit passing  
+**Tier A**: ✅ Store persists values across power cycles (TEST-STORE); Clock returns wall time within ±5 s of Home Base (TEST-CLOCK); Notify wakes blocked thread within 500 ms of inbound event (TEST-NOTIFY); Identity.Attest returns hardware-UID-sealed GT (TEST-IDENTITY)  
 
 ---
 
 ## Conclusion
 
-The Church Machine's 45 abstractions across 9 layers represent a **complete, self-contained operating system** with no external kernel dependencies. Implementation in 18–24 weeks (dual-team) is feasible and realistic, with **Phase 0 (Abstract GT validation) as the immediate blocker**. Once that unblocks, Phases 1–3 can proceed in parallel with later layers, achieving a fully functional, security-hardened, capability-based architecture by week 24.
+The Church Machine's 49 abstractions across 10 layers (Layers 0–8 plus the Tier A post-launch layer) represent a **complete, self-contained operating system** with no external kernel dependencies. Implementation in 18–24 weeks (dual-team) is feasible and realistic, with **Phase 0 (Abstract GT validation) as the immediate blocker**. Once that unblocks, Phases 1–3 can proceed in parallel with later layers, achieving a fully functional, security-hardened, capability-based architecture by week 24. The four Tier A abstractions — Store, Clock, Notify, and Identity — are targeted for completion within 12 weeks of device launch, gated on their respective acceptance tests (TEST-STORE, TEST-CLOCK, TEST-NOTIFY, TEST-IDENTITY) as defined in docs/launch.md Section 4.
 
 The abstraction model is **scale-free** — the same pattern (CALL, c-list isolation, MTBF tracking, GT revocation) applies from a boot driver to a global social network. This uniformity means much of the code is templatable, reducing actual implementation time below the linear estimate.
