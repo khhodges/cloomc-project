@@ -1604,8 +1604,20 @@ function _saveFaultLog() {
             // (the modal sets it lazily; we want it persisted even if the modal
             // was never opened in this session).
             if (!Object.prototype.hasOwnProperty.call(f, '_nsSnapshot')) {
-                const _pc = (f.physicalPC !== undefined && f.physicalPC !== null) ? f.physicalPC : f.pc;
-                f._nsSnapshot = _nsOwnerOf(_pc);
+                // Prefer CR14 snapshot gtIndex — directly names the executing lump's
+                // ns slot without depending on memory range lookups.
+                const _cr14s = f.crSnapshot && f.crSnapshot[14];
+                if (_cr14s && !_cr14s.isNull && _cr14s.gtIndex != null) {
+                    const _ni = _cr14s.gtIndex;
+                    const _lbl = (sim.nsLabels && sim.nsLabels[_ni]) || `NS[${_ni}]`;
+                    const _nsBase = sim.NS_TABLE_BASE + _ni * sim.NS_ENTRY_WORDS;
+                    const _loc = (sim.memory && sim.memory[_nsBase]) ? (sim.memory[_nsBase] >>> 0) : 0;
+                    const _fpc = (f.physicalPC !== undefined && f.physicalPC !== null) ? f.physicalPC : f.pc;
+                    f._nsSnapshot = { label: _lbl, nsIdx: _ni, offset: _fpc - _loc };
+                } else {
+                    const _pc = (f.physicalPC !== undefined && f.physicalPC !== null) ? f.physicalPC : f.pc;
+                    f._nsSnapshot = _nsOwnerOf(_pc);
+                }
             }
             const out = {};
             for (const k of _FAULT_LOG_FIELDS) {
@@ -1677,6 +1689,16 @@ function showFaultModal(f) {
     }
     const ns     = f._nsSnapshot;
     const nsStr  = ns ? `${ns.label} +${ns.offset}` : '\u2014';
+
+    // Authoritative ns index for "view lump" navigation.
+    // crSnapshot[14].gtIndex is captured at fault time and directly names
+    // the executing code lump's namespace slot — more reliable than
+    // _nsOwnerOf which does a memory-range search that can find the wrong
+    // lump or return null.
+    const _cr14snap = f.crSnapshot && f.crSnapshot[14];
+    const nsIdxForViewLump = (_cr14snap && !_cr14snap.isNull && _cr14snap.gtIndex != null)
+        ? _cr14snap.gtIndex
+        : (ns ? ns.nsIdx : null);
     const color  = _FAULT_COLORS[f.type] || '#e05555';
 
     // Numeric hardware fault code
@@ -1966,8 +1988,8 @@ function showFaultModal(f) {
             const rowOnclick = isFault
                 ? (_editLineNum
                     ? ` onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}" style="cursor:pointer"`
-                    : (ns && ns.nsIdx != null
-                        ? ` onclick="faultModalOpenBinaryLump(${ns.nsIdx})" title="Click to open lump in code view" style="cursor:pointer"`
+                    : (nsIdxForViewLump != null
+                        ? ` onclick="faultModalOpenBinaryLump(${nsIdxForViewLump})" title="Click to open lump in code view" style="cursor:pointer"`
                         : ''))
                 : '';
             const cls = isFault ? ' class="itrace-fault"' : '';
@@ -1994,14 +2016,14 @@ function showFaultModal(f) {
                     <div class="fault-detail-row fault-instr-row"
                          ${_editLineNum
                             ? `onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}"`
-                            : (ns && ns.nsIdx != null
-                                ? `onclick="faultModalOpenBinaryLump(${ns.nsIdx})" title="Click to open lump in code view"`
+                            : (nsIdxForViewLump != null
+                                ? `onclick="faultModalOpenBinaryLump(${nsIdxForViewLump})" title="Click to open lump in code view"`
                                 : `onclick="faultModalOpenEditor(null)" title="Click to open editor"`)}
                          style="cursor:pointer">
                         <span class="fault-detail-label">Instruction</span>
                         <span class="fault-detail-value">
                             <code class="fault-instr-code">${_petDisasm(disasm, _scopeBadOffsetStr)}</code>
-                            <span class="fault-instr-edit-hint">&#x270E;${_editLineNum ? `&nbsp;line&nbsp;${_editLineNum}` : (ns && ns.nsIdx != null ? '&nbsp;view lump' : '&nbsp;edit')}</span>
+                            <span class="fault-instr-edit-hint">&#x270E;${_editLineNum ? `&nbsp;line&nbsp;${_editLineNum}` : (nsIdxForViewLump != null ? '&nbsp;view lump' : '&nbsp;edit')}</span>
                         </span>
                     </div>
                     ${_faultCListPetName != null ? `<div class="fault-detail-row">
@@ -2038,13 +2060,13 @@ function showFaultModal(f) {
     dialog.className = 'modal-dialog fault-dialog';
     const _editOnclick = _editLineNum
         ? `onclick="faultModalOpenEditor(${_editLineNum})" title="Click to open editor at line ${_editLineNum}"`
-        : (ns && ns.nsIdx != null
-            ? `onclick="faultModalOpenBinaryLump(${ns.nsIdx})" title="Click to open lump in code view"`
+        : (nsIdxForViewLump != null
+            ? `onclick="faultModalOpenBinaryLump(${nsIdxForViewLump})" title="Click to open lump in code view"`
             : '');
     const _editBadge = _editLineNum
         ? `<span class="fault-edit-hint">&#x270E; line&nbsp;${_editLineNum}</span>`
-        : (ns && ns.nsIdx != null ? `<span class="fault-edit-hint">&#x270E; view lump</span>` : '');
-    const _msgClass = (_editLineNum || (ns && ns.nsIdx != null)) ? 'fault-modal-message fault-msg-editable' : 'fault-modal-message';
+        : (nsIdxForViewLump != null ? `<span class="fault-edit-hint">&#x270E; view lump</span>` : '');
+    const _msgClass = (_editLineNum || nsIdxForViewLump != null) ? 'fault-modal-message fault-msg-editable' : 'fault-modal-message';
     dialog.innerHTML = `
         <div class="fault-modal-header">
             <span class="fault-type-badge" style="background:${color}22;border-color:${color};color:${color}">${f.type}</span>
