@@ -370,6 +370,8 @@ The table below traces every step between Op 4 and Op 22 where V11 or V13 differ
 3. Op 11 (bug): 2/3 + (−9/14) = 28/42 − 27/42 = **1/42** — a coincidence that happens to equal B₅ = 1/42, which could mislead a reader checking intermediate values against known Bernoulli numbers.
 4. The final buggy answer, 139/630, is not a recognisable fraction and bears no algebraic relationship to B₇ = −1/30. There is no sense in which the published program "almost" works; the error is categorical.
 
+> **Simulator cross-reference.** The buggy path in this table is executable. Load `simulator/cloomc/ada_note_g_published_bug.cloomc` in the Church Machine IDE and run it to completion. DR24 will read **139/630** — confirming every row of the "V13 (published — bug)" column above. Compare with `ada_note_g.cloomc`, where DR24 reads **−1/30**. See §"Buggy-Path Simulator Variant" below for step-by-step instructions.
+
 ---
 
 ### Bug Propagation Table — n=2 (computing B₃)
@@ -547,6 +549,54 @@ The source of the confusion is the low-level assembly rendering of the same algo
 The DRn registers in the assembly rendering do not follow Ada's V-numbering beyond DR1–DR13. DR14 and DR15 are an artefact of fitting Ada's 25 operations plus the necessary multiply/divide loops into the machine's 16-register file. The CLOOMC symbolic front-end hides this entirely: it uses Ada's V-names directly and compiles to rational arithmetic, so V24 receives the final result with no V15 involvement at any point.
 
 **Summary:** when running `ada_note_g.cloomc` in the CLOOMC simulator, ignore DR15 — it is always 0. The result is in **DR24** (= V24), matching Ada's original diagram.
+
+---
+
+## Buggy-Path Simulator Variant
+
+The file `simulator/cloomc/ada_note_g_published_bug.cloomc` is an executable companion to the Bug Propagation Table above. It is structurally identical to `ada_note_g.cloomc` except that **Operation 4 retains Ada's published operand order** (`let V11 = V5 / V4` instead of the Bromley-corrected `let V11 = V4 / V5`). Every other operation is unchanged.
+
+Running this file lets you observe the wrong result directly in the simulator and verify each row of the Bug Propagation Table against live register values.
+
+### Loading and Running the Buggy Variant
+
+1. Open the Church Machine IDE.
+2. Click the **Code** tab in the toolbar.
+3. Paste the contents of `simulator/cloomc/ada_note_g_published_bug.cloomc` into the editor (or open the file directly if it appears as a preset).
+4. Click **Assemble**. The status bar should confirm successful compilation with no errors.
+5. Click **Run** (or **Run to HALT**) to execute to completion.
+
+### Expected State at HALT — Buggy Version
+
+When the program halts, open the **Dashboard** view. The registers that diverge from the corrected run are:
+
+| Variable | Dashboard register | Buggy value | Corrected value | Bug Propagation Table row |
+|----------|--------------------|-------------|-----------------|---------------------------|
+| V11 (after Op 4) | DR11 | **9/7** | 7/9 | Step 4 |
+| V11 (after Op 5) | DR11 | **9/14** | 7/18 | Step 5 |
+| V13 (after Op 6) | DR13 | **−9/14** | −7/18 | Step 6 |
+| V13 (after Op 11) | DR13 | **1/42** | 5/18 | Step 11 |
+| V13 (after Op 22a) | DR13 | **−31/70** | −17/90 | Step 22a |
+| V13 (after Op 22b) | DR13 | **−139/630** | 1/30 | Step 22b |
+| V24 (final) | DR24 | **139/630** | −1/30 | Step 24 |
+
+DR24 = 139/630 ≈ 0.2206 confirms that Ada's published table, executed literally, would not have produced the correct Bernoulli number. All other registers — DR1–DR10, DR12, DR21–DR23 — are identical to the corrected run; the bug propagates exclusively through DR11 (Ops 4–8) and DR13 (Ops 6–24).
+
+### Intermediate Checkpoints — Buggy Version
+
+To step through the divergence interactively, set breakpoints after the following statements:
+
+| After executing… | Check | Expected (buggy) | Correct value |
+|------------------|-------|-------------------|---------------|
+| Op 4 (`let V11 = V5 / V4`) | DR11 | **9/7** | 7/9 |
+| Op 5 (`let V11 = V11 / V2`) | DR11 | **9/14** | 7/18 |
+| Op 6 (`let V13 = V13 - V11`) | DR13 | **−9/14** | −7/18 |
+| Op 11 (`let V13 = V12 + V13`) | DR13 | **1/42** | 5/18 |
+| Op 22a (1st loop pass) | DR13 | **−31/70** | −17/90 |
+| Op 22b (2nd loop pass) | DR13 | **−139/630** | 1/30 |
+| Op 24 (`let V24 = V24 - V13`) | DR24 | **139/630** | −1/30 |
+
+Note that Op 9 resets DR11 from V6/V7 = 8/2 = 4 in both versions, so the divergence in DR11 is confined to Ops 4–8. From Op 9 onward the Aₖ coefficient arithmetic proceeds identically; only the accumulated sum in DR13 remains wrong.
 
 ---
 
