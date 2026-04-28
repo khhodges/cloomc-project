@@ -320,7 +320,83 @@ function updateGateLog() {
     const container = document.getElementById('gateLogContent');
     if (!container) return;
     const log = sim.auditLog || [];
-    if (log.length === 0) {
+
+    // ── Fault banner ──────────────────────────────────────────────────────────
+    // Built unconditionally so it appears even when auditLog is empty.
+    let html = '';
+    const faultLog = sim.faultLog || [];
+    if (faultLog.length > 0) {
+        const lf = faultLog[faultLog.length - 1];
+        const lfColor = (typeof _FAULT_COLORS !== 'undefined' && _FAULT_COLORS[lf.type]) || '#e05555';
+        const lfDesc  = (typeof _FAULT_DESCRIPTIONS !== 'undefined' && _FAULT_DESCRIPTIONS[lf.type])
+            || (typeof _OUTFORM_DESCRIPTIONS !== 'undefined' && (
+                   _OUTFORM_DESCRIPTIONS[lf.type]
+                || (typeof _LUMP_TO_OUTFORM !== 'undefined' && _OUTFORM_DESCRIPTIONS[_LUMP_TO_OUTFORM[lf.type]])
+               ))
+            || '';
+
+        // Resolve PC / disassembly
+        const lfPC    = (lf.physicalPC !== undefined && lf.physicalPC !== null) ? lf.physicalPC : lf.pc;
+        const lfPCHex = '0x' + (lfPC >>> 0).toString(16).toUpperCase().padStart(4, '0');
+        const lfWord  = (sim.memory && lfPC < sim.memory.length) ? sim.memory[lfPC] : 0;
+        const lfRawDisasm = (assembler) ? assembler.disassemble(lfWord) : '???';
+
+        // Apply pet names lightly (CR/DR substitution only)
+        const _bPetCR = Object.assign({}, _petNameCRMap || {});
+        const _bPetDR = Object.assign({}, _petNameDRMap || {});
+        if (assembler && assembler.getAliases) {
+            const _al = assembler.getAliases();
+            for (const [nm, num] of Object.entries(_al.cr || {})) _bPetCR[num] = nm;
+            for (const [nm, num] of Object.entries(_al.dr || {})) _bPetDR[num] = nm;
+        }
+        const lfDisasm = lfRawDisasm
+            .replace(/\bCR(\d+)\b/g, (m, n) => { const a = _bPetCR[+n]; return a ? `<span class="itrace-pet" title="CR${n}">${a}</span>` : m; })
+            .replace(/\bDR(\d+)\b/g, (m, n) => { const a = _bPetDR[+n]; return a ? `<span class="itrace-pet" title="DR${n}">${a}</span>` : m; });
+
+        // CLOOMC source line
+        let lfSrcLine = '';
+        if (assembler && assembler.getLastLineNums) {
+            const _ns = (typeof _nsOwnerOf === 'function') ? _nsOwnerOf(lfPC) : null;
+            if (_ns && _ns.offset >= 1) {
+                const instrIdx = _ns.offset - 1;
+                const lns = assembler.getLastLineNums();
+                const ln  = lns[instrIdx];
+                if (typeof ln === 'number' && ln > 0) {
+                    const _asmEdEl = document.getElementById('asmEditor') || document.getElementById('asmEd');
+                    if (_asmEdEl && _asmEdEl.value) {
+                        const srcText = (_asmEdEl.value.split('\n')[ln - 1] || '').trim();
+                        if (srcText) lfSrcLine = srcText;
+                    }
+                }
+            }
+        }
+
+        html += `<div class="fault-gate-banner" style="border-left-color:${lfColor};background:${lfColor}18">`;
+        html += `<div class="fault-gate-banner-header">`;
+        html += `<span class="fault-type-badge fault-gate-banner-badge" style="background:${lfColor}22;border-color:${lfColor};color:${lfColor}">${lf.type}</span>`;
+        html += `<span class="fault-gate-banner-title">Machine Fault</span>`;
+        html += `<button class="gate-loc-step-link fault-gate-banner-open" onclick="showFaultModal(sim.faultLog[sim.faultLog.length-1])" title="Open fault details">&#x1F50D; Details</button>`;
+        html += `</div>`;
+        if (lfDesc) {
+            html += `<div class="fault-gate-banner-desc">${lfDesc}</div>`;
+        }
+        html += `<div class="fault-gate-banner-meta">`;
+        html += `<span class="fault-gate-banner-pc">PC&nbsp;<code>${lfPCHex}</code></span>`;
+        html += `<span class="fault-gate-banner-sep">&middot;</span>`;
+        html += `<span class="fault-gate-banner-instr">${lfDisasm}</span>`;
+        if (lfSrcLine) {
+            html += `<span class="fault-gate-banner-sep">&middot;</span>`;
+            html += `<span class="fault-gate-banner-src"><code>${lfSrcLine.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></span>`;
+        }
+        html += `</div>`;
+        if (lf.userNote) {
+            html += `<div class="fault-gate-banner-note">&#x1F4DD;&nbsp;${lf.userNote.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+        }
+        html += `</div>`;
+    }
+
+    // Empty-state guidance — only when there is no fault banner and no audit entries.
+    if (faultLog.length === 0 && log.length === 0) {
         container.innerHTML = `<div class="gate-log-empty">
             <p>No gates recorded yet.</p>
             <ol class="audit-guide-steps">
@@ -331,7 +407,7 @@ function updateGateLog() {
         </div>`;
         return;
     }
-    let html = '';
+
     for (const a of log) {
         const pass = a.result === 'pass';
         const isMSave = a.gate === 'mSave';

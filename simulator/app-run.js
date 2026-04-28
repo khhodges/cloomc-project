@@ -1516,6 +1516,38 @@ const _LUMP_TO_OUTFORM = {
     LUMP_OOM:    'OUTFORM_ALLOC',
 };
 
+// English-language explanations for every named fault type.
+// OUTFORM/LUMP faults are covered by _OUTFORM_DESCRIPTIONS; all others live here.
+const _FAULT_DESCRIPTIONS = {
+    RANGE:          'A capability register was used to access memory outside its permitted range. The offset computed by the instruction exceeded the capability\'s scope. Check that the base, limit, and offset are correct, and that the right capability is in the source register.',
+    BOUNDS:         'A c-list or memory scope violation: the instruction tried to read or write beyond the boundary described by the capability. Verify that the capability was minted with the correct limit and that loop indices or offsets cannot overflow it.',
+    NULL_CAP:       'The instruction attempted to dereference a null (zeroed) capability register. Ensure the capability has been loaded into the register before use and that no earlier fault or reset cleared it prematurely.',
+    PERM_R:         'Read permission (R) was required but the capability does not grant it. The capability must have R set to allow data reads through this register.',
+    PERM_W:         'Write permission (W) was required but the capability does not grant it. The capability must have W set to allow data writes through this register.',
+    PERM_X:         'Execute permission (X) was required but the capability does not grant it. Only capabilities sealed for execution may be invoked as call targets.',
+    PERM_L:         'Load permission (L) was required but the capability does not grant it. L must be set on a capability that is used to load other capabilities from the c-list.',
+    PERM_S:         'Store permission (S) was required but the capability does not grant it. S must be set on the capability used to write a new capability into the c-list.',
+    PERM_E:         'Enter permission (E) was required but the capability does not grant it. E allows a capability to be used as an entry point for a sealed domain.',
+    PERM:           'A required permission bit was absent on the capability. Check which permission the operation needs (R, W, X, L, S, or E) and ensure the capability was minted or passed in with that permission.',
+    PERMISSION:     'A required permission bit was absent on the capability. Check which permission the operation needs (R, W, X, L, S, or E) and ensure the capability was minted or passed in with that permission.',
+    VERSION:        'Capability version mismatch: the capability\'s revocation counter no longer matches the current GT sequence number. The GT was likely revoked by a CHANGE instruction after this capability was issued. Reload the capability from the authoritative source.',
+    SEAL:           'The capability\'s seal bit did not match what the operation requires. Sealed capabilities can only be invoked (CALL), not read or written directly; unsealed capabilities cannot be used as call targets.',
+    BIND:           'The capability is bound to a specific domain and cannot be used outside it. This protects the security model by preventing capabilities from leaking across trust boundaries.',
+    F_BIT:          'The F (foreign) bit on a capability violated the domain-purity rule. Foreign capabilities cannot be stored into a local c-list or passed as a sealed argument without explicit permission.',
+    TYPE:           'The GT type field did not match what the operation requires. For example, a CALL requires a type-2 (output) capability; using a type-1 (input) capability as a call target will raise this fault.',
+    TPERM_RSV:      'X\u2295LSE domain-purity violation: an instruction attempted to combine mutually exclusive permission sets (e.g. execute and load/store/enter on the same capability). This is reserved by the ISA and is never valid.',
+    DOMAIN_PURITY:  'A domain-purity constraint was violated. The operation mixed capabilities or register state from incompatible domains, breaking the isolation guarantee between trust boundaries.',
+    DOMAIN_ERROR:   'An internal domain consistency error occurred. This usually indicates a misconfigured capability tree or an attempt to cross a domain boundary without the required sealing.',
+    STACK_OVERFLOW: 'The call stack is full — too many nested calls without matching returns. Reduce call depth, check for runaway recursion, or increase the stack limit if the design permits it.',
+    STACK_UNDERFLOW:'The call stack is empty — a RETURN was executed without a matching CALL. Check that every code path through the method returns exactly once and that no extraneous RETURN instructions are present.',
+    INVALID_OP:     'The instruction encoding is not valid for this ISA version. The raw word does not correspond to any defined opcode. Check for a linker or assembler bug that produced a corrupt instruction word.',
+    BOOT:           'A fault occurred during the boot sequence before normal execution began. Review the boot log for the specific failing step.',
+    MATH_ERROR:     'A mathematical operation produced an undefined result (e.g. division by zero or an overflow that the ISA does not permit). Add bounds checks before the operation.',
+    HANDLER:        'A fault handler itself faulted, leaving the machine in an unrecoverable state. Inspect the fault handler code and ensure it does not perform operations that could themselves fault.',
+    ABSENT_OUTFORM: 'A firmware download (outform) was expected but no lump was provided. Ensure the namespace slot is populated with a compiled abstraction before booting.',
+    STACK_CORRUPT:  'The call-stack integrity check failed — the saved return address or frame data has been overwritten. This may indicate a buffer overflow or stray write that corrupted the stack region.',
+};
+
 function showFaultModal(f) {
     const existing = document.getElementById('faultModalOverlay');
     if (existing) existing.remove();
@@ -1759,6 +1791,20 @@ function showFaultModal(f) {
         }
     }
 
+    // ── General fault description callout ────────────────────────────────────
+    let descSection = '';
+    {
+        const descText = _FAULT_DESCRIPTIONS[f.type];
+        if (descText) {
+            const color2 = _FAULT_COLORS[f.type] || '#e05555';
+            descSection = `
+        <div class="fault-desc-section" style="border-left-color:${color2}">
+            <div class="fault-desc-label" style="color:${color2}">&#x2139; ${f.type}</div>
+            <div class="fault-desc-detail">${descText}</div>
+        </div>`;
+        }
+    }
+
     // ── Firmware download / lump integrity failure callout ────────────────────
     let outformSection = '';
     let isOutformFault = false;
@@ -1902,6 +1948,14 @@ function showFaultModal(f) {
             <button class="btn btn-muted" onclick="faultModalClearAndDismiss()" title="Clear fault state — stops the flashing alert">&#x2715; Clear</button>
         </div>
         <div class="${_msgClass}" ${_editOnclick}>${_transformFaultMsg(f.message)}${_editBadge}</div>
+        ${descSection}
+        <div class="fault-user-note-row">
+            <label class="fault-user-note-label" for="faultUserNoteInput">Note</label>
+            <input id="faultUserNoteInput" class="fault-user-note-input" type="text" maxlength="300"
+                placeholder="Add a plain-English description of this fault\u2026"
+                value="${(f.userNote || '').replace(/"/g, '&quot;')}"
+                oninput="(function(v){var fl=sim.faultLog;if(fl&&fl.length>0){fl[fl.length-1].userNote=v;}if(typeof updateGateLog==='function')updateGateLog();})(this.value)">
+        </div>
         ${historyHtml ? `<div class="fault-detail-grid">
             <div class="fault-detail-row fault-history-row">
                 <span class="fault-detail-label">History</span>

@@ -674,3 +674,93 @@ tr.itrace-fault td { color: #ff9999; }
 /* future rows (not yet run) keep the existing nia-row-next dim styling */
 .nia-row-next .nia-boot-icon   { color: #3a3830; }
 
+/* ── Gate Log fault banner ──────────────────────────────────────────────── */
+.fault-gate-banner {
+    border-radius: 6px;
+    border: 1px solid rgba(224, 85, 85, 0.35);
+    border-left: 4px solid #e05555;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    background: rgba(60, 15, 15, 0.35);
+}
+
+.fault-gate-banner-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.fault-gate-banner-badge {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.fault-gate-banner-title {
+    font-size: 0.80rem;
+    font-weight: 700;
+    color: #e08080;
+    flex: 1;
+}
+
+.fault-gate-banner-open {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.fault-gate-banner-desc {
+    font-size: 0.80rem;
+    color: #ddb890;
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+
+.fault-gate-banner-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    font-family: var(--font-mono, 'Courier New', monospace);
+    color: #a09070;
+}
+
+.fault-gate-banner-pc code {
+    color: #88ddaa;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.fault-gate-banner-sep {
+    color: #604040;
+    user-select: none;
+}
+
+.fault-gate-banner-instr {
+    color: #d4b080;
+    font-weight: 600;
+}
+
+.fault-gate-banner-src code {
+    color: #8899bb;
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-style: italic;
+}
+
+.fault-gate-banner-note {
+    margin-top: 5px;
+    font-size: 0.79rem;
+    color: #c0d0e0;
+    font-style: italic;
+    padding-top: 4px;
+    border-top: 1px solid rgba(200, 220, 240, 0.1);
+}
+

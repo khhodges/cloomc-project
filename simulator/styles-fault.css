@@ -1315,3 +1315,68 @@
     to { transform: rotate(360deg); }
 }
 
+/* ── Fault description callout (shown in fault modal for every fault type) ─ */
+.fault-desc-section {
+    margin-bottom: 0.85rem;
+    border: 1px solid rgba(200, 80, 80, 0.35);
+    border-left: 4px solid #e05555;
+    border-radius: 5px;
+    padding: 8px 12px;
+    background: rgba(60, 20, 20, 0.28);
+}
+
+.fault-desc-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #e05555;
+    margin-bottom: 4px;
+}
+
+.fault-desc-detail {
+    font-size: 0.82rem;
+    color: #e0c0b0;
+    line-height: 1.5;
+}
+
+/* ── User note row in fault modal ──────────────────────────────────────── */
+.fault-user-note-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.85rem;
+}
+
+.fault-user-note-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #8899aa;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.fault-user-note-input {
+    flex: 1;
+    background: rgba(20, 25, 35, 0.7);
+    border: 1px solid rgba(120, 140, 170, 0.35);
+    border-radius: 4px;
+    color: #d0dce8;
+    font-size: 0.82rem;
+    font-family: inherit;
+    padding: 4px 8px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.fault-user-note-input::placeholder {
+    color: #4a5060;
+}
+
+.fault-user-note-input:focus {
+    border-color: rgba(100, 150, 220, 0.6);
+    background: rgba(20, 30, 50, 0.8);
+}
+
