@@ -422,9 +422,15 @@ function updateGateLog() {
                 const _fePC = (_fe.physicalPC !== undefined && _fe.physicalPC !== null) ? _fe.physicalPC : _fe.pc;
                 const _fePCHex = '0x' + (_fePC >>> 0).toString(16).toUpperCase().padStart(4, '0');
                 const _feStep = _fe.step !== undefined ? _fe.step : '?';
+                const _feNs = Object.prototype.hasOwnProperty.call(_fe, '_nsSnapshot')
+                    ? _fe._nsSnapshot
+                    : ((typeof _nsOwnerOf === 'function') ? _nsOwnerOf(_fePC) : null);
                 html += `<div class="fault-history-row${_isLatest ? ' fault-history-row-latest' : ''}" onclick="showFaultModal(sim.faultLog[${_fhi}])" title="Open fault details (entry ${_fhi + 1})">`;
                 html += `<span class="fault-history-badge" style="background:${_feColor}22;border-color:${_feColor};color:${_feColor}">${_fe.type}</span>`;
                 html += `<span class="fault-history-pc"><code>${_fePCHex}</code></span>`;
+                if (_feNs && _feNs.label) {
+                    html += `<span class="fault-history-lump">${_feNs.label}</span>`;
+                }
                 html += `<span class="fault-history-step">step&nbsp;${_feStep}</span>`;
                 if (_isLatest) html += `<span class="fault-history-latest-mark">&#x25C4; latest</span>`;
                 html += `</div>`;

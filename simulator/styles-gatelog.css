@@ -889,9 +889,18 @@ tr.itrace-fault td { color: #ff9999; }
     font-size: inherit;
 }
 
+.fault-history-lump {
+    color: #a09070;
+    font-style: italic;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .fault-history-step {
     color: #707060;
-    flex: 1;
+    flex-shrink: 0;
 }
 
 .fault-history-latest-mark {
