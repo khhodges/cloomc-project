@@ -1607,8 +1607,8 @@ function _saveFaultLog() {
                 // Prefer CR14 snapshot gtIndex — directly names the executing lump's
                 // ns slot without depending on memory range lookups.
                 const _cr14s = f.crSnapshot && f.crSnapshot[14];
-                if (_cr14s && !_cr14s.isNull && _cr14s.gtIndex != null) {
-                    const _ni = _cr14s.gtIndex;
+                if (_cr14s && _cr14s.word0) {
+                    const _ni = _cr14s.word0 & 0xFFFF;
                     const _lbl = (sim.nsLabels && sim.nsLabels[_ni]) || `NS[${_ni}]`;
                     const _base = (_cr14s.word1 !== undefined && _cr14s.word1 !== null) ? (_cr14s.word1 >>> 0) : 0;
                     const _fpc = (f.physicalPC !== undefined && f.physicalPC !== null) ? f.physicalPC : f.pc;
@@ -1687,8 +1687,8 @@ function showFaultModal(f) {
         // Prefer CR14 snapshot — directly names the executing lump's ns slot
         // without depending on memory-range lookups.
         const _cr14lazy = f.crSnapshot && f.crSnapshot[14];
-        if (_cr14lazy && !_cr14lazy.isNull && _cr14lazy.gtIndex != null) {
-            const _ni = _cr14lazy.gtIndex;
+        if (_cr14lazy && _cr14lazy.word0) {
+            const _ni = _cr14lazy.word0 & 0xFFFF;
             const _lbl = (sim.nsLabels && sim.nsLabels[_ni]) || `NS[${_ni}]`;
             const _base = (_cr14lazy.word1 !== undefined && _cr14lazy.word1 !== null) ? (_cr14lazy.word1 >>> 0) : 0;
             f._nsSnapshot = { label: _lbl, nsIdx: _ni, offset: pc - _base };
@@ -1703,8 +1703,8 @@ function showFaultModal(f) {
     // heap-loaded lumps (e.g. LED flash) are shown instead of Boot.NS.
     const _cr14snap = f.crSnapshot && f.crSnapshot[14];
     let locationNs;
-    if (_cr14snap && !_cr14snap.isNull && _cr14snap.gtIndex != null) {
-        const _ni   = _cr14snap.gtIndex;
+    if (_cr14snap && _cr14snap.word0) {
+        const _ni   = _cr14snap.word0 & 0xFFFF;
         const _lbl  = (sim.nsLabels && sim.nsLabels[_ni]) || `NS[${_ni}]`;
         const _base = (_cr14snap.word1 !== undefined && _cr14snap.word1 !== null) ? (_cr14snap.word1 >>> 0) : 0;
         locationNs  = { label: _lbl, nsIdx: _ni, offset: pc - _base };
@@ -1718,8 +1718,8 @@ function showFaultModal(f) {
     // the executing code lump's namespace slot — more reliable than
     // _nsOwnerOf which does a memory-range search that can find the wrong
     // lump or return null.
-    const nsIdxForViewLump = (_cr14snap && !_cr14snap.isNull && _cr14snap.gtIndex != null)
-        ? _cr14snap.gtIndex
+    const nsIdxForViewLump = (_cr14snap && _cr14snap.word0)
+        ? (_cr14snap.word0 & 0xFFFF)
         : (ns ? ns.nsIdx : null);
     const color  = _FAULT_COLORS[f.type] || '#e05555';
 
