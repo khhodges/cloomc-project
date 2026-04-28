@@ -1622,6 +1622,9 @@ class ChurchSimulator {
                 }
 
                 this.mElevation = false;            // drop M-elevation: normal capability checks now apply to all subsequent instructions
+                this._resetAllMBits();              // clear M-bits set on CRs during boot (mElevation=true wrote m=1 via _writeCR);
+                                                    // without this, the first CALL after boot would trigger the M-window writeback
+                                                    // gate with NULL DR11 (since _setMWindow was never called during boot).
                 this.bootComplete = true;           // signal the step-loop to stop calling _bootStep and start dispatching instructions
                 this.ledBits = 0b111111;            // Execute() already set ledBits=0x3F on success; keep all LEDs on
                 this.ledMode = 'boot';              // LED display stays in boot-progress mode until first user toggle
@@ -3614,7 +3617,20 @@ class ChurchSimulator {
             // Authority check: source cap must carry S-perm and its location must
             // match the target CR's port address in the Church Hardware Address Range.
             // M-elevation during boot (this.mElevation) bypasses this check.
-            if (!this.mElevation) {
+            //
+            // CHANGE CR12 first-activation bypass: mirrors the hardware RESTORE_CALL FSM
+            // which runs unconditionally on the first CHANGE CR12 after boot (before any
+            // per-thread state has been saved).  The Boot.Abstr program uses CR12's own
+            // zero-perm GT as the source, so S-perm is never present; the first-activation
+            // path is privileged by construction (it can only be reached from Boot.Abstr).
+            //
+            // The bypass is deliberately narrowed to crSrc === crDst === 12 — the
+            // "self-reload" pattern used exclusively by Boot.Abstr.  Any CHANGE CR12 that
+            // names a DIFFERENT source register (e.g. T11: crSrc=0) must still satisfy
+            // the full S-perm + port-address authority check.
+            const isFirstActivation = d.crDst === 12 && d.crSrc === 12 &&
+                (!this._threadContextMap || !this._threadContextMap.has(targetIdx));
+            if (!this.mElevation && !isFirstActivation) {
                 const srcParsed = this.parseGT(this.cr[d.crSrc].word0);
                 if (!srcParsed.permissions['S']) {
                     this.fault('PERM_S', `CHANGE CR${d.crDst}: source CR${d.crSrc} lacks S-perm (required for system-wide CR12/CR13 write)`);
@@ -3627,7 +3643,55 @@ class ChurchSimulator {
                     return null;
                 }
             }
-            if (!this._writeCR(d.crDst, gt, entry)) return null;
+            // ── CHANGE CR12: synthesize a valid zero-perm GT ──────────────────────
+            // The raw word at entry.word0_location is the thread lump header (magic+cc+cw),
+            // not a valid GT.  Using it as cr[12].word0 would break every subsequent
+            // mLoad(cr12.word0, ...) call (e.g. CALL thread-hdr read, _threadRead, _threadWrite).
+            // Instead synthesise a zero-perm Inform GT for targetIdx, matching the GT
+            // created by the boot ROM in B:02 (INIT_THRD).  The gt_seq is taken from the
+            // NS entry so mLoad's version check passes.
+            const gtToWrite = (d.crDst === 12)
+                ? this.createGT((entry.word2_seals >>> 25) & 0x7F, targetIdx, {R:0,W:0,X:0,L:0,S:0,E:0}, 1)
+                : gt;
+            if (!this._writeCR(d.crDst, gtToWrite, entry)) return null;
+
+            // ── CHANGE CR12: mirror the hardware RESTORE_CALL FSM ──────────────────
+            // When mElevation=true (boot) or when this thread slot has never been
+            // suspended (first-activation), the hardware loads CR0–CR11 from the
+            // incoming thread's caps zone (thread[+THREAD_CAPS_OFFSET .. +THREAD_CAPS_OFFSET+11]).
+            // Without this restore the subsequent TPERM/CALL will see NULL in CR0 and fault.
+            //
+            // Note: we populate the CRs directly rather than via _writeCR because at this
+            // point cr[12].word0 holds the raw lump-header word (the GT read from the thread
+            // lump's first word), which is not a valid GT and would cause _writeCR's
+            // home-slot mLoad authority check to fault.  The RESTORE_CALL FSM is a hardware-
+            // privileged operation that bypasses normal capability authority checking.
+            if (d.crDst === 12 && (this.mElevation || isFirstActivation)) {
+                const threadEntry = this.readNSEntry(targetIdx);
+                if (threadEntry) {
+                    const tBase = threadEntry.word0_location;
+                    for (let i = 0; i < 12; i++) {
+                        const gtWord = this.memory[tBase + THREAD_CAPS_OFFSET + i] >>> 0;
+                        if (gtWord !== 0) {
+                            const capEntry = this.readNSEntry(this.parseGT(gtWord).index);
+                            if (capEntry) {
+                                this.cr[i] = {
+                                    word0: gtWord,
+                                    word1: capEntry.word0_location >>> 0,
+                                    word2: capEntry.word1_limit >>> 0,
+                                    word3: 0,
+                                    m: 0,
+                                };
+                            } else {
+                                this.cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0, m: 0 };
+                            }
+                        } else {
+                            this.cr[i] = { word0: 0, word1: 0, word2: 0, word3: 0, m: 0 };
+                        }
+                    }
+                }
+            }
+
             const desc = `CHANGE CR${d.crDst} (system-wide; CR12/CR13 unchanged by context switch) <- [CR${d.crSrc}+${targetIdx}]`;
             this.output += desc + '\n';
             this.pc++;
