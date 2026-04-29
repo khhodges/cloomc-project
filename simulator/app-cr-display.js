@@ -69,27 +69,29 @@ function updateCRDisplay() {
 let selectedCR = null;
 
 // ── CR cycle button ───────────────────────────────────────────────────────────
-// Cycles through three dashboard views:
+// Cycles through four dashboard views:
 //   0 → CR0-CR15  (register table)
 //   1 → CR14 CLOOMC  (detail)
 //   2 → CR12 Thread stack  (detail)
+//   3 → NS   Namespace table
 let _crCycleState = 0;
 
 const _crCycleViews = [
     { label: 'CRs',  title: 'CR0–CR15 — 128-bit Context Registers (4 × 32-bit words)' },
     { label: 'CR14', title: 'CR14 — CLOOMC' },
     { label: 'CR12', title: 'CR12 — Thread stack (system-wide, privileged)' },
+    { label: 'NS',   title: 'Namespace — NS table slots and GT types' },
 ];
 
 function cycleCRView() {
-    _crCycleState = (_crCycleState + 1) % 3;
+    _crCycleState = (_crCycleState + 1) % 4;
     _applyCRCycleState();
 }
 
 function _applyCRCycleState() {
     switchView('dashboard');
     const cur  = _crCycleViews[_crCycleState];
-    const next = _crCycleViews[(_crCycleState + 1) % 3];
+    const next = _crCycleViews[(_crCycleState + 1) % 4];
     const btn  = document.getElementById('crCycleBtn');
     if (btn) {
         btn.textContent = cur.label;
@@ -101,8 +103,10 @@ function _applyCRCycleState() {
         switchDashTab('cr');
     } else if (_crCycleState === 1) {
         openCRDetail(14);
-    } else {
+    } else if (_crCycleState === 2) {
         openCRDetail(12);
+    } else {
+        renderNSView();
     }
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1332,6 +1336,71 @@ function hidePetNameTip() {
     const tip = document.getElementById('code-pet-tip');
     if (tip) tip.style.display = 'none';
 }
+
+// ── Namespace table view ──────────────────────────────────────────────────────
+function renderNSView() {
+    switchDashTab('ns');
+    const container = document.getElementById('nsViewContent');
+    if (!container) return;
+
+    const NS_TYPE  = { 0: 'Null', 1: 'Inform', 2: 'Outform', 3: 'Abstract' };
+    const NS_CLASS = { 0: 'nsv-type-null', 1: 'nsv-type-inform', 2: 'nsv-type-outform', 3: 'nsv-type-abstract' };
+
+    const lumpMap = {};
+    if (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache)) {
+        for (const l of _lumpsCache) {
+            if (l.ns_slot !== undefined && l.ns_slot !== null) {
+                lumpMap[parseInt(l.ns_slot)] = l.abstraction || '';
+            }
+        }
+    }
+
+    const BOOT_LABELS = {
+        0: 'Boot.NS', 1: 'Boot.Thread', 2: 'Boot.CList', 3: 'Boot.Abstr',
+    };
+
+    const count = (typeof sim !== 'undefined' && sim.nsCount) ? sim.nsCount : 0;
+
+    let rows = '';
+    if (count === 0) {
+        rows = `<tr><td colspan="6" class="nsv-empty">No namespace entries — run boot first</td></tr>`;
+    } else {
+        for (let i = 0; i < count; i++) {
+            const e = (typeof sim !== 'undefined') ? sim.readNSEntry(i) : null;
+            if (!e) continue;
+            const typeName  = NS_TYPE[e.gtType]  || '?';
+            const typeClass = NS_CLASS[e.gtType] || '';
+            const loc  = '0x' + ((e.word0_location >>> 0).toString(16).padStart(8, '0').toUpperCase());
+            const label = e.label || lumpMap[i] || BOOT_LABELS[i] || '';
+            const gBit = e.gBit ? '✓' : '–';
+            const cc   = e.clistCount || 0;
+            rows += `<tr class="nsv-row">
+                <td class="nsv-slot">${i}</td>
+                <td class="nsv-label">${label || '<span class="nsv-unlabeled">—</span>'}</td>
+                <td class="nsv-type-cell"><span class="nsv-type-badge ${typeClass}">${typeName}</span></td>
+                <td class="nsv-loc">${loc}</td>
+                <td class="nsv-gbit">${gBit}</td>
+                <td class="nsv-cc">${cc > 0 ? cc : '–'}</td>
+            </tr>`;
+        }
+    }
+
+    container.innerHTML = `
+        <table class="nsv-table">
+            <thead>
+                <tr>
+                    <th class="nsv-th nsv-th-slot">Slot</th>
+                    <th class="nsv-th nsv-th-label">Label</th>
+                    <th class="nsv-th nsv-th-type">Type</th>
+                    <th class="nsv-th nsv-th-loc">Location</th>
+                    <th class="nsv-th nsv-th-g">G</th>
+                    <th class="nsv-th nsv-th-cc">CList</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function _showEditorCListNotice(pop, evt, msg) {
     const dismissBtn = `<button class="zdp-dismiss" onclick="hideCRPopup(true)" title="Close">&times;</button>`;
