@@ -3564,7 +3564,26 @@ window.applyPOLA = async function(nsIdx) {
     sim.memory[baseLoc] = sim.packLumpHeader(n_minus_6, cw, newCC, typ) >>> 0;
     const nsBase = sim.NS_TABLE_BASE + nsIdx * sim.NS_ENTRY_WORDS;
     const oldW1  = sim.memory[nsBase + 1] >>> 0;
-    sim.memory[nsBase + 1] = ((oldW1 & 0xFC000000) | ((newCC & 0x1FF) << 17) | ((lumpSize - 1) & 0x1FFFF)) >>> 0;
+    const oldW2  = sim.memory[nsBase + 2] >>> 0;
+    const gtSeqP = (oldW2 >>> 25) & 0x7F;
+    const w1fP   = sim.parseNSWord1(oldW1);
+    // Only update clistCount; preserve limit17 so the CRC seal stays coherent.
+    // (The old code used lumpSize-1 here, which silently changed limit17 and
+    //  invalidated the seal on every POLA run.)
+    const newW1P = sim.packNSWord1(w1fP.limit, w1fP.b, w1fP.f, w1fP.g, w1fP.chainable, w1fP.gtType, newCC);
+    sim.memory[nsBase + 1] = newW1P;
+    // Recompute seal: baseLoc and limit17 are both unchanged so this is
+    // equivalent to the original seal, but correct even if a prior POLA run
+    // left limit17 in a bad state.
+    sim.memory[nsBase + 2] = sim.makeVersionSeals(gtSeqP, baseLoc, w1fP.limit);
+    // Propagate updated NS words to any CR currently holding a GT for this slot.
+    for (let _ci = 0; _ci < 16; _ci++) {
+        const _cr = sim.cr[_ci];
+        if (_cr && sim.parseGT && (sim.parseGT(_cr.word0) || {}).index === nsIdx) {
+            _cr.word2 = sim.memory[nsBase + 1];
+            _cr.word3 = sim.memory[nsBase + 2];
+        }
+    }
 
     updateCRDetail();
 
