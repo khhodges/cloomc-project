@@ -490,7 +490,7 @@ function stepSim() {
             sim.auditLog = [];
             _autoLoadDefaultProgram();
             updateDashboard();
-            switchView('dashboard');
+            switchView('lumps');
             openCRDetail(14);
         } else {
             updateDashboard();
@@ -988,6 +988,7 @@ function slowBoot() {
                     _autoLoadDefaultProgram();
                 }
                 updateDashboard();
+                if (!sim.halted) switchView('lumps');
                 return;
             }
             const _slowPhaseNum = sim.bootStep + 1;  // capture before _bootStep() — case 6 (COMPLETE) doesn't increment bootStep
@@ -1154,7 +1155,9 @@ function runSim() {
         // Guard: updateDashboard can crash (e.g. null NS entry after stack overflow fault);
         // catch here so the Run button is always re-enabled regardless.
         try { updateDashboard(); } catch(e) { console.error('finishRun updateDashboard:', e); }
-        switchView('dashboard');
+        // Clean HALT (no faults, boot complete) → open LUMP page for save workflow.
+        // Faults, errors, breakpoints, maxSteps, and userStopped stay on dashboard.
+        switchView(ranClean && sim.bootComplete ? 'lumps' : 'dashboard');
         openCRDetail(14);
         // Persist the fault log so it survives a page reload.
         _saveFaultLog();
