@@ -43,10 +43,10 @@
 // and be sent to the versioned URL where the correct HTML is served.
 (function _simulatorCacheBust() {
     if (typeof window === 'undefined') return;
-    var _VER = 'r20260429d';
+    var _VER = 'r20260429e';
     var _path = window.location.pathname;
-    // If we are on /simulator/ (or /simulator) but NOT already on the versioned path, redirect.
-    if (/^\/simulator\/?$/.test(_path) || (_path.indexOf('/simulator/') === 0 && _path.indexOf('/~/' + _VER) === -1 && _path.indexOf('/~/') === -1)) {
+    // If not already on this exact versioned URL, redirect (catches both /simulator/ and old /~/rXXX).
+    if (_path.indexOf('/simulator/') === 0 && !_path.startsWith('/simulator/~/' + _VER)) {
         window.location.replace('/simulator/~/' + _VER + (window.location.hash || ''));
     }
 })();
