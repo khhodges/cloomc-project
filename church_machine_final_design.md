@@ -1,5 +1,8 @@
 # Church Machine — Final Design
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## 1. Architecture Overview
 
 The Church Machine is a 32-bit capability-secured processor. All access control is enforced by a single gate — **mLoad** — which validates Golden Tokens (GTs) before any memory, device, or register access. There are no privilege rings, no MMU, no separate I/O instructions, and no superuser. The GT is the only key to any resource.
@@ -310,3 +313,5 @@ For BFEXT/BFINS, the immediate field encodes position and width. For BRANCH, it 
 6. **Minimal Turing ISA** — 11 instructions, integer only, no floating point (FP is Church-domain via abstractions)
 7. **Capabilities cannot be forged** — only attenuated (CHANGE), loaded (LOAD), or saved (SAVE with B=1)
 8. **Failsafe default** — all validation failures route to a single FAULT handler
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

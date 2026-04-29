@@ -1,4 +1,8 @@
 # Amaranth ↔ Simulator Audit
+
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Date**: April 23, 2026  
 **Scope**: `simulator/simulator.js` (reference model) vs `hardware/` (Amaranth/Tang Nano 20K target) vs `ctmm_cap_amaranth/` (CAP research branch) vs `verilog/` (generated Verilog)
 
@@ -245,3 +249,5 @@ These areas are confirmed consistent between simulator and hardware:
 | 7 | ctmm_cap_amaranth RETURN triple-restore | Decide if main hardware/ret.py should also triple-restore | **LOW** |
 | 8 | OUTFORM_TIMEOUT fault code | Add to simulator as unreachable (stub fault for completeness) | **LOW** |
 | 9 | Lump size minimum (8 vs 64 words) | Choose Option A (strict) or Option B (relax spec) | **OPEN** |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

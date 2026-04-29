@@ -1,5 +1,8 @@
 # CONTINUATION-IN-PART: Universal Computation Target with Multi-Language Capability Compiler
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Church-Turing Meta-Machine: Language-Independent Capability-Secured Instruction Set with Compiler-Verified Resident Object Model and Upload-Driven Abstraction Lifecycle
 
 ---
@@ -546,3 +549,5 @@ Diagram showing identical security mechanisms (GT + NS entry + CALL split + mLoa
 ## ABSTRACT
 
 A capability-secured processor instruction set architecture that serves as a universal computation target for multiple programming paradigms. The fixed 20-instruction set — comprising 10 Church-domain capability operations and 10 Turing-domain data operations — accepts compiled output from imperative languages (JavaScript) and functional languages (Haskell) through a multi-front-end compiler with a shared Resident Object Model and code generator. The compiler maps source-language capability references to hardware c-list offsets, producing self-describing upload objects processed by a sole namespace authority (Navana) through a uniform validation and installation protocol. A single-lump abstraction model stores both code and capability list in one memory allocation, described by one namespace entry; the CALL instruction splits the lump into domain-pure regions (code=execute-only, c-list=load-only) using a clistCount field in the namespace entry. The compiler is architecturally outside the trusted computing base: no compiler bug in any source language can produce a security violation, because the hardware enforces capability invariants — token validation, domain purity, bounds checking, and permission verification — independent of the generated code. The architecture is scale-free: the same security mechanisms apply identically from individual users to organizations, with no privileged modes or administrative overrides.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

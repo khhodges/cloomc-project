@@ -1,5 +1,8 @@
 # Production Silicon TODO
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 This document tracks requirements for synthesizing the Church Machine Verilog to production-ready silicon. The current implementation captures architectural concepts for simulation; these items would be needed for a real chip.
 
 ## SWITCH/CHANGE Instruction Pipeline
@@ -88,3 +91,5 @@ This document tracks requirements for synthesizing the Church Machine Verilog to
 ---
 
 *Last updated: 2026-01-28*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

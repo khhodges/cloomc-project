@@ -1,5 +1,8 @@
 # Church Machine: The Industrial Strength Living Machine
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 Unified System Specification and Reference Manual
 
 **Architect**: Kenneth James Hamer-Hodges
@@ -74,3 +77,5 @@ To allow "Borrowing without Leakage" (e.g., Lending a Slide Rule), the Meta-Mach
 **The Leash**: The key is a Proxy pointing to the lender.
 
 **Revocation**: The lender can invalidate the Master Key, causing the borrower's Proxy to "go dark."
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

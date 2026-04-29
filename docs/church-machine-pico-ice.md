@@ -1,5 +1,8 @@
 # Church Machine on pico-ice FPGA
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Overview
 
 The Church Machine is a pure lambda calculus processor — a standalone, Church-only 32-bit capability-secure computer running on a [pico-ice](https://pico-ice.tinyvision.ai/) FPGA development board. The board combines a Lattice iCE40UP5K FPGA with a Raspberry Pi RP2040 microcontroller that provides USB bridging and UART communication.
@@ -473,3 +476,5 @@ The Church Machine supports compile-time feature flags in `church_machine/types.
 | `ENABLE_GC` | PP250 deterministic garbage collector | False |
 
 Setting flags to `True` enables full security semantics but increases LUT usage. The minimal build fits at 85%; enabling all flags may exceed the iCE40UP5K capacity.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

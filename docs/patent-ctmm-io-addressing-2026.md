@@ -1,5 +1,8 @@
 # CONTINUATION-IN-PART: Abstract GT I/O and Network Addressing
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Church-Turing Meta-Machine: Hardware-Routed Abstract Capability Tokens for Unified I/O, Network Tunneling, and Guarantee-Based Service Scoping
 
 ---
@@ -662,3 +665,5 @@ The Abstract Golden Token I/O and Network Addressing architecture represents a f
 5. **Crime-free guarantees**: For the first time, a computer system can structurally guarantee that a user's device cannot access prohibited services — not through filters or policies, but through the absence of capability tokens.
 
 This invention builds on the CTMM foundation while opening entirely new application domains: edge computing, offline-first systems, autonomous agents, and the first genuinely crime-free platforms.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

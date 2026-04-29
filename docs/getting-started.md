@@ -1,5 +1,8 @@
 # Getting Started with the Church Machine
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## For Educators
 
 The Church Machine teaches computer security through direct experience. Students write programs that interact with a capability-secured processor — they learn security not as an add-on, but as the fundamental way computers work.
@@ -220,3 +223,5 @@ The Church Machine is designed to teach children about computer security through
 - **Namespace isolation**: Each child has their own isolated namespace — siblings cannot see each other's data unless you explicitly allow it
 
 The c-list IS the approved list. If a capability slot is empty (NULL), access is denied by hardware. No software can override this.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

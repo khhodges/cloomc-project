@@ -1,5 +1,8 @@
 # Flexibility and Decisions
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Why Constraints Are a Feature, Not a Bug
 
 ---
@@ -210,3 +213,5 @@ Ada wrote her algorithm once. It has cost nothing to maintain for nearly two cen
 The lesson is simple and old and persistently ignored: **freedom is not the same as capability, and constraints are not the same as limitations.** A chip pinout constrains your wiring and liberates your engineering. A sealed abstraction constrains your interface and liberates your software from the endless renegotiation of trust. Von Neumann's unconstrained memory model constrains nothing and liberates no one — it merely defers the consequences of uncommitted design to the people least equipped to deal with them: the users.
 
 The Church Machine chooses constraints. That is not a compromise. It is the design.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

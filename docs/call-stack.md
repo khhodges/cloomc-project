@@ -1,5 +1,8 @@
 # Call Stack, CALL/RETURN, and Thread Switching
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## CALL Operation
 
 The CALL instruction enters a protected abstraction referenced by a Golden Token. It pushes a **2-word frame** onto the call stack — nothing more.
@@ -189,3 +192,5 @@ Only code that already holds the appropriate PassKey in an instruction-addressab
 The two SWITCH PassKeys are the first two entries in the **Abstract Address Space** — the 32-bit `word1_location` range that the IDE owns for all hardware-routed I/O and remote network addressing. Abstract GTs whose `word1_location` falls in this reserved range are the general mechanism for I/O peripherals, encrypted tunnels, and remote services, with the Home Base tunnel (`0xFF000000`) as the primary network gateway.
 
 See [Abstract GT I/O and Network Addressing](abstract-io-addressing.md) for the full Abstract Address Space layout and IDE provisioning protocol.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

@@ -1,5 +1,8 @@
 # Church Machine Instruction Set
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Encoding Format
 
 All instructions are 32 bits:
@@ -397,3 +400,5 @@ Both `;` and `--` introduce comments.
 - Decimal: `#42`
 - Hexadecimal: `#0x2A`
 - Negative: `#-1`
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

@@ -1,5 +1,8 @@
 # Network Transparency
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 > **Status**: Architectural design document. The GT Type field (NULL, Inform, Outform, Abstract) exists in the simulator's 32-bit GT format. Tunnel messaging proof-of-concept exists (see [Tunnel Messaging Example](tunnel-messaging-example.md)). TRAP handling and full tunnel operations are not yet implemented in the simulator. This document specifies the planned design.
 >
 > See also: [GT Type Field and Domain Separation](gt-literals.md) for the Type field specification and the [LAMBDA Instruction Specification](lambda-instruction.md) for the lightweight code application mechanism.
@@ -340,3 +343,5 @@ The key insight: object fetch and flush use **standard HTTPS** — the same mech
 RPC (E on Outform) is the only operation that requires both endpoints to be Meta Machines, since it involves serializing capability-secured register state through a namespace-key encrypted tunnel.
 
 This makes the architecture **media-tight** (content-type enforced), **data-tight** (R/W permissions enforced on every access), and **function-tight** (E permission required for every RPC invocation).
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

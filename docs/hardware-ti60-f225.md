@@ -1,5 +1,8 @@
 # Efinix Ti60 F225 — Church Machine Hardware Reference
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Board specifications
 
 | Feature | Value |
@@ -441,3 +444,5 @@ Available peripheral candidates for future integration:
 | UART outputs nothing | TX/RX swapped, or wrong baud | Verify `uart_tx`/`uart_rx` pins in constraint file; confirm 115200 |
 | LEDs don't respond post-boot | DWRITE offset wrong | Confirm offset 0–3 for Ti60; offset 4 has no physical pin |
 | Button read always 0 | Debounce sync | Hold button down; the register is level (not pulse) |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

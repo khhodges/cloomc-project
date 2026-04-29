@@ -1,5 +1,8 @@
 # namespace-json — NS Table Metadata Formats
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 The Church Machine IDE uses JSON for all namespace table import, export, and localStorage persistence. There are four distinct formats depending on context. All share a common **entry object** shape produced by `readNSEntry`.
 
 ---
@@ -251,3 +254,5 @@ All formats accept code words in either form:
 - **Hex string** — parsed with `parseInt(w, 16) >>> 0`; leading `0x` is optional but conventional
 
 Both forms may be mixed in the same array.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

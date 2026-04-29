@@ -1,5 +1,8 @@
 # Immortal Software — Why Church Machine Code Never Needs to Change
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## The Claim
 
 A Church Machine abstraction, once written and verified, never needs to be patched, updated, or replaced. It can run unchanged for decades — or centuries — because the conditions that force software rewrites on conventional architectures do not exist.
@@ -488,3 +491,5 @@ The Church Machine is an open source design, available on GitHub. Individuals ca
 - The **[Bugs Eliminated by Architecture](lambda-arithmetic.md#bugs-eliminated-by-architecture)** section catalogues the specific failure modes that the hardware makes impossible.
 - The **[Abstraction Catalog](abstractions.md)** shows every abstraction in the system with its current MTBF.
 - The **[Architecture](architecture.md)** document explains the MTBF measurement model, the 20-instruction ISA, and the Navana Master Controller.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

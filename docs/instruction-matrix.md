@@ -1,5 +1,8 @@
 # Church Machine Instruction Cross-Reference Matrix
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 This document maps each instruction across all implementation layers for verification.
 
 ## Legend
@@ -228,3 +231,5 @@ Source must be CR0–CR11 (4-bit field; CR12–CR15 are privileged and require a
 - CR fields: 4-bit (0-11 programmer-accessible; 12-15 privileged — hardware faults on normal access)
 - LDI uses Turing format but is documented with Church for immediate loading
 - TPERM_PRESET in JS is separate case from TPERM (line 708 vs 385)
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

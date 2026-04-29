@@ -1,5 +1,8 @@
 # IDE/Abstractions Implementation Group — Rules and Guidance
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## What This Group Does
 
 The IDE/Abstractions Implementation Group is the open-source
@@ -206,3 +209,5 @@ abstraction you write, every bug you fix, every tutorial you improve
 is a brick in the foundation of a computing architecture that does not
 need patching, does not need antivirus software, and does not give
 root access to buffer overflows.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

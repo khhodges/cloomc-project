@@ -1,5 +1,8 @@
 # Consistency Audit: Tutorials, Documentation, and Amaranth Hardware
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Date**: March 29, 2026  
 **Scope**: All tutorial pages, latest documentation, Amaranth HDL implementation  
 **Status**: **3 CRITICAL inconsistencies found** + several minor naming discrepancies  
@@ -297,3 +300,5 @@ All documentation corrections identified by this audit have been applied in plac
 - **D-6**: FPGA MMIO/LED routing
 - **D-7**: SAVE operand naming in app.js (Task #6)
 - **D-8**: CR5 instance-data save/restore via cr5_stack (Task #3)
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

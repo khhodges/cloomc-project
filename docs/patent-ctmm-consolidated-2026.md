@@ -1,5 +1,8 @@
 # CONSOLIDATED PATENT SUBMISSION WITH ADDENDUMS
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Church-Turing Meta-Machine: Complete Patent Portfolio
 
 ---
@@ -2815,3 +2818,5 @@ Software counts.                Hardware doesn't need to.
 ## ABSTRACT
 
 A capability-based processor architecture demonstrating that LAMBDA CR6 is the optimal recursion primitive — superior to both conventional branch loops and CALL-based recursion. The CALL instruction's lump split naturally establishes a self-reference in the capability list register (CR6). LAMBDA CR6 exploits this self-reference through idempotent re-entry: LAMBDA CR6 is permitted to re-execute while `lambda_active` is already set because the return address is invariant — the same value overwrites the same register. The software's own recursion argument drives the countdown; the hardware's existing 1-bit flag and PC register handle exit: the base-case RETURN clears the flag and jumps to the instruction after LAMBDA CR6, where a second RETURN pops the CALL frame. Two RETURNs total, regardless of recursion depth. No hardware counter, no stack frames, no additional registers. CALL CR6 also re-enters the same method but with full namespace gate re-validation — which is redundant because the gate re-checks the same GT and re-splits the same lump every time, adding O(N) cost with no security benefit. LAMBDA CR6 dominates: identical security (same method, same domain, same capabilities), O(1) cost versus O(N), zero additional hardware, and elimination of all branch-prediction vulnerabilities (Spectre, Meltdown, pipeline stalls). The architecture is extended with a natural language (English) front-end for the CLOOMC++ compiler. Pet-name mathematical constants (Pi, E, Phi) are accessed as Abstract Golden Tokens through the capability system.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

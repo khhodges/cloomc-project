@@ -1,5 +1,8 @@
 # Lambda, Trust, and Civilization
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## The Architectural Insight
 
 The Church Machine has three system authorities. Each is the sole
@@ -335,3 +338,5 @@ still teach, universities still examine, regulators still regulate.
 But the proof of their work is no longer a piece of paper that can
 be photocopied. It is a Golden Token that the silicon will not let
 anyone forge.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

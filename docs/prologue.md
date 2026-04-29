@@ -1,5 +1,8 @@
 # Prologue — From Lambda Calculus to the Church Machine
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 [Industrial Strength Computer Science](https://sipantic.blogspot.com/p/industrial-strength-computer-science_7.html)
 
 ## 1936: Two Models of Computation
@@ -189,3 +192,5 @@ The Church Machine is not a new idea. It is the correct idea from 1936, validate
 Ada Lovelace wrote the first program in 1843 as mathematics. The Church Machine is an architecture designed so that all programs are written that way — because mathematics does not overflow, does not escalate privileges, does not decay, and does not require surveillance to keep it honest.
 
 The choice was always architectural. In 1977, the wrong choice was made. This book explains the architecture that makes it right.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

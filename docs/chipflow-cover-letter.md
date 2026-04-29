@@ -1,5 +1,8 @@
 # Cover Letter — CTMM Capability Security Extension for RISC-V
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **To:** ChipFlow Team
 **From:** Kenneth James Hamer-Hodges
 **Date:** February 2026
@@ -51,3 +54,5 @@ Architect, Church-Turing Meta-Machine
 ---
 
 *Project repository and live simulator available upon request.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

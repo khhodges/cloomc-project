@@ -1,5 +1,8 @@
 # Foundation Lump Design
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 This document records the architectural agreements established in April 2026
 design sessions covering how the IDE initialises a Church Machine system,
 how the simulator must behave, and what the programmer controls.
@@ -224,3 +227,5 @@ image is preserved as-is for now; the programmer-authored boot image work
 - [`namespace-security.md`](namespace-security.md) — Namespace integrity model
 - [`garbage-collection.md`](garbage-collection.md) — GC mechanism
 - [`plan-lazy-load.md`](plan-lazy-load.md) — Lazy loading design
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

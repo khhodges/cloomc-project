@@ -8,6 +8,9 @@
 
 # DESIGN PROPOSAL: Lambda Register Window
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Status**: ARCHIVED — Superseded by simplified LAMBDA instruction design (February 14, 2026). Retained for historical reference.
 
 **Date**: February 13, 2026
@@ -402,3 +405,5 @@ The architecture of Proposed Claim 13, wherein the implicit value extraction on 
 6. **Interrupts/exceptions under LAMBDA_MODE**: If an interrupt or exception occurs while LAMBDA_MODE=1, the context save must preserve CR12-CR15 contents and the micro-return stack state. What is the save/restore protocol? Should the interrupt handler run with LAMBDA_MODE=0 (safe default) or inherit the interrupted thread's mode?
 
 7. **mLoad/mLoadByIndex namespace root reference**: If CR11 becomes the Namespace root, all paths that currently reference CR15 for namespace access — mLoad, mLoadByIndex, RETURN revalidation (direct mode), GC scan root — must be updated. Should the namespace root register be a configurable constant (allowing either CR11 or CR15) or a hard architectural change?
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

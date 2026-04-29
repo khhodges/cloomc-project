@@ -1,5 +1,8 @@
 # Startup.Config — Specification
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 _Church-Turing Meta-Machine startup configuration abstraction_
 
 ---
@@ -400,3 +403,5 @@ NS slot, call Execute, check fault_count = 1 and ledBits = 1), and an
 integration test that runs a full simulated boot and verifies the Gate Log
 contains a `Startup.Config.Execute` entry followed by the configured main
 abstraction.  All existing tests must continue to pass.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

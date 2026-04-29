@@ -1,5 +1,8 @@
 # Plan: Lazy Load
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Goal
 
 Abstractions load on demand — triggered by a CODE_NOT_RESIDENT fault
@@ -135,3 +138,5 @@ only the active set needs to be resident.
 4. GT, c-list, and seals are preserved across all load/evict cycles
 5. Loader.Evict clears code (cw=0) — GT stays, next call re-loads
 6. MTBF = ∞ for Loader itself — zero faults in the load path
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

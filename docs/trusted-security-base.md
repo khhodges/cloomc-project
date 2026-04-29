@@ -1,5 +1,8 @@
 # Trusted Security Base
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## What Is the Trusted Security Base?
 
 The Trusted Security Base (TSB) is the minimal set of logic that **every** capability operation must pass through. In a conventional system, the "trusted computing base" includes an operating system kernel, a hypervisor, privileged CPU modes, and memory management units -- millions of lines of code that attackers can exploit. The Church Machine architecture eliminates all of that. The entire TSB is a single module: **mLoad**.
@@ -238,3 +241,5 @@ In both implementations, the security guarantee is identical:
 **No instruction, no microcode sequence, no hardware path can write a Golden Token into a capability register without passing through mLoad's complete validation pipeline. If mLoad rejects an operation, it faults. Period.**
 
 This is the architecture that Kenneth James Hamer-Hodges designed: not "security bolted on", but **security built in** -- at the only gate that matters.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

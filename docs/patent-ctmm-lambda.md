@@ -1,5 +1,8 @@
 # INITIAL PATENT SUBMISSION
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Church-Turing Meta-Machine: Hardware-Enforced Lambda Calculus with the LAMBDA Instruction, NULL Capability Type, and Atomic Abstraction Architecture
 
 ---
@@ -906,3 +909,5 @@ Nested box diagram showing the caller's view (`CALL(Thread.Mint(type, size, acce
 ### Figure 14: Hello Mum — Secure Cross-Architecture Communication
 
 Diagram showing Kenneth's CTMM machine (Sim-64) and Priscilla's Capability machine (Sim-32) connected by an encrypted capability tunnel. Shows the single Church instruction `CALL(CONNECT(me, mymother))`, the 3 Golden Tokens involved, and the 7 Zeroes achieved. Annotated with the absence of OS, VM, privilege hardware, and superuser at every layer.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

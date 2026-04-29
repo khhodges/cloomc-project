@@ -1,5 +1,8 @@
 # GT Type Field and Domain Separation
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 > **Status**: Updated February 14, 2026. GT-Literal concept removed. Type field updated to reflect clean separation between Church domain (capabilities in CRs) and Turing domain (values in DRs).
 
 ## Overview
@@ -279,3 +282,5 @@ The removal of GT-Literals and the clarification of the Type field reflect a mat
 5. **Secure Defaults**: All operations on NULL typed GTs result in FAULT. Abstract typed GTs return their encoded immutable value. Uninitialized CRs are NULL, not unspecified. Revocation is deterministic.
 
 This architecture achieves the Church-Turing marriage: the capability model (Church) provides protection and naming; the computational model (Turing) provides data and algorithms; LAMBDA bridges them for efficient, secure in-scope computation; CALL bridges them for secure cross-domain service invocation.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

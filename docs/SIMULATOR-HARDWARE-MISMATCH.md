@@ -1,5 +1,8 @@
 # Simulator ↔ Hardware Mismatch Report
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Status**: ✅ FIXED — All GT type names corrected to match hardware definitions  
 **Date**: March 29, 2026 (fixed March 30, 2026)  
 **Files**: `simulator/simulator.js` vs `hardware/hw_types.py`
@@ -118,3 +121,5 @@ Simulator was written before the complete GT type system was defined, using an i
 2. Review and fix any type comparisons (likely 3-5 locations)
 3. Re-run boot ROM simulator to verify Abstract GT (type 3) PassKeys work
 4. Commit with message: "Fix simulator GT type mapping: type 1=Inform, type 2=Outform, type 3=Abstract"
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

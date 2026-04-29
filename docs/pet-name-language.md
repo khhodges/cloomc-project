@@ -1,5 +1,8 @@
 # Pet-Name Language Reference
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 The Pet-Name language is a hybrid programming mode in the CLOOMC++ compiler that lets you write readable, high-level expressions mixed freely with raw Church Machine assembly. The compiler automatically resolves math operations and constants to the correct abstraction calls (SlideRule, Abacus, Constants) and manages capability registers behind the scenes.
 
 ## Quick Start
@@ -295,3 +298,5 @@ Variables stored in DR1–DR3 are automatically relocated to higher registers be
 - No string or floating-point literals — use Constants abstraction for IEEE 754 values
 - Integer arithmetic only for operators; floating-point is handled internally by abstraction methods
 - All code compiles into a single method named `run`
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

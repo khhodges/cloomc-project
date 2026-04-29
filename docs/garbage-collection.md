@@ -1,5 +1,8 @@
 # Deterministic Garbage Collection
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## The G-bit Liveness Mechanism
 
 G (Garbage) is a liveness flag used in the garbage collection process. It is **not** a GT permission bit -- it is part of the GC infrastructure. The two simulators implement G differently:
@@ -152,3 +155,5 @@ The mLoad module (`ctmm_amaranth/mload.py`) mirrors the SystemVerilog implementa
 ## Key Design Principle
 
 The G-bit reset happens on **every** namespace access because reachability determines liveness, not permissions. An entry accessed through a SAVE (S permission) is just as live as one accessed through a LOAD (L permission). The mLoad path enforces this uniformly.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

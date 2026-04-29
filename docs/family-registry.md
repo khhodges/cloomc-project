@@ -1,5 +1,8 @@
 # FamilyRegistry Abstraction
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 > **Status**: Architectural design document. Specifies the binding abstraction that creates the Hello Mum namespace entries. February 2026.
 
 ---
@@ -262,3 +265,5 @@ Boot sequence:
 ```
 
 The entire Hello Mum communication works because the FamilyRegistry did its job at bind time. The program never needs to know *how* the address was established — it just CALLs via the GT.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

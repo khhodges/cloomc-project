@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html$if(lang)$ lang="$lang$"$endif$>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>$if(title-meta)$$title-meta$$else$$if(title)$$title$$endif$$endif$</title>
+  <link rel="stylesheet" href="$exportdir$print.css" />
+  $for(header-includes)$
+  $header-includes$
+  $endfor$
+</head>
+<body>
+
+<div class="print-header">
+  <span class="conf-label">CONFIDENTIAL</span>
+  <span class="doc-title">$if(title)$$title$$else$Church Machine$endif$</span>
+</div>
+
+<div class="content">
+$body$
+</div>
+
+<div class="print-footer">
+  <span class="author-line">Confidential &mdash; Kenneth Hamer-Hodges &mdash; April 2026</span>
+  <span class="page-num"></span>
+</div>
+
+</body>
+</html>

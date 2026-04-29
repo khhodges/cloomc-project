@@ -1,5 +1,8 @@
 # Tutorial: Building a Namespace from Raw Registers to Application-Level Vocabulary
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Status**: Tutorial document. April 27, 2026.
 
 ---
@@ -338,3 +341,5 @@ The destination is a namespace that has become the language of its application �
 - **[Pet-Name Language Reference](pet-name-language.md)** — complete reference for writing Stage 2 and Stage 3 code in the pet-name hybrid mode
 - **[Dispatch Styles](dispatch-styles.md)** — the three ways a sealed lump can resolve method calls, and when to use each
 - **[Introducing CLOOMC](introducing-cloomc.md)** — the broader context: why the namespace-as-vocabulary model matters for the architecture as a whole
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

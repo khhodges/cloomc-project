@@ -1,5 +1,8 @@
 # Golden Tokens
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## What Are Golden Tokens?
 
 Golden Tokens (GTs) are the fundamental unit of access control in the Church Machine architecture. Every access to a resource -- whether loading data, calling a service, or switching privilege levels -- requires a valid Golden Token that grants the necessary permissions. Golden Tokens are unforgeable: they cannot be fabricated by software, only created and managed through hardware-enforced mechanisms.
@@ -172,3 +175,5 @@ These registers are protected from direct instruction access. The only way to wr
 | **CR15** | Namespace | Namespace root — defines the security boundary of the entire system |
 
 CR6 and CR14 are re-derived by CALL/RETURN via mLoad. CR12 is saved and restored by CHANGE (thread switching). CR13 and CR15 are system-wide and unchanged by CHANGE. The privileged zone (CR12–CR15) cannot be addressed by normal programmer instructions.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

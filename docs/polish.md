@@ -1,5 +1,8 @@
 # Polish List
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 Items to clean up in a future batch. None are blocking.
 
 ---
@@ -14,3 +17,5 @@ Items to clean up in a future batch. None are blocking.
   their real GT type (e.g., "Inform") plus a "(Warm)" tag when code is not
   resident. The separate fallback rendering path was removed because GTs are
   now preserved and readNSEntry() returns real data for warm slots.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

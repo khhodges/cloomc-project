@@ -1,5 +1,8 @@
 # Church Machine Security Hardening Roadmap
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 > **Status**: Strategic planning document. Identifies seven critical security weaknesses and proposes a two-phase hardening plan — Phase 1 (non-blocking, low effort) and Phase 2 (full hardening, architectural).
 
 ---
@@ -482,3 +485,5 @@ Production Silicon Available: Month 12–18.
 - NS entry size growth → plan memory layout impact.
 - HMAC latency on mLoad path → validate crypto accelerator performance.
 - Dual-Root threshold scheme complexity → prototype first in simulator.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

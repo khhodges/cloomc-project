@@ -1,5 +1,8 @@
 # Ada Lovelace's Note G — Plain-Text Transcription
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Introduction
 
 Ada Lovelace (1815–1852) translated Luigi Menabrea's French memoir on Charles Babbage's proposed Analytical Engine into English, adding a set of her own annotations that ran to nearly three times the length of the original text. The seventh and longest of these annotations — Note G — was published in Taylor's *Scientific Memoirs*, Vol. III, in August 1843. It contains a complete 25-operation program for computing Bernoulli numbers on the Analytical Engine, widely regarded as the first published computer algorithm.
@@ -840,3 +843,5 @@ Note that Op 9 resets DR11 from V6/V7 = 8/2 = 4 in both versions, so the diverge
 *Sources:*
 *Ada Lovelace, "Notes by the Translator" (Note G), in L.F. Menabrea, "Sketch of The Analytical Engine Invented by Charles Babbage, Esq.," translated with notes by Ada Augusta, Countess of Lovelace, Taylor's Scientific Memoirs, Vol. III, August 1843.*
 *Allan G. Bromley, "Babbage's Analytical Engine Plans 28 and 28a — the Programmable Mill," IEEE Annals of the History of Computing, Vol. 12, No. 3, 1990.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

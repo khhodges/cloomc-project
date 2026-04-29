@@ -1,5 +1,8 @@
 # The Church Machine: A Capability-Secured Processor Architecture with Multi-Language Compilation
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## A Student Tutorial and Comparative Study Using the SlideRule Abstraction
 
 ---
@@ -713,3 +716,5 @@ The Church Machine's answer to "who can access my data?" is not a policy, not a 
 ---
 
 *This paper accompanies the Church Machine Educational Platform, an open-source capability-secured processor architecture targeting the Sipeed Tang Nano 20K FPGA. The web-based IDE, simulator, [CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html)++ compiler, and Amaranth HDL source are available in the project repository.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

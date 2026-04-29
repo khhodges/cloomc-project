@@ -1,5 +1,8 @@
 # Code That Lasts Forever
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## How the Church Machine Session Built Software You Can Read in 200 Years
 
 ---
@@ -514,3 +517,5 @@ That is what it means to build code that lasts forever.
 - *Bromley, A. G. (1990). "Babbage's Analytical Engine Plans 28 and 28a — The Programmer's Interface." IEEE Annals of the History of Computing.*
 - *Church, A. (1936). "An unsolvable problem of elementary number theory." American Journal of Mathematics.*
 - *Turing, A. M. (1936). "On computable numbers, with an application to the Entscheidungsproblem." Proceedings of the London Mathematical Society.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

@@ -1,5 +1,8 @@
 # Abstract GTs — Self-Describing Device Capabilities
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 *Introduced in Task #406; UART, Button, and Timer migrated in Task #431.*
 
 ## Overview
@@ -321,3 +324,5 @@ A valid writeback packs DR11–DR14 back into CR15 and clears M.
 | #430 | Amaranth HDL core changes (FPGA synthesis) |
 | #431 | UART, Button, Timer as Abstract GTs |
 | #432 | CR15 M-window hardware: M-flag latch, 5-word DR11–DR15 shadow, FSM writeback with integrity + version check; M-GT auto-dispatch from CALL via M_FETCH_NS0–NS3 |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

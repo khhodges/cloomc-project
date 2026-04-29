@@ -1,5 +1,8 @@
 # Hello Mum: The Holy Grail of Computer Science
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Status**: Architectural proof-of-concept. February 14, 2026.
 
 > *"Hello World" demonstrated that a process can print to a terminal. That was 1978.*
@@ -850,3 +853,5 @@ This is **deterministic revocation**: the GC decides when to sweep, and the swee
 *"Hello World" showed you could print to a screen. "Hello Mum" shows you can talk to another human being, securely, across any architecture, with the structural guarantee that nobody — no malware, no ransomware, no rogue AI, not even the machine's own system software — can intercept, modify, forge, or disrupt the conversation without holding the right Golden Token with the right permissions.*
 
 *Kenneth James Hamer-Hodges' life's work, in a nutshell.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

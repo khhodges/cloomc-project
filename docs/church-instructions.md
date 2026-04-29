@@ -1,5 +1,8 @@
 # Church Instructions Reference
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Overview
 
 The Church instructions implement capability-based access control as hardware-enforced operations. They are the mechanism by which software interacts with Golden Tokens (GTs), capability registers (CRs), and the Namespace. Named after Alonzo Church, these instructions embody the lambda calculus principle of controlled access through abstraction.
@@ -302,3 +305,5 @@ The Church Machine enforces these core security invariants:
 | Failure handling | All violations route to FAULT handler |
 | Capability-mediated access | LOAD/SAVE go through C-List capabilities, never raw memory |
 | Mutually exclusive domains | Turing (R,W,X) / Church (L,S,E) |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

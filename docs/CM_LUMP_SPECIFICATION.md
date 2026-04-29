@@ -1,5 +1,8 @@
 # Church Machine — Lump Specification
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Overview
 
 A **lump** is the fundamental deployable unit of the Church Machine. It is a
@@ -1488,3 +1491,5 @@ already owns.
 ---
 
 *Document applies to: Church Machine IDE simulator · Boot.NS slots 0 (Boot.NS), 1 (Boot.Thread), 2 (Boot.Abstr), 45 (Thread) · Tang Nano 20 K + Efinix Ti60 F225 targets.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

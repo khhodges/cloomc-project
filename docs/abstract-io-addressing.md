@@ -1,5 +1,8 @@
 # Abstract GT I/O and Network Addressing
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 > **Status**: Architectural specification. The Abstract GT type field (`gt_type = 11₂`) and
 > the SWITCH PassKey mechanism (Task #58) are implemented in hardware. The generalised
 > Abstract Address Space, the Home Base tunnel, and the IDE provisioning protocol are
@@ -666,3 +669,5 @@ In each case, the scoping is a property of the GT structure — defined by the I
 enforced by hardware, and inaccessible to any software running on the CTMM. This is
 what makes the service guarantee structural rather than policy-based, and what
 distinguishes the Church Machine from all conventional security architectures.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

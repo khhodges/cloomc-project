@@ -1,5 +1,8 @@
 # Church Machine ISA Encoding Reference
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 All values verified against `simulator/assembler.js` and `simulator/simulator.js`.
 This document is the complete specification needed to implement an encoder with
 no guesswork.
@@ -255,3 +258,5 @@ TPERM_CR0_RWX   = encode(opcode=6,  fld_a=0, imm15=0x05)
 MCMP_DR1_DR2    = encode(opcode=14, fld_a=1, fld_b=2)
 HALT_or_NOP     = 0x00000000
 ```
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

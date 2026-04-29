@@ -1,5 +1,8 @@
 # Church Machine Abstraction Generation Roadmap
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Executive Summary
 
 **Total Abstractions**: 49  
@@ -527,3 +530,5 @@ Phase 0 (Unblock) ──→ Phase 1 (Hardware) ──→ Phase 2 (Concurrency) �
 The Church Machine's 49 abstractions across 10 layers (Layers 0–8 plus the Tier A post-launch layer) represent a **complete, self-contained operating system** with no external kernel dependencies. Implementation in 18–24 weeks (dual-team) is feasible and realistic, with **Phase 0 (Abstract GT validation) as the immediate blocker**. Once that unblocks, Phases 1–3 can proceed in parallel with later layers, achieving a fully functional, security-hardened, capability-based architecture by week 24. The four Tier A abstractions — Store, Clock, Notify, and Identity — are targeted for completion within 12 weeks of device launch, gated on their respective acceptance tests (TEST-STORE, TEST-CLOCK, TEST-NOTIFY, TEST-IDENTITY) as defined in docs/launch.md Section 4.
 
 The abstraction model is **scale-free** — the same pattern (CALL, c-list isolation, MTBF tracking, GT revocation) applies from a boot driver to a global social network. This uniformity means much of the code is templatable, reducing actual implementation time below the linear estimate.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

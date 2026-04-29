@@ -1,5 +1,8 @@
 # The Church Machine — From Integer Arithmetic to Provably Secure Systems
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Why This Matters
 
 A telephone exchange drops a call and leaks the billing record of the previous caller. A banking system processes a transaction after the session has expired, debiting the wrong account. An autonomous weapons platform fires on a target whose authorisation token was revoked three seconds ago but hasn't been garbage-collected yet. A surgical robot's control thread is paused by a GC storm mid-incision.
@@ -829,3 +832,5 @@ This is what it means to build a processor on Alonzo Church's lambda calculus: t
 - The **[Deterministic Garbage Collection](garbage-collection.md)** document covers the G-bit mechanism, mLoad integration, and three-phase Mark-Scan-Sweep cycle in full technical detail.
 - The **[Golden Tokens](golden-tokens.md)** document explains the 32-bit unforgeable capability format, permission bits, and version-based revocation.
 - The **[Architecture](architecture.md)** document covers the PP250 GC model, the 20-instruction set, and the Church/Turing domain split.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

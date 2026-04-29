@@ -1,5 +1,8 @@
 # Boot ROM Layout
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 The Boot ROM is a 1024-word (4 KiB) read-only instruction memory, defined in
 `hardware/boot_rom.py` and instantiated as the `BootRom` class.  The address
 bus is 10 bits wide (`addr[9:0]`), data bus is 32 bits (`data[31:0]`), and
@@ -199,3 +202,5 @@ directly.
 The `b_flag=1` on device GTs marks them as IDE-bound to a physical
 peripheral. The b_flag bit is excluded from the CRC seal input so the
 runtime can clear it on un-bind without recomputing the NS entry seal.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

@@ -1,5 +1,8 @@
 # Why Your Computer Cannot Be Trusted — and What We Are Building Instead
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## An Introduction to the CLOOMC IDE and the Church Machine
 
 ---
@@ -193,3 +196,5 @@ The lever is long enough. The fulcrum is in the right place. What remains is the
 ---
 
 *The Church Machine IDE is hosted at CLOOMC.org. The project is open source and published under a permissive licence. All hardware designs use the Amaranth HDL framework and target commercially available FPGA development boards.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

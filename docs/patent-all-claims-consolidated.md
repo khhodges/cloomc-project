@@ -1,4 +1,8 @@
 # CHURCH-TURING META-MACHINE, CLOOMC Capability-Limited/Object-Oriented/Machine-Code
+
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Consolidated Claims Document for the Patent Office
 
 ---
@@ -805,3 +809,5 @@ A fixed 20-instruction universal computation target accepts compiled output from
 ---
 
 *End of Document*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

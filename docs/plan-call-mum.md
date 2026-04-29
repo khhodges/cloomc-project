@@ -1,5 +1,8 @@
 # Plan: Call Mum
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Goal
 
 A child can send a message to their parent (Mum, Dad, or any family
@@ -183,3 +186,5 @@ remote (Outform). Network transparency.
 6. Unauthorized access: child tries to call an abstraction without a
    grant — FAULT, not silent failure
 7. MTBF = ∞ for Family, Tunnel, and Negotiate
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

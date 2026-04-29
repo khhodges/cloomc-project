@@ -1,5 +1,8 @@
 # Email to Patent Attorney
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Subject:** CIP Filing — Pure Church Lambda Machine: New Claims for CTMM Patent
 
 ---
@@ -66,3 +69,5 @@ Please find the detailed technical attachment enclosed. I am available to discus
 
 Best regards,
 Kenneth James Hamer-Hodges
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

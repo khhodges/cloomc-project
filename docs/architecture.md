@@ -1,5 +1,8 @@
 # Church Machine Architecture
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Overview
 
 The Church Machine is a capability-secured processor that enforces security at the instruction level. There is no operating system, no privileged mode, no superuser. Every memory access — read or write — passes through a hardware validation gate (mLoad or mSave) that checks an unforgeable Golden Token before permitting the operation.
@@ -508,3 +511,5 @@ Both languages prove the Church Machine is a universal computation target — th
 | DR12-DR15 | Temporaries (compiler scratch) | Caller |
 
 DR0 is hardwired to zero — it reads as 0 unconditionally after every instruction.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

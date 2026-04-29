@@ -1,5 +1,8 @@
 # CTMM Amaranth HDL — Technical Summary for ChipFlow Integration
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Version:** 1.0
 **Date:** February 2026
 **Author:** Kenneth James Hamer-Hodges
@@ -520,3 +523,5 @@ ctmm_amaranth/
 ---
 
 *This document accompanies the cover letter dated February 2026. Full source code, interactive web simulator, and documentation available upon request.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

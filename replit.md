@@ -25,6 +25,46 @@ The web IDE provides ten distinct views (Math, Code, Tutorial, Dashboard, Namesp
 **Technical Implementations:**
 The system employs a scale-free abstraction model with 47 abstractions across 9 layers, serving as security blocks. The Loader abstraction (NS slot 19) provides fault-driven lazy loading: warm/cold abstractions start as NULL at boot and are transparently loaded on first CALL via the lazy load manifest. Circle moved from slot 19 to slot 46. The security model enforces capability-based security using 32-bit unforgeable Golden Tokens with specific permission bits, validated by an 8-step mLoad pipeline (FETCH_LOC / FETCH_LIMIT / FETCH_INTEGRITY / FETCH_SEALS / CHECK_VERSION plus update/complete states). NS entries are 4 words at 16-byte stride: word0_location, word1_limit, word2_integrity (integrity32 check), word3_seals. The CR15 M-window holds a 5-word shadow (XR11=Abstract GT, XR12=NS location, XR13=NS authority, XR14=integrity tag, XR15=0); CALL to an Abstract GT auto-dispatches M-GT fetch states that set this shadow; CALL/RETURN writeback validates XR14==integrity32(XR12,XR13) before committing to CR15. Domain purity strictly separates capabilities from code/data, with every memory access validated by a governing capability context register. The multi-language CLOOMC++ Compiler targets a 20-instruction Church Machine ISA, supporting English, JavaScript, Haskell, Symbolic Math, and Lambda Calculus, with automatic language detection. It produces compiled abstractions for deployment, including specific optimizations for symbolic math operations. The hardware-accurate Lump Header Format ensures consistent memory management between the simulator and FPGA. A LAMBDA NIA Cache optimizes leaf lambda execution by deferring stack frame writes. The Locator handles on-demand lump loading, and the Navana Master Controller manages Namespace entries and secure deployment. The Instruction Set consists of 20 instructions, balancing capability-focused and data manipulation operations. The Namespace Layout is aligned between hardware and simulator. The platform targets both the Efinix Ti60 F225 (full profile) and Tang Nano 20K (IoT profile), with distinct feature sets and build processes. WebSerial is used for deploying compiled programs to the FPGA. An Export Patch and CLI Patcher facilitate standalone deployment. The Mum Tunnel Library provides a GitHub-backed shared abstraction library, and a GitHub Community Hub displays repository statistics and activity. FPGA Call-Home & Device Management enables FPGAs to register and heartbeat with the IDE server via a 23-byte call-home packet (including boot_reason, last_fault, and fault_nia — the faulting instruction address), allowing secure remote deployment of code with full fault-triggered boot diagnostics. A server-side FaultEvent log records every fault-triggered boot, and the IDE computes MTBF per instruction address (Abstraction.Method.Offset), displayed via the Fault Log modal in the Devices panel with colour-coded thresholds. Self-Documenting Abstractions include metadata blocks, and IoT/Full Profile Tagging ensures compatibility and prevents incorrect deployments based on hardware capabilities.
 
+## Documentation Standards (MANDATORY)
+
+Every `.md` file in this project — whether in `docs/`, `docs/export/`, the root, or anywhere else — **must** carry all three of the following marks before it is committed or shared. This is non-negotiable and applies to every session, every new document, every edit that creates a new file.
+
+### Required marks
+
+| Mark | Position | Format |
+|------|----------|--------|
+| Version + date | Line immediately after the `# Title` heading | `**v1.0 — YYYY-MM-DD**` |
+| Confidential | Line after the version line | `**CONFIDENTIAL**` |
+| Author footer | Very last lines of the file | `---` then `*Confidential — Kenneth Hamer-Hodges — Month YYYY*` |
+
+### Workflow
+
+**Creating a new document:**
+```bash
+./docs/export/new-doc.sh "My Document Title" docs/my-document.md
+```
+This creates the file pre-stamped and ready to edit.
+
+**Stamping existing or edited documents:**
+```bash
+python3 docs/export/stamp.py docs/my-document.md   # single file
+python3 docs/export/stamp.py                        # all docs/*.md at once
+```
+
+**Exporting to PDF** (running CONFIDENTIAL header + author footer on every printed page):
+```bash
+./docs/export/export-pdf.sh docs/my-document.md          # single file
+./docs/export/export-pdf.sh --all                         # all docs → docs/export/pdf/
+./docs/export/export-pdf.sh docs/my-document.md out/dir/  # custom output dir
+```
+
+### Tooling files
+- `docs/export/stamp.py` — idempotent stamping script (safe to re-run)
+- `docs/export/new-doc.sh` — scaffold a new pre-stamped document
+- `docs/export/export-pdf.sh` — Pandoc + Chromium headless → PDF
+- `docs/export/print.css` — print stylesheet (running header/footer every page)
+- `docs/export/template.html` — Pandoc HTML5 template
+
 ## Patent Figures
 
 45 HTML figures in `docs/figures/` — all use white backgrounds (#ffffff) with dark text/lines for clean printing. Figures cover architecture diagrams, boot sequences, dispatch styles, lambda calculus flows, namespace architecture, I/O addressing, MTBF qualification, and more. PDF patents in `docs/patents/` are regenerated from markdown sources using `tools/md_to_pdf.py` (fpdf-based, no HTML figure embedding).

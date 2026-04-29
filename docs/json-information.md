@@ -1,5 +1,8 @@
 # Abstraction Definition Format
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 The abstraction definition format is the JSON schema used to define a Church Machine abstraction and submit it to **Navana.Abstraction.Add**. It combines the compiled instruction words, the capability list, and optional documentation metadata into a single JSON object.
 
 The CLOOMC++ compiler produces this format automatically. You can also write it by hand when building assembler programs directly.
@@ -315,3 +318,5 @@ offset  8..29  (freespace — 22 words)
 offset 30   c-list[0]  Inform E-GT → NS[16] (SlideRule)
 offset 31   c-list[1]  Inform E-GT → NS[17] (Abacus)
 ```
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

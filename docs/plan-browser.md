@@ -1,5 +1,8 @@
 # Plan: Browser
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Goal
 
 A child can browse approved web content from their Church Machine. The
@@ -251,3 +254,5 @@ when the child stops browsing.
 7. Works on all three targets: simulator, Tang Nano UART, Ti60 UART
 8. MTBF = ∞ for Browser, HTTP, Renderer, and Display
 9. Total memory footprint under 14 KB with lazy load
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

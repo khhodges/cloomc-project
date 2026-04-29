@@ -1,5 +1,8 @@
 # Church Machine Launch Readiness
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## What "Launch" Means
 
 Launch means a child can receive a Church Machine device, power it on, learn arithmetic, send a message to a parent, receive a reply, have a teacher grant them a new capability, and store their work — all without trusting any external operating system, certificate authority, or centralized server.
@@ -419,3 +422,5 @@ They are not in the day-one launch list because their backends (NVM page allocat
 ### Why Civilizational-Scale Abstractions Are Out of Scope
 
 Space, Democracy, Justice, and similar civilization-level abstractions are noted as future direction only. They are scale-free applications of the same capability model, not new mechanisms. They do not appear in this document.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

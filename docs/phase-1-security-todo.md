@@ -1,5 +1,8 @@
 # Phase 1 Security Validation TODO — Non-Silicon Tasks
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 > **Scope**: Granular, independent security hardening tasks for Phase 1. Each item is **self-contained**, **non-blocking on silicon**, and can be completed in order or in parallel. None require hardware changes.
 
 ---
@@ -364,3 +367,5 @@ Ensures wraparound doesn't confuse stale with fresh GTs.
 **Total: 11 weeks (3 months)**
 
 Each task can be picked up independently after its dependencies are complete. All are non-blocking on silicon.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

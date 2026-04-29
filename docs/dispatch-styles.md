@@ -1,5 +1,8 @@
 # Dispatch Styles: Three Ways to Resolve Method Calls
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Status**: Architectural specification. February 16, 2026.
 
 ## Overview
@@ -183,3 +186,5 @@ For the full architectural rationale, selector numbering rules, and a worked Min
 ## The Key Insight
 
 All three styles present the **same interface to the caller**: `CALL(Abstraction.Method(args))`. The caller cannot tell which style is used. CR6 holds the method names, CR14 holds the code — how CR14 resolves those names is an implementation detail hidden inside the abstraction. That's the power of encapsulation through capabilities.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

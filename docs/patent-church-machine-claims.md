@@ -1,5 +1,8 @@
 # CONTINUATION-IN-PART: Pure Church Lambda Machine
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Church-Turing Meta-Machine: Architectural Exclusion of Turing-Domain Instructions as a Hardware Security Enforcement Mechanism
 
 ---
@@ -320,3 +323,5 @@ Bar chart showing both implementations: only LOAD, SAVE, CALL, RETURN, LAMBDA, T
 ### Figure 21: Ada Lovelace Programming Model — Bernoulli Sum-of-Squares
 
 Annotated program listing showing the Church Computer executing a step-by-step computation following Lovelace's Note G style. The programmer writes symbolic mathematics (`let product = n * n_plus_1`) and the REPL shows the translation to capability-secured Church-domain operations (`=> Call(Lambda.MUL, 4, 5)`). 17 named variable bindings compute 1² + 2² + 3² + 4² = 30 two ways (closed-form formula and direct summation). Annotations highlight: (a) conventional mathematical notation is the programming interface, (b) every operation translates to pure Church-domain lambda calculus underneath, (c) variables reference previous results by name, (d) Turing instructions (ADD, MUL, POW) do not exist — the symbolic operators `+`, `*`, `^` map to Church-encoded abstractions accessed via Golden Tokens.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

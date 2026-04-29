@@ -1,5 +1,8 @@
 # CTMM Memory Map — Authoritative Reference
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 > **Principle:** The CTMM is defined by the memory, always, no more and no less.
 > The simulator must follow the memory, no more and no less.
 
@@ -627,3 +630,5 @@ CALL-time computation.
 `simulator/assembler.js`.*
 *Config: `totalNamespaceWords=16384`, `threadLumpWords=256`,
 `abstractionLumpWords=256`, `namespaceLumpWords=64`.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

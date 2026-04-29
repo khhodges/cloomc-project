@@ -1,5 +1,8 @@
 # Tang Nano 20K — Church Machine Hardware Reference
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Board specifications
 
 | Feature | Value |
@@ -519,3 +522,5 @@ Available peripheral candidates for future integration:
 | LED offset 3 not lighting | Expecting `led3` pin | Offset 3 drives `led4` (pin 9); `led3` pin is absent |
 | Button read always 0 | Debounce sync | Hold button; register is level (not pulse) |
 | All LEDs on after boot | Active-LOW inversion | Writing 0 = LED on; writing 1 = LED off |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

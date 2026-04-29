@@ -1,5 +1,8 @@
 # Church Machine Abstraction Catalog
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Canonical Form
 
 Every abstraction in the Church Machine is a **security block** — a protected unit of functionality with measurable reliability.
@@ -541,3 +544,5 @@ PP250 deterministic garbage collection with bidirectional G-bit. Four phases:
 4. **Flip** — Toggle GC polarity for next cycle
 
 GC is a safe Turing abstraction — atomic Turing implementation hidden behind a Church-callable interface. Entered via CALL, exited via RETURN. PP250 excludes HALT: the machine always returns to boot instead of halting.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

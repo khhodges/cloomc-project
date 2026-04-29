@@ -1,5 +1,8 @@
 # UNIFIED PATENT SUBMISSION
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Church-Turing Meta-Machine: Hardware-Enforced Capability Security Through Dual Trusted Gates, Lambda Calculus Integration, and Architectural Vulnerability Elimination
 
 ---
@@ -897,3 +900,5 @@ Flow showing DR1 → Church numeral conversion via SUCC/ZERO → C-List indexing
 ### Figure 17: DATA Objects — Church/Turing Bridge
 
 Diagram showing Church-domain GT providing access, Turing-domain DREAD/DWRITE performing operations, mLoad validating R/W permissions, bounds checking on Location..Limit.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

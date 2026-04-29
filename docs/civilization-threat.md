@@ -1,5 +1,8 @@
 # The Civilisation Crisis — Why Insecure Software Threatens Democracy, Prosperity, and Freedom
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## The Thesis
 
 The greatest threats to civilisation in the Age of Information are not military, economic, or ideological in isolation. They are **architectural**. The insecurity of conventional software — the same buffer overflows, the same privilege escalations, the same dependency chains — is the enabling substrate for cybercrime, surveillance states, digital dictatorship, AI weaponisation, and the erosion of democratic institutions. These are not separate problems. They are symptoms of a single architectural failure, and they are converging.
@@ -550,3 +553,5 @@ The choice is architectural. The consequences are civilisational.
 - **[Lambda Arithmetic](lambda-arithmetic.md)** — Integer arithmetic through to provably secure system design: fixed-point, rational, GCD, and the bugs eliminated by architecture
 - **[Architecture](architecture.md)** — The 20-instruction ISA, the Navana Master Controller, Golden Tokens, and the capability model
 - **[Abstraction Catalog](abstractions.md)** — Every abstraction in the system with its current MTBF
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

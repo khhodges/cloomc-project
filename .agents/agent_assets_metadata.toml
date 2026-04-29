@@ -126,3 +126,9 @@ id = "UmY5WZ8iwb9FPJHCYbTUn"
 uri = "file://docs/patent-all-claims-consolidated.pdf"
 type = "pdf"
 title = "CTMM — All 57 Claims Consolidated (PDF)"
+
+[[outputs]]
+id = "U386KvPA9OxVfvkUMGWxv"
+uri = "file://docs/export/pdf/golden-tokens.pdf"
+type = "pdf"
+title = "Golden Tokens — sample PDF export"

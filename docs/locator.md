@@ -1,5 +1,8 @@
 # Locator — Absent-Lump Fetch Protocol
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ---
 
 ## Overview
@@ -428,3 +431,5 @@ brings into existence objects that have never had a physical lump.
 - [json-information.md](json-information.md) — The abstraction definition format (informational reference).
 - [golden-tokens.md](golden-tokens.md) — GT structure, typ field, and revocation.
 - [abstractions.md](abstractions.md) — Navana.Abstraction.Add and the lump lifecycle.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

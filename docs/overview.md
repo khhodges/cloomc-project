@@ -1,5 +1,8 @@
 # Church Machine Project Overview
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## What Is This Project?
 
 This project is a **[CLOOMC](https://sipantic.blogspot.com/2025/03/xx.html) IDE** for Kenneth J Hamer-Hodges' **Church Machine** capability-based security architecture. It includes software design tools to build secure software abstractions each with their own calibrated MTBF, for Industrial Strength Computer Science, free from global cybercrime and Quantum Computer Crypto collapse.
@@ -63,3 +66,5 @@ The Church Machine enforces these core security invariants:
 +-- verilog/                SystemVerilog hardware implementation
 +-- haskell-sim/            Haskell console simulator
 ```
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

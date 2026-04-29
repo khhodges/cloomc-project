@@ -1,5 +1,8 @@
 # Method Access Control in CLOOMC
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Status**: Architectural specification. April 27, 2026.
 
 ## Overview
@@ -199,3 +202,5 @@ Pet-name abstractions are expression-oriented — they describe data-register na
 ---
 
 See also: [dispatch-styles.md](dispatch-styles.md) for how auto-dispatch fits into the three existing dispatch styles.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

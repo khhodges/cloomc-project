@@ -1,5 +1,8 @@
 # Hardware Priority Roadmap
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 Seven open hardware tasks must be executed in the right sequence to avoid
 rework.  This document defines that order and records the rationale for each
 dependency.
@@ -242,3 +245,5 @@ any work on the Navana track begins, to avoid parallel duplicate effort.
 | 5 | #17 Wire Navana.Init | #16 | Tang Nano |
 | 6 | #146 Flash BL702 firmware | #147 | firmware |
 | 7 | #145 Show firmware version | #146 | IDE polish |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

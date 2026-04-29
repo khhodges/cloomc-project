@@ -1,5 +1,8 @@
 # mLoad — The Single Trusted Gate
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 mLoad is the hardware micro-operation that every Church instruction uses to
 read a Golden Token from memory and make it live in a Capability Register.
 No GT can enter a CR by any other path. mLoad is not an instruction —
@@ -439,3 +442,5 @@ the first failing check. The FSM returns to IDLE in one cycle.
 | `hardware/core.py` | `u_shared_mload` arbiter; CHANGE's private mLoad instance |
 | `hardware/change.py` | Uses its own `ChurchMLoad` submodule for thread-switch restores |
 | `docs/figures/mload-validation-pipeline.html` | Block-diagram figure of the pipeline |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

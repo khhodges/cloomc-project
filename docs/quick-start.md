@@ -1,5 +1,8 @@
 # Quick Start
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 You do not need an FPGA to begin. The Church Machine IDE runs entirely
 in your browser and includes a full simulator that enforces every one
 of the Six Laws of CLOOMC (see reference material later). Everything you learn in the simulator transfers
@@ -1382,3 +1385,5 @@ to "trust the hardware." Every abstraction you write and share makes the
 ecosystem stronger. Every capability fault that fires proves the system
 works. Every child who learns to program on this machine learns security
 as a first principle, not an afterthought.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

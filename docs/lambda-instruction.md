@@ -1,5 +1,8 @@
 # LAMBDA Instruction Specification
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Status**: Architectural specification. February 14, 2026.
 
 ## Overview
@@ -283,3 +286,5 @@ The GT *is* the lambda. You can pass it between threads, store it in namespace e
 5. **FAULT on NULL**: If CRn holds NULL (Type=00), FAULT immediately.
 6. **Non-nestable**: Prevents hidden state accumulation.
 7. **Self-describing**: Stack frames carry their own type, making the thread's history transparent.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

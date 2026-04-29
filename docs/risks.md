@@ -1,5 +1,8 @@
 # Church Machine Security Risk Register
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 The goal: each namespace protects itself. A private digital shadow is achieved when no
 external actor can reach inside a namespace without holding a valid, unrevoked Inform GT
 with sufficient permissions. Every risk below is tracked to resolution.
@@ -159,3 +162,5 @@ with sufficient permissions. Every risk below is tracked to resolution.
 | R007 | HIGH | T010 | RESOLVED |
 | R008 | MEDIUM | T005 | RESOLVED |
 | R009 | FOUNDATIONAL | All | SECURE |
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

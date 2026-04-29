@@ -1,5 +1,8 @@
 # The Fulcrum of Computer Science
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Where the Lever Meets the Load
 
 ---
@@ -160,3 +163,5 @@ Von Neumann placed the fulcrum below this boundary and declared that meaning was
 The Church Machine places the fulcrum at the boundary and lets the hardware participate in meaning. The result is a machine where a correct program is not merely a program that happens to work today — it is a program whose correctness is a hardware-enforced mathematical fact, as permanent and as reliable as Archimedes' law of the lever itself.
 
 That is not an engineering preference. It is not a design philosophy. It is the fulcrum of the science. And it is time to put it in the right place.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

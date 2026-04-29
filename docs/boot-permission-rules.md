@@ -1,5 +1,8 @@
 # Church Machine Boot Permission Rules
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Foundational Principle
 
 The M (Meta/Microcode) permission is a **transient hardware elevation** — set on the CR (register) by microcode, never on the GT (Golden Token) itself. M isolates metadata objects from all regular RWXLSE actions. The GT stored in the namespace carries only the owner-visible permission; the microcode temporarily adds M to the CR during privileged operations.
@@ -120,3 +123,5 @@ CR5 (Services C-List) → self (Thread abstraction) → Namespace → Mint(type,
 4. Namespace.Mint allocates the entry, computes MAC, returns GT in CR0.
 5. Thread updates its resource tally.
 6. Caller receives the new GT in CR0. Never sees the internal plumbing.
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

@@ -1,5 +1,8 @@
 # Simulator ↔ Hardware Gaps Report
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 **Date**: March 29, 2026 (updated March 30, 2026)  
 **Status**: ALL CRITICAL GAPS FIXED
 
@@ -127,3 +130,5 @@ After fixes:
 2. Verify CR1 (PassKey, type 3) can be used in CALL (SWITCH context)
 3. Verify Navana.ValidatePassKey executes without TYPE fault
 4. Verify Outform (type 2) is REJECTED in CALL (should fault)
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*

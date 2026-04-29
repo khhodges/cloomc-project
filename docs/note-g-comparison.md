@@ -1,5 +1,8 @@
 # Ada Lovelace's Note G vs. Church Computer
 
+**v1.0 — 2026-04-29**
+**CONFIDENTIAL**
+
 ## Context
 
 Ada Lovelace published Note G in August 1843 — a 25-operation program for Babbage's Analytical Engine that computed Bernoulli numbers. It is widely regarded as the first published computer algorithm. She used only four arithmetic operations (+, -, x, ÷) and variable columns (V1-V24), with each step performing one operation and tracking variable state changes.
@@ -190,3 +193,5 @@ The security of civilization must come first. The architecture must guarantee it
 *Ada Lovelace, "Notes by the Translator" (Note G), in L.F. Menabrea, "Sketch of The Analytical Engine," Taylor's Scientific Memoirs, Vol. III, August 1843.*
 *R. Glaschick, "Ada Lovelace's Calculation of Bernoulli's Numbers," rclab.de, 2016.*
 *Church Computer, bernoulli.church, Church Machine Simulator Project, February 2026.*
+---
+*Confidential — Kenneth Hamer-Hodges — April 2026*
