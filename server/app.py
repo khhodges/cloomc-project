@@ -931,7 +931,14 @@ def six_laws_pdf():
 def simulator_index():
     filepath = os.path.join(SIMULATOR_DIR, "index.html")
     if os.path.isfile(filepath):
-        return _serve_file(filepath, "index.html")
+        with open(filepath, 'rb') as f:
+            data = f.read()
+        resp = make_response(data)
+        resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
     return jsonify({"status": "simulator not yet built"})
 
 @app.route("/simulator/<path:path>")
