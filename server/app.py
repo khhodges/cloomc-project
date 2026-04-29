@@ -927,8 +927,15 @@ def six_laws_pdf():
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return resp
 
+_SIMULATOR_HTML_VERSION = "20260429c"
+
+@app.route("/simulator")
 @app.route("/simulator/")
 def simulator_index():
+    # Force the proxy/browser to load a versioned URL it has never cached.
+    # When the URL has no version param, redirect to the versioned form.
+    if request.args.get('v') != _SIMULATOR_HTML_VERSION:
+        return redirect(f"/simulator/?v={_SIMULATOR_HTML_VERSION}", code=302)
     filepath = os.path.join(SIMULATOR_DIR, "index.html")
     if os.path.isfile(filepath):
         with open(filepath, 'rb') as f:
@@ -938,6 +945,8 @@ def simulator_index():
         resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         resp.headers['Pragma'] = 'no-cache'
         resp.headers['Expires'] = '0'
+        resp.headers['Surrogate-Control'] = 'no-store'
+        resp.headers['Vary'] = '*'
         return resp
     return jsonify({"status": "simulator not yet built"})
 
