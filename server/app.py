@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import io
 import json
@@ -951,8 +952,13 @@ def simulator_versioned(version):
         return resp
     return jsonify({"status": "simulator not yet built"})
 
+_STALE_VERSION_RE = re.compile(r'^r\d{8}[a-z]?/?$')
+
 @app.route("/simulator/<path:path>")
 def simulator_static(path):
+    # Redirect stale cached version paths (e.g. /simulator/r20260429c/) to current.
+    if _STALE_VERSION_RE.match(path):
+        return redirect(f"/simulator/~/{_SIMULATOR_HTML_VERSION}", code=302)
     filepath = os.path.join(SIMULATOR_DIR, path)
     return _serve_file(filepath, os.path.basename(path))
 
