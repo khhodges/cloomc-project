@@ -720,18 +720,32 @@ window._reapplyStickyPatches = function() {
                 sim.memory[codeStart2 + i] = 0;
         }
 
-        if (newCW !== oldCW2) {
-            const hdrW = sim.memory[baseLoc2] >>> 0;
-            sim.memory[baseLoc2] = ((hdrW & ~(0x1FFF << 10)) | ((newCW & 0x1FFF) << 10)) >>> 0;
-
-            const nsBase2 = sim.NS_TABLE_BASE + nsIdx2 * sim.NS_ENTRY_WORDS;
+        const nsBase2     = sim.NS_TABLE_BASE + nsIdx2 * sim.NS_ENTRY_WORDS;
+        const nsStoredBase2 = sim.memory[nsBase2 + 0] >>> 0;
+        const crNow       = (patchCRIdx != null) ? sim.cr[patchCRIdx] : null;
+        const crNowBase   = crNow ? (crNow.word1 >>> 0) : baseLoc2;
+        // Sync NS + CR whenever cw changed OR the stored base diverged from baseLoc2
+        // OR the CR's physical-base word diverged (e.g. after reboot resets CR14.word1).
+        if (newCW !== oldCW2 || nsStoredBase2 !== baseLoc2 || crNowBase !== baseLoc2) {
+            if (newCW !== oldCW2) {
+                const hdrW = sim.memory[baseLoc2] >>> 0;
+                sim.memory[baseLoc2] = ((hdrW & ~(0x1FFF << 10)) | ((newCW & 0x1FFF) << 10)) >>> 0;
+            }
             const oldW1   = sim.memory[nsBase2 + 1] >>> 0;
             const oldW2   = sim.memory[nsBase2 + 2] >>> 0;
             const w1f     = sim.parseNSWord1(oldW1);
             const newW1   = sim.packNSWord1(newCW, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, w1f.clistCount);
+            // Always keep NS slot word0 pointing at the actual lump base
+            sim.memory[nsBase2 + 0] = baseLoc2 >>> 0;
             sim.memory[nsBase2 + 1] = newW1;
             const gtSeq  = (oldW2 >>> 25) & 0x7F;
             sim.memory[nsBase2 + 2] = sim.makeVersionSeals(gtSeq, baseLoc2, newCW);
+            if (crNow) {
+                // word1 is the physical base — must always match NS slot word0
+                crNow.word1 = baseLoc2 >>> 0;
+                crNow.word2 = sim.memory[nsBase2 + 1];
+                crNow.word3 = sim.memory[nsBase2 + 2];
+            }
         }
         console.log('[sticky] Re-applied patch NS[' + nsIdx2 + '] (' + newCW + 'w)');
     }

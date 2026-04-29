@@ -4986,18 +4986,30 @@ class ChurchSimulator {
                 const clistStart = hdr.lumpSize - hdr.cc;
                 const maxCW      = Math.max(0, clistStart - 1);
                 const newCW      = Math.min(words.length, maxCW);
-                if (newCW !== hdr.cw) {
-                    this.memory[baseAddr] = ((hdrWord & ~(0x1FFF << 10)) | ((newCW & 0x1FFF) << 10)) >>> 0;
-                    const nsBase       = this.NS_TABLE_BASE + abstrSlot * this.NS_ENTRY_WORDS;
+                const nsBase     = this.NS_TABLE_BASE + abstrSlot * this.NS_ENTRY_WORDS;
+                const nsStoredBase = this.memory[nsBase + 0] >>> 0;
+                const cr14Current  = this.cr[14];
+                const cr14Base     = cr14Current ? (cr14Current.word1 >>> 0) : baseAddr;
+                // Sync whenever the cw changed, the stored NS base diverged, OR CR14's
+                // physical base diverged (e.g. after large-program run + reboot CR14.word1
+                // is reset to the boot lump while NS slot 3 still points to EXTENDED_BASE).
+                if (newCW !== hdr.cw || nsStoredBase !== baseAddr || cr14Base !== baseAddr) {
+                    if (newCW !== hdr.cw) {
+                        this.memory[baseAddr] = ((hdrWord & ~(0x1FFF << 10)) | ((newCW & 0x1FFF) << 10)) >>> 0;
+                    }
                     const oldW1        = this.memory[nsBase + 1] >>> 0;
                     const oldW2        = this.memory[nsBase + 2] >>> 0;
                     const w1f          = this.parseNSWord1(oldW1);
                     const newLimit17   = newCW;
+                    // Always keep NS slot 3 word0 pointing at the actual lump base
+                    this.memory[nsBase + 0] = baseAddr >>> 0;
                     this.memory[nsBase + 1] = this.packNSWord1(newLimit17, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, w1f.clistCount);
                     const existingGtSeq    = (oldW2 >>> 25) & 0x7F;
                     this.memory[nsBase + 2] = this.makeVersionSeals(existingGtSeq, baseAddr, newLimit17);
                     const cr14 = this.cr[14];
                     if (cr14) {
+                        // word1 is the physical base — must match NS slot 3 word0
+                        cr14.word1 = baseAddr >>> 0;
                         cr14.word2 = this.memory[nsBase + 1];
                         cr14.word3 = this.memory[nsBase + 2];
                     }
