@@ -156,7 +156,7 @@ def _heartbeat_thread():
 
 
 def _fetch_launch_summary():
-    """Fetch /api/launch-tests and print a passing/total summary line."""
+    """Fetch /api/launch-tests and print each test name with its status."""
     if not _IDE_SERVER_URL:
         return
     try:
@@ -172,6 +172,16 @@ def _fetch_launch_summary():
         total = len(tests)
         passing = sum(1 for t in tests if t.get("status") == "passing")
         print(f'  [LAUNCH] {passing}/{total} tests passing')
+        _STATUS_LABEL = {
+            "passing": "passing",
+            "failing": "failing",
+            "not-run": "unknown",
+        }
+        for t in tests:
+            status = t.get("status", "")
+            label = _STATUS_LABEL.get(status, "unknown")
+            name = t.get("name") or t.get("test_id", "(unnamed)")
+            print(f'  [LAUNCH]   [{label}] {name}')
     except Exception as e:
         print(f'  [LAUNCH] Could not fetch summary: {e}')
 
