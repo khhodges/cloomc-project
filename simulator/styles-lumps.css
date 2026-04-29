@@ -4208,7 +4208,14 @@ pre:hover .code-copy-btn {
     border-radius: 3px;
     padding: 0 0.35rem;
     white-space: nowrap;
-    cursor: default;
+    cursor: pointer;
+    text-decoration: none;
+}
+.lump-tier-a-test-id:hover {
+    color: rgba(251, 191, 36, 1);
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.5);
+    text-decoration: underline;
 }
 
 .sr-instr-tip {

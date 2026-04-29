@@ -428,6 +428,7 @@ async function importFromLibrary(path) {
 }
 
 let docsLoaded = false;
+let _pendingDocAnchorNav = false;
 let docsData = null;
 
 async function loadDocsView() {
@@ -437,7 +438,9 @@ async function loadDocsView() {
         docsData = await resp.json();
         renderDocsFileList();
         docsLoaded = true;
-        loadDoc('quick-start.md');
+        if (!_pendingDocAnchorNav) {
+            loadDoc('quick-start.md');
+        }
     } catch (e) {
         const body = document.getElementById('docsContentBody');
         if (body) body.innerHTML = '<div class="docs-placeholder">Failed to load document list.</div>';
@@ -475,7 +478,7 @@ function renderDocsFileList() {
     }).join('');
 }
 
-async function loadDoc(filename) {
+async function loadDoc(filename, anchor) {
     document.querySelectorAll('.docs-file-item').forEach(el => el.classList.remove('active'));
     const active = document.querySelector(`.docs-file-item[data-doc="${filename}"]`);
     if (active) active.classList.add('active');
@@ -494,14 +497,31 @@ async function loadDoc(filename) {
     try {
         const resp = await fetch('/api/docs/read/' + filename);
         const data = await resp.json();
-        if (body) body.innerHTML = renderMarkdown(data.content);
+        if (body) {
+            body.innerHTML = renderMarkdown(data.content);
+            if (anchor) {
+                const anchorId = anchor.replace(/^#/, '');
+                const target = body.querySelector('#' + CSS.escape(anchorId));
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
     } catch (e) {
         if (body) body.innerHTML = '<div class="docs-placeholder">Failed to load document.</div>';
     }
 
-    if (isMobile) {
+    if (isMobile && !anchor) {
         const docsView = document.getElementById('docs');
         if (docsView) docsView.scrollTop = 0;
+    }
+}
+
+async function openDocAnchor(filename, anchor) {
+    _pendingDocAnchorNav = true;
+    switchView('docs');
+    try {
+        await loadDoc(filename, anchor);
+    } finally {
+        _pendingDocAnchorNav = false;
     }
 }
 
@@ -533,15 +553,23 @@ function docsBackToList() {
     }
 }
 
+function _mdSlug(text) {
+    return text.toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
 function renderMarkdown(md) {
     let html = escapeHtml(md);
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (m, lang, code) => {
         return '<pre><code>' + code.trim() + '</code></pre>';
     });
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/^### (.+)$/gm, (m, txt) => `<h3 id="${_mdSlug(txt)}">${txt}</h3>`);
+    html = html.replace(/^## (.+)$/gm, (m, txt) => `<h2 id="${_mdSlug(txt)}">${txt}</h2>`);
+    html = html.replace(/^# (.+)$/gm, (m, txt) => `<h1 id="${_mdSlug(txt)}">${txt}</h1>`);
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;margin:8px 0;border-radius:6px;">');

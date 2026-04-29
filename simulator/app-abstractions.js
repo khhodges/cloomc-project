@@ -541,10 +541,10 @@ async function renderLumps() {
         }
         // Tier A post-launch tracking — always rendered regardless of saved-lump count
         const _TIER_A_LUMPS = [
-            { name: 'Store',    slot: 47, testId: 'TEST-STORE'    },
-            { name: 'Clock',    slot: 48, testId: 'TEST-CLOCK'    },
-            { name: 'Notify',   slot: 49, testId: 'TEST-NOTIFY'   },
-            { name: 'Identity', slot: 50, testId: 'TEST-IDENTITY' },
+            { name: 'Store',    slot: 47, testId: 'TEST-STORE',    docAnchor: '#41-store'    },
+            { name: 'Clock',    slot: 48, testId: 'TEST-CLOCK',    docAnchor: '#42-clock'    },
+            { name: 'Notify',   slot: 49, testId: 'TEST-NOTIFY',   docAnchor: '#43-notify'   },
+            { name: 'Identity', slot: 50, testId: 'TEST-IDENTITY', docAnchor: '#44-identity' },
         ];
 
         let html = '';
@@ -602,7 +602,7 @@ async function renderLumps() {
             html += `<span class="lump-tier-a-slot">slot&nbsp;${ta.slot}</span>`;
             html += `<span class="lump-tier-a-status">Missing</span>`;
             html += `<span class="lump-tier-a-milestone">Tier A (&le;12 weeks post-launch)</span>`;
-            html += `<span class="lump-tier-a-test-id" title="Acceptance test gate">${safeTestId}</span>`;
+            html += `<a class="lump-tier-a-test-id" href="#" onclick="openDocAnchor('launch.md','${ta.docAnchor}'); return false;" title="View acceptance test definition">${safeTestId}</a>`;
             html += `</div>`;
         }
         html += `</div>`;
