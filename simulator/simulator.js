@@ -4888,8 +4888,88 @@ class ChurchSimulator {
         const abstrBase = this.NS_TABLE_BASE + abstrSlot * this.NS_ENTRY_WORDS;
         const codeLoc = this.memory[abstrBase] || (abstrSlot * this.SLOT_SIZE);
         const baseAddr = this.bootComplete ? codeLoc : (startAddr || 0);
-        // +1: lump header occupies word 0 of the lump; code starts at word 1.
-        // _fetchInstruction also adds +1 so PC=0 maps to word 1.
+
+        // When booted, check whether the code fits in the existing lump.
+        // If not, allocate a fresh LUMP in the extended-code area instead of
+        // truncating — this handles large Assembly programs like led_turing_full.
+        if (this.bootComplete && baseAddr < this.memory.length) {
+            const hdrWord = this.memory[baseAddr] >>> 0;
+            const hdr     = this.parseLumpHeader(hdrWord);
+            if (hdr.valid) {
+                const clistStart = hdr.lumpSize - hdr.cc;
+                const maxCW      = Math.max(0, clistStart - 1);
+                if (words.length > maxCW) {
+                    // ── NEW-LUMP PATH ────────────────────────────────────────────────
+                    // Code is too large to fit in the current lump (capacity: maxCW words).
+                    // Build a properly-sized LUMP in the extended-code area so all
+                    // instructions are accessible.  Leave cc=0 so the lazy C-List
+                    // injection in _applyPendingSimLoad adds DEMO_CLIST automatically.
+                    const DEMO_CC      = 18;   // DEMO_CLIST entries added by lazy injection
+                    const EXTENDED_BASE = 0x0400; // well above boot lumps (~0x1C0), below NS table
+                    let newLumpSize = 64;
+                    while (newLumpSize < 1 + words.length + DEMO_CC) newLumpSize <<= 1;
+
+                    if (EXTENDED_BASE + newLumpSize <= this.NS_TABLE_BASE) {
+                        const n_minus_6  = Math.max(0, Math.log2(newLumpSize) - 6) | 0;
+                        const newLumpBase = EXTENDED_BASE;
+
+                        // Write lump header: cc=0 (lazy injection fills C-List later)
+                        this.memory[newLumpBase] = this.packLumpHeader(n_minus_6, words.length, 0, 0);
+                        // Write code words starting at word 1
+                        for (let i = 0; i < words.length; i++) {
+                            this.memory[newLumpBase + 1 + i] = words[i] >>> 0;
+                        }
+
+                        // Update NS slot 3: point to new lump, limit17 = words.length, cc=0
+                        const nsBase        = this.NS_TABLE_BASE + abstrSlot * this.NS_ENTRY_WORDS;
+                        const oldW1         = this.memory[nsBase + 1] >>> 0;
+                        const oldW2         = this.memory[nsBase + 2] >>> 0;
+                        const w1f           = this.parseNSWord1(oldW1);
+                        const existingGtSeq = (oldW2 >>> 25) & 0x7F;
+                        this.memory[nsBase + 0] = newLumpBase >>> 0;
+                        this.memory[nsBase + 1] = this.packNSWord1(
+                            words.length, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, 0
+                        );
+                        this.memory[nsBase + 2] = this.makeVersionSeals(existingGtSeq, newLumpBase, words.length);
+
+                        // Update CR14 (code-region capability) to new lump location + NS words
+                        const cr14 = this.cr[14];
+                        if (cr14) {
+                            cr14.word1 = newLumpBase >>> 0;
+                            cr14.word2 = this.memory[nsBase + 1];
+                            cr14.word3 = this.memory[nsBase + 2];
+                        }
+                        // Reset CR6 so the lazy C-List injection in _applyPendingSimLoad
+                        // rebuilds it against the new lump base (it checks clistCount===0).
+                        if (this.cr[6]) {
+                            this.cr[6] = { word0: 0, word1: 0, word2: 0, word3: 0, m: 0 };
+                        }
+
+                        this.output += `[loadProgram] New LUMP allocated at 0x${newLumpBase.toString(16)} (${newLumpSize} words) for ${words.length}-word program.\n`;
+                        this.pc = 0;
+                        this.halted = false;
+                        this.running = false;
+                        this.sto = 243;
+                        this.callStack = [];
+                        this.stepCount = 0;
+                        this.lambdaActive = false;
+                        this.lambdaReturnPC = 0;
+                        this.lambdaCachedFrame = null;
+                        this.faultLog = [];
+                        this._instrHistory = [];
+                        this.emit('programLoaded', { addr: newLumpBase, length: words.length });
+                        this.emit('stateChange', this.getState());
+                        return;
+                    }
+                    // Fall through to patch path if new lump would overflow memory
+                    this.output += `[loadProgram] WARNING: program too large (${words.length} words) — truncated to ${maxCW} words.\n`;
+                }
+            }
+        }
+
+        // ── PATCH-IN-PLACE PATH ──────────────────────────────────────────────────
+        // Code fits in the existing lump (or pre-boot load): write words directly.
+        // +1: lump header occupies word 0; code starts at word 1.
         const codeStart = this.bootComplete ? baseAddr + 1 : baseAddr;
         for (let i = 0; i < words.length; i++) {
             if (codeStart + i < this.memory.length) {
@@ -4903,13 +4983,11 @@ class ChurchSimulator {
             const hdrWord  = this.memory[baseAddr] >>> 0;
             const hdr      = this.parseLumpHeader(hdrWord);
             if (hdr.valid) {
-                const clistStart = hdr.lumpSize - hdr.cc;           // first c-list word (relative to lump base)
-                const maxCW      = Math.max(0, clistStart - 1);     // can't overlap the c-list or header
+                const clistStart = hdr.lumpSize - hdr.cc;
+                const maxCW      = Math.max(0, clistStart - 1);
                 const newCW      = Math.min(words.length, maxCW);
                 if (newCW !== hdr.cw) {
-                    // Update lump header cw field (bits 22:10)
                     this.memory[baseAddr] = ((hdrWord & ~(0x1FFF << 10)) | ((newCW & 0x1FFF) << 10)) >>> 0;
-                    // Update NS entry word1 limit17 and reseal word2
                     const nsBase       = this.NS_TABLE_BASE + abstrSlot * this.NS_ENTRY_WORDS;
                     const oldW1        = this.memory[nsBase + 1] >>> 0;
                     const oldW2        = this.memory[nsBase + 2] >>> 0;
@@ -4918,7 +4996,6 @@ class ChurchSimulator {
                     this.memory[nsBase + 1] = this.packNSWord1(newLimit17, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, w1f.clistCount);
                     const existingGtSeq    = (oldW2 >>> 25) & 0x7F;
                     this.memory[nsBase + 2] = this.makeVersionSeals(existingGtSeq, baseAddr, newLimit17);
-                    // Mirror into CR14 which holds the code-region capability
                     const cr14 = this.cr[14];
                     if (cr14) {
                         cr14.word2 = this.memory[nsBase + 1];

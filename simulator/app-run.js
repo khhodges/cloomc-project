@@ -612,7 +612,14 @@ function _applyPendingSimLoad() {
     sim.loadProgram(lastAssembledWords, 0);
     if (pipelineViz) pipelineViz.setNIA(null);
     const abstrBase2 = sim.NS_TABLE_BASE + 2 * sim.NS_ENTRY_WORDS;
-    const progBase = sim.bootComplete ? (sim.memory[abstrBase2] || (2 * sim.SLOT_SIZE)) : 0;
+    const abstrBase3 = sim.NS_TABLE_BASE + 3 * sim.NS_ENTRY_WORDS;
+    // When Boot.Abstr (slot 3) was relocated to the extended-code area for a
+    // large program (base >= 0x0400), use that base+1 as the code start so
+    // labels resolve correctly.  For ordinary small programs the existing
+    // slot-2 base is used unchanged.
+    const slot3Base  = sim.bootComplete ? (sim.memory[abstrBase3] >>> 0) : 0;
+    const slot2Base  = sim.bootComplete ? (sim.memory[abstrBase2] || (2 * sim.SLOT_SIZE)) : 0;
+    const progBase   = (slot3Base >= 0x0400) ? slot3Base + 1 : slot2Base;
     sim.programBaseAddr = progBase;
     // ── LAZY-LOAD c-list: cc=0 → DEMO_CLIST_SIZE ────────────────────────────────
     // Boot.Abstr boots with cc=0 (CLOOMC/no-c-list design, Task #651).  When the

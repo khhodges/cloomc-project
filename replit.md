@@ -40,3 +40,15 @@ The architecture uses a scale-free abstraction model with 47 abstractions in 9 l
 If step 2 is missed, `app-compile.js` will call `tab.style.display = 'none'` on the button whenever Assembly mode is active (which is the default). The button will be present in the HTML source and visible to curl, but invisible to the user — a very difficult bug to diagnose remotely.
 
 After both edits, bump the `app-compile.js` version tag in `index.html` (e.g. `?v=20260429e`) so browsers fetch the updated file.
+
+### Large Assembly programs — extended-code LUMP (simulator.js `loadProgram`)
+
+The Boot.Abstr lump is only 64 words (≈ 45 usable code words after header and c-list). When an assembled program exceeds that capacity, `loadProgram` now allocates a fresh, properly-sized LUMP at the **extended-code area** (`0x0400`) instead of silently truncating the code:
+
+1. **New-lump size** = next power-of-2 ≥ `1 + words.length + 18` (18 = DEMO_CLIST capacity).
+2. **NS slot 3** (Boot.Abstr) word0 is updated to point to `0x0400`; word1 carries the new `limit17` and `cc=0`; word2 is resealed.
+3. **CR14** `word1/word2/word3` are updated to match.
+4. **CR6** is zeroed so the existing lazy C-List injection in `_applyPendingSimLoad` rebuilds it correctly against the new, larger lump.
+5. The `programBaseAddr` display variable in `_applyPendingSimLoad` switches to `slot3Base+1` when the lump has been moved to `≥ 0x0400`, keeping labels correct.
+
+The patch-in-place path (small programs, ≤ maxCW words) is completely unchanged.
