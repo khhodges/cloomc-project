@@ -101,6 +101,7 @@
                                 <button class="ham-item" id="hamItem-editor" onclick="switchView('editor');closeHamburger()">Programs</button>
                                 <button class="ham-item" id="hamItem-repl" onclick="switchView('repl');closeHamburger()">Math<kbd class="ham-kbd">C+M</kbd></button>
                                 <button class="ham-item" id="hamItem-namespace" onclick="switchView('namespace');closeHamburger()">Namespace<kbd class="ham-kbd">C+N</kbd></button>
+                                <button class="ham-item" id="hamItem-hello-mum" onclick="switchView('hello-mum');closeHamburger()">Hello Mum</button>
                                 <button class="ham-item" id="hamItem-memory" onclick="switchView('memory');closeHamburger()">Memory Dump</button>
                             </div>
                             <div class="ham-group">
@@ -477,6 +478,97 @@
                 <input type="file" id="nsImportFile" style="display:none;" accept=".json,.bin" onchange="handleNSImport(event)">
             </div>
             <div id="namespaceTable"></div>
+        </div>
+    </div>
+
+    <!-- Hello Mum — Stage 3: Scan QR, Connect, Hello (Step 2 coming in Stage 4) -->
+    <div id="hello-mum" class="view">
+        <div class="panel" style="max-width:720px;margin:0 auto;">
+            <div class="panel-title" style="display:flex;align-items:center;gap:10px;">
+                <span>Hello Mum — Keystone Connect Flow</span>
+                <a href="/mum/qr" target="_blank" rel="noopener"
+                   style="margin-left:auto;font-size:0.72rem;color:#60a5fa;text-decoration:none;border:1px solid #334;border-radius:4px;padding:2px 8px;"
+                   title="Open Mum&#39;s QR code in a new tab">QR image &rarr;</a>
+            </div>
+
+            <!-- Two-step sequence header -->
+            <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:200px;background:#0d1117;border:1px solid #22c55e;border-radius:6px;padding:12px 14px;">
+                    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;color:#22c55e;margin-bottom:4px;">STEP 1 — ACTIVE</div>
+                    <div style="font-size:0.9rem;color:#e2e8f0;font-weight:600;">Scan QR &amp; Connect</div>
+                    <div style="font-size:0.75rem;color:#8892a4;margin-top:3px;">Scan Mum's QR code (or paste her identity string) to call <code style="color:#86efac;">Keystone.Connect()</code> and fill c-list slot 1 with her E-GT.</div>
+                </div>
+                <div style="flex:1;min-width:200px;background:#0d1117;border:1px solid #334;border-radius:6px;padding:12px 14px;opacity:0.55;">
+                    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;color:#6b7280;margin-bottom:4px;">STEP 2 — STAGE 4</div>
+                    <div style="font-size:0.9rem;color:#9ca3af;font-weight:600;">Say Hello</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:3px;">Call <code style="color:#6b7280;">Keystone.Hello()</code> through the live Tunnel. Coming in Stage 4 once the Tunnel CALL bridge is live.</div>
+                </div>
+            </div>
+
+            <!-- Mum's QR code display -->
+            <div style="margin-bottom:16px;">
+                <div style="font-size:0.78rem;color:#8892a4;margin-bottom:6px;font-weight:600;">Mum's QR Code <span style="font-weight:400;color:#6b7280;">(served from this IDE — scan or paste)</span></div>
+                <div id="mumQrDisplay" style="display:inline-block;background:#fff;padding:8px;border-radius:4px;border:1px solid #334;">
+                    <img id="mumQrImg" src="/mum/qr" alt="Mum QR Code"
+                         style="display:block;width:180px;height:180px;image-rendering:pixelated;"
+                         onerror="document.getElementById('mumQrImg').style.display='none';document.getElementById('mumQrErr').style.display='block'">
+                    <div id="mumQrErr" style="display:none;width:180px;height:180px;align-items:center;justify-content:center;color:#ef4444;font-size:0.75rem;text-align:center;padding:8px;background:#1a0000;">
+                        QR not available — server may be starting up. <a href="/mum/qr" style="color:#60a5fa;">Reload</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera / paste scanner -->
+            <div style="margin-bottom:16px;">
+                <div style="font-size:0.78rem;color:#8892a4;margin-bottom:6px;font-weight:600;">Scan or Paste Identity String</div>
+                <div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;">
+                    <input id="mumIdentityInput" type="text" placeholder="Paste Mum's identity string (base64url, 43 chars)…"
+                           style="flex:1;min-width:200px;background:#0d1117;color:#e2e8f0;border:1px solid #2d3a4a;border-radius:4px;padding:7px 10px;font-family:monospace;font-size:0.8rem;">
+                    <button onclick="mumConnectFromPaste()"
+                            style="background:#16a34a;color:#fff;border:none;border-radius:4px;padding:7px 16px;cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;">
+                        Connect
+                    </button>
+                    <button id="mumCameraBtn" onclick="mumStartCamera()"
+                            style="background:#1d4ed8;color:#fff;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;">
+                        &#128247; Camera
+                    </button>
+                </div>
+                <div id="mumCameraWrap" style="display:none;margin-top:10px;">
+                    <video id="mumCameraVideo" style="width:260px;height:195px;background:#000;border-radius:4px;border:1px solid #334;" autoplay playsinline muted></video>
+                    <canvas id="mumCameraCanvas" style="display:none;"></canvas>
+                    <div style="margin-top:4px;">
+                        <button onclick="mumStopCamera()" style="background:#7f1d1d;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:0.78rem;">Stop camera</button>
+                        <span id="mumCameraStatus" style="font-size:0.75rem;color:#8892a4;margin-left:8px;">Point camera at Mum's QR code…</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connect result / c-list slot 1 status -->
+            <div style="margin-bottom:14px;">
+                <div style="font-size:0.78rem;color:#8892a4;margin-bottom:6px;font-weight:600;">Keystone NS[32] — C-list Slot 1 (Mum E-GT)</div>
+                <div id="mumClistStatus" style="background:#0d1117;border:1px solid #334;border-radius:4px;padding:10px 12px;font-family:monospace;font-size:0.82rem;color:#6b7280;">
+                    NULL GT — Connect() not yet called
+                </div>
+            </div>
+
+            <!-- Hello() result (greyed / disabled until connected) -->
+            <div style="margin-bottom:6px;">
+                <div style="font-size:0.78rem;color:#8892a4;margin-bottom:6px;font-weight:600;">Step 2: Say Hello <span style="font-style:italic;color:#6b7280;">(Tunnel bridge required — Stage 4)</span></div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <button id="mumHelloBtn" onclick="mumRunHello()"
+                            style="background:#1e2a3a;color:#8892a4;border:1px solid #334;border-radius:4px;padding:7px 16px;cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;">
+                        Keystone.Hello()
+                    </button>
+                    <span style="font-size:0.75rem;color:#6b7280;">Expect TUNNEL_OFFLINE / timeout until Stage 4 is live.</span>
+                </div>
+                <div id="mumHelloResult" style="margin-top:8px;font-family:monospace;font-size:0.8rem;color:#8892a4;"></div>
+            </div>
+
+            <!-- Identity string display (for copy) -->
+            <div style="margin-top:14px;border-top:1px solid #1e2a3a;padding-top:12px;">
+                <div style="font-size:0.72rem;color:#6b7280;margin-bottom:4px;">Mum's canonical identity string (copy for paste above):</div>
+                <div id="mumIdentityDisplay" style="font-family:monospace;font-size:0.73rem;color:#60a5fa;word-break:break-all;cursor:pointer;" title="Click to copy" onclick="mumCopyIdentity(this)">Loading…</div>
+            </div>
         </div>
     </div>
 
@@ -1480,6 +1572,227 @@
     <script src="app-run.js?v=20260430b"></script>
     <script src="app-compile.js?v=20260429e"></script>
     <script src="app-misc.js?v=20260428e"></script>
+    <!-- jsQR — client-side QR code decoder (camera scanning for Hello Mum panel) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script>
+    // ── Hello Mum panel — Stage 3 JavaScript ─────────────────────────────────
+    // Loaded eagerly so the panel is ready the first time switchView('hello-mum')
+    // is called.  All functions are prefixed "mum" to avoid collisions.
+
+    var _mumCameraStream = null;
+    var _mumCameraRaf   = null;
+
+    function mumOnViewEnter() {
+        // Fetch and display the identity string from /mum/status (JSON details).
+        fetch('/mum/status')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                var el = document.getElementById('mumIdentityDisplay');
+                if (el) el.textContent = d.identity || '(unavailable)';
+            })
+            .catch(function(){
+                var el = document.getElementById('mumIdentityDisplay');
+                if (el) el.textContent = '(server not reachable)';
+            });
+
+        // Refresh c-list slot 1 display.
+        mumRefreshClist();
+    }
+
+    function mumRefreshClist() {
+        var statusEl = document.getElementById('mumClistStatus');
+        if (!statusEl) return;
+        try {
+            if (typeof sim === 'undefined' || !sim) { statusEl.textContent = 'Simulator not running — boot the machine first.'; return; }
+            var KEYSTONE_NS = 32;
+            var entry = sim.readNSEntry ? sim.readNSEntry(KEYSTONE_NS) : null;
+            if (!entry) { statusEl.textContent = 'NS[32] (Keystone) not present in namespace.'; return; }
+            var hdr = sim.parseLumpHeader ? sim.parseLumpHeader(sim.memory[entry.word0_location]) : null;
+            if (!hdr) { statusEl.textContent = 'Cannot parse Keystone lump header.'; return; }
+            var clistBase = entry.word0_location + hdr.lumpSize - hdr.cc;
+            var slot1 = (sim.memory[clistBase + 1] >>> 0);
+            if (!slot1) {
+                statusEl.style.color = '#6b7280';
+                statusEl.textContent = 'c-list slot 1 = NULL GT (0x00000000) — Connect() not yet called';
+            } else {
+                var hex = '0x' + slot1.toString(16).toUpperCase().padStart(8, '0');
+                statusEl.style.color = '#22c55e';
+                statusEl.textContent = 'c-list slot 1 = ' + hex + ' — Outform E-GT (Mum identity issued \u2713)';
+            }
+        } catch(e) {
+            statusEl.textContent = 'Error reading c-list: ' + e.message;
+        }
+    }
+
+    function mumConnectFromPaste() {
+        var input = document.getElementById('mumIdentityInput');
+        var identity = input ? input.value.trim() : '';
+        if (!identity) {
+            var statusEl = document.getElementById('mumClistStatus');
+            if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Enter or paste an identity string first.'; }
+            return;
+        }
+        mumCallConnect(identity);
+    }
+
+    function mumCallConnect(identityString) {
+        var statusEl = document.getElementById('mumClistStatus');
+
+        // AM-side format validation: identity string must be exactly 43 base64url
+        // characters (32 bytes with standard no-padding encoding).
+        if (!/^[A-Za-z0-9_-]{43}$/.test(identityString)) {
+            if (statusEl) {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = 'AM rejected: identity string must be 43 base64url characters (32-byte Ed25519 pubkey)';
+            }
+            return;
+        }
+
+        if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Verifying identity with server…'; }
+
+        fetch('/mum/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identity: identityString })
+        }).then(function(r){ return r.json(); })
+          .then(function(d){
+            if (d.error) {
+                if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'AM rejected: ' + d.error; }
+                return;
+            }
+            var word = d.identity_word >>> 0;
+            // Dispatch to simulator Keystone.Connect
+            try {
+                if (typeof sim !== 'undefined' && sim && sim.abstractionRegistry) {
+                    var result = sim.abstractionRegistry.dispatchMethod(32, 'Connect', sim, [word]);
+                    if (result && result.ok) {
+                        if (statusEl) { statusEl.style.color = '#22c55e'; statusEl.textContent = result.message || 'Connected.'; }
+                    } else {
+                        if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = (result && result.message) || 'Connect failed.'; }
+                    }
+                } else {
+                    if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'identity_word=' + d.identity_word_hex + ' (simulator not running — boot first)'; }
+                }
+            } catch(e) {
+                if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Simulator error: ' + e.message; }
+            }
+            mumRefreshClist();
+        }).catch(function(err){
+            if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Server error: ' + err.message; }
+        });
+    }
+
+    function mumRunHello() {
+        var resultEl = document.getElementById('mumHelloResult');
+        if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = 'Calling Keystone.Hello()…'; }
+        try {
+            if (typeof sim === 'undefined' || !sim || !sim.abstractionRegistry) {
+                if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = 'Simulator not running — boot the machine first.'; }
+                return;
+            }
+            var result = sim.abstractionRegistry.dispatchMethod(32, 'Hello', sim, []);
+            if (result) {
+                var hex = '0x' + ((result.result || 0) >>> 0).toString(16).toUpperCase().padStart(8, '0');
+                if (result.fault === 'NO_CONTACT') {
+                    if (resultEl) { resultEl.style.color = '#ef4444'; resultEl.textContent = hex + ' FAULT_NO_CONTACT — call Keystone.Connect() first (Step 1)'; }
+                } else if (result.fault === 'TUNNEL_OFFLINE') {
+                    if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = hex + ' TUNNEL_OFFLINE — Tunnel bridge not live (Stage 4 required)'; }
+                } else {
+                    if (resultEl) { resultEl.style.color = '#22c55e'; resultEl.textContent = hex + ' — ' + (result.message || ''); }
+                }
+            }
+        } catch(e) {
+            if (resultEl) { resultEl.style.color = '#ef4444'; resultEl.textContent = 'Error: ' + e.message; }
+        }
+    }
+
+    function mumCopyIdentity(el) {
+        var text = el ? el.textContent : '';
+        if (!text || text === 'Loading…') return;
+        navigator.clipboard.writeText(text).then(function(){
+            var prev = el.style.color;
+            el.style.color = '#22c55e';
+            setTimeout(function(){ el.style.color = prev; }, 800);
+        }).catch(function(){});
+    }
+
+    function mumStartCamera() {
+        if (!window.jsQR) {
+            alert('jsQR library not loaded — cannot scan. Please paste the identity string instead.');
+            return;
+        }
+        var wrap = document.getElementById('mumCameraWrap');
+        var video = document.getElementById('mumCameraVideo');
+        if (wrap) wrap.style.display = 'block';
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(function(stream){
+                _mumCameraStream = stream;
+                video.srcObject = stream;
+                video.play();
+                _mumCameraRaf = requestAnimationFrame(mumScanFrame);
+            })
+            .catch(function(err){
+                var st = document.getElementById('mumCameraStatus');
+                if (st) st.textContent = 'Camera error: ' + err.message;
+            });
+    }
+
+    function mumScanFrame() {
+        var video = document.getElementById('mumCameraVideo');
+        var canvas = document.getElementById('mumCameraCanvas');
+        var statusEl = document.getElementById('mumCameraStatus');
+        if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+            _mumCameraRaf = requestAnimationFrame(mumScanFrame);
+            return;
+        }
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+        if (code) {
+            if (statusEl) statusEl.textContent = 'QR detected! Connecting…';
+            mumStopCamera();
+            var input = document.getElementById('mumIdentityInput');
+            if (input) input.value = code.data;
+            mumCallConnect(code.data);
+            return;
+        }
+        _mumCameraRaf = requestAnimationFrame(mumScanFrame);
+    }
+
+    function mumStopCamera() {
+        if (_mumCameraRaf) { cancelAnimationFrame(_mumCameraRaf); _mumCameraRaf = null; }
+        if (_mumCameraStream) { _mumCameraStream.getTracks().forEach(function(t){ t.stop(); }); _mumCameraStream = null; }
+        var wrap = document.getElementById('mumCameraWrap');
+        if (wrap) wrap.style.display = 'none';
+    }
+
+    // Hook into switchView so mumOnViewEnter is called automatically.
+    (function() {
+        function patchSwitchView() {
+            var _origSV = window.switchView;
+            if (typeof _origSV === 'function') {
+                window.switchView = function(v) {
+                    _origSV.apply(this, arguments);
+                    if (v === 'hello-mum') mumOnViewEnter();
+                };
+            }
+        }
+        // Patch immediately (switchView is declared before this inline script).
+        patchSwitchView();
+        // Also handle the case where the page loads directly on #hello-mum:
+        // The initial switchView('hello-mum') in DOMContentLoaded happens before
+        // this patch so we also fire mumOnViewEnter after load if the active view is hello-mum.
+        window.addEventListener('load', function() {
+            if (typeof currentView !== 'undefined' && currentView === 'hello-mum') {
+                mumOnViewEnter();
+            }
+        });
+    })();
+    </script>
 <div id="lumpTypeSelectorModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeLumpTypeSelector()">
     <div class="modal-dialog lump-type-selector-dialog">
         <div class="modal-title">Add LUMP — Choose Type</div>

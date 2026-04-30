@@ -11,3 +11,6 @@ waitress
 weasyprint
 fpdf2
 apscheduler
+cryptography
+qrcode[pil]
+Pillow

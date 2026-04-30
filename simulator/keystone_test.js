@@ -133,9 +133,20 @@ const _sa = new SystemAbstractions(registry);   // side-effect: binds Keystone m
         'got fault=' + r.fault);
 }
 
-// T4: Connect(0x10001234) then Hello() — valid tag 0x1; Hello must return GREET_RESPONSE.
+// T4: Init() + Connect(0x10001234) then Hello() — full round-trip.
+//     Init() must be called first to wire the Tunnel E-GT into c-list slot 0.
+//     Connect() then stores the Mum E-GT in slot 1.
+//     Hello() finds both GTs and (in this headless test harness where
+//     sim.abstractionRegistry is undefined) skips the live Tunnel.Call
+//     dispatch and returns GREET_RESPONSE directly.
 {
     const sim = makeKeystoneSim();
+
+    // Wire the Tunnel GT into slot 0 — this is what boot does at runtime.
+    const initResult = registry.call(32, 'Init', sim, {});
+    assert('T4 Init() succeeds',
+        initResult && initResult.ok === true,
+        'got ok=' + (initResult && initResult.ok));
 
     const connectResult = registry.call(32, 'Connect', sim, [0x10001234]);
     assert('T4 Connect(0x10001234) succeeds (result=1)',
@@ -143,10 +154,10 @@ const _sa = new SystemAbstractions(registry);   // side-effect: binds Keystone m
         'got result=' + connectResult.result);
 
     const helloResult = registry.call(32, 'Hello', sim, []);
-    assert('T4 Hello() after Connect returns result=0x48454C4C',
+    assert('T4 Hello() after Init+Connect returns result=0x48454C4C',
         (helloResult.result >>> 0) === 0x48454C4C,
         'got result=0x' + (helloResult.result >>> 0).toString(16));
-    assert('T4 Hello() after Connect has ok=true',
+    assert('T4 Hello() after Init+Connect has ok=true',
         helloResult.ok === true,
         'got ok=' + helloResult.ok);
 }

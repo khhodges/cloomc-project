@@ -391,7 +391,7 @@ function init() {
     updateLineNumbers();
     loadNamespaceState();
     checkBootId();
-    const views = ['repl','editor','tutorial','dashboard','namespace','abstractions','lumps','pipeline','trace','reference','docs','builder','sitemap'];
+    const views = ['repl','editor','tutorial','dashboard','namespace','hello-mum','abstractions','lumps','pipeline','trace','reference','docs','builder','sitemap'];
     const rawHash = window.location.hash.replace('#', '');
     const [hashView, hashQuery] = rawHash.split('?');
     const hashParams = {};

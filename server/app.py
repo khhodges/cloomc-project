@@ -4275,6 +4275,82 @@ def _free_port(port):
         except OSError:
             pass
 
+# ---------------------------------------------------------------------------
+# Mum identity routes (Stage 3 — Keystone Hello Mum)
+# ---------------------------------------------------------------------------
+
+@app.route("/mum/qr")
+def mum_qr():
+    """Return a PNG QR code encoding Mum's canonical identity string."""
+    try:
+        import mum as _mum
+    except ImportError:
+        from server import mum as _mum
+    png = _mum.get_qr_png()
+    return make_response(png), 200, {
+        "Content-Type": "image/png",
+        "Cache-Control": "no-cache",
+        "Content-Length": len(png),
+    }
+
+
+@app.route("/mum/identity")
+def mum_identity():
+    """Return Mum's canonical identity string as plain text (base64url, no padding, 43 chars).
+    This is the human-readable / copy-paste form also encoded in the QR code.
+    """
+    try:
+        import mum as _mum
+    except ImportError:
+        from server import mum as _mum
+    identity = _mum.get_identity_string()
+    return make_response(identity), 200, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+    }
+
+
+@app.route("/mum/status")
+def mum_status():
+    """Return Mum's identity details as JSON — for the IDE UI."""
+    try:
+        import mum as _mum
+    except ImportError:
+        from server import mum as _mum
+    identity = _mum.get_identity_string()
+    word = _mum.get_identity_word()
+    return jsonify({
+        "identity": identity,
+        "identity_word": word,
+        "identity_word_hex": f"0x{word:08X}",
+        "protocol": "Ed25519 / GTKN-1",
+    })
+
+
+@app.route("/mum/connect", methods=["POST"])
+def mum_connect():
+    """Derive the 32-bit identity word from a submitted identity string.
+
+    POST body: { "identity": "<base64url string>" }
+    Returns:   { "identity_word": <int>, "identity_word_hex": "0x..." }
+    """
+    try:
+        import mum as _mum
+    except ImportError:
+        from server import mum as _mum
+    data = request.get_json(silent=True) or {}
+    identity = data.get("identity", "").strip()
+    if not identity:
+        return jsonify({"error": "Missing identity field"}), 400
+    word = _mum.identity_word_from_string(identity)
+    if not word:
+        return jsonify({"error": "Invalid identity string — expected 32-byte Ed25519 public key in base64url"}), 422
+    return jsonify({
+        "identity_word": word,
+        "identity_word_hex": f"0x{word:08X}",
+    })
+
+
 if __name__ == "__main__":
     _free_port(5000)
     logging.info("Starting Church Machine server on port 5000")

@@ -2381,6 +2381,7 @@ class SystemAbstractions {
 
     _initKeystone() {
         const FAULT_NO_CONTACT = 0xDEAD0001;
+        const TUNNEL_OFFLINE   = 0xDEAD0002;  // Tunnel bridge not live (Stage 4+)
         const GREET_RESPONSE   = 0x48454C4C;
         const KEYSTONE_NS      = 32;
         const TUNNEL_NS        = 31;
@@ -2406,6 +2407,18 @@ class SystemAbstractions {
         });
 
         this.registry.bindMethod(KEYSTONE_NS, 'Connect', function(sim, args) {
+            // identityWord is a 32-bit encoded identity token derived from the far-end
+            // entity's Ed25519 public key via the canonical GTKN-1 encoding:
+            //   bits[31:28] = version tag (0x1 = Ed25519 / GTKN-1)
+            //   bits[27:16] = top 12 bits of SHA-256(pubkey)
+            //   bits[15:0]  = bits[15:0] of SHA-256(pubkey)
+            //
+            // Raw-string identity format validation (43-char base64url, 32-byte decode)
+            // is enforced in two upstream layers before this point:
+            //   1. Client side: UI regex /^[A-Za-z0-9_-]{43}$/ in mumCallConnect()
+            //   2. Server side: /mum/connect validates the decoded length == 32 bytes
+            //      before deriving this word.  Invalid strings return HTTP 422.
+            // This AM layer enforces the protocol-version nibble of the derived word.
             const identityWord = (args && args[0] !== undefined) ? (args[0] >>> 0) : 0;
 
             if (!identityWord) {
@@ -2470,8 +2483,20 @@ class SystemAbstractions {
             }
 
             // Forward through Tunnel.Call(mumGT) to reach the far end (Mum).
+            // If Tunnel.Call is not yet bound (Stage 3 — no live Tunnel bridge),
+            // the dispatch returns { ok: false, fault: 'METHOD' }.  Treat this as
+            // TUNNEL_OFFLINE rather than a success.
             if (sim.abstractionRegistry) {
-                sim.abstractionRegistry.dispatchMethod(TUNNEL_NS, 'Call', sim, { cr2: mumGT });
+                const tunnelResult = sim.abstractionRegistry.dispatchMethod(TUNNEL_NS, 'Call', sim, { cr2: mumGT });
+                if (!tunnelResult || !tunnelResult.ok) {
+                    const hex = TUNNEL_OFFLINE.toString(16).toUpperCase().padStart(8, '0');
+                    return {
+                        ok: true,
+                        result: TUNNEL_OFFLINE,
+                        fault: 'TUNNEL_OFFLINE',
+                        message: `Keystone.Hello(): TUNNEL_OFFLINE (0x${hex}) \u2014 Tunnel.Call not yet live. Complete Stage 4 to enable the live bridge.`
+                    };
+                }
             }
 
             const hex = GREET_RESPONSE.toString(16).toUpperCase().padStart(8, '0');

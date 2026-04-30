@@ -177,7 +177,7 @@ build = ["pip", "install", "-r", "requirements.txt"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["fontconfig", "freetype", "ghostscript", "gitFull", "glib", "harfbuzz", "icestorm", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "nextpnr", "openjpeg", "pango", "symbiyosys", "tcl", "tk", "yices", "yosys", "zlib"]
+packages = ["cargo", "fontconfig", "freetype", "ghostscript", "gitFull", "glib", "harfbuzz", "icestorm", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "nextpnr", "openjpeg", "openssl", "pango", "pkg-config", "rustc", "symbiyosys", "tcl", "tk", "yices", "yosys", "zlib"]
 
 [userenv]
 
