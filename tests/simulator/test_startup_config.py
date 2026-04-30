@@ -466,3 +466,71 @@ process.stdout.write(JSON.stringify(out) + '\n');
     assert data["halted"] is True, "simulator should halt on Execute() failure"
     assert data["hasFault"] is True, "faultLog should be non-empty"
     assert data["ledBits"] != 0x3F, "ledBits should encode fault count, not success"
+
+
+def test_both_alloccode_fail_no_dangling_ns_entries():
+    """Boot stays stable when both SlideRule and Constants AllocCode calls fail OOM.
+
+    Uses a 12 288-word memory config.  NS_TABLE_BASE = 12288 - 1024 = 11264,
+    which is below the PhysicalPool watermark start of 45*0x100 = 11520, so
+    every AllocCode → PhysicalPool.Allocate call returns OOM immediately.
+    This exercises the extreme case that the existing test_nsCount_unchanged
+    does NOT cover: neither allocation succeeds, so Navana.Init must skip
+    both NS registrations and leave nsCount at the static catalog size (50).
+
+    Asserts:
+      1. nsCount does not exceed the static catalog size (50).
+      2. No NS entry beyond the static catalog has location == 0
+         (which would indicate a dangling entry with an uninitialized pointer).
+    """
+    result = subprocess.run(
+        ["node", "-e", r"""
+global.window = { bootConfig: { step1: {
+    totalNamespaceWords: 12288, namespaceLumpWords: 64,
+    threadLumpWords: 256 } } };
+const ChurchSimulator     = require('./simulator/simulator.js');
+const AbstractionRegistry = require('./simulator/abstractions.js');
+const SystemAbstractions  = require('./simulator/system_abstractions.js');
+const sim = new ChurchSimulator();
+const registry = new AbstractionRegistry();
+const sys = new SystemAbstractions(registry);
+sim.initAbstractions(registry, sys, null);
+// Invoke Startup.Config.Execute (NS slot 2) directly.  This runs the full
+// Navana.Init path including both AllocCode calls, both of which fail OOM
+// because NS_TABLE_BASE (11264) < PhysicalPool watermark start (11520).
+const execRes = registry.dispatchMethod(2, 'Execute', sim, {});
+const nsCount = sim.nsCount | 0;
+// Scan every NS entry beyond the static catalog (50 entries, indices 0-49)
+// and record any whose location word is 0 — a sign of a dangling entry.
+const STATIC_CAT_SIZE = 50;
+const zeroLocEntries = [];
+for (let i = STATIC_CAT_SIZE; i < nsCount; i++) {
+    const base = sim.NS_TABLE_BASE + i * sim.NS_ENTRY_WORDS;
+    const loc = sim.memory[base] >>> 0;
+    if (loc === 0) zeroLocEntries.push(i);
+}
+const out = {
+    nsCount,
+    execOk: !!(execRes && execRes.ok),
+    zeroLocEntries,
+};
+process.stdout.write(JSON.stringify(out) + '\n');
+"""],
+        capture_output=True,
+        timeout=30,
+        cwd=ROOT,
+    )
+    assert result.returncode == 0, result.stderr.decode()
+    data = json.loads(result.stdout.decode().strip())
+    assert data["execOk"] is True, (
+        "Startup.Config.Execute should succeed (ok=True) even when both "
+        "AllocCode calls fail — an OOM in Navana.Init must not abort Execute"
+    )
+    assert data["nsCount"] <= 50, (
+        f"nsCount should not exceed the static catalog size (50) when both "
+        f"AllocCode calls fail, got nsCount={data['nsCount']}"
+    )
+    assert data["zeroLocEntries"] == [], (
+        f"No NS entry beyond the static catalog should have location=0 "
+        f"(dangling entry guard failed for slots: {data['zeroLocEntries']})"
+    )
