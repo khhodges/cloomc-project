@@ -298,8 +298,8 @@ class AbstractionRegistry {
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(6, 'Mint', 1,
-            ['Create', 'Revoke', 'Transfer'],
-            'GT lifecycle — creates new GTs with bounded permissions',
+            ['Encode', 'Revoke', 'Transfer', 'Create'],
+            'GT issuance — encodes GTs with bounded permissions (domain purity + E-isolation enforced); Create is the legacy alias for Encode',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(7, 'Memory', 1,

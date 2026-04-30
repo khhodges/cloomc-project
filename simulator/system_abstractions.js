@@ -1077,6 +1077,94 @@ class SystemAbstractions {
     }
 
     _bindMint() {
+        // Encode(base, exp, permsBits, bindable, far) → GT
+        //
+        // Canonical interface per docs/mint.md §3.
+        //
+        //   base      — 16-bit NS slot index (slot_id, GT[15:0])
+        //   exp       — 7-bit gt_seq freshness counter (GT[22:16]), from Navana.Add
+        //   permsBits — 6-bit numeric mask: R=bit0 W=bit1 X=bit2 L=bit3 S=bit4 E=bit5
+        //   bindable  — boolean; sets B bit [31] when true
+        //   far       — boolean hint written to NS Entry Word 1 by the caller (not in GT word)
+        //
+        // Mint.Encode does NOT allocate memory and does NOT register a Namespace entry.
+        // Those are caller responsibilities (Memory.Allocate → Navana.Add → Mint.Encode).
+        this.registry.bindMethod(6, 'Encode', function(sim, args) {
+            const base      = args.base      !== undefined ? (args.base      & 0xFFFF) : 0;
+            const exp       = args.exp       !== undefined ? (args.exp       & 0x7F)   : 0;
+            const permsBits = args.permsBits !== undefined ? (args.permsBits & 0x3F)   : 0;
+            const bindable  = args.bindable  ? 1 : 0;
+            const far       = args.far       ? 1 : 0;
+
+            const typeNames = ['NULL', 'Inform', 'Outform', 'Abstract'];
+
+            // --- Domain purity check (§4.1) ---
+            // Turing domain: R=bit0, W=bit1, X=bit2
+            // Church domain: L=bit3, S=bit4, E=bit5
+            const turingBits = permsBits & 0x7;
+            const churchBits = (permsBits >>> 3) & 0x7;
+            if (turingBits && churchBits) {
+                return {
+                    ok: false,
+                    fault: 'DOMAIN_PURITY',
+                    message: `Mint.Encode: cannot mix Turing (R,W,X) and Church (L,S,E) perms in one GT`
+                };
+            }
+
+            // --- E-isolation check (§4.2) ---
+            // E (bit5) must not coexist with L (bit3) or S (bit4)
+            const eBit  = (permsBits >>> 5) & 1;
+            const lsBits = (permsBits >>> 3) & 0x3;
+            if (eBit && lsBits) {
+                return {
+                    ok: false,
+                    fault: 'E_ISOLATION',
+                    message: `Mint.Encode: E must not coexist with L or S — valid Church perms are L, S, LS, or E alone`
+                };
+            }
+
+            // --- Read type from NS entry at 'base' (§3, §4.3) ---
+            // gtType is stored in NS Entry Word 1 at bits [27:26] (packNSWord1 convention).
+            if (base >= sim.nsCount) {
+                return {
+                    ok: false,
+                    fault: 'BOUNDS',
+                    message: `Mint.Encode: NS[${base}] out of bounds (nsCount=${sim.nsCount})`
+                };
+            }
+            const nsEntryBase = sim.NS_TABLE_BASE + base * sim.NS_ENTRY_WORDS;
+            const w1     = sim.memory[nsEntryBase + 1] >>> 0;
+            const gtType = (w1 >>> 26) & 0x3;
+
+            // --- Non-NULL type check (§4.3) ---
+            if (gtType === 0) {
+                return {
+                    ok: false,
+                    fault: 'NULL_TYPE',
+                    message: `Mint.Encode: NS[${base}] has NULL type — cannot issue a NULL GT`
+                };
+            }
+
+            // --- Assemble GT word (§3 return value formula) ---
+            const gt = (
+                (bindable           << 31) |
+                ((permsBits & 0x3F) << 25) |
+                ((gtType    & 0x3)  << 23) |
+                ((exp       & 0x7F) << 16) |
+                (base & 0xFFFF)
+            ) >>> 0;
+
+            return {
+                ok: true,
+                result: { gt: gt, nsIndex: base, version: exp, type: gtType, typeName: typeNames[gtType], far: far },
+                message: `Mint.Encode: ${typeNames[gtType]} GT seq${exp} -> NS[${base}] perms=${permsBits.toString(2).padStart(6,'0')} B=${bindable} F=${far}`
+            };
+        });
+
+        // Create — legacy helper retained for backward compatibility with existing call sites.
+        // Unlike Encode, Create is a convenience wrapper that internally performs
+        // Memory.Allocate → Navana.Add → GT assembly in one call.
+        // New code should use the canonical three-step flow and call Encode directly.
         this.registry.bindMethod(6, 'Create', function(sim, args) {
             const targetPerms = args.perms || { R: 0, W: 0, X: 0, L: 0, S: 0, E: 0 };
 
@@ -1087,6 +1175,16 @@ class SystemAbstractions {
                     ok: false,
                     fault: 'DOMAIN_PURITY',
                     message: `Mint.Create: cannot mix Turing (R,W,X) and Church (L,S,E) perms in one GT`
+                };
+            }
+
+            const eBit  = targetPerms.E ? 1 : 0;
+            const lsBits = (targetPerms.L ? 1 : 0) | (targetPerms.S ? 1 : 0);
+            if (eBit && lsBits) {
+                return {
+                    ok: false,
+                    fault: 'E_ISOLATION',
+                    message: `Mint.Create: E must not coexist with L or S`
                 };
             }
 
@@ -1168,16 +1266,32 @@ class SystemAbstractions {
         this.registry.bindMethod(6, 'Transfer', function(sim, args) {
             const gt = args.gt;
             const targetCList = args.targetCList;
-            const targetSlot = args.targetSlot;
+            const targetSlot  = args.targetSlot;
 
             if (gt === undefined) {
                 return { ok: false, fault: 'ARGS', message: 'Mint.Transfer: gt required' };
             }
+            if (targetCList === undefined || targetSlot === undefined) {
+                return { ok: false, fault: 'ARGS', message: 'Mint.Transfer: targetCList and targetSlot required' };
+            }
+
+            // Write the GT word into the specified c-list slot.
+            // targetCList is the base memory address of the c-list; targetSlot is the word offset.
+            // B=0 does not block Transfer — B constrains user-level mSave, not Mint's placement.
+            const addr = (targetCList + targetSlot) >>> 0;
+            if (addr >= sim.memory.length) {
+                return {
+                    ok: false,
+                    fault: 'BOUNDS',
+                    message: `Mint.Transfer: address 0x${addr.toString(16)} out of bounds (memory size=${sim.memory.length})`
+                };
+            }
+            sim.memory[addr] = gt >>> 0;
 
             return {
                 ok: true,
                 result: gt,
-                message: `Mint.Transfer: GT transferred to c-list slot ${targetSlot}`
+                message: `Mint.Transfer: GT 0x${(gt >>> 0).toString(16).padStart(8,'0')} written to c-list[${targetCList}+${targetSlot}]`
             };
         });
     }
