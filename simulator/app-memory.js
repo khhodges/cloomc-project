@@ -856,7 +856,9 @@ function updateCRDetail() {
                 const _evtEvent = _ef.gate || '\u2014';
                 // Build a concise summary string for the collapsed row
                 let _evtDetail = '';
-                if (_ef.desc) {
+                if (_ef.detail) {
+                    _evtDetail = _ef.detail;
+                } else if (_ef.desc) {
                     _evtDetail = _ef.desc;
                 } else if (_ef.checks && typeof _ef.checks === 'object') {
                     const _failedChecks = Object.entries(_ef.checks)

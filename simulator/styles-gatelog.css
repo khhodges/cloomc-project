@@ -109,6 +109,12 @@
     border: 1px solid rgba(60, 180, 120, 0.4);
 }
 
+.gate-memlayer {
+    background: rgba(20, 90, 130, 0.4);
+    color: #72c8f0;
+    border: 1px solid rgba(50, 150, 210, 0.35);
+}
+
 /* ── Boot-phase gate badge colours ─────────────────────────────────────── */
 .gate-rst {
     background: rgba(70, 80, 90, 0.5);
@@ -529,6 +535,17 @@ tr.itrace-fault td { color: #ff9999; }
     color: #aaa;
     background: rgba(40, 40, 50, 0.5);
     border: 1px solid rgba(100, 100, 120, 0.3);
+}
+
+.gate-detail {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #c0cce0;
+    background: rgba(30, 40, 60, 0.45);
+    border: 1px solid rgba(80, 110, 160, 0.3);
+    font-style: italic;
 }
 
 /* Regular instruction steps inside audit mode */

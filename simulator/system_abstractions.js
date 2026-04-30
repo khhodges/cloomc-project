@@ -1584,6 +1584,22 @@ class SystemAbstractions {
             const pgt = buildPgt(accountId, seq);
             if (isSystem && !bs.systemPgt) bs.systemPgt = pgt;
 
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'Billing.Open',
+                    label: 'Billing',
+                    nsIndex: 47,
+                    requiredPerm: null,
+                    checks: {
+                        quota:  { pass: true },
+                        pgt:    { pass: true },
+                    },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `quota=${isSystem ? '\u221e' : quotaWords}w \u2192 P-GT 0x${(pgt >>> 0).toString(16).padStart(8, '0')}`
+                });
+            }
+
             return {
                 ok: true,
                 result: { pgt, accountId, seq },
@@ -1599,15 +1615,64 @@ class SystemAbstractions {
             const acct = bs.accounts[accountId];
 
             if (!acct || acct.closed) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'Billing.Charge',
+                        label: 'Billing',
+                        nsIndex: 47,
+                        requiredPerm: null,
+                        checks: { pgt: { pass: false }, charge: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `words=${words} \u2192 BAD_PGT_SEQ`
+                    });
+                }
                 return { ok: false, fault: 'BAD_PGT_SEQ', message: `Billing.Charge: account ${accountId} not found or closed` };
             }
             if (pgtSeq !== acct.seq) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'Billing.Charge',
+                        label: 'Billing',
+                        nsIndex: 47,
+                        requiredPerm: null,
+                        checks: { pgt: { pass: false }, charge: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `words=${words} \u2192 BAD_PGT_SEQ (stale seq)`
+                    });
+                }
                 return { ok: false, fault: 'BAD_PGT_SEQ', message: `Billing.Charge: stale seq=${pgtSeq} expected=${acct.seq}` };
             }
             if (!acct.isSystem && acct.quotaRemaining < words) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'Billing.Charge',
+                        label: 'Billing',
+                        nsIndex: 47,
+                        requiredPerm: null,
+                        checks: { pgt: { pass: true }, charge: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `words=${words} \u2192 QUOTA_EXCEEDED (remaining=${acct.quotaRemaining}w)`
+                    });
+                }
                 return { ok: false, fault: 'QUOTA_EXCEEDED', message: `Billing.Charge: quota ${acct.quotaRemaining}w < requested ${words}w` };
             }
             if (!acct.isSystem) acct.quotaRemaining -= words;
+
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'Billing.Charge',
+                    label: 'Billing',
+                    nsIndex: 47,
+                    requiredPerm: null,
+                    checks: { pgt: { pass: true }, charge: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `words=${words} \u2192 remaining=${acct.isSystem ? '\u221e' : acct.quotaRemaining}w`
+                });
+            }
 
             return {
                 ok: true,
@@ -1621,11 +1686,35 @@ class SystemAbstractions {
             const { accountId } = parsePgt(pgt);
             const acct = bs.accounts[accountId];
             if (!acct || acct.closed) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'Billing.Reissue',
+                        label: 'Billing',
+                        nsIndex: 47,
+                        requiredPerm: null,
+                        checks: { pgt: { pass: false }, reissue: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `P-GT 0x${(pgt >>> 0).toString(16).padStart(8, '0')} \u2192 BAD_PGT_SEQ`
+                    });
+                }
                 return { ok: false, fault: 'BAD_PGT_SEQ', message: `Billing.Reissue: account ${accountId} not found or closed` };
             }
             const newSeq = freshSeq();
             acct.seq = newSeq;
             const newPgt = buildPgt(accountId, newSeq);
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'Billing.Reissue',
+                    label: 'Billing',
+                    nsIndex: 47,
+                    requiredPerm: null,
+                    checks: { pgt: { pass: true }, reissue: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `account=${accountId} \u2192 new P-GT 0x${(newPgt >>> 0).toString(16).padStart(8, '0')}`
+                });
+            }
             return {
                 ok: true,
                 result: { pgt: newPgt, seq: newSeq },
@@ -1638,13 +1727,49 @@ class SystemAbstractions {
             const { accountId, seq: pgtSeq } = parsePgt(pgt);
             const acct = bs.accounts[accountId];
             if (!acct || acct.closed) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'Billing.Close',
+                        label: 'Billing',
+                        nsIndex: 47,
+                        requiredPerm: null,
+                        checks: { pgt: { pass: false }, close: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `account=${accountId} \u2192 BAD_PGT_SEQ`
+                    });
+                }
                 return { ok: false, fault: 'BAD_PGT_SEQ', message: `Billing.Close: account ${accountId} not found or already closed` };
             }
             if (pgtSeq !== acct.seq) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'Billing.Close',
+                        label: 'Billing',
+                        nsIndex: 47,
+                        requiredPerm: null,
+                        checks: { pgt: { pass: false }, close: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `account=${accountId} \u2192 BAD_PGT_SEQ (stale seq)`
+                    });
+                }
                 return { ok: false, fault: 'BAD_PGT_SEQ', message: `Billing.Close: stale seq=${pgtSeq} expected=${acct.seq}` };
             }
             const remaining = acct.isSystem ? 0x7FFFFFFF : acct.quotaRemaining;
             acct.closed = true;
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'Billing.Close',
+                    label: 'Billing',
+                    nsIndex: 47,
+                    requiredPerm: null,
+                    checks: { pgt: { pass: true }, close: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `account=${accountId} closed`
+                });
+            }
             return {
                 ok: true,
                 result: remaining,
@@ -1657,7 +1782,31 @@ class SystemAbstractions {
             const { accountId } = parsePgt(pgt);
             const acct = bs.accounts[accountId];
             if (!acct || acct.closed) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'Billing.Balance',
+                        label: 'Billing',
+                        nsIndex: 47,
+                        requiredPerm: null,
+                        checks: { pgt: { pass: false }, balance: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `account=${accountId} \u2192 BAD_PGT_SEQ`
+                    });
+                }
                 return { ok: false, fault: 'BAD_PGT_SEQ', message: `Billing.Balance: account ${accountId} not active` };
+            }
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'Billing.Balance',
+                    label: 'Billing',
+                    nsIndex: 47,
+                    requiredPerm: null,
+                    checks: { pgt: { pass: true }, balance: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `account=${accountId} remaining=${acct.isSystem ? '\u221e' : acct.quotaRemaining}w`
+                });
             }
             return {
                 ok: true,
@@ -1698,17 +1847,54 @@ class SystemAbstractions {
             const billingResult = self.registry.dispatchMethod(47, 'Charge', sim, { p_gt, words: quantised });
             if (!billingResult || !billingResult.ok) {
                 const fault = (billingResult && billingResult.fault) || 'BAD_PGT_SEQ';
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'TuringMemory.AllocCode',
+                        label: 'TuringMemory',
+                        nsIndex: 48,
+                        requiredPerm: null,
+                        checks: { billing: { pass: false }, alloc: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `size=${requested}w \u2192 ${fault}`
+                    });
+                }
                 return { ok: false, fault, message: `TuringMemory.AllocCode: billing rejected (${fault})` };
             }
 
             const memResult = self.registry.dispatchMethod(7, 'Allocate', sim, { size: requested });
             if (!memResult || !memResult.ok) {
                 billingCredit(p_gt, quantised);
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'TuringMemory.AllocCode',
+                        label: 'TuringMemory',
+                        nsIndex: 48,
+                        requiredPerm: null,
+                        checks: { billing: { pass: true }, alloc: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `size=${requested}w \u2192 OOM (quota refunded)`
+                    });
+                }
                 return { ok: false, fault: 'OOM', message: `TuringMemory.AllocCode: OOM \u2014 quota refunded` };
             }
 
             ts.wordsUsed += quantised;
             ts.allocations[memResult.result.location] = { size: quantised, p_gt };
+
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'TuringMemory.AllocCode',
+                    label: 'TuringMemory',
+                    nsIndex: 48,
+                    requiredPerm: null,
+                    checks: { billing: { pass: true }, alloc: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `size=${quantised}w \u2192 0x${memResult.result.location.toString(16)}`
+                });
+            }
 
             return {
                 ok: true,
@@ -1727,6 +1913,18 @@ class SystemAbstractions {
                 delete ts.allocations[loc];
                 self.registry.dispatchMethod(7, 'Free', sim, { location: loc });
                 billingCredit(p_gt, quantised);
+            }
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'TuringMemory.FreeCode',
+                    label: 'TuringMemory',
+                    nsIndex: 48,
+                    requiredPerm: null,
+                    checks: { free: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `0x${loc.toString(16)} freed ${quantised}w`
+                });
             }
             return { ok: true, result: 0, message: `TuringMemory.FreeCode: freed ${quantised}w at 0x${loc.toString(16)}` };
         });
@@ -1747,11 +1945,36 @@ class SystemAbstractions {
             cs.nsCount = nsCount;
 
             if (nsSlot < 0 || nsSlot >= nsCount) {
+                if (sim && sim.auditLog) {
+                    sim.auditLog.push({
+                        gate: 'ChurchMemory.AllocAbstract',
+                        label: 'ChurchMemory',
+                        nsIndex: 49,
+                        requiredPerm: null,
+                        checks: { bounds: { pass: false }, alloc: { pass: false } },
+                        b: 0, f: 0,
+                        result: 'fault',
+                        detail: `ns_slot=${nsSlot} \u2192 BOUNDS`
+                    });
+                }
                 return { ok: false, fault: 'BOUNDS', message: `ChurchMemory.AllocAbstract: ns_slot ${nsSlot} out of range [0,${nsCount})` };
             }
 
             cs.handles[nsSlot] = (cs.handles[nsSlot] || 0) + 1;
             if (cs.handles[nsSlot] === 1) cs.slotsUsed++;
+
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'ChurchMemory.AllocAbstract',
+                    label: 'ChurchMemory',
+                    nsIndex: 49,
+                    requiredPerm: null,
+                    checks: { bounds: { pass: true }, alloc: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `ns_slot=${nsSlot} \u2192 abstract handle`
+                });
+            }
 
             return {
                 ok: true,
@@ -1768,6 +1991,18 @@ class SystemAbstractions {
                     delete cs.handles[nsSlot];
                     cs.slotsUsed = Math.max(0, cs.slotsUsed - 1);
                 }
+            }
+            if (sim && sim.auditLog) {
+                sim.auditLog.push({
+                    gate: 'ChurchMemory.Free',
+                    label: 'ChurchMemory',
+                    nsIndex: 49,
+                    requiredPerm: null,
+                    checks: { free: { pass: true } },
+                    b: 0, f: 0,
+                    result: 'pass',
+                    detail: `ns_slot=${nsSlot} released`
+                });
             }
             return { ok: true, result: 0, message: `ChurchMemory.Free: handle for ns_slot=${nsSlot} released` };
         });

@@ -545,8 +545,10 @@ function updateGateLog() {
         const isNavana = a.gate.startsWith('Navana.');
         const isLumpHdr = a.gate === 'Lump.Header';
         const isNSType = a.gate === 'NS.Type';
+        const isMemLayer = a.gate.startsWith('Billing.') || a.gate.startsWith('TuringMemory.') || a.gate.startsWith('ChurchMemory.');
         let badgeClass;
         if (isNavana)       badgeClass = 'gate-navana';
+        else if (isMemLayer) badgeClass = 'gate-memlayer';
         else if (isMSave)   badgeClass = 'gate-msave';
         else if (isLumpHdr) badgeClass = 'gate-lump';
         else if (isNSType)  badgeClass = 'gate-nstype';
@@ -601,6 +603,9 @@ function updateGateLog() {
         }
         if (!isLumpHdr && !isNSType) {
             html += `<span class="gate-flag">B=${a.b}</span><span class="gate-flag">F=${a.f}</span>`;
+        }
+        if (a.detail) {
+            html += `<span class="gate-detail">${a.detail.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
         }
         html += `</div>`;
         // Instruction context footer — shown for every gate entry that has step context
