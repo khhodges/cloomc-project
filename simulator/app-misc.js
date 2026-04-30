@@ -1476,9 +1476,9 @@ function loadDeviceList() {
                 const row = document.createElement('div');
                 row.className = 'dev-row';
                 row.innerHTML =
-                    '<div class="dev-status-dot ' + (isOnline ? 'online' : 'offline') + '"></div>' +
+                    '<div class="dev-status-dot ' + (isOnline ? 'online' : 'offline') + '" id="devStatusDot_' + dev.id + '"></div>' +
                     '<span class="dev-row-name" id="devRowName_' + dev.id + '" data-board-name="' + _escHtml(dev.board_name) + '">' + _escHtml(petName) + '</span>' +
-                    '<span class="dev-status-chip ' + (isOnline ? 'chip-online' : 'chip-offline') + '">' + _escHtml(statusChip) + '</span>' +
+                    '<span class="dev-status-chip ' + (isOnline ? 'chip-online' : 'chip-offline') + '" id="devStatusChip_' + dev.id + '">' + _escHtml(statusChip) + '</span>' +
                     (tunnelBadge || '') +
                     '<span class="dev-badge ' + profileClass + '">' + _escHtml(dev.profile) + '</span>' +
                     '<span class="dev-chevron">&#x25B6;</span>';
@@ -1594,6 +1594,22 @@ function refreshTunnelStatuses() {
                         el.title = newTitle;
                     }
                 });
+
+                var isOnline = dev.status === 'online';
+                var dotEl = document.getElementById('devStatusDot_' + dev.id);
+                if (dotEl) {
+                    var dotCls = 'dev-status-dot ' + (isOnline ? 'online' : 'offline');
+                    if (dotEl.className !== dotCls) dotEl.className = dotCls;
+                }
+                var chipEl = document.getElementById('devStatusChip_' + dev.id);
+                if (chipEl) {
+                    var chipCls = 'dev-status-chip ' + (isOnline ? 'chip-online' : 'chip-offline');
+                    var chipText = isOnline
+                        ? 'Online'
+                        : 'Offline' + (dev.last_seen ? ' \u00B7 ' + _devRelativeTime(dev.last_seen) : '');
+                    if (chipEl.className !== chipCls) chipEl.className = chipCls;
+                    chipEl.textContent = chipText;
+                }
             });
         })
         .catch(function() {});
