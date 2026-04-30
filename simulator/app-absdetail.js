@@ -489,7 +489,7 @@ function getMethodPurposes(abs) {
     const knownPurposes = {
         'Salvation': { 'LOAD': 'Proves namespace lookup', 'TPERM': 'Proves permission check', 'LAMBDA': 'Proves Church reduction', 'TransitionToNavana': 'Transitions to Navana (does not RETURN)' },
         'Navana': { 'Init': 'Initialize all abstractions', 'Manage': 'Abstraction lifecycle management', 'Monitor': 'System health monitoring', 'IDS': 'Intrusion Detection via GT anomalies' },
-        'Mint': { 'Create': 'Mint.Create(type, size, perms, [bind], [far]) — CALL Memory.Allocate for backing storage, find free NS entry, increment version, write NS entry, forge ready-to-use GT', 'Revoke': 'Mint.Revoke(nsIndex) — increment version, kill all GT copies instantly', 'Transfer': 'Mint.Transfer(gt, target_clist, slot) — move GT between c-lists' },
+        'Mint': { 'Encode': 'Mint.Encode(base, exp, permsBits, bindable, far) — preconditions: (1) domain purity (permsBits must be Turing-only or Church-only, never mixed), (2) E isolation (E perm may not be combined with R/W/X), (3) non-NULL type (base type 00 is rejected). CALL Memory.Allocate for backing storage, find free NS entry, increment version, write NS entry, forge ready-to-use GT', 'Revoke': 'Mint.Revoke(nsIndex) — increment version, kill all GT copies instantly', 'Transfer': 'Mint.Transfer(gt, target_clist, slot) — move GT between c-lists' },
         'Memory': { 'Allocate': 'Memory.Allocate(size) — reserve a memory region, return location and size', 'Free': 'Memory.Free(location) — release a memory region, zero its contents', 'Resize': 'Memory.Resize(location, newSize) — adjust the size of an existing allocation' },
         'Scheduler': { 'Yield': 'Scheduler.Yield() — save thread state, switch to next ready thread', 'Spawn': 'Scheduler.Spawn(code_GT, entry) — create thread with isolated CR set', 'Wait': 'Scheduler.Wait(flag_GT) — block thread on DijkstraFlag', 'Stop': 'Scheduler.Stop(threadID) — terminate thread, release CRs' },
         'Stack': { 'Push': 'Stack.Push(value) — DWRITE to stack location, increment depth', 'Pop': 'Stack.Pop() — decrement depth, DREAD from stack location', 'Peek': 'Stack.Peek() — DREAD top without decrementing', 'Depth': 'Stack.Depth() — return current entry count' },
@@ -535,7 +535,7 @@ function getMethodPurposes(abs) {
         'Thread': {
             'switchTo': 'Thread.switchTo(thread_GT) — issues CHANGE targeting thread_GT; saves the calling thread\u2019s full context (DR0\u2013DR15, PC, FLAGS, STO, CR0\u2013CR11, CR14, CR15) into its lump, then restores the target thread\u2019s saved context and resumes it at its saved PC. Requires E perm on thread_GT.',
             'Kill':     'Thread.Kill(thread_GT) — terminates the target thread: suspends it via CHANGE, releases its lump via Memory.Free, revokes its Thread GT via Mint.Revoke (incrementing gt_seq so all live copies of the GT become instantly invalid). Requires E perm on thread_GT.',
-            'Compile':  'Thread.Compile(f_GT) \u2014 creates a new Thread Abstraction whose initial start abstraction is f. Calls Memory.Allocate for a fresh lump (GT zone + LIFO stack + heap + DR file), calls Mint.Create(Inform, lumpSize, 0) to mint a zero-perm thread stack GT (CR12 of the new thread), stores f_GT into the new thread\u2019s c-list as CR0 (the return/first-call slot), and returns the new Thread GT to the caller. The new thread is ready to run as soon as switchTo is called on its GT.',
+            'Compile':  'Thread.Compile(f_GT) \u2014 creates a new Thread Abstraction whose initial start abstraction is f. Calls Memory.Allocate for a fresh lump (GT zone + LIFO stack + heap + DR file), calls Mint.Encode(Inform, lumpSize, 0) to mint a zero-perm thread stack GT (CR12 of the new thread), stores f_GT into the new thread\u2019s c-list as CR0 (the return/first-call slot), and returns the new Thread GT to the caller. The new thread is ready to run as soon as switchTo is called on its GT.',
         },
         'Boot.Thread': {
             'run': 'Boot.Thread.run \u2014 The initial thread\u2019s continuous existence as the hardware execution context. ' +
@@ -624,7 +624,7 @@ CALL   CR1              ; Enter Navana
 ;     LOAD  CR3, NS[7]  ; Load Memory GT
 ;     CALL  CR3          ; Memory.Allocate -> backing storage
 ;     LOAD  CR4, NS[6]  ; Load Mint GT
-;     CALL  CR4          ; Mint.Create -> NS entry + GT
+;     CALL  CR4          ; Mint.Encode -> NS entry + GT
 ;   Navana.Init never returns — enters event loop`,
             'Manage': `; Navana.Manage — abstraction lifecycle
 ; Navana dispatches create/destroy/call/inspect uniformly
@@ -633,7 +633,7 @@ LOAD   CR1, NS[5]       ; Load Navana E-GT
 DWRITE DR1, #33         ; Target: Editor abstraction (NS[33])
 DWRITE DR2, #0          ; Operation: 0=create
 CALL   CR1              ; Navana.Manage dispatches:
-;   1. Mint.Create(type, size, perms):
+;   1. Mint.Encode(base, exp, permsBits):
 ;      a. Memory.Allocate(size) -> location
 ;      b. Find free NS entry
 ;      c. Write NS entry + compute seal
@@ -746,8 +746,8 @@ CALL   CR1                ; Navana.MintPassKey:
 ;   - Thread receives but cannot modify or copy`,
         },
         'Mint': {
-            'Create': `; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-; Mint.Create(type, size, perms, [bind], [far])
+            'Encode': `; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+; Mint.Encode(base, exp, permsBits, bindable, far)
 ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;   type:  00=NULL  01=Inform  10=Outform  11=Abstract
 ;          NULL cannot be created (it IS the zero value)
@@ -776,7 +776,7 @@ DWRITE DR1, #1          ; type = 01 (Inform)
 DWRITE DR2, #128        ; size = 128 words
 DWRITE DR3, #0b000011   ; perms = R+W (Turing domain)
                          ;   bit0=R, bit1=W
-CALL   CR1              ; Mint.Create internally:
+CALL   CR1              ; Mint.Encode internally:
 ;   1. Domain purity: R+W = Turing only — OK
 ;   2. CALL Memory.Allocate(128):
 ;      Memory scans NS for free slot (word0=0 AND word1=0)
@@ -800,7 +800,7 @@ DWRITE DR1, #1          ; type = 01 (Inform)
 DWRITE DR2, #64         ; size = 64 words
 DWRITE DR3, #0b000111   ; perms = R+W+X (full Turing)
                          ;   bit0=R, bit1=W, bit2=X
-CALL   CR1              ; Mint.Create:
+CALL   CR1              ; Mint.Encode:
 ;   Domain purity: R+W+X = Turing only — OK
 ;   Memory.Allocate(64) -> location for backing storage
 ;   Mint finds free NS entry, increments version, packs GT
@@ -813,7 +813,7 @@ DWRITE DR1, #1          ; type = 01 (Inform)
 DWRITE DR2, #32         ; size = 32 words
 DWRITE DR3, #0b000100   ; perms = X only (Turing)
                          ;   bit2=X — execute but no read
-CALL   CR1              ; Mint.Create:
+CALL   CR1              ; Mint.Encode:
 ;   Code object you can run but not inspect
 ;   CR14 loads via X perm (privileged code register)
 
@@ -823,7 +823,7 @@ DWRITE DR1, #1          ; type = 01 (Inform)
 DWRITE DR2, #16         ; size = 16 slots
 DWRITE DR3, #0b111000   ; perms = L+S+E (full Church)
                          ;   bit3=L, bit4=S, bit5=E
-CALL   CR1              ; Mint.Create:
+CALL   CR1              ; Mint.Encode:
 ;   Domain purity: L+S+E = Church only — OK
 ;   Memory.Allocate(16) -> location for c-list storage
 ;   Mint finds free NS entry, increments version
@@ -838,7 +838,7 @@ DWRITE DR1, #1          ; type = 01 (Inform)
 DWRITE DR2, #8          ; size = 8 words
 DWRITE DR3, #0b100000   ; perms = E only (Church)
                          ;   bit5=E
-CALL   CR1              ; Mint.Create:
+CALL   CR1              ; Mint.Encode:
 ;   Standard abstraction entry point — E only
 ;   Can CALL but cannot LOAD/SAVE
 
@@ -848,7 +848,7 @@ DWRITE DR1, #1          ; type = 01 (Inform)
 DWRITE DR2, #64         ; size = 64 words
 DWRITE DR3, #0b000011   ; perms = R+W (Turing)
 DWRITE DR4, #1          ; bind = 1 (B-bit set)
-CALL   CR1              ; Mint.Create:
+CALL   CR1              ; Mint.Encode:
 ;   B-bit=1 in word1[31] — GT bound to a thread
 ;   B-bit auto-cleared by CALL (hardware enforced)
 ;   Prevents GT from being used before binding
@@ -859,7 +859,7 @@ DWRITE DR1, #2          ; type = 10 (Outform)
 DWRITE DR2, #32         ; size = 32 words (local proxy)
 DWRITE DR3, #0b101000   ; perms = L+E (Church)
                          ;   bit3=L, bit5=E
-CALL   CR1              ; Mint.Create:
+CALL   CR1              ; Mint.Encode:
 ;   Outform: F-bit auto-set (Far = remote resource)
 ;   CALL Memory.Allocate for URL proxy object
 ;   mLoad step 6 detects F-bit, routes through Tunnel
@@ -870,7 +870,7 @@ LOAD   CR1, NS[6]       ; Load Mint E-GT
 DWRITE DR1, #3          ; type = 11 (Abstract)
 DWRITE DR2, #256        ; size = 256 words
 DWRITE DR3, #0b100000   ; perms = E only (Church)
-CALL   CR1              ; Mint.Create:
+CALL   CR1              ; Mint.Encode:
 ;   Abstract type: this GT represents a new abstraction
 ;   Responds to polymorphic interface: create/destroy/call/inspect
 ;   Navana manages its lifecycle
@@ -939,7 +939,7 @@ CALL   CR1              ; Memory.Allocate:
 ;
 ; DR1 <- base location address
 ; DR2 <- allocation size (128)
-; Memory only returns a location — Mint.Create handles
+; Memory only returns a location — Mint.Encode handles
 ; the NS entry, GT creation, and version management`,
             'Free': `; Memory.Free — release a memory region
 LOAD   CR1, NS[7]       ; Load Memory E-GT
@@ -1459,7 +1459,7 @@ CALL   CR1              ; Loader.Load(16):
 ;   3. Memory.Allocate(size)
 ;   4. Write lump into allocated region
 ;   5. Navana.Abstraction.Add(slot, lump)
-;   6. Mint.Create(GT for loaded abstraction)
+;   6. Mint.Encode(GT for loaded abstraction)
 ; Slot 16 is now live — subsequent CALLs work`,
             'Prefetch': `; Loader.Prefetch — hint-driven pre-load
 DWRITE DR1, #16         ; Slot to prefetch
@@ -1639,7 +1639,7 @@ LOAD   CR2, NS[60]      ; Classroom GT (from student's c-list)
 CALL   CR1              ; Schoolroom.Join:
 ;   1. Verify classroom GT is valid (mLoad)
 ;   2. Verify student GT is in classroom's roster
-;   3. Mint.Create a session GT for this student
+;   3. Mint.Encode a session GT for this student
 ;   4. Add lesson materials GTs to student's c-list`,
             'Lesson': `; Schoolroom.Lesson — teacher posts lesson material
 LOAD   CR1, NS[29]      ; Load Schoolroom E-GT
@@ -1649,7 +1649,7 @@ LOAD   CR3, NS[70]      ; Lesson content GT (DATA object)
 CALL   CR1              ; Schoolroom.Lesson:
 ;   1. Verify teacher GT has authority over classroom
 ;   2. Memory.Allocate for lesson storage
-;   3. Mint.Create GT for lesson (X perm for students)
+;   3. Mint.Encode GT for lesson (X perm for students)
 ;   4. Mint.Transfer lesson GT to each student's c-list`,
             'Submit': `; Schoolroom.Submit — student submits work
 LOAD   CR1, NS[29]      ; Load Schoolroom E-GT
@@ -1657,7 +1657,7 @@ LOAD   CR2, NS[71]      ; Work GT (student's DATA object)
 
 CALL   CR1              ; Schoolroom.Submit:
 ;   1. Verify student is enrolled (has session GT)
-;   2. Mint.Create a read-only GT for the work
+;   2. Mint.Encode a read-only GT for the work
 ;   3. Mint.Transfer work GT to teacher's c-list
 ;   4. Student keeps their R+W copy, teacher gets R only`,
             'Grade': `; Schoolroom.Grade — teacher grades submitted work
@@ -1668,7 +1668,7 @@ DWRITE DR1, #85         ; Grade: 85%
 CALL   CR1              ; Schoolroom.Grade:
 ;   1. Verify teacher authority
 ;   2. Memory.Allocate for grade record
-;   3. Mint.Create grade GT, transfer to student's c-list
+;   3. Mint.Encode grade GT, transfer to student's c-list
 ;   4. Student can LOAD the grade GT to see their score`,
         },
         'Friends': {
@@ -1689,7 +1689,7 @@ LOAD   CR2, NS[52]      ; Requester GT
 CALL   CR1              ; Friends.Accept:
 ;   1. Verify pending request exists
 ;   2. Verify both parents have approved (Negotiate)
-;   3. Mint.Create shared-space GT for both friends
+;   3. Mint.Encode shared-space GT for both friends
 ;   4. Transfer shared GT to both c-lists`,
             'Share': `; Friends.Share — share capability with friend
 LOAD   CR1, NS[30]      ; Load Friends E-GT
@@ -1860,8 +1860,8 @@ LOAD   CR2, NS[80]      ; Requested capability GT
 
 CALL   CR1              ; Negotiate.Propose:
 ;   1. Create proposal record (Memory.Allocate)
-;   2. Mint.Create proposal GT for parent
-;   3. Mint.Create proposal GT for teacher
+;   2. Mint.Encode proposal GT for parent
+;   3. Mint.Encode proposal GT for teacher
 ;   4. Both must Negotiate.Approve before grant
 ; DR1 <- proposal ID`,
             'Approve': `; Negotiate.Approve — parent or teacher approves
@@ -1872,7 +1872,7 @@ CALL   CR1              ; Negotiate.Approve:
 ;   1. Verify caller is authorized approver
 ;   2. Record approval (parent or teacher)
 ;   3. If BOTH have approved:
-;      a. Mint.Create the requested GT
+;      a. Mint.Encode the requested GT
 ;      b. Mint.Transfer to child's c-list
 ;      c. Log grant for audit trail
 ;   4. If only one approved: wait for other`,
@@ -1943,7 +1943,7 @@ CALL   CR1              ; Assembler.Assemble:
 ;      opcode(5)|cond(4)|dst(4)|src(4)|imm(15)
 ;   4. Memory.Allocate for output binary (new DATA slot)
 ;   5. DWRITE binary to new slot
-;   6. Mint.Create GT for binary (R+X perms)
+;   6. Mint.Encode GT for binary (R+X perms)
 ;      Code is a DATA-domain object with X permission
 ; CR2 <- binary GT (DATA domain, X perm for execution)`,
             'Disassemble': `; Assembler.Disassemble — binary to assembly text
@@ -1956,7 +1956,7 @@ CALL   CR1              ; Assembler.Disassemble:
 ;      opcode(5)|cond(4)|dst(4)|src(4)|imm(15)
 ;   3. Generate assembly text
 ;   4. Memory.Allocate for output text
-;   5. Mint.Create GT for text (R+W perms)
+;   5. Mint.Encode GT for text (R+W perms)
 ; CR2 <- source text GT`,
             'Validate': `; Assembler.Validate — check code validity
 LOAD   CR1, NS[34]      ; Load Assembler E-GT
@@ -2020,7 +2020,7 @@ CALL   CR1              ; Debugger.Inspect:
             const clkNote  = isTi60 ? ';   5. 50MHz clock begins instruction execution' : ';   5. 27MHz clock begins instruction execution';
             const bootLine = isTi60 ? `;   2. ${brdName} begins executing from boot vector` : `;   2. ${brdName} begins executing from boot vector`;
             return {
-                'Build': `; Deployer.Build — compile binary for ${brdName}\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\nLOAD   CR2, NS[81]      ; Binary GT (DATA object)\n\nCALL   CR1              ; Deployer.Build:\n;   1. DREAD binary from CR2's location\n;   2. Add boot vector and NS table initialization\n;   3. Package for FPGA: ${chip} bitstream\n;   4. Memory.Allocate for deployment image\n;   5. Mint.Create GT for image\n; CR2 <- deployment image GT`,
+                'Build': `; Deployer.Build — compile binary for ${brdName}\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\nLOAD   CR2, NS[81]      ; Binary GT (DATA object)\n\nCALL   CR1              ; Deployer.Build:\n;   1. DREAD binary from CR2's location\n;   2. Add boot vector and NS table initialization\n;   3. Package for FPGA: ${chip} bitstream\n;   4. Memory.Allocate for deployment image\n;   5. Mint.Encode GT for image\n; CR2 <- deployment image GT`,
                 'Upload': `; Deployer.Upload — send to ${brdName} via UART\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Upload:\n;   1. LOAD UART GT from c-list (NS[11])\n;   2. For each word in deployment image:\n;      SAVE word to UART (S perm on UART GT)\n${uartNote}\n;   4. Wait for ACK after each block`,
                 'Verify': `; Deployer.Verify — verify upload integrity\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Verify:\n;   1. Request readback from ${brdName} via UART\n;   2. LOAD bytes from UART (L perm)\n;   3. Compare against original image\n;   4. Compute checksum match\n; DR1 <- 1 if verified, 0 if mismatch`,
                 'Boot': `; Deployer.Boot — boot the FPGA\nLOAD   CR1, NS[36]      ; Load Deployer E-GT\n\nCALL   CR1              ; Deployer.Boot:\n;   1. Send boot command via UART\n${bootLine}\n;   3. FPGA initializes NS table (slots 0-45)\n;   4. Boot -> Salvation -> Navana (same as simulator)\n${clkNote}`,
@@ -2122,7 +2122,7 @@ LOAD   CR2, NS[86]      ; Photo data GT (DATA object, R+W)
 CALL   CR1              ; Photos.Upload:
 ;   1. Memory.Allocate for photo storage
 ;   2. DWRITE photo data to new slot
-;   3. Mint.Create GT with L perm (view-only)
+;   3. Mint.Encode GT with L perm (view-only)
 ;   4. Compute seal for integrity verification`,
             'Album': `; Photos.Album — manage photo album
 LOAD   CR1, NS[39]      ; Load Photos E-GT
@@ -2140,7 +2140,7 @@ LOAD   CR2, NS[85]      ; Content GT (DATA object)
 CALL   CR1              ; Social.Post:
 ;   1. Memory.Allocate for post storage
 ;   2. DWRITE content to new slot
-;   3. Mint.Create GT for post (L perm for followers)
+;   3. Mint.Encode GT for post (L perm for followers)
 ;   4. Distribute post GT to followers' feed c-lists`,
             'Read': `; Social.Read — read feed
 LOAD   CR1, NS[40]      ; Load Social E-GT [L,E]
@@ -2208,7 +2208,7 @@ CALL   CR1              ; Email.Compose:
 ;   1. Verify recipient GT in contacts c-list
 ;   2. Memory.Allocate for email storage
 ;   3. DWRITE body to new slot
-;   4. Mint.Create email GT
+;   4. Mint.Encode email GT
 ;   5. If F-bit=1: route via Tunnel (encrypted)
 ;   6. SAVE to recipient's inbox c-list`,
             'Read': `; Email.Read — read incoming email
@@ -2314,7 +2314,7 @@ CALL   CR_mint, #Revoke ; Mint.Revoke(thread_GT) —
 TPERM  CR1, E           ; verify E perm on start abstraction
 CALL   CR_mem, #Alloc   ; Memory.Allocate(lumpSize) ->
                          ;   lump: [GT zone 12w][LIFO stack][heap][DR 16w]
-CALL   CR_mint, #Create ; Mint.Create(Inform, lumpSize, perms=0) ->
+CALL   CR_mint, #Encode ; Mint.Encode(Inform, lumpSize, perms=0) ->
                          ;   CR12 of new thread (zero-perm Inform GT)
                          ;   word0_location = lump base
                          ;   word0_limit    = lumpSize - 1
