@@ -65,21 +65,6 @@ GTKN_PACKET = struct.pack(">III", GTKN_TAG, 1, PAYLOAD_WORD)
 # Expected RX bytes from the far end
 GREET_BYTES  = struct.pack(">I", GREET_RESPONSE)
 
-# The bridge reader (local_bridge._reader) scans for the CALLHOME_MAGIC
-# preamble (0xCE 0x11).  To avoid breaking a split callhome packet the reader
-# keeps the *last* received byte in its look-ahead buffer and only transfers
-# N-1 bytes to _rx_buf on each read.  That final byte is released only when
-# more bytes arrive from the far end.
-#
-# On real Ti60 hardware more bytes always follow the greeting, so this is
-# invisible in production.  In the loopback test harness the emulator must
-# send one extra "flush byte" after GREET_BYTES so the scanner releases all
-# four greeting bytes into _rx_buf before /transact times out.
-#
-# This is intentional test design — the flush byte also verifies that the
-# scanner does NOT mistake the greeting for a callhome packet.
-_FLUSH_BYTE = b"\x00"   # harmless sentinel; scanner keeps it in look-ahead
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -179,8 +164,7 @@ class _FpgaEmulator:
                 )
                 return
 
-            # Send greeting then flush byte (see _FLUSH_BYTE comment above).
-            os.write(self.master_fd, GREET_BYTES + _FLUSH_BYTE)
+            os.write(self.master_fd, GREET_BYTES)
             self.responded = True
         except Exception as exc:
             self.error = str(exc)
@@ -400,13 +384,8 @@ def test_rx_bytes_match_greet_response(transact_result):
     """The bridge must return at least 4 RX bytes, and the first 4 must equal
     the big-endian encoding of GREET_RESPONSE.
 
-    The emulator sends a _FLUSH_BYTE sentinel after GREET_BYTES to release the
-    bridge reader's CALLHOME_MAGIC look-ahead buffer.  Depending on timing,
-    that extra byte may or may not appear in the /transact rx list (the request
-    specifies rx_count=4, so the bridge stops collecting once it has 4 bytes;
-    the flush byte is buffered at most).  We therefore validate only the first
-    4 bytes so the test is not sensitive to whether _reader ever improves to
-    release bytes without a sentinel.
+    The _reader idle-flush path releases any held bytes after 5 ms of serial
+    inactivity, so all 4 GREET_BYTES arrive in _rx_buf without a sentinel.
 
     This is the primary timing / framing assertion: it fails if the bridge
     either never receives the bytes (timing bug), returns them in the wrong
@@ -438,8 +417,8 @@ def test_rx_word_equals_greet_response_integer(transact_result):
     equal GREET_RESPONSE (0x48454C4C).
 
     This is the end-to-end assertion tying the raw wire bytes back to the
-    canonical protocol constant.  Only the first 4 bytes are checked; a
-    possible flush byte at rx[4] is irrelevant to the protocol result.
+    canonical protocol constant.  Only the first 4 bytes are checked; any
+    additional buffered bytes beyond the requested rx_count are irrelevant.
     """
     _, data, _ = transact_result
     rx = data.get("rx", [])

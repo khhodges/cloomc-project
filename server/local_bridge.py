@@ -225,6 +225,7 @@ def _report_launch_test(test_id, status="passing", notes=""):
 def _reader():
     global _ser, _rx_buf
     callhome_scan = bytearray()
+    last_rx_time = time.monotonic()
     while _reader_running:
         try:
             with _ser_lock:
@@ -234,6 +235,7 @@ def _reader():
                 if waiting:
                     chunk = s.read(waiting)
                     callhome_scan.extend(chunk)
+                    last_rx_time = time.monotonic()
                     while len(callhome_scan) >= 2:
                         idx = callhome_scan.find(CALLHOME_MAGIC)
                         if idx < 0:
@@ -252,6 +254,10 @@ def _reader():
                         _handle_callhome(bytes(callhome_scan[:CALLHOME_PKT_LEN]))
                         callhome_scan = callhome_scan[CALLHOME_PKT_LEN:]
                 else:
+                    if callhome_scan and (time.monotonic() - last_rx_time) > 0.005:
+                        with _rx_lock:
+                            _rx_buf.extend(callhome_scan)
+                        callhome_scan = bytearray()
                     time.sleep(0.005)
             else:
                 time.sleep(0.02)
