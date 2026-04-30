@@ -498,6 +498,9 @@ function stepSim() {
         }
         return;
     }
+    // Apply any pending program load (e.g. from "Load into Sim" button) before
+    // the first step so we execute the right code, not whatever was in memory.
+    _applyPendingSimLoad();
     let result;
     try {
         result = sim.step();
