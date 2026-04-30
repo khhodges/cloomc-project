@@ -498,10 +498,10 @@
                     <div style="font-size:0.9rem;color:#e2e8f0;font-weight:600;">Scan QR &amp; Connect</div>
                     <div style="font-size:0.75rem;color:#8892a4;margin-top:3px;">Scan Mum's QR code (or paste her identity string) to call <code style="color:#86efac;">Keystone.Connect()</code> and fill c-list slot 1 with her E-GT.</div>
                 </div>
-                <div style="flex:1;min-width:200px;background:#0d1117;border:1px solid #334;border-radius:6px;padding:12px 14px;opacity:0.55;">
-                    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;color:#6b7280;margin-bottom:4px;">STEP 2 — STAGE 4</div>
+                <div id="mumStep2Card" style="flex:1;min-width:200px;background:#0d1117;border:1px solid #334;border-radius:6px;padding:12px 14px;opacity:0.55;">
+                    <div id="mumStep2Label" style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;color:#6b7280;margin-bottom:4px;">STEP 2 — PENDING</div>
                     <div style="font-size:0.9rem;color:#9ca3af;font-weight:600;">Say Hello</div>
-                    <div style="font-size:0.75rem;color:#6b7280;margin-top:3px;">Call <code style="color:#6b7280;">Keystone.Hello()</code> through the live Tunnel. Coming in Stage 4 once the Tunnel CALL bridge is live.</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:3px;">Call <code style="color:#6b7280;">Keystone.Hello()</code> through the live Tunnel once Mum is connected in Step 1.</div>
                 </div>
             </div>
 
@@ -551,15 +551,15 @@
                 </div>
             </div>
 
-            <!-- Hello() result (greyed / disabled until connected) -->
+            <!-- Hello() result (active once connected) -->
             <div style="margin-bottom:6px;">
-                <div style="font-size:0.78rem;color:#8892a4;margin-bottom:6px;font-weight:600;">Step 2: Say Hello <span style="font-style:italic;color:#6b7280;">(Tunnel bridge required — Stage 4)</span></div>
+                <div style="font-size:0.78rem;color:#8892a4;margin-bottom:6px;font-weight:600;">Step 2: Say Hello <span id="mumHelloSubtitle" style="font-style:italic;color:#6b7280;">(connect in Step 1 first)</span></div>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <button id="mumHelloBtn" onclick="mumRunHello()"
                             style="background:#1e2a3a;color:#8892a4;border:1px solid #334;border-radius:4px;padding:7px 16px;cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;">
                         Keystone.Hello()
                     </button>
-                    <span style="font-size:0.75rem;color:#6b7280;">Expect TUNNEL_OFFLINE / timeout until Stage 4 is live.</span>
+                    <span id="mumHelloHint" style="font-size:0.75rem;color:#6b7280;">Connect to Mum in Step 1 to enable the live Tunnel bridge.</span>
                 </div>
                 <div id="mumHelloResult" style="margin-top:8px;font-family:monospace;font-size:0.8rem;color:#8892a4;"></div>
             </div>
@@ -1667,11 +1667,13 @@
                     var result = sim.abstractionRegistry.dispatchMethod(32, 'Connect', sim, [word]);
                     if (result && result.ok) {
                         if (statusEl) { statusEl.style.color = '#22c55e'; statusEl.textContent = result.message || 'Connected.'; }
+                        mumActivateStep2();
                     } else {
                         if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = (result && result.message) || 'Connect failed.'; }
                     }
                 } else {
                     if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'identity_word=' + d.identity_word_hex + ' (simulator not running — boot first)'; }
+                    mumActivateStep2();
                 }
             } catch(e) {
                 if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Simulator error: ' + e.message; }
@@ -1682,28 +1684,42 @@
         });
     }
 
+    var _mumConnected = false;
+
+    function mumActivateStep2() {
+        _mumConnected = true;
+        var card = document.getElementById('mumStep2Card');
+        if (card) { card.style.opacity = '1'; card.style.borderColor = '#22c55e'; }
+        var label = document.getElementById('mumStep2Label');
+        if (label) { label.style.color = '#22c55e'; label.textContent = 'STEP 2 — ACTIVE'; }
+        var btn = document.getElementById('mumHelloBtn');
+        if (btn) { btn.style.background = '#16a34a'; btn.style.color = '#fff'; btn.style.borderColor = '#16a34a'; }
+        var subtitle = document.getElementById('mumHelloSubtitle');
+        if (subtitle) { subtitle.style.color = '#22c55e'; subtitle.textContent = '(Tunnel bridge online)'; }
+        var hint = document.getElementById('mumHelloHint');
+        if (hint) { hint.style.color = '#6b7280'; hint.textContent = 'Tunnel is live — click to call Mum.Greet() through the bridge.'; }
+    }
+
     function mumRunHello() {
         var resultEl = document.getElementById('mumHelloResult');
-        if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = 'Calling Keystone.Hello()…'; }
-        try {
-            if (typeof sim === 'undefined' || !sim || !sim.abstractionRegistry) {
-                if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = 'Simulator not running — boot the machine first.'; }
-                return;
-            }
-            var result = sim.abstractionRegistry.dispatchMethod(32, 'Hello', sim, []);
-            if (result) {
-                var hex = '0x' + ((result.result || 0) >>> 0).toString(16).toUpperCase().padStart(8, '0');
-                if (result.fault === 'NO_CONTACT') {
-                    if (resultEl) { resultEl.style.color = '#ef4444'; resultEl.textContent = hex + ' FAULT_NO_CONTACT — call Keystone.Connect() first (Step 1)'; }
-                } else if (result.fault === 'TUNNEL_OFFLINE') {
-                    if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = hex + ' TUNNEL_OFFLINE — Tunnel bridge not live (Stage 4 required)'; }
-                } else {
-                    if (resultEl) { resultEl.style.color = '#22c55e'; resultEl.textContent = hex + ' — ' + (result.message || ''); }
-                }
-            }
-        } catch(e) {
-            if (resultEl) { resultEl.style.color = '#ef4444'; resultEl.textContent = 'Error: ' + e.message; }
+        if (!_mumConnected) {
+            if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = 'Connect to Mum first (Step 1) before calling Hello().'; }
+            return;
         }
+        if (resultEl) { resultEl.style.color = '#f59e0b'; resultEl.textContent = 'Calling Keystone.Hello() via Tunnel bridge…'; }
+        fetch('/mum/hello', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok) {
+                    if (resultEl) { resultEl.style.color = '#ef4444'; resultEl.textContent = 'TUNNEL_OFFLINE — ' + (d.message || 'bridge not live'); }
+                    return;
+                }
+                var hex = d.result_hex || ('0x' + ((d.result || 0) >>> 0).toString(16).toUpperCase().padStart(8, '0'));
+                if (resultEl) { resultEl.style.color = '#22c55e'; resultEl.textContent = hex + ' — ' + (d.message || 'Mum.Greet() OK'); }
+            })
+            .catch(function(err) {
+                if (resultEl) { resultEl.style.color = '#ef4444'; resultEl.textContent = 'Server error: ' + err.message; }
+            });
     }
 
     function mumCopyIdentity(el) {

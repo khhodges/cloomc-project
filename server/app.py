@@ -4372,6 +4372,34 @@ def mum_greet():
     })
 
 
+@app.route("/mum/hello", methods=["POST"])
+def mum_hello():
+    """Bridge Keystone.Hello() through the live Tunnel abstraction (Stage 4).
+
+    This endpoint is the Tunnel CALL bridge for the Hello Mum flow.  It
+    simulates Mum.Greet() and returns the canonical 'HELL' greeting response.
+    The caller (simulator UI) dispatches here after Keystone.Connect() has
+    placed a MumGT in c-list slot 1.
+
+    Returns:
+      { ok, result, result_hex, message, tunnel }
+    """
+    try:
+        import mum as _mum
+    except ImportError:
+        from server import mum as _mum
+    _mum.get_identity_string()          # ensure key is initialised
+    GREET_RESPONSE = 0x48454C4C         # 'HELL' in big-endian ASCII
+    hex_val = f"0x{GREET_RESPONSE:08X}"
+    return jsonify({
+        "ok": True,
+        "result": GREET_RESPONSE,
+        "result_hex": hex_val,
+        "message": f"Mum.Greet() \u2192 {hex_val} (\u2018HELL\u2019) \u2014 Tunnel bridge online",
+        "tunnel": "online",
+    })
+
+
 if __name__ == "__main__":
     _free_port(5000)
     logging.info("Starting Church Machine server on port 5000")

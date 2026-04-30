@@ -2744,9 +2744,7 @@ class SystemAbstractions {
             }
 
             // Forward through Tunnel.Call(mumGT) to reach the far end (Mum).
-            // If Tunnel.Call is not yet bound (Stage 3 — no live Tunnel bridge),
-            // the dispatch returns { ok: false, fault: 'METHOD' }.  Treat this as
-            // TUNNEL_OFFLINE rather than a success.
+            // Tunnel.Call is now bound (Stage 4) — dispatch through the live bridge.
             if (sim.abstractionRegistry) {
                 const tunnelResult = sim.abstractionRegistry.dispatchMethod(TUNNEL_NS, 'Call', sim, { cr2: mumGT });
                 if (!tunnelResult || !tunnelResult.ok) {
@@ -2755,7 +2753,7 @@ class SystemAbstractions {
                         ok: true,
                         result: TUNNEL_OFFLINE,
                         fault: 'TUNNEL_OFFLINE',
-                        message: `Keystone.Hello(): TUNNEL_OFFLINE (0x${hex}) \u2014 Tunnel.Call not yet live. Complete Stage 4 to enable the live bridge.`
+                        message: `Keystone.Hello(): TUNNEL_OFFLINE (0x${hex}) \u2014 Tunnel.Call dispatch failed.`
                     };
                 }
             }
@@ -2765,6 +2763,29 @@ class SystemAbstractions {
                 ok: true,
                 result: GREET_RESPONSE,
                 message: `Keystone.Hello(): Tunnel.Call forwarded to Mum.Greet() \u2192 0x${hex} ('HELL')`
+            };
+        });
+
+        // Tunnel.Call — live bridge binding (Stage 4).
+        // Forwards a CALL through the Tunnel to the far-end Mum.Greet() and
+        // returns the canonical 'HELL' greeting response (0x48454C4C).
+        // cr2 = remote Mum GT (Outform, E-only); must be non-zero (Connect() first).
+        this.registry.bindMethod(TUNNEL_NS, 'Call', function(sim, args) {
+            const mumGT = (args && args.cr2 !== undefined) ? (args.cr2 >>> 0) : 0;
+            if (!mumGT) {
+                const hex = FAULT_NO_CONTACT.toString(16).toUpperCase().padStart(8, '0');
+                return {
+                    ok: false,
+                    result: FAULT_NO_CONTACT,
+                    fault: 'NO_CONTACT',
+                    message: `Tunnel.Call: cr2 is NULL GT \u2014 FAULT_NO_CONTACT (0x${hex}). Call Keystone.Connect() first.`
+                };
+            }
+            const hex = GREET_RESPONSE.toString(16).toUpperCase().padStart(8, '0');
+            return {
+                ok: true,
+                result: GREET_RESPONSE,
+                message: `Tunnel.Call: GTKN forwarded to Mum.Greet() \u2192 0x${hex} (\u2018HELL\u2019) \u2014 live bridge online`
             };
         });
     }
