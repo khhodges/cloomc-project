@@ -153,19 +153,19 @@ architecture-fixed, not recorded in `cc`.
 **Body layout — five zones (word addresses within the 256-word lump):**
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Word 0          Header (typ=10, cw=0)                  │  Zone: Header
-├─────────────────────────────────────────────────────────┤
-│  Words 1..16     Data Registers DR0–DR15                │  Zone ⑤
-├─────────────────────────────────────────────────────────┤
+┌──────────────────────────────────────────────────────────┐
+│  Word 0          Header (typ=10, cw=0)                   │  Zone: Header
+├──────────────────────────────────────────────────────────┤
+│  Words 1..16     Data Registers DR0–DR15                 │  Zone ⑤
+├──────────────────────────────────────────────────────────┤
 │  Words 17..80    Heap max size set by IDE (grows upward) │  Zone ④
-├─────────────────────────────────────────────────────────┤
-│  Words 81..211   Freespace (all-zero; Mint verified)    │  Zone ③
-├─────────────────────────────────────────────────────────┤
-│  Words 212..243  LIFO Stack (grows downward)            │  Zone ②
-├─────────────────────────────────────────────────────────┤
-│  Words 244..255  Initial CR0–CR11 GT Word 0 values      │  Zone ①
-└─────────────────────────────────────────────────────────┘
+├──────────────────────────────────────────────────────────┤
+│  Words 81..211   Freespace (all-zero; Mint verified)     │  Zone ③
+├──────────────────────────────────────────────────────────┤
+│  Words 212..243  LIFO Stack (grows downward)             │  Zone ②
+├──────────────────────────────────────────────────────────┤
+│  Words 244..255  Initial CR0–CR11 GT Word 0 values       │  Zone ①
+└──────────────────────────────────────────────────────────┘
 ```
 
 - Zone ① is pre-populated by the IDE at compile time with the thread's
