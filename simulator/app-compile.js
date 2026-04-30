@@ -364,7 +364,7 @@ function onLangChange(restoring) {
     const langExampleGroups = {
         english: ['cloomc_english_hello', 'cloomc_english_counter', 'cloomc_english_string', 'cloomc_english_loops', 'cloomc_english_contact', 'cloomc_english_contact_stage2'],
         assembly: ['ada_note_g', 'selftest', 'load_save', 'bernoulli', 'conditional', 'gc_test', 'turing_test', 'led_turing_full', 'led_blink', 'salvation', 'perm_attack', 'bind_attack', 'tperm_halt'],
-        javascript: ['cloomc_hello', 'cloomc_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_counter', 'cloomc_sliderule', 'cloomc_contact', 'cloomc_contact_stage2', 'cloomc_contact_call', 'cloomc_stack_overflow', 'cloomc_recall_demo'],
+        javascript: ['cloomc_hello', 'cloomc_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_counter', 'cloomc_sliderule', 'cloomc_contact', 'cloomc_contact_stage2', 'cloomc_contact_call', 'cloomc_stack_overflow', 'cloomc_recall_demo', 'cloomc_billing', 'cloomc_turing_memory', 'cloomc_church_memory', 'cloomc_physical_pool'],
         haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_church_lambda', 'cloomc_sliderule_hs'],
         symbolic: ['cloomc_ada_note_g', 'cloomc_ada_note_g_published_bug', 'cloomc_bernoulli_numbers'],
         lambda: ['cloomc_lambda_church_vs_compiled', 'cloomc_lambda_church', 'cloomc_lambda_booleans', 'cloomc_lambda_pairs', 'cloomc_lambda_ycomb', 'cloomc_lambda_sliderule', 'cloomc_lambda_fixedpoint', 'cloomc_lambda_rational'],
@@ -2373,6 +2373,272 @@ abstraction Feedback {
     // to build an event-driven feedback loop.
     method run() {
         recall()
+    }
+}`,
+
+        'billing': `// ── Billing (NS 47): Capability-Based Memory Quota ──
+// In a conventional OS, memory limits are enforced by
+// a privileged kernel that any code can try to subvert.
+// On the Church Machine, memory quotas ARE the hardware.
+//
+// Billing (NS 47) is the Church Machine's quota ledger.
+// Before memory can be allocated via TuringMemory,
+// a Billing account must be opened. Each allocation
+// is charged against the account's quota. When the
+// quota runs out, further charges fail — no kernel,
+// no privilege ring, no policy table involved.
+//
+// A "p_gt" (policy Golden Token) is a hardware-
+// unforgeable account handle. You pass it to every
+// Billing method to prove ownership. The hardware
+// validates it on every CALL — no software bypass.
+//
+// Billing API (NS slot 47):
+//   Open(quota)         → p_gt
+//   Charge(p_gt, words) → ok  (deduct words from quota)
+//   Balance(p_gt)       → remaining words
+//   Reissue(p_gt)       → new_p_gt (rotate the token)
+//   Close(p_gt)         → ok  (release the account)
+//
+// This BudgetTracker wraps Billing: it opens its own
+// account, checks headroom before spending, and
+// exposes a clean Close for cleanup.
+
+abstraction BudgetTracker {
+    capabilities {
+        Billing
+    }
+
+    // Init: open a Billing account with 'quota' words.
+    // Returns the p_gt (your account handle).
+    // Keep it — every subsequent call needs it.
+    method Init(quota) {
+        p_gt = call(Billing.Open(quota))
+        return(p_gt)
+    }
+
+    // Spend: charge 'words' from the budget.
+    // Checks headroom first — returns 1 on success,
+    // 0 if over-quota (Billing.Charge skipped).
+    method Spend(p_gt, words) {
+        remaining = call(Billing.Balance(p_gt))
+        if (remaining < words) {
+            return(0)
+        }
+        ok = call(Billing.Charge(p_gt, words))
+        return(ok)
+    }
+
+    // Balance: query remaining words in the account.
+    method Balance(p_gt) {
+        remaining = call(Billing.Balance(p_gt))
+        return(remaining)
+    }
+
+    // Close: release the account when done.
+    // After this call the p_gt is invalid.
+    method Close(p_gt) {
+        ok = call(Billing.Close(p_gt))
+        return(ok)
+    }
+}`,
+
+        'turing_memory': `// ── TuringMemory (NS 48): Code-Region Allocation ──
+// TuringMemory (NS 48) allocates code regions —
+// contiguous physical-memory ranges for executable
+// code. On the Church Machine, code and data live
+// in separate regions with hardware-enforced bounds.
+//
+// Every AllocCode call charges a Billing account:
+//   AllocCode(p_gt, words) → location
+//     p_gt   : Billing account GT (quota is debited)
+//     words  : size in words (rounded up to block)
+//     returns: base address, or 0 if quota / OOM
+//
+// The quota link is deliberate. A rogue abstraction
+// cannot allocate unbounded code space — it must hold
+// a Billing p_gt with sufficient headroom. If the
+// quota is exhausted, AllocCode returns 0 and the
+// caller must handle the failure. No OS needed.
+//
+// TuringMemory also holds FreeCode(location) to
+// return a region to the physical pool.
+//
+// This CodeLoader wraps TuringMemory: it enforces a
+// minimum region size, delegates to AllocCode, and
+// verifies the returned address is non-zero.
+
+abstraction CodeLoader {
+    capabilities {
+        TuringMemory
+    }
+
+    // Alloc: reserve at least 'words' words of code space.
+    // p_gt is the Billing account to charge.
+    // Returns the base address, or 0 on failure.
+    method Alloc(p_gt, words) {
+        if (words < 16) {
+            words = 16
+        }
+        location = call(TuringMemory.AllocCode(p_gt, words))
+        return(location)
+    }
+
+    // AllocChecked: allocate and return a success flag.
+    // Returns the location in DR1 and 1/0 in DR2.
+    method AllocChecked(p_gt, words) {
+        location = call(TuringMemory.AllocCode(p_gt, words))
+        if (location == 0) {
+            return(0, 0)
+        }
+        return(location, 1)
+    }
+
+    // Free: return a code region to the physical pool.
+    method Free(location) {
+        ok = call(TuringMemory.FreeCode(location))
+        return(ok)
+    }
+}`,
+
+        'church_memory': `// ── ChurchMemory (NS 49): Namespace Slot Handles ──
+// Every abstraction on the Church Machine lives at a
+// namespace slot (NS[n]). ChurchMemory (NS 49) manages
+// the lifetime of those slots — it provides reference-
+// counted handles so the system knows when a slot is
+// still in use.
+//
+// AllocAbstract(ns_slot) → handle
+//   Claims a handle for ns_slot. The first claim
+//   creates the tracking entry; subsequent claims
+//   increment a reference count. The handle value
+//   IS the ns_slot number — it doubles as a pointer.
+//
+// FreeAbstract(ns_slot)
+//   Decrements the reference count. When it reaches
+//   zero, the slot is marked free. Any GT pointing
+//   into that slot will then fail TPERM — hardware
+//   enforces the lifetime automatically.
+//
+// This is capability revocation without a kernel:
+// once every holder has freed its handle, the NS
+// entry is gone. No revocation table, no scan.
+//
+// AbstractionLifecycle wraps ChurchMemory to show
+// single-slot acquire/release and a range-acquire
+// that claims a contiguous block of slots.
+
+abstraction AbstractionLifecycle {
+    capabilities {
+        ChurchMemory
+    }
+
+    // Acquire: register interest in ns_slot.
+    // Returns the handle (same as ns_slot).
+    // Multiple callers may Acquire the same slot —
+    // the reference count tracks them all.
+    method Acquire(ns_slot) {
+        handle = call(ChurchMemory.AllocAbstract(ns_slot))
+        return(handle)
+    }
+
+    // Release: decrement the reference count for ns_slot.
+    // When the count reaches zero the slot is freed.
+    method Release(ns_slot) {
+        ok = call(ChurchMemory.FreeAbstract(ns_slot))
+        return(ok)
+    }
+
+    // AcquireRange: claim 'count' consecutive slots
+    // starting at 'first'. Returns first on success.
+    method AcquireRange(first, count) {
+        i = 0
+        while (i < count) {
+            call(ChurchMemory.AllocAbstract(first + i))
+            i = i + 1
+        }
+        return(first)
+    }
+
+    // ReleaseRange: free 'count' consecutive slots
+    // starting at 'first'.
+    method ReleaseRange(first, count) {
+        i = 0
+        while (i < count) {
+            call(ChurchMemory.FreeAbstract(first + i))
+            i = i + 1
+        }
+        return(0)
+    }
+}`,
+
+        'physical_pool': `// ── PhysicalPool (NS 50+): Raw Physical Memory ──
+// PhysicalPool is the bottom of the Church Machine's
+// memory hierarchy — raw word-addressed physical blocks
+// with no quota, no billing, and no garbage collection.
+//
+// Two allocation styles:
+//
+//   Allocate(size) / Free(location)
+//     Paired: every Allocate should be matched by a
+//     Free. The block returns to the free list and
+//     can be reused. Use for temporary scratch buffers.
+//
+//   Claim(size) / Release(location)
+//     Permanent: Claim acquires a block that is NOT
+//     tracked in the free list. Release marks it gone
+//     but the physical words are never reused.
+//     Use for boot-time structures and DMA regions
+//     that must survive for the life of the machine.
+//
+// PhysicalPool has no Billing integration — it is
+// system-level only. User abstractions should reach
+// memory through TuringMemory + Billing instead.
+//
+// DMABuffer shows both styles: Reserve() claims a
+// permanent DMA region; Scratch() / Drop() manage
+// temporary buffers; ScratchPair() allocates two
+// matching blocks and rolls back if either fails.
+
+abstraction DMABuffer {
+    capabilities {
+        PhysicalPool
+    }
+
+    // Reserve: claim a permanent DMA region of 'words' words.
+    // Never returned to the pool — use for hardware I/O.
+    method Reserve(words) {
+        location = call(PhysicalPool.Claim(words))
+        return(location)
+    }
+
+    // Scratch: allocate a temporary buffer.
+    // Must be paired with a call to Drop(location).
+    method Scratch(words) {
+        location = call(PhysicalPool.Allocate(words))
+        return(location)
+    }
+
+    // Drop: return a scratch buffer to the pool.
+    method Drop(location) {
+        ok = call(PhysicalPool.Free(location))
+        return(ok)
+    }
+
+    // ScratchPair: allocate two buffers of 'words' words each.
+    // Returns (loc_a, loc_b), or (0, 0) if either fails.
+    // Rolls back the first allocation if the second fails.
+    method ScratchPair(words) {
+        loc_a = call(PhysicalPool.Allocate(words))
+        if (loc_a == 0) {
+            return(0, 0)
+        }
+        loc_b = call(PhysicalPool.Allocate(words))
+        if (loc_b == 0) {
+            call(PhysicalPool.Free(loc_a))
+            return(0, 0)
+        }
+        return(loc_a, loc_b)
     }
 }`,
     };
