@@ -178,8 +178,11 @@ CR6 and CR14 are re-derived by CALL/RETURN via mLoad. CR12 is saved and restored
 
 ---
 
-## See Also
+## Cross-references
 
-- [Lump-Architecture.md](Lump-Architecture.md) — Lump object structure, Header Word encoding, and zone layout
+- [`architecture.md`](architecture.md) — Overall Church Machine architecture
+- [`Lump-Architecture.md`](Lump-Architecture.md) — Accessible overview of the Lump object model
+- [`CM_LUMP_SPECIFICATION.md`](CM_LUMP_SPECIFICATION.md) — Authoritative binary encoding and field specification
+
 ---
 *Confidential — Kenneth Hamer-Hodges — April 2026*

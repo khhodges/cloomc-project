@@ -1492,9 +1492,10 @@ already owns.
 
 ## Cross-references
 
+- [`architecture.md`](architecture.md) — Overall Church Machine architecture
 - [`Lump-Architecture.md`](Lump-Architecture.md) — Accessible overview of the Lump object model
 - [`foundation-lump-design.md`](foundation-lump-design.md) — Lump design rationale and layout rules
-- [`architecture.md`](architecture.md) — Overall Church Machine architecture
+- [`golden-tokens.md`](golden-tokens.md) — GT format, encoding, and capability rules
 
 ---
 

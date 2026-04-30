@@ -221,8 +221,9 @@ image is preserved as-is for now; the programmer-authored boot image work
 
 ## Cross-references
 
-- [`Lump-Architecture.md`](Lump-Architecture.md) — Accessible overview of the Lump object model
 - [`architecture.md`](architecture.md) — Overall Church Machine architecture
+- [`Lump-Architecture.md`](Lump-Architecture.md) — Accessible overview of the Lump object model
+- [`CM_LUMP_SPECIFICATION.md`](CM_LUMP_SPECIFICATION.md) — Authoritative binary encoding and field specification
 - [`boot-rom-layout.md`](boot-rom-layout.md) — Specific demo boot ROM layout
 - [`golden-tokens.md`](golden-tokens.md) — GT format and rules
 - [`namespace-security.md`](namespace-security.md) — Namespace integrity model
