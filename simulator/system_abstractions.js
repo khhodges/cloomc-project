@@ -2767,6 +2767,9 @@ class SystemAbstractions {
 
             // Forward through Tunnel.Call(mumGT) to reach the far end (Mum).
             // Tunnel.Call is now bound (Stage 4) — dispatch through the live bridge.
+            // Propagate the result word returned by Tunnel.Call so that the value
+            // flows causally from the bridge response rather than from a local constant.
+            let greetWord = GREET_RESPONSE;
             if (sim.abstractionRegistry) {
                 const tunnelResult = sim.abstractionRegistry.dispatchMethod(TUNNEL_NS, 'Call', sim, { cr2: mumGT });
                 if (!tunnelResult || !tunnelResult.ok) {
@@ -2778,12 +2781,15 @@ class SystemAbstractions {
                         message: `Keystone.Hello(): TUNNEL_OFFLINE (0x${hex}) \u2014 Tunnel.Call dispatch failed.`
                     };
                 }
+                if (tunnelResult.result !== undefined) {
+                    greetWord = tunnelResult.result >>> 0;
+                }
             }
 
-            const hex = GREET_RESPONSE.toString(16).toUpperCase().padStart(8, '0');
+            const hex = greetWord.toString(16).toUpperCase().padStart(8, '0');
             return {
                 ok: true,
-                result: GREET_RESPONSE,
+                result: greetWord,
                 message: `Keystone.Hello(): Tunnel.Call forwarded to Mum.Greet() \u2192 0x${hex} ('HELL')`
             };
         });
