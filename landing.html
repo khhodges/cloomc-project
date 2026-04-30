@@ -16,6 +16,27 @@
             align-items: center;
             padding: 20px 16px;
         }
+
+        /* ── Title bar ─────────────────────────────────────────── */
+        .site-title {
+            width: 100%;
+            max-width: 1280px;
+            background: #0d1117;
+            border: 1px solid #1e2a3a;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            padding: 10px 20px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #daa520;
+            letter-spacing: 0.01em;
+        }
+        .site-title .lambda {
+            font-size: 1.3rem;
+            margin-right: 6px;
+        }
+
+        /* ── Nav bar ────────────────────────────────────────────── */
         .ide-nav {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -23,22 +44,64 @@
             max-width: 1280px;
             background: #111827;
             border: 1px solid #1e2a3a;
-            border-radius: 8px;
+            border-radius: 0 0 8px 8px;
             margin-bottom: 20px;
-            overflow: hidden;
+            overflow: visible;
+            position: relative;
+            z-index: 100;
         }
         .nav-col {
-            padding: 16px 14px 20px;
+            position: relative;
             border-right: 1px solid #1e2a3a;
         }
         .nav-col:last-child { border-right: none; }
+
+        /* Gold header — the hover trigger */
         .nav-col-header {
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.08em;
             color: #daa520;
-            margin-bottom: 12px;
+            padding: 12px 14px;
+            cursor: default;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            user-select: none;
         }
+        .nav-col-header::after {
+            content: '▾';
+            font-size: 0.65rem;
+            opacity: 0.6;
+            transition: transform 0.2s;
+        }
+        .nav-col:hover .nav-col-header::after {
+            transform: rotate(180deg);
+        }
+
+        /* Dropdown panel */
+        .nav-dropdown {
+            position: absolute;
+            top: 100%;
+            left: -1px;
+            min-width: calc(100% + 2px);
+            background: #111827;
+            border: 1px solid #1e2a3a;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            padding: 8px 14px 14px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-6px);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        .nav-col:hover .nav-dropdown {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        /* Individual items */
         .nav-item {
             display: flex;
             align-items: center;
@@ -47,7 +110,7 @@
             color: #c8d6e5;
             text-decoration: none;
             padding: 3px 0;
-            line-height: 1.55;
+            line-height: 1.6;
             transition: color 0.15s;
             white-space: nowrap;
         }
@@ -65,15 +128,20 @@
             margin-left: 8px;
             flex-shrink: 0;
         }
+
+        /* Responsive */
         @media (max-width: 900px) {
             .ide-nav { grid-template-columns: repeat(3, 1fr); }
             .nav-col:nth-child(3) { border-right: none; }
+            .site-title { border-radius: 8px 8px 0 0; }
         }
         @media (max-width: 600px) {
             .ide-nav { grid-template-columns: repeat(2, 1fr); }
             .nav-col:nth-child(2) { border-right: none; }
             .nav-col:nth-child(3) { border-right: 1px solid #1e2a3a; }
         }
+
+        /* ── Cards ──────────────────────────────────────────────── */
         .cards {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -165,47 +233,60 @@
     </style>
 </head>
 <body>
+    <div class="site-title"><span class="lambda">λ</span> Church Machine</div>
     <nav class="ide-nav">
         <div class="nav-col">
             <div class="nav-col-header">DEVELOP</div>
-            <a class="nav-item" href="/simulator/#editor">Programs</a>
-            <a class="nav-item" href="/simulator/#repl">Math <span class="nav-kbd">C+M</span></a>
-            <a class="nav-item" href="/simulator/#namespace">Namespace <span class="nav-kbd">C+N</span></a>
+            <div class="nav-dropdown">
+                <a class="nav-item" href="/simulator/#editor">Programs</a>
+                <a class="nav-item" href="/simulator/#repl">Math <span class="nav-kbd">C+M</span></a>
+                <a class="nav-item" href="/simulator/#namespace">Namespace <span class="nav-kbd">C+N</span></a>
+            </div>
         </div>
         <div class="nav-col">
             <div class="nav-col-header">TEST</div>
-            <a class="nav-item" href="/simulator/#dashboard">Simulator <span class="nav-kbd">C+D</span></a>
-            <a class="nav-item" href="/simulator/#dashboard">Data Registers</a>
-            <a class="nav-item" href="/simulator/#dashboard">Gate Log</a>
-            <a class="nav-item" href="/simulator/#dashboard">Machine State</a>
+            <div class="nav-dropdown">
+                <a class="nav-item" href="/simulator/#dashboard">Simulator <span class="nav-kbd">C+D</span></a>
+                <a class="nav-item" href="/simulator/#dashboard">Data Registers</a>
+                <a class="nav-item" href="/simulator/#dashboard">Gate Log</a>
+                <a class="nav-item" href="/simulator/#dashboard">Machine State</a>
+            </div>
         </div>
         <div class="nav-col">
             <div class="nav-col-header">REVIEW</div>
-            <a class="nav-item" href="/simulator/#abstractions">Logic Catalog <span class="nav-kbd">C+A</span></a>
-            <a class="nav-item" href="/simulator/#tutorial">Tutorial <span class="nav-kbd">C+U</span></a>
-            <a class="nav-item" href="/simulator/#reference">Reference <span class="nav-kbd">C+F</span></a>
-            <a class="nav-item nav-item-highlight" href="/simulator/#docs">Docs <span class="nav-kbd">C+Y</span></a>
-            <a class="nav-item" href="/simulator/#sitemap">Site Map</a>
+            <div class="nav-dropdown">
+                <a class="nav-item" href="/simulator/#abstractions">Logic Catalog <span class="nav-kbd">C+A</span></a>
+                <a class="nav-item" href="/simulator/#tutorial">Tutorial <span class="nav-kbd">C+U</span></a>
+                <a class="nav-item" href="/simulator/#reference">Reference <span class="nav-kbd">C+F</span></a>
+                <a class="nav-item nav-item-highlight" href="/simulator/#docs">Docs <span class="nav-kbd">C+Y</span></a>
+                <a class="nav-item" href="/simulator/#sitemap">Site Map</a>
+            </div>
         </div>
         <div class="nav-col">
             <div class="nav-col-header">HARDWARE</div>
-            <a class="nav-item" href="/simulator/#devices">FPGA</a>
-            <a class="nav-item" href="/simulator/#devices">Bridge</a>
-            <a class="nav-item" href="/simulator/#builder">Efinix Ti60 F225</a>
-            <a class="nav-item" href="/simulator/#builder">Tang Nano 20K IoT</a>
+            <div class="nav-dropdown">
+                <a class="nav-item" href="/simulator/#devices">FPGA</a>
+                <a class="nav-item" href="/simulator/#devices">Bridge</a>
+                <a class="nav-item" href="/simulator/#builder">Efinix Ti60 F225</a>
+                <a class="nav-item" href="/simulator/#builder">Tang Nano 20K IoT</a>
+            </div>
         </div>
         <div class="nav-col">
             <div class="nav-col-header">CONFIGURE</div>
-            <a class="nav-item" href="/simulator/#devices">Devices <span class="nav-kbd">C+V</span></a>
-            <a class="nav-item" href="/simulator/#devices">Launch Readiness</a>
-            <a class="nav-item" href="/simulator/#github">GitHub</a>
+            <div class="nav-dropdown">
+                <a class="nav-item" href="/simulator/#devices">Devices <span class="nav-kbd">C+V</span></a>
+                <a class="nav-item" href="/simulator/#devices">Launch Readiness</a>
+                <a class="nav-item" href="/simulator/#github">GitHub</a>
+            </div>
         </div>
         <div class="nav-col">
             <div class="nav-col-header">INSTALL</div>
-            <a class="nav-item" href="/simulator/#builder">Builder <span class="nav-kbd">C+B</span></a>
-            <a class="nav-item" href="/simulator/#lumps">LUMP <span class="nav-kbd">C+L</span></a>
-            <a class="nav-item" href="/simulator/#lumps">Import LUMP</a>
-            <a class="nav-item" href="/simulator/#builder">Bitstreams</a>
+            <div class="nav-dropdown">
+                <a class="nav-item" href="/simulator/#builder">Builder <span class="nav-kbd">C+B</span></a>
+                <a class="nav-item" href="/simulator/#lumps">LUMP <span class="nav-kbd">C+L</span></a>
+                <a class="nav-item" href="/simulator/#lumps">Import LUMP</a>
+                <a class="nav-item" href="/simulator/#builder">Bitstreams</a>
+            </div>
         </div>
     </nav>
     <div class="cards">
