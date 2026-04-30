@@ -157,6 +157,27 @@ def get_identity_word() -> int:
     return _identity_word
 
 
+def regenerate_key() -> None:
+    """Delete the persisted key file and regenerate a fresh Ed25519 key pair.
+
+    Resets all module-level globals so the next call to any public accessor
+    will trigger a fresh key generation via _load_or_generate().
+    """
+    global _private_key_pem, _public_key_bytes, _identity_string, _identity_word
+
+    if os.path.isfile(_KEY_PATH):
+        os.remove(_KEY_PATH)
+        log.info("mum.py: deleted %s for key regeneration", _KEY_PATH)
+
+    _private_key_pem  = None
+    _public_key_bytes = None
+    _identity_string  = None
+    _identity_word    = None
+
+    _load_or_generate()
+    log.info("mum.py: key regenerated; new identity = %s", _identity_string)
+
+
 # ---------------------------------------------------------------------------
 # QR code renderer (pure-stdlib PNG — no Pillow required)
 # ---------------------------------------------------------------------------

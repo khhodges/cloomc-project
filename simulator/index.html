@@ -569,6 +569,17 @@
                 <div style="font-size:0.72rem;color:#6b7280;margin-bottom:4px;">Mum's canonical identity string (copy for paste above):</div>
                 <div id="mumIdentityDisplay" style="font-family:monospace;font-size:0.73rem;color:#60a5fa;word-break:break-all;cursor:pointer;" title="Click to copy" onclick="mumCopyIdentity(this)">Loading…</div>
             </div>
+
+            <!-- Regenerate Key (dev tool) -->
+            <div style="margin-top:18px;border-top:1px solid #1e2a3a;padding-top:14px;">
+                <div style="font-size:0.72rem;color:#f59e0b;margin-bottom:8px;font-weight:600;">&#9888; Developer Tool</div>
+                <button onclick="mumRegenerateKey()"
+                        style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;border-radius:4px;padding:7px 16px;cursor:pointer;font-size:0.82rem;font-weight:600;">
+                    Regenerate Key
+                </button>
+                <span style="font-size:0.73rem;color:#6b7280;margin-left:10px;">Rotates Mum's Ed25519 key pair and refreshes this page.</span>
+                <div id="mumRegenerateStatus" style="margin-top:6px;font-size:0.78rem;color:#6b7280;"></div>
+            </div>
         </div>
     </div>
 
@@ -1597,6 +1608,55 @@
 
         // Refresh c-list slot 1 display.
         mumRefreshClist();
+    }
+
+    function mumRefreshQrAndIdentity() {
+        var img = document.getElementById('mumQrImg');
+        var errEl = document.getElementById('mumQrErr');
+        if (img) {
+            img.style.display = 'block';
+            if (errEl) errEl.style.display = 'none';
+            img.src = '/mum/qr?t=' + Date.now();
+        }
+        fetch('/mum/status')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                var el = document.getElementById('mumIdentityDisplay');
+                if (el) el.textContent = d.identity || '(unavailable)';
+            })
+            .catch(function(){});
+    }
+
+    function mumRegenerateKey() {
+        var confirmed = window.confirm(
+            'Warning: This invalidates all existing E-GTs for Mum.\n\n' +
+            'Any device or session that already called Keystone.Connect() with ' +
+            'the current key will need to reconnect with the new identity.\n\n' +
+            'Regenerate Mum\'s key pair now?'
+        );
+        if (!confirmed) return;
+
+        var statusEl = document.getElementById('mumRegenerateStatus');
+        if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Regenerating…'; }
+
+        fetch('/mum/regenerate', { method: 'POST' })
+            .then(function(r){
+                if (!r.ok) throw new Error('Server error ' + r.status);
+                return r.json();
+            })
+            .then(function(d){
+                if (statusEl) {
+                    statusEl.style.color = '#22c55e';
+                    statusEl.textContent = 'Key regenerated. New identity: ' + (d.identity || '(unknown)');
+                }
+                mumRefreshQrAndIdentity();
+            })
+            .catch(function(err){
+                if (statusEl) {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.textContent = 'Error: ' + err.message;
+                }
+            });
     }
 
     function mumRefreshClist() {

@@ -4400,6 +4400,28 @@ def mum_hello():
     })
 
 
+@app.route("/mum/regenerate", methods=["POST"])
+def mum_regenerate():
+    """Delete mum_key.pem and regenerate a fresh Ed25519 key pair.
+
+    Returns the new identity details as JSON so the UI can refresh without
+    a separate /mum/status call.
+    """
+    try:
+        import mum as _mum
+    except ImportError:
+        from server import mum as _mum
+    _mum.regenerate_key()
+    identity = _mum.get_identity_string()
+    word     = _mum.get_identity_word()
+    return jsonify({
+        "identity": identity,
+        "identity_word": word,
+        "identity_word_hex": f"0x{word:08X}",
+        "protocol": "Ed25519 / GTKN-1",
+    })
+
+
 if __name__ == "__main__":
     _free_port(5000)
     logging.info("Starting Church Machine server on port 5000")
