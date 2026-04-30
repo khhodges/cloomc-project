@@ -16,7 +16,7 @@ The Abstraction Manager (AM) is the sole crossing point between the world of thi
 
 Every layer below the AM — the memory manager, the namespace, the GT encoding, the hardware itself — exists to make that handle meaningful. The AM is the reason those layers exist.
 
-This document defines the AM at the level of principle. It deliberately avoids naming any specific encoding, any specific data structure, or any specific hardware. The worked examples in §8 show how those principles land on the current Church Turing Machine implementation (CTMM) without being constrained by it.
+This document defines the AM at the level of principle. It deliberately avoids naming any specific encoding, any specific data structure, or any specific hardware. The worked examples in §8 show how those principles land on the current Church-Turing Meta-Machine implementation (CTMM) without being constrained by it.
 
 ---
 
@@ -164,7 +164,7 @@ The QR code is the first encoding in common use. It is not the definition. The A
 
 ## 8. CTMM Mapping: Four Worked Examples
 
-This section shows how the four disciplines map onto the current Church Turing Machine implementation. The mapping is exact. Nothing in the CTMM's design violates the universal model, and nothing in the universal model prevents the CTMM from evolving its implementation.
+This section shows how the four disciplines map onto the current Church-Turing Meta-Machine (CTMM) implementation. The mapping is exact. Nothing in the CTMM's design violates the universal model, and nothing in the universal model prevents the CTMM from evolving its implementation.
 
 ### Example 1 — Discipline 1 maps to: the 32-bit GT word
 

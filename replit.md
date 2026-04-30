@@ -13,6 +13,11 @@ The Church Machine is an educational platform providing a web-based IDE for lear
 - Phase 1 + 1b + 1c + 1d + 1e: English, JS, Haskell, Symbolic Math (Ada), and Lambda Calculus front-ends implemented; auto-detected by compiler
 - Pure Math "Compile Session" button: compiles interactive let-bindings to Church Machine code via symbolic math front-end
 
+## Key Terminology
+
+- **CTMM** — Church-Turing Meta-Machine. The Lambda Calculus core of the Church Machine. The hardware execution engine that enforces capability-based security through Golden Tokens.
+- **CLOOMC** — Capability-Limited / Object-Oriented / Machine-Code. The assembly language and compiler target for the Church Machine ISA. Source files use the `.cloomc` extension.
+
 ## System Architecture
 The system integrates an Amaranth HDL-based FPGA hardware with a web IDE (HTML/JS/CSS) and a Flask backend.
 
