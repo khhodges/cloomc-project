@@ -71,8 +71,12 @@ function updateCRDetail() {
     const showEditButton = showCode && _editLumpHdr.valid;
 
     // ── Correct default tab for this CR's capabilities ───────────────────────
-    if (crDetailTab === 'code' && !showCode) {
+    if ((crDetailTab === 'code' || crDetailTab === 'api') && !showCode) {
         crDetailTab = showCList ? 'clist' : showData ? 'register' : 'lump';
+    } else if ((crDetailTab === 'register' || crDetailTab === 'binary') && !showData) {
+        crDetailTab = showCode ? 'code' : showCList ? 'clist' : 'lump';
+    } else if (crDetailTab === 'clist' && !showCList) {
+        crDetailTab = showCode ? 'code' : showData ? 'register' : 'lump';
     }
 
     // ── Hoist shared data used across multiple panels ─────────────────────────
