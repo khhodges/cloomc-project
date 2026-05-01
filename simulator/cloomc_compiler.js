@@ -1174,18 +1174,26 @@ class CLOOMCCompiler {
             }
 
             // Look up the method selector from conventions (e.g. Billing.Balance = index 4).
-            // Without conventions every call would encode selector 0, making all
-            // single-call methods compile to identical bytecode (→ "alias of X").
-            let methodSelector = 0;
+            // imm15=0 is the fast-path (no table), so valid method selectors are 1-based.
+            // Unresolved method names produce a compile error to prevent silent misdispatch.
             const convEntry = this.methodConventions[absName];
-            if (convEntry && convEntry[methodName] !== undefined) {
-                methodSelector = typeof convEntry[methodName] === 'object'
-                    ? (convEntry[methodName].index || 0)
-                    : convEntry[methodName];
+            if (!convEntry) {
+                errors.push({ line: stmt.lineNum, message: `No method conventions registered for '${callMatch[2]}'; cannot resolve '${methodName}'. Ensure the abstraction declares methods before compiling.` });
+                return;
             }
+            if (convEntry[methodName] === undefined) {
+                const known = Object.keys(convEntry).join(', ');
+                errors.push({ line: stmt.lineNum, message: `Unknown method '${methodName}' on '${callMatch[2]}'. Known methods: ${known}` });
+                return;
+            }
+            const rawEntry = convEntry[methodName];
+            const methodSelector = typeof rawEntry === 'object' ? (rawEntry.index || 0) : rawEntry;
 
             manifest.push({ src: stmt.lineNum, addr: code.length, desc: `LOAD CR0, [CR6 + ${clistOffset}] (${callMatch[2]})` });
             code.push(this.encode(this.opcodes.LOAD, 14, 0, 6, clistOffset));
+            // Method index encoding: imm15 stores (methodSelector + 1), where methodSelector is the
+            // 0-based index from methodConventions. imm15=0 is reserved for the fast-path entry (no table).
+            // Hardware reads imm15 directly; index 1 → table[1] → Create, etc. (see dispatch-styles.md §3).
             manifest.push({ src: stmt.lineNum, addr: code.length, desc: `CALL CR0, imm=${methodSelector + 1} -> ${callMatch[2]}.${methodName}` });
             code.push(this.encode(this.opcodes.CALL, 14, 0, 0, methodSelector + 1));
 

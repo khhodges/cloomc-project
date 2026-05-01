@@ -137,6 +137,17 @@
 //   Supported range: 0–16383 (imm15 slots 1–16384).
 //   If the method name is not found a clear error lists the known methods.
 //
+//   Level 4 — method index in ELOADCALL:
+//   ELOADCALL imm15 is a two-part field: bits[14:8] = method index (1-based,
+//   0 = fast-path), bits[7:0] = c-list row.  An optional method name or
+//   0-based integer may follow the abstraction name / slot operand:
+//     ELOADCALL CR0, SlideRule           → imm = 0x0001  (row=1, method=0)
+//     ELOADCALL CR0, SlideRule, Multiply → imm = 0x0101  (row=1, method=1)
+//     ELOADCALL CR0, SlideRule, Divide   → imm = 0x0201  (row=1, method=2)
+//     ELOADCALL CR0, CR6, #1, 0         → imm = 0x0101  (row=1, method=1 for 0-based idx 0)
+//   Without a method operand the fast-path (method=0, NIA = lump word 1) is used.
+//   Supported c-list row range: 0–255; method index range: 0–126 (0-based).
+//
 // POST-ASSEMBLY BRANCH BOUNDS CHECK
 //   After encoding all words, the assembler verifies that every BRANCH
 //   target falls within [0, total_code_words).  Out-of-range targets are
@@ -698,12 +709,77 @@ class ChurchAssembler {
                 this._checkPrivCR(crDst, 'ELOADCALL', lineNum);
                 const res8 = this._resolveNSNameBracket(parts[2], parts[3]);
                 if (res8 !== null && (!parts[3] || res8.consumed)) {
+                    // Simple form: ELOADCALL CRdst, Name  (or ELOADCALL CRdst, LED[N])
+                    // imm15[7:0] = c-list row; imm15[14:8] = 0 (fast-path, NIA = lump word 1)
                     crSrc = 6;
-                    imm   = res8.slot;
+                    if (res8.slot < 0 || res8.slot > 255) {
+                        this.errors.push({ line: lineNum, message: `ELOADCALL c-list row ${res8.slot} is out of range (0–255 allowed).` });
+                    }
+                    imm   = res8.slot & 0xFF;
+                } else if (res8 !== null && parts[3] && !res8.consumed) {
+                    // Method-indexed form: ELOADCALL CRdst, Name, MethodName  or  ELOADCALL CRdst, Name, 0
+                    // imm15[14:8] = method index (1-based, 1–127); imm15[7:0] = c-list row
+                    crSrc = 6;
+                    const rawSlot8v = res8.slot;
+                    if (rawSlot8v < 0 || rawSlot8v > 255) {
+                        this.errors.push({ line: lineNum, message: `ELOADCALL c-list row ${rawSlot8v} is out of range (0–255 allowed).` });
+                    }
+                    const clistRow8 = rawSlot8v & 0xFF;
+                    const rawMeth8  = (parts[3] || '').replace(/,/g, '').trim();
+                    let methodIdx8  = 0;
+                    // Resolve conventions key: try exact case first (e.g. 'SlideRule'),
+                    // fall back to uppercase (e.g. 'SLIDERULE') to match app-shell registration.
+                    const absKey8 = this.methodConventions[res8.key] !== undefined
+                        ? res8.key
+                        : res8.key.toUpperCase();
+                    if (/^\d+$/.test(rawMeth8)) {
+                        // Numeric 0-based index (valid range: 0–126)
+                        const m8 = parseInt(rawMeth8);
+                        if (m8 < 0 || m8 > 126) {
+                            this.errors.push({ line: lineNum, message: `ELOADCALL method index ${m8} is out of range (0–126 allowed).` });
+                        } else {
+                            methodIdx8 = m8 + 1;  // store 1-based in bits[14:8]
+                        }
+                    } else if (this.methodConventions[absKey8] && this.methodConventions[absKey8][rawMeth8] !== undefined) {
+                        const mEntry8 = this.methodConventions[absKey8][rawMeth8];
+                        const mIdx8   = typeof mEntry8 === 'object' ? (mEntry8.index || 0) : mEntry8;
+                        if (mIdx8 < 0 || mIdx8 > 126) {
+                            this.errors.push({ line: lineNum, message: `ELOADCALL method "${rawMeth8}" has index ${mIdx8} out of range (0–126 allowed).` });
+                        } else {
+                            methodIdx8 = mIdx8 + 1;  // store 1-based in bits[14:8]
+                        }
+                    } else if (this.methodConventions[absKey8]) {
+                        const known8 = Object.keys(this.methodConventions[absKey8]).join(', ');
+                        this.errors.push({ line: lineNum, message: `"${rawMeth8}" is not a known method of ${res8.key}. Known methods: ${known8}.` });
+                    } else {
+                        this.errors.push({ line: lineNum, message: `No method conventions for "${res8.key}"; cannot resolve method "${rawMeth8}". Use a numeric 0-based index instead.` });
+                    }
+                    imm = (methodIdx8 << 8) | clistRow8;
                 } else {
+                    // Explicit form: ELOADCALL CRdst, CRsrc, #slot [, methodIdx]
+                    // imm15[7:0] = c-list row; imm15[14:8] = method index (1-based, 0 = fast-path)
                     crSrc = this._parseCR(parts[2], lineNum);
                     this._checkPrivCR(crSrc, 'ELOADCALL', lineNum);
-                    imm   = this._parseImm(parts[3], lineNum);
+                    const rawSlot8v  = this._parseImm(parts[3], lineNum);
+                    if (rawSlot8v < 0 || rawSlot8v > 255) {
+                        this.errors.push({ line: lineNum, message: `ELOADCALL c-list row ${rawSlot8v} is out of range (0–255 allowed).` });
+                    }
+                    const rawSlot8   = rawSlot8v & 0xFF;
+                    let methodIdx8e  = 0;
+                    if (parts[4]) {
+                        const rawMeth8e = (parts[4] || '').replace(/,/g, '').trim();
+                        if (/^\d+$/.test(rawMeth8e)) {
+                            const m8e = parseInt(rawMeth8e);
+                            if (m8e < 0 || m8e > 126) {
+                                this.errors.push({ line: lineNum, message: `ELOADCALL method index ${m8e} is out of range (0–126 allowed).` });
+                            } else {
+                                methodIdx8e = m8e + 1;  // store 1-based in bits[14:8]
+                            }
+                        } else {
+                            this.errors.push({ line: lineNum, message: `ELOADCALL: expected a 0-based numeric method index as 4th operand, got "${rawMeth8e}".` });
+                        }
+                    }
+                    imm = (methodIdx8e << 8) | rawSlot8;
                 }
                 break;
             }
@@ -1173,8 +1249,17 @@ class ChurchAssembler {
             }
             // LAMBDA CRd  — create closure from template
             case 7: return `${mnemonic}  CR${crDst}`;
-            // ELOADCALL CRd, CRs[offset]  — fused load + call
-            case 8: return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
+            // ELOADCALL CRd, CRs[row], method  — fused load + method-table call
+            // imm15[7:0] = c-list row; imm15[14:8] = method index (1-based, 0=fast-path)
+            // Disassembler prints method as 0-based so output is directly re-assemblable.
+            case 8: {
+                const ec8Row    = imm & 0xFF;
+                const ec8Method = (imm >>> 8) & 0x7F;
+                if (ec8Method > 0) {
+                    return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(ec8Row)}], ${ec8Method - 1}`;
+                }
+                return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(ec8Row)}]`;
+            }
             // XLOADLAMBDA CRd, CRs[offset]  — fused load + lambda
             case 9: return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
             // DREAD DRd, CRs[offset]  — read data word from capability
