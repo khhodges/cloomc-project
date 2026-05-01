@@ -1334,6 +1334,67 @@ function findSHR(words) {
     }
 }
 
+// ── SE: Simulator-level SHR / ASR execution tests ────────────────────────────
+// These tests instantiate ChurchSimulator directly and call _execShr so we can
+// confirm that the runtime actually sign-extends (ASR) or zero-extends (LSR)
+// depending on imm[5], without needing to run through the full boot sequence.
+
+const ChurchSimulator = require('./simulator.js');
+
+// SE1: ASR on a negative value must sign-extend (fill high bits with 1).
+//   Input:  DR1 = 0x80000000  (most-negative 32-bit value, high bit set)
+//   Shift:  4 places right, ASR  (imm = (1<<5)|4 = 0x24)
+//   Expected: 0xF8000000  (arithmetic right-shift fills vacated bits with sign bit)
+{
+    const sim = new ChurchSimulator();
+    sim.dr[1] = 0x80000000;
+    const imm = (1 << 5) | 4;
+    sim._execShr({ crSrc: 1, crDst: 2, imm });
+    const got = sim.dr[2] >>> 0;
+    const expected = 0xF8000000;
+    assert('SE1 ASR negative value sign-extends: result is 0xF8000000',
+        got === expected,
+        `expected 0x${expected.toString(16).toUpperCase()} got 0x${got.toString(16).toUpperCase()}`);
+    assert('SE1 ASR negative value: N flag is set (result is negative)',
+        sim.flags.N === true,
+        `N=${sim.flags.N}`);
+}
+
+// SE2: LSR on the same negative value must zero-extend (fill high bits with 0).
+//   Input:  DR1 = 0x80000000
+//   Shift:  4 places right, LSR  (imm = 4, imm[5]=0)
+//   Expected: 0x08000000  (logical right-shift fills vacated bits with 0)
+{
+    const sim = new ChurchSimulator();
+    sim.dr[1] = 0x80000000;
+    const imm = 4;
+    sim._execShr({ crSrc: 1, crDst: 2, imm });
+    const got = sim.dr[2] >>> 0;
+    const expected = 0x08000000;
+    assert('SE2 LSR negative value zero-extends: result is 0x08000000',
+        got === expected,
+        `expected 0x${expected.toString(16).toUpperCase()} got 0x${got.toString(16).toUpperCase()}`);
+    assert('SE2 LSR negative value: N flag is clear (result is positive)',
+        sim.flags.N === false,
+        `N=${sim.flags.N}`);
+}
+
+// SE3: ASR on a positive value must produce the same result as LSR (no spurious sign bits).
+//   Input:  DR1 = 0x01000000
+//   Shift:  4 places right, ASR  (imm = (1<<5)|4 = 0x24)
+//   Expected: 0x00100000
+{
+    const sim = new ChurchSimulator();
+    sim.dr[1] = 0x01000000;
+    const imm = (1 << 5) | 4;
+    sim._execShr({ crSrc: 1, crDst: 2, imm });
+    const got = sim.dr[2] >>> 0;
+    const expected = 0x00100000;
+    assert('SE3 ASR positive value: result is 0x00100000 (no sign extension)',
+        got === expected,
+        `expected 0x${expected.toString(16).toUpperCase()} got 0x${got.toString(16).toUpperCase()}`);
+}
+
 // ── LTF: led_turing_full snippet regression ───────────────────────────────────
 // Loads the led_turing_full assembly from _TURING_DR_TEST_SOURCE in app-run.js,
 // assembles it, and asserts zero errors.  This catches any edit that introduces
