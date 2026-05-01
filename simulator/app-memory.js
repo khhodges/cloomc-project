@@ -328,6 +328,18 @@ function updateCRDetail() {
             ? _lumpManifests[nsIdx]._methods : [];
         const _methodTableCount = _cloomcMethods.length;
 
+        // Build a map from instruction word-index → method info, using the
+        // pointer values stored in the method table (each value is the word
+        // offset of that method's first instruction within _codeWords).
+        const _methodStartMap = new Map();
+        for (let i = 0; i < _methodTableCount; i++) {
+            const offset = _codeWords[i]; // raw method table word = instruction offset
+            const method = _cloomcMethods[i];
+            if (method && typeof offset === 'number' && offset >= _methodTableCount) {
+                _methodStartMap.set(offset, method);
+            }
+        }
+
         let hasCodeData = lumpHdr.valid;
         for (let w = 0; w < _codeWords.length; w++) {
             const addr = codeStart + w;
@@ -360,6 +372,16 @@ function updateCRDetail() {
                 ? (addr === baseLoc + 1 + _crDetailHighlightPC)
                 : ((addr === (sim.programBaseAddr || 0) + _crDetailHighlightPC) || (addr === _crDetailHighlightPC)));
             const isBP    = simBreakpoints.has(addr);
+
+            // Method-start banner — emitted before any branch label at this word
+            if (_methodStartMap.has(w)) {
+                const _ms = _methodStartMap.get(w);
+                const _msVis = _ms._internal
+                    ? '<span class="cmp-priv-lbl">internal</span>'
+                    : '<span class="cmp-pub-lbl">public</span>';
+                const _colspan = _brArrows.hasBranches ? 5 : 4;
+                codeHtml += `<tr class="code-row-method-hdr"><td colspan="${_colspan}" class="code-method-hdr-line">\u25c6\u00a0${_ms.name}\u00a0\u2014\u00a0${_msVis}</td></tr>`;
+            }
 
             if (_brLabelMap.has(w)) {
                 const _lbl = _brLabelMap.get(w);
