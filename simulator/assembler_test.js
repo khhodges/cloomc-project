@@ -1747,6 +1747,90 @@ const ChurchSimulator = require('./simulator.js');
     assert('IS3 V flag set',   simIS3.flags.V === true,  `V=${simIS3.flags.V}`);
 }
 
+// ── BR: End-to-end step() integration tests for BRANCH ───────────────────────
+// These tests assemble a real BRANCH instruction via ChurchAssembler, inject the
+// encoded word into simulator.memory, prime the condition flags, call step()
+// exactly once, and verify that PC advances to the correct target (branch taken)
+// or just increments by 1 (branch not taken).  This exercises the full
+// fetch → decode → _execBranch path and catches condition-evaluation regressions.
+
+// BR1: Unconditional BRANCH +2 (AL — always taken) at PC=0 → PC must be 2.
+//   Program: BRANCH +2 / MCMP DR0, DR0 / MCMP DR0, DR0
+//   The two trailing MCMP words make targets 1 and 2 valid within the lump.
+{
+    const asmBR1 = new ChurchAssembler();
+    const rBR1   = asmBR1.assemble('BRANCH +2\nMCMP DR0, DR0\nMCMP DR0, DR0');
+    assert('BR1 BRANCH +2 assembles with no errors',
+        asmBR1.errors.length === 0,
+        asmBR1.errors.map(e => e.message).join('; '));
+
+    const simBR1 = new ChurchSimulator();
+    for (let i = 0; i < rBR1.words.length; i++) simBR1.memory[i] = rBR1.words[i] >>> 0;
+    simBR1.step();
+    assert('BR1 unconditional BRANCH +2 via step(): PC = 2',
+        simBR1.pc === 2,
+        `expected PC=2 got PC=${simBR1.pc}`);
+}
+
+// BR2: BRANCHEQ +3 with Z=1 (condition true → branch taken) at PC=0 → PC must be 3.
+//   Program: BRANCHEQ +3 / MCMP DR0, DR0 / MCMP DR0, DR0 / MCMP DR0, DR0
+{
+    const asmBR2 = new ChurchAssembler();
+    const rBR2   = asmBR2.assemble('BRANCHEQ +3\nMCMP DR0, DR0\nMCMP DR0, DR0\nMCMP DR0, DR0');
+    assert('BR2 BRANCHEQ +3 assembles with no errors',
+        asmBR2.errors.length === 0,
+        asmBR2.errors.map(e => e.message).join('; '));
+
+    const simBR2 = new ChurchSimulator();
+    for (let i = 0; i < rBR2.words.length; i++) simBR2.memory[i] = rBR2.words[i] >>> 0;
+    simBR2.flags.Z = true;
+    simBR2.step();
+    assert('BR2 BRANCHEQ +3 taken (Z=1) via step(): PC = 3',
+        simBR2.pc === 3,
+        `expected PC=3 got PC=${simBR2.pc}`);
+}
+
+// BR3: BRANCHNE +2 with Z=1 (condition false → branch NOT taken) at PC=0 → PC must be 1.
+//   Program: BRANCHNE +2 / MCMP DR0, DR0 / MCMP DR0, DR0
+//   Z=1 → NE is false → instruction skipped → PC increments sequentially to 1.
+{
+    const asmBR3 = new ChurchAssembler();
+    const rBR3   = asmBR3.assemble('BRANCHNE +2\nMCMP DR0, DR0\nMCMP DR0, DR0');
+    assert('BR3 BRANCHNE +2 assembles with no errors',
+        asmBR3.errors.length === 0,
+        asmBR3.errors.map(e => e.message).join('; '));
+
+    const simBR3 = new ChurchSimulator();
+    for (let i = 0; i < rBR3.words.length; i++) simBR3.memory[i] = rBR3.words[i] >>> 0;
+    simBR3.flags.Z = true;   // Z=1 → NE is false → instruction skipped
+    simBR3.step();
+    assert('BR3 BRANCHNE +2 not taken (Z=1) via step(): PC = 1 (sequential advance)',
+        simBR3.pc === 1,
+        `expected PC=1 got PC=${simBR3.pc}`);
+}
+
+// BR4: BRANCHNE -1 at PC=1 with Z=0 (condition true → backward branch taken) → PC must be 0.
+//   Program: MCMP DR0, DR0 / BRANCHNE -1
+//   word 0 = MCMP (the backward target — valid within the 2-word lump)
+//   word 1 = BRANCHNE -1  → target = 1 + (-1) = 0
+//   With Z=0, NE is true → branch taken.
+{
+    const asmBR4 = new ChurchAssembler();
+    const rBR4   = asmBR4.assemble('MCMP DR0, DR0\nBRANCHNE -1');
+    assert('BR4 BRANCHNE -1 assembles with no errors',
+        asmBR4.errors.length === 0,
+        asmBR4.errors.map(e => e.message).join('; '));
+
+    const simBR4 = new ChurchSimulator();
+    for (let i = 0; i < rBR4.words.length; i++) simBR4.memory[i] = rBR4.words[i] >>> 0;
+    simBR4.pc      = 1;
+    simBR4.flags.Z = false;   // Z=0 → NE is true → branch taken
+    simBR4.step();
+    assert('BR4 BRANCHNE -1 backward taken (Z=0) via step(): PC = 0',
+        simBR4.pc === 0,
+        `expected PC=0 got PC=${simBR4.pc}`);
+}
+
 // ── LTF: led_turing_full snippet regression ───────────────────────────────────
 // Loads the led_turing_full assembly from _TURING_DR_TEST_SOURCE in app-run.js,
 // assembles it, and asserts zero errors.  This catches any edit that introduces
