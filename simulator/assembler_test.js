@@ -1316,6 +1316,24 @@ function findSHR(words) {
     }
 }
 
+// CC6: CLOOMC inline-asm path accepts SHR DRd, DRs, n, ASR and emits imm[5]=1.
+//      Uses compilePetName() directly so only the inline-asm accumulator path
+//      is exercised (no expression compiler involved).
+{
+    const cc = new CLOOMCCompiler();
+    const src = 'SHR DR3, DR1, 4, ASR';
+    const result = cc.compilePetName(src, []);
+    assert('CC6 inline-asm SHR ASR: no compile errors', result.errors.length === 0,
+        result.errors.map(e => e.message).join('; '));
+    const shr = findSHR((result.methods && result.methods[0] && result.methods[0].code) || []);
+    assert('CC6 inline-asm SHR ASR: SHR word emitted', shr !== null,
+        'no SHR found in ' + JSON.stringify(result.code));
+    if (shr) {
+        assert('CC6 inline-asm SHR ASR: shamt=4', shr.shamt === 4, 'got shamt=' + shr.shamt);
+        assert('CC6 inline-asm SHR ASR: arith=1 (imm[5]=1)', shr.arith === 1, 'got arith=' + shr.arith);
+    }
+}
+
 // ── LTF: led_turing_full snippet regression ───────────────────────────────────
 // Loads the led_turing_full assembly from _TURING_DR_TEST_SOURCE in app-run.js,
 // assembles it, and asserts zero errors.  This catches any edit that introduces
