@@ -13,9 +13,8 @@ class ChurchCall(Elaboratable):
         self.call_start = Signal()
         self.cr_src = Signal(4)
         self.index = Signal(16)
-        self.call_imm = Signal(15)   # method index for hardware method-table dispatch (imm15)
-        self.mask = Signal(16)   # bits [0:12] → null-GT write mask for CR0–CR11
         self.call_imm = Signal(15)  # method index from CALL imm15; 0 = single entry (NIA=lump_base+4)
+        self.mask = Signal(16)   # bits [0:12] → null-GT write mask for CR0–CR11
         self.call_busy = Signal()
         self.call_complete = Signal()        # COMPLETE | M_FETCH_DONE (for exec advance only)
         self.call_normal_complete = Signal() # COMPLETE only (for stack push / code fence)
