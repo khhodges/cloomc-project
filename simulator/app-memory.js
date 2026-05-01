@@ -71,13 +71,7 @@ function updateCRDetail() {
     const showEditButton = showCode && _editLumpHdr.valid;
 
     // ── Correct default tab for this CR's capabilities ───────────────────────
-    if ((crDetailTab === 'code' || crDetailTab === 'api') && !showCode) {
-        crDetailTab = showCList ? 'clist' : showData ? 'register' : 'lump';
-    } else if ((crDetailTab === 'register' || crDetailTab === 'binary') && !showData) {
-        crDetailTab = showCode ? 'code' : showCList ? 'clist' : 'lump';
-    } else if (crDetailTab === 'clist' && !showCList) {
-        crDetailTab = showCode ? 'code' : showData ? 'register' : 'lump';
-    }
+    crDetailTab = correctCRDetailTab(crDetailTab, showCode, showCList, showData);
 
     // ── Hoist shared data used across multiple panels ─────────────────────────
     const _baseLoc      = cr.word1_location >>> 0;
