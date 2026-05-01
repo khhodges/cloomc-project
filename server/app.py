@@ -976,7 +976,7 @@ def six_laws_pdf():
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return resp
 
-_SIMULATOR_HTML_VERSION = "r20260501e"
+_SIMULATOR_HTML_VERSION = "r20260501f"
 
 @app.route("/simulator")
 @app.route("/simulator/")

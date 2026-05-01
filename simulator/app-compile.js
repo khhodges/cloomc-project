@@ -1108,19 +1108,39 @@ function loadCLOOMCIntoSim() {
     // ── Populate a lump manifest from the CLOOMC methods so the API tab shows
     // call-site examples instead of "No method manifest available".
     if (typeof _lumpManifests !== 'undefined') {
-        const _publicMethods = (result.methods || []).filter(m => m.name !== 'Dispatch' && m.name !== 'M00');
-        const _globalPetDR   = { '0': 'result' };
-        const _manifestMethods = _publicMethods.map((m) => {
+        const _allMethods  = result.methods || [];
+        const _globalPetDR = { '0': 'result' };
+        // Include every method (public + internal); flag internal ones so the
+        // API tab can display them with a distinct visual style.
+        const _internalNames = new Set(['Dispatch', 'M00']);
+        const _manifestMethods = _allMethods.map((m) => {
+            const isInternal = _internalNames.has(m.name);
             const params = m.params || [];
             const drPets = {};
             // Dispatch selector is always DR0; param[0] → DR1, param[1] → DR2, etc.
             params.forEach((p, j) => { drPets[String(j + 1)] = p; });
-            const inputs  = params.map((p, j) => `DR${j + 1} (${p})`);
-            const outputs = ['DR0 (return value)'];
-            return { name: m.name, inputs, outputs, pet_names: { DR: drPets, CR: {} } };
+            const inputs  = isInternal ? [] : params.map((p, j) => `DR${j + 1} (${p})`);
+            const outputs = isInternal ? [] : ['DR0 (return value)'];
+            return { name: m.name, inputs, outputs,
+                     pet_names: { DR: drPets, CR: {} },
+                     _internal: isInternal };
+        });
+        // Also build the `methods` dict expected by the "Methods & Example API"
+        // section (keyed by name, with index / input / output fields).
+        const _methodsDict = {};
+        _allMethods.forEach((m, idx) => {
+            const isInternal = _internalNames.has(m.name);
+            const params = m.params || [];
+            _methodsDict[m.name] = {
+                index:    idx,
+                input:    isInternal ? '—' : (params.length ? params.map((p, j) => `DR${j + 1} (${p})`).join(', ') : '—'),
+                output:   isInternal ? '—' : 'DR0 (return value)',
+                _internal: isInternal
+            };
         });
         _lumpManifests[_bootSlot] = {
             _methods: _manifestMethods,
+            methods:  _methodsDict,
             pet_names: { DR: _globalPetDR, CR: {} }
         };
     }

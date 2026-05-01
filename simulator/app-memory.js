@@ -1068,7 +1068,13 @@ function updateCRDetail() {
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
 
-            _apiMethodsHtml += `<div style="margin-bottom:1.5rem;">`;
+            const _anchorId = `crd-api-ex-${nsIdx}-${mIdx}`;
+            const _isInternal = !!method._internal;
+            const _badge = _isInternal
+                ? `<span style="font-size:0.65rem;background:#2a2a3a;color:var(--text-secondary);border-radius:3px;padding:1px 5px;margin-left:0.5rem;vertical-align:middle;">internal</span>`
+                : `<span style="font-size:0.65rem;background:#1a2a1a;color:#6fbf6f;border-radius:3px;padding:1px 5px;margin-left:0.5rem;vertical-align:middle;">public</span>`;
+            _apiMethodsHtml += `<div id="${_anchorId}" style="margin-bottom:1.5rem;scroll-margin-top:4px;">`;
+            _apiMethodsHtml += `<div style="font-size:0.78rem;font-weight:700;color:var(--church-gold);margin-bottom:0.35rem;">${method.name}${_badge}</div>`;
             _apiMethodsHtml += `<pre class="abs-method-panel-code" style="font-size:0.72rem;line-height:1.55;background:#0a0a1a;padding:0.75rem;border-radius:6px;overflow-x:auto;white-space:pre;">${escapedEx}</pre>`;
             if (!method.aliasOf && !_lumpHasPetNames) {
                 _apiMethodsHtml += `<div style="color:var(--text-secondary);font-size:0.75rem;margin-top:0.25rem;font-style:italic;">; (no pet names defined \u2014 compile abstraction to add aliases)</div>`;
@@ -1111,29 +1117,53 @@ function updateCRDetail() {
         }
     }
 
-    // Methods & Example API
+    // Methods & Example API — clickable method index linking to anchored example blocks
     html += '<div class="crd-api-section-label">Methods &amp; Example API</div>';
     {
-        const _conv    = (typeof METHOD_REGISTER_CONVENTIONS !== 'undefined' && METHOD_REGISTER_CONVENTIONS[_absName]) || {};
-        const _mfstMth = (_lumpManifests[nsIdx] && _lumpManifests[nsIdx].methods) || {};
-        const _mthKeys = Array.from(new Set([...Object.keys(_conv), ...Object.keys(_mfstMth)]));
-        _mthKeys.sort((a, b) => {
-            const ia = (_conv[a] && _conv[a].index != null) ? _conv[a].index : (_mfstMth[a] && _mfstMth[a].index != null) ? _mfstMth[a].index : 999;
-            const ib = (_conv[b] && _conv[b].index != null) ? _conv[b].index : (_mfstMth[b] && _mfstMth[b].index != null) ? _mfstMth[b].index : 999;
+        // Prefer the _methods array (populated by CLOOMC load); fall back to the
+        // legacy METHOD_REGISTER_CONVENTIONS dict for system abstractions.
+        const _idxMethods = (_lumpManifests[nsIdx] && _lumpManifests[nsIdx]._methods) || [];
+        const _conv       = (typeof METHOD_REGISTER_CONVENTIONS !== 'undefined' && METHOD_REGISTER_CONVENTIONS[_absName]) || {};
+        const _convKeys   = Object.keys(_conv).sort((a, b) => {
+            const ia = _conv[a].index != null ? _conv[a].index : 999;
+            const ib = _conv[b].index != null ? _conv[b].index : 999;
             return ia - ib;
         });
 
-        if (_mthKeys.length === 0) {
-            html += '<div style="color:var(--text-secondary);font-style:italic;">(no methods defined \u2014 abstraction has no published calling convention)</div>';
+        if (_idxMethods.length === 0 && _convKeys.length === 0) {
+            html += '<div style="color:var(--text-secondary);font-style:italic;">(no methods defined \u2014 compile the abstraction source to see methods)</div>';
+        } else if (_idxMethods.length > 0) {
+            // CLOOMC-compiled: show a pill list where each pill scrolls to the
+            // anchored example block in the API — Method Examples section below.
+            html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem;">';
+            for (let _mi = 0; _mi < _idxMethods.length; _mi++) {
+                const _m = _idxMethods[_mi];
+                const _isInt = !!_m._internal;
+                const _anchorId = `crd-api-ex-${nsIdx}-${_mi}`;
+                const _pillBg   = _isInt ? '#1e1e2e' : '#1a2a1a';
+                const _pillClr  = _isInt ? 'var(--text-secondary)' : '#6fbf6f';
+                const _pillBdr  = _isInt ? '#2a2a4a' : '#2a4a2a';
+                const _tag      = _isInt ? 'internal' : 'public';
+                html += `<button onclick="var el=document.getElementById('${_anchorId}');if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.style.outline='2px solid var(--church-gold)';setTimeout(()=>{el.style.outline=''},1500);}" `
+                      + `style="background:${_pillBg};color:${_pillClr};border:1px solid ${_pillBdr};`
+                      + `border-radius:5px;padding:2px 8px;font-size:0.72rem;cursor:pointer;font-family:inherit;`
+                      + `display:inline-flex;align-items:center;gap:0.3rem;" `
+                      + `title="${_tag} method — click to jump to example">`
+                      + `${_m.name}`
+                      + `<span style="font-size:0.6rem;opacity:0.6;">${_mi}</span>`
+                      + `</button>`;
+            }
+            html += '</div>';
+            html += '<div style="color:var(--text-secondary);font-size:0.72rem;">Click a method to jump to its call example below.</div>';
         } else {
-            for (const _mname of _mthKeys) {
-                const _mc   = _conv[_mname] || {};
-                const _mm   = _mfstMth[_mname] || {};
-                const _midx = _mc.index != null ? _mc.index : (_mm.index != null ? _mm.index : '\u2014');
-                const _min  = _mc.input  || _mm.input  || '\u2014';
-                const _mout = _mc.output || _mm.output || '\u2014';
-                const _mdis = _mc.dispatch || _mm.dispatch || null;
-                const _mnote= _mc.note   || _mm.note   || null;
+            // Legacy conventions dict path (system abstractions without CLOOMC compile).
+            for (const _mname of _convKeys) {
+                const _mc   = _conv[_mname];
+                const _midx = _mc.index != null ? _mc.index : '\u2014';
+                const _min  = _mc.input  || '\u2014';
+                const _mout = _mc.output || '\u2014';
+                const _mdis = _mc.dispatch || null;
+                const _mnote= _mc.note    || null;
 
                 html += '<div class="crd-api-method-block">';
                 html += `<div style="font-weight:700;color:var(--church-gold);margin-bottom:0.25rem;">${_mname}</div>`;
@@ -1147,19 +1177,14 @@ function updateCRDetail() {
                 html += '</tbody></table>';
 
                 const _exLines = [];
-                if (_midx !== '\u2014') {
-                    _exLines.push(`LOAD  DR3, #${_midx}     ; method selector`);
-                }
+                if (_midx !== '\u2014') _exLines.push(`LOAD  DR3, #${_midx}     ; method selector`);
                 if (_mdis) {
                     _exLines.push(`${_mdis}  ; ${_absName || 'abs'}.${_mname}`);
                 } else {
                     _exLines.push(`CALL  CR0, CR14, #0  ; ${_absName || 'abs'}.${_mname}`);
                 }
                 html += `<pre class="crd-api-dispatch">${_exLines.join('\n')}</pre>`;
-
-                if (_mnote) {
-                    html += `<div class="crd-api-note">${_mnote}</div>`;
-                }
+                if (_mnote) html += `<div class="crd-api-note">${_mnote}</div>`;
                 html += '</div>';
             }
         }
