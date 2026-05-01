@@ -53,20 +53,20 @@ These instructions manipulate capabilities (Golden Tokens). They operate on Cont
 ### LOAD (opcode 0)
 
 ```
-LOAD CRd, CRs, #slot
+LOAD CRd, CRs, #row
 ```
 
-Loads a Golden Token from the c-list pointed to by CRs at the given slot into CRd. Requires L (load) permission on the source GT. CR6-specific M-elevation: LOAD from CR6 skips L permission check because CALL already validated E.
+Loads a Golden Token from the c-list pointed to by CRs at the given row (word offset) into CRd. Requires L (load) permission on the source GT. CR6-specific M-elevation: LOAD from CR6 skips L permission check because CALL already validated E.
 
 **Security**: mLoad validates version, seal, bounds, L permission, and F-bit.
 
 ### SAVE (opcode 1)
 
 ```
-SAVE CRd, CRs, #slot
+SAVE CRd, CRs, #row
 ```
 
-Saves the GT in CRs (source GT, B=1 required) to the c-list pointed to by CRd (destination c-list pointer, S permission required) at the given slot offset.
+Saves the GT in CRs (source GT, B=1 required) to the c-list pointed to by CRd (destination c-list pointer, S permission required) at the given row (word offset).
 
 - **CRd** — destination c-list pointer. Must have S (save) permission.
 - **CRs** — source GT to save. Must have B=1 (bindable). A GT without B=1 cannot be delegated.
@@ -76,19 +76,23 @@ Saves the GT in CRs (source GT, B=1 required) to the c-list pointed to by CRd (d
 ### CALL (opcode 2)
 
 ```
-CALL CRs, offset
+CALL CRs [, #method_index]
 ```
 
-Enters the abstraction identified by an E-GT. Two modes:
-
-- **C-List mode** (offset 0–14, L permission on CRs): mLoad fetches the E-GT stored at `CRs[offset]` in the C-List.
-- **Direct mode** (offset = 0xF = all-1s, E permission on CRs): CRs itself is the E-GT — no C-List lookup.
-
-CRd is implicit and always CR6. CALL pushes **2 words** onto the call stack:
+Enters the abstraction identified by the E-GT in CRs. CALL pushes **2 words** onto the call stack:
 - **Word 0** — the caller's E-GT (used by RETURN to revalidate and re-derive CR6/CR14)
 - **Word 1** — NIA (return offset) | packed machine indicators
 
-No DRs and no other CRs are pushed. Callee inherits DR0–DR15, CR0–CR5, CR7–CR11, CR15 (caller context); CR12/CR13 are system-wide and unchanged. Sets CR6 = callee c-list (L-only), CR14 = callee code (X-only, privileged), PC = 0.
+No DRs and no other CRs are pushed. Callee inherits DR0–DR15, CR0–CR5, CR7–CR11, CR15 (caller context); CR12/CR13 are system-wide and unchanged. Sets CR6 = callee c-list (E-only), CR14 = callee code (X-only, privileged, M=1).
+
+**Method index dispatch** (imm15 field):
+
+| imm15 | NIA |
+|---|---|
+| 0 | lump_base + 4 (word 1 — single entry point, no method table) |
+| n > 0 | hardware reads `memory[lump_base + n×4]`; result is lump-base-relative word offset → NIA = lump_base + offset×4. Result = 0 → private method → FAULT. |
+
+PC=0 (lump header word) is always a FAULT — the header is never executable.
 
 ### RETURN (opcode 3)
 
@@ -268,18 +272,22 @@ Applies the code object referenced by CRd in the current scope. Requires X (exec
 ### ELOADCALL (opcode 8)
 
 ```
-ELOADCALL CRd, CRs, #slot
+ELOADCALL CRd, CRs, #row [, #method_index]
 ```
 
-Fused LOAD + CALL. Loads a GT from CRs's c-list at slot, then immediately enters it. Equivalent to `LOAD CRd, CRs, #slot` followed by `CALL CRd, 0xF` (direct mode), but atomic.
+Fused LOAD + CALL. Loads a GT from CRs's c-list at the given row (word offset), then immediately enters it. Atomic: no intermediate CR state is visible between the LOAD and the CALL.
+
+imm15 split: bits[7:0] = c-list row (word offset into the c-list of CRsrc, 0–255); bits[14:8] = method index passed to the hardware CALL phase (same semantics as CALL imm15, 0–127).
+
+Existing programs encode bits[14:8]=0 → method index 0 → NIA = lump_base + 4 (backward compatible).
 
 ### XLOADLAMBDA (opcode 9)
 
 ```
-XLOADLAMBDA CRd, CRs, #slot
+XLOADLAMBDA CRd, CRs, #row
 ```
 
-Fused LOAD + LAMBDA. Loads a GT from CRs's c-list at slot, then immediately applies it. Equivalent to `LOAD CRd, CRs, #slot` followed by `LAMBDA CRd`, but atomic.
+Fused LOAD + LAMBDA. Loads a GT from CRs's c-list at the given row (word offset), then immediately applies it. Equivalent to `LOAD CRd, CRs, #row` followed by `LAMBDA CRd`, but atomic.
 
 ---
 

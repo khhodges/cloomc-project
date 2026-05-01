@@ -139,9 +139,9 @@ entry:
 
 This is the most familiar model — the capability framework wraps it, but the internal dispatch is traditional.
 
-### Auto-Generated Dispatch (Style 3 Extension)
+### Hardware Method-Table Dispatch (Style 3 Extension)
 
-Style 3 abstractions written in CLOOMC no longer need to hand-write the MCMP+BRANCHEQ dispatch loop. When a CLOOMC abstraction uses at least one `public` or `private` method qualifier, the compiler generates M00 automatically from the public method list.
+Style 3 abstractions written in CLOOMC use a hardware method table baked into the lump by the compiler. The caller encodes the method index directly in the `CALL` instruction's imm15 field — no runtime ISUB/IADD/MCMP loop executes.
 
 ```cloomc
 abstraction Mint {
@@ -153,22 +153,36 @@ abstraction Mint {
 }
 ```
 
-The compiler generates:
+The compiler writes the lump as:
 
 ```
-M00  Dispatch     — auto-generated ISUB+IADD+MCMP+BRANCHEQ linear scan (public methods only)
-M01  Create       — public, selector 1
-M02  Revoke       — private: compiled at offset, absent from dispatch table
-M03  Transfer     — public, selector 2
+word 0  lump header              — magic + cw + cc + typ + n_minus_6
+word 1  table[1] = offset(Create)  — lump-base-relative word offset
+word 2  table[2] = 0               — Revoke is private → FAULT if called
+word 3  table[3] = offset(Transfer)— lump-base-relative word offset
+word 4..  Create code
+…         Revoke code
+…         Transfer code
 ```
 
-**Access control is structural**: private methods are compiled into the lump binary and reachable from sibling methods via direct `BRANCH`, but they are never referenced in M00. Because M00 is the only external entry point and the lump seal prevents code modification from outside, private methods are architecturally unreachable from any external caller.
+The CALL instruction encodes the method index in bits[14:0]:
 
-**Why dispatch-as-macro, not lambda-as-GT**: The correct design is to generate dispatch code inside the existing lump boundary, not to create a new GT for each method. A per-method GT would amplify the NS table, add a new trust boundary per method, and fragment the atomic simplicity of the lump seal. The dispatch is a compiler-generated macro that lives inside the seal — not a new capability object.
+| `CALL CRsrc, #index` | NIA |
+|---|---|
+| index = 0 | lump_base + 4 (word 1 — single entry point, no table) |
+| index = 1 | memory[lump_base + 4] → offset(Create) → lump_base + offset×4 |
+| index = 2 | memory[lump_base + 8] → 0 → **FAULT** (private) |
+| index = 3 | memory[lump_base + 12] → offset(Transfer) → lump_base + offset×4 |
 
-**Backward compatibility**: Abstractions that use no visibility qualifiers compile identically to before. Auto-dispatch is only emitted when at least one qualifier is present.
+**Access control is structural**: private methods store 0 in the table. Hardware faults on a zero table entry before executing any code. Because the table is inside the lump seal and the lump seal prevents code modification from outside, private methods are architecturally unreachable from external callers.
 
-For the full architectural rationale, selector numbering rules, and a worked Mint example, see [method-access-control.md](method-access-control.md).
+**Security**: method index is a compile-time immediate in the instruction word — it cannot be influenced by runtime data. Even a wrong index only reads within the lump's allocated bounds.
+
+**No Dispatch method**: the ISUB/IADD/MCMP/BRANCHEQ linear scan is eliminated entirely. No code runs between the CALL and the target method body.
+
+**Backward compatibility**: abstractions that use no visibility qualifiers and emit `CALL CRsrc` (imm15=0) continue to work — NIA = lump_base + 4 (single entry point at word 1).
+
+For the full vocabulary table (slot/row/index), selector numbering rules, and a worked Mint example, see [method-access-control.md](method-access-control.md).
 
 ## Comparison
 

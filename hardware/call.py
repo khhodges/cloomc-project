@@ -14,6 +14,7 @@ class ChurchCall(Elaboratable):
         self.cr_src = Signal(4)
         self.index = Signal(16)
         self.mask = Signal(16)   # bits [0:12] → null-GT write mask for CR0–CR11
+        self.call_imm = Signal(15)  # method index from CALL imm15; 0 = single entry (NIA=lump_base+4)
         self.call_busy = Signal()
         self.call_complete = Signal()        # COMPLETE | M_FETCH_DONE (for exec advance only)
         self.call_normal_complete = Signal() # COMPLETE only (for stack push / code fence)
@@ -111,11 +112,15 @@ class ChurchCall(Elaboratable):
         phase = Signal()
         src_reg_latched = Signal(CAP_REG_LAYOUT)
         mask_latched = Signal(16)
+        call_imm_latched = Signal(15)   # method index latched from self.call_imm at call_start
         fault_latched = Signal()
         fault_type_latched = Signal(5)      # 5 bits: covers FaultType 0x0–0x12 (STACK_CORRUPT)
         sub_start_reg = Signal()
         sub_done_latched = Signal()
         sub_fault_latched = Signal()
+        # Method-table dispatch state
+        method_entry_reg  = Signal(32)  # lump-base-relative word offset fetched from method table
+        use_method_table  = Signal()    # 1 = NIA derived from method_entry_reg, 0 = word 1 default
 
         local_cr_rd_addr = Signal(4)
         local_cr_wr_en = Signal()
@@ -264,10 +269,18 @@ class ChurchCall(Elaboratable):
             cr14_wm_view.word2_w2.eq(cr14_lat_view.word2_w2),
         ]
 
-        # NIA: callee's first instruction = lump_base + 4 (word 1, after the lump header).
-        # cr14_wm_view.word1_location already equals cr14_lat_view.word1_location + 4.
+        # NIA: two modes selected by use_method_table.
+        #  0 — single entry point: lump_base + 4 (word 1, after the lump header).
+        #       cr14_wm_view.word1_location = cr14_lat_view.word1_location + 4 = lump_base + 4.
+        #  1 — method-table lookup: lump_base + method_entry_reg * 4.
+        #       method_entry_reg holds the lump-base-relative word offset fetched from the table.
         nia_computed = Signal(32)
-        m.d.comb += nia_computed.eq(cr14_wm_view.word1_location)
+        m.d.comb += nia_computed.eq(
+            Mux(use_method_table,
+                ns_base_from_cr14 + (method_entry_reg << 2),  # table entry: word offset → byte addr
+                cr14_wm_view.word1_location,                   # default: lump_base + 4 (word 1)
+            )
+        )
 
         # mLoad stores raw NS[+0] = lump_base into CR14.word1_location (no +4 offset).
         # SET_M_WRITE applies +4 so the final CR14.base points at the first instruction word.
@@ -346,8 +359,10 @@ class ChurchCall(Elaboratable):
             with m.State("IDLE"):
                 m.d.sync += [phase.eq(0), fault_latched.eq(0), fault_type_latched.eq(FaultType.NONE)]
                 m.d.sync += [sub_done_latched.eq(0), sub_fault_latched.eq(0)]
+                m.d.sync += [use_method_table.eq(0), method_entry_reg.eq(0)]
                 with m.If(self.call_start):
                     m.d.sync += mask_latched.eq(self.mask)
+                    m.d.sync += call_imm_latched.eq(self.call_imm)
                     m.next = "CHECK_SRC"
 
             with m.State("CHECK_SRC"):
@@ -447,7 +462,37 @@ class ChurchCall(Elaboratable):
                         n_minus_6_reg.eq(_hdr.n_minus_6),
                         lumpSize_reg.eq(Const(1, 15) << (_hdr.n_minus_6 + 6)),
                     ]
-                    m.next = "SET_CR14_LIMIT_WRITE"
+                    # If method index > 0, read the method table before setting CR14 limit.
+                    # Index 0 = single entry point (NIA = lump_base + 4); skip table fetch.
+                    with m.If(call_imm_latched > 0):
+                        m.next = "FETCH_METHOD_ENTRY"
+                    with m.Else():
+                        m.next = "SET_CR14_LIMIT_WRITE"
+
+            with m.State("FETCH_METHOD_ENTRY"):
+                # Read method table entry at memory[lump_base + call_imm * 4].
+                # ns_base_from_cr14 = lump_base (byte address of lump word 0 = header).
+                # call_imm_latched is the 15-bit method index (≥1 when this state is reached).
+                # The fetched word is a lump-base-relative WORD offset of the method body.
+                m.d.comb += [
+                    self.mem_rd_addr.eq(ns_base_from_cr14 + (call_imm_latched << 2)),
+                    self.mem_rd_en.eq(1),
+                ]
+                with m.If(self.mem_rd_valid):
+                    with m.If(self.mem_rd_data == 0):
+                        # Table entry = 0 → private method or out-of-range index → FAULT.
+                        m.d.sync += [
+                            fault_latched.eq(1),
+                            fault_type_latched.eq(FaultType.PERM_E),
+                        ]
+                        m.next = "FAULT"
+                    with m.Else():
+                        # Latch the word offset; use_method_table=1 steers nia_computed.
+                        m.d.sync += [
+                            method_entry_reg.eq(self.mem_rd_data),
+                            use_method_table.eq(1),
+                        ]
+                        m.next = "SET_CR14_LIMIT_WRITE"
 
             with m.State("SET_CR14_LIMIT_WRITE"):
                 # Write CR14 with PERM_X (M=1) and corrected limit_offset = cw-1 (authoritative code-word count from lump header)

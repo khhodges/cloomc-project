@@ -112,6 +112,17 @@ Authoritative sources: `hardware/hw_types.py`, `hardware/layouts.py`, `hardware/
 - **Affected files**: `hardware/core.py` (FAULT condition only)
 - **Patent**: Documented in `docs/patent-ctmm-lambda-recursion-2026.md` (Claims 1–7)
 
+### D-10: CALL Method-Table Dispatch — PC=0 Eliminated
+
+- **Patent / original spec**: CALL sets PC=0 after entering the callee lump. The callee's M00 Dispatch method (auto-generated ISUB/IADD/MCMP/BRANCHEQ loop at lump word 0) routes to the target method based on a selector in DR0.
+- **Current hardware design**: PC=0 is always a FAULT — the lump header occupies word 0 and is never executable. The CALL instruction carries the method index in imm15 (15 bits). Hardware reads `memory[lump_base + method_index × 4]` to get the callee's first instruction word offset, then sets NIA = lump_base + offset × 4. A zero table entry is a private-method FAULT. Method index 0 is the single-entry-point shorthand (NIA = lump_base + 4, word 1) for abstractions with no method table.
+- **ELOADCALL imm15 split**: bits[7:0] = c-list row (word offset into CRsrc c-list, 0–255); bits[14:8] = method index passed to the CALL phase (0–127).
+- **Lump layout change**: Compiler writes method table at lump words 1..N (immediately after the lump header). Private methods store 0. Public methods store lump-base-relative word offset of their first instruction.
+- **Software Dispatch method eliminated**: No auto-generated ISUB/IADD/MCMP code is prepended to the lump. The method table is data, not code.
+- **Backward compatibility**: Existing programs encode imm15=0 (method index 0) → NIA = lump_base + 4. Behaviour is unchanged for single-entry-point abstractions.
+- **Hardware changes required**: `hardware/call.py` — add `call_imm Signal(15)`, `call_imm_latched`, `method_entry_reg`, `use_method_table` flag; add `FETCH_METHOD_ENTRY` state after `FETCH_LUMP`; update `nia_computed` to Mux on `use_method_table`. `hardware/decoder.py` — add `call_method_index Signal(15)` (= imm_field) and split ELOADCALL signals (`eloadcall_method_index Signal(7)` = imm_field[8:15], `eloadcall_clist_row Signal(8)` = imm_field[0:8]).
+- **Affected files**: `hardware/call.py`, `hardware/decoder.py`, `hardware/core.py` (wiring), `simulator/simulator.js` (_execCall), `simulator/cloomc_compiler.js` (remove _generateAutoDispatch), `simulator/app-compile.js`, `simulator/app-run.js` (codeOffset = methodTableSize + 1).
+
 ---
 
 ## Simulator vs Hardware NS Entry Word Packing (informational)

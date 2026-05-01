@@ -271,11 +271,11 @@ Applies the code object referenced by a CR in the current scope. Requires X perm
 
 ### 8. ELOADCALL — Fused Load + Call
 
-Loads a GT from a c-list slot and immediately enters it. Equivalent to LOAD + CALL (direct mode), but atomic.
+Loads a GT from a c-list row (word offset) and immediately enters it. Atomic: no intermediate CR state is visible. imm15 is split: bits[7:0] = c-list row, bits[14:8] = method index for the CALL phase. Equivalent to `LOAD CRd, CRsrc, #row` followed by `CALL CRd, #method_index`, but atomic.
 
 ### 9. XLOADLAMBDA — Fused Load + Lambda
 
-Loads a GT from a c-list slot and immediately applies it. Equivalent to LOAD + LAMBDA, but atomic.
+Loads a GT from a c-list row (word offset) and immediately applies it. Equivalent to `LOAD CRd, CRsrc, #row` followed by `LAMBDA CRd`, but atomic.
 
 ---
 

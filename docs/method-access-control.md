@@ -1,9 +1,17 @@
 # Method Access Control in CLOOMC
 
-**v1.0 — 2026-04-29**
+**v1.1 — 2026-05-01**
 **CONFIDENTIAL**
 
-**Status**: Architectural specification. April 27, 2026.
+**Status**: Architectural specification. April 27, 2026. Revised May 1, 2026 (hardware method-table dispatch).
+
+## Vocabulary
+
+| Structure   | Stride   | Term          |
+|-------------|----------|---------------|
+| NS table    | 4 words  | **slot**      |
+| c-list      | 1 word   | **row**       |
+| method table| 1 word   | **index**     |
 
 ## Overview
 
@@ -16,7 +24,7 @@ private method Bar(args) { ... }
 
 Omitting the qualifier defaults to `public` — existing source files without qualifiers compile identically to before.
 
-These qualifiers have a specific, structural meaning tied to the lump seal and the dispatch mechanism. This document explains what they mean, how they are enforced, and why the design is sound.
+These qualifiers have a specific, structural meaning tied to the lump seal and the hardware method table. This document explains what they mean, how they are enforced, and why the design is sound.
 
 ---
 
@@ -24,11 +32,11 @@ These qualifiers have a specific, structural meaning tied to the lump seal and t
 
 ### `public`
 
-A public method is externally callable. It appears in the auto-generated dispatch table at M00. Any caller holding a GT to this abstraction can invoke a public method by passing its selector in DR0.
+A public method is externally callable. The compiler writes its lump-base-relative word offset into the method table at the word corresponding to its method index. Any caller holding a GT to this abstraction can invoke a public method by encoding its method index in the `CALL` instruction's imm15 field.
 
 ### `private`
 
-A private method is an internal implementation detail. It is compiled into the lump binary at its assigned offset and is fully reachable from within the abstraction via a direct `BRANCH` instruction. However, it does **not** appear in the dispatch table at M00. Because M00 never routes to it, and the lump seal prevents modification of the code region from outside, private methods are **structurally unreachable** from external callers — not merely hidden by convention.
+A private method is an internal implementation detail. It is compiled into the lump binary at its assigned offset and is fully reachable from within the abstraction via a direct `BRANCH` instruction. However, the compiler writes `0` into the method table at the private method's index position. Because the hardware faults on a zero table entry, and the lump seal prevents modification of the lump from outside, private methods are **structurally unreachable** from external callers — not merely hidden by convention.
 
 ---
 
@@ -36,11 +44,11 @@ A private method is an internal implementation detail. It is compiled into the l
 
 The security property comes from two orthogonal mechanisms working together:
 
-1. **Dispatch exclusion**: The compiler-generated M00 only emits MCMP+BRANCHEQ entries for public methods. There is no code path in M00 that reaches a private method's offset.
+1. **Method table exclusion**: The compiler writes `0` for every private method's index position. Hardware reads this 0 and faults (PERM fault) before executing any code.
 
-2. **Lump seal**: The lump is a sealed binary object. Once committed to the namespace, its code region cannot be patched or extended from outside. An attacker cannot inject new branch instructions into M00 to reach the private method.
+2. **Lump seal**: The lump is a sealed binary object. Once committed to the namespace, its method table region cannot be patched or extended from outside. An attacker cannot write a non-zero offset into a private method's table entry.
 
-Together these mean: a private method's byte offset exists in the lump binary, but no externally-reachable code path leads to it. It is unreachable in the same sense that dead code is unreachable in a conventional binary — structurally, not probabilistically.
+Together these mean: a private method's byte offset exists in the lump binary, but no externally-reachable hardware path leads to it. It is unreachable in the same sense that dead code is unreachable in a conventional binary — structurally, not probabilistically.
 
 ---
 
@@ -54,49 +62,53 @@ A natural alternative would be to give each method its own GT (capability token)
 
 **LAMBDA semantics mismatch**: In this architecture, LAMBDA means a well-defined entry point *within* a sealed lump — not a separate GT with its own c-list. Introducing per-method GTs would require LAMBDA instructions to load GTs from a caller-supplied c-list, re-introducing the exact amplification problem that capability architectures are designed to avoid.
 
-**The correct design**: Method dispatch is a macro, not a trust boundary. The auto-generated dispatch code at M00 is inside the existing lump seal. Private methods are excluded from the macro. No new GT or NS entry is created.
+**The correct design**: Method dispatch is a hardware table read, not a software trust boundary. The method table is inside the existing lump seal. Private methods store 0 in the table. No new GT or NS entry is created.
 
 This is the same design principle that makes OS kernels compile internal functions without exporting them from the symbol table: the security is provided by the binary boundary (the lump seal), not by the capability mechanism.
 
 ---
 
-## Auto-Generated Dispatch
+## Hardware Method-Table Dispatch
 
-When a CLOOMC abstraction uses at least one explicit `public` or `private` qualifier, and has no hand-written `Dispatch` or `M00` method, the compiler automatically generates M00.
-
-The generated dispatch is a linear scan identical in structure to the traditional hand-written MCMP+BRANCHEQ loop:
+The compiler writes `N` lump-base-relative word offsets into the lump at words 1..N (immediately after the lump header at word 0). The CALL instruction carries the method index in imm15:
 
 ```
-M00 (auto-generated Dispatch):
-  ISUB DR15, DR0, DR0        ; initialize counter to 0
-  IADD DR15, DR15, #1        ; counter = 1
-  MCMP DR0, DR15             ; compare selector with 1
-  BRANCHEQ → PublicMethod1   ; branch if selector == 1
-  IADD DR15, DR15, #1        ; counter = 2
-  MCMP DR0, DR15
-  BRANCHEQ → PublicMethod2
-  ...
-  RETURN AL                  ; unknown selector: return
+word 0  lump header
+word 1  table[1] — lump-base-relative word offset of method 1 body (0 = private → FAULT)
+word 2  table[2] — lump-base-relative word offset of method 2 body (0 = private → FAULT)
+…
+word N  table[N] — lump-base-relative word offset of method N body
+word N+1  method 1 first instruction
+…
 ```
 
-Private methods are compiled into the lump after the public methods and are assigned word offsets, but no BRANCHEQ entry points to them from M00.
+Hardware CALL execution (after the lump is entered):
 
-**Condition code encoding:** The auto-generated dispatch uses `cond=AL` (value 14, always-execute) for all data-processing instructions (ISUB, IADD, RETURN). Hand-written RAW ISA code in this project has historically used `cond=NV` (value 15) for the same instructions. The difference is intentional and inconsequential:
+```
+if method_index == 0:
+    NIA = lump_base + 4   # single entry point, no method table
+else:
+    table_entry = memory[lump_base + method_index * 4]
+    if table_entry == 0:
+        FAULT(PERM)       # private method or out of bounds
+    NIA = lump_base + table_entry * 4
+```
 
-- `cond=AL` (14): the ISA specification defines this as "always execute" — instruction executes on every cycle unconditionally.
-- `cond=NV` (15): historically used as a second always-execute encoding in this IoT-profile processor's microarchitecture; no instruction in the RAW ISA method bodies is ever skipped due to a condition=15 code in practice.
+No software loop executes. The dispatch is one memory read in hardware.
 
-The BRANCHEQ instruction (`cond=EQ`, value 0) and MCMP instruction (`cond=AL`, value 14) are encoded identically between hand-written and auto-generated forms. The branch target offsets are recomputed from scratch by the compiler for each abstraction and are therefore exact. The only difference is the condition field of the ISUB/IADD/RETURN words (14 vs 15), which have no observable semantic difference on IoT-profile hardware.
-
-For WordString specifically: the auto-generated 41-word M00 (for 13 public methods) has BRANCHEQ targets at the same absolute word offsets as the original hand-written 41-word Dispatch, verified analytically by computing selector offsets from method code lengths.
+Private methods are compiled at their word offset in the lump binary — reachable from sibling methods via direct `BRANCH` — but their table entry is 0, making them unreachable from any external `CALL`.
 
 ---
 
-## Trigger Condition
+## Method Index Numbering
 
-Auto-dispatch is only generated when **at least one method has an explicit visibility qualifier**. Abstractions that use no qualifiers (all `method Foo(...)` without prefix) compile identically to before — no dispatch method is prepended. This preserves full backward compatibility.
+Public methods are assigned indices in source order, starting at 1. Private methods are compiled at their offset but receive a 0 table entry. AliasOf methods share the offset (and index) of their target method.
 
-**All-private abstractions:** If all methods are private (zero public methods), the generated M00 is a single `RETURN` instruction. The lump entrypoint immediately returns without dispatching to any private method body. This ensures private methods are structurally unreachable even in degenerate cases.
+| Method index | Method     | Visibility | Table entry |
+|-------------|------------|------------|-------------|
+| 1           | Create     | public     | offset(Create) |
+| 2           | Revoke     | private    | 0 (→ FAULT)    |
+| 3           | Transfer   | public     | offset(Transfer) |
 
 ---
 
@@ -134,30 +146,22 @@ abstraction Mint {
 
 By marking `Revoke` as `private`, the lump seal guarantees that no external caller can reach `Revoke`. The version bump can only occur when `Create` internally decides to call it (via a `BRANCH` instruction to `Revoke`'s offset) — a design decision that the abstraction author controls and that is verified by the lump seal at build time.
 
-### Compiled layout
-
-With the auto-generated dispatch, the Mint lump looks like:
+### Compiled lump layout
 
 ```
-M00  Dispatch     — auto-generated (8 words: ISUB + 2×(IADD+MCMP+BRANCHEQ) + RETURN)
-M01  Create       — public, selector 1
-M02  Revoke       — private: compiled at its offset; absent from dispatch table
-M03  Transfer     — public, selector 2
+word 0   lump header           — magic + cw + cc + typ + n_minus_6
+word 1   table[1] = N+1        — lump-base-relative word offset of Create body
+word 2   table[2] = 0          — Revoke is private → FAULT
+word 3   table[3] = N+1+len(Create) — lump-base-relative word offset of Transfer body
+word 4   Create body (first instruction)
+…        Revoke body
+…        Transfer body
 ```
 
-The dispatch table has two entries (selectors 1 and 2 for Create and Transfer). Selector 3 would hit the RETURN fallthrough and return immediately. There is no selector that routes to Revoke.
-
----
-
-## Selector Numbering
-
-Public methods are assigned selectors in source order, starting at 1. Private methods are compiled at their offset but have no selector. AliasOf methods share the offset (and selector) of their target method.
-
-| Selector | Method     | Visibility |
-|----------|------------|------------|
-| 1        | Create     | public     |
-| —        | Revoke     | private    |
-| 2        | Transfer   | public     |
+Callers use:
+- `CALL CRsrc, #1` — invokes Create
+- `CALL CRsrc, #2` — FAULT (private)
+- `CALL CRsrc, #3` — invokes Transfer
 
 ---
 
@@ -165,31 +169,28 @@ Public methods are assigned selectors in source order, starting at 1. Private me
 
 | Property | Value |
 |----------|-------|
-| Qualifier `public` | Method appears in auto-generated dispatch table |
-| Qualifier `private` | Method is compiled but excluded from dispatch; unreachable from outside |
-| Default (no qualifier) | Treated as `public` for backward compatibility; no auto-dispatch generated unless at least one qualifier is present |
-| Enforcement mechanism | Structural: compiler exclusion from M00 + lump seal |
-| GT count | Unchanged — no new GT or NS entry per method |
-| Binary compatibility | Generated dispatch is structurally identical to hand-written; condition encoding uses AL (14) |
+| Qualifier `public` | Compiler writes method's word offset into method table |
+| Qualifier `private` | Compiler writes 0 into method table; hardware faults on 0 entry |
+| Default (no qualifier) | Treated as `public`; `CALL #0` (single entry point) still works |
+| Enforcement mechanism | Structural: zero table entry + lump seal |
+| GT count | Unchanged — one GT per abstraction, no per-method GTs |
+| Method index | Compile-time immediate in CALL imm15 — cannot be runtime-manipulated |
+| Dispatch overhead | One memory read in hardware (no ISUB/IADD/MCMP loop) |
 
 ---
 
 ## Worked Example: WordString
 
-`WordString.cloomc` implements string operations for a UTF-8 lump object. It has 27 named methods: 13 externally callable (matching the original hand-written 13-selector dispatch) and 14 internal helpers.
+`WordString.cloomc` implements string operations for a UTF-8 lump object. It has 27 named methods: 13 externally callable and 14 internal helpers.
 
-### Original hand-written dispatch
+### Method table design
 
-The original source contained an explicit `method Dispatch [RAW ISA]` with 41 words of ISUB+MCMP+BRANCHEQ code exposing selectors 1–13. Methods like `StringOp`, `Classify`, `CheckNonZero`, `ToUppercase`, and `Offset` were present in the lump binary but had no BRANCHEQ entry in the dispatch — they were structurally unreachable from outside.
+The compiler assigns method indices 1–13 to the public methods and writes 0 into the table entries for the 14 private methods:
 
-### New auto-dispatch design
+- **13 public** (indices 1–13): `GetWordCount`, `GetCharCount`, `GetByteCount`, `GetCharByte`, `IsUppercase`, `IsLowercase`, `ReturnFalse`, `IsDigit`, `IsAlpha`, `IsUpperExt`, `IsPunct`, `IsLowerExt`, `IsSymbol`.
+- **14 private** (table entry = 0): `IsSpace`, `IsAlphaNum`, `ToUppercase`, `Stub`, `ToLowercase`, `StubExt`, `NormaliseDigit`, `IsHex`, `Offset`, `StringOp`, `CheckNonZero`, `CheckPositive`, `ComputeBase`, `Classify`.
 
-Removing the hand-written dispatch and adding `public`/`private` qualifiers preserves the same external interface:
-
-- **13 public** (selectors 1–13): `GetWordCount`, `GetCharCount`, `GetByteCount`, `GetCharByte`, `IsUppercase`, `IsLowercase`, `ReturnFalse`, `IsDigit`, `IsAlpha`, `IsUpperExt`, `IsPunct`, `IsLowerExt`, `IsSymbol`.
-- **14 private** (no selectors): `IsSpace`, `IsAlphaNum`, `ToUppercase`, `Stub`, `ToLowercase`, `StubExt`, `NormaliseDigit`, `IsHex`, `Offset`, `StringOp`, `CheckNonZero`, `CheckPositive`, `ComputeBase`, `Classify`.
-
-The auto-generated M00 is 41 words (3×13 + 2) — exactly the same word count as the hand-written dispatch, preserving the existing lump layout.
+The method table occupies words 1..27 of the lump (27 entries). The previous hand-written Dispatch method (41 words) is completely eliminated — saving 41 words of code and removing the runtime linear scan.
 
 ---
 

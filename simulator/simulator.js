@@ -3226,7 +3226,22 @@ class ChurchSimulator {
         const desc = `CALL CR${d.crDst} -> ${label}${cr14Desc}`;
         this.output += desc + '\n';
         const prevPC = this.pc;
-        this.pc = 0;
+        // Hardware method-table dispatch (D-10).
+        // CALL imm15 = method index.  index=0 → NIA = lump_base + 1 (word 1, single entry point).
+        // index>0 → read memory[lump_base + index] (lump-base-relative word offset); 0 = private → FAULT.
+        const methodIndex = (d.imm !== undefined) ? (d.imm & 0x7FFF) : 0;
+        if (methodIndex === 0) {
+            // Single entry point: word 1 of the lump (lump_base is word-indexed in simulator).
+            this.pc = 1;
+        } else {
+            const lumpBaseWord = nsEntry.word0_location;  // word index of lump_base in memory[]
+            const tableEntry = this.memory[lumpBaseWord + methodIndex] >>> 0;
+            if (tableEntry === 0) {
+                this.fault('PERM', `CALL CR${d.crDst}: method index ${methodIndex} is private (table entry = 0)`);
+                return null;
+            }
+            this.pc = tableEntry;  // lump-base-relative word offset = new PC
+        }
         return { pc: prevPC, instr: d, desc, pipeline: this._callPipeline(d, label) };
     }
 

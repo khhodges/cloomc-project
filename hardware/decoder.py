@@ -57,6 +57,12 @@ class ChurchDecoder(Elaboratable):
         self.call_mask = Signal(15)
         self.switch_target = Signal(4)
 
+        # CALL: full imm15 = method index (0 = single entry point; n>0 = method table lookup)
+        self.call_method_index = Signal(15)
+        # ELOADCALL: split imm15 — bits[14:8]=method index (7 bits); bits[7:0]=c-list row (8 bits)
+        self.eloadcall_method_index = Signal(7)
+        self.eloadcall_clist_row    = Signal(8)
+
         self.fault = Signal(4)
         self.fault_valid = Signal()
 
@@ -81,6 +87,11 @@ class ChurchDecoder(Elaboratable):
             self.tperm_preset.eq(imm_field[:4]),
             self.call_mask.eq(imm_field),
             self.switch_target.eq(imm_field[:4]),
+            # CALL method index: full imm15 (method index 0 = single entry, n>0 = table lookup)
+            self.call_method_index.eq(imm_field),
+            # ELOADCALL split imm15: bits[14:8]=method index, bits[7:0]=c-list row
+            self.eloadcall_method_index.eq(imm_field[8:15]),
+            self.eloadcall_clist_row.eq(imm_field[0:8]),
         ]
 
         flags_view = View(COND_FLAGS_LAYOUT, self.flags)

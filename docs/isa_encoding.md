@@ -104,16 +104,49 @@ Example: `IADDLT DR4, DR1, DR2` encodes opcode=0x0F, cond=11.
 
 | Op | Mnemonic    | fld_a     | fld_b     | imm15                                        |
 |----|-------------|-----------|-----------|----------------------------------------------|
-|  0 | LOAD        | CR dst    | CR base   | unsigned byte offset (0–32767)               |
-|  1 | SAVE        | CR dst (c-list, S perm) | CR src (GT, B=1) | unsigned byte offset (0–32767) |
-|  2 | CALL        | CR target | 0         | 0                                            |
+|  0 | LOAD        | CR dst    | CR base   | unsigned word offset into c-list (0–32767)   |
+|  1 | SAVE        | CR dst (c-list, S perm) | CR src (GT, B=1) | unsigned word offset into c-list (0–32767) |
+|  2 | CALL        | CR src    | 0         | method index (15 bits; see note below)       |
 |  3 | RETURN      | 0          | 0          | 12-bit mask in bits [11:0] — bit N=1 clears CR_N to NULL after frame pop; bit 6 reserved (must be 0); mask=0 → no scrub |
-|  4 | CHANGE      | CR dst    | 0         | slot index (unsigned)                        |
+|  4 | CHANGE      | CR dst    | 0         | NS slot index (unsigned)                     |
 |  5 | SWITCH      | 0         | CR src    | new permission — lower 3 bits (0–7)          |
 |  6 | TPERM       | CR dst    | 0         | 5-bit preset code (see §6)                   |
 |  7 | LAMBDA      | CR dst    | 0         | 0                                            |
-|  8 | ELOADCALL   | CR dst    | CR src    | unsigned offset                              |
-|  9 | XLOADLAMBDA | CR dst    | CR src    | unsigned offset                              |
+|  8 | ELOADCALL   | CR dst    | CR src    | bits[14:8] = method index (7 bits, 0–127); bits[7:0] = c-list row (8 bits, 0–255) |
+|  9 | XLOADLAMBDA | CR dst    | CR src    | unsigned word offset into c-list (0–32767)   |
+
+#### CALL — method index encoding
+
+```
+ 31    27 26   23 22   19 18   15 14                  0
+ ┌───────┬───────┬───────┬───────┬─────────────────────┐
+ │ 00010 │ cond  │ CRsrc │  0000 │    method index      │
+ │ 5 bit │ 4 bit │ 4 bit │ 4 bit │       15 bits        │
+ └───────┴───────┴───────┴───────┴─────────────────────┘
+```
+
+| method index | Behaviour |
+|---|---|
+| 0 | Single entry point — no method table. NIA = lump_base + 4 (word 1). |
+| n > 0 | Hardware reads `memory[lump_base + n×4]` (lump-base-relative word offset). NIA = lump_base + table_entry×4. Table entry = 0 → private method → FAULT. |
+
+PC=0 (lump header) is always a FAULT — the lump header word is never an executable instruction.
+
+**Backward compatibility**: all programs assembled before this revision encode imm15=0 (method index 0) → NIA = lump_base + 4. Behaviour is unchanged for single-entry-point abstractions.
+
+#### ELOADCALL — split imm15
+
+```
+ 31    27 26   23 22   19 18   15 14          8 7       0
+ ┌───────┬───────┬───────┬───────┬─────────────┬────────┐
+ │ 01000 │ cond  │ CRdst │ CRsrc │method index │c-list  │
+ │ 5 bit │ 4 bit │ 4 bit │ 4 bit │   7 bits    │  row   │
+ └───────┴───────┴───────┴───────┴─────────────┴────────┘
+                                   bits[14:8]    bits[7:0]
+```
+
+`c-list row` = word offset into the c-list pointed to by CRsrc (0–255 entries, matches max `cc` field of lump header).
+`method index` = passed to the CALL phase after the GT is loaded (same semantics as CALL imm15). Existing programs have bits[14:8]=0 → method index 0 → backward compatible.
 
 ### Data register (DR) / mixed instructions
 
