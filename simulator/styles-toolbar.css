@@ -798,6 +798,29 @@
     display: block;
 }
 
+/* ── Dashboard: keep LED row + tab strip anchored at top; only panels scroll */
+#dashboard.view.active {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#dashboard .flags-led-row {
+    position: static;   /* parent is no longer scrollable; sticky not needed */
+    flex-shrink: 0;
+}
+
+#dashboard .dash-tabs {
+    flex-shrink: 0;
+}
+
+#dashboard .dash-panel.active {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: block;
+}
+
 .info-item {
     display: flex;
     justify-content: space-between;
