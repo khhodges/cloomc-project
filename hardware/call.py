@@ -270,22 +270,6 @@ class ChurchCall(Elaboratable):
             cr14_wm_view.word2_w2.eq(cr14_lat_view.word2_w2),
         ]
 
-        # call_imm latched at CALL-start; method_entry_reg latched from FETCH_METHOD_ENTRY read.
-        call_imm_latched = Signal(15)
-        method_entry_reg = Signal(32)  # lump-base-relative WORD offset from method table
-
-        # NIA: two modes selected by call_imm_latched.
-        #  0 — single entry point: lump_base + 4 (word 1, after the lump header).
-        #       cr14_wm_view.word1_location = cr14_lat_view.word1_location + 4 = lump_base + 4.
-        #  >0 — method-table lookup: lump_base + method_entry_reg * 4.
-        #       method_entry_reg holds the lump-base-relative word offset fetched from the table.
-        nia_computed = Signal(32)
-        m.d.comb += nia_computed.eq(
-            Mux(call_imm_latched > 0,
-                ns_base_from_cr14 + (method_entry_reg[:15] << 2),
-                cr14_wm_view.word1_location)
-        )
-
         # mLoad stores raw NS[+0] = lump_base into CR14.word1_location (no +4 offset).
         # SET_M_WRITE applies +4 so the final CR14.base points at the first instruction word.
         # ns_base_from_cr14 therefore equals the raw lump base (= lump header address).
