@@ -1081,6 +1081,30 @@ const NS_SYMBOLS = { 'SlideRule': 3 };
         a.errors.map(e => e.message).join('; '));
 }
 
+// EL15: Explicit CRsrc form with row=256 (no method index) → out-of-range error.
+//       ELOADCALL CR0, CR11, #256 — slot must be 0–255.
+{
+    const a = new ChurchAssembler(CONVENTIONS);
+    a.assemble('ELOADCALL CR0, CR11, #256');
+    assert('EL15 ELOADCALL explicit row=256 (no method): produces an error',
+        a.errors.length > 0, 'expected at least one error');
+    assert('EL15 error says "out of range" and shows 256',
+        a.errors.some(e => e.message.includes('out of range') && e.message.includes('256')),
+        a.errors.map(e => e.message).join('; '));
+}
+
+// EL16: Explicit CRsrc form with row=256 and a method index → out-of-range error.
+//       ELOADCALL CR0, CR11, #256, 0 — slot must be 0–255 even when method index is present.
+{
+    const a = new ChurchAssembler(CONVENTIONS);
+    a.assemble('ELOADCALL CR0, CR11, #256, 0');
+    assert('EL16 ELOADCALL explicit row=256 (with method): produces an error',
+        a.errors.length > 0, 'expected at least one error');
+    assert('EL16 error says "out of range" and shows 256',
+        a.errors.some(e => e.message.includes('out of range') && e.message.includes('256')),
+        a.errors.map(e => e.message).join('; '));
+}
+
 // ── LTF: led_turing_full snippet regression ───────────────────────────────────
 // Loads the led_turing_full assembly from _TURING_DR_TEST_SOURCE in app-run.js,
 // assembles it, and asserts zero errors.  This catches any edit that introduces
