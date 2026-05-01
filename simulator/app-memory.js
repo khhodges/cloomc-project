@@ -319,12 +319,40 @@ function updateCRDetail() {
         const _brLabelMap = new Map();
         Array.from(_brTargetSet).sort((a, b) => a - b).forEach((idx, n) => _brLabelMap.set(idx, `L${n}`));
 
+        // CLOOMC method table: the first N code words are method pointers, not
+        // instructions.  Read the count from the manifest so we can render them
+        // as .method_ptr rows instead of passing them to the disassembler.
+        const _cloomcMethods = (typeof _lumpManifests !== 'undefined' &&
+                                _lumpManifests[nsIdx] &&
+                                Array.isArray(_lumpManifests[nsIdx]._methods))
+            ? _lumpManifests[nsIdx]._methods : [];
+        const _methodTableCount = _cloomcMethods.length;
+
         let hasCodeData = lumpHdr.valid;
         for (let w = 0; w < _codeWords.length; w++) {
             const addr = codeStart + w;
             const word = _codeWords[w];
             if (word === 0 && !hasCodeData) continue;
             hasCodeData = true;
+
+            // Method table entry — render as data annotation, not an instruction
+            if (w < _methodTableCount) {
+                const _mth = _cloomcMethods[w];
+                const _mthName = _mth ? _mth.name : `method_${w}`;
+                const _mthInternal = _mth && _mth._internal;
+                const _vis = _mthInternal
+                    ? '<span style="color:#888">internal</span>'
+                    : '<span style="color:#4ec9b0">public</span>';
+                codeHtml += `<tr class="code-row-infra">`;
+                codeHtml += `<td class="cr-idx">0x${addr.toString(16).toUpperCase().padStart(4,'0')}</td>`;
+                codeHtml += `<td class="cr-gt">0x${word.toString(16).toUpperCase().padStart(8,'0')}</td>`;
+                codeHtml += `<td class="code-disasm">.method_ptr&nbsp;&nbsp;${_mthName}</td>`;
+                if (_brArrows.hasBranches) codeHtml += '<td class="br-arrow-col"></td>';
+                codeHtml += `<td class="code-decompiled code-decompiled-infra">method table[${w}] \u00b7 ${_vis}</td>`;
+                codeHtml += '</tr>';
+                continue;
+            }
+
             const isPC    = lumpHdr.valid
                 ? (addr === baseLoc + 1 + sim.pc)
                 : ((addr === (sim.programBaseAddr || 0) + sim.pc) || (addr === sim.pc));
