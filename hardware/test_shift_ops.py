@@ -452,6 +452,153 @@ def test_shl_large_shift_c_set():
     print("PASS: test_shl_large_shift_c_set")
 
 
+def test_shr_lsr_shift_by_31():
+    """SHR LSR shift_amt=31 — only the top bit survives as the result bit.
+
+    Source = 0xFFFFFFFF (-1, all bits set).  Shift right (logical) by 31.
+    Result = 0xFFFFFFFF >> 31 = 1.
+    C = source[30] (last bit shifted out) = 1.
+    Expected: result = 1, N = 0, Z = 0, C = 1.
+    """
+    dut = ChurchCore(iot_profile=True)
+
+    async def testbench(ctx):
+        await _boot(ctx, dut)
+        await _exec(ctx, dut, encode_iadd(1, 0, 0x7FFF))  # DR1 = -1 (0xFFFFFFFF)
+        await _exec(ctx, dut, encode_shr(2, 1, 31))        # DR2 = DR1 >> 31 (LSR)  → expect 1
+        N, Z, C, V = _get_flags(ctx, dut)
+        assert N == 0, (
+            f"SHR LSR shift-by-31: expected N=0 (result=1), "
+            f"got N={N} Z={Z} C={C} V={V}")
+        assert Z == 0, f"SHR LSR shift-by-31: expected Z=0, got Z={Z}"
+        assert C == 1, (
+            f"SHR LSR shift-by-31: expected C=1 (src[30]=1), "
+            f"got C={C} (N={N} Z={Z} V={V})")
+        # Direct result check: DR2 + (-1) should be 0 → Z=1  (result = 1)
+        await _exec(ctx, dut, encode_iadd(3, 2, 0x7FFF))  # DR3 = DR2 + (-1)
+        _, Z2, _, _ = _get_flags(ctx, dut)
+        assert Z2 == 1, (
+            f"SHR LSR shift-by-31: result check failed — DR2 should be 1, "
+            f"got Z2={Z2} (DR2+(-1) ≠ 0)")
+        print("  PASS: SHR LSR (shift_amt=31, src=0xFFFFFFFF) → result=1, N=0, Z=0, C=1")
+
+    sim = Simulator(dut)
+    sim.add_clock(1e-6)
+    sim.add_testbench(testbench)
+    with sim.write_vcd("/dev/null"):
+        sim.run()
+    print("PASS: test_shr_lsr_shift_by_31")
+
+
+def test_shr_asr_positive_no_sign_extend():
+    """SHR ASR — positive source must NOT sign-extend (N stays 0).
+
+    Source = 4 (positive, bit 31 = 0).  Shift right by 1 with ASR flag.
+    Expected: result = 2, N = 0 (no sign-extension), Z = 0, C = 0 (bit 0 of 4 is 0).
+    If ASR incorrectly sign-extends a positive value, N would be 1.
+    """
+    dut = ChurchCore(iot_profile=True)
+
+    async def testbench(ctx):
+        await _boot(ctx, dut)
+        await _exec(ctx, dut, encode_iadd(1, 0, 4))           # DR1 = 4
+        await _exec(ctx, dut, encode_shr(2, 1, 1, asr=True))  # DR2 = DR1 >>> 1  → expect 2
+        N, Z, C, V = _get_flags(ctx, dut)
+        assert N == 0, (
+            f"SHR ASR positive: expected N=0 (no sign-extension for positive src), "
+            f"got N={N} Z={Z} C={C} V={V}")
+        assert Z == 0, f"SHR ASR positive: expected Z=0, got Z={Z}"
+        assert C == 0, (
+            f"SHR ASR positive: expected C=0 (src bit-0 of 4 is 0), "
+            f"got C={C} (N={N} Z={Z} V={V})")
+        # Direct result check: DR2 + (-2) should be 0 → Z=1  (result = 2; -2 = imm15 0x7FFE)
+        await _exec(ctx, dut, encode_iadd(3, 2, 0x7FFE))  # DR3 = DR2 + (-2)
+        _, Z2, _, _ = _get_flags(ctx, dut)
+        assert Z2 == 1, (
+            f"SHR ASR positive: result check failed — DR2 should be 2, "
+            f"got Z2={Z2} (DR2+(-2) ≠ 0)")
+        print("  PASS: SHR ASR (shift_amt=1, src=4) → result=2, N=0, Z=0, C=0 (no sign-extension)")
+
+    sim = Simulator(dut)
+    sim.add_clock(1e-6)
+    sim.add_testbench(testbench)
+    with sim.write_vcd("/dev/null"):
+        sim.run()
+    print("PASS: test_shr_asr_positive_no_sign_extend")
+
+
+def test_shl_alternating_bits():
+    """SHL — alternating-bit patterns confirm no carry leakage.
+
+    Case A: src = 0x55555555 (0101…), shift left by 1.
+      Bit 31 of 0x55555555 = 0  → C = 0.
+      Result = 0xAAAAAAAA        → N = 1 (bit 31 = 1), Z = 0.
+
+    Case B: src = 0xAAAAAAAA (1010…), shift left by 1.
+      Bit 31 of 0xAAAAAAAA = 1  → C = 1.
+      Result = 0x55555554        → N = 0 (bit 31 = 0), Z = 0.
+
+    Both values are built register-by-register since they exceed the 15-bit
+    immediate range.  The test verifies the C and N flags only; an incorrect
+    carry would corrupt bit 31 and flip N.
+    """
+    dut = ChurchCore(iot_profile=True)
+
+    async def testbench(ctx):
+        await _boot(ctx, dut)
+
+        # Build 0x55555555 in DR7 using byte-at-a-time construction.
+        # 0x55 = 85 fits in imm15; shifting and adding builds the full pattern.
+        await _exec(ctx, dut, encode_iadd(1, 0, 0x55))   # DR1 = 0x00000055
+        await _exec(ctx, dut, encode_shl(2, 1, 8))        # DR2 = 0x00005500
+        await _exec(ctx, dut, encode_iadd(2, 2, 0x55))    # DR2 = 0x00005555
+        await _exec(ctx, dut, encode_shl(3, 2, 8))        # DR3 = 0x00555500
+        await _exec(ctx, dut, encode_iadd(3, 3, 0x55))    # DR3 = 0x00555555
+        await _exec(ctx, dut, encode_shl(4, 3, 8))        # DR4 = 0x55555500
+        await _exec(ctx, dut, encode_iadd(4, 4, 0x55))    # DR4 = 0x55555555
+
+        # Case A: 0x55555555 << 1
+        await _exec(ctx, dut, encode_shl(5, 4, 1))        # DR5 = 0xAAAAAAAA
+        N, Z, C, V = _get_flags(ctx, dut)
+        assert C == 0, (
+            f"SHL alternating A: expected C=0 (src[31] of 0x55555555 = 0), "
+            f"got C={C} (N={N} Z={Z} V={V})")
+        assert N == 1, (
+            f"SHL alternating A: expected N=1 (result 0xAAAAAAAA has bit31=1), "
+            f"got N={N} (C={C} Z={Z} V={V})")
+        assert Z == 0, f"SHL alternating A: expected Z=0, got Z={Z}"
+        print("  PASS: SHL (shift_amt=1, src=0x55555555) → N=1, Z=0, C=0 (no carry leakage)")
+
+        # Build 0xAAAAAAAA in DR8 using byte-at-a-time construction.
+        # 0xAA = 170 fits in imm15.
+        await _exec(ctx, dut, encode_iadd(6, 0, 0xAA))   # DR6 = 0x000000AA
+        await _exec(ctx, dut, encode_shl(7, 6, 8))        # DR7 = 0x0000AA00
+        await _exec(ctx, dut, encode_iadd(7, 7, 0xAA))    # DR7 = 0x0000AAAA
+        await _exec(ctx, dut, encode_shl(8, 7, 8))        # DR8 = 0x00AAAA00
+        await _exec(ctx, dut, encode_iadd(8, 8, 0xAA))    # DR8 = 0x00AAAAAA
+        await _exec(ctx, dut, encode_shl(9, 8, 8))        # DR9 = 0xAAAAAA00
+        await _exec(ctx, dut, encode_iadd(9, 9, 0xAA))    # DR9 = 0xAAAAAAAA
+
+        # Case B: 0xAAAAAAAA << 1
+        await _exec(ctx, dut, encode_shl(10, 9, 1))       # DR10 = 0x55555554
+        N, Z, C, V = _get_flags(ctx, dut)
+        assert C == 1, (
+            f"SHL alternating B: expected C=1 (src[31] of 0xAAAAAAAA = 1), "
+            f"got C={C} (N={N} Z={Z} V={V})")
+        assert N == 0, (
+            f"SHL alternating B: expected N=0 (result 0x55555554 has bit31=0), "
+            f"got N={N} (C={C} Z={Z} V={V})")
+        assert Z == 0, f"SHL alternating B: expected Z=0, got Z={Z}"
+        print("  PASS: SHL (shift_amt=1, src=0xAAAAAAAA) → N=0, Z=0, C=1 (no carry leakage)")
+
+    sim = Simulator(dut)
+    sim.add_clock(1e-6)
+    sim.add_testbench(testbench)
+    with sim.write_vcd("/dev/null"):
+        sim.run()
+    print("PASS: test_shl_alternating_bits")
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -468,6 +615,9 @@ _ALL_TESTS = (
     test_shl_shift_by_zero_c_clear,
     test_shr_lsr_large_shift,
     test_shl_large_shift_c_set,
+    test_shr_lsr_shift_by_31,
+    test_shr_asr_positive_no_sign_extend,
+    test_shl_alternating_bits,
 )
 
 if __name__ == "__main__":
