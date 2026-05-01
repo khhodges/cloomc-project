@@ -4032,7 +4032,7 @@ class ChurchSimulator {
         if (slotParsed.type === 2) {
             const manifest2 = this.lazyManifest[targetIdx];
             if (manifest2 && !manifest2.loaded) {
-                this.output += `[LOADER] ELOADCALL: c-list [CR${d.crSrc} + row ${ecRow}] is Outform GT (NS[${targetIdx}]) — dispatching Loader (Mode 2)...\n`;
+                this.output += `[LOADER] ELOADCALL: c-list [CR${d.crSrc} + ${ecRow}] is Outform GT (NS[${targetIdx}]) — dispatching Loader (Mode 2)...\n`;
                 const loaded = this._dispatchLoaderLoad(targetIdx);
                 if (!loaded) {
                     this.fault('CODE_NOT_RESIDENT', `ELOADCALL: Outform lazy load failed for slot ${targetIdx}`);
@@ -4123,7 +4123,7 @@ class ChurchSimulator {
 
         const label = this.nsLabels[targetIdx] || 'abstraction';
         const ecIdxSuffix = ecMethodIdx > 0 ? `, #${ecMethodIdx}` : '';
-        const desc = `ELOADCALL CR${d.crDst}, [CR${d.crSrc} + row ${ecRow}]${ecIdxSuffix} -> ${label} (LOAD+TPERM+CALL)`;
+        const desc = `ELOADCALL CR${d.crDst}, [CR${d.crSrc} + ${ecRow}]${ecIdxSuffix} -> ${label} (LOAD+TPERM+CALL)`;
         this.output += desc + '\n';
         const prevPC_ec = this.pc;
         if (cr14Check) {

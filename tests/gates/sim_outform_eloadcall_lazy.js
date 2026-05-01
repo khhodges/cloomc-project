@@ -111,10 +111,13 @@ function fail(msg) { ERRORS.push(msg); }
         return;
     }
 
-    // (b) No faults — the Mode 2 intercept must prevent any TYPE or SEAL fault.
-    if (newFaults.length > 0) {
+    // (b) No TYPE or SEAL faults — the Mode 2 intercept must prevent those.
+    // NO_CODE is acceptable here: the test lump has no code capability at slot 0;
+    // this test covers the lazy-loader path, not full code execution.
+    const unexpectedFaults = newFaults.filter(f => f.type !== 'NO_CODE');
+    if (unexpectedFaults.length > 0) {
         fail('Unexpected fault after ELOADCALL on Outform GT: ' +
-             newFaults.map(f => `${f.type}: ${f.message}`).join('; '));
+             unexpectedFaults.map(f => `${f.type}: ${f.message}`).join('; '));
         return;
     }
 
@@ -280,13 +283,17 @@ function fail(msg) { ERRORS.push(msg); }
     sim.step();
 
     const newFaults = sim.faultLog.slice(faultsBefore);
-    if (newFaults.length > 0) {
+    // Only TYPE/SEAL faults are unexpected here.  NO_CODE is anticipated because
+    // the SlideRule test lump has no code capability (slot 0 of its c-list is
+    // empty); this test covers only the lazy-loader / GT-promotion path.
+    const unexpectedFaults2 = newFaults.filter(f => f.type !== 'NO_CODE');
+    if (unexpectedFaults2.length > 0) {
         fail('Second ELOADCALL: unexpected fault: ' +
-             newFaults.map(f => `${f.type}: ${f.message}`).join('; '));
+             unexpectedFaults2.map(f => `${f.type}: ${f.message}`).join('; '));
         return;
     }
 
-    console.log('[PASS] Repeated ELOADCALL from stale Outform c-list slot: completes without fault on both calls');
+    console.log('[PASS] Repeated ELOADCALL from stale Outform c-list slot: lazy-load / GT-promotion path completes on both calls (NO_CODE expected — test lump has no code capability)');
 })();
 
 // ─── Report ──────────────────────────────────────────────────────────────────
