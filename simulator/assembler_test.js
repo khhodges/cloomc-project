@@ -1020,6 +1020,67 @@ const NS_SYMBOLS = { 'SlideRule': 3 };
         dis.trim().endsWith(', 0'), 'got: ' + dis);
 }
 
+// EL11: c-list row = 256 is out of range → error (simple Name form).
+//       SlideRule256 is mapped to slot 256 in a local namespace.
+{
+    const a = new ChurchAssembler(CONVENTIONS);
+    a.setNamespace({ 'SlideRule': 256 });
+    a.assemble('ELOADCALL CR0, SlideRule');
+    assert('EL11 ELOADCALL row=256: produces an error',
+        a.errors.length > 0, 'expected at least one error');
+    assert('EL11 error says "out of range" and shows 256',
+        a.errors.some(e => e.message.includes('out of range') && e.message.includes('256')),
+        a.errors.map(e => e.message).join('; '));
+}
+
+// EL12: Numeric method index = 127 is out of range → error (method-indexed form).
+//       Valid range is 0–126; 127 must be rejected before it silently truncates.
+{
+    const a = new ChurchAssembler(CONVENTIONS);
+    a.setNamespace(NS_SYMBOLS);
+    a.assemble('ELOADCALL CR0, SlideRule, 127');
+    assert('EL12 ELOADCALL numeric method=127: produces an error',
+        a.errors.length > 0, 'expected at least one error');
+    assert('EL12 error says "out of range" and shows 127',
+        a.errors.some(e => e.message.includes('out of range') && e.message.includes('127')),
+        a.errors.map(e => e.message).join('; '));
+}
+
+// EL13: Named method whose stored index is 127 → error (name-resolved method-indexed form).
+//       Conventions are extended with a method at index 127 which exceeds the 0–126 limit.
+{
+    const convWith127 = {
+        'SlideRule': {
+            'Multiply':    { index: 0 },
+            'Divide':      { index: 1 },
+            'Sqrt':        { index: 2 },
+            'Transcendent':{ index: 127 },
+        }
+    };
+    const a = new ChurchAssembler(convWith127);
+    a.setNamespace(NS_SYMBOLS);
+    a.assemble('ELOADCALL CR0, SlideRule, Transcendent');
+    assert('EL13 ELOADCALL named method index=127: produces an error',
+        a.errors.length > 0, 'expected at least one error');
+    assert('EL13 error says "out of range" and shows 127',
+        a.errors.some(e => e.message.includes('out of range') && e.message.includes('127')),
+        a.errors.map(e => e.message).join('; '));
+}
+
+// EL14: Explicit CRsrc form with a non-numeric method operand → error mentioning 4th operand.
+//       ELOADCALL CR0, CR11, #5, BadName — the 4th field must be a numeric 0-based index.
+{
+    const a = new ChurchAssembler(CONVENTIONS);
+    a.assemble('ELOADCALL CR0, CR11, #5, BadName');
+    assert('EL14 ELOADCALL explicit non-numeric method: produces an error',
+        a.errors.length > 0, 'expected at least one error');
+    assert('EL14 error mentions "4th operand" or "numeric" and "BadName"',
+        a.errors.some(e =>
+            (e.message.includes('4th operand') || e.message.includes('numeric')) &&
+            e.message.includes('BadName')),
+        a.errors.map(e => e.message).join('; '));
+}
+
 // ── LTF: led_turing_full snippet regression ───────────────────────────────────
 // Loads the led_turing_full assembly from _TURING_DR_TEST_SOURCE in app-run.js,
 // assembles it, and asserts zero errors.  This catches any edit that introduces
