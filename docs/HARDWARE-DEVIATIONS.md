@@ -30,7 +30,7 @@ Authoritative sources: `hardware/hw_types.py`, `hardware/layouts.py`, `hardware/
 
 ## Deviations — Status Summary
 
-D-1, D-2, D-3, D-4, D-5, D-6, D-9, D-10, D-12 are **CLOSED**. D-7 and D-8 remain open. D-11 (SWITCH simulator) is open — fix tracked as Task #880.
+D-1 through D-10 and D-12 are **CLOSED/RESOLVED**. Only D-11 (SWITCH simulator semantics) remains open — fix tracked as Task #880.
 
 ---
 
