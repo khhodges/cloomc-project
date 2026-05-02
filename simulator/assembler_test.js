@@ -2533,6 +2533,130 @@ const SM_GT_RWE_IDX1 = ((0x23 << 25) | (0x01 << 23) | 1) >>> 0;
         a.errors.map(e => e.message).join('; '));
 }
 
+// ── SWITCH simulator tests (D-11 fix) ────────────────────────────────────────
+// Instruction word: opcode[31:27] | cond[26:23] | crDst[22:19] | crSrc[18:15] | imm[14:0]
+// SWITCH opcode = 5 → bits[31:27] = 0b00101 → 0xA0000000 base
+// crSrc=1 → bit 15 → 0x00008000;  crSrc=2 → 0x00010000
+// SWITCH_TGT_CR13 = 5, SWITCH_TGT_CR15 = 7
+// Abstract GT type=3 → bits[24:23] of word0 → (3<<23) = 0x01800000
+// PassKey sentinels: CR13=0xFFFFFFFE, CR15=0xFFFFFFFF
+
+const SW_ABSTRACT_GT = 0x01800000;          // Minimal Abstract GT (type=3, no permissions, index=0)
+const SW_INFORM_GT   = 0x00800000;          // Inform GT (type=1) — must fault
+// Instruction words use AL (always) condition = 0xE in bits[26:23] — same pattern as TP_INSTR_*.
+// The >>> 0 converts signed-negative JavaScript bit-op results to unsigned 32-bit.
+const SW_CR1_TGT5 = ((5 << 27) | (0xE << 23) | (1 << 15) | 5) >>> 0;  // SWITCH AL CR1, 5 (→CR13)
+const SW_CR2_TGT7 = ((5 << 27) | (0xE << 23) | (2 << 15) | 7) >>> 0;  // SWITCH AL CR2, 7 (→CR15)
+const SW_CR1_TGT3 = ((5 << 27) | (0xE << 23) | (1 << 15) | 3) >>> 0;  // SWITCH AL CR1, 3 (invalid target)
+
+// SW1: Invalid target (Tgt=3) → INVALID_OP fault before any register is touched
+{
+    const sim = new ChurchSimulator();
+    sim.memory[0] = SW_CR1_TGT3;
+    sim.cr[1] = { word0: SW_ABSTRACT_GT, word1: 0xFFFFFFFE, word2: 0, word3: 0, m: 0 };
+    sim.step();
+    assert('SW1 invalid target Tgt=3: simulator halts (fault)',
+        sim.halted === true, `halted=${sim.halted}`);
+    assert('SW1 invalid target Tgt=3: fault type is INVALID_OP',
+        sim.faultLog.some(f => f.type === 'INVALID_OP'),
+        'faultLog: ' + sim.faultLog.map(f => f.type).join(', '));
+    assert('SW1 invalid target Tgt=3: CR1 unchanged (no register touched)',
+        sim.cr[1].word0 === SW_ABSTRACT_GT, `CR1.word0=0x${sim.cr[1].word0.toString(16)}`);
+}
+
+// SW2: NULL source GT → INVALID_OP fault
+{
+    const sim = new ChurchSimulator();
+    sim.memory[0] = SW_CR1_TGT5;
+    sim.cr[1] = { word0: 0, word1: 0xFFFFFFFE, word2: 0, word3: 0, m: 0 };
+    sim.step();
+    assert('SW2 NULL source: simulator halts (fault)',
+        sim.halted === true, `halted=${sim.halted}`);
+    assert('SW2 NULL source: fault type is INVALID_OP',
+        sim.faultLog.some(f => f.type === 'INVALID_OP'),
+        'faultLog: ' + sim.faultLog.map(f => f.type).join(', '));
+}
+
+// SW3: Non-Abstract source (Inform GT, type=1) → INVALID_OP fault
+{
+    const sim = new ChurchSimulator();
+    sim.memory[0] = SW_CR1_TGT5;
+    sim.cr[1] = { word0: SW_INFORM_GT, word1: 0xFFFFFFFE, word2: 0, word3: 0, m: 0 };
+    sim.step();
+    assert('SW3 Inform GT source: simulator halts (fault)',
+        sim.halted === true, `halted=${sim.halted}`);
+    assert('SW3 Inform GT source: fault type is INVALID_OP',
+        sim.faultLog.some(f => f.type === 'INVALID_OP'),
+        'faultLog: ' + sim.faultLog.map(f => f.type).join(', '));
+}
+
+// SW4: Abstract GT but wrong sentinel (CR13 target, but sentinel ≠ 0xFFFFFFFE) → INVALID_OP
+{
+    const sim = new ChurchSimulator();
+    sim.memory[0] = SW_CR1_TGT5;
+    sim.cr[1] = { word0: SW_ABSTRACT_GT, word1: 0x12345678, word2: 0, word3: 0, m: 0 };
+    const cr13Before = { ...sim.cr[13] };
+    sim.step();
+    assert('SW4 wrong sentinel: simulator halts (fault)',
+        sim.halted === true, `halted=${sim.halted}`);
+    assert('SW4 wrong sentinel: fault type is INVALID_OP',
+        sim.faultLog.some(f => f.type === 'INVALID_OP'),
+        'faultLog: ' + sim.faultLog.map(f => f.type).join(', '));
+    assert('SW4 wrong sentinel: CR13 unchanged (no register touched)',
+        sim.cr[13].word0 === cr13Before.word0,
+        `CR13.word0=0x${sim.cr[13].word0.toString(16)}`);
+}
+
+// SW5: Valid PassKey → one-way install into CR13; source CR1 unchanged; PC advances
+{
+    const sim = new ChurchSimulator();
+    sim.memory[0] = SW_CR1_TGT5;
+    const passKey = { word0: SW_ABSTRACT_GT, word1: 0xFFFFFFFE, word2: 0xABCD, word3: 0, m: 1 };
+    sim.cr[1] = { ...passKey };
+    sim.step();
+    assert('SW5 valid PassKey CR13: not halted',
+        sim.halted === false, `halted=${sim.halted}`);
+    assert('SW5 valid PassKey CR13: PC advanced to 1',
+        sim.pc === 1, `pc=${sim.pc}`);
+    assert('SW5 valid PassKey CR13: CR13.word0 matches source',
+        sim.cr[13].word0 === SW_ABSTRACT_GT,
+        `CR13.word0=0x${sim.cr[13].word0.toString(16)}`);
+    assert('SW5 valid PassKey CR13: CR13.word1 matches source sentinel',
+        (sim.cr[13].word1 >>> 0) === 0xFFFFFFFE,
+        `CR13.word1=0x${(sim.cr[13].word1>>>0).toString(16)}`);
+    assert('SW5 valid PassKey CR13: source CR1.word0 unchanged (not a swap)',
+        sim.cr[1].word0 === SW_ABSTRACT_GT,
+        `CR1.word0=0x${sim.cr[1].word0.toString(16)}`);
+    assert('SW5 valid PassKey CR13: source CR1.word1 unchanged',
+        (sim.cr[1].word1 >>> 0) === 0xFFFFFFFE,
+        `CR1.word1=0x${(sim.cr[1].word1>>>0).toString(16)}`);
+}
+
+// SW6: Valid PassKey → one-way install into CR15; source CR2 unchanged; PC advances
+{
+    const sim = new ChurchSimulator();
+    sim.memory[0] = SW_CR2_TGT7;
+    const passKey15 = { word0: SW_ABSTRACT_GT, word1: 0xFFFFFFFF, word2: 0x1234, word3: 0, m: 0 };
+    sim.cr[2] = { ...passKey15 };
+    sim.step();
+    assert('SW6 valid PassKey CR15: not halted',
+        sim.halted === false, `halted=${sim.halted}`);
+    assert('SW6 valid PassKey CR15: PC advanced to 1',
+        sim.pc === 1, `pc=${sim.pc}`);
+    assert('SW6 valid PassKey CR15: CR15.word0 matches source',
+        sim.cr[15].word0 === SW_ABSTRACT_GT,
+        `CR15.word0=0x${sim.cr[15].word0.toString(16)}`);
+    assert('SW6 valid PassKey CR15: CR15.word1 matches source sentinel',
+        (sim.cr[15].word1 >>> 0) === 0xFFFFFFFF,
+        `CR15.word1=0x${(sim.cr[15].word1>>>0).toString(16)}`);
+    assert('SW6 valid PassKey CR15: source CR2.word0 unchanged (not a swap)',
+        sim.cr[2].word0 === SW_ABSTRACT_GT,
+        `CR2.word0=0x${sim.cr[2].word0.toString(16)}`);
+    assert('SW6 valid PassKey CR15: source CR2.word1 unchanged',
+        (sim.cr[2].word1 >>> 0) === 0xFFFFFFFF,
+        `CR2.word1=0x${(sim.cr[2].word1>>>0).toString(16)}`);
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);

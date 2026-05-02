@@ -3834,16 +3834,58 @@ class ChurchSimulator {
     }
 
     _execSwitch(d) {
-        const srcGT = this.cr[d.crSrc].word0;
+        // Hardware reference: hardware/switch.py — PassKey-gated one-way privileged install.
+        // Three hard checks before any register is touched; source is never modified.
+        // (D-11 CLOSED: simulator now matches hardware behaviour.)
+
         const target = d.imm & 0x7;
-        if (srcGT === 0) {
-            this.fault('NULL_CAP', `SWITCH: CR${d.crSrc} is NULL`);
+
+        // 1. Target validity — only Tgt=5 (→CR13) and Tgt=7 (→CR15) are permitted.
+        const SWITCH_TGT_CR13 = 5;
+        const SWITCH_TGT_CR15 = 7;
+        if (target !== SWITCH_TGT_CR13 && target !== SWITCH_TGT_CR15) {
+            this.fault('INVALID_OP', `SWITCH: target ${target} is not a valid SWITCH target (must be 5→CR13 or 7→CR15)`);
             return null;
         }
-        const temp = { ...this.cr[d.crSrc] };
-        this.cr[d.crSrc] = { ...this.cr[target] };
-        this.cr[target] = temp;
-        const desc = `SWITCH CR${d.crSrc} <-> CR${target}`;
+        const destCR = (target === SWITCH_TGT_CR13) ? 13 : 15;
+
+        // 2. Source range check — crSrc must be 0–7 (lower CR bank).
+        if (d.crSrc > 7) {
+            this.fault('INVALID_OP', `SWITCH: source CR${d.crSrc} out of range (must be CR0–CR7)`);
+            return null;
+        }
+        const srcCR = this.cr[d.crSrc];
+
+        // 3. PassKey type check — source must be Abstract GT (gt_type == 3).
+        //    NULL (type 0), Inform (type 1), and Outform (type 2) all fault here.
+        if (srcCR.word0 === 0) {
+            this.fault('INVALID_OP', `SWITCH: CR${d.crSrc} is NULL — must be an Abstract PassKey GT`);
+            return null;
+        }
+        const parsed = this.parseGT(srcCR.word0);
+        if (parsed.type !== 3) {
+            this.fault('INVALID_OP', `SWITCH: CR${d.crSrc} is ${parsed.typeName} (type ${parsed.type}) — must be Abstract (type 3) PassKey GT`);
+            return null;
+        }
+
+        // 4. Sentinel address check — CR.word1 (location) must equal the hardware-reserved
+        //    sentinel for the chosen target: 0xFFFFFFFE for CR13, 0xFFFFFFFF for CR15.
+        const SENTINEL_CR13 = 0xFFFFFFFE;
+        const SENTINEL_CR15 = 0xFFFFFFFF;
+        const expectedSentinel = (destCR === 13) ? SENTINEL_CR13 : SENTINEL_CR15;
+        if ((srcCR.word1 >>> 0) !== expectedSentinel) {
+            const got = (srcCR.word1 >>> 0).toString(16).toUpperCase().padStart(8, '0');
+            const exp = expectedSentinel.toString(16).toUpperCase();
+            this.fault('INVALID_OP', `SWITCH: CR${d.crSrc}.location=0x${got} ≠ sentinel 0x${exp} required for CR${destCR}`);
+            return null;
+        }
+
+        // 5. One-way privileged install — copy source into target; source CR is NOT modified.
+        //    Hardware uses ChurchMLoad with m_elevated=1 which also resets G=0 on the NS entry;
+        //    in the simulator we copy the full CR object straight (NS G-bit is managed by LOAD/mLoad paths).
+        this.cr[destCR] = { ...srcCR };
+
+        const desc = `SWITCH CR${d.crSrc} → CR${destCR} (PassKey install; source unchanged)`;
         this.output += desc + '\n';
         this.pc++;
         return { pc: this.pc - 1, instr: d, desc };

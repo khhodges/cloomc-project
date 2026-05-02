@@ -7773,6 +7773,7 @@ function showReleaseHistory() {
             'Task #890 merged: LAMBDA CR6 re-entry simulator test added to gate suite',
             'Task #17 merged: Navana.Init wired as a callable method-table entry — 3-word lump injected at ROM word 320 (NS slot 5); method index 1 → PC=2 → RETURN AL; PRIVATE_METHOD fault eliminated (D-5 CLOSED)',
             'Task #891 merged: boot entry CALL test corrected — PC after a method-index-0 CALL is 1 (word 1, first code word after lump header), not 0; both default and custom_step1 configurations now pass',
+            'Task #880 closed (D-11): simulator SWITCH instruction now matches hardware — PassKey-gated one-way install into CR13/CR15 only; three hard checks enforced: target validity (5→CR13, 7→CR15), Abstract GT type, and sentinel address (0xFFFFFFFE/0xFFFFFFFF); source CR unchanged; all hardware deviations D-1 through D-12 now closed',
         ] },
         { date: '2026-04-30 UTC', title: 'Hello Mum Pipeline, Hardware Bridge & LUMP Tokens Tab', changes: [
             'QR code display fixed: identity QR now rendered with a self-contained pure-stdlib generator — no external package required',

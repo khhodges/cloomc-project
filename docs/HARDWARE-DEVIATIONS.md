@@ -30,7 +30,7 @@ Authoritative sources: `hardware/hw_types.py`, `hardware/layouts.py`, `hardware/
 
 ## Deviations — Status Summary
 
-D-1 through D-10 and D-12 are **CLOSED/RESOLVED**. Only D-11 (SWITCH simulator semantics) remains open — fix tracked as Task #880.
+All deviations D-1 through D-12 are **CLOSED/RESOLVED**. No open hardware deviations remain.
 
 ---
 
@@ -151,16 +151,16 @@ D-1 through D-10 and D-12 are **CLOSED/RESOLVED**. Only D-11 (SWITCH simulator s
 
 ---
 
-## D-11: SWITCH instruction — hardware PassKey design vs. simulator CR swap
+## D-11: SWITCH instruction — hardware PassKey design vs. simulator CR swap — CLOSED
 
 - **Hardware** (`hardware/switch.py`): SWITCH is a privileged capability-transfer instruction with three hard checks before any register is touched:
   1. **PassKey type check** — `CRs` must hold an Abstract GT (`gt_type == 0b11`). Any other type → `FAULT(INVALID_OP)`.
   2. **Target validity** — only `Tgt=5` (CR13) and `Tgt=7` (CR15) are permitted destinations. All other target values → `FAULT(INVALID_OP)`.
   3. **Sentinel address check** — `CRs.word1_location` must equal the hardware-reserved sentinel for the chosen target: `0xFFFFFFFE` for CR13, `0xFFFFFFFF` for CR15. Mismatch → `FAULT(INVALID_OP)`.
   On all checks passing, `ChurchMLoad` writes the source capability into the target privileged register (CR13 or CR15) with `m_elevated=1`, resetting G=0 on the namespace entry. The source CR is **not** cleared — SWITCH is not a swap, it is a one-way privileged install.
-- **Simulator** (`simulator/simulator.js`, `_execSwitch`, line ~3836): performs an **atomic CR swap** — `cr[crSrc] ↔ cr[target]` — with only a NULL check on the source. No PassKey check, no target-validity check, no sentinel check, no mLoad. `target` is taken as `imm & 0x7` (any register 0–7). The assembler restricts `crSrc` away from the privilege zone but does not restrict the target.
-- **Impact**: Programs that use SWITCH to install a capability into CR13 or CR15 will succeed in the simulator with any GT (including Inform and NULL GTs), but will fault on hardware unless the source is a correctly minted PassKey Abstract GT. The CR swap the simulator performs also has no equivalent in hardware — hardware never moves the source to the target's old value.
-- **Status**: OPEN — simulator reflects the old SWITCH design (pre-PassKey). Simulator fix tracked separately (Group D). Hardware is the reference.
+- **Previous simulator behaviour** (`_execSwitch`, pre-fix): performed an atomic CR swap `cr[crSrc] ↔ cr[target]` with only a NULL check. No PassKey check, target-validity check, sentinel check, or mLoad.
+- **Fix (Task #880, May 2026)**: `simulator/simulator.js` `_execSwitch` replaced with the correct PassKey-gated one-way install. All three hardware checks are enforced in the same order as `hardware/switch.py`. Source CR is not modified. Target restricted to CR13 (Tgt=5) and CR15 (Tgt=7). Sentinel constants `0xFFFFFFFE` / `0xFFFFFFFF` match `hw_types.py`.
+- **Status**: **CLOSED** — simulator now matches hardware.
 
 ---
 *Confidential — Kenneth Hamer-Hodges — May 2026*

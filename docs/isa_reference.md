@@ -1330,7 +1330,7 @@ SHR AL, DR1, DR2, #3, ASR   ; ASR, mode=1; imm = (1 << 5) | 3 = 0x23
 | 2   | 0x02 | CALL        | Church  | CRs    | 0      | method index (0=fast, N+1=user N)      | —             | NULL, PERM, SEAL, PRIVATE_METHOD, STACK_OVERFLOW | — |
 | 3   | 0x03 | RETURN      | Church  | 0      | 0      | mask[11:0] — CRs to NULL on return     | —             | STACK_UNDERFLOW       | —           |
 | 4   | 0x04 | CHANGE      | Church  | CRd    | CRs    | NS index (0–32767)                     | —             | PRIV_REG, PERM, NULL  | —           |
-| 5   | 0x05 | SWITCH      | Church  | 0      | CRn    | target[2:0] (5=CR13, 7=CR15)           | —             | INVALID_OP (hw), NULL_CAP (sim) | **D-11** |
+| 5   | 0x05 | SWITCH      | Church  | 0      | CRn    | target[2:0] (5=CR13, 7=CR15)           | —             | INVALID_OP                      | D-11 closed |
 | 6   | 0x06 | TPERM       | Church  | CRd    | 0      | preset[4:0] (bit4=B-mod, [3:0]=code)   | N=!Z Z C=0 V=0 | TPERM_RSV            | D-3 (reserved presets) |
 | 7   | 0x07 | LAMBDA      | Church  | CRn    | 0      | 0 (unused)                             | —             | NULL, PERM, BOUNDS    | —           |
 | 8   | 0x08 | ELOADCALL   | Church  | CRd    | CRs    | method[14:8] \| row[7:0]              | —             | NULL, PERM, SEAL, BOUNDS | —        |
@@ -1388,4 +1388,4 @@ These questions are now resolved. Recorded here to prevent the decisions from be
 | E-3 | DREAD CR14 | X-in-place-of-R is CR14-specific only. No broader X→R substitution applies. **Closed.** |
 | E-4 | CHANGE operand restriction | Assembler convention only, not an ISA rule. Hardware `change.py` accepts any CR12–CR15 destination. The assembler restriction is a toolchain safety guard. **Closed.** |
 
-**Deviation flags:** SWITCH (D-11, open). SHR/SHL carry+ASR (D-12, closed). TPERM reserved-preset fault (D-3, docs now corrected). TPERM Mode 2 (C.3, Task #874, closed).
+**Deviation flags:** SWITCH (D-11, closed — simulator now matches hardware). SHR/SHL carry+ASR (D-12, closed). TPERM reserved-preset fault (D-3, closed). TPERM Mode 2 (C.3, Task #874, closed). All deviations closed.
