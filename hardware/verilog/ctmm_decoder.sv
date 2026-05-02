@@ -227,7 +227,7 @@ module ctmm_decoder
                 fault = FAULT_INVALID_OP;
             end
             // Check for reserved TPERM codes (14, 15 are reserved)
-            else if (church_op == OP_TPERM && (tperm_preset == 4'd14 || tperm_preset == 4'd15)) begin
+            else if (church_op == OP_TPERM && (tperm_preset >= 4'd12)) begin
                 fault_valid = 1'b1;
                 fault = FAULT_TPERM_RSV;
             end
