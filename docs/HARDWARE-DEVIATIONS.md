@@ -61,7 +61,7 @@ D-1, D-2, D-3, D-4, D-5, D-6, D-9, D-10, D-12 are **CLOSED**. D-7 and D-8 remain
 ### D-5: Navana.Init Wiring — CLOSED
 
 - **Decision (architect, May 2026)**: Navana is a **normal LUMP** with a callable Init entry point. The boot ROM's direct CALL is a bootstrap shortcut, not the final design. Navana.Init must be reachable as a standard method call so that any authorised caller can re-initialise or extend the namespace controller.
-- **Action required**: Boot ROM wiring and `abstractions.md` to be updated in a follow-up task to expose Navana.Init as a method-table entry. **OPEN — pending implementation task.**
+- **Action taken (Task #17, May 2026)**: `boot_rom.py` now injects a 3-word Navana lump body at ROM word 320 (NS slot 5, byte 0x0500): header (cw=2), method_table[1]=2 (Init body offset), and a RETURN AL instruction as the Init body. A hardware `CALL CR_navana, 1` no longer faults with PRIVATE_METHOD — the method table entry at index 1 resolves to the Init body. `abstractions.md` Navana section updated with Init method index, signature, and permission. **CLOSED.**
 
 ### D-6: FPGA MMIO / LED Pin Routing — CLOSED
 

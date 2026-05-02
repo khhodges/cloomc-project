@@ -241,7 +241,14 @@ The first callable abstraction. Its purpose is to prove that the CALL mechanism 
 
 The Namespace controller and sole NS entry writer. Navana runs indefinitely — it does not RETURN. After Salvation proves the security pipeline, Navana takes over and manages:
 
-- **Init**: Initialize all higher-layer abstractions and register them in the namespace
+**Method table** (lump word = method index for index > 0):
+
+| Index | Name | Signature | Permission | Description |
+|-------|------|-----------|------------|-------------|
+| 0     | —    | (reserved) | — | Single-entry shorthand — hardware dispatches to lump word 1 (the method table itself). Not a callable method; callers must use an explicit index. |
+| 1     | Init | `Init() → ok` | E | Initialize all higher-layer abstractions and register them in the namespace. Idempotent — safe to call post-boot by any E-authorised caller. |
+
+- **Init** (method index 1): Initialize all higher-layer abstractions and register them in the namespace
 - **Add**: Find free NS slot, write 3-word entry with clistCount, return nsIndex + version
 - **Remove**: Revoke GT (increment version), free NS slot
 - **Abstraction.Add**: Process compiled abstraction, allocate lump (power-of-2, minimum 64 words), write method table + code at offset 0, write c-list GTs at allocSize-clistCount, create NS entry with clistCount, forge Inform E-GT. Validates: codeSize + clistCount <= allocSize, clistCount <= 511, power-of-2 allocation, capability delegation rights.

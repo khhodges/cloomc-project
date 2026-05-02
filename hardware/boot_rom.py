@@ -326,6 +326,32 @@ FULL_ROM[_STARTUP_CONFIG_LUMP_WORD + SC_DATA_OFFSET + 1]  = _STARTUP_CONFIG_VERS
 FULL_ROM[_STARTUP_CONFIG_LUMP_WORD + 63] = _STARTUP_CONFIG_SALVATION_E_GT  # c-list[0] = Salvation E-GT
 
 # ---------------------------------------------------------------------------
+# Navana lump header + method table (Task #17 / D-5 close)
+#
+# NS slot 5, lump base byte address 0x0500, ROM word index 320.
+# Placed in the zero-padded tail of _NUC_PADDED (NUC_PROGRAM ends at word 272).
+#
+# Minimal lump layout (cw=2, cc=0, n_minus_6=0, typ=0):
+#   word 0 (+0): lump header  — magic=0x1F, n_minus_6=0, cw=2, typ=00, cc=0
+#   word 1 (+1): method_table[1] = 2  (Init at method index 1; body at lump word 2)
+#   word 2 (+2): Init body — RETURN AL (simulator logic runs via abstraction registry)
+#
+# Hardware CALL dispatch (simulator.js lines 3233-3243):
+#   method index 0 → PC = 1 (single-entry shorthand, hardcoded by CALL hardware).
+#   method index 1 → tableEntry = memory[lump_base_word + 1] = 2;
+#                    PC = 2 → executes RETURN AL.
+#   method index 1 with tableEntry = 0 → PRIVATE_METHOD fault (now fixed).
+# ---------------------------------------------------------------------------
+_NAVANA_LUMP_WORD        = 5 * 0x100 // 4   # = 320 (ROM word index of Navana lump base)
+_NAVANA_INIT_BODY_OFFSET = 2                 # lump-base-relative word offset to Init body
+_NAVANA_CW               = 2                 # code words: [1]=method table entry, [2]=Init body
+_NAVANA_LUMP_HEADER = (0x1F << 27) | (_NAVANA_CW << 10)  # magic=0x1F, n_minus_6=0, cw=2, typ=0, cc=0
+
+FULL_ROM[_NAVANA_LUMP_WORD + 0] = _NAVANA_LUMP_HEADER            # lump header
+FULL_ROM[_NAVANA_LUMP_WORD + 1] = _NAVANA_INIT_BODY_OFFSET       # method_table[1] → Init body at lump word 2
+FULL_ROM[_NAVANA_LUMP_WORD + 2] = encode_church(ChurchOpcode.RETURN, CondCode.AL)  # Init body: RETURN AL
+
+# ---------------------------------------------------------------------------
 # NUC_PROGRAM lump header constants — derived entirely from NUC_PROGRAM contents.
 #
 # NUC_LUMP_BASE: DMEM byte address of the NUC_PROGRAM lump header.
