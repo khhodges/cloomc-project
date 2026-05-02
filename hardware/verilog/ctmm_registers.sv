@@ -9,7 +9,7 @@
 //
 // Special Registers:
 //   CR6:  Current C-List
-//   CR7:  CLOOMC Nucleus (Function Abstraction Code)
+//   CR14: CLOOMC Nucleus (Function Abstraction Code)
 //   CR8:  Suspended Thread State
 //   CR9:  Interrupt Thread
 //   CR10: Double Fault Recovery Thread
@@ -40,26 +40,25 @@ module ctmm_registers
     // Word-level write interface (for microcode sequencing)
     input  logic [3:0]  cr_word_wr_addr,      // Register address
     input  logic [1:0]  cr_word_sel,          // Word select (0-3)
-    input  logic [63:0] cr_word_wr_data,      // 64-bit word data
+    input  logic [31:0] cr_word_wr_data,      // 32-bit word data
     input  logic        cr_word_wr_en,        // Word write enable
     
     // Word-level read interface
     input  logic [3:0]  cr_word_rd_addr,      // Register address
     input  logic [1:0]  cr_word_rd_sel,       // Word select (0-3)
-    output logic [63:0] cr_word_rd_data,      // 64-bit word data
+    output logic [31:0] cr_word_rd_data,      // 32-bit word data
     
     // Special register direct access (for fast paths)
     output capability_reg_t cr6_clist,        // CR6: Current C-List
-    output capability_reg_t cr7_cloomc,       // CR7: CLOOMC Nucleus (Function Abstraction Code)
+    output capability_reg_t cr14_cloomc,      // CR14: CLOOMC Nucleus (Function Abstraction Code)
     output capability_reg_t cr8_thread,       // CR8: Suspended Thread State
+    output capability_reg_t cr12_cap,         // CR12: incoming thread capability (word1_location = lump base after CHANGE)
     output capability_reg_t cr15_namespace,   // CR15: Namespace root
     
     // Special register write interfaces (GT only - Word 0)
     // Used by boot sequence and SWITCH/CHANGE instructions
     input  golden_token_t   cr6_wr_data,      // Write GT to CR6
     input  logic            cr6_wr_en,
-    input  golden_token_t   cr7_wr_data,      // Write GT to CR7
-    input  logic            cr7_wr_en,
     input  golden_token_t   cr8_wr_data,      // Write GT to CR8
     input  logic            cr8_wr_en,
     input  golden_token_t   cr9_wr_data,      // Write GT to CR9 (Interrupt)
@@ -72,7 +71,7 @@ module ctmm_registers
     input  logic            cr12_wr_en,
     input  golden_token_t   cr13_wr_data,     // Write GT to CR13 (reserved)
     input  logic            cr13_wr_en,
-    input  golden_token_t   cr14_wr_data,     // Write GT to CR14 (reserved)
+    input  golden_token_t   cr14_wr_data,     // Write GT to CR14 (CLOOMC Nucleus)
     input  logic            cr14_wr_en,
     input  golden_token_t   cr15_wr_data,     // Write GT to CR15
     input  logic            cr15_wr_en,
@@ -97,6 +96,13 @@ module ctmm_registers
     input  condition_flags_t flags_in,
     input  logic        flags_wr_en,
     
+    // Parallel CALL isolation mask ports (single-cycle domain-crossing cleanup)
+    // cr_b_clear_mask: bit N high → clear b_flag on CR[N]  (CRs 0-5, preserved after CALL)
+    // cr_null_mask:    bit N high → write NULL to  CR[N]  (CRs 0-11, discarded after CALL)
+    // cr_null_mask takes priority when both bits are asserted for the same register.
+    input  logic [5:0]  cr_b_clear_mask,
+    input  logic [11:0] cr_null_mask,
+
     // Clear all registers (boot step 1)
     input  logic        clear_all
 );
@@ -112,22 +118,23 @@ module ctmm_registers
     
     // Word-level read
     always_comb begin
-        cr_word_rd_data = 64'h0;
+        cr_word_rd_data = 32'h0;
         if (cr_word_rd_addr < NUM_CAP_REGS) begin
             case (cr_word_rd_sel)
                 2'd0: cr_word_rd_data = cap_regs[cr_word_rd_addr].word0_gt;
                 2'd1: cr_word_rd_data = cap_regs[cr_word_rd_addr].word1_location;
-                2'd2: cr_word_rd_data = cap_regs[cr_word_rd_addr].word2_limit;
-                2'd3: cr_word_rd_data = cap_regs[cr_word_rd_addr].word3_seals;
+                2'd2: cr_word_rd_data = cap_regs[cr_word_rd_addr].word2_w2;
+                2'd3: cr_word_rd_data = cap_regs[cr_word_rd_addr].word3_w3;
             endcase
         end
     end
     
     // Special register outputs
-    assign cr6_clist     = cap_regs[CR_CLIST];
-    assign cr7_cloomc    = cap_regs[CR_CLOOMC];
-    assign cr8_thread    = cap_regs[CR_THREAD];
-    assign cr15_namespace= cap_regs[CR_NAMESPACE];
+    assign cr6_clist      = cap_regs[CR_CLIST];
+    assign cr14_cloomc    = cap_regs[CR_CLOOMC];
+    assign cr8_thread     = cap_regs[CR_THREAD];
+    assign cr12_cap       = cap_regs[12];
+    assign cr15_namespace = cap_regs[CR_NAMESPACE];
     
     // Full register write and word-level write
     always_ff @(posedge clk or negedge rst_n) begin
@@ -145,15 +152,14 @@ module ctmm_registers
                 case (cr_word_sel)
                     2'd0: cap_regs[cr_word_wr_addr].word0_gt <= cr_word_wr_data;
                     2'd1: cap_regs[cr_word_wr_addr].word1_location <= cr_word_wr_data;
-                    2'd2: cap_regs[cr_word_wr_addr].word2_limit <= cr_word_wr_data;
-                    2'd3: cap_regs[cr_word_wr_addr].word3_seals <= cr_word_wr_data;
+                    2'd2: cap_regs[cr_word_wr_addr].word2_w2 <= cr_word_wr_data;
+                    2'd3: cap_regs[cr_word_wr_addr].word3_w3 <= cr_word_wr_data;
                 endcase
             end
             
             // Special register GT writes (Word 0 only)
             // Used by boot sequence and SWITCH/CHANGE instructions
             if (cr6_wr_en)  cap_regs[CR_CLIST].word0_gt <= cr6_wr_data;
-            if (cr7_wr_en)  cap_regs[CR_CLOOMC].word0_gt <= cr7_wr_data;
             if (cr8_wr_en)  cap_regs[CR_THREAD].word0_gt <= cr8_wr_data;
             if (cr9_wr_en)  cap_regs[9].word0_gt <= cr9_wr_data;
             if (cr10_wr_en) cap_regs[10].word0_gt <= cr10_wr_data;
@@ -162,6 +168,15 @@ module ctmm_registers
             if (cr13_wr_en) cap_regs[13].word0_gt <= cr13_wr_data;
             if (cr14_wr_en) cap_regs[14].word0_gt <= cr14_wr_data;
             if (cr15_wr_en) cap_regs[CR_NAMESPACE].word0_gt <= cr15_wr_data;
+
+            // Parallel CALL isolation: single-cycle mask operations.
+            // cr_null_mask takes priority over cr_b_clear_mask for the same register.
+            for (int i = 0; i < 12; i++) begin
+                if (cr_null_mask[i])
+                    cap_regs[i] <= CR_NULL;
+                else if (i < 6 && cr_b_clear_mask[i])
+                    cap_regs[i].word0_gt.b_flag <= 1'b0;
+            end
         end
     end
     
