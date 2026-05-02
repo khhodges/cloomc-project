@@ -695,6 +695,12 @@ class ChurchAssembler {
             case 5: {
                 crSrc = this._parseCR(parts[1], lineNum);
                 this._checkPrivCR(crSrc, 'SWITCH', lineNum);
+                // Hardware crSrc is a 3-bit field — CR8–CR11 would silently truncate
+                // (CR8→CR0, CR9→CR1, CR10→CR2, CR11→CR3). CR12–CR15 are already
+                // rejected by _checkPrivCR above.
+                if (crSrc > 7 && crSrc < 12) {
+                    this.errors.push({ line: lineNum, message: `SWITCH: CR${crSrc} is out of range — source must be CR0–CR7 (hardware uses a 3-bit crSrc field; CR8–CR11 silently truncate to CR0–CR3)` });
+                }
                 imm = this._parseImm(parts[2], lineNum) & 0x7;
                 break;
             }

@@ -259,17 +259,22 @@ line of defence, not the only one.
 
 ---
 
-## Current Simulator Status (D-11)
+## Simulator Status (D-11 — CLOSED, Task #880)
 
-The simulator (`simulator/simulator.js`, `_execSwitch`) performs a plain
-atomic CR swap — `cr[src] ↔ cr[target]` — with only a NULL check on the
-source. No type check, no sentinel check, no target restriction, no mLoad.
-Any register 0–7 can be the target.
+The simulator `_execSwitch` was rewritten in May 2026 (Task #880) to match
+hardware exactly. The old atomic CR swap is gone. The new implementation
+enforces all three hardware checks in the same order as `hardware/switch.py`:
 
-This reflects the old SWITCH design (pre-PassKey). The simulator fix is
-tracked as Task #880.
+1. **Target validity** — `imm & 0x7` must be 5 (→CR13) or 7 (→CR15); else `FAULT(INVALID_OP)`
+2. **PassKey type** — source must be Abstract GT (type 3); NULL and non-Abstract → `FAULT(INVALID_OP)`
+3. **Sentinel check** — `source.word1` must be `0xFFFFFFFE` (CR13) or `0xFFFFFFFF` (CR15); else `FAULT(INVALID_OP)`
 
-**Hardware is the reference.** The spec above describes hardware behaviour.
+One-way install: `this.cr[destCR] = { ...srcCR }`. Source CR unchanged.
+
+The assembler also now rejects crSrc > 7 for SWITCH (CR8–CR11 would silently
+truncate to CR0–CR3 in the hardware 3-bit crSrc field).
+
+**D-11 is closed. Simulator and hardware are in agreement.**
 
 ---
 
@@ -277,11 +282,12 @@ tracked as Task #880.
 
 | File | Role |
 |------|------|
-| `hardware/switch.py` | Hardware FSM — five checks + mLoad call |
+| `hardware/switch.py` | Hardware FSM — target check, PassKey type check, sentinel check, mLoad call |
 | `hardware/mload.py` | ChurchMLoad — NS validation, g-bit reset, CR write |
 | `hardware/hw_types.py` | Sentinel constants, GT type constants, target Tgt values |
-| `simulator/simulator.js` | `_execSwitch` — current (stale) simulator implementation |
-| `docs/HARDWARE-DEVIATIONS.md` | D-11 — SWITCH hardware vs simulator gap |
+| `simulator/simulator.js` | `_execSwitch` — PassKey-gated one-way install (D-11 closed) |
+| `simulator/assembler.js` | SWITCH case 5 — crSrc ≤ 7 guard added |
+| `docs/HARDWARE-DEVIATIONS.md` | D-11 — CLOSED; all deviations resolved |
 | `docs/mint.md` | Mint issuance protocol, Abstract GT note (§9) |
 | `docs/abstract-gt.md` | Abstract GT word layout and ab_type registry |
 | `docs/namespace-security.md` | mLoad validation pipeline, NS entry format |

@@ -509,10 +509,14 @@ const NS_SYMBOLS = { 'SlideRule': 3 };
     assert('P12o error mentions CR15', o.errors.some(e => e.message.includes('CR15')),
         o.errors.map(e => e.message).join('; '));
 
-    // P12p: SWITCH CR11 → no error (CR11 is the boundary)
+    // P12p: SWITCH CR11 → error (D-11 fix: assembler now enforces crSrc ≤ 7;
+    //       CR8–CR11 would silently truncate in the hardware 3-bit crSrc field)
     const p = new ChurchAssembler();
     p.assemble('SWITCH CR11, 0');
-    assert('P12p SWITCH CR11: no error', p.errors.length === 0,
+    assert('P12p SWITCH CR11: error (crSrc must be 0–7)', p.errors.length > 0,
+        'expected an error — CR11 silently truncates to CR3 in hardware 3-bit field');
+    assert('P12p SWITCH CR11: error mentions CR11',
+        p.errors.some(e => e.message.includes('CR11')),
         p.errors.map(e => e.message).join('; '));
 
     // P12q: DREAD DR0, CR14, 0 → no error (CR14 is RX — data-constant reads allowed)
@@ -542,6 +546,22 @@ const NS_SYMBOLS = { 'SlideRule': 3 };
     t.assemble('CHANGE CR14, CR0, 0');
     assert('P12t CHANGE CR14 crDst: error', t.errors.length > 0,
         'expected an error for CR14 as crDst in CHANGE');
+
+    // P12u: SWITCH CR8 → error (crSrc=8 truncates to 0 in hardware 3-bit field)
+    const u = new ChurchAssembler();
+    u.assemble('SWITCH CR8, 5');
+    assert('P12u SWITCH CR8: error (crSrc > 7 truncates in hardware)', u.errors.length > 0,
+        'expected an error for CR8 in SWITCH');
+    assert('P12u SWITCH CR8: error mentions CR8',
+        u.errors.some(e => e.message.includes('CR8')),
+        u.errors.map(e => e.message).join('; '));
+
+    // P12v: SWITCH CR7, 5 → no error (CR7 is the upper boundary of the valid range)
+    const v = new ChurchAssembler();
+    v.assemble('SWITCH CR7, 5');
+    assert('P12v SWITCH CR7: no error (CR7 is the valid boundary)',
+        v.errors.length === 0,
+        v.errors.map(e => e.message).join('; '));
 }
 
 // ── LED[N] Abstract GT bracket syntax ────────────────────────────────────────
