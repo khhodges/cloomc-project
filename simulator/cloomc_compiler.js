@@ -1029,6 +1029,14 @@ class CLOOMCCompiler {
             const srcDR = this._resolveExpr(bfextMatch[1], code, locals, rom, errors, lineNum, method);
             const pos = parseInt(bfextMatch[2]);
             const width = parseInt(bfextMatch[3]);
+            if (width < 1) {
+                errors.push({ line: lineNum, message: `BFEXT: width must be ≥ 1 (got ${width})` });
+                return 0;
+            }
+            if (pos + width > 32) {
+                errors.push({ line: lineNum, message: `BFEXT: pos+width must be ≤ 32 (pos=${pos}, width=${width}, sum=${pos + width})` });
+                return 0;
+            }
             const dr = this._allocTemp(locals);
             const imm = ((pos & 0x1F) << 5) | (width & 0x1F);
             code.push(this.encode(this.opcodes.BFEXT, 14, dr, srcDR, imm));
@@ -1084,6 +1092,14 @@ class CLOOMCCompiler {
             const valDR = this._resolveExpr(bfinsMatch[2], code, locals, rom, errors, stmt.lineNum, method);
             const pos = parseInt(bfinsMatch[3]);
             const width = parseInt(bfinsMatch[4]);
+            if (width < 1) {
+                errors.push({ line: stmt.lineNum, message: `BFINS: width must be ≥ 1 (got ${width})` });
+                return;
+            }
+            if (pos + width > 32) {
+                errors.push({ line: stmt.lineNum, message: `BFINS: pos+width must be ≤ 32 (pos=${pos}, width=${width}, sum=${pos + width})` });
+                return;
+            }
             const imm = ((pos & 0x1F) << 5) | (width & 0x1F);
             manifest.push({ src: stmt.lineNum, addr: code.length, desc: `BFINS DR${dstDR}, DR${valDR}` });
             code.push(this.encode(this.opcodes.BFINS, 14, dstDR, valDR, imm));

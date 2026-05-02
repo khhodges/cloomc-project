@@ -1334,6 +1334,92 @@ function findSHR(words) {
     }
 }
 
+// ── CC7–CC10: English compiler BFEXT/BFINS pos/width validation ───────────────
+// The English compiler must reject invalid pos/width combinations before emitting
+// BFEXT or BFINS instructions, producing a compiler-level error with source
+// context rather than a cryptic assembler-level fault.
+//
+// CC7/CC8 use the CLOOMC English block format (abstraction Test { run(x): ... })
+// which goes through compileEnglish → _compileMethod → _resolveExpr.
+//
+// CC9/CC10 use compileJS which also calls _compileMethod → _compileStatement,
+// the same shared validation layer, since the English block parser silently drops
+// bare bfins() statements it cannot translate.
+
+// CC7: English bfext() with width=0 → compiler error mentioning BFEXT and width.
+//   "let y = bfext(x, 4, 0)" is translated by _translateEnglishStatement to
+//   "y = bfext(x, 4, 0)", then _resolveExpr triggers our pos/width check.
+{
+    const cc = new CLOOMCCompiler();
+    const src =
+`abstraction Test {
+    run(x):
+        let y = bfext(x, 4, 0)
+}`;
+    const result = cc.compileEnglish(src);
+    assert('CC7 English bfext width=0: compiler produces ≥1 error',
+        result.errors.length > 0,
+        'expected ≥1 error, got 0');
+    assert('CC7 English bfext width=0: error mentions BFEXT and width',
+        result.errors.some(e => /BFEXT/i.test(e.message) && /width/i.test(e.message)),
+        'errors: ' + result.errors.map(e => e.message).join('; '));
+}
+
+// CC8: English bfext() with pos+width > 32 (pos=31, width=2 → sum=33) → compiler error.
+{
+    const cc = new CLOOMCCompiler();
+    const src =
+`abstraction Test {
+    run(x):
+        let y = bfext(x, 31, 2)
+}`;
+    const result = cc.compileEnglish(src);
+    assert('CC8 English bfext pos+width>32: compiler produces ≥1 error',
+        result.errors.length > 0,
+        'expected ≥1 error, got 0');
+    assert('CC8 English bfext pos+width>32: error mentions BFEXT and pos+width or sum',
+        result.errors.some(e => /BFEXT/i.test(e.message) && /pos\+width|sum/i.test(e.message)),
+        'errors: ' + result.errors.map(e => e.message).join('; '));
+}
+
+// CC9: Compiler bfins() with width=0 → compiler error mentioning BFINS and width.
+//   Tests through compileJS which also calls _compileMethod → _compileStatement,
+//   the same shared validation layer used by compileEnglish.
+{
+    const cc = new CLOOMCCompiler();
+    const src =
+`abstraction Test {
+    method run(x, v) {
+        bfins(x, v, 4, 0)
+    }
+}`;
+    const result = cc.compileJS(src);
+    assert('CC9 compiler bfins width=0: compiler produces ≥1 error',
+        result.errors.length > 0,
+        'expected ≥1 error, got 0');
+    assert('CC9 compiler bfins width=0: error mentions BFINS and width',
+        result.errors.some(e => /BFINS/i.test(e.message) && /width/i.test(e.message)),
+        'errors: ' + result.errors.map(e => e.message).join('; '));
+}
+
+// CC10: Compiler bfins() with pos+width > 32 (pos=31, width=2 → sum=33) → compiler error.
+{
+    const cc = new CLOOMCCompiler();
+    const src =
+`abstraction Test {
+    method run(x, v) {
+        bfins(x, v, 31, 2)
+    }
+}`;
+    const result = cc.compileJS(src);
+    assert('CC10 compiler bfins pos+width>32: compiler produces ≥1 error',
+        result.errors.length > 0,
+        'expected ≥1 error, got 0');
+    assert('CC10 compiler bfins pos+width>32: error mentions BFINS and pos+width or sum',
+        result.errors.some(e => /BFINS/i.test(e.message) && /pos\+width|sum/i.test(e.message)),
+        'errors: ' + result.errors.map(e => e.message).join('; '));
+}
+
 // ── SE: Simulator-level SHR / ASR execution tests ────────────────────────────
 // These tests instantiate ChurchSimulator directly and call _execShr so we can
 // confirm that the runtime actually sign-extends (ASR) or zero-extends (LSR)
