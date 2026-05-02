@@ -57,19 +57,19 @@ module ctmm_switch
     input  capability_reg_t cr15_namespace,   // CR15 Namespace register
     
     // Memory interface
-    output logic [63:0] mem_addr,             // Memory address
+    output logic [31:0] mem_addr,             // Memory address
     output logic        mem_rd_en,            // Read enable
-    input  logic [63:0] mem_rd_data,          // Read data
+    input  logic [31:0] mem_rd_data,          // Read data
     input  logic        mem_rd_valid,         // Read data valid
     
     // Thread update interface - writes GT (G=0) to Thread[CR15]
     output logic        thread_wr_en,         // Write enable for Thread[CR15]
     output logic [3:0]  thread_wr_idx,        // Index into Thread (= CR15 = 4'd15)
-    output logic [63:0] thread_wr_data,       // GT with G=0
+    output logic [31:0] thread_wr_data,       // GT (word0 = golden_token_t)
     
-    // G bit reset interface
+    // B-flag reset interface (clears b_flag in clist entry after SWITCH)
     output logic        g_bit_reset,
-    output logic [63:0] g_bit_addr
+    output logic [31:0] g_bit_addr
 );
 
     // ========================================================================
@@ -120,7 +120,7 @@ module ctmm_switch
     
     logic src_in_range;
     logic src_has_l_perm;
-    logic [9:0] src_perms;
+    logic [5:0] src_perms;
     
     // Latched source register data for permission check
     capability_reg_t src_reg_latched;
@@ -134,7 +134,7 @@ module ctmm_switch
     end
     
     assign src_in_range = (cr_src <= MAX_CLIST_REG);
-    assign src_perms = src_reg_latched.word0_gt[57:48];  // Permission bits from latched GT
+    assign src_perms = src_reg_latched.word0_gt.perms;
     assign src_has_l_perm = src_perms[PERM_L];
     
     // ========================================================================
@@ -155,10 +155,10 @@ module ctmm_switch
             fault_type_latched <= FAULT_NONE;
         end else if (state == SWITCH_CHECK_SRC && !src_in_range) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // Invalid source register
+            fault_type_latched <= FAULT_INVALID_OP;
         end else if (state == SWITCH_CHECK_PERM && !src_has_l_perm) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // Missing L permission
+            fault_type_latched <= FAULT_PERM_L;
         end else if (state == SWITCH_CALL_SUB && sub_fault) begin
             fault_latched <= 1'b1;
             fault_type_latched <= sub_fault_type;
@@ -187,6 +187,8 @@ module ctmm_switch
         .sub_cr_src     ({1'b0, cr_src}),    // Pad 3-bit to 4-bit for mLoad
         .sub_cr_dst     (dest_cr),           // CR8 + target (0-7) = CR8-CR15
         .sub_index      (index),             // Full 10-bit index (0-1023)
+        .sub_direct     (1'b0),              // SWITCH uses C-List fetch mode
+        .sub_direct_gt  ('0),
         .sub_busy       (sub_busy),
         .sub_done       (sub_done),
         .sub_fault      (sub_fault),
