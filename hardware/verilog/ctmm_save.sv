@@ -12,9 +12,16 @@
 //   Step 1: Verify CRd in 0-6 AND initiate register reads (parallel)
 //   Step 2: Latch destination and source register data
 //   Step 3: Call mSave with destination cap, source GT, and index
+//   Step 4: On success, reset G-bit on the destination C-List namespace entry
 //
 // The actual permission checks and memory write are done by ctmm_msave.sv
 // This reduces the Trusted Computing Base - SAVE and CHANGE share mSave.
+//
+// G-bit Reset:
+//   After a successful mSave, the G-bit is reset on the namespace entry
+//   that the destination C-List GT points to. This signals the garbage
+//   collector that this namespace entry is actively referenced.
+//   Address calculation: CR15.Location + dst_GT.offset + 16
 //
 // FAULT conditions:
 //   - Destination CRd not in range 0-6 (checked here)
@@ -31,7 +38,7 @@ module ctmm_save
     input  logic        save_start,           // Start SAVE execution
     input  logic [3:0]  cr_src,               // Source register (CRs) - GT to save
     input  logic [3:0]  cr_dst,               // Destination C-List (CRd) - must be CR0-CR6
-    input  logic [7:0]  index,                // C-List index
+    input  logic [15:0] index,                // C-List index
     output logic        save_busy,            // SAVE in progress
     output logic        save_complete,        // SAVE finished successfully
     output logic        save_fault,           // SAVE caused a fault
@@ -41,11 +48,20 @@ module ctmm_save
     output logic [3:0]  cr_rd_addr,           // Register to read
     input  capability_reg_t cr_rd_data,       // Full 256-bit register data
     
-    // Memory write interface (directly from subroutine)
-    output logic [63:0] mem_wr_addr,          // Memory address to write
-    output logic [63:0] mem_wr_data,          // Data to write (GT)
-    output logic        mem_wr_en,            // Write enable
-    input  logic        mem_wr_done           // Write complete acknowledgment
+    // Memory write interface (32-bit)
+    output logic [31:0] mem_wr_addr,
+    output logic [31:0] mem_wr_data,
+    output logic        mem_wr_en,
+    input  logic        mem_wr_done,
+
+    // Memory read interface (for NS validation)
+    output logic [31:0] mem_rd_addr,
+    output logic        mem_rd_en,
+    input  logic [31:0] mem_rd_data,
+    input  logic        mem_rd_valid,
+
+    // CR15 (Namespace) interface
+    input  capability_reg_t cr15_namespace
 );
 
     // ========================================================================
@@ -63,7 +79,8 @@ module ctmm_save
         SAVE_CHECK_DST_READ,  // Verify CRd in 0-6 AND initiate destination read
         SAVE_LATCH_DST,       // Latch destination, initiate source read
         SAVE_LATCH_SRC,       // Latch source
-        SAVE_CALL_SUB         // Call mSave and wait for completion
+        SAVE_CALL_SUB,        // Call mSave and wait for completion
+        SAVE_RESET_G          // Reset G-bit on destination C-List namespace entry
     } save_state_t;
     
     save_state_t state, next_state;
@@ -112,7 +129,7 @@ module ctmm_save
             fault_type_latched <= FAULT_NONE;
         end else if (state == SAVE_CHECK_DST_READ && !dst_in_range) begin
             fault_latched <= 1'b1;
-            fault_type_latched <= FAULT_PERM;  // Invalid destination register
+            fault_type_latched <= FAULT_INVALID_OP;
         end else if (state == SAVE_CALL_SUB && sub_fault_latched) begin
             fault_latched <= 1'b1;
             fault_type_latched <= sub_fault_type;
@@ -159,24 +176,25 @@ module ctmm_save
     assign sub_start = sub_start_reg;
     
     ctmm_msave u_msave (
-        .clk            (clk),
-        .rst_n          (rst_n),
-        
-        // Subroutine interface
-        .sub_start      (sub_start),
-        .sub_dst_cap    (dst_reg_latched),
-        .sub_src_gt     (src_reg_latched.word0_gt),
-        .sub_index      (index),
-        .sub_busy       (sub_busy),
-        .sub_done       (sub_done),
-        .sub_fault      (sub_fault),
-        .sub_fault_type (sub_fault_type),
-        
-        // Memory write interface
-        .mem_wr_addr    (mem_wr_addr),
-        .mem_wr_data    (mem_wr_data),
-        .mem_wr_en      (mem_wr_en),
-        .mem_wr_done    (mem_wr_done)
+        .clk             (clk),
+        .rst_n           (rst_n),
+        .sub_start       (sub_start),
+        .sub_dst_cap     (dst_reg_latched),
+        .sub_src_gt      (src_reg_latched.word0_gt),
+        .sub_index       (index),
+        .sub_busy        (sub_busy),
+        .sub_done        (sub_done),
+        .sub_fault       (sub_fault),
+        .sub_fault_type  (sub_fault_type),
+        .cr15_namespace  (cr15_namespace),
+        .mem_wr_addr     (mem_wr_addr),
+        .mem_wr_data     (mem_wr_data),
+        .mem_wr_en       (mem_wr_en),
+        .mem_wr_done     (mem_wr_done),
+        .mem_rd_addr     (mem_rd_addr),
+        .mem_rd_en       (mem_rd_en),
+        .mem_rd_data     (mem_rd_data),
+        .mem_rd_valid    (mem_rd_valid)
     );
     
     // ========================================================================
@@ -205,7 +223,6 @@ module ctmm_save
             end
             
             SAVE_CHECK_DST_READ: begin
-                // Verify CRd in 0-6 AND initiate read
                 if (!dst_in_range)
                     next_state = SAVE_IDLE;  // Fault
                 else
@@ -213,20 +230,22 @@ module ctmm_save
             end
             
             SAVE_LATCH_DST: begin
-                // Destination data now valid, latch it
                 next_state = SAVE_LATCH_SRC;
             end
             
             SAVE_LATCH_SRC: begin
-                // Source data now valid, latch it
                 next_state = SAVE_CALL_SUB;
             end
             
             SAVE_CALL_SUB: begin
-                // sub_start_reg pulses once on entry (registered)
-                // Wait for subroutine to complete (using sticky latches)
-                if (sub_done_latched || sub_fault_latched)
-                    next_state = SAVE_IDLE;
+                if (sub_fault_latched)
+                    next_state = SAVE_IDLE;  // Fault from mSave
+                else if (sub_done_latched)
+                    next_state = SAVE_RESET_G;  // Success → reset G-bit
+            end
+            
+            SAVE_RESET_G: begin
+                next_state = SAVE_IDLE;
             end
             
             default: next_state = SAVE_IDLE;
@@ -259,16 +278,24 @@ module ctmm_save
     end
     
     // ========================================================================
+    // G-bit Reset Interface
+    // ========================================================================
+    // After a successful mSave, reset the G-bit on the namespace entry
+    // that the destination C-List GT points to. This signals the garbage
+    // collector that this namespace entry is actively referenced.
+    //
+    // Address calculation: CR15.Location + dst_GT.offset + 16
+    //   - CR15.Location = base of namespace table
+    //   - dst_GT.offset = direct byte offset into namespace
+    //   - +16 = offset to Word 3 (Seals) where G-bit resides
+    // ========================================================================
+    
+    // ========================================================================
     // Output Signals
     // ========================================================================
-    // Note: sub_done/sub_fault may be single-cycle pulses from mSave.
-    // SAVE uses sticky latches (sub_done_latched, sub_fault_latched) to
-    // ensure completion/fault signals are not missed.
-    
     assign save_busy = (state != SAVE_IDLE);
-    assign save_complete = (state == SAVE_CALL_SUB) && sub_done_latched;
+    assign save_complete = (state == SAVE_RESET_G);
     assign save_fault = fault_latched;
     assign fault_type = fault_type_latched;
 
 endmodule
-
