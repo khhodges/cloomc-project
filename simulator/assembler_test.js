@@ -2007,6 +2007,8 @@ const ChurchSimulator = require('./simulator.js');
 }
 
 // BF6: BFEXT — high-bit position boundary: extract bit 31 of source (pos=31, w=1).
+//   pos+width=32 is the maximum valid range; a regression in the boundary check would
+//   incorrectly trigger a BOUNDS fault here.
 //   DR2 = 0x80000000 (only bit 31 set).  mask = 1; value = (0x80000000 >>> 31) & 1 = 1.
 //   ISA note: BFEXT can NEVER set N=1.  The mask for any valid width (1–31) is at most
 //   0x7FFFFFFF, so bit 31 of the extracted value is always 0 after masking.  N=1 from a
@@ -2023,6 +2025,9 @@ const ChurchSimulator = require('./simulator.js');
     simBF6.memory[0] = rBF6.words[0] >>> 0;
     simBF6.dr[2] = 0x80000000 >>> 0;   // bit 31 set in source
     simBF6.step();
+    assert('BF6 BFEXT pos=31 w=1 boundary: no BOUNDS fault',
+        simBF6.halted === false,
+        `halted=${simBF6.halted} faultLog=${simBF6.faultLog.map(f => f.type).join(',')}`);
     assert('BF6 BFEXT high-bit pos: DR1=1',  simBF6.dr[1] === 1,     `DR1=${simBF6.dr[1]}`);
     assert('BF6 BFEXT high-bit pos: Z=0',    simBF6.flags.Z === false, `Z=${simBF6.flags.Z}`);
     assert('BF6 BFEXT high-bit pos: N=0',    simBF6.flags.N === false, `N=${simBF6.flags.N}`);
