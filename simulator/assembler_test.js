@@ -1831,6 +1831,71 @@ const ChurchSimulator = require('./simulator.js');
         `expected PC=0 got PC=${simBR4.pc}`);
 }
 
+// ── MC: End-to-end step() integration tests for MCMP ────────────────────────
+// These tests assemble a real MCMP instruction via ChurchAssembler, inject the
+// encoded word into simulator.memory[0], prime the source DR values, call step()
+// exactly once, and verify that the Z, N, and C flags match the expected result
+// of the subtraction (DRa − DRb).  This exercises the full fetch → decode →
+// _execMcmp path and catches flag-output regressions that assembler encoding
+// tests cannot catch.
+
+// MC1: Equal operands — Z=1, N=0, C=1 (no borrow: a >= b unsigned).
+//   MCMP DR1, DR2 with DR1=DR2=7 → Z=1, N=0, C=1.
+{
+    const asmMC1 = new ChurchAssembler();
+    const rMC1   = asmMC1.assemble('MCMP DR1, DR2');
+    assert('MC1 MCMP DR1, DR2 assembles with no errors',
+        asmMC1.errors.length === 0,
+        asmMC1.errors.map(e => e.message).join('; '));
+
+    const simMC1 = new ChurchSimulator();
+    simMC1.memory[0] = rMC1.words[0] >>> 0;
+    simMC1.dr[1] = 7;
+    simMC1.dr[2] = 7;
+    simMC1.step();
+    assert('MC1 equal operands via step(): Z flag set',   simMC1.flags.Z === true,  `Z=${simMC1.flags.Z}`);
+    assert('MC1 equal operands via step(): N flag clear', simMC1.flags.N === false, `N=${simMC1.flags.N}`);
+    assert('MC1 equal operands via step(): C flag set',   simMC1.flags.C === true,  `C=${simMC1.flags.C}`);
+}
+
+// MC2: DRa < DRb (signed and unsigned) — Z=0, N=1, C=0 (borrow: a < b unsigned).
+//   MCMP DR1, DR2 with DR1=5, DR2=10 → result=0xFFFFFFFB → Z=0, N=1, C=0.
+{
+    const asmMC2 = new ChurchAssembler();
+    const rMC2   = asmMC2.assemble('MCMP DR1, DR2');
+    assert('MC2 MCMP DR1, DR2 assembles with no errors',
+        asmMC2.errors.length === 0,
+        asmMC2.errors.map(e => e.message).join('; '));
+
+    const simMC2 = new ChurchSimulator();
+    simMC2.memory[0] = rMC2.words[0] >>> 0;
+    simMC2.dr[1] = 5;
+    simMC2.dr[2] = 10;
+    simMC2.step();
+    assert('MC2 DRa < DRb (signed) via step(): Z flag clear', simMC2.flags.Z === false, `Z=${simMC2.flags.Z}`);
+    assert('MC2 DRa < DRb (signed) via step(): N flag set',   simMC2.flags.N === true,  `N=${simMC2.flags.N}`);
+    assert('MC2 DRa < DRb (signed) via step(): C flag clear', simMC2.flags.C === false, `C=${simMC2.flags.C}`);
+}
+
+// MC3: DRa > DRb unsigned — Z=0, N=0, C=1 (no borrow: a >= b unsigned).
+//   MCMP DR1, DR2 with DR1=10, DR2=5 → result=5 → Z=0, N=0, C=1.
+{
+    const asmMC3 = new ChurchAssembler();
+    const rMC3   = asmMC3.assemble('MCMP DR1, DR2');
+    assert('MC3 MCMP DR1, DR2 assembles with no errors',
+        asmMC3.errors.length === 0,
+        asmMC3.errors.map(e => e.message).join('; '));
+
+    const simMC3 = new ChurchSimulator();
+    simMC3.memory[0] = rMC3.words[0] >>> 0;
+    simMC3.dr[1] = 10;
+    simMC3.dr[2] = 5;
+    simMC3.step();
+    assert('MC3 DRa >= DRb unsigned via step(): Z flag clear', simMC3.flags.Z === false, `Z=${simMC3.flags.Z}`);
+    assert('MC3 DRa >= DRb unsigned via step(): N flag clear', simMC3.flags.N === false, `N=${simMC3.flags.N}`);
+    assert('MC3 DRa >= DRb unsigned via step(): C flag set',   simMC3.flags.C === true,  `C=${simMC3.flags.C}`);
+}
+
 // ── LTF: led_turing_full snippet regression ───────────────────────────────────
 // Loads the led_turing_full assembly from _TURING_DR_TEST_SOURCE in app-run.js,
 // assembles it, and asserts zero errors.  This catches any edit that introduces
