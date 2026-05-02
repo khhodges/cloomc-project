@@ -667,6 +667,16 @@ class ChurchAssembler {
                 if (parts.length > 1) {
                     imm = this._parseImm(parts[1], lineNum) & 0xFFF;
                 }
+                if (imm !== 0) {
+                    const setBits = [];
+                    for (let b = 0; b < 12; b++) {
+                        if (imm & (1 << b)) setBits.push(b);
+                    }
+                    this.warnings.push({
+                        line: lineNum,
+                        message: `Warning: RETURN mask bits [${setBits.join(', ')}] set — mask field is not implemented; bits are ignored.`
+                    });
+                }
                 break;
             }
             case 4: {

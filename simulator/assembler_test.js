@@ -2480,6 +2480,59 @@ const SM_GT_RWE_IDX1 = ((0x23 << 25) | (0x01 << 23) | 1) >>> 0;
         sim.halted === false, `halted=${sim.halted}`);
 }
 
+// ── RETURN mask warnings (task-888) ──────────────────────────────────────────
+
+// RM1: bare RETURN (mask=0) produces no warnings and no errors
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble('RETURN');
+    assert('RM1 bare RETURN: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    assert('RM1 bare RETURN: no warnings', a.warnings.length === 0,
+        a.warnings.map(w => w.message).join('; '));
+    assert('RM1 bare RETURN: word count = 1', r.words.length === 1, 'got ' + r.words.length);
+    const mask = r.words[0] & 0xFFF;
+    assert('RM1 bare RETURN: mask field = 0', mask === 0, 'got ' + mask);
+}
+
+// RM2: RETURN with non-zero mask (bit 5 set, decimal 32) produces exactly one warning
+//      mentioning the mask, and still encodes the instruction (no error).
+{
+    const a = new ChurchAssembler();
+    const r = a.assemble('RETURN 32');
+    assert('RM2 RETURN 32: no errors (encoding still emitted)', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+    assert('RM2 RETURN 32: exactly one warning', a.warnings.length === 1,
+        'got ' + a.warnings.length + ': ' + a.warnings.map(w => w.message).join('; '));
+    assert('RM2 RETURN 32: warning mentions mask',
+        a.warnings.length > 0 && a.warnings[0].message.includes('mask'),
+        a.warnings.length > 0 ? a.warnings[0].message : '(no warning)');
+    assert('RM2 RETURN 32: warning mentions bit 5',
+        a.warnings.length > 0 && a.warnings[0].message.includes('5'),
+        a.warnings.length > 0 ? a.warnings[0].message : '(no warning)');
+    assert('RM2 RETURN 32: warning mentions not implemented',
+        a.warnings.length > 0 && a.warnings[0].message.toLowerCase().includes('not implemented'),
+        a.warnings.length > 0 ? a.warnings[0].message : '(no warning)');
+    const mask = r.words[0] & 0xFFF;
+    assert('RM2 RETURN 32: mask field = 32 in encoded word', mask === 32, 'got ' + mask);
+}
+
+// RM3: RETURN with multiple mask bits set lists all set bit positions in warning
+{
+    const a = new ChurchAssembler();
+    a.assemble('RETURN 0xFFF');
+    assert('RM3 RETURN 0xFFF: exactly one warning', a.warnings.length === 1,
+        'got ' + a.warnings.length);
+    assert('RM3 RETURN 0xFFF: warning mentions bit 0',
+        a.warnings.length > 0 && a.warnings[0].message.includes('0'),
+        a.warnings.length > 0 ? a.warnings[0].message : '(no warning)');
+    assert('RM3 RETURN 0xFFF: warning mentions bit 11',
+        a.warnings.length > 0 && a.warnings[0].message.includes('11'),
+        a.warnings.length > 0 ? a.warnings[0].message : '(no warning)');
+    assert('RM3 RETURN 0xFFF: no errors', a.errors.length === 0,
+        a.errors.map(e => e.message).join('; '));
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);
