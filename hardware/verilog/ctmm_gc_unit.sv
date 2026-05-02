@@ -1,10 +1,14 @@
 // ============================================================================
 // CTMM Garbage Collection Unit - Deterministic GC with G Bit
 // ============================================================================
-// Implements deterministic garbage collection using the G permission bit:
-// - Mark Phase: Sets G=1 on all namespace entries
-// - Access Phase: Valid key access resets G=0 (done in LOAD path)
-// - Sweep Phase: Entries with G=1 are unreachable (garbage)
+// PP250 Design: Mark-Scan-Sweep.
+//   Mark:  Sets G=1 on all namespace entries.
+//   Scan:  Relies on mLoad (in the LOAD/CALL paths) resetting G=0 on every
+//          valid access. No explicit scan state needed in hardware — the
+//          normal execution path between Mark and Sweep IS the scan phase.
+//   Sweep: Identifies entries still with G=1 as garbage.
+// TODO: Sweep currently only counts garbage entries. To fully reclaim,
+//       add a GC_SWEEP_WRITE state to bump version and clear G on garbage.
 // ============================================================================
 
 module ctmm_gc_unit
@@ -23,8 +27,8 @@ module ctmm_gc_unit
     // Namespace memory interface (for marking)
     output logic [31:0] ns_addr,          // Address to mark
     output logic        ns_rd_en,         // Read enable
-    input  golden_token_t ns_rd_data,     // Current GT at address
-    output golden_token_t ns_wr_data,     // GT with G bit set
+    input  namespace_entry_t ns_rd_data,  // Current NS entry at address
+    output namespace_entry_t ns_wr_data, // NS entry with G bit set
     output logic        ns_wr_en,         // Write enable
     
     // Configuration
@@ -145,8 +149,7 @@ module ctmm_gc_unit
             mark_counter <= 32'h0;
         end else if (state == GC_IDLE && gc_start) begin
             mark_counter <= 32'h0;
-        end else if (state == GC_MARK_WRITE && !ns_rd_data.perms[PERM_G]) begin
-            // Only count if G was not already set
+        end else if (state == GC_MARK_WRITE && !ns_rd_data.word2_w3.g_bit) begin
             mark_counter <= mark_counter + 32'h1;
         end
     end
@@ -162,8 +165,7 @@ module ctmm_gc_unit
             garbage_counter <= 32'h0;
         end else if (state == GC_IDLE && gc_start) begin
             garbage_counter <= 32'h0;
-        end else if (state == GC_SWEEP_CHECK && ns_rd_data.perms[PERM_G]) begin
-            // Entry still has G=1, it's garbage
+        end else if (state == GC_SWEEP_CHECK && ns_rd_data.word2_w3.g_bit) begin
             garbage_counter <= garbage_counter + 32'h1;
         end
     end
@@ -177,10 +179,9 @@ module ctmm_gc_unit
     assign ns_addr = current_addr;
     assign ns_rd_en = (state == GC_MARK_READ) || (state == GC_SWEEP_READ);
     
-    // Set G bit during mark phase
     always_comb begin
         ns_wr_data = ns_rd_data;
-        ns_wr_data.perms[PERM_G] = 1'b1;  // Set G bit
+        ns_wr_data.word2_w3.g_bit = 1'b1;
     end
     
     assign ns_wr_en = (state == GC_MARK_WRITE);
