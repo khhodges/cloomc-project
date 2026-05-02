@@ -7771,7 +7771,8 @@ function showReleaseHistory() {
             'Task #887 merged: D-9 LAMBDA hardware fix — CR6 state correctly preserved on LAMBDA CR6 re-entry path in Amaranth hardware',
             'Task #888 merged: RETURN mask assembler warning — assembler warns on any non-zero mask or reserved bit 6 instead of silently encoding',
             'Task #890 merged: LAMBDA CR6 re-entry simulator test added to gate suite',
-            'Task #17 merged: Navana.Init wired as a callable method-table entry (method index 1 in the boot namespace slot)',
+            'Task #17 merged: Navana.Init wired as a callable method-table entry — 3-word lump injected at ROM word 320 (NS slot 5); method index 1 → PC=2 → RETURN AL; PRIVATE_METHOD fault eliminated (D-5 CLOSED)',
+            'Task #891 merged: boot entry CALL test corrected — PC after a method-index-0 CALL is 1 (word 1, first code word after lump header), not 0; both default and custom_step1 configurations now pass',
         ] },
         { date: '2026-04-30 UTC', title: 'Hello Mum Pipeline, Hardware Bridge & LUMP Tokens Tab', changes: [
             'QR code display fixed: identity QR now rendered with a self-contained pure-stdlib generator — no external package required',
