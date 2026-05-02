@@ -1,0 +1,265 @@
+from enum import IntEnum
+
+PERM_R = 0
+PERM_W = 1
+PERM_X = 2
+PERM_L = 3
+PERM_S = 4
+PERM_E = 5
+
+PERM_MASK_R = 1 << PERM_R
+PERM_MASK_W = 1 << PERM_W
+PERM_MASK_X = 1 << PERM_X
+PERM_MASK_L = 1 << PERM_L
+PERM_MASK_S = 1 << PERM_S
+PERM_MASK_E = 1 << PERM_E
+
+DATA_PERMS = PERM_MASK_R | PERM_MASK_W | PERM_MASK_X
+CAP_PERMS  = PERM_MASK_L | PERM_MASK_S | PERM_MASK_E
+
+GT_TYPE_NULL     = 0b00
+GT_TYPE_INFORM   = 0b01
+GT_TYPE_OUTFORM  = 0b10
+GT_TYPE_ABSTRACT = 0b11
+
+NUM_CAP_REGS = 16
+NUM_DATA_REGS = 16
+
+CR_HEAP         = 5
+CR_CLIST        = 6
+CR_NUCLEUS      = 7
+CR_THREAD_STACK = 12   # CR12: thread stack capability (canonical name)
+CR_INTERRUPT    = 13
+CR_CLOOMC       = 14   # CR14: code register / CLOOMC (canonical name)
+CR_NAMESPACE    = 15
+
+GT_SEQ_BITS     = 7
+GT_SLOT_ID_BITS = 16
+GT_PERM_BITS    = 6
+GT_TYPE_BITS    = 2
+GT_WIDTH        = 32
+
+CR_WIDTH        = 96
+WORD_WIDTH      = 32
+
+MAX_NS_ENTRIES  = 1 << GT_SLOT_ID_BITS
+MAX_GT_SEQ      = (1 << GT_SEQ_BITS) - 1
+
+NS_LIMIT_MASK  = (1 << GT_SLOT_ID_BITS) - 1
+
+NS_TABLE_BASE  = 0xFD00
+
+FNV_OFFSET_32 = 0x811c9dc5
+FNV_PRIME_32  = 0x01000193
+FNV_SEAL_MASK = (1 << 25) - 1
+
+ENABLE_SEAL_CHECK = True
+ENABLE_FUSED_OPS = True
+ENABLE_CHANGE_SWITCH = True
+ENABLE_GC = True
+
+# ---------------------------------------------------------------------------
+# Church Hardware Address Range — 0xFFFFFF00 to 0xFFFFFFFF
+#
+# A unified 256-address region that governs privileged CR register access
+# and I/O device ports through capability-based authority.  Possessing a
+# capability whose address covers a port is the sole authority to access it.
+# ---------------------------------------------------------------------------
+CHURCH_HW_RANGE_BASE = 0xFFFFFF00
+CHURCH_HW_RANGE_END  = 0xFFFFFFFF
+
+# Segment 1 — CR Ports (0xFFFFFF00–0xFFFFFF0F)
+# L-perm → authority to load from that CR.
+# S-perm → authority to CHANGE (store to) that CR.
+CR_PORT_BASE = 0xFFFFFF00
+CR_PORT_CR12 = 0xFFFFFF0C   # thread stack         (system-wide)
+CR_PORT_CR13 = 0xFFFFFF0D   # interrupt handler    (system-wide)
+CR_PORT_CR14 = 0xFFFFFF0E   # code register        (per-thread)
+CR_PORT_CR15 = 0xFFFFFF0F   # namespace root       (per-thread)
+
+# Segment 2 — M Bit Ports (0xFFFFFF10–0xFFFFFF1F)
+# S-perm → authority to set the M bit on a GT installed into that CR.
+M_BIT_PORT_BASE = 0xFFFFFF10
+M_BIT_PORT_CR12 = 0xFFFFFF1C
+M_BIT_PORT_CR13 = 0xFFFFFF1D
+M_BIT_PORT_CR14 = 0xFFFFFF1E
+M_BIT_PORT_CR15 = 0xFFFFFF1F
+
+# Segment 3 — I/O Device Ports (0xFFFFFF20–0xFFFFFFEE)
+# R-perm → read register.  W-perm → write register.
+IO_PORT_BASE            = 0xFFFFFF20
+IO_PORT_UART_TX         = 0xFFFFFF20
+IO_PORT_UART_STATUS     = 0xFFFFFF21
+IO_PORT_UART_RX         = 0xFFFFFF22
+IO_PORT_LED0            = 0xFFFFFF23
+IO_PORT_LED1            = 0xFFFFFF24
+IO_PORT_LED2            = 0xFFFFFF25
+IO_PORT_LED3            = 0xFFFFFF26
+IO_PORT_LED4            = 0xFFFFFF27
+IO_PORT_LED5            = 0xFFFFFF28
+IO_PORT_BUTTON          = 0xFFFFFF29
+IO_PORT_TIMER_TICKS_LO  = 0xFFFFFF2A
+IO_PORT_TIMER_TICKS_HI  = 0xFFFFFF2B
+IO_PORT_TIMER_TOD_EPOCH = 0xFFFFFF2C
+IO_PORT_TIMER_ALARM_CMP = 0xFFFFFF2D
+IO_PORT_TIMER_CTL       = 0xFFFFFF2E
+IO_PORT_DISP_DMA_SRC_LO = 0xFFFFFF2F
+IO_PORT_DISP_DMA_SRC_HI = 0xFFFFFF30
+IO_PORT_DISP_DMA_LEN    = 0xFFFFFF31
+IO_PORT_DISP_DMA_CTL    = 0xFFFFFF32
+IO_PORT_DISP_CMD        = 0xFFFFFF33
+IO_PORT_TOUCH_X         = 0xFFFFFF34
+IO_PORT_TOUCH_Y         = 0xFFFFFF35
+IO_PORT_TOUCH_Z         = 0xFFFFFF36   # pressure
+IO_PORT_TOUCH_STATUS    = 0xFFFFFF37
+IO_PORT_NEXT            = 0xFFFFFF38   # next unallocated I/O port
+
+# Segment 4 — Existing Sentinels (0xFFFFFFEF–0xFFFFFFFF)
+# Reserved hardware sentinel addresses used in word1_location of SWITCH PassKeys.
+# These values occupy the I/O peripheral address space — a range no real RAM
+# lump base address can occupy — ensuring no ambiguity with live capabilities.
+#   0xFFFFFFFF  (all-1s)      →  PassKey for CR15 (Namespace)
+#   0xFFFFFFFE  (all-1s − 1)  →  PassKey for CR13 (IRQ Thread)
+SWITCH_PASSKEY_SENTINEL_CR15 = 0xFFFFFFFF
+SWITCH_PASSKEY_SENTINEL_CR13 = 0xFFFFFFFE
+
+# SWITCH Tgt field values — the 3-bit field maps to CR8 + Tgt.
+# Only these two are valid SWITCH targets; all others produce INVALID_OP.
+SWITCH_TGT_CR13 = 5   # 101₂  →  CR13  (IRQ Thread)
+SWITCH_TGT_CR15 = 7   # 111₂  →  CR15  (Namespace)
+
+
+class ChurchOpcode(IntEnum):
+    LOAD        = 0b0000
+    SAVE        = 0b0001
+    CALL        = 0b0010
+    RETURN      = 0b0011
+    CHANGE      = 0b0100
+    SWITCH      = 0b0101
+    TPERM       = 0b0110
+    LAMBDA      = 0b0111
+    ELOADCALL   = 0b1000
+    XLOADLAMBDA = 0b1001
+
+
+NUM_CHURCH_OPCODES = 10
+
+
+class TuringOpcode(IntEnum):
+    DREAD       = 0b10000
+    DWRITE      = 0b10001
+    BFEXT       = 0b10010
+    BFINS       = 0b10011
+    MCMP        = 0b10100
+    IADD        = 0b10101
+    ISUB        = 0b10110
+    BRANCH      = 0b10111
+    SHL         = 0b11000
+    SHR         = 0b11001
+
+
+NUM_TURING_OPCODES = 10
+NUM_TOTAL_OPCODES = NUM_CHURCH_OPCODES + NUM_TURING_OPCODES
+
+
+# Opcodes 0b10110–0b11101 (26–29) are reserved for future instructions
+# (e.g. floating-point).  0x1E is the last slot before the lump-header magic.
+OPCODE_WORD = 0b11110   # = 0x1E = 30 — inline data constant; INVALID_OP if executed
+
+
+class CondCode(IntEnum):
+    EQ = 0b0000
+    NE = 0b0001
+    CS = 0b0010
+    CC = 0b0011
+    MI = 0b0100
+    PL = 0b0101
+    VS = 0b0110
+    VC = 0b0111
+    HI = 0b1000
+    LS = 0b1001
+    GE = 0b1010
+    LT = 0b1011
+    GT = 0b1100
+    LE = 0b1101
+    AL = 0b1110
+    NV = 0b1111
+
+
+class TpermPreset(IntEnum):
+    CLEAR = 0
+    R     = 1
+    RW    = 2
+    X     = 3
+    RX    = 4
+    RWX   = 5
+    L     = 6
+    S     = 7
+    E     = 8
+    LS    = 9
+    RSV3   = 10
+    RSV4   = 11
+    RSV5   = 12
+    RSV2   = 13
+    RSV0   = 14
+    RSV1   = 15
+
+
+TPERM_MASKS = {
+    TpermPreset.CLEAR: 0x00,
+    TpermPreset.R:     PERM_MASK_R,
+    TpermPreset.RW:    PERM_MASK_R | PERM_MASK_W,
+    TpermPreset.X:     PERM_MASK_X,
+    TpermPreset.RX:    PERM_MASK_R | PERM_MASK_X,
+    TpermPreset.RWX:   PERM_MASK_R | PERM_MASK_W | PERM_MASK_X,
+    TpermPreset.L:     PERM_MASK_L,
+    TpermPreset.S:     PERM_MASK_S,
+    TpermPreset.E:     PERM_MASK_E,
+    TpermPreset.LS:    PERM_MASK_L | PERM_MASK_S,
+    TpermPreset.RSV3:  0x00,
+    TpermPreset.RSV4:  0x00,
+    TpermPreset.RSV5:  0x00,
+    TpermPreset.RSV2:  0x00,
+    TpermPreset.RSV0:  0x00,
+    TpermPreset.RSV1:  0x00,
+}
+
+
+class FaultType(IntEnum):
+    NONE          = 0x0
+    PERM_R        = 0x1
+    PERM_W        = 0x2
+    PERM_X        = 0x3
+    PERM_L        = 0x4
+    PERM_S        = 0x5
+    PERM_E        = 0x6
+    NULL_CAP      = 0x7
+    BOUNDS        = 0x8
+    VERSION       = 0x9
+    SEAL          = 0xA
+    INVALID_OP    = 0xB
+    TPERM_RSV     = 0xC
+    DOMAIN_PURITY = 0xD
+    BIND          = 0xE
+    F_BIT         = 0xF
+    STACK_OVERFLOW  = 0x10   # CALL stack depth exceeded IDE-defined lower bound (sp < sp_min)
+    ABSENT_OUTFORM  = 0x11   # mLoad: outform absent — SW trap downloads code, reissues CALL
+    STACK_CORRUPT   = 0x12   # CALL stack pointer above sp_max (STO corrupted or header wrong)
+    STACK_UNDERFLOW = 0x13   # RETURN with no caller frame — popped past sentinel (NIA=0x7FFF)
+    OUTFORM_CRC     = 0x15   # Outform download: CRC-32 mismatch in received lump
+    OUTFORM_ALLOC   = 0x16   # Outform download: memory allocator rejected the lump size
+    OUTFORM_MINT    = 0x17   # Outform download: Mint capability-minting step failed
+    OUTFORM_HDR     = 0x18   # Outform download: header validation failed (bad length/alignment)
+    OUTFORM_TIMEOUT = 0x19   # Outform download: server stopped sending bytes (watchdog expired)
+
+
+class BootState(IntEnum):
+    IDLE       = 0
+    FAULT_RST  = 1
+    LOAD_NS    = 2
+    INIT_THRD  = 3
+    INIT_CLIST = 4
+    LOAD_NUC   = 5
+    COMPLETE   = 6
+
+
