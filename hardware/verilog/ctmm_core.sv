@@ -33,8 +33,8 @@ module ctmm_core
     // Data Memory Interface
     output logic [31:0] dmem_addr,        // Data address
     output logic        dmem_rd_en,       // Read enable
-    input  logic [63:0] dmem_rd_data,     // Read data
-    output logic [63:0] dmem_wr_data,     // Write data
+    input  logic [31:0] dmem_rd_data,     // Read data (32-bit wide)
+    output logic [31:0] dmem_wr_data,     // Write data (32-bit wide)
     output logic        dmem_wr_en,       // Write enable
     
     // Boot Control
@@ -64,10 +64,11 @@ module ctmm_core
     logic [3:0]  cr_rd_addr, cr_wr_addr;
     golden_token_t cr_rd_data, cr_wr_data;
     logic        cr_wr_en;
-    golden_token_t cr6_clist, cr7_cloomc, cr8_thread, cr15_namespace;
-    golden_token_t cr6_wr_data, cr7_wr_data, cr8_wr_data, cr15_wr_data;
+    golden_token_t cr6_clist, cr14_cloomc, cr8_thread, cr15_namespace;
+    capability_reg_t cr12_cap;  // Full CR12 for THREAD_HDR: word1_location = incoming thread lump base
+    golden_token_t cr6_wr_data, cr8_wr_data, cr15_wr_data;
     golden_token_t cr9_wr_data, cr10_wr_data, cr11_wr_data, cr12_wr_data, cr13_wr_data, cr14_wr_data;
-    logic        cr6_wr_en, cr7_wr_en, cr8_wr_en, cr15_wr_en;
+    logic        cr6_wr_en, cr8_wr_en, cr15_wr_en;
     logic        cr9_wr_en, cr10_wr_en, cr11_wr_en, cr12_wr_en, cr13_wr_en, cr14_wr_en;
     
     logic [3:0]  dr_rd_addr1, dr_rd_addr2, dr_wr_addr;
@@ -87,7 +88,7 @@ module ctmm_core
     logic [9:0]  call_mask;
     logic        imm_mode;
     logic [2:0]  switch_target;       // SWITCH target: 0=CR8, 7=CR15
-    logic [15:0] perm_mask;
+    logic [5:0]  perm_mask;
     
     // SWITCH module signals
     logic        switch_start, switch_busy, switch_complete, switch_fault;
@@ -105,22 +106,24 @@ module ctmm_core
     
     // Permission checker signals
     golden_token_t perm_gt;
-    logic [15:0] required_perms;
+    logic [5:0]  required_perms;
     logic        perm_check_valid;
-    logic [31:0] access_index;
-    logic [63:0] limit;
+    logic [15:0] access_index;
+    logic [15:0] limit;
     logic        check_bounds;
-    logic [63:0] calculated_mac, stored_mac;
-    logic        check_mac;
-    logic        perm_granted, bounds_ok, mac_valid, all_checks_pass;
+    logic [15:0] calculated_seal, stored_seal;
+    logic        check_seal;
+    logic [6:0]  stored_gt_seq;
+    logic        check_version;
+    logic        check_domain_purity;
+    logic        perm_granted, bounds_ok, version_ok, seal_valid, domain_purity_ok, all_checks_pass;
     fault_type_t perm_fault;
     logic        perm_fault_valid;
-    logic        g_bit_set, is_namespace_access;
     
     // GC unit signals
     logic [31:0] gc_ns_addr;
     logic        gc_ns_rd_en;
-    golden_token_t gc_ns_wr_data;
+    namespace_entry_t gc_ns_wr_data;
     logic        gc_ns_wr_en;
     logic [31:0] gc_marked_count;
     logic        gc_done;
@@ -147,13 +150,12 @@ module ctmm_core
         .cr_wr_data     (cr_wr_data),
         .cr_wr_en       (cr_wr_en),
         .cr6_clist      (cr6_clist),
-        .cr7_cloomc     (cr7_cloomc),
+        .cr14_cloomc    (cr14_cloomc),
         .cr8_thread     (cr8_thread),
         .cr15_namespace (cr15_namespace),
+        .cr12_cap       (cr12_cap),
         .cr6_wr_data    (cr6_wr_data),
         .cr6_wr_en      (cr6_wr_en),
-        .cr7_wr_data    (cr7_wr_data),
-        .cr7_wr_en      (cr7_wr_en),
         .cr8_wr_data    (cr8_wr_data),
         .cr8_wr_en      (cr8_wr_en),
         .cr9_wr_data    (cr9_wr_data),
@@ -180,6 +182,8 @@ module ctmm_core
         .flags          (flags_internal),
         .flags_in       (flags_in),
         .flags_wr_en    (flags_wr_en),
+        .cr_b_clear_mask(call_b_clear_mask),
+        .cr_null_mask   (call_cr_null_mask),
         .clear_all      (clear_all)
     );
     
@@ -241,25 +245,26 @@ module ctmm_core
     // ========================================================================
     
     ctmm_perm_check u_perm_check (
-        .clk            (clk),
-        .rst_n          (rst_n),
-        .gt_in          (perm_gt),
-        .required_perms (required_perms),
-        .check_valid    (perm_check_valid),
-        .access_index   (access_index),
-        .limit          (limit),
-        .check_bounds   (check_bounds),
-        .calculated_mac (calculated_mac),
-        .stored_mac     (stored_mac),
-        .check_mac      (check_mac),
-        .perm_granted   (perm_granted),
-        .bounds_ok      (bounds_ok),
-        .mac_valid      (mac_valid),
-        .all_checks_pass(all_checks_pass),
-        .fault_type     (perm_fault),
-        .fault_valid    (perm_fault_valid),
-        .g_bit_set      (g_bit_set),
-        .is_namespace_access(is_namespace_access)
+        .gt_in                (perm_gt),
+        .required_perms       (required_perms),
+        .check_valid          (perm_check_valid),
+        .access_index         (access_index),
+        .limit                (limit),
+        .check_bounds         (check_bounds),
+        .stored_gt_seq        (stored_gt_seq),
+        .check_version        (check_version),
+        .calculated_seal      (calculated_seal),
+        .stored_seal          (stored_seal),
+        .check_seal           (check_seal),
+        .check_domain_purity  (check_domain_purity),
+        .perm_granted         (perm_granted),
+        .bounds_ok            (bounds_ok),
+        .version_ok           (version_ok),
+        .seal_valid           (seal_valid),
+        .domain_purity_ok     (domain_purity_ok),
+        .all_checks_pass      (all_checks_pass),
+        .fault_type           (perm_fault),
+        .fault_valid          (perm_fault_valid)
     );
     
     // ========================================================================
@@ -276,7 +281,7 @@ module ctmm_core
         .gc_done        (gc_done),
         .ns_addr        (gc_ns_addr),
         .ns_rd_en       (gc_ns_rd_en),
-        .ns_rd_data     (clist_rd_data), // Reuse C-List interface for GC
+        .ns_rd_data     (ns_rd_data),    // Namespace memory for GC
         .ns_wr_data     (gc_ns_wr_data),
         .ns_wr_en       (gc_ns_wr_en),
         .ns_start_addr  (32'h0),
@@ -360,7 +365,6 @@ module ctmm_core
     // Boot sequence register loading
     always_comb begin
         cr6_wr_en = 1'b0;  cr6_wr_data = GT_NULL;
-        cr7_wr_en = 1'b0;  cr7_wr_data = GT_NULL;
         cr8_wr_en = 1'b0;  cr8_wr_data = GT_NULL;
         cr9_wr_en = 1'b0;  cr9_wr_data = GT_NULL;
         cr10_wr_en = 1'b0; cr10_wr_data = GT_NULL;
@@ -372,38 +376,43 @@ module ctmm_core
         
         case (boot_state_reg)
             BOOT_LOAD_NS: begin
-                // Load namespace root GT into CR15
                 cr15_wr_en = 1'b1;
                 cr15_wr_data = '{
-                    perms: PERM_MASK_M | PERM_MASK_L,  // M+L permissions
-                    spare: 16'h0,
-                    offset: 32'h0  // Offset 0 = Namespace
+                    b_flag:  1'b0,
+                    perms:   PERM_MASK_L,
+                    gt_type: GT_TYPE_INFORM,
+                    gt_seq:  7'h0,
+                    slot_id: 16'h0000
                 };
             end
             
             BOOT_INIT_THRD: begin
-                // Load thread GT into CR8
                 cr8_wr_en = 1'b1;
                 cr8_wr_data = '{
-                    perms: PERM_MASK_M,  // M permission
-                    spare: 16'h0,
-                    offset: 32'h3  // Offset 3 = Kenneth thread
+                    b_flag:  1'b0,
+                    perms:   PERM_MASK_L,
+                    gt_type: GT_TYPE_INFORM,
+                    gt_seq:  7'h0,
+                    slot_id: 16'h0003
                 };
             end
             
             BOOT_LOAD_NUC: begin
-                // Load CR6 (Boot C-List) and CR7 (Nucleus)
                 cr6_wr_en = 1'b1;
                 cr6_wr_data = '{
-                    perms: PERM_MASK_L | PERM_MASK_S | PERM_MASK_E,
-                    spare: 16'h0,
-                    offset: 32'h2  // Offset 2 = Boot C-List
+                    b_flag:  1'b0,
+                    perms:   PERM_MASK_L | PERM_MASK_S | PERM_MASK_E,
+                    gt_type: GT_TYPE_INFORM,
+                    gt_seq:  7'h0,
+                    slot_id: 16'h0002
                 };
-                cr7_wr_en = 1'b1;
-                cr7_wr_data = '{
-                    perms: PERM_MASK_X,
-                    spare: 16'h0,
-                    offset: 32'h1  // Offset 1 = Access.asm (Nucleus)
+                cr14_wr_en = 1'b1;
+                cr14_wr_data = '{
+                    b_flag:  1'b0,
+                    perms:   PERM_MASK_X,
+                    gt_type: GT_TYPE_INFORM,
+                    gt_seq:  7'h0,
+                    slot_id: 16'h0001
                 };
             end
             
@@ -464,7 +473,7 @@ module ctmm_core
     
     // Namespace/C-List address multiplexing
     assign clist_addr = gc_busy ? gc_ns_addr : 
-                        (is_church_op ? {cr_rd_data.offset[23:0], clist_index} : 32'h0);
+                        (is_church_op ? {cr_rd_data.slot_id, 6'h0} + {22'h0, clist_index} : 32'h0);
     assign clist_rd_en = gc_busy ? gc_ns_rd_en :
                          (exec_enable && is_church_op && 
                           ((church_op == OP_LOAD) || 
@@ -476,19 +485,16 @@ module ctmm_core
     // Permission check setup for LOAD operation
     assign cr_rd_addr = cr_src;
     assign perm_gt = cr_rd_data;
-    assign required_perms = (church_op == OP_LOAD) ? (PERM_MASK_L | PERM_MASK_M) :
+    assign required_perms = (church_op == OP_LOAD) ? PERM_MASK_L :
                             (church_op == OP_SAVE) ? PERM_MASK_S :
                             (church_op == OP_CALL) ? PERM_MASK_E :
                             (church_op == OP_SWITCH) ? PERM_MASK_L :
                             (church_op == OP_CHANGE) ? PERM_MASK_L :
-                            16'h0;
+                            6'h0;
     assign perm_check_valid = exec_enable && is_church_op;
     assign access_index = {24'h0, clist_index};
-    assign limit = ns_rd_data.word2_limit;
+    assign limit = ns_rd_data.word1_w2.limit_offset[15:0];
     assign check_bounds = 1'b1;
-    assign calculated_mac = 64'h0; // Simplified - would compute MAC in real impl
-    assign stored_mac = ns_rd_data.word3_seals;
-    assign check_mac = 1'b0; // Disabled for now
     
     // CR write for LOAD operation
     assign cr_wr_addr = cr_dst;
@@ -575,15 +581,172 @@ module ctmm_core
     end
     
     // Data memory interface (for data operations)
-    assign dmem_addr = dr_rd_data1[31:0];
-    assign dmem_rd_en = 1'b0;  // Simplified
+    // dmem mux: THREAD_HDR fetch takes priority over normal Turing LOAD path
+    assign dmem_addr  = trhdr_fetch_pending ? trhdr_addr : dr_rd_data1[31:0];
+    assign dmem_rd_en = trhdr_fetch_pending ? 1'b1 : 1'b0;
     assign dmem_wr_data = dr_rd_data2;
     assign dmem_wr_en = 1'b0;  // Simplified
     
     // Namespace memory interface
-    assign ns_addr = cr_rd_data.offset;
+    assign ns_addr = {16'h0, cr_rd_data.slot_id};
     assign ns_rd_en = perm_check_valid;
     assign ns_wr_data = '{default: '0};
     assign ns_wr_en = 1'b0;
+
+    // ========================================================================
+    // CALL and RETURN Module Instantiation
+    // ========================================================================
+    
+
+    logic        call_start_sig, call_busy_sig, call_complete_sig, call_fault_sig;
+    fault_type_t call_fault_type;
+    logic [3:0]  call_cr_rd_addr;
+    capability_reg_t call_cr_rd_data_in;
+    logic [3:0]  call_cr_wr_addr;
+    capability_reg_t call_cr_wr_data;
+    logic        call_cr_wr_en;
+    logic [31:0] call_mem_addr;
+    logic        call_mem_rd_en;
+    logic        call_thread_wr_en;
+    logic [3:0]  call_thread_wr_idx;
+    logic [31:0] call_thread_wr_data;
+    logic        call_nia_set;
+    logic [31:0] call_nia_value;
+    logic [15:0] call_dr_clear_mask;
+    logic [15:0] call_cr_clear_mask;
+    logic [5:0]  call_b_clear_mask;
+    logic [11:0] call_cr_null_mask;
+
+    // ======================================================================
+    // THREAD_HDR hidden register — populated by CHANGE, consumed by CALL
+    // ======================================================================
+    // Design: THREAD_HDR holds Mem[incoming_thread_lump_base + 0], the
+    // thread's lump-header word.  It is loaded on every thread RESTORE
+    // (switch-in) by reading one word from DRAM.  On switch-out (switch to
+    // another thread via CHANGE), no save is required because:
+    //   (a) The lump header is architecturally immutable — code lumps are
+    //       write-protected once loaded into the system.
+    //   (b) On the next switch-in of the same thread, CHANGE will re-read
+    //       the lump header from DRAM, always yielding the same value.
+    // This "restore-only from static source" pattern is safe and avoids the
+    // cost of a dedicated per-thread save slot.
+    //
+    // Production migration: when ctmm_change.sv is instantiated in core,
+    // replace this FSM with a direct wire from ctmm_change.thread_hdr_out.
+    // ======================================================================
+    // cr12_wr_en_d1: one-cycle delayed version of cr12_wr_en.
+    // CHANGE fires cr12_wr_en combinatorially at cycle N; cap_regs[12] is
+    // updated at the posedge of cycle N (visible as cr12_cap at cycle N+1).
+    // Using the delayed signal ensures cr12_cap.word1_location is stable when
+    // we capture trhdr_addr, avoiding a stale-value race on the same edge.
+    logic cr12_wr_en_d1;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) cr12_wr_en_d1 <= 1'b0;
+        else        cr12_wr_en_d1 <= cr12_wr_en;
+    end
+
+    logic        trhdr_fetch_pending;
+    logic [31:0] trhdr_addr;
+    logic [31:0] thread_hdr_reg;
+    logic [31:0] call_thread_hdr_in;
+    assign call_thread_hdr_in = thread_hdr_reg;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            trhdr_fetch_pending <= 1'b0;
+            trhdr_addr          <= 32'd0;
+            thread_hdr_reg      <= 32'd0;
+        end else begin
+            // Trigger one cycle after cr12_wr_en: by now cr12_cap holds the
+            // incoming thread's full capability including word1_location.
+            if (cr12_wr_en_d1 && !trhdr_fetch_pending) begin
+                trhdr_addr          <= cr12_cap.word1_location;
+                trhdr_fetch_pending <= 1'b1;
+            end
+            if (trhdr_fetch_pending) begin
+                thread_hdr_reg      <= dmem_rd_data;
+                trhdr_fetch_pending <= 1'b0;
+            end
+        end
+    end
+
+    ctmm_call u_call (
+        .clk            (clk),
+        .rst_n          (rst_n),
+        .call_start     (call_start_sig),
+        .cr_src         (cr_src),
+        .index          ({6'h0, clist_index}),
+        .mask           (call_mask),
+        .call_busy      (call_busy_sig),
+        .call_complete  (call_complete_sig),
+        .call_fault     (call_fault_sig),
+        .fault_type     (call_fault_type),
+        .cr_rd_addr     (call_cr_rd_addr),
+        .cr_rd_data     (call_cr_rd_data_in),
+        .cr_wr_addr     (call_cr_wr_addr),
+        .cr_wr_data     (call_cr_wr_data),
+        .cr_wr_en       (call_cr_wr_en),
+        .cr15_namespace (cr15_namespace),
+        .mem_addr       (call_mem_addr),
+        .mem_rd_en      (call_mem_rd_en),
+        .mem_rd_data    (dmem_rd_data[31:0]),
+        .mem_rd_valid   (1'b1),
+        .thread_wr_en   (call_thread_wr_en),
+        .thread_wr_idx  (call_thread_wr_idx),
+        .thread_wr_data (call_thread_wr_data),
+        .thread_hdr_in  (call_thread_hdr_in),
+        .nia_set        (call_nia_set),
+        .nia_value      (call_nia_value),
+        .dr_clear_mask  (call_dr_clear_mask),
+        .cr_clear_mask  (call_cr_clear_mask),
+        .b_clear_mask   (call_b_clear_mask),
+        .cr_null_mask   (call_cr_null_mask)
+    );
+
+    assign call_start_sig = exec_enable && is_church_op && (church_op == OP_CALL) && all_checks_pass;
+
+    logic        ret_start_sig, ret_busy_sig, ret_complete_sig, ret_fault_valid_sig;
+    fault_type_t ret_fault_type;
+    logic [3:0]  ret_cr_rd_addr;
+    logic [3:0]  ret_cr_wr_addr;
+    capability_reg_t ret_cr_wr_data;
+    logic        ret_cr_wr_en;
+    logic        ret_nia_set;
+    logic [31:0] ret_nia_value;
+    logic        ret_clear_m_bit;
+    logic [31:0] ret_mem_addr;
+    logic        ret_mem_rd_en;
+    logic        ret_thread_wr_en;
+    logic [3:0]  ret_thread_wr_idx;
+    logic [31:0] ret_thread_wr_data;
+
+    ctmm_return u_return (
+        .clk            (clk),
+        .rst_n          (rst_n),
+        .return_start   (ret_start_sig),
+        .cr_src         (cr_src),
+        .busy           (ret_busy_sig),
+        .complete       (ret_complete_sig),
+        .fault_valid    (ret_fault_valid_sig),
+        .fault_type     (ret_fault_type),
+        .cr_rd_addr     (ret_cr_rd_addr),
+        .cr_rd_data     (call_cr_rd_data_in),
+        .cr_wr_addr     (ret_cr_wr_addr),
+        .cr_wr_data     (ret_cr_wr_data),
+        .cr_wr_en       (ret_cr_wr_en),
+        .nia_set        (ret_nia_set),
+        .nia_value      (ret_nia_value),
+        .clear_m_bit    (ret_clear_m_bit),
+        .cr15_namespace (cr15_namespace),
+        .mem_addr       (ret_mem_addr),
+        .mem_rd_en      (ret_mem_rd_en),
+        .mem_rd_data    (dmem_rd_data[31:0]),
+        .mem_rd_valid   (1'b1),
+        .thread_wr_en   (ret_thread_wr_en),
+        .thread_wr_idx  (ret_thread_wr_idx),
+        .thread_wr_data (ret_thread_wr_data)
+    );
+
+    assign ret_start_sig = exec_enable && is_church_op && (church_op == OP_RETURN) && all_checks_pass;
 
 endmodule
