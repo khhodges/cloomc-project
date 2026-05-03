@@ -3131,6 +3131,31 @@ window.lumpSaveLump = async function(nsIdx) {
         return;
     }
 
+    // ── 6b. Pet Name Audit ─────────────────────────────────────────────────
+    // Verify every occupied c-list slot has a canonical name and every Church
+    // instruction (LOAD/SAVE/ELOADCALL/XLOADLAMBDA) via CR6 references a
+    // non-null, named capability.  Soft warnings do not block the save;
+    // a null-GT fault (ok=false) does.
+    {
+        const _pnaWords = [];
+        for (let i = 0; i < hdr.lumpSize; i++) _pnaWords.push(sim.memory[baseLoc + i] >>> 0);
+        const _pnaResult = (typeof petNameAudit === 'function') ? petNameAudit(
+            _pnaWords,
+            { cw: hdr.cw, cc: hdr.cc, lumpSize: hdr.lumpSize },
+            (sim && sim.nsLabels) || {},
+            (typeof assembler !== 'undefined' && assembler && assembler.nsSymbols)
+                ? assembler.nsSymbols : {}
+        ) : null;
+        if (_pnaResult) {
+            for (const l of _pnaResult.lines) checks.push(l);
+            if (!_pnaResult.ok) {
+                failed = true;
+                if (typeof showPatchModal === 'function') showPatchModal(false, opName, checks.join('\n'));
+                return;
+            }
+        }
+    }
+
     // ── 7. All checks passed — write to repository ─────────────────────────
     checks.push(`\u2139 All checks passed. Saving ${hdr.lumpSize}-word lump\u2026`);
     const words = [];
