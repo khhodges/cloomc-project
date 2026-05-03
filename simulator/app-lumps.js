@@ -319,6 +319,19 @@ function showLumpDetail(token) {
             }
         });
     }
+
+    // Auto-audit: run silently in the background whenever a non-namespace lump is selected.
+    // Passing audits render collapsed; failing ones auto-expand. Controlled by _lumpAutoAuditEnabled.
+    if (!isNamespace && _lumpAutoAuditEnabled && typeof lumpAuditFromServer === 'function') {
+        const _autoAuditWrap = document.getElementById(`lumpAuditResults_${_tk}`);
+        if (_autoAuditWrap) {
+            const _autoManifest = { cw: lump.cw, cc: lump.cc, lump_size: lump.lump_size };
+            if (auditBtn) auditBtn.disabled = true;
+            lumpAuditFromServer(token, _autoManifest, _autoAuditWrap, { collapsible: true })
+                .finally(() => { if (auditBtn) auditBtn.disabled = false; });
+        }
+    }
+
     _lumpActiveTab[_tk] = isNamespace ? 'overview' : 'content';
     const nsdgWrap = contentEl.querySelector('.ns-dep-graph-wrap[id]');
     if (nsdgWrap) _initNsDepGraphPanZoom(nsdgWrap.id);
@@ -413,6 +426,9 @@ async function _fetchAndShowLumpBinary(token, lump) {
         bodyEl.textContent = `Failed to load hex dump: ${err.message}`;
     }
 }
+
+// Set to false to disable the automatic audit that runs whenever a lump is selected.
+let _lumpAutoAuditEnabled = true;
 
 const _lumpActiveTab      = {};
 const _lumpContentLoaded  = {};
