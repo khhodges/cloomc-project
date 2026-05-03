@@ -12,10 +12,14 @@
   "author": "",
   "version": "",
   "methods": [],
-  "capabilities": [],
+  "capabilities": [
+    {"name": "LED0", "grants": ["E"]}
+  ],
   "pet_names": {
     "DR": {},
-    "CR": {}
+    "CR": {
+      "0": "LED0"
+    }
   },
   "mtbf": {
     "consecutive_clean": 0,

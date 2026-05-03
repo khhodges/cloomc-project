@@ -306,6 +306,40 @@ class TestR10_LumpFilesExist:
         )
 
 
+ABSTRACT_LED_GT = 0x07800100
+
+
+class TestR12_LedPetName:
+    """R12: Any lump whose c-list[0] is the Abstract LED GT must name it 'LED0' in pet_names.CR.
+
+    The Abstract LED GT (0x07800100) is a self-defining capability — it carries no NS slot.
+    When a lump holds it at c-list[0], the sidecar must document that slot as 'LED0' so the
+    IDE can display the correct pet name rather than the bare GT hex value.
+    """
+
+    @pytest.mark.parametrize("token", JSON_TOKENS)
+    def test_led_clist0_pet_name(self, token):
+        path = os.path.join(LUMPS_DIR, f"{token}.lump")
+        if not os.path.exists(path):
+            pytest.skip(f"{token}.lump absent")
+        h = _read_header(token)
+        if h["cc"] == 0:
+            return
+        with open(path, "rb") as f:
+            raw = f.read()
+        words = struct.unpack(f">{len(raw) // 4}I", raw)
+        clist_start = h["lump_sz"] - h["cc"]
+        if words[clist_start] != ABSTRACT_LED_GT:
+            return
+        sc = _load_sidecar(token)
+        cr = sc.get("pet_names", {}).get("CR", {})
+        assert cr.get("0") == "LED0", (
+            f"{token}.json: c-list[0] = Abstract LED GT (0x07800100) but "
+            f"pet_names.CR[\"0\"] = {cr.get('0')!r}, expected 'LED0'.\n"
+            "  Add  \"0\": \"LED0\"  inside the pet_names.CR object in the sidecar."
+        )
+
+
 class TestR11_SidecarFilesExist:
     """R11: Every manifest entry with lump_size declared has a sidecar .json on disk."""
 
