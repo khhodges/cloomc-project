@@ -487,9 +487,20 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
                                 _needs_lazy = True
                                 break
                     if _needs_lazy:
-                        # Pre-LAZY / assembler-placeholder c-list: strip cc → 0.
-                        # The simulator will inject the full DEMO_CLIST on first Run.
-                        abstr_words = [_bswords[0] & ~0xFF] + list(_bswords[1:_bssz])
+                        # Pre-LAZY / stale c-list: strip cc → 0 in the header AND
+                        # zero any c-list words in the tail so the embedded lump is
+                        # fully consistent (cc=0 header + empty tail).  LAZY injection
+                        # will rebuild the full DEMO_CLIST at runtime on first Run.
+                        # Without zeroing the tail, a partially-POLA'd lump would leave
+                        # dead POLA GTs visible in the lump viewer while the header
+                        # claims cc=0 — a confusing and inconsistent display.
+                        _body = list(_bswords[1:_bssz])
+                        if _bscc > 0:
+                            # Positions _bssz-_bscc .. _bssz-1 (0-indexed in full lump)
+                            # map to _bssz-_bscc-1 .. _bssz-2 in _body (offset by 1).
+                            for _ci in range(_bscc):
+                                _body[_bssz - _bscc - 1 + _ci] = 0
+                        abstr_words = [_bswords[0] & ~0xFF] + _body
                     else:
                         # POLA-finalized c-list: embed with actual cc so the
                         # simulator's LAZY guard (clistCount === 0) does not fire.

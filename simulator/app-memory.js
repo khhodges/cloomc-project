@@ -3093,6 +3093,41 @@ window.lumpSaveLump = async function(nsIdx) {
         return;
     }
 
+    // ── 6. Lump construction test: all c-list slot refs must be in-bounds ──
+    // Encoding: opcode=[31:27], crSrc=[18:15], slot=[14:0]
+    // LOAD=0 SAVE=1 ELOADCALL=8 XLOADLAMBDA=9 each read from crSrc=6 (CR6 = c-list root).
+    // If any slot operand >= cc the code was assembled against a different c-list
+    // layout than the one recorded in the lump header — saving would produce a
+    // lump that faults at runtime.  Catch it here before touching disk.
+    if (hdr.cc > 0) {
+        const _CLIST_OPS = new Set([0, 1, 8, 9]);
+        let _clistOk = true;
+        for (let _wi = 1; _wi <= hdr.cw; _wi++) {
+            const _ww    = (sim.memory[baseLoc + _wi] >>> 0);
+            const _op    = (_ww >>> 27) & 0x1F;
+            const _crSrc = (_ww >>> 15) & 0xF;
+            const _slot  = _ww & 0x7FFF;
+            if (_CLIST_OPS.has(_op) && _crSrc === 6 && _slot >= hdr.cc) {
+                checks.push(
+                    `\u2717 LUMP CONSTRUCTION ERROR: code[${_wi}]=0x${_ww.toString(16).toUpperCase().padStart(8,'0')} ` +
+                    `references c-list slot ${_slot} but cc=${hdr.cc} (valid: 0\u2013${hdr.cc - 1}). ` +
+                    `Re-run POLA or reset cc before saving.`
+                );
+                failed = true;
+                _clistOk = false;
+                break;
+            }
+        }
+        if (_clistOk) checks.push(`\u2713 c-list: all code slot refs < cc=${hdr.cc}`);
+    } else {
+        checks.push(`\u2139 c-list: cc=0 (LAZY injection will supply c-list at runtime)`);
+    }
+
+    if (failed) {
+        if (typeof showPatchModal === 'function') showPatchModal(false, opName, checks.join('\n'));
+        return;
+    }
+
     // ── 7. All checks passed — write to repository ─────────────────────────
     checks.push(`\u2139 All checks passed. Saving ${hdr.lumpSize}-word lump\u2026`);
     const words = [];

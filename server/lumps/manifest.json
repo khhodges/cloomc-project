@@ -1473,5 +1473,61 @@
     "grants": [
       "E"
     ]
+  },
+  {
+    "token": "00006300",
+    "abstraction": "TestInconsistent",
+    "ns_slot": 99,
+    "lump_size": 64,
+    "cw": 0,
+    "cc": 0,
+    "author": "",
+    "version": "",
+    "methods": [],
+    "grants": [
+      "E"
+    ]
+  },
+  {
+    "token": "00006200",
+    "abstraction": "TestConsistent",
+    "ns_slot": 98,
+    "lump_size": 64,
+    "cw": 0,
+    "cc": 0,
+    "author": "",
+    "version": "",
+    "methods": [],
+    "grants": [
+      "E"
+    ]
+  },
+  {
+    "token": "00006100",
+    "abstraction": "TestLazy",
+    "ns_slot": 97,
+    "lump_size": 64,
+    "cw": 0,
+    "cc": 0,
+    "author": "",
+    "version": "",
+    "methods": [],
+    "grants": [
+      "E"
+    ]
+  },
+  {
+    "token": "00006000",
+    "abstraction": "TestBoundary",
+    "ns_slot": 96,
+    "lump_size": 64,
+    "cw": 0,
+    "cc": 0,
+    "author": "",
+    "version": "",
+    "methods": [],
+    "grants": [
+      "E"
+    ]
   }
 ]
