@@ -70,4 +70,50 @@ The Boot.Abstr lump is only 64 words (≈ 45 usable code words after header and 
 4. **CR6** is zeroed so the existing lazy C-List injection in `_applyPendingSimLoad` rebuilds it correctly against the new, larger lump.
 5. The `programBaseAddr` display variable in `_applyPendingSimLoad` switches to `slot3Base+1` when the lump has been moved to `≥ 0x0400`, keeping labels correct.
 
+## LUMP Metadata Integrity (Release 1.1)
+
+### Consistency Gate
+
+All lump-related changes are gated by `tests/lump/test_lump_consistency.py`.
+Run before every merge touching a `.lump` binary, `manifest.json`, or any
+sidecar `<token>.json`. 11 rules — R1 through R11 — cover magic, file size,
+manifest presence, orphan sidecars, three-way cw/cc/lump_size agreement,
+variant_group uniqueness, and ns_slot_policy.
+
+```bash
+python -m pytest tests/lump/test_lump_consistency.py -v
+```
+
+### Floating Lump Pattern
+
+A **floating lump** sets `ns_slot: null` and `ns_slot_policy: "dynamic"` in
+manifest.json. Mint allocates an ephemeral NS slot on first use via the
+Loader/Tunnel fetch path. The slot number may change between runs but is
+invisible to callers (who hold a GT, not a slot index). Floating is the correct
+default for any abstraction not on the cold-boot critical path.
+
+Canonical example: WordString (ab1e86af).
+
+### Variant Group
+
+Two manifest entries may claim the same `ns_slot` only if they carry the same
+non-null `variant_group` string. Example: SlideRule + SlideRuleHS share
+`ns_slot: 16` and `variant_group: "sliderule"`.
+
+### Change Control Rules (summary — full rules in CHANGELOG.md)
+
+1. Consistency gate must pass before merge.
+2. Every binary recompile that changes cw/cc/lump_size requires same-commit updates to the sidecar JSON and manifest.json.
+3. New lump = three files: `.lump` binary + sidecar `.json` + manifest entry.
+4. NS slot collision → `variant_group` required on all claimants.
+5. CHANGELOG.md entry required for every structural change.
+6. Spec doc version must be bumped when their schema changes.
+
+### Release History
+
+| Release | Date | Key changes |
+|---|---|---|
+| 1.1 | 2026-05-03 | LUMP metadata overhaul — floating-lump pattern formalised, variant_group introduced, 11-rule consistency gate, Boot.Abstr corrected (cw=17, cc=1, 64 words), 4 test-lump cw/cc corrected, 6 missing sidecars created, orphan 00000003.json removed. |
+| 1.0 | 2026-04-29 | Initial documented release. |
+
 The patch-in-place path (small programs, ≤ maxCW words) is completely unchanged.

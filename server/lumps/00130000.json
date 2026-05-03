@@ -1,0 +1,12 @@
+{
+  "token": "00130000",
+  "abstraction": "Loader",
+  "ns_slot": 19,
+  "lump_size": 64,
+  "cw": 7,
+  "cc": 1,
+  "author": "",
+  "version": "",
+  "methods": [],
+  "grants": []
+}

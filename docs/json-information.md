@@ -1,6 +1,6 @@
 # Abstraction Definition Format
 
-**v1.0 — 2026-04-29**
+**v1.1 — 2026-05-03**
 **CONFIDENTIAL**
 
 The abstraction definition format is the JSON schema used to define a Church Machine abstraction and submit it to **Navana.Abstraction.Add**. It combines the compiled instruction words, the capability list, and optional documentation metadata into a single JSON object.
@@ -319,4 +319,31 @@ offset 30   c-list[0]  Inform E-GT → NS[16] (SlideRule)
 offset 31   c-list[1]  Inform E-GT → NS[17] (Abacus)
 ```
 ---
-*Confidential — Kenneth Hamer-Hodges — April 2026*
+
+## Manifest Catalog Schema — Release 1.1 Extensions
+
+The `manifest.json` file in `server/lumps/` is the lump catalog used by the
+IDE server. It carries fields beyond what `Navana.Abstraction.Add` accepts.
+Two fields were added in Release 1.1:
+
+| Field | Type | Applies to | Meaning |
+|---|---|---|---|
+| `ns_slot_policy` | string | Floating lumps | `"dynamic"` — Mint allocates an NS slot on first use. Required when `ns_slot` is `null`. |
+| `variant_group` | string | Alternative implementations | Two entries may share the same `ns_slot` only if they both carry the same non-null `variant_group`. |
+
+These are manifest-only fields. They are not part of the `Navana.Abstraction.Add`
+upload schema documented above.
+
+For full change control rules, see [`CHANGELOG.md`](../CHANGELOG.md).
+
+---
+
+## Release History
+
+| Version | Date | Summary |
+|---|---|---|
+| v1.1 | 2026-05-03 | Version bump aligned with LUMP metadata overhaul. `ns_slot_policy` and `variant_group` fields added to manifest catalog schema. No change to Navana.Abstraction.Add upload format. |
+| v1.0 | 2026-04-29 | Initial documented release. |
+
+---
+*Confidential — Kenneth Hamer-Hodges — May 2026*

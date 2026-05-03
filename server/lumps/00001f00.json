@@ -1,0 +1,14 @@
+{
+  "token": "00001f00",
+  "abstraction": "Tunnel",
+  "ns_slot": 31,
+  "lump_size": 64,
+  "cw": 37,
+  "cc": 1,
+  "author": "",
+  "version": "",
+  "methods": [],
+  "grants": [
+    "E"
+  ]
+}

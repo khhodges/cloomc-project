@@ -1,6 +1,6 @@
 # Church Machine — Lump Specification
 
-**v1.0 — 2026-04-29**
+**v1.1 — 2026-05-03**
 **CONFIDENTIAL**
 
 ## Overview
@@ -39,7 +39,54 @@ and `cc` field (8 bits, max 255) together cap the maximum useful payload at
 | Decimal     | 107             | 0                 | 2^7 = 128 words   | 20 words   |
 | SlideRule   | 525             | 1                 | 2^10 = 1 024 words | 497 words |
 | TestSR      | 604             | 1                 | 2^10 = 1 024 words | 418 words |
-| Boot.Abstr  | 0               | 46                | 2^8 = 256 words   | 209 words  |
+| Boot.Abstr  | 17              | 1                 | 2^6 = 64 words    | 45 words   |
+
+---
+
+## NS Slot Assignment — Boot-Resident and Floating Lumps
+
+From Release 1.1 the manifest.json schema distinguishes two classes of lump by
+how they receive a Namespace (NS) slot.
+
+### Boot-Resident Lump
+
+`ns_slot` is a fixed integer. The boot image generator places this lump at the
+declared physical address before any user thread runs. Its NS entry is `Live`
+from the first machine cycle.
+
+This is the correct classification for any abstraction that must be
+unconditionally reachable at cold-boot time: Boot.Abstr (NS[3]), LED (NS[12]),
+Constants (NS[18]), Loader (NS[19]), Tunnel (NS[31]), Keystone (NS[32]).
+
+### Floating Lump
+
+`ns_slot` is `null` with `ns_slot_policy: "dynamic"`. This lump has no fixed
+NS slot. Mint allocates an ephemeral slot on first use via the Loader/Tunnel
+fetch path. The slot number may differ between runs. Callers hold a GT — not
+a slot number — so the ephemerality is invisible to them.
+
+Floating lumps are the correct default for any abstraction not on the cold-boot
+critical path. As the library grows, the majority of lumps should be floating.
+
+WordString (ab1e86af) is the canonical example.
+
+Machine-readable rule (enforced by `tests/lump/test_lump_consistency.py` R9):
+
+| `ns_slot` | `ns_slot_policy` | Classification |
+|---|---|---|
+| integer | absent | Boot-resident — fixed slot, placed at boot |
+| `null` | `"dynamic"` | Floating — allocated by Mint on first use |
+| `null` | absent | **Error** — caught by consistency gate R9 |
+
+### Variant Group
+
+Two manifest entries may declare the same `ns_slot` if and only if they both
+carry the same non-null `variant_group` string. This declares alternative
+implementations of the same abstraction; the boot image installs exactly one.
+
+Example: SlideRule (00001000) and SlideRuleHS (00001001) both declare
+`"ns_slot": 16` and `"variant_group": "sliderule"`. Exactly one is active per
+boot image. This constraint is enforced by consistency gate rule R8.
 
 ---
 
@@ -109,7 +156,7 @@ Encoding formula: `(0x1F << 27) | ((n-6) << 23) | (cw << 10) | (typ << 8) | cc`
 ```
 Decimal    (n=7,  cw=107, cc=0, typ=00):  0xF881_AC00
 SlideRule  (n=10, cw=525, cc=1, typ=00):  0xFA08_3401
-Boot.Abstr (n=8,  cw=0,   cc=46, typ=00): 0xF900_002E
+Boot.Abstr (n=6,  cw=17,  cc=1,  typ=00): 0xF800_4401
 ```
 
 ---
@@ -1500,5 +1547,16 @@ already owns.
 ---
 
 *Document applies to: Church Machine IDE simulator · Boot.NS slots 0 (Boot.NS), 1 (Boot.Thread), 2 (Boot.Abstr), 45 (Thread) · Tang Nano 20 K + Efinix Ti60 F225 targets.*
+
+---
+
+## Release History
+
+| Version | Date | Summary |
+|---|---|---|
+| v1.1 | 2026-05-03 | Floating-lump concept formalised (new section); `variant_group` and `ns_slot_policy` added to manifest schema; Boot.Abstr example table corrected (cw=17, cc=1, 64 words, `0xF800_4401`); automated consistency gate (`tests/lump/test_lump_consistency.py`, 11 rules). |
+| v1.0 | 2026-04-29 | Initial documented release. |
+
+See [`CHANGELOG.md`](../CHANGELOG.md) for full change details and formal change control rules.
 ---
 *Confidential — Kenneth Hamer-Hodges — April 2026*

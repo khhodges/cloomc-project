@@ -1,6 +1,6 @@
 # Church Machine — Lump Architecture
 
-**v1.0 — April 2026**
+**v1.1 — May 2026**
 **CONFIDENTIAL**
 
 ---
@@ -105,7 +105,7 @@ type that can be the target of a `CALL` instruction.
 |-------------|---|-----|----|--------------|
 | Decimal     | 7 | 107 | 0  | `0xF881_AC00` |
 | SlideRule   |10 | 525 | 1  | `0xFA08_3401` |
-| Boot.Abstr  | 8 |   0 | 46 | `0xF900_002E` |
+| Boot.Abstr  | 6 |  17 |  1 | `0xF800_4401` |
 
 ---
 
@@ -266,6 +266,49 @@ binary carries it.
 
 ---
 
+## NS Slot Assignment — Boot-Resident and Floating Lumps
+
+Release 1.1 formalises two classes of Abstraction Lump by how they receive a
+Namespace (NS) slot.
+
+### Boot-Resident
+
+`ns_slot` is a fixed integer in manifest.json. The boot image generator places
+the binary at the declared NS slot before any thread executes. The NS entry is
+`Live` at cold boot.
+
+Examples: Boot.Abstr (NS[3]), LED (NS[12]), Constants (NS[18]), Loader (NS[19]),
+Tunnel (NS[31]), Keystone (NS[32]).
+
+### Floating
+
+`ns_slot: null` with `ns_slot_policy: "dynamic"`. No fixed slot. The Loader
+fetches the binary on first demand, Mint installs it at an ephemerally allocated
+NS slot. The slot number is invisible to callers — they hold a GT, not an index.
+
+Floating is the correct default for any abstraction not on the cold-boot
+critical path. As the library grows, most lumps should be floating. The
+canonical example is WordString (ab1e86af).
+
+### Variant Group
+
+If two manifest entries claim the same `ns_slot` they must share the same
+non-null `variant_group` string. The boot image installs exactly one at a time.
+
+Example: SlideRule (00001000) and SlideRuleHS (00001001) both have
+`ns_slot: 16` and `variant_group: "sliderule"`.
+
+| `ns_slot` | `ns_slot_policy` | Classification |
+|---|---|---|
+| integer | absent | Boot-resident |
+| `null` | `"dynamic"` | Floating |
+| `null` | absent | **Error** — caught by consistency gate R9 |
+
+Enforcement: `tests/lump/test_lump_consistency.py` — R8 (variant_group),
+R9 (null-slot policy), run before every lump-related merge.
+
+---
+
 ## Mint Validation
 
 Every Lump (except Boot.NS) must pass `Mint.Lump(base, n)` before it can
@@ -324,6 +367,17 @@ All ZIP containers: bit 3 of general-purpose flags must be `0`
 (uncompressed size present in local file header). The Locator reads the
 uncompressed size before downloading the body and pre-allocates physical
 memory accordingly. ZIP files where bit 3 is `1` are rejected.
+
+---
+
+## Release History
+
+| Version | Date | Summary |
+|---|---|---|
+| v1.1 | 2026-05-03 | Floating-lump concept formalised; `variant_group` introduced; Boot.Abstr example corrected (n=6, cw=17, cc=1, `0xF800_4401`); automated LUMP consistency gate (`tests/lump/test_lump_consistency.py`). |
+| v1.0 | 2026-04-29 | Initial documented release. |
+
+See [`CHANGELOG.md`](../CHANGELOG.md) for full change details and formal change control rules.
 
 ---
 

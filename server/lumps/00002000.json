@@ -1,0 +1,14 @@
+{
+  "token": "00002000",
+  "abstraction": "Keystone",
+  "ns_slot": 32,
+  "lump_size": 64,
+  "cw": 22,
+  "cc": 2,
+  "author": "SIPantic",
+  "version": "1.0",
+  "methods": [],
+  "grants": [
+    "E"
+  ]
+}

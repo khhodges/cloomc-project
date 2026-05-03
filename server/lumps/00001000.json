@@ -1,0 +1,15 @@
+{
+  "token": "00001000",
+  "abstraction": "SlideRule",
+  "ns_slot": 16,
+  "variant_group": "sliderule",
+  "lump_size": 4096,
+  "cw": 2602,
+  "cc": 1,
+  "author": "",
+  "version": "",
+  "methods": [],
+  "grants": [
+    "E"
+  ]
+}
