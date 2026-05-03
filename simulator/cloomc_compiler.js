@@ -3147,7 +3147,7 @@ class CLOOMCCompiler {
         const asmMnemonics = /^\s*(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH\w*|SHL|SHR|ASR|HALT|NOP)\b/i;
         const operatorPattern = /^\s*[A-Za-z_]\w*\s*=\s*[A-Za-z_\d]\S*\s*[\+\-\*\/%\^]\s*/;
         const assignPattern = /^\s*[A-Za-z_]\w*\s*=\s*.+/;
-        const petLoadPattern = /^\s*LOAD\s+([A-Za-z_]\w*)\s*$/i;
+        const petLoadPattern = /^\s*LOAD\s+([A-Za-z_]\w*(?:\[\d+\])?)\s*$/i;
         let exprLines = 0;
         for (const line of lines) {
             const t = line.trim();
@@ -3442,7 +3442,16 @@ class CLOOMCCompiler {
         };
 
         const substitutePetNames = (line) => {
-            return line.replace(/\b([A-Za-z_]\w*)\b/g, (match) => {
+            // Pass 1: compound bracket names like LED[0] → CR<n>.
+            // Must run before the plain-word pass so the bracket form is matched
+            // as a unit rather than "LED" and "[0]" being matched separately.
+            let out = line.replace(/\b([A-Za-z_]\w*\[\d+\])/g, (match) => {
+                const cr = crLocals[match];
+                if (cr !== undefined) return `CR${cr}`;
+                return match;
+            });
+            // Pass 2: plain word names.
+            return out.replace(/\b([A-Za-z_]\w*)\b/g, (match) => {
                 const upper = match.toUpperCase();
                 if (/^(DR\d+|CR\d+)$/.test(upper)) return match;
                 if (/^(LOAD|SAVE|CALL|RETURN|CHANGE|SWITCH|TPERM|LAMBDA|ELOADCALL|XLOADLAMBDA|DREAD|DWRITE|BFEXT|BFINS|MCMP|IADD|ISUB|BRANCH(EQ|NE|CS|CC|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE|NV)?|SHL|SHR|ASR|HALT|NOP)$/.test(upper)) return match;
@@ -3486,13 +3495,30 @@ class CLOOMCCompiler {
             const t = raw.trim();
             if (!t || t.startsWith(';') || t.startsWith('//') || t.startsWith('--')) continue;
 
-            const petLoadMatch = t.match(/^\s*LOAD\s+([A-Za-z_]\w*)\s*$/i);
+            const petLoadMatch = t.match(/^\s*LOAD\s+([A-Za-z_]\w*(?:\[\d+\])?)\s*$/i);
             if (petLoadMatch) {
                 const petName = petLoadMatch[1];
                 if (/^(CR\d+|DR\d+)$/i.test(petName)) {
                     asmBlock.push(substitutePetNames(t));
                     asmBlockSrcLines.push(i);
                     continue;
+                }
+                // LED[N] shorthand: boot-loaded Abstract GT at fixed c-list slot 8+N.
+                // These are not in CAP_NAMES (which is keyed by abstraction name, not
+                // compound pet name), so handle them directly before the lookup.
+                const _ledBracket = petName.match(/^LED\[(\d)\]$/i);
+                if (_ledBracket) {
+                    const _n = parseInt(_ledBracket[1], 10);
+                    if (_n >= 0 && _n <= 5) {
+                        flushAsmBlock();
+                        const _clistOffset = 8 + _n;
+                        const _cr = allocCR(petName, i);
+                        crLocals[petName] = _cr;
+                        manifest.push({ src: i, addr: code.length,
+                            desc: `LOAD CR${_cr}, CR6, #${_clistOffset}  (${petName} Abstract GT)` });
+                        code.push(this.encode(this.opcodes.LOAD, 14, _cr, 6, _clistOffset));
+                        continue;
+                    }
                 }
                 flushAsmBlock();
                 const capEntry = CAP_NAMES[petName.toLowerCase()];
