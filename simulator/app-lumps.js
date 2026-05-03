@@ -1306,7 +1306,7 @@ function _colorizeComment(text) {
     let out = '';
     let i   = 0;
     while (i < text.length) {
-        // Quoted pet name  "LED[0]" / "myAbstraction" / …  — strip quotes, color the inner name
+        // Quoted pet name  "LED0" / "myAbstraction" / …  — strip quotes, color the inner name
         if (text[i] === '"') {
             const end = text.indexOf('"', i + 1);
             if (end !== -1) {
@@ -1315,7 +1315,8 @@ function _colorizeComment(text) {
                 continue;
             }
         }
-        // Unquoted device-class pet name from DREAD/DWRITE: LED[0], UART[0], Button[0], Abs[2], Dev5[0], …
+        // Unquoted device-class pet name from DREAD/DWRITE: LED0, UART0, Button0, Abs[2], Dev5[0], …
+        // (bracket form LED[N] also accepted for legacy text in docs/comments)
         const devM = text.slice(i).match(/^[A-Z][A-Za-z0-9]*\[\d+\]/);
         if (devM) {
             out += `<span class="lump-com-pet">${_h(devM[0])}</span>`;
@@ -1460,7 +1461,7 @@ function _renderLumpCodeContent(bodyEl, lump, words, token) {
     // Pre-parse c-list slots — resolve human pet names for use during disassembly.
     // Uses the same priority as MyGoldenTokens rendering:
     //   1. lump manifest pet_names.CR[s]
-    //   2. Abstract GT device-class derivation (LED[0], UART[0], …)
+    //   2. Abstract GT device-class derivation (LED0, UART0, … — canonical no-bracket form)
     //   3. Inform/Outform GT: token lookup → sim.nsLabels[slot_id]
     const clistSlotName = {};   // slot index (0-based) → human name
     const _crPetNamesForCode = (lump.pet_names || {}).CR || {};
@@ -1478,7 +1479,7 @@ function _renderLumpCodeContent(bodyEl, lump, words, token) {
             const _abData  = wVal & 0xFFFF;
             const _devCls  = (_abData >>> 8) & 0xFF;
             const _devDat  = _abData & 0xFF;
-            if (_abType === 0)      clistSlotName[s] = `${_abDevClsNames[_devCls] || `Dev${_devCls}`}[${_devDat}]`;
+            if (_abType === 0)      clistSlotName[s] = `${_abDevClsNames[_devCls] || `Dev${_devCls}`}${_devDat}`;
             else if (_abType === 1) clistSlotName[s] = 'M-Elevation';
             else                   clistSlotName[s] = `Abs[${_abType}]`;
         } else {  // Inform / Outform GT: [15:0]=slot_id
@@ -1567,14 +1568,14 @@ function _renderLumpCodeContent(bodyEl, lump, words, token) {
             case 10: {  // DREAD DRd, CRs[imm]
                 if (crAlias[crSrc] !== undefined) {
                     const nm = clistSlotName[crAlias[crSrc]];
-                    if (nm) return `${condStr}DR${crDst} ← ${nm}`;
+                    if (nm) return `${condStr}DR${crDst} ← "${nm}"`;
                 }
                 return `${condStr}DR${crDst} ← data[${crName(crSrc)}+${imm}]`;
             }
             case 11: {  // DWRITE DRd, CRs[imm]
                 if (crAlias[crSrc] !== undefined) {
                     const nm = clistSlotName[crAlias[crSrc]];
-                    if (nm) return `${condStr}${nm} ← DR${crDst}`;
+                    if (nm) return `${condStr}"${nm}" ← DR${crDst}`;
                 }
                 return `${condStr}data[${crName(crSrc)}+${imm}] ← DR${crDst}`;
             }
@@ -1972,7 +1973,7 @@ async function _loadLumpTokens(token, lump) {
             if (!manifestName) {
                 if (abType === 0) {
                     const cls = _abDevClass[devClass] || `Dev${devClass}`;
-                    derivedName = `${cls}[${devData}]`;
+                    derivedName = `${cls}${devData}`;
                 } else if (abType === 1) {
                     derivedName = 'M-Elevation';
                 } else {

@@ -3557,7 +3557,7 @@ window.applyPOLA = async function(nsIdx) {
             const deviceData = gt & 0xFF;
             if (deviceData >= 0 && deviceData <= 5 && oldToNew.has(i)) {
                 const newSlot = oldToNew.get(i);
-                const key = 'LED[' + deviceData + ']';
+                const key = 'LED' + deviceData;
                 if (typeof assembler !== 'undefined' && assembler && assembler.nsSymbols) {
                     assembler.nsSymbols[key] = newSlot;
                 }
