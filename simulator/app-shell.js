@@ -354,6 +354,13 @@ function init() {
     _probeBootImage().then(buf => {
         if (buf) { window.bootImage = buf; window.bootImageAvailable = true;
                    try { sim.loadBootImage(buf); _applyBootEntryToSim(); } catch(e) { console.warn('[bootImage] apply failed:', e); } }
+        // Re-apply user-assigned namespace labels that sim.loadBootImage() may
+        // have overwritten (the boot image zeros any NS slot it does not populate,
+        // including free slots where the user stored custom pet names).
+        // loadNamespaceState() skips slots where isNSEntryValid() is true, so
+        // boot-image catalog entries take precedence; only truly empty slots
+        // (like user-defined slot 50+) are restored from localStorage.
+        loadNamespaceState();
     });
     sim.on('programLoaded', () => {
         if (currentView === 'namespace') updateNamespace();
