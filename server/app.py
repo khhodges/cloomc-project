@@ -2185,6 +2185,19 @@ def download_fpga_zip():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/download/fpga-verilog")
+def download_fpga_verilog():
+    """Download just the Verilog file for the selected board (no zip)."""
+    board = request.args.get("board", "tang-nano-20k").strip().lower()
+    is_ti60, paths, _, _, _, _ = _fpga_paths(board)
+    verilog_path = paths["verilog"]
+    if not os.path.isfile(verilog_path):
+        return jsonify({"error": "No build found for this board. Run Build first."}), 404
+    filename = os.path.basename(verilog_path)
+    return send_file(verilog_path, as_attachment=True, download_name=filename,
+                     mimetype="text/plain")
+
+
 @app.route("/api/download/fpga-package")
 def download_fpga_package():
     """Legacy: build + download in one shot (kept for backwards compatibility)."""
