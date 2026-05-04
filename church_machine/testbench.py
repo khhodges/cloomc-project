@@ -57,8 +57,8 @@ def run_testbench():
         lambda_instr = encode_church(ChurchOpcode.LAMBDA, CondCode.AL, cr_dst=3, cr_src=0, imm=0)
         print(f"  LAMBDA CR3 = 0x{lambda_instr:08X}")
 
-        tperm_instr = encode_church(ChurchOpcode.TPERM, CondCode.AL, cr_dst=2, cr_src=0, imm=TpermPreset.LE)
-        print(f"  TPERM CR2, LE = 0x{tperm_instr:08X}")
+        tperm_instr = encode_church(ChurchOpcode.TPERM, CondCode.AL, cr_dst=2, cr_src=0, imm=TpermPreset.E)
+        print(f"  TPERM CR2, E = 0x{tperm_instr:08X}")
 
         switch_instr = encode_church(ChurchOpcode.SWITCH, CondCode.AL, cr_dst=0, cr_src=3, imm=2)
         print(f"  SWITCH CR3 -> target 2 = 0x{switch_instr:08X}")

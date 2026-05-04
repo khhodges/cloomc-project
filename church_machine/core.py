@@ -227,18 +227,31 @@ class ChurchCore(Elaboratable):
             u_perm.gt_in.eq(perm_gt_sig),
             u_perm.required_perms.eq(required_perms),
             u_perm.check_valid.eq(cond_exec_enable & is_church_op),
-            # mTCB domain-purity rule — full 3×3: (R|W|X) ∧ (L|S|E) = violation.
-            # Checked at TPERM (creation time) AND at LOAD/SAVE (use time).
+            # ── mTCB domain-purity chokepoint ─────────────────────────────────
+            # Two disjoint permission domains (the 3×3 rule):
+            #   DATA_PERMS = R | W | X   (Turing domain — data access)
+            #   CAP_PERMS  = L | S | E   (Church domain — capability ops)
+            #   domain_purity_ok = ~(has_turing & has_church)
+            # All nine cross-pairs {R,W,X}×{L,S,E} are violations.
             #
-            # Threat: malware can acquire GTs via LOAD (zero required permissions)
-            # without ever executing TPERM.  If a malicious boot image pre-loads
-            # a mixed GT into the C-List, TPERM is never on the path.  mLoad/mSave
-            # is the last line of defence — it sees every GT that moves from the
-            # C-List into a CR.  Enabling check_domain_purity here costs zero gates:
-            # the domain_purity_ok signal is already computed in perm_check.py.
+            # Checked at TWO points on the GT lifecycle:
+            #   1. TPERM (creation time) — when a GT's permission mask is
+            #      narrowed, the result must still be domain-pure.
+            #   2. LOAD/SAVE (use time)  — mLoad/mSave is the mTCB chokepoint:
+            #      it sees every GT that moves between the C-List and a CR.
             #
-            # mTCB LOC baseline (both variants, 15 files): 2,973 LOC total.
-            # Every line outside that set is untrusted by definition.
+            # Why both?  Malware has no obligation to call TPERM.  It can
+            # acquire GTs exclusively via `LOAD CRn, CR6[i]` (zero required
+            # permissions).  If a malicious boot image pre-populates the C-List
+            # with a mixed GT (e.g. {R,L}), TPERM is never on the path and the
+            # TPERM-only check never fires.  Enabling check_domain_purity on
+            # LOAD/SAVE costs zero gates: domain_purity_ok is already computed
+            # combinationally in perm_check.py and the DOMAIN_PURITY fault path
+            # is already wired.
+            #
+            # mTCB LOC baseline (both Amaranth variants, 15 files): 2,973 LOC.
+            # Every line of code outside that set is untrusted by definition.
+            # ──────────────────────────────────────────────────────────────────
             u_perm.check_domain_purity.eq(
                 cond_exec_enable & is_church_op & (
                     (church_op == ChurchOpcode.TPERM) |
