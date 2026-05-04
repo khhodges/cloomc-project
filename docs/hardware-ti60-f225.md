@@ -97,20 +97,36 @@ sudo usermod -aG dialout $USER
 
 ## RTL generation
 
-Generate the Amaranth HDL design as RTLIL (yosys intermediate) from the project root:
+Generate `build/church_ti60_f225.il` (Amaranth RTLIL) and
+`build/church_ti60_f225.v` (plain Verilog for Efinity) in one step:
 
 ```bash
-cd /path/to/church-machine
-
-python3 -c "
-from hardware.ti60_f225 import ChurchTi60F225
-from amaranth.back import rtlil
-m = ChurchTi60F225(sim_mode=False)
-with open('build/church_ti60_f225.rtlil', 'w') as f:
-    f.write(rtlil.convert(m, ports=[m.uart_tx, m.uart_rx, m.push_button] + m.led))
-print('RTL generated: build/church_ti60_f225.rtlil')
-"
+python3 -m hardware.gen_rtlil build --ti60
 ```
+
+Expected output:
+```
+Generated: build/church_ti60_f225.il
+  File size: 2,071,590 bytes
+  Lines: 73,326
+  Verilog: build/church_ti60_f225.v
+  Fixed 1 \$macc cell(s) → behavioural Verilog
+```
+
+The generator pipeline is:
+1. **Amaranth → RTLIL** via `amaranth.back.rtlil.convert`
+2. **Yosys** `proc; flatten; alumacc; clean; write_verilog -noattr` — lowers
+   Amaranth primitives and merges adder trees
+3. **`$macc` post-processor** (`hardware/gen_rtlil.py:_fix_macc_cells`) —
+   Yosys's `alumacc` pass folds constant-coefficient multiplies into `\$macc`
+   cells that `write_verilog` cannot emit as plain operators and that Efinity
+   rejects.  The post-processor detects these cells (B_WIDTH=0, leading
+   constant in A) and replaces each with a behavioural `assign` statement
+   (`Y_signal = A_signal * constant`), which Efinity synthesises using its
+   built-in multiplier primitives.
+
+The output Verilog contains **zero `\$macc` instantiations** and imports
+cleanly into Efinity 2025.2.
 
 Quick module-load check:
 ```bash

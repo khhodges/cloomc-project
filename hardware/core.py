@@ -1457,6 +1457,10 @@ class ChurchCore(Elaboratable):
             mint_copy_idx_reg  = Signal(8)   # loop counter for cc-word copy
             mint_copy_data_reg = Signal(32)  # holds DMEM word between read→write cycles
             mint_hdr_reg       = Signal(32)
+            # Registered (lump_size − cc_count) — precomputed in MINT_WRITE_NS3 so
+            # the MINT_COPY_CLIST_RD cc_off expression stays binary (2-operand) and
+            # Yosys alumacc cannot merge it into a multi-term $macc cell.
+            mint_cc_base_reg   = Signal(15)
 
             # NS entry byte address: CR15.base + slot_id << 4 (16-byte stride)
             cr15_mint_view     = View(CAP_REG_LAYOUT, u_regs.cr15_namespace)
@@ -1469,10 +1473,13 @@ class ChurchCore(Elaboratable):
             #   NS_WORDS = 192 (16 slots × 12 words); c-list starts at byte 768.
             #   Slot s gets 64 words = 256 bytes.
             #   Base = (192 + slot_id * 64) * 4 = 768 + (slot_id << 8)
-            mint_clist_slot_base = Signal(32)  # byte addr of slot's clist in BRAM
-            m.d.comb += mint_clist_slot_base.eq(
-                768 + (mint_slot_id_reg << 8)
-            )
+            #        = (3 + slot_id) << 8   (since 768 = 3 << 8)
+            # Use Cat to shift — avoids a second $add that alumacc could merge into
+            # a 3-term $macc with the downstream address addition.
+            mint_clist_slot_base  = Signal(32)
+            mint_slot_id_p3       = Signal(17)  # slot_id + 3  (at most 65538)
+            m.d.comb += mint_slot_id_p3.eq(mint_slot_id_reg + 3)
+            m.d.comb += mint_clist_slot_base.eq(Cat(Const(0, 8), mint_slot_id_p3))
 
             # E-GT:  b=0 | perms=E(bit30) | typ=Inform(01<<23) | gt_seq=1(<<16) | slot_id
             m.d.comb += mint_e_gt_d.eq(
@@ -1575,6 +1582,10 @@ class ChurchCore(Elaboratable):
                         mint_ns_addr.eq(mint_ns_entry_base + 12),
                         mint_ns_wr_data.eq(0),
                     ]
+                    # Precompute (lump_size − cc) into a register so the
+                    # copy-loop offset expression stays binary (2-operand) and
+                    # alumacc cannot merge it into a multi-term $macc.
+                    m.d.sync += mint_cc_base_reg.eq(mint_lump_size_reg - mint_cc_reg)
                     m.next = "MINT_COPY_CLIST_RD"
 
                 # ── Copy cc words from lump tail into clist BRAM ──────────────
@@ -1584,11 +1595,10 @@ class ChurchCore(Elaboratable):
                     with m.If(mint_copy_idx_reg >= mint_cc_reg):
                         m.next = "MINT_WRITE_CLIST"
                     with m.Else():
+                        # cc_off = (lump_size - cc) + i.  Use registered base so
+                        # alumacc sees only a binary add (not a 3-term chain).
                         cc_off = Signal(15)
-                        m.d.comb += cc_off.eq(
-                            mint_lump_size_reg - mint_cc_reg
-                            + mint_copy_idx_reg
-                        )
+                        m.d.comb += cc_off.eq(mint_cc_base_reg + mint_copy_idx_reg)
                         m.d.comb += [
                             mint_dmem_rd_en.eq(1),
                             mint_dmem_addr.eq(
@@ -1684,6 +1694,9 @@ class ChurchCore(Elaboratable):
             mint_copy_idx_reg_ni  = Signal(8,  name="mint_copy_idx_reg_ni")
             mint_copy_data_reg_ni = Signal(32, name="mint_copy_data_reg_ni")
             mint_hdr_reg_ni       = Signal(32, name="mint_hdr_reg_ni")
+            # Registered (lump_size − cc_count) for the non-IoT copy loop —
+            # same reason as mint_cc_base_reg above.
+            mint_cc_base_reg_ni   = Signal(15, name="mint_cc_base_reg_ni")
 
             cr15_mint_view_ni     = View(CAP_REG_LAYOUT, u_regs.cr15_namespace)
             mint_ns_entry_base_ni = Signal(32, name="mint_ns_entry_base_ni")
@@ -1691,10 +1704,11 @@ class ChurchCore(Elaboratable):
                 cr15_mint_view_ni.word1_location + (mint_slot_id_reg << 4)
             )
 
+            # Same (3 + slot_id) << 8 trick as the IOT version above.
             mint_clist_slot_base_ni = Signal(32, name="mint_clist_slot_base_ni")
-            m.d.comb += mint_clist_slot_base_ni.eq(
-                768 + (mint_slot_id_reg << 8)
-            )
+            mint_slot_id_p3_ni      = Signal(17, name="mint_slot_id_p3_ni")
+            m.d.comb += mint_slot_id_p3_ni.eq(mint_slot_id_reg + 3)
+            m.d.comb += mint_clist_slot_base_ni.eq(Cat(Const(0, 8), mint_slot_id_p3_ni))
 
             m.d.comb += mint_e_gt_d.eq(
                 (1 << 30) | (GT_TYPE_INFORM << 23) | (1 << 16) | mint_slot_id_reg
@@ -1792,6 +1806,9 @@ class ChurchCore(Elaboratable):
                         mint_ns_addr.eq(mint_ns_entry_base_ni + 12),
                         mint_ns_wr_data.eq(0),
                     ]
+                    # Precompute (lump_size − cc) — same alumacc-avoidance
+                    # pattern as the IOT MINT FSM above.
+                    m.d.sync += mint_cc_base_reg_ni.eq(mint_lump_size_reg - mint_cc_reg_ni)
                     m.next = "MINT_COPY_CLIST_RD"
 
                 with m.State("MINT_COPY_CLIST_RD"):
@@ -1799,10 +1816,7 @@ class ChurchCore(Elaboratable):
                         m.next = "MINT_WRITE_CLIST"
                     with m.Else():
                         cc_off_ni = Signal(15, name="cc_off_ni")
-                        m.d.comb += cc_off_ni.eq(
-                            mint_lump_size_reg - mint_cc_reg_ni
-                            + mint_copy_idx_reg_ni
-                        )
+                        m.d.comb += cc_off_ni.eq(mint_cc_base_reg_ni + mint_copy_idx_reg_ni)
                         m.d.comb += [
                             mint_dmem_rd_en.eq(1),
                             mint_dmem_addr.eq(
@@ -1911,10 +1925,15 @@ class ChurchCore(Elaboratable):
         mwin_seal_computed = Signal(32)
         mwin_seal_masked   = Signal(25)
         mwin_seal_ok       = Signal()
+        # Break the FNV-1a step into three explicit binary operations so that
+        # Yosys does not fuse the XOR–multiply–XOR chain into a single multi-term
+        # $macc cell that write_verilog cannot emit as plain Verilog.
+        mwin_fnv_xor       = Signal(32)   # FNV_OFFSET_32 ^ dr12
+        mwin_fnv_mul       = Signal(32)   # xor  * FNV_PRIME_32  (truncated to 32 b)
+        m.d.comb += mwin_fnv_xor.eq(FNV_OFFSET_32 ^ mwin_dr12_lat)
+        m.d.comb += mwin_fnv_mul.eq(mwin_fnv_xor * FNV_PRIME_32)
         m.d.comb += [
-            mwin_seal_computed.eq(
-                ((FNV_OFFSET_32 ^ mwin_dr12_lat) * FNV_PRIME_32) ^ mwin_dr13_lat
-            ),
+            mwin_seal_computed.eq(mwin_fnv_mul ^ mwin_dr13_lat),
             mwin_seal_masked.eq(mwin_seal_computed[:25]),
             mwin_seal_ok.eq(mwin_seal_masked == View(SEALS_LAYOUT, mwin_dr15_lat).seal),
         ]

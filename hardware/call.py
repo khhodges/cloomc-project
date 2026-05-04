@@ -142,11 +142,15 @@ class ChurchCall(Elaboratable):
 
         # sp_max = thr_lump_sz − 12 − 1      (top of Stack zone; caps zone = 12, fixed)
         # sp_min = thr_lump_sz − 12 − sw + 2 (CALL needs 2 words: STO >= sp_min)
-        sp_max = Signal(15)
-        sp_min = Signal(15)
+        # Break into two binary subtractions so Yosys does not merge into a
+        # multi-term $macc cell that write_verilog cannot emit as plain Verilog.
+        sp_max      = Signal(15)
+        sp_min      = Signal(15)
+        sp_min_base = Signal(15)   # thr_lump_sz − 10  (= − 12 + 2, binary step)
         m.d.comb += [
             sp_max.eq(thr_lump_sz - 12 - 1),
-            sp_min.eq(thr_lump_sz - 12 - thread_hdr_view.cw + 2),
+            sp_min_base.eq(thr_lump_sz - 10),
+            sp_min.eq(sp_min_base - thread_hdr_view.cw),
         ]
 
         # Callee E-GT: the raw 32-bit GT deposited into CR6 by Phase 1 mLoad.
@@ -342,10 +346,12 @@ class ChurchCall(Elaboratable):
         # on call_complete.  ns_base_from_cr14 = lump_base (byte address before +4).
         # cw_reg is latched from the lump header in FETCH_LUMP and stable for the
         # remainder of the CALL pipeline.
-        m.d.comb += [
-            self.code_lo_out.eq(ns_base_from_cr14 + 4),
-            self.code_hi_out.eq(ns_base_from_cr14 + 4 + (cw_reg << 2)),
-        ]
+        #
+        # code_hi_out reuses code_lo_out (already binary) as its base so that
+        # Yosys alumacc never sees a 3-term chain and cannot fold it into a
+        # multi-term $macc cell that write_verilog cannot emit as plain Verilog.
+        m.d.comb += self.code_lo_out.eq(ns_base_from_cr14 + 4)
+        m.d.comb += self.code_hi_out.eq(self.code_lo_out + (cw_reg << 2))
 
         # Explicit combinatorial defaults so these signals are always driven to 0
         # except during the single CLEAR_B state that pulses them.
