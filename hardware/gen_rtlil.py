@@ -334,6 +334,31 @@ def generate_rtlil_tang_nano(output_dir="build"):
     return output_path
 
 
+def generate_rtlil_tang_nano_9k(output_dir="build"):
+    """Generate RTLIL for Tang Nano 9K using IoT profile (reduced ISA to fit 8,640 LUTs)."""
+    os.makedirs(output_dir, exist_ok=True)
+
+    top = ChurchTangNano20K(clk_freq=27_000_000, baud=115200, sim_mode=False,
+                            iot_profile=True)
+
+    ports = [
+        top.uart_tx, top.uart_rx, top.push_button,
+        ClockSignal("sync"),
+    ] + list(top.led)
+
+    rtlil_text = convert(top, ports=ports)
+
+    output_path = os.path.join(output_dir, "church_tang_nano_9k.il")
+    with open(output_path, "w") as f:
+        f.write(rtlil_text)
+
+    print(f"Generated: {output_path}")
+    print(f"  File size: {len(rtlil_text):,} bytes")
+    print(f"  Lines: {rtlil_text.count(chr(10)):,}")
+
+    return output_path
+
+
 def generate_rtlil_ti60(output_dir="build"):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -372,8 +397,12 @@ if __name__ == "__main__":
             output_dir = arg
         elif arg == "--ti60":
             board = "ti60-f225"
+        elif arg == "--9k":
+            board = "tang-nano-9k"
 
     if board == "ti60-f225":
         generate_rtlil_ti60(output_dir)
+    elif board == "tang-nano-9k":
+        generate_rtlil_tang_nano_9k(output_dir)
     else:
         generate_rtlil_tang_nano(output_dir)

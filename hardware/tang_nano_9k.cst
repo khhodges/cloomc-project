@@ -1,0 +1,27 @@
+// Tang Nano 9K pin constraints for Church Machine (IoT profile)
+// Gowin GW1NR-LV9QN88PC6/I5 — 27MHz crystal, CH340 USB-UART, 6 LEDs, 2 buttons
+// Pins 17-18 used by UART; 4 LEDs used (pins 10,11,13,14).
+
+// System clock — 27MHz crystal oscillator
+IO_LOC "clk" 52;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+
+// UART via CH340 USB bridge — pin 18 = FPGA TX→CH340 RX, pin 17 = CH340 TX→FPGA RX
+IO_LOC "uart_tx" 18;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_LOC "uart_rx" 17;
+IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// Onboard LEDs (active-low) — 6 LEDs on board, using 4 (avoid UART pins 17,18)
+IO_LOC "led0" 10;
+IO_PORT "led0" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_LOC "led1" 11;
+IO_PORT "led1" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_LOC "led2" 13;
+IO_PORT "led2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_LOC "led3" 14;
+IO_PORT "led3" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+
+// Push button S1 (active-low)
+IO_LOC "push_button" 3;
+IO_PORT "push_button" IO_TYPE=LVCMOS33 PULL_MODE=UP;
