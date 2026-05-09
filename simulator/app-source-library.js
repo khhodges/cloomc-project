@@ -307,20 +307,17 @@ function slLoadEntry(key, loader, lang) {
     if (loader === 'assembly') {
         /* Switch language selector to assembly, then load. */
         const sel = document.getElementById('langSelector');
-        if (sel && sel.value !== 'assembly') {
-            sel.value = 'assembly';
-            if (typeof onLangChange === 'function') onLangChange(true);
-        }
+        if (sel) sel.value = 'assembly';
+        if (typeof onLangChange === 'function') onLangChange(true);
         if (typeof loadExample === 'function') loadExample(key);
     } else {
-        /* Switch language selector to match the example language, then
-           trigger onLangChange so the editor toolbar/tab-strip updates
-           consistently with the same path as a manual language selector change. */
+        /* Always set the language selector and trigger onLangChange so the
+           editor toolbar, tab-strip, and compiler mode all update consistently
+           — even if the selector already shows the target language (e.g. the
+           user clicked two Haskell cards in a row). */
         const sel = document.getElementById('langSelector');
-        if (sel && sel.value !== lang && lang !== 'javascript') {
-            sel.value = lang;
-            if (typeof onLangChange === 'function') onLangChange(true);
-        }
+        if (sel) sel.value = lang;
+        if (typeof onLangChange === 'function') onLangChange(true);
         if (typeof loadCLOOMCExample === 'function') loadCLOOMCExample(key);
     }
 }
