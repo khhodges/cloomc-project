@@ -789,7 +789,8 @@
 .fixed-toolbar [data-tooltip]::after,
 .example-tabs-row [data-tooltip]::after,
 .editor-toolbar [data-tooltip]::after,
-.builder-toolbar [data-tooltip]::after {
+.builder-toolbar [data-tooltip]::after,
+.hp35-keys [data-tooltip]::after {
     bottom: auto;
     top: calc(100% + 8px);
 }
