@@ -2547,7 +2547,7 @@ abstraction FixedPoint {
     method roundFixed(f) = (f + 50) / 100
 }`,
         'lambda_sliderule': `-- ============================================================
--- Abstraction:  SlideRule
+-- Abstraction:  LambdaSlideRule
 -- Description:  Logarithmic slide-rule operations as pure functions
 -- Author:       Church Machine Educational Platform
 -- Version:      1.0
@@ -2573,7 +2573,7 @@ abstraction FixedPoint {
 --   log(\u221aa)   = log(a) / 2
 --   log(\u00b3\u221aa)  = log(a) / 3
 
-abstraction SlideRule {
+abstraction LambdaSlideRule {
     capabilities { Constants }
 
     -- C/D Scale: Multiplication
@@ -2667,7 +2667,7 @@ abstraction SlideRule {
     method Min(a, b) = if a < b then a else b
 }`,
         'lambda_rational': `-- ============================================================
--- Abstraction:  RationalArith
+-- Abstraction:  RationalArithmetic
 -- Description:  Exact rational number arithmetic on 32-bit integer hardware
 -- Author:       Church Machine Educational Platform
 -- Version:      1.0
@@ -2689,7 +2689,7 @@ abstraction SlideRule {
 -- 1/3 + 1/6 = (1\u00d76 + 1\u00d73) / (3\u00d76) = 9/18 = 1/2
 -- No precision loss \u2014 every result is exact
 
-abstraction RationalArith {
+abstraction RationalArithmetic {
     capabilities { }
 
     -- Numerator: \u03BB(n,d).n
@@ -3064,7 +3064,7 @@ abstraction AbstractionLifecycle {
 }`,
 
         'physical_pool': `// ============================================================
-// Abstraction:  PhysicalPool
+// Abstraction:  DMABuffer
 // Description:  Raw physical word allocation: paired Allocate/Free and Claim/Release
 // Author:       Church Machine Educational Platform
 // Version:      1.0
