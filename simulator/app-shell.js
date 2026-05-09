@@ -463,6 +463,17 @@ function init() {
     // Global keyboard shortcuts: Ctrl+<letter> → switch top-level view.
     // Skipped when focus is inside any text input / textarea / contenteditable.
     document.addEventListener('keydown', function _ideNavShortcut(e) {
+        // Ctrl+Shift+L — jump directly to Source Library (Abstractions → Sources tab)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'l') {
+            const tag = document.activeElement ? document.activeElement.tagName : '';
+            if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT' &&
+                !(document.activeElement && document.activeElement.isContentEditable)) {
+                e.preventDefault();
+                switchView('abstractions');
+                switchAbsSubtab('sources');
+                return;
+            }
+        }
         if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
         const tag = document.activeElement ? document.activeElement.tagName : '';
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ||
