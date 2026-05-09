@@ -2646,7 +2646,7 @@ Return count`,
 -- Author:       Church Machine Educational Platform
 -- Version:      1.0
 -- Created:      2026-05-09
--- Language:     Lambda Calculus
+-- Language:     Lambda
 -- Dependencies: None
 -- ============================================================
 -- Methods:
@@ -2714,7 +2714,7 @@ abstraction ChurchNumerals {
 -- Author:       Church Machine Educational Platform
 -- Version:      1.0
 -- Created:      2026-05-09
--- Language:     Lambda Calculus
+-- Language:     Lambda
 -- Dependencies: None
 -- ============================================================
 -- Methods:
@@ -2765,17 +2765,26 @@ abstraction ChurchEncoding {
     --   second(p) = p false_  (select right)
     --   swap(p) = pair(second p, first p)
 
-    method pair(a, b) =
-        if 1 == 1 then a else b       -- placeholder: pair encoded as selector
+    -- pair(a, b) packs two small non-negative integers into one word.
+    -- Encoding: a * 256 + b.  Both values must be in [0, 255].
+    -- Mirrors λs.s a b: the word acts as a selector applied to a and b.
+    method pair(a, b) = a * 256 + b
 
-    method first(p) =
-        if p == 1 then p else 0       -- select first element (true_ selector)
+    -- first(p) extracts the left element: p / 256.
+    -- Mirrors: pair(a, b) true_  =  (λs.s a b) (λx.λy.x) = a
+    method first(p) = p / 256
 
+    -- second(p) extracts the right element: p mod 256.
+    -- Mirrors: pair(a, b) false_ =  (λs.s a b) (λx.λy.y) = b
     method second(p) =
-        if p == 0 then p else 0       -- select second element (false_ selector)
+        if p < 256 then p
+        else p - (p / 256) * 256
 
+    -- swap(p) exchanges the two elements.
+    -- Equivalent to pair(second(p), first(p)).
     method swap(p) =
-        if p == 0 then 1 else 0       -- exchange first and second elements
+        if p < 256 then p * 256
+        else (p - (p / 256) * 256) * 256 + p / 256
 }`,
         'lambda_fixed_point': `-- ============================================================
 -- Abstraction:  FixedPoint
@@ -2783,7 +2792,7 @@ abstraction ChurchEncoding {
 -- Author:       Church Machine Educational Platform
 -- Version:      1.0
 -- Created:      2026-05-09
--- Language:     Lambda Calculus
+-- Language:     Lambda
 -- Dependencies: None
 -- ============================================================
 -- Methods:
@@ -2862,7 +2871,7 @@ abstraction FixedPoint {
 -- Author:       Church Machine Educational Platform
 -- Version:      1.0
 -- Created:      2026-05-09
--- Language:     Lambda Calculus
+-- Language:     Lambda
 -- Dependencies: None
 -- ============================================================
 -- Methods:
@@ -2986,7 +2995,7 @@ abstraction LambdaSlideRule {
 -- Author:       Church Machine Educational Platform
 -- Version:      1.0
 -- Created:      2026-05-09
--- Language:     Lambda Calculus
+-- Language:     Lambda
 -- Dependencies: None
 -- ============================================================
 -- Methods:
@@ -3228,7 +3237,7 @@ abstraction BudgetTracker {
 }`,
 
         'turing_memory': `// ============================================================
-// Abstraction:  CodeLoader
+// Abstraction:  TuringMemory
 // Description:  Code-region allocation charged against a Billing account (NS 48)
 // Author:       Church Machine Educational Platform
 // Version:      1.0
@@ -3265,7 +3274,7 @@ abstraction BudgetTracker {
 // minimum region size, delegates to AllocCode, and
 // verifies the returned address is non-zero.
 
-abstraction CodeLoader {
+abstraction TuringMemory {
     capabilities {
         TuringMemory
     }
@@ -3299,7 +3308,7 @@ abstraction CodeLoader {
 }`,
 
         'church_memory': `// ============================================================
-// Abstraction:  AbstractionLifecycle
+// Abstraction:  ChurchMemory
 // Description:  Namespace slot handle management with reference counting (NS 49)
 // Author:       Church Machine Educational Platform
 // Version:      1.0
@@ -3338,7 +3347,7 @@ abstraction CodeLoader {
 // single-slot acquire/release and a range-acquire
 // that claims a contiguous block of slots.
 
-abstraction AbstractionLifecycle {
+abstraction ChurchMemory {
     capabilities {
         ChurchMemory
     }

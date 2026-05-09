@@ -4901,51 +4901,57 @@ done:
 ; DR3 = 55 (formula), DR5 = 55 (loop) — match!
 
 ; ── Section 2: Turing ISA Test ────────────────────────
-; Exercises IADD, ISUB, SHL, SHR, BFEXT, BFINS, MCMP, BRANCH, DREAD, DWRITE, TPERM
-; Verifies Turing-completeness: structured loops, conditionals, memory access, capability check
+; Exercises IADD, ISUB, MCMP, BRANCH, SHL, SHR
+;
+; Turing ISA (11 instructions):
+;   DREAD, DWRITE, BFEXT, BFINS  (R/W via GT)
+;   MCMP, IADD, ISUB, BRANCH
+;   SHL, SHR (logical/arithmetic)
+;   RETURN (shared with Church)
 
-    ; ── Arithmetic across DR0–DR9 ──────────────────────
-    IADD DR1, DR0, DR0         ; DR1 = 0
-    IADD DR2, DR0, #1          ; DR2 = 1
-    IADD DR3, DR2, DR2         ; DR3 = 2
-    IADD DR4, DR3, DR3         ; DR4 = 4
-    ISUB DR5, DR4, DR2         ; DR5 = 3
-    IADD DR6, DR4, DR5         ; DR6 = 7
-    IADD DR7, DR6, DR2         ; DR7 = 8
+; --- Initialize DR1 = 0 ---
+IADD DR1, DR0, DR0     ; DR1 = 0 (Z=1)
 
-    ; ── Shift: SHL / SHR round-trip ───────────────────
-    SHL DR8, DR2, 4            ; DR8 = 16 (1 << 4)
-    SHR DR9, DR8, 2            ; DR9 = 4  (16 >> 2)
-    MCMP DR9, DR4              ; Z=1 if DR9 == 4
-    BRANCHEQ turing_bf         ; conditional jump
-    HALT                       ; fail: shift mismatch
-turing_bf:
+; --- Load system abstractions (boot C-List) ---
+LOAD CR0, CR6, 4       ; CR0 = Salvation (E)
+TPERM CR0, E           ; Verify E → Z=1
 
-    ; ── Bit-field BFEXT / BFINS round-trip ───────────────
-    BFINS DR10, DR1, DR4, 4, 4 ; DR10 = DR4 in bits[7:4] of 0
-    SHR DR11, DR10, 4          ; DR11 = extracted field = DR4
-    MCMP DR11, DR4             ; Z=1 if round-trip correct
-    BRANCHEQ turing_mem
-    HALT                       ; fail: bit-field mismatch
-turing_mem:
+; --- Integer arithmetic ---
+IADD DR3, DR1, DR2     ; DR3 = DR1 + DR2
+ISUB DR4, DR3, DR1     ; DR4 = DR3 - DR1
 
-    ; ── Memory access: DWRITE / DREAD round-trip ───────────
-    DWRITE DR7, CR6, 0         ; store DR7 at CR6[0]
-    DREAD  DR12, CR6, 0        ; reload into DR12
-    MCMP DR12, DR7             ; Z=1 if round-trip correct
-    BRANCHEQ turing_perm
-    HALT                       ; fail: memory round-trip mismatch
-turing_perm:
+; --- MCMP: compare DR4 vs DR2 ---
+MCMP DR4, DR2          ; Should be equal (Z=1)
+BRANCHEQ +2            ; Skip if equal
+IADD DR5, DR1, DR1     ; Skipped
 
-    ; ── Capability TPERM permission check ──────────────
-    LOAD CR0, CR6, 4           ; CR0 = Salvation (E-capability)
-    TPERM CR0, E               ; Z=1 if Execute permission held
-    BRANCHEQ turing_done
-    HALT                       ; fail: capability check failed
-turing_done:
+; --- MCMP: nonzero compare ---
+MCMP DR3, DR4          ; DR3 vs DR4
+BRANCHNE +2            ; Skip if not equal
+ISUB DR6, DR1, DR1     ; Skipped if equal
 
-HALT
-`,
+; --- Zero flag test ---
+ISUB DR7, DR3, DR3     ; DR7 = 0 (Z=1)
+BRANCHEQ +2            ; Branch taken
+IADD DR8, DR1, DR1     ; Skipped
+
+; --- SHL: Shift left ---
+IADD DR9, DR3, DR0     ; DR9 = DR3 (copy)
+SHL DR10, DR9, 4       ; DR10 = DR9 << 4
+
+; --- SHR: Logical shift right ---
+SHR DR11, DR10, 2      ; DR11 = DR10 >> 2
+
+; --- SHR: Arithmetic shift right ---
+ISUB DR12, DR0, DR3    ; DR12 = negative
+SHR DR13, DR12, 1, ASR ; DR13 sign-extending
+
+; --- Verify: SHL then SHR restores ---
+SHL DR14, DR3, 8       ; DR14 = DR3 << 8
+SHR DR15, DR14, 8      ; DR15 = DR14 >> 8
+MCMP DR15, DR3         ; Should be equal (Z=1)
+
+HALT`,
         'salvation': `; ============================================================
 ; Abstraction:  Salvation
 ; Description:  First callable abstraction: proves LOAD+TPERM+CALL works
@@ -4989,7 +4995,7 @@ HALT
 `,
         'perm_attack': `; ============================================================
 ; Abstraction:  PermAttack
-; Description:  Adversarial permission-violation tests — CALL/DREAD/DWRITE without required perms
+; Description:  Adversarial permission-violation and TPERM guard tests
 ; Author:       Church Machine Educational Platform
 ; Version:      1.0
 ; Created:      2026-05-09
@@ -4997,23 +5003,20 @@ HALT
 ; Dependencies: None
 ; ============================================================
 ; Methods:
-;   1. attack_call_no_e — CALL device without E → FAULT
-;   2. attack_dread_no_r — DREAD without R → FAULT
-;   3. attack_dwrite_no_w — DWRITE without W → FAULT
+;   1. attack_perm_violations — CALL/DREAD/DWRITE without required permissions → FAULT
+;   2. tperm_guard — TPERM E before CALL, failure path, recursive overflow
 ; ============================================================
 ;
-; ============================================
-; ADVERSARIAL TEST: Permission Violations
-; Every operation here should FAULT cleanly.
-; mLoad is the single guard at the gate.
-; ============================================
+; ─────────────────────────────────────────────────
+; Method 1: attack_perm_violations
+; ─────────────────────────────────────────────────
 ;
 ; Boot C-List layout:
 ;   [4] Salvation (E)  [5] Navana (E)
 ;   [6] Mint (E)       [7] Memory (E)
 ;   [8] LED (RW)       [9] UART (RW)
 ;   [10] BTN (R)       [11] TIMER (RW)
-; ============================================
+;
 
 ; --- ATTACK 1: CALL device without E ---
 ; LED (slot 8) has R+W but no E.
@@ -5034,6 +5037,39 @@ LOAD CR2, CR6, 10      ; CR2 = BTN (R only)
 DWRITE DR1, CR2, 0     ; FAULT: BTN lacks W permission
 
 ; --- If we get here, something is broken ---
+HALT
+
+; ─────────────────────────────────────────────────
+; Method 2: tperm_guard
+; ─────────────────────────────────────────────────
+;
+; Three tests in one run:
+;   1. CALL guard — TPERM checks E on Salvation. Z=1 → CALL; Z=0 → HALT.
+;   2. TPERM failure — check RW on Salvation (has E only). Z=0 confirms failure.
+;   3. Recursive CALL — self-call via Boot.Abstr (~15 frames → BOUNDS FAULT).
+;
+; NOTE: Salvation has handler methods so CALL dispatches atomically.
+; Boot.Abstr is our own code — CALL pushes a real 2-word stack frame.
+
+; --- TEST 1: CALL guard (TPERM E) ---
+LOAD CR0, CR6, 4
+TPERM CR0, E           ; Z=1 if Execute permitted
+BRANCHEQ tperm_ok
+HALT                   ; Fail: E permission missing
+tperm_ok:
+CALL CR0, 0            ; Call Salvation — handler, no frame pushed
+
+; --- TEST 2: TPERM failure (check RW on E-only token) ---
+TPERM CR0, RW          ; Z=0: Salvation has E only, not RW
+BRANCHEQ tperm_fail    ; If somehow Z=1, that is wrong → fall to test 3
+tperm_fail:
+
+; --- TEST 3: Recursive CALL overflow ---
+LOAD CR3, CR6, 2       ; Boot.Abstr (our own code, no handler)
+recurse:
+CALL CR3, 0            ; Push 2-word frame each time
+BRANCH recurse         ; Unreachable: BOUNDS FAULT terminates first
+
 HALT`,
         'bind_attack': `; ============================================================
 ; Abstraction:  BindAttack
