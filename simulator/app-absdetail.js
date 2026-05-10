@@ -146,7 +146,10 @@ function showAbstractionDetail(index) {
         html += '<div class="abs-detail-label">C-List</div>';
 
         if (!clistLoaded) {
-            const staticCaps = Array.isArray(abs.capabilities) ? abs.capabilities : [];
+            const rawCaps = Array.isArray(abs.capabilities) ? abs.capabilities : [];
+            const staticCaps = rawCaps.map(c =>
+                (typeof c === 'string') ? { name: c, target: null, grants: [] } : c
+            );
             if (staticCaps.length === 0) {
                 html += '<div class="abs-clist-empty">Empty (cc\u00a0=\u00a00) \u2014 this abstraction holds no capabilities.</div>';
             } else {
