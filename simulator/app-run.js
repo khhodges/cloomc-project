@@ -5180,7 +5180,8 @@ BRANCH led_on             ; loop forever
 ` + '; ────────────────────────────────────────────────────────────\n; Section 2: Turing DR Test ✦\n; ────────────────────────────────────────────────────────────\n' + _TURING_DR_TEST_SOURCE.slice(_TURING_DR_TEST_SOURCE.indexOf('; Turing DR Test')),
     };
 
-    window._asmExampleSources = examples;
+    window._asmExampleSources      = examples;
+    window._asmExampleSourcesReady = true;
 
     const code = examples[name];
     if (code) {
@@ -10695,3 +10696,23 @@ function showAbstractionRefDetail(id) {
     `;
 }
 
+/* ── Assembly structural globals ─────────────────────────────────────────────
+ * Exposes window._asmExampleSources at module-load time (analogous to
+ * _initCloomcStructuralGlobals in app-compile.js) so the Source Library can
+ * discover assembly example keys without requiring a prior loadExample() call.
+ * Keys are seeded with empty strings; loadExample() overwrites them with real
+ * source text on first use.  The Source Library re-renders automatically once
+ * the real sources become available (see _slRenderedWithSources logic).       */
+(function _initAsmStructuralGlobals() {
+    if (window._asmExampleSourcesReady) return;
+    window._asmExampleSourcesReady = false;
+    /* app-compile.js loads before this script (see index.html), so
+       window._cloomcLangExampleGroups is already set by _initCloomcStructuralGlobals().
+       Fall back to an inline list only as a safety net if load order changes. */
+    const asmKeys = (window._cloomcLangExampleGroups || {}).assembly ||
+        ['ada_note_g', 'capability_test', 'system_patterns', 'compute_demo',
+         'salvation', 'perm_attack', 'bind_attack', 'led_control'];
+    const seed = {};
+    for (const key of asmKeys) seed[key] = '';
+    window._asmExampleSources = seed;
+})();

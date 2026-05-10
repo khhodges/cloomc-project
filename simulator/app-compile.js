@@ -350,6 +350,45 @@ function renderSyntaxRef(lang) {
     area.innerHTML = html;
 }
 
+/* ── Example tab groups ── single source of truth for which tab IDs belong
+   to each front-end language. Tab IDs use a 'cloomc_' prefix for CLOOMC
+   front-ends; assembly tabs use bare keys. This constant is also used by
+   loadCLOOMCExample() to derive window._cloomcExampleLanguages so that new
+   examples need only one addition here (plus the HTML tab in index.html). */
+const LANG_EXAMPLE_GROUPS = {
+    english:    ['cloomc_english_integer_ops', 'cloomc_english_packed_string', 'cloomc_english_loops', 'cloomc_english_contact', 'cloomc_english_contact_stage2'],
+    assembly:   ['ada_note_g', 'capability_test', 'system_patterns', 'compute_demo', 'led_control', 'salvation', 'perm_attack', 'bind_attack'],
+    javascript: ['cloomc_integer_ops', 'cloomc_packed_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_mint', 'cloomc_sliderule', 'cloomc_contact', 'cloomc_contact_stage2', 'cloomc_contact_call', 'cloomc_stack_overflow', 'cloomc_recall_demo', 'cloomc_billing', 'cloomc_turing_memory', 'cloomc_church_memory', 'cloomc_physical_pool'],
+    haskell:    ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_sliderule_hs'],
+    symbolic:   ['cloomc_ada_note_g', 'cloomc_ada_note_g_published_bug', 'cloomc_bernoulli_numbers'],
+    lambda:     ['cloomc_lambda_church_numerals', 'cloomc_lambda_church_encoding', 'cloomc_lambda_fixed_point', 'cloomc_lambda_sliderule', 'cloomc_lambda_rational'],
+    personal:   []
+};
+
+/* Module-level single source of truth for file-backed CLOOMC examples.
+   Both loadCLOOMCExample() and _initCloomcStructuralGlobals() reference
+   these consts to avoid duplicated data. */
+const _CLOOMC_FILE_EXAMPLES = {
+    'sliderule':               '/simulator/cloomc/sliderule.cloomc',
+    'contact':                 '/simulator/cloomc/Contact.cloomc',
+    'contact_stage2':          '/simulator/cloomc/ContactStage2.cloomc',
+    'contact_call':            '/simulator/cloomc/ContactCall.cloomc',
+    'english_contact_stage2':  '/simulator/cloomc/english/ContactStage2.cloomc',
+    'ada_note_g_published_bug':'/simulator/cloomc/ada_note_g_published_bug.cloomc',
+    'memory':                  '/simulator/cloomc/memory.cloomc',
+    'sliderule_hs':            '/simulator/cloomc/sliderule_hs.cloomc'
+};
+const _CLOOMC_FILE_LANGUAGES = {
+    'sliderule':               'javascript',
+    'contact':                 'javascript',
+    'contact_stage2':          'javascript',
+    'contact_call':            'javascript',
+    'english_contact_stage2':  'english',
+    'ada_note_g_published_bug':'symbolic',
+    'memory':                  'javascript',
+    'sliderule_hs':            'haskell'
+};
+
 function onLangChange(restoring) {
     const sel = document.getElementById('langSelector');
     if (!sel) return;
@@ -361,15 +400,7 @@ function onLangChange(restoring) {
     const btnBuildLumpMenu = document.getElementById('btnBuildLumpMenu');
     if (btnBuildLumpMenu) btnBuildLumpMenu.disabled = (lang === 'assembly');
 
-    const langExampleGroups = {
-        english: ['cloomc_english_integer_ops', 'cloomc_english_packed_string', 'cloomc_english_loops', 'cloomc_english_contact', 'cloomc_english_contact_stage2'],
-        assembly: ['ada_note_g', 'capability_test', 'system_patterns', 'compute_demo', 'led_control', 'salvation', 'perm_attack', 'bind_attack'],
-        javascript: ['cloomc_integer_ops', 'cloomc_packed_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_mint', 'cloomc_sliderule', 'cloomc_contact', 'cloomc_contact_stage2', 'cloomc_contact_call', 'cloomc_stack_overflow', 'cloomc_recall_demo', 'cloomc_billing', 'cloomc_turing_memory', 'cloomc_church_memory', 'cloomc_physical_pool'],
-        haskell: ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_sliderule_hs'],
-        symbolic: ['cloomc_ada_note_g', 'cloomc_ada_note_g_published_bug', 'cloomc_bernoulli_numbers'],
-        lambda: ['cloomc_lambda_church_numerals', 'cloomc_lambda_church_encoding', 'cloomc_lambda_fixed_point', 'cloomc_lambda_sliderule', 'cloomc_lambda_rational'],
-        personal: []
-    };
+    const langExampleGroups = LANG_EXAMPLE_GROUPS;
 
     const scroll = document.getElementById('exampleTabsScroll');
     if (scroll) {
@@ -1491,26 +1522,8 @@ function loadCLOOMCExample(name) {
     renderUserTabs();
     updateSaveUserTabBtn();
 
-    const fileExamples = {
-        'sliderule': '/simulator/cloomc/sliderule.cloomc',
-        'contact': '/simulator/cloomc/Contact.cloomc',
-        'contact_stage2': '/simulator/cloomc/ContactStage2.cloomc',
-        'contact_call': '/simulator/cloomc/ContactCall.cloomc',
-        'english_contact_stage2': '/simulator/cloomc/english/ContactStage2.cloomc',
-        'ada_note_g_published_bug': '/simulator/cloomc/ada_note_g_published_bug.cloomc',
-        'memory': '/simulator/cloomc/memory.cloomc',
-        'sliderule_hs': '/simulator/cloomc/sliderule_hs.cloomc'
-    };
-    const fileLanguages = {
-        'sliderule': 'javascript',
-        'contact': 'javascript',
-        'contact_stage2': 'javascript',
-        'contact_call': 'javascript',
-        'english_contact_stage2': 'english',
-        'ada_note_g_published_bug': 'symbolic',
-        'memory': 'javascript',
-        'sliderule_hs': 'haskell'
-    };
+    const fileExamples  = _CLOOMC_FILE_EXAMPLES;
+    const fileLanguages = _CLOOMC_FILE_LANGUAGES;
     if (fileExamples[name]) {
         fetch(fileExamples[name])
             .then(r => r.ok ? r.text() : Promise.reject('File not found'))
@@ -3503,9 +3516,24 @@ abstraction DMABuffer {
 }`,
     };
 
-    window._cloomcExampleSources = examples;
-    window._cloomcFileExamples   = fileExamples;
-    window._cloomcFileLanguages  = fileLanguages;
+    /* Build a key→lang map from LANG_EXAMPLE_GROUPS (strip 'cloomc_' prefix from
+       tab IDs to get bare example keys; skip 'assembly' and 'personal' entries). */
+    const exampleLanguages = {};
+    for (const [lang, tabKeys] of Object.entries(LANG_EXAMPLE_GROUPS)) {
+        if (lang === 'assembly' || lang === 'personal') continue;
+        for (const tabKey of tabKeys) {
+            const exKey = tabKey.startsWith('cloomc_') ? tabKey.slice(7) : tabKey;
+            exampleLanguages[exKey] = lang;
+        }
+    }
+    /* fileLanguages entries override (they cover file-based examples). */
+    Object.assign(exampleLanguages, fileLanguages);
+
+    window._cloomcExampleSources      = examples;
+    window._cloomcExampleSourcesReady = true;
+    window._cloomcFileExamples        = fileExamples;
+    window._cloomcFileLanguages       = fileLanguages;
+    window._cloomcExampleLanguages    = exampleLanguages;
 
     editor.value = examples[name] || examples['integer_ops'];
     updateLineNumbers();
@@ -3529,3 +3557,28 @@ abstraction DMABuffer {
     if (noticeBar) noticeBar.style.display = 'none';
 }
 
+/* ── Initialize structural example globals at script load time ───────────── *
+ * Sets window._cloomcFileExamples, window._cloomcFileLanguages, and          *
+ * window._cloomcExampleLanguages immediately when this script is parsed so   *
+ * that the Source Library can build its registry without requiring a prior   *
+ * call to loadCLOOMCExample(). window._cloomcExampleSources is still set     *
+ * lazily by loadCLOOMCExample() on first use (sources are large strings).    *
+ * ──────────────────────────────────────────────────────────────────────────*/
+(function _initCloomcStructuralGlobals() {
+    if (window._cloomcFileExamples) return;
+
+    const exampleLanguages = {};
+    for (const [lang, tabKeys] of Object.entries(LANG_EXAMPLE_GROUPS)) {
+        if (lang === 'assembly' || lang === 'personal') continue;
+        for (const tabKey of tabKeys) {
+            const exKey = tabKey.startsWith('cloomc_') ? tabKey.slice(7) : tabKey;
+            exampleLanguages[exKey] = lang;
+        }
+    }
+    Object.assign(exampleLanguages, _CLOOMC_FILE_LANGUAGES);
+
+    window._cloomcFileExamples      = _CLOOMC_FILE_EXAMPLES;
+    window._cloomcFileLanguages     = _CLOOMC_FILE_LANGUAGES;
+    window._cloomcExampleLanguages  = exampleLanguages;
+    window._cloomcLangExampleGroups = LANG_EXAMPLE_GROUPS;
+})();

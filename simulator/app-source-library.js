@@ -7,72 +7,191 @@
  * pushes the source into the editor exactly as the example tab buttons do.
  *
  * Data sources:
- *   window._cloomcExampleSources  — inline CLOOMC/Haskell/Symbolic/English/Lambda examples
- *   window._cloomcFileExamples    — url map for file-based CLOOMC examples
- *   window._cloomcFileLanguages   — lang map for file-based CLOOMC examples
- *   window._asmExampleSources     — inline Assembly examples
+ *   window._cloomcExampleSources   — inline CLOOMC/Haskell/Symbolic/English/Lambda examples
+ *   window._cloomcExampleLanguages — language map for all inline examples (set by app-compile.js)
+ *   window._cloomcFileExamples     — url map for file-based CLOOMC examples
+ *   window._cloomcFileLanguages    — lang map for file-based CLOOMC examples
+ *   window._asmExampleSources      — inline Assembly examples
  *
  * These globals are populated on first call to loadCLOOMCExample() /
  * loadExample() respectively (patched in app-compile.js / app-run.js).
+ *
+ * Registry is built dynamically from the globals above so that adding a new
+ * example to app-compile.js or app-run.js automatically makes it appear here.
+ * _SL_METADATA provides display-name overrides and explicit ordering for keys
+ * whose auto-generated name would be unclear or ambiguous.
  */
 
 'use strict';
 
-/* ── Registry ────────────────────────────────────────────────────────────── */
+/* ── Metadata overrides ──────────────────────────────────────────────────── */
+/*
+ * Keyed by 'exampleKey' or 'exampleKey:lang' (the latter disambiguates when
+ * the same key exists in both assembly and a CLOOMC front-end, e.g. ada_note_g).
+ *
+ * Supported fields:
+ *   name  — display name shown in the card header (overrides auto-generated name)
+ *   lang  — language group override; use when the key is absent from
+ *            LANG_EXAMPLE_GROUPS (e.g. a temporary example not yet wired to a tab)
+ *   order — numeric sort position within the language group (lower = earlier;
+ *            defaults to insertion order from the source globals)
+ *
+ * Only entries that need a non-obvious name (or emergency lang override) require
+ * an entry here. New examples added to app-compile.js / app-run.js appear
+ * automatically without touching this map; add an entry only when the auto-
+ * generated TitleCase name is ambiguous or wrong.
+ */
+const _SL_METADATA = {
+    'recall_demo':              { name: 'Feedback' },
+    'billing':                  { name: 'BudgetTracker' },
+    'physical_pool':            { name: 'DMABuffer' },
+    'sliderule':                { name: 'SlideRule' },
+    'sliderule_hs':             { name: 'SlideRule (Haskell)' },
+    'ada_note_g:assembly':      { name: 'NoteG (Assembly)' },
+    'ada_note_g:symbolic':      { name: 'NoteG (Symbolic)' },
+    'ada_note_g_published_bug': { name: 'NoteG (Published Bug)' },
+    'english_integer_ops':      { name: 'IntegerOps (English)' },
+    'english_packed_string':    { name: 'StringOps (English)' },
+    'english_contact':          { name: 'Contact (English)' },
+    'english_contact_stage2':   { name: 'ContactStage2 (English)' },
+    'lambda_church_numerals':   { name: 'ChurchNumerals' },
+    'lambda_church_encoding':   { name: 'ChurchEncoding' },
+    'lambda_fixed_point':       { name: 'FixedPoint' },
+    'lambda_sliderule':         { name: 'LambdaSlideRule' },
+    'lambda_rational':          { name: 'RationalArithmetic' },
+};
 
-const _SL_REGISTRY = [
-    /* ── CLOOMC++ (JavaScript front-end) ─────────────────── */
-    { key: 'integer_ops',      name: 'IntegerOps',           lang: 'javascript', loader: 'cloomc' },
-    { key: 'packed_string',    name: 'PackedString',          lang: 'javascript', loader: 'cloomc' },
-    { key: 'memory',           name: 'Memory',                lang: 'javascript', loader: 'cloomc' },
-    { key: 'heap',             name: 'Heap',                  lang: 'javascript', loader: 'cloomc' },
-    { key: 'mint',             name: 'Mint',                  lang: 'javascript', loader: 'cloomc' },
-    { key: 'sliderule',        name: 'SlideRule',             lang: 'javascript', loader: 'cloomc' },
-    { key: 'contact',          name: 'Contact',               lang: 'javascript', loader: 'cloomc' },
-    { key: 'contact_stage2',   name: 'ContactStage2',         lang: 'javascript', loader: 'cloomc' },
-    { key: 'contact_call',     name: 'ContactCall',           lang: 'javascript', loader: 'cloomc' },
-    { key: 'stack_overflow',   name: 'StackOverflow',         lang: 'javascript', loader: 'cloomc' },
-    { key: 'recall_demo',      name: 'Feedback',              lang: 'javascript', loader: 'cloomc' },
-    { key: 'billing',          name: 'BudgetTracker',         lang: 'javascript', loader: 'cloomc' },
-    { key: 'turing_memory',    name: 'TuringMemory',          lang: 'javascript', loader: 'cloomc' },
-    { key: 'church_memory',    name: 'ChurchMemory',          lang: 'javascript', loader: 'cloomc' },
-    { key: 'physical_pool',    name: 'DMABuffer',             lang: 'javascript', loader: 'cloomc' },
+/* Convert a snake_case key to a TitleCase display name. */
+function _keyToName(key) {
+    return key.split('_').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('');
+}
 
-    /* ── Assembly ─────────────────────────────────────────── */
-    { key: 'capability_test',  name: 'CapabilityTest',        lang: 'assembly',   loader: 'assembly' },
-    { key: 'system_patterns',  name: 'SystemPatterns',        lang: 'assembly',   loader: 'assembly' },
-    { key: 'compute_demo',     name: 'ComputeDemo',           lang: 'assembly',   loader: 'assembly' },
-    { key: 'led_control',      name: 'LedControl',            lang: 'assembly',   loader: 'assembly' },
-    { key: 'salvation',        name: 'Salvation',             lang: 'assembly',   loader: 'assembly' },
-    { key: 'perm_attack',      name: 'PermAttack',            lang: 'assembly',   loader: 'assembly' },
-    { key: 'bind_attack',      name: 'BindAttack',            lang: 'assembly',   loader: 'assembly' },
-    { key: 'ada_note_g',       name: 'NoteG (Assembly)',      lang: 'assembly',   loader: 'assembly' },
+/*
+ * Look up metadata for a given key + lang combination.
+ * Checks 'key:lang' first (for disambiguation), then 'key'.
+ */
+function _slMeta(key, lang) {
+    return _SL_METADATA[key + ':' + lang] || _SL_METADATA[key] || {};
+}
 
-    /* ── Haskell ──────────────────────────────────────────── */
-    { key: 'church_math',      name: 'ChurchMath',            lang: 'haskell',    loader: 'cloomc' },
-    { key: 'church_pair',      name: 'ChurchPair',            lang: 'haskell',    loader: 'cloomc' },
-    { key: 'church_case',      name: 'ChurchCase',            lang: 'haskell',    loader: 'cloomc' },
-    { key: 'sliderule_hs',     name: 'SlideRule (Haskell)',   lang: 'haskell',    loader: 'cloomc' },
+/*
+ * Build the registry dynamically.
+ *
+ * Key list sources (always available at script-load time — no prior user
+ * interaction required):
+ *   - LANG_EXAMPLE_GROUPS (module-level const in app-compile.js) for CLOOMC
+ *     and Assembly tabs, keyed by language.
+ *   - window._cloomcFileExamples for any file-based examples that have no tab.
+ *   - window._cloomcExampleSources for any inline examples that have no tab.
+ *
+ * Source text (lazily available; populated by first loadCLOOMCExample() /
+ * loadExample() call, which is triggered at page load by onLangChange()):
+ *   - window._cloomcExampleSources[key]
+ *   - window._asmExampleSources[key]
+ *   Falls back to '' which renders as "(source not available)".
+ *
+ * Returns an array of { key, name, lang, loader } objects in display order.
+ */
+function _buildSLRegistry() {
+    const cloomcSrc  = window._cloomcExampleSources   || {};
+    const cloomcLang = window._cloomcExampleLanguages  || {};
+    const fileEx     = window._cloomcFileExamples      || {};
+    const fileLang   = window._cloomcFileLanguages     || {};
 
-    /* ── Symbolic Math ────────────────────────────────────── */
-    { key: 'ada_note_g',             name: 'NoteG (Symbolic)',       lang: 'symbolic',   loader: 'cloomc' },
-    { key: 'ada_note_g_published_bug', name: 'NoteG (Published Bug)', lang: 'symbolic',   loader: 'cloomc' },
-    { key: 'bernoulli_numbers',      name: 'BernoulliNumbers',       lang: 'symbolic',   loader: 'cloomc' },
+    /* LANG_EXAMPLE_GROUPS is a module-level const in app-compile.js (always
+       available since that script loads before this one). */
+    const legGroups = (typeof LANG_EXAMPLE_GROUPS !== 'undefined') ? LANG_EXAMPLE_GROUPS : {};
 
-    /* ── English ──────────────────────────────────────────── */
-    { key: 'english_integer_ops',    name: 'IntegerOps (English)',   lang: 'english',    loader: 'cloomc' },
-    { key: 'english_packed_string',  name: 'StringOps (English)',    lang: 'english',    loader: 'cloomc' },
-    { key: 'english_loops',          name: 'EnglishLoops',           lang: 'english',    loader: 'cloomc' },
-    { key: 'english_contact',        name: 'Contact (English)',      lang: 'english',    loader: 'cloomc' },
-    { key: 'english_contact_stage2', name: 'ContactStage2 (English)',lang: 'english',    loader: 'cloomc' },
+    const entries = [];
+    const seenCloomc = new Set();
 
-    /* ── Lambda Calculus ──────────────────────────────────── */
-    { key: 'lambda_church_numerals', name: 'ChurchNumerals',         lang: 'lambda',     loader: 'cloomc' },
-    { key: 'lambda_church_encoding', name: 'ChurchEncoding',         lang: 'lambda',     loader: 'cloomc' },
-    { key: 'lambda_fixed_point',     name: 'FixedPoint',             lang: 'lambda',     loader: 'cloomc' },
-    { key: 'lambda_sliderule',       name: 'LambdaSlideRule',        lang: 'lambda',     loader: 'cloomc' },
-    { key: 'lambda_rational',        name: 'RationalArithmetic',     lang: 'lambda',     loader: 'cloomc' },
-];
+    /* ── CLOOMC examples from LANG_EXAMPLE_GROUPS (always populated) ──────── */
+    for (const [lang, tabKeys] of Object.entries(legGroups)) {
+        if (lang === 'assembly' || lang === 'personal') continue;
+        for (const tabKey of tabKeys) {
+            const key = tabKey.startsWith('cloomc_') ? tabKey.slice(7) : tabKey;
+            if (seenCloomc.has(key)) continue;
+            seenCloomc.add(key);
+            const derivedLang = cloomcLang[key] || fileLang[key] || lang;
+            const meta = _slMeta(key, derivedLang);
+            entries.push({ key, name: meta.name || _keyToName(key), lang: meta.lang || derivedLang, loader: 'cloomc' });
+        }
+    }
+
+    /* ── File-based examples not covered by any tab (future-proof) ─────────── */
+    for (const key of Object.keys(fileEx)) {
+        if (seenCloomc.has(key)) continue;
+        seenCloomc.add(key);
+        const derivedLang = fileLang[key] || cloomcLang[key] || 'javascript';
+        const meta = _slMeta(key, derivedLang);
+        entries.push({ key, name: meta.name || _keyToName(key), lang: meta.lang || derivedLang, loader: 'cloomc' });
+    }
+
+    /* ── Inline examples in globals but not in LANG_EXAMPLE_GROUPS ──────────
+       (e.g. examples added to the sources dict before being wired to a tab) */
+    const missingLang = [];
+    for (const key of Object.keys(cloomcSrc)) {
+        if (seenCloomc.has(key)) continue;
+        seenCloomc.add(key);
+        const derivedLang = cloomcLang[key];
+        const meta = _slMeta(key, derivedLang || 'javascript');
+        const finalLang = meta.lang || derivedLang || 'javascript';
+        if (!derivedLang && !meta.lang) missingLang.push(key);
+        entries.push({ key, name: meta.name || _keyToName(key), lang: finalLang, loader: 'cloomc' });
+    }
+    if (missingLang.length) {
+        console.warn('[SourceLibrary] CLOOMC example(s) have no language classification ' +
+            '(add to LANG_EXAMPLE_GROUPS in app-compile.js or set lang in _SL_METADATA):', missingLang);
+    }
+
+    /* ── Assembly examples: primary list from LANG_EXAMPLE_GROUPS ──────────── */
+    const seenAsm = new Set();
+    const asmTabKeys = legGroups.assembly || [];
+    for (const key of asmTabKeys) {
+        seenAsm.add(key);
+        const meta = _slMeta(key, 'assembly');
+        entries.push({ key, name: meta.name || _keyToName(key), lang: 'assembly', loader: 'assembly' });
+    }
+
+    /* ── Fallback: assembly examples in globals but absent from LANG_EXAMPLE_GROUPS
+       (catches new examples added to app-run.js before a tab is wired up). */
+    const asmSrc = window._asmExampleSources || {};
+    const missingAsmKeys = [];
+    for (const key of Object.keys(asmSrc)) {
+        if (seenAsm.has(key)) continue;
+        seenAsm.add(key);
+        const meta = _slMeta(key, 'assembly');
+        entries.push({ key, name: meta.name || _keyToName(key), lang: 'assembly', loader: 'assembly' });
+        missingAsmKeys.push(key);
+    }
+    if (missingAsmKeys.length) {
+        console.warn('[SourceLibrary] Assembly example(s) in _asmExampleSources but absent from ' +
+            'LANG_EXAMPLE_GROUPS (add to LANG_EXAMPLE_GROUPS.assembly in app-compile.js for tab visibility):', missingAsmKeys);
+    }
+
+    /* Apply explicit ordering within each language group where metadata.order is set. */
+    const langBuckets = {};
+    for (const e of entries) {
+        if (!langBuckets[e.lang]) langBuckets[e.lang] = [];
+        langBuckets[e.lang].push(e);
+    }
+    const ordered = [];
+    for (const lang of _SL_LANG_ORDER) {
+        const bucket = langBuckets[lang] || [];
+        bucket.sort((a, b) => {
+            const oa = (_slMeta(a.key, lang).order ?? Infinity);
+            const ob = (_slMeta(b.key, lang).order ?? Infinity);
+            return oa - ob;
+        });
+        ordered.push(...bucket);
+    }
+    /* Any lang not in _SL_LANG_ORDER goes at the end. */
+    for (const [lang, bucket] of Object.entries(langBuckets)) {
+        if (!_SL_LANG_ORDER.includes(lang)) ordered.push(...bucket);
+    }
+
+    return ordered;
+}
 
 const _SL_LANG_ORDER = ['javascript', 'assembly', 'haskell', 'symbolic', 'english', 'lambda'];
 
@@ -99,6 +218,17 @@ const _SL_FETCH_CACHE = {};
 
 /* Whether the panel has been rendered at least once. */
 let _slRendered = false;
+/*
+ * Whether window._cloomcExampleSources and window._asmExampleSources were
+ * both available the last time the panel was rendered. If sources become
+ * available after a render-without-sources, _openSourceLibrary() triggers
+ * a re-render so source text is filled in.
+ */
+let _slRenderedWithSources = false;
+
+function _slSourcesAvailable() {
+    return !!(window._cloomcExampleSourcesReady && window._asmExampleSourcesReady);
+}
 
 /* ── Sub-tab switching ───────────────────────────────────────────────────── */
 
@@ -118,7 +248,9 @@ function switchAbsSubtab(tab) {
 function _openSourceLibrary() {
     const panel = document.getElementById('absSubpanel-sources');
     if (!panel) return;
-    if (_slRendered) return;
+    /* Re-render if: never rendered, OR sources just became available since
+       last render (fills in source text that showed "(source not available)"). */
+    if (_slRendered && (_slRenderedWithSources || !_slSourcesAvailable())) return;
     _renderSourceLibrary();
 }
 
@@ -128,27 +260,26 @@ async function _renderSourceLibrary() {
 
     container.innerHTML = '<div class="sl-loading">Loading sources\u2026</div>';
 
-    /* The window globals (_cloomcExampleSources, _asmExampleSources, etc.) are
-       set unconditionally at module-load time in app-compile.js / app-run.js.
-       No side-effectful bootstrap calls are needed here. If they are somehow
-       absent (e.g. script load order wrong), we fall back to empty dicts and
-       emit a console warning so the issue is visible in dev tools. */
+    /* Structural globals (_cloomcFileExamples, _cloomcExampleLanguages) are
+       set at app-compile.js load time and are always available.
+       Source globals (_cloomcExampleSources, _asmExampleSources) are set by
+       the first loadCLOOMCExample() / loadExample() call (triggered by
+       onLangChange() at page load). Warn if absent for debugging. */
     if (!window._cloomcExampleSources) {
-        console.warn('[SourceLibrary] window._cloomcExampleSources not found — check app-compile.js load order');
+        console.warn('[SourceLibrary] window._cloomcExampleSources not set yet ' +
+            '— source text will show "(source not available)" until an example is loaded');
     }
     if (!window._asmExampleSources) {
-        console.warn('[SourceLibrary] window._asmExampleSources not found — check app-run.js load order');
+        console.warn('[SourceLibrary] window._asmExampleSources not set yet ' +
+            '— assembly source text will show "(source not available)" until an example is loaded');
     }
 
-    /* Collect all file-based URLs that need fetching. */
-    const fileExamples  = window._cloomcFileExamples || {};
-    const fileLanguages = window._cloomcFileLanguages || {};
+    /* Fetch all file-based CLOOMC examples that are not yet cached. */
+    const fileExamples = window._cloomcFileExamples || {};
 
     const urlsNeeded = new Set();
-    for (const entry of _SL_REGISTRY) {
-        if (entry.loader === 'cloomc' && fileExamples[entry.key] && !_SL_FETCH_CACHE[fileExamples[entry.key]]) {
-            urlsNeeded.add(fileExamples[entry.key]);
-        }
+    for (const url of Object.values(fileExamples)) {
+        if (!_SL_FETCH_CACHE[url]) urlsNeeded.add(url);
     }
 
     if (urlsNeeded.size > 0) {
@@ -160,46 +291,49 @@ async function _renderSourceLibrary() {
         ));
     }
 
-    /* Parity check: warn in console if any registry key is absent from the
-       actual example dictionaries — catches drift when new examples are added
-       to app-compile.js / app-run.js but not to _SL_REGISTRY. */
+    /* Sanity-check metadata: warn about orphan _SL_METADATA entries that
+       don't match any key in the actual example globals. */
     _checkRegistryParity();
 
     _slRendered = true;
+    _slRenderedWithSources = _slSourcesAvailable();
     _drawSourceLibrary(container);
 }
 
 function _checkRegistryParity() {
+    /* Only run parity checks once sources are fully loaded; earlier renders use
+       structural seeds (empty-value dicts) which would produce false positives. */
+    if (!_slSourcesAvailable()) return;
+
     const cloomcSrc    = window._cloomcExampleSources || {};
     const asmSrc       = window._asmExampleSources    || {};
     const fileExamples = window._cloomcFileExamples   || {};
 
-    /* Keys that are present in the real example sets but absent from our registry. */
-    const registryKeys = new Set(_SL_REGISTRY.map(e => e.key));
+    /* All example keys known to the globals — used to spot orphan metadata entries. */
+    const allKnownKeys = new Set([
+        ...Object.keys(cloomcSrc),
+        ...Object.keys(asmSrc),
+        ...Object.keys(fileExamples),
+    ]);
 
-    const missingFromRegistry = [];
-    for (const k of Object.keys(cloomcSrc)) {
-        if (!registryKeys.has(k)) missingFromRegistry.push('cloomc:' + k);
-    }
-    for (const k of Object.keys(asmSrc)) {
-        if (!registryKeys.has(k)) missingFromRegistry.push('asm:' + k);
-    }
-    for (const k of Object.keys(fileExamples)) {
-        if (!registryKeys.has(k)) missingFromRegistry.push('file:' + k);
+    /* Orphan _SL_METADATA entries: keyed by 'key' or 'key:lang'.
+       Strip ':lang' suffix before checking against allKnownKeys. */
+    const orphanMeta = Object.keys(_SL_METADATA).filter(mk => {
+        const baseKey = mk.includes(':') ? mk.split(':')[0] : mk;
+        return !allKnownKeys.has(baseKey);
+    });
+
+    if (orphanMeta.length) {
+        console.warn('[SourceLibrary] _SL_METADATA entries with no matching example ' +
+            '(stale override or wrong key):', orphanMeta);
     }
 
-    /* Keys in our registry that are absent from all real example sets. */
-    const orphanKeys = _SL_REGISTRY
-        .filter(e => !cloomcSrc[e.key] && !asmSrc[e.key] && !fileExamples[e.key])
-        .map(e => e.loader + ':' + e.key);
-
-    if (missingFromRegistry.length) {
-        console.warn('[SourceLibrary] Examples in compiler not in Source Library registry ' +
-            '(add to _SL_REGISTRY in app-source-library.js):', missingFromRegistry);
-    }
-    if (orphanKeys.length) {
-        console.warn('[SourceLibrary] Registry keys with no matching example source ' +
-            '(stale entry or wrong key):', orphanKeys);
+    /* Assembly key drift: warn if loadExample() added keys not in seed / tab groups. */
+    const tabAsmKeys = new Set((window._cloomcLangExampleGroups || {}).assembly || []);
+    const extraAsm = Object.keys(asmSrc).filter(k => !tabAsmKeys.has(k));
+    if (extraAsm.length) {
+        console.warn('[SourceLibrary] Assembly example(s) in _asmExampleSources but absent from ' +
+            'LANG_EXAMPLE_GROUPS.assembly (add to app-compile.js + index.html tab):', extraAsm);
     }
 }
 
@@ -210,10 +344,11 @@ function _drawSourceLibrary(container) {
     const asmSrc    = window._asmExampleSources    || {};
     const fileExamples = window._cloomcFileExamples || {};
 
-    /* Group entries by lang in defined order. */
+    /* Build the registry dynamically, then group by lang in defined order. */
+    const registry = _buildSLRegistry();
     const groups = {};
     for (const lang of _SL_LANG_ORDER) groups[lang] = [];
-    for (const entry of _SL_REGISTRY) {
+    for (const entry of registry) {
         if (!groups[entry.lang]) groups[entry.lang] = [];
         groups[entry.lang].push(entry);
     }
@@ -359,3 +494,23 @@ function _applySourceLibraryFilter() {
         group.style.display = (visiblePerGroup[lang] > 0) ? '' : 'none';
     });
 }
+
+/* ── Startup assertion ───────────────────────────────────────────────────────
+ * Verify that required structural globals were set by app-compile.js and
+ * app-run.js before this script executed.  Fires once after DOMContentLoaded
+ * so the check runs in every page load, not just when the panel is opened.
+ * A console.error here means the script load order in index.html is wrong. */
+document.addEventListener('DOMContentLoaded', function _slStartupAssert() {
+    const required = [
+        '_cloomcFileExamples',
+        '_cloomcFileLanguages',
+        '_cloomcExampleLanguages',
+        '_cloomcLangExampleGroups',
+        '_asmExampleSources',
+    ];
+    const missing = required.filter(g => !window[g]);
+    if (missing.length) {
+        console.error('[SourceLibrary] Missing structural globals after script load — ' +
+            'check script order in index.html (app-compile → app-run → app-source-library):', missing);
+    }
+}, { once: true });
