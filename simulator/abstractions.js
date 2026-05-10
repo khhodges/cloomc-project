@@ -59,6 +59,10 @@ class AbstractionRegistry {
             // parent: index of the abstraction this one inherits from (null = no parent).
             // dispatchMethod() walks the parent chain when a method is not found locally.
             parent: (options.parent !== undefined && options.parent !== null) ? options.parent : null,
+            // capabilities: static C-List definition — array of {name, target, grants} objects.
+            // Populated from BOOT_UPLOADS after registry init (app-shell.js) or by the
+            // CLOOMC++ compiler for user-authored abstractions.
+            capabilities: options.capabilities || [],
             dispatch: {},
             invokeCount: 0,
             faultCount: 0,

@@ -296,6 +296,18 @@ function init() {
     _ensureTutorialObjects();
 
     abstractionRegistry = new AbstractionRegistry();
+    if (typeof BOOT_UPLOADS !== 'undefined') {
+        for (const upload of BOOT_UPLOADS) {
+            const _abs = abstractionRegistry.getAbstraction(upload.index);
+            if (_abs && Array.isArray(upload.capabilities) && upload.capabilities.length > 0) {
+                _abs.capabilities = upload.capabilities.map(c => ({
+                    name: c.name || c.type || '',
+                    target: (c.target != null) ? c.target : null,
+                    grants: Array.isArray(c.grants) ? c.grants : []
+                }));
+            }
+        }
+    }
     systemAbstractions = new SystemAbstractions(abstractionRegistry);
     deviceAbstractions = new DeviceAbstractions(abstractionRegistry);
     sim.initAbstractions(abstractionRegistry, systemAbstractions, deviceAbstractions);
