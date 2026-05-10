@@ -826,35 +826,35 @@ class ChurchSimulator {
             null,              // slot 12 freed — LED NS slot eliminated (Task #406); Abstract LED GTs need no NS entry
             null,              // slot 13 freed — Button NS slot eliminated (Task #431); Abstract Button GTs need no NS entry
             null,              // slot 14 freed — Timer NS slot eliminated (Task #431); Abstract Timer GTs need no NS entry
-            { label: 'Display',       perms: {R:0,W:0,X:0,L:1,S:1,E:1}, chainable: false },
+            { label: 'Display',       perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'SlideRule',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
             { label: 'Abacus',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: true },
             { label: 'Constants',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Loader',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
-            { label: 'SUCC',          perms: {R:0,W:0,X:1,L:1,S:0,E:1}, chainable: false },
-            { label: 'PRED',          perms: {R:0,W:0,X:1,L:1,S:0,E:1}, chainable: false },
-            { label: 'ADD',           perms: {R:0,W:0,X:1,L:1,S:0,E:1}, chainable: false },
-            { label: 'SUB',           perms: {R:0,W:0,X:1,L:1,S:0,E:1}, chainable: false },
-            { label: 'MUL',           perms: {R:0,W:0,X:1,L:1,S:0,E:1}, chainable: false },
-            { label: 'ISZERO',        perms: {R:0,W:0,X:1,L:1,S:0,E:1}, chainable: false },
+            { label: 'SUCC',          perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
+            { label: 'PRED',          perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
+            { label: 'ADD',           perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
+            { label: 'SUB',           perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
+            { label: 'MUL',           perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
+            { label: 'ISZERO',        perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
             { label: 'TRUE',          perms: {R:0,W:0,X:0,L:1,S:0,E:0}, chainable: false },
             { label: 'FALSE',         perms: {R:0,W:0,X:0,L:1,S:0,E:0}, chainable: false },
             { label: 'Family',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Schoolroom',    perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Friends',       perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
-            { label: 'Tunnel',        perms: {R:0,W:0,X:0,L:0,S:1,E:1}, chainable: false },
+            { label: 'Tunnel',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Keystone',      perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Editor',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Assembler',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Debugger',      perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Deployer',      perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
-            { label: 'Browser',       perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'Messenger',     perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'Photos',        perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'Social',        perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'Video',         perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'Email',         perms: {R:0,W:0,X:0,L:1,S:0,E:1}, chainable: false },
-            { label: 'PAIR',          perms: {R:0,W:0,X:1,L:1,S:0,E:1}, chainable: false },
+            { label: 'Browser',       perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
+            { label: 'Messenger',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
+            { label: 'Photos',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
+            { label: 'Social',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
+            { label: 'Video',         perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
+            { label: 'Email',         perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
+            { label: 'PAIR',          perms: {R:0,W:0,X:1,L:0,S:0,E:0}, chainable: false },
             { label: 'GC',            perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false, handler: 'gc' },
             { label: 'Thread',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Circle',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
@@ -1710,7 +1710,40 @@ class ChurchSimulator {
         };
     }
 
+    // Domain-purity guard: a GT may not mix Turing {R,W,X} with Church {L,S,E}.
+    static isDomainPure(perms) {
+        const hasTuring = perms.R || perms.W || perms.X;
+        const hasChurch  = perms.L || perms.S || perms.E;
+        if (hasTuring && hasChurch) {
+            const bits = (perms.B?'B':'')+(perms.R?'R':'')+(perms.W?'W':'')+(perms.X?'X':'')+(perms.L?'L':'')+(perms.S?'S':'')+(perms.E?'E':'');
+            return { ok: false, bits };
+        }
+        return { ok: true };
+    }
+
+    // Single-Church-perm guard: a Church GT must carry exactly one permission bit
+    // (enforcing "C-Lists only have E permission" from the security model).
+    // Pure Turing GTs ({R,W,X} only) may carry multiple bits and are not checked here.
+    static isSinglePerm(perms) {
+        const hasChurch = perms.L || perms.S || perms.E;
+        if (!hasChurch) return { ok: true };
+        const churchCount = (perms.L ? 1 : 0) + (perms.S ? 1 : 0) + (perms.E ? 1 : 0);
+        if (churchCount > 1) {
+            const bits = (perms.L?'L':'')+(perms.S?'S':'')+(perms.E?'E':'');
+            return { ok: false, bits };
+        }
+        return { ok: true };
+    }
+
     createGT(gt_seq, slotId, perms, type) {
+        const purity = ChurchSimulator.isDomainPure(perms);
+        if (!purity.ok) {
+            throw new Error(`createGT: domain-impure permissions (${purity.bits}) — slot ${slotId} mixes Turing {R,W,X} with Church {L,S,E}`);
+        }
+        const single = ChurchSimulator.isSinglePerm(perms);
+        if (!single.ok) {
+            throw new Error(`createGT: single-Church-perm violation (${single.bits}) — slot ${slotId} must carry exactly one Church permission`);
+        }
         const p = (this.getPermBits(perms) << 25) >>> 0;
         const t = ((type   & 0x3)  << 23) >>> 0;
         const s = ((gt_seq & 0x7F) << 16) >>> 0;

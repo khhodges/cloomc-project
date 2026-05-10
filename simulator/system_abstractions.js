@@ -627,7 +627,7 @@ class SystemAbstractions {
                 const entry = sim.readNSEntry(nsIdx);
                 if (entry) {
                     const version = (entry.word2_seals >>> 25) & 0x7F;
-                    const gt = sim.createGT(version, nsIdx, { L: 1, S: 1, E: 1 }, 1);
+                    const gt = sim.createGT(version, nsIdx, { E: 1 }, 1);
                     navanaState.deviceRegistry[name] = {
                         nsIndex: nsIdx,
                         gt: gt,
