@@ -1766,7 +1766,12 @@ function renderThreadMemoryLayout(nsIndex) {
     const TL = THREAD_LAYOUT;
 
     const secHdr = (num, title, note, color, id='') =>
-        `<div class="thread-zone-hdr"${id ? ` id="${id}"` : ''} style="border-left-color:${color};">${num} ${title}<span class="thread-zone-note">${note}</span></div>`;
+        `<div class="thread-zone-wrap">` +
+        `<div class="thread-zone-hdr thread-zone-collapsed"${id ? ` id="${id}"` : ''} style="border-left-color:${color};" onclick="_tzToggle(this)">` +
+        `<span class="thread-zone-chevron">▶</span>${num} ${title}` +
+        `<span class="thread-zone-note">${note}</span></div>` +
+        `<div class="thread-zone-body" style="display:none;">`;
+    const secBody = () => `</div></div>`;
 
     const addrOf = (off) => '0x' + (slotBase + off).toString(16).toUpperCase().padStart(4, '0');
     const hexOf  = (w)   => '0x' + (w >>> 0).toString(16).toUpperCase().padStart(8, '0');
@@ -1801,6 +1806,7 @@ function renderThreadMemoryLayout(nsIndex) {
         html += `<tr${rowStyle}><td style="color:#a855f7;">DR${i}</td><td style="color:#555;">+${off}</td><td style="font-family:monospace;">${addrOf(off)}</td><td style="color:#c084fc;font-family:monospace;">${hexOf(word)}</td><td style="color:#9ca3af;">${word >>> 0}</td></tr>`;
     }
     html += '</tbody></table>';
+    html += secBody();
 
     // ── Zone ④: Heap (+17 … +80) ─────────────────────────────────────────
     let heapNonZero = 0;
@@ -1817,6 +1823,7 @@ function renderThreadMemoryLayout(nsIndex) {
         html += `<tr${rowStyle}><td style="color:#22c55e;">+${off}</td><td style="font-family:monospace;">${addrOf(off)}</td><td style="color:rgba(206,145,120,0.8);font-family:monospace;">${hexOf(word)}</td><td>${decoded}</td></tr>`;
     }
     html += '</tbody></table>';
+    html += secBody();
 
     // ── Zone ③: Freespace (+81 … +211) ───────────────────────────────────
     let freeNonZero = 0;
@@ -1835,12 +1842,13 @@ function renderThreadMemoryLayout(nsIndex) {
         }
         html += '</tbody></table>';
     }
+    html += secBody();
 
     // ── Zone ②: LIFO Stack (+212 … +243) ─────────────────────────────────
     const stackWords = sim.memory.slice(slotBase + TL.STACK_START, slotBase + TL.STACK_END + 1);
     const stackUsed  = stackWords.filter(Boolean).length;
     const stoLive    = (sim.sto != null) ? sim.sto : TL.STACK_END;
-    // Table first; zone header banner (with scroll anchor) at the bottom where the frames are.
+    html += secHdr('②', 'LIFO Stack ↓', `${THREAD_SS} words·SS · offset +${TL.STACK_START} … +${TL.STACK_END} · STO=${stoLive} · grows ↓ · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8', 'thread-zone-2');
     html += '<table class="ns-mem-table thread-zone-table"><thead><tr><th>Off</th><th>Addr</th><th>Hex</th><th>Decoded</th></tr></thead><tbody>';
     for (let i = 0; i < TL.STACK_WORDS; i++) {
         const off  = TL.STACK_START + i;
@@ -1874,7 +1882,7 @@ function renderThreadMemoryLayout(nsIndex) {
         html += `<tr id="thread-stack-row-${off}"${rowStyle}><td style="color:#38bdf8;">+${off}</td><td style="font-family:monospace;">${addrOf(off)}</td><td style="color:rgba(206,145,120,0.85);font-family:monospace;">${hex}</td><td>${decoded}</td></tr>`;
     }
     html += '</tbody></table>';
-    html += secHdr('②', 'LIFO Stack ↓', `${THREAD_SS} words·SS · offset +${TL.STACK_START} … +${TL.STACK_END} · STO=${stoLive} · grows ↓ · ${stackUsed} word${stackUsed!==1?'s':''} non-zero`, '#38bdf8', 'thread-zone-2');
+    html += secBody();
 
     // ── Zone ①: Capabilities (+244 … +255) ───────────────────────────────
     html += secHdr('①', 'Capabilities', `12 words·fixed · CR0–CR11 · offset +${TL.CAPS_START} … +${TL.CAPS_END} · c-list tail · saved/restored on context switch`, '#f4b942', 'thread-zone-1');
@@ -1904,9 +1912,20 @@ function renderThreadMemoryLayout(nsIndex) {
         html += `<tr${_cr0Hint}><td style="color:#f4b942;">${_capMain}${_capSub}</td><td style="color:#555;">+${off}</td><td style="font-family:monospace;">${addrOf(off)}</td><td style="color:rgba(206,145,120,0.9);font-family:monospace;">${hex}</td><td>${decoded}${_cr0DecodedExtra}</td></tr>`;
     }
     html += '</tbody></table>';
+    html += secBody();
 
     html += '</div>';
     return html;
+}
+
+function _tzToggle(hdr) {
+    const wrap = hdr.closest('.thread-zone-wrap');
+    const body = wrap && wrap.querySelector('.thread-zone-body');
+    if (!body) return;
+    const nowCollapsed = hdr.classList.toggle('thread-zone-collapsed');
+    const chevron = hdr.querySelector('.thread-zone-chevron');
+    body.style.display = nowCollapsed ? 'none' : '';
+    if (chevron) chevron.textContent = nowCollapsed ? '▶' : '▼';
 }
 
 function _installBootEntryGTIntoCR0() {

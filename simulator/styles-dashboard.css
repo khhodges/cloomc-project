@@ -351,23 +351,53 @@ a.next-step-link:hover {
 .thread-lump-hex  { color: rgba(206,145,120,0.9); }
 .thread-lump-desc { color: #374151; font-size: 0.66rem; }
 
+.thread-zone-wrap {
+    margin-bottom: 0.15rem;
+}
+
 .thread-zone-hdr {
     font-size: 0.8rem;
     font-weight: 700;
     color: #e0e0e0;
-    margin: 0.75rem 0 0.3rem;
+    margin: 0.6rem 0 0;
     border-left: 3px solid #888;
-    padding-left: 0.5rem;
+    padding: 0.22rem 0.5rem;
     display: flex;
     align-items: baseline;
     gap: 0.4rem;
     flex-wrap: wrap;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 0 3px 3px 0;
+    transition: background 0.12s;
 }
+
+.thread-zone-hdr:hover {
+    background: rgba(255,255,255,0.04);
+}
+
+.thread-zone-chevron {
+    font-size: 0.6rem;
+    color: #6b7280;
+    flex-shrink: 0;
+    transition: color 0.12s;
+    min-width: 0.7rem;
+}
+
+.thread-zone-hdr:hover .thread-zone-chevron {
+    color: #9ca3af;
+}
+
 .thread-zone-note {
     color: #6b7280;
     font-weight: 400;
     font-size: 0.69rem;
 }
+
+.thread-zone-body {
+    padding: 0.15rem 0 0;
+}
+
 .thread-zone-table {
     width: 100%;
     margin-bottom: 0.3rem;
