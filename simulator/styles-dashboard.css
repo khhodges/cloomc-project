@@ -4381,6 +4381,83 @@ a.next-step-link:hover {
     font-style: italic;
 }
 
+.abs-clist-empty {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.abs-clist-count {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    margin-bottom: 0.4rem;
+}
+
+.abs-clist-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+}
+
+.abs-clist-table th {
+    background: var(--bg-input);
+    padding: 0.3rem 0.5rem;
+    text-align: left;
+    font-weight: 700;
+    color: var(--church-gold);
+    border-bottom: 2px solid var(--border);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.abs-clist-table td {
+    padding: 0.28rem 0.5rem;
+    border-bottom: 1px solid rgba(45,55,72,0.3);
+    vertical-align: middle;
+}
+
+.abs-clist-table tr:last-child td {
+    border-bottom: none;
+}
+
+.abs-clist-table tr:hover td {
+    background: rgba(244,185,66,0.04);
+}
+
+.abs-clist-idx {
+    color: var(--church-gold);
+    text-align: center;
+    min-width: 1.8rem;
+}
+
+.abs-clist-gt {
+    color: rgba(206,145,120,0.9);
+    font-size: 0.72rem;
+}
+
+.abs-clist-perms {
+    white-space: nowrap;
+}
+
+.abs-clist-type {
+    color: #93c5fd;
+    font-size: 0.72rem;
+}
+
+.abs-clist-name {
+    color: var(--text-primary);
+    font-size: 0.74rem;
+}
+
+.abs-clist-empty-slot {
+    color: #374151;
+    font-style: italic;
+    font-size: 0.72rem;
+}
+
 .abs-method-cards {
     display: flex;
     flex-direction: column;

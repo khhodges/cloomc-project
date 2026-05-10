@@ -119,6 +119,75 @@ function showAbstractionDetail(index) {
     html += '</div>';
 
     {
+        let clistLoaded = false;
+        let cc = 0;
+        const clistSlots = [];
+
+        if (typeof sim !== 'undefined' && sim && typeof sim.readNSEntry === 'function') {
+            const nsEntry = sim.readNSEntry(abs.index);
+            if (nsEntry && nsEntry.word0_location != null) {
+                const lumpBase = nsEntry.word0_location >>> 0;
+                const headerWord = sim.memory[lumpBase] >>> 0;
+                if (typeof sim.parseLumpHeader === 'function') {
+                    const hdr = sim.parseLumpHeader(headerWord);
+                    if (hdr.valid) {
+                        clistLoaded = true;
+                        cc = hdr.cc;
+                        const clistStart = lumpBase + hdr.lumpSize - cc;
+                        for (let si = 0; si < cc; si++) {
+                            clistSlots.push(sim.memory[clistStart + si] >>> 0);
+                        }
+                    }
+                }
+            }
+        }
+
+        html += '<div class="abs-detail-section abs-clist-section">';
+        html += '<div class="abs-detail-label">C-List</div>';
+
+        if (!clistLoaded) {
+            html += '<div class="abs-clist-empty">C-List not yet loaded \u2014 boot the simulator to read live lump data.</div>';
+        } else if (cc === 0) {
+            html += '<div class="abs-clist-empty">Empty (cc\u00a0=\u00a00) \u2014 this abstraction holds no capabilities.</div>';
+        } else {
+            html += `<div class="abs-clist-count">cc\u00a0=\u00a0${cc} slot${cc !== 1 ? 's' : ''}</div>`;
+            html += '<table class="abs-clist-table"><thead><tr>';
+            html += '<th>#</th><th>GT (hex)</th><th>Perms</th><th>Type</th><th>Resolved Name</th>';
+            html += '</tr></thead><tbody>';
+            for (let si = 0; si < clistSlots.length; si++) {
+                const gt32 = clistSlots[si];
+                if (gt32 === 0) {
+                    html += `<tr><td class="abs-clist-idx">${si}</td><td colspan="4" class="abs-clist-empty-slot">\u2014 (empty slot)</td></tr>`;
+                } else {
+                    const parsed = sim.parseGT(gt32);
+                    const p = parsed.permissions;
+                    let permHtml = '';
+                    for (const bit of ['R','W','X','E','L','S']) {
+                        const cls = p[bit] ? 'perm-on' : 'perm-off';
+                        permHtml += `<span class="abs-perm-badge ${cls}">${bit}</span>`;
+                    }
+                    const nsIdx = parsed.index;
+                    const label = (sim.nsLabels && sim.nsLabels[nsIdx]) ||
+                        (typeof abstractionRegistry !== 'undefined' && abstractionRegistry &&
+                         abstractionRegistry.abstractions && abstractionRegistry.abstractions[nsIdx] &&
+                         abstractionRegistry.abstractions[nsIdx].name) || null;
+                    const nameStr = label ? `NS[${nsIdx}] \u2014 ${label}` : `NS[${nsIdx}]`;
+                    const gtHex = '0x' + gt32.toString(16).toUpperCase().padStart(8, '0');
+                    html += `<tr>`;
+                    html += `<td class="abs-clist-idx">${si}</td>`;
+                    html += `<td class="abs-clist-gt">${gtHex}</td>`;
+                    html += `<td class="abs-clist-perms">${permHtml}</td>`;
+                    html += `<td class="abs-clist-type">${parsed.typeName}</td>`;
+                    html += `<td class="abs-clist-name">${nameStr}</td>`;
+                    html += `</tr>`;
+                }
+            }
+            html += '</tbody></table>';
+        }
+        html += '</div>';
+    }
+
+    {
         const methodPurposes = getMethodPurposes(abs);
         const methodExamples = getMethodExamples(abs);
         const methods = (abs.methods && abs.methods.length > 0) ? abs.methods : [];
