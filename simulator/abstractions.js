@@ -56,6 +56,10 @@ class AbstractionRegistry {
             perms: options.perms || { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 },
             chainable: options.chainable || false,
             handler: options.handler || null,
+            // freedNSSlot: true means this abstraction exists only for UI/doc purposes;
+            // its NS slot was freed (Abstract GTs replaced it) and _getAbstractionCatalog
+            // must emit null for it so _initNamespaceTable does not create a physical entry.
+            freedNSSlot: options.freedNSSlot || false,
             // parent: index of the abstraction this one inherits from (null = no parent).
             // dispatchMethod() walks the parent chain when a method is not found locally.
             parent: (options.parent !== undefined && options.parent !== null) ? options.parent : null,
@@ -329,22 +333,22 @@ class AbstractionRegistry {
         this.createAbstraction(11, 'UART', 2,
             ['Send', 'Receive', 'SetBaud'],
             'Serial communication — Tang Nano 20K BL616 bridge',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 }, freedNSSlot: true });
 
         this.createAbstraction(12, 'LED', 2,
             ['Set', 'Clear', 'Toggle', 'State'],
             '6 onboard LEDs — visual output for children\'s programs. LED identity is the capability offset (0\u20135) in the C-list; no DR arguments. DR0 return: \u22650 success, <0 failure.',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 }, freedNSSlot: true });
 
         this.createAbstraction(13, 'Button', 2,
             ['Read', 'WaitPress', 'OnEvent'],
             'Push button input — user interaction',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 }, freedNSSlot: true });
 
         this.createAbstraction(14, 'Timer', 2,
             ['Start', 'Stop', 'Read', 'SetAlarm'],
             'Hardware timer — delays, timeouts, scheduling support',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 }, freedNSSlot: true });
 
         this.createAbstraction(15, 'Display', 2,
             ['Write', 'Clear', 'Scroll'],
@@ -383,11 +387,17 @@ class AbstractionRegistry {
         ];
 
         for (const [idx, name, desc] of churchNumerals) {
-            const methods = (name === 'TRUE' || name === 'FALSE')
-                ? [] : ['Apply'];
+            const isBool = (name === 'TRUE' || name === 'FALSE');
+            const methods = isBool ? [] : ['Apply'];
+            // Boolean values (TRUE/FALSE) are pure lambda values → {L:1}.
+            // Numeric combinators (SUCC..ISZERO) are executable functions → {X:1}.
+            // Both are single-perm; neither mixes Turing and Church domains.
+            const perms = isBool
+                ? { R: 0, W: 0, X: 0, L: 1, S: 0, E: 0 }
+                : { R: 0, W: 0, X: 1, L: 0, S: 0, E: 0 };
             this.createAbstraction(idx, name, 4, methods,
                 `Church numeral: ${desc}`,
-                { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+                { author: 'SIPantic', version: '1.0.0', perms });
         }
 
         this.createAbstraction(28, 'Family', 5,
@@ -468,7 +478,7 @@ class AbstractionRegistry {
         this.createAbstraction(43, 'PAIR', 4,
             ['Apply'],
             'Church pair constructor',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 1, L: 0, S: 0, E: 0 } });
 
         this.createAbstraction(44, 'GC', 8,
             ['Scan', 'Identify', 'Clear', 'Flip'],

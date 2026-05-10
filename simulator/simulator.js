@@ -802,13 +802,26 @@ class ChurchSimulator {
 
     _getAbstractionCatalog() {
         if (this.abstractionRegistry) {
-            const all = this.abstractionRegistry.getAllAbstractions();
-            return all.map(a => ({
-                label: a.name,
-                perms: a.perms,
-                chainable: a.chainable || false,
-                handler: a.handler || null,
-            }));
+            // Use slot-indexed sparse access so that freed NS slots (freedNSSlot:true)
+            // appear as null at their correct index position rather than being silently
+            // shifted — which would assign the wrong NS slot to every subsequent entry.
+            const dict = this.abstractionRegistry.abstractions;
+            const maxIdx = Object.keys(dict).reduce((m, k) => Math.max(m, +k), -1);
+            const result = [];
+            for (let i = 0; i <= maxIdx; i++) {
+                const a = dict[i];
+                if (!a || a.freedNSSlot) {
+                    result.push(null);
+                } else {
+                    result.push({
+                        label: a.name,
+                        perms: a.perms,
+                        chainable: a.chainable || false,
+                        handler: a.handler || null,
+                    });
+                }
+            }
+            return result;
         }
         return [
             { label: 'Boot.NS',      perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
