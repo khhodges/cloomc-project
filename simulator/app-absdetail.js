@@ -88,6 +88,105 @@ function _refreshSignedReturnReadout() {
     }
 }
 
+function _renderBootNSDecoder(contentEl, abs) {
+    let html = '';
+    const simReady = typeof sim !== 'undefined' && sim && typeof sim.readNSEntry === 'function';
+
+    if (!simReady || !sim.memory) {
+        html += '<div class="abs-nsdecoder-placeholder">Boot the simulator to decode the namespace image.</div>';
+        contentEl.innerHTML = html;
+        return;
+    }
+
+    const ns0 = sim.readNSEntry(0);
+    const ns1 = sim.readNSEntry(1);
+    const bootSlot = (sim.NS_TABLE_BASE != null && sim.memory != null)
+        ? (sim.memory[sim.NS_TABLE_BASE - 2] >>> 0) & 0xFF
+        : ((typeof sim.bootEntrySlot === 'number') ? sim.bootEntrySlot : 3);
+    const bootEntryName = (sim.nsLabels && sim.nsLabels[bootSlot]) ||
+        (abstractionRegistry && abstractionRegistry.abstractions && abstractionRegistry.abstractions[bootSlot] &&
+         abstractionRegistry.abstractions[bootSlot].name) || `NS[${bootSlot}]`;
+
+    const fmtAddr = a => '0x' + ((a >>> 0) >>> 0).toString(16).toUpperCase().padStart(4, '0');
+
+    html += '<div class="abs-nsdecoder-section">';
+    html += '<div class="abs-nsdecoder-heading">Hardware Boot Sequence</div>';
+    html += '<table class="abs-nsdecoder-boot-table"><tbody>';
+
+    const ns0Addr = ns0 ? fmtAddr(ns0.word0_location) : '?';
+    html += `<tr>
+        <td class="abs-nsdecoder-step">Step 1</td>
+        <td class="abs-nsdecoder-op">Load CR15</td>
+        <td class="abs-nsdecoder-desc">Namespace lump @ ${ns0Addr}</td>
+        <td class="abs-nsdecoder-name">Boot.NS</td>
+    </tr>`;
+
+    const ns1Addr = ns1 ? fmtAddr(ns1.word0_location) : '?';
+    html += `<tr>
+        <td class="abs-nsdecoder-step">Step 2</td>
+        <td class="abs-nsdecoder-op">Load CR12</td>
+        <td class="abs-nsdecoder-desc">Thread lump &nbsp;@ ${ns1Addr}</td>
+        <td class="abs-nsdecoder-name">Boot.Thread <span class="abs-nsdecoder-badge-thread">Thread</span> (NS[1])</td>
+    </tr>`;
+
+    html += `<tr>
+        <td class="abs-nsdecoder-step">Step 3</td>
+        <td class="abs-nsdecoder-op">CALL CR0</td>
+        <td class="abs-nsdecoder-desc">Boot entry &nbsp;&nbsp;NS[${bootSlot}]</td>
+        <td class="abs-nsdecoder-name"><span class="abs-nsdecoder-badge-boot">&#x26A1;</span> ${bootEntryName}</td>
+    </tr>`;
+
+    html += '</tbody></table>';
+    html += '</div>';
+
+    html += '<div class="abs-nsdecoder-section">';
+    html += '<div class="abs-nsdecoder-heading">Namespace Lump \u2014 4-Word Slots</div>';
+    html += '<div class="abs-nsdecoder-table-wrap">';
+    html += '<table class="abs-nsdecoder-ns-table"><thead><tr>';
+    html += '<th>Slot</th><th>Name</th><th>Location</th><th>Limit</th><th>cc</th><th>Chain</th><th>F</th>';
+    html += '</tr></thead><tbody>';
+
+    const count = (typeof sim.nsCount === 'number') ? sim.nsCount : 0;
+    for (let i = 0; i < count; i++) {
+        const entry = sim.readNSEntry(i);
+        if (!entry) {
+            html += `<tr><td class="abs-nsdecoder-slot">${i}</td><td colspan="6" class="abs-nsdecoder-empty">\u2014 (empty)</td></tr>`;
+            continue;
+        }
+        const w1f = sim.parseNSWord1(entry.word1_limit);
+        const slotName = (sim.nsLabels && sim.nsLabels[i]) ||
+            (abstractionRegistry && abstractionRegistry.abstractions && abstractionRegistry.abstractions[i] &&
+             abstractionRegistry.abstractions[i].name) || `NS[${i}]`;
+
+        let badges = '';
+        if (i === 1) badges += ' <span class="abs-nsdecoder-badge-thread">Thread</span>';
+        if (i === bootSlot) badges += ' <span class="abs-nsdecoder-badge-boot">&#x26A1;</span>';
+
+        const location = fmtAddr(entry.word0_location);
+        const limit = '0x' + w1f.limit.toString(16).toUpperCase().padStart(5, '0');
+        const cc = w1f.clistCount;
+        const chain = w1f.chainable ? '\u2714' : '\u2014';
+        const fBit = w1f.f ? '\u2714' : '\u2014';
+
+        const rowClass = i === 0 ? ' class="abs-nsdecoder-ns-row-self"' : (i === bootSlot ? ' class="abs-nsdecoder-ns-row-boot"' : '');
+        html += `<tr${rowClass}>`;
+        html += `<td class="abs-nsdecoder-slot">${i}</td>`;
+        html += `<td class="abs-nsdecoder-name-cell">${slotName}${badges}</td>`;
+        html += `<td class="abs-nsdecoder-addr">${location}</td>`;
+        html += `<td class="abs-nsdecoder-addr">${limit}</td>`;
+        html += `<td class="abs-nsdecoder-num">${cc}</td>`;
+        html += `<td class="abs-nsdecoder-flag">${chain}</td>`;
+        html += `<td class="abs-nsdecoder-flag">${fBit}</td>`;
+        html += '</tr>';
+    }
+
+    html += '</tbody></table>';
+    html += '</div>';
+    html += '</div>';
+
+    contentEl.innerHTML = html;
+}
+
 function showAbstractionDetail(index) {
     selectedAbsIndex = index;
     renderAbstractions();
@@ -99,6 +198,12 @@ function showAbstractionDetail(index) {
     const titleEl = document.getElementById('absDetailTitle');
     const contentEl = document.getElementById('absDetailContent');
     if (!titleEl || !contentEl) return;
+
+    if (abs.index === 0) {
+        titleEl.textContent = `${abs.name} \u2014 Abstraction 0`;
+        _renderBootNSDecoder(contentEl, abs);
+        return;
+    }
 
     const layerNames = abstractionRegistry.getLayerNames();
     const layerName = layerNames[abs.layer] || `Layer ${abs.layer}`;
@@ -143,7 +248,7 @@ function showAbstractionDetail(index) {
         }
 
         html += '<div class="abs-detail-section abs-clist-section">';
-        html += '<div class="abs-detail-label">C-List</div>';
+        html += '<div class="abs-detail-label">Golden Tokens</div>';
 
         if (!clistLoaded) {
             const rawCaps = Array.isArray(abs.capabilities) ? abs.capabilities : [];

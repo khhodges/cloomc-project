@@ -4906,6 +4906,178 @@ pre:hover .code-copy-btn {
     .sl-source-pre  { font-size: 0.68rem; }
 }
 
+/* ── Boot.NS Binary Decoder view (abs-nsdecoder-*) ───────────────────────── */
+.abs-nsdecoder-placeholder {
+    padding: 24px 18px;
+    color: var(--text-secondary, #6b7280);
+    font-size: 0.82rem;
+    font-style: italic;
+    line-height: 1.6;
+}
+
+.abs-nsdecoder-section {
+    padding: 10px 14px 12px;
+    border-bottom: 1px solid rgba(100, 160, 255, 0.08);
+}
+
+.abs-nsdecoder-heading {
+    font-size: 0.70rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--church-gold, #c8a84b);
+    margin-bottom: 8px;
+}
+
+.abs-nsdecoder-boot-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+
+.abs-nsdecoder-boot-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(100, 160, 255, 0.07);
+    vertical-align: middle;
+}
+
+.abs-nsdecoder-boot-table tr:last-child td {
+    border-bottom: none;
+}
+
+.abs-nsdecoder-step {
+    color: var(--church-gold, #c8a84b);
+    font-weight: 700;
+    font-size: 0.72rem;
+    min-width: 52px;
+    white-space: nowrap;
+}
+
+.abs-nsdecoder-op {
+    font-family: 'Courier New', monospace;
+    color: #a0c4ff;
+    font-size: 0.75rem;
+    min-width: 80px;
+    white-space: nowrap;
+}
+
+.abs-nsdecoder-desc {
+    font-family: 'Courier New', monospace;
+    color: #6b7280;
+    font-size: 0.73rem;
+    white-space: nowrap;
+}
+
+.abs-nsdecoder-name {
+    color: #e2e8f0;
+    font-size: 0.76rem;
+}
+
+.abs-nsdecoder-badge-thread {
+    display: inline-block;
+    font-size: 0.60rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: rgba(100, 200, 255, 0.14);
+    color: #7effea;
+    border: 1px solid rgba(100, 200, 255, 0.28);
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+.abs-nsdecoder-badge-boot {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: rgba(200, 168, 75, 0.16);
+    color: var(--church-gold, #c8a84b);
+    border: 1px solid rgba(200, 168, 75, 0.32);
+    vertical-align: middle;
+    margin-right: 3px;
+}
+
+.abs-nsdecoder-table-wrap {
+    overflow-x: auto;
+}
+
+.abs-nsdecoder-ns-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    font-family: 'Courier New', monospace;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(100, 160, 255, 0.10);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.abs-nsdecoder-ns-table th {
+    padding: 0.22rem 0.5rem;
+    text-align: left;
+    font-size: 0.62rem;
+    color: var(--church-gold, #c8a84b);
+    font-weight: 600;
+    border-bottom: 1px solid rgba(100, 160, 255, 0.15);
+    background: rgba(0, 0, 0, 0.12);
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.abs-nsdecoder-ns-table td {
+    padding: 0.18rem 0.5rem;
+    border-bottom: 1px solid rgba(100, 160, 255, 0.05);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.abs-nsdecoder-ns-table tr:last-child td {
+    border-bottom: none;
+}
+
+.abs-nsdecoder-ns-row-self td {
+    background: rgba(200, 168, 75, 0.06);
+}
+
+.abs-nsdecoder-ns-row-boot td {
+    background: rgba(100, 200, 255, 0.05);
+}
+
+.abs-nsdecoder-slot {
+    color: var(--church-gold, #c8a84b);
+    text-align: right;
+    min-width: 2rem;
+}
+
+.abs-nsdecoder-name-cell {
+    color: #c8d4e8;
+    min-width: 120px;
+    font-family: inherit;
+}
+
+.abs-nsdecoder-addr {
+    color: rgba(206, 145, 120, 0.90);
+    min-width: 5rem;
+}
+
+.abs-nsdecoder-num {
+    color: #a0c4ff;
+    text-align: center;
+}
+
+.abs-nsdecoder-flag {
+    color: #6b7280;
+    text-align: center;
+}
+
+.abs-nsdecoder-empty {
+    color: #4b5563;
+    font-style: italic;
+}
+
 /* Audit warning banner shown when save is allowed despite warnings */
 .lump-audit-warn-banner {
     display: flex;
