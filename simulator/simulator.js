@@ -1694,19 +1694,41 @@ class ChurchSimulator {
         const type    = (gt32 >>> 23) & 0x3;
         const gt_seq  = (gt32 >>> 16) & 0x7F;
         const index   =  gt32         & 0xFFFF;
+        const permissions = {
+            B: (permBits >>> 6) & 1,
+            E: (permBits >>> 5) & 1,
+            S: (permBits >>> 4) & 1,
+            L: (permBits >>> 3) & 1,
+            X: (permBits >>> 2) & 1,
+            W: (permBits >>> 1) & 1,
+            R: (permBits >>> 0) & 1,
+        };
+        // Defence-in-depth: flag GTs with malformed permissions at decode time so
+        // that callers reading raw GT words from memory can detect tampering before
+        // the GT reaches any CR.  Abstract GTs (type===3) repurpose bits 31:27 as
+        // ab_type, so standard perm checks do not apply to them.
+        let malformed = false;
+        let malformedReason = null;
+        if (type !== 3) {
+            const purity = ChurchSimulator.isDomainPure(permissions);
+            if (!purity.ok) {
+                malformed = true;
+                malformedReason = `domain-impure permissions (${purity.bits})`;
+            } else {
+                const single = ChurchSimulator.isSinglePerm(permissions);
+                if (!single.ok) {
+                    malformed = true;
+                    malformedReason = `multi-Church permissions (${single.bits})`;
+                }
+            }
+        }
         return {
             gt_seq, index,
-            permissions: {
-                B: (permBits >>> 6) & 1,
-                E: (permBits >>> 5) & 1,
-                S: (permBits >>> 4) & 1,
-                L: (permBits >>> 3) & 1,
-                X: (permBits >>> 2) & 1,
-                W: (permBits >>> 1) & 1,
-                R: (permBits >>> 0) & 1,
-            },
+            permissions,
             type,
             typeName: ['NULL','Inform','Outform','Abstract'][type & 3],
+            malformed,
+            malformedReason,
         };
     }
 
@@ -2826,6 +2848,16 @@ class ChurchSimulator {
             return null;
         }
         const slotParsed = this.parseGT(slotGT);
+
+        // Defence-in-depth: reject malformed GT words that were written directly
+        // into memory (e.g. by STORE or a test harness), bypassing createGT().
+        // parseGT() sets the 'malformed' flag for any GT whose permission bits
+        // violate isDomainPure or isSinglePerm, completing the defence chain
+        // that createGT() starts at construction time.
+        if (slotParsed.malformed) {
+            this.fault('DOMAIN_PURITY', `LOAD: C-List slot ${d.imm} contains malformed GT — ${slotParsed.malformedReason}`);
+            return null;
+        }
 
         if (d.crSrc === 6) {
             const permCheck = this._validateClistSlotPerms(slotParsed, d.imm);
