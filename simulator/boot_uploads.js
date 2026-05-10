@@ -86,7 +86,20 @@ const BOOT_UPLOADS = [
         type: 'boot',
         index: 1,
         grants: [],
-        capabilities: [],
+        capabilities: [
+            { name: 'CR0 home — boot entry (Salvation)',   target: 4,    grants: ['E'] },
+            { name: 'CR1 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR2 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR3 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR4 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR5 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR6 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR7 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR8 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR9 home (null at boot)',              target: null, grants: [] },
+            { name: 'CR10 home (null at boot)',             target: null, grants: [] },
+            { name: 'CR11 home (null at boot)',             target: null, grants: [] },
+        ],
         methods: []
     },
     {
