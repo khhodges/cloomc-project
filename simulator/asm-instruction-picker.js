@@ -19,8 +19,10 @@
                 { label: 'RETURN',                instr: 'RETURN', ops: '' },
                 { label: 'CHANGE offset',         instr: 'CHANGE', ops: 'offset' },
                 { label: 'SWITCH cr',             instr: 'SWITCH', ops: 'cr' },
-                { label: 'TPERM cr mask',         instr: 'TPERM',  ops: 'cr mask' },
-                { label: 'LAMBDA cr',             instr: 'LAMBDA', ops: 'cr' },
+                { label: 'TPERM cr mask',             instr: 'TPERM',       ops: 'cr mask' },
+                { label: 'LAMBDA cr',                 instr: 'LAMBDA',      ops: 'cr' },
+                { label: 'ELOADCALL cr name',         instr: 'ELOADCALL',   ops: 'cr name' },
+                { label: 'XLOADLAMBDA cr name',       instr: 'XLOADLAMBDA', ops: 'cr name' },
             ]
         },
         {
