@@ -172,6 +172,45 @@ function _renderBootNSDecoder(contentEl, abs) {
     html += '</tbody></table>';
     html += '</div>';
 
+    // ── Hardwired Golden Tokens (CR15 + CR12) ───────────────────────────────
+    html += '<div class="abs-nsdecoder-section">';
+    html += '<div class="abs-clist-heading">Hardwired Golden Tokens</div>';
+    html += '<div class="abs-nsdecoder-hint">CR15 (NS root) and CR12 (Thread stack) are loaded by hardware at reset \u2014 never writable by CLOOMC programs</div>';
+    html += '<table class="abs-clist-table" style="margin-top:0.5rem;"><thead><tr>';
+    html += '<th>CR</th><th>GT (HEX)</th><th>PERMS</th><th>TYPE</th><th>RESOLVED NAME</th>';
+    html += '</tr></thead><tbody>';
+
+    for (const [crIdx, crLabel] of [[15, 'CR15 \u00b7 Step\u00a01'], [12, 'CR12 \u00b7 Step\u00a02']]) {
+        const crObj = sim.cr && sim.cr[crIdx];
+        const word  = crObj ? (crObj.word0 >>> 0) : 0;
+        if (word === 0) {
+            html += `<tr><td class="abs-clist-idx">${crLabel}</td><td colspan="4" class="abs-clist-empty-slot">\u2014 (not yet loaded \u2014 boot the simulator)</td></tr>`;
+        } else {
+            const parsed = sim.parseGT(word);
+            const p = { ...parsed.permissions, F: parsed.type === 2 ? 1 : 0 };
+            let permHtml = '';
+            for (const bit of ['B','R','W','X','E','L','S','F']) {
+                permHtml += `<span class="abs-perm-badge ${p[bit] ? 'perm-on' : 'perm-off'}">${bit}</span>`;
+            }
+            const nsIdx = parsed.index;
+            const lbl = (sim.nsLabels && sim.nsLabels[nsIdx]) ||
+                (typeof abstractionRegistry !== 'undefined' && abstractionRegistry &&
+                 abstractionRegistry.abstractions && abstractionRegistry.abstractions[nsIdx] &&
+                 abstractionRegistry.abstractions[nsIdx].name) || null;
+            const nameStr = lbl ? `NS[${nsIdx}] \u2014 ${lbl}` : `NS[${nsIdx}]`;
+            const gtHex = '0x' + word.toString(16).toUpperCase().padStart(8, '0');
+            html += `<tr>`;
+            html += `<td class="abs-clist-idx">${crLabel}</td>`;
+            html += `<td class="abs-clist-gt">${gtHex}</td>`;
+            html += `<td class="abs-clist-perms">${permHtml}</td>`;
+            html += `<td class="abs-clist-type">${parsed.typeName}</td>`;
+            html += `<td class="abs-clist-name">${nameStr}</td>`;
+            html += `</tr>`;
+        }
+    }
+    html += '</tbody></table>';
+    html += '</div>';
+
     html += '<div class="abs-nsdecoder-section">';
     html += '<div class="abs-nsdecoder-heading">Namespace Lump \u2014 4-Word Slots</div>';
     html += '<div class="abs-nsdecoder-hint">Hover W1\u2013W4 for decoded fields</div>';
