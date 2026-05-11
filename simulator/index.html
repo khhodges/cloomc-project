@@ -1010,11 +1010,9 @@
                                 <li><strong>CR12, CR15 M=1 on LOAD</strong> — set when loading via a NULL-perm GT during M-elevation (boot / M-Abstraction path).</li>
                                 <li><strong>CALL / RETURN boundary</strong> — <code>_mwinWriteback</code> gates and clears CR15.M; <code>_resetAllMBits</code> zeroes every CR before setup.</li>
                                 <li><strong>CHANGE context switch</strong> — M-bits are saved with the outgoing thread and restored with the incoming thread.</li>
-                                <li><strong>TPERM M!</strong> — architecture spec: fault if target CR has M=1 (not yet enforced in simulator or HDL &mdash; see discrepancy flag in detail pane).</li>
                             </ul>
                             <span class="mbit-legend"><span class="instr-mstate-badge mstate-up">M&uarr;</span> sets &ensp;
                             <span class="instr-mstate-badge mstate-down">M&darr;</span> drops &ensp;
-                            <span class="instr-mstate-badge mstate-fault">M!</span> faults if M=1 &ensp;
                             <span class="instr-mstate-badge mstate-swap">M&updownarrow;</span> save/restore &ensp;
                             <span class="instr-mstate-badge mstate-pulse">M~</span> transient</span>
                         </div>
@@ -1649,8 +1647,8 @@
     <script src="app-absdetail.js?v=20260511d"></script>
     <!-- Load order matters: app-compile must precede app-run (exports LANG_EXAMPLE_GROUPS
          via window._cloomcLangExampleGroups); both must precede app-source-library. -->
-    <script src="app-compile.js?v=20260511a"></script>
-    <script src="app-run.js?v=20260511a"></script>
+    <script src="app-compile.js?v=20260511b"></script>
+    <script src="app-run.js?v=20260511b"></script>
     <script src="app-source-library.js?v=20260509d"></script>
     <script src="app-invoke.js?v=20260501a"></script>
     <script src="app-misc.js?v=20260501a"></script>

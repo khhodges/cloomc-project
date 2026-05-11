@@ -52,7 +52,7 @@ function renderReference() {
 }
 
 function _mStateBadgeText(state) {
-    const map = { up: 'M\u2191', down: 'M\u2193', fault: 'M!', swap: 'M\u2195', pulse: 'M\u007e' };
+    const map = { up: 'M\u2191', down: 'M\u2193', swap: 'M\u2195', pulse: 'M\u007e' };
     return map[state] || '';
 }
 
@@ -60,8 +60,7 @@ function _mStateBadgeHtml(instr) {
     if (!instr.mState) return '';
     const label = _mStateBadgeText(instr.mState);
     const note = instr.mStateNote ? ` title="${instr.mStateNote.replace(/"/g, '&quot;')}"` : '';
-    const discrepancyWarning = instr.mState === 'fault' ? '<span class="instr-mstate-discrepancy"> \u26a0 Not yet enforced in simulator or HDL</span>' : '';
-    return `<span class="instr-mstate-badge mstate-${instr.mState}"${note}>${label}</span>${discrepancyWarning}`;
+    return `<span class="instr-mstate-badge mstate-${instr.mState}"${note}>${label}</span>`;
 }
 
 function showInstructionDetail(opcode) {

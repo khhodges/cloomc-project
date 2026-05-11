@@ -9972,7 +9972,7 @@ const INSTRUCTION_DATA = [
           + '; FORM 2 + B-modifier — allow callee to keep the GT\n'
           + 'TPERM CR1, EB          ; keep E, set B (Bind allows SAVE by callee)\n'
           + 'CALL  CR2              ; callee may save CR1 to its own c-list',
-        mState: { badge: 'M!', note: 'Fault if the target CR has M=1. TPERM on an M-elevated register is a programming error — the M-bit signals the register bypassed normal capability validation and must not be restricted until the M-window closes.' },
+        mState: null,
     },
     {
         opcode: 7, mnemonic: 'LAMBDA', domain: 'church',
