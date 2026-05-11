@@ -170,6 +170,36 @@ const BOOT_SEQ_CODE = {
         '      ; All Layer 0–1 abstractions initialized — boot ROM done',
         '; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
     ].join('\n'),
+
+    // ── Slot 3: LED Flash ────────────────────────────────────────────────────
+    // Boot demo abstraction — combined code (CR14) + c-list (CR6) in one lump.
+    // c-list[0] = LED[0] Abstract GT (device_class=LED, device_data=0).
+    // Flashes the on-board LED to confirm hardware is alive, then RETURNs.
+    // User-selectable boot entry: does NOT chain to Navana.
+    3: [
+        '; LED Flash — boot demo (Slot 3)',
+        '; Combined code + c-list lump.  Entered via ELOADCALL from Boot.Abstr.',
+        '; c-list layout after TPERM walk:',
+        ';   CR6[0]  LED[0] Abstract GT  (device_class=0x01, device_data=0)',
+        '',
+        '; ── Turn LED on ─────────────────────────────────────────────────────',
+        '      DR0   ← 0x01       ; cmd = Set (method selector bit 0), ledIdx=0',
+        '      CALL CR6, 0xF      ; Abstract GT in CR6 — calls LED driver dispatch',
+        ';                        ; DR0 return ≥ 0 on success, < 0 on fault',
+        '',
+        '; ── Delay loop ──────────────────────────────────────────────────────',
+        '      DR1   ← 0x7FFF    ; iteration count (~half-second on Tang Nano 20K)',
+        '.loop',
+        '      ISUB  DR1, DR1, 1',
+        '      BRANCH .loop, DR1 ≠ 0',
+        '',
+        '; ── Turn LED off ────────────────────────────────────────────────────',
+        '      DR0   ← 0x02       ; cmd = Clear, ledIdx=0',
+        '      CALL CR6, 0xF',
+        '',
+        '; ── Return to caller (Boot.Abstr sentinel frame → warm reboot) ──────',
+        '      RETURN',
+    ].join('\n'),
 };
 
 // ── Implementation Status ──────────────────────────────────────────────────

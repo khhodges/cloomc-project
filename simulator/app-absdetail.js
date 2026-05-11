@@ -448,12 +448,20 @@ function showAbstractionDetail(index) {
                         const cls = p[bit] ? 'perm-on' : 'perm-off';
                         permHtml += `<span class="abs-perm-badge ${cls}">${bit}</span>`;
                     }
-                    const nsIdx = parsed.index;
-                    const label = (sim.nsLabels && sim.nsLabels[nsIdx]) ||
-                        (typeof abstractionRegistry !== 'undefined' && abstractionRegistry &&
-                         abstractionRegistry.abstractions && abstractionRegistry.abstractions[nsIdx] &&
-                         abstractionRegistry.abstractions[nsIdx].name) || null;
-                    const nameStr = label ? `NS[${nsIdx}] \u2014 ${label}` : `NS[${nsIdx}]`;
+                    let nameStr;
+                    if (parsed.type === 3) {
+                        const abInfo = sim.parseAbstractGT(gt32);
+                        const DC = { 1: 'LED', 2: 'UART', 3: 'BTN', 4: 'TIMER', 5: 'DISPLAY' };
+                        const dcName = DC[abInfo.device_class] || `dc${abInfo.device_class}`;
+                        nameStr = `${dcName}[${abInfo.device_data}]`;
+                    } else {
+                        const nsIdx = parsed.index;
+                        const label = (sim.nsLabels && sim.nsLabels[nsIdx]) ||
+                            (typeof abstractionRegistry !== 'undefined' && abstractionRegistry &&
+                             abstractionRegistry.abstractions && abstractionRegistry.abstractions[nsIdx] &&
+                             abstractionRegistry.abstractions[nsIdx].name) || null;
+                        nameStr = label ? `NS[${nsIdx}] \u2014 ${label}` : `NS[${nsIdx}]`;
+                    }
                     const gtHex = '0x' + gt32.toString(16).toUpperCase().padStart(8, '0');
                     html += `<tr>`;
                     html += `<td class="abs-clist-idx">${slotLabel}</td>`;

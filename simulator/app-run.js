@@ -10036,7 +10036,7 @@ const INSTRUCTION_DATA = [
     },
     {
         opcode: 8, mnemonic: 'ELOADCALL', domain: 'church',
-        mState: 'up', mStateNote: 'Fused LOAD+TPERM+CALL. The CALL phase sets CR6.M=1 and CR14.M=1 (M-elevated mLoad for both callee registers). Inherits the full CALL M-state side-effect: M↑ on CR6 and CR14 after the boundary.',
+        mState: 'up', mStateNote: 'Fused LOAD+TPERM+CALL. The CALL phase sets CR6.M=1 explicitly (M-elevated mLoad). CR14 carries XR grants from the CALL microcode and does not need M=1. Net: M↑ on CR6 only.',
         syntax: 'ELOADCALL CRd, CRs, offset',
         brief: 'Fused LOAD + TPERM(E) + CALL in one instruction',
         encoding: 'opcode[5]=01000 | cond[4] | CRd[4] | CRs[4] | offset[15]',
@@ -10062,7 +10062,7 @@ const INSTRUCTION_DATA = [
           + '  3. CALL  — enter the abstraction\n'
           + 'Reduces the common 3-instruction entry sequence to a single word.',
         example: 'ELOADCALL CR0, CR6, 12  ; Load word 12 of C-List CR6, verify E, enter',
-        mState: { badge: 'M↑', note: 'Fused LOAD+TPERM(E)+CALL — identical M-state semantics to CALL. Caller CRs are saved to the call stack; CR6 and CR14 are written for the callee context and then CR6.M=1 and CR14.M=1 are set explicitly (not via mElevation). Net: M↑ on CR6+CR14 for the callee duration.' },
+        mState: { badge: 'M↑', note: 'Fused LOAD+TPERM(E)+CALL. Caller CRs saved to call stack; CR6 written and CR6.M=1 set explicitly. CR14 is written with XR grants from CALL microcode — M bit not set. Net: M↑ on CR6 only for the callee duration.' },
     },
     {
         opcode: 9, mnemonic: 'XLOADLAMBDA', domain: 'church',
