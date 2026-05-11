@@ -132,9 +132,24 @@ function _renderBootNSDecoder(contentEl, abs) {
 
     const ns0 = sim.readNSEntry(0);
     const ns1 = sim.readNSEntry(1);
-    const bootSlot = (sim.NS_TABLE_BASE != null && sim.memory != null)
-        ? (sim.memory[sim.NS_TABLE_BASE - 2] >>> 0) & 0xFF
-        : ((typeof sim.bootEntrySlot === 'number') ? sim.bootEntrySlot : 3);
+    // Authoritative boot-entry source: the E-GT at Thread stack CR0
+    // (threadBase + THREAD_CAPS_OFFSET). setBootEntrySlot() always writes here
+    // but does NOT update mem[NS_TABLE_BASE-2], so reading that word gives stale data.
+    let bootSlot;
+    {
+        const capsOff   = (typeof THREAD_CAPS_OFFSET !== 'undefined') ? THREAD_CAPS_OFFSET : 244;
+        const ns1Loc    = ns1 ? (ns1.word0_location >>> 0) : 0;
+        const cr0Word   = (ns1Loc && sim.memory) ? (sim.memory[ns1Loc + capsOff] >>> 0) : 0;
+        if (cr0Word) {
+            const cr0GT = sim.parseGT(cr0Word);
+            if (cr0GT && cr0GT.type === 1 && cr0GT.permissions && cr0GT.permissions.E) {
+                bootSlot = cr0GT.index;
+            }
+        }
+        if (bootSlot == null) {
+            bootSlot = (typeof sim.bootEntrySlot === 'number') ? sim.bootEntrySlot : 3;
+        }
+    }
     const bootEntryName = (sim.nsLabels && sim.nsLabels[bootSlot]) ||
         (abstractionRegistry && abstractionRegistry.abstractions && abstractionRegistry.abstractions[bootSlot] &&
          abstractionRegistry.abstractions[bootSlot].name) || `NS[${bootSlot}]`;
