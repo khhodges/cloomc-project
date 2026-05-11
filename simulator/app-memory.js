@@ -514,7 +514,6 @@ function updateCRDetail() {
             const addr = _clistBase + i;
             const gtWord = (addr < sim.memory.length) ? (sim.memory[addr] >>> 0) : 0;
             const parsed = sim.parseGT(gtWord);
-            const permsStr = Object.entries(parsed.permissions).filter(([,v]) => v).map(([k]) => k).join('');
             let nsLabel = '';
             if (parsed.type === 3 && gtWord !== 0) {
                 const ab = sim.parseAbstractGT(gtWord);
@@ -534,15 +533,26 @@ function updateCRDetail() {
             const isAbstract = hasGT && parsed.type === 3;
             const isIndirect = hasGT && _indSlots && _indSlots.has(i);
             const isUnref = hasGT && !isIndirect && (_refSlots === null || !_refSlots.has(i));
+            const _p1 = { ...parsed.permissions, F: parsed.type === 2 ? 1 : 0 };
+            let permHtml1 = '';
+            if (hasGT) {
+                for (const bit of ['B','R','W','X','E','L','S','F']) {
+                    const cls = _p1[bit] ? 'perm-on' : 'perm-off';
+                    permHtml1 += `<span class="abs-perm-badge ${cls}">${bit}</span>`;
+                }
+            }
+            const nameStr1 = hasGT
+                ? (isAbstract ? nsLabel : (nsLabel ? `NS[${parsed.index}] \u2014 ${nsLabel}` : `NS[${parsed.index}]`))
+                : '\u2014';
             html += `<tr class="${hasGT ? 'cr-active clist-clickable' : ''}${isExpanded ? ' clist-selected' : ''}${isUnref ? ' clist-unref-row' : ''}${isIndirect ? ' clist-indirect-row' : ''}" `;
             html += hasGT ? `onclick="toggleCListEntry(${i})" title="${isAbstract ? nsLabel + ' (Abstract GT \u2014 no NS slot)' : 'Click to inspect NS[' + parsed.index + ']'}"` : '';
             html += '>';
             html += `<td class="cr-idx">${i}</td>`;
-            html += `<td class="cr-gt">0x${gtWord.toString(16).toUpperCase().padStart(8,'0')}</td>`;
+            html += `<td class="abs-clist-gt">0x${gtWord.toString(16).toUpperCase().padStart(8,'0')}</td>`;
             html += `<td>${hasGT ? (isAbstract ? '\u2014' : parsed.index) : '\u2014'}</td>`;
-            html += `<td>${hasGT ? parsed.typeName : '\u2014'}</td>`;
-            html += `<td class="cr-perms">[${permsStr || '\u2014'}]</td>`;
-            html += `<td class="cr-name">${nsLabel}</td>`;
+            html += `<td class="${hasGT ? 'abs-clist-type' : ''}">${hasGT ? parsed.typeName : '\u2014'}</td>`;
+            html += `<td class="abs-clist-perms">${hasGT ? permHtml1 : '\u2014'}</td>`;
+            html += `<td class="abs-clist-name">${nameStr1}</td>`;
             if (isIndirect) {
                 html += `<td onclick="event.stopPropagation()"><span class="clist-indirect-badge" title="Accessed via a register loaded from CR6 \u2014 slot preserved by POLA">\u26A0\u202Findirect</span></td>`;
             } else if (isUnref) {
@@ -603,7 +613,6 @@ function updateCRDetail() {
             const addr = _lumpClistBase + i;
             const gtWord = (addr < sim.memory.length) ? (sim.memory[addr] >>> 0) : 0;
             const parsed = sim.parseGT(gtWord);
-            const permsStr = Object.entries(parsed.permissions).filter(([,v]) => v).map(([k]) => k).join('');
             let nsLabel = '';
             if (parsed.type === 3 && gtWord !== 0) {
                 const ab = sim.parseAbstractGT(gtWord);
@@ -622,13 +631,24 @@ function updateCRDetail() {
             const isAbstract2 = hasGT && parsed.type === 3;
             const isIndirect2 = hasGT && _ind2Slots && _ind2Slots.has(i);
             const isUnref2 = hasGT && !isIndirect2 && (_ref2Slots === null || !_ref2Slots.has(i));
+            const _p2 = { ...parsed.permissions, F: parsed.type === 2 ? 1 : 0 };
+            let permHtml2 = '';
+            if (hasGT) {
+                for (const bit of ['B','R','W','X','E','L','S','F']) {
+                    const cls = _p2[bit] ? 'perm-on' : 'perm-off';
+                    permHtml2 += `<span class="abs-perm-badge ${cls}">${bit}</span>`;
+                }
+            }
+            const nameStr2 = hasGT
+                ? (isAbstract2 ? nsLabel : (nsLabel ? `NS[${parsed.index}] \u2014 ${nsLabel}` : `NS[${parsed.index}]`))
+                : '\u2014';
             html += `<tr class="${hasGT ? 'cr-active' : ''}${isUnref2 ? ' clist-unref-row' : ''}${isIndirect2 ? ' clist-indirect-row' : ''}">`;
             html += `<td class="cr-idx">${i}</td>`;
-            html += `<td class="cr-gt">0x${gtWord.toString(16).toUpperCase().padStart(8,'0')}</td>`;
+            html += `<td class="abs-clist-gt">0x${gtWord.toString(16).toUpperCase().padStart(8,'0')}</td>`;
             html += `<td>${hasGT ? (isAbstract2 ? '\u2014' : parsed.index) : '\u2014'}</td>`;
-            html += `<td>${hasGT ? parsed.typeName : '\u2014'}</td>`;
-            html += `<td class="cr-perms">[${permsStr || '\u2014'}]</td>`;
-            html += `<td class="cr-name">${nsLabel}</td>`;
+            html += `<td class="${hasGT ? 'abs-clist-type' : ''}">${hasGT ? parsed.typeName : '\u2014'}</td>`;
+            html += `<td class="abs-clist-perms">${hasGT ? permHtml2 : '\u2014'}</td>`;
+            html += `<td class="abs-clist-name">${nameStr2}</td>`;
             if (isIndirect2) {
                 html += `<td><span class="clist-indirect-badge" title="Accessed via a register loaded from CR6 \u2014 slot preserved by POLA">\u26A0\u202Findirect</span></td>`;
             } else if (isUnref2) {
