@@ -673,12 +673,26 @@ function absSelectMethod(tabEl, panelId) {
     if (panel) panel.style.display = '';
 }
 
-function absOpenMethodInEditor(absIdx, methodName, tabEl, panelId) {
+async function absOpenMethodInEditor(absIdx, methodName, tabEl, panelId) {
     absSelectMethod(tabEl, panelId);
 
+    // Ensure the lump cache is populated — fetch on demand if the LUMP view
+    // has not been visited yet (cache starts empty until loadLumpsView runs).
+    let cache = (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache) && _lumpsCache.length > 0)
+        ? _lumpsCache : null;
+    if (!cache) {
+        try {
+            const r = await fetch('/api/lumps/list');
+            if (r.ok) {
+                cache = await r.json();
+                if (typeof _lumpsCache !== 'undefined') _lumpsCache = cache;
+            }
+        } catch (_e) {}
+    }
+
     // Try to find the backing lump for this abstraction by NS slot
-    if (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache)) {
-        const lump = _lumpsCache.find(function(l) {
+    if (cache) {
+        const lump = cache.find(function(l) {
             return parseInt(l.ns_slot) === absIdx &&
                    l.lump_type !== 'namespace' && l.typ !== 10;
         });
