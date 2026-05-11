@@ -471,24 +471,45 @@
         });
     }
 
+    function _scrollEditorToPos(ed, pos) {
+        // Scroll the textarea so the character at `pos` is roughly centred.
+        var lines = ed.value.slice(0, pos).split('\n');
+        var lineIndex = lines.length - 1;
+        var lineH = parseFloat(getComputedStyle(ed).lineHeight) || 20;
+        var paddingTop = parseFloat(getComputedStyle(ed).paddingTop) || 0;
+        ed.scrollTop = Math.max(0, paddingTop + lineIndex * lineH - ed.clientHeight / 3);
+    }
+
     function _insertCapability(capName) {
+        if (!capName) { hideViewer(); return; }
         var ed = activeEditor || document.getElementById('asmEditor');
         if (!ed) { hideViewer(); return; }
         var src = ed.value;
+        var insertPos = -1;
 
         // Find the first capabilities { ... } block
         var capRe = /capabilities\s*\{([^}]*)\}/;
         var cm = capRe.exec(src);
         if (cm) {
             var inner = cm[1];
+            // Strip comment tokens (tokens starting with ; or /) so a
+            // commented-out capability name doesn't cause a false-positive
+            // "already exists" and silently swallow the insertion.
             var existing = inner.split(/[\s,]+/)
                 .map(function (n) { return n.trim(); })
-                .filter(Boolean);
+                .filter(function (n) { return n && !/^[;/]/.test(n); });
             if (existing.indexOf(capName) === -1) {
                 var closingBrace = cm.index + cm[0].lastIndexOf('}');
                 var sep = inner.trim().length > 0 ? ',\n        ' : '\n        ';
                 ed.value = src.slice(0, closingBrace) + sep + capName + '\n    ' + src.slice(closingBrace);
+                insertPos = closingBrace + sep.length;
                 ed.dispatchEvent(new Event('input', { bubbles: true }));
+            } else {
+                // Already present — locate and select the existing entry so
+                // the user can see it rather than getting a silent no-op.
+                var existingMatch = new RegExp('\\b' + capName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+                var em = existingMatch.exec(src);
+                insertPos = em ? em.index : -1;
             }
         } else {
             // No capabilities block — insert after the abstraction { opening line
@@ -496,15 +517,22 @@
             var am = absRe.exec(src);
             if (am) {
                 var pos = am.index + am[0].length;
-                ed.value = src.slice(0, pos) +
-                    '\n    capabilities {\n        ' + capName + '\n    }' +
-                    src.slice(pos);
+                var prefix = '\n    capabilities {\n        ';
+                ed.value = src.slice(0, pos) + prefix + capName + '\n    }' + src.slice(pos);
+                insertPos = pos + prefix.length;
             } else {
-                ed.value = 'capabilities {\n    ' + capName + '\n}\n\n' + src;
+                var topPrefix = 'capabilities {\n    ';
+                ed.value = topPrefix + capName + '\n}\n\n' + src;
+                insertPos = topPrefix.length;
             }
             ed.dispatchEvent(new Event('input', { bubbles: true }));
         }
         hideViewer();
+        // Scroll editor to the insertion / existing location and select the name
+        if (insertPos >= 0) {
+            _scrollEditorToPos(ed, insertPos);
+            ed.setSelectionRange(insertPos, insertPos + capName.length);
+        }
         ed.focus();
     }
 
