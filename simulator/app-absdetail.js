@@ -316,6 +316,20 @@ function showAbstractionDetail(index) {
         return;
     }
 
+    if (abs.index === 1) {
+        titleEl.textContent = `${abs.name} \u2014 Abstraction 1`;
+        const simReady = typeof sim !== 'undefined' && sim &&
+                         typeof renderThreadMemoryLayout === 'function';
+        if (!simReady || !sim.memory) {
+            contentEl.innerHTML =
+                '<div class="abs-nsdecoder-placeholder">' +
+                'Boot the simulator to view the Boot.Thread memory layout.</div>';
+        } else {
+            contentEl.innerHTML = renderThreadMemoryLayout(1);
+        }
+        return;
+    }
+
     const layerNames = abstractionRegistry.getLayerNames();
     const layerName = layerNames[abs.layer] || `Layer ${abs.layer}`;
     titleEl.textContent = `${abs.name} \u2014 Abstraction ${abs.index}`;
