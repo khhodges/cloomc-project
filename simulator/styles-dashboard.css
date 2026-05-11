@@ -4417,6 +4417,15 @@ a.next-step-link:hover {
     font-style: italic;
 }
 
+.abs-clist-heading {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--church-gold, #f4b942);
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+
 .abs-clist-count {
     font-size: 0.72rem;
     color: var(--text-secondary);
