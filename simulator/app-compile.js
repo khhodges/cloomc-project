@@ -24,7 +24,7 @@ function renderReference() {
         card.className = 'instr-card' + (selectedInstr === instr.opcode ? ' active' : '');
         card.innerHTML = `
             <span class="instr-opcode">${instr.opcode}</span>
-            <span class="instr-mnemonic">${instr.mnemonic}</span>
+            <span class="instr-mnemonic">${instr.mnemonic}</span>${instr.mState && instr.mState.badge ? `<span style="display:inline-block;padding:0 5px;border-radius:3px;font-weight:700;font-size:0.7rem;margin-left:4px;vertical-align:middle;background:${instr.mState.badge==='M↑'?'#7a5c0a':instr.mState.badge==='M↓'?'#0a3d6b':instr.mState.badge==='M!'?'#6b0a0a':'#3a0a6b'};color:#fff;">${instr.mState.badge}</span>` : ''}
             <span class="instr-brief">${instr.brief}</span>
         `;
         card.onclick = () => {
@@ -100,6 +100,11 @@ function showInstructionDetail(opcode) {
             <div class="instr-detail-label">Flags Affected</div>
             <div class="instr-detail-value">${instr.flags}</div>
         </div>
+
+        ${instr.mState ? `<div class="instr-detail-section">
+            <div class="instr-detail-label">M-State (per-CR elevation)</div>
+            <div class="instr-detail-value">${instr.mState.badge ? `<span style="display:inline-block;padding:1px 7px;border-radius:4px;font-weight:700;font-size:0.8rem;margin-right:6px;background:${instr.mState.badge==='M↑'?'#7a5c0a':instr.mState.badge==='M↓'?'#0a3d6b':instr.mState.badge==='M!'?'#6b0a0a':'#3a0a6b'};color:#fff;">${instr.mState.badge}</span>` : ''}${instr.mState.note}</div>
+        </div>` : ''}
 
         <div class="instr-detail-section">
             <div class="instr-detail-label">Description</div>

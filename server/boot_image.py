@@ -51,20 +51,10 @@ SLOT_SIZE        = 0x40         # 64 words
 DEVICE_REG_LIMITS = {}  # slots 11 (UART), 12 (LED), 13 (Button), 14 (Timer) freed — Tasks #406 and #431
 
 BOOT_ABSTR_NS_SLOT   = 3   # NS slot holding the Boot Abstraction lump (Boot.Abstr)
-STARTUP_CONFIG_NS_SLOT = 2   # NS slot holding Startup.Config (Task #396)
-STARTUP_CONFIG_VERSION = 0x00000001  # data[1] schema version — bumped on breaking data-region changes
-
-# Startup.Config lump layout constants — imported from the single source of truth.
-# JS mirror: simulator/startup_config_layout.js
-try:
-    from startup_config_layout import SC_DATA_OFFSET
-except ImportError:
-    from server.startup_config_layout import SC_DATA_OFFSET
 
 # Mandatory NS slots — every valid boot image must have a non-zero entry here.
-# All four foundational slots (Boot.NS, Boot.Thread, Startup.Config, Boot.Abstr)
-# are required since Task #396; Startup.Config joins the foundational quad.
-_MANDATORY_NS_SLOTS = (0, 1, STARTUP_CONFIG_NS_SLOT, BOOT_ABSTR_NS_SLOT)  # slots 0, 1, 2, 3
+# Slot 2 freed (Startup.Config removed); foundational trio is slots 0, 1, 3.
+_MANDATORY_NS_SLOTS = (0, 1, BOOT_ABSTR_NS_SLOT)  # slots 0, 1, 3
 
 # Format-version tag written to mem[NS_TABLE_BASE - 1] so loadBootImage()
 # can reject stale binaries. Bumped to 0x396 (Task #396) when Startup.Config
@@ -80,19 +70,6 @@ BOOT_ROM_WORDS = [
     0x17000000, # [2]  CALL   AL, CR0,  CR0        — enter configured first abstraction
 ]
 
-# Pre-computed 32-bit CLOOMC instruction words for the Startup.Config code region (Task #512).
-# Written into Startup.Config lump words 1-3 in both the simulator and boot image.
-# Must stay in sync with simulator.js _initNamespaceTable STARTUP_CONFIG_WORDS and
-# hardware/boot_rom.py STARTUP_CONFIG_PROGRAM.
-#
-# After Boot.Abstr's CALL enters Startup.Config, CR6 holds Startup.Config's c-list (L perm).
-# c-list[0] contains the configured entry E-GT (default: Salvation, NS slot 4).
-# The program loads that GT, restricts it to E, and enters the configured abstraction.
-STARTUP_CONFIG_WORDS = [
-    0x07030000, # [0]  LOAD  AL, CR0, CR6[0]  — load entry E-GT from Startup.Config c-list[0]
-    0x37000008, # [1]  TPERM AL, CR0, #E       — restrict to E permission only
-    0x17000000, # [2]  CALL  AL, CR0, CR0      — enter configured entry abstraction
-]
 
 def _abstract_gt_word(perms_dict):
     """Encode a perms dict as an Abstract GT word (bits 30:25 = perms[5:0]).
@@ -159,7 +136,7 @@ def create_abstract_gt(ab_type, rw_perms, gt_seq, ab_data):
 DEFAULT_ABSTRACTION_CATALOG = [
     ("Boot.NS",       {"R":0,"W":0,"X":0,"L":0,"S":0,"E":0}, False),
     ("Boot.Thread",   {"R":0,"W":0,"X":0,"L":0,"S":0,"E":0}, False),
-    ("Startup.Config", {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, False),  # Slot 2: Startup.Config (Task #396)
+    None,             # slot 2 freed — Startup.Config removed; hardware ISA owns M-state per CR register
     ("LED flash",     {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, False),
     ("Salvation",     {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, False),
     ("Navana",        {"R":0,"W":0,"X":0,"L":0,"S":0,"E":1}, False),
@@ -338,8 +315,8 @@ def validate_boot_image(image_bytes, total_namespace_words=None):
     the explicit value from the config dict when available so the check is
     exact even if the image has trailing padding.
 
-    All four foundational quad slots (0, 1, 2=Startup.Config, 3=Boot.Abstr)
-    are checked since Task #396.
+    Foundational trio slots (0, 1, 3=Boot.Abstr) are checked.
+    Slot 2 freed — Startup.Config removed.
 
     Raises:
         ValueError: if the format-version tag is wrong, any mandatory slot
@@ -581,7 +558,7 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
     slot_sizes = {
         0: ns_size,
         1: thread_size,
-        # Slot 2 (Startup.Config) uses the default SLOT_SIZE=64 (no override needed).
+        # Slot 2 freed — no override needed.
         BOOT_ABSTR_NS_SLOT: actual_abstr_size,  # Boot.Abstr: from saved lump or 64w default
     }
 
@@ -737,36 +714,9 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
         mem[entry_ns_base + 1] = pack_ns_word1(entry_cr_limit, 0, 0, 0, 0, 1, 0)
         mem[entry_ns_base + 2] = make_version_seals(0, boot_entry_loc, entry_cr_limit)
 
-    # ----- Startup.Config lump (NS slot 2) --------------------------------
-    # 64-word lump with a 3-word CLOOMC code region and a 1-slot c-list (Task #512).
-    #   word  0:        Lump header (cw=3, cc=1)
-    #   words 1-3:      Code region — STARTUP_CONFIG_WORDS (LOAD / TPERM / CALL)
-    #   words 4-62:     Data region (59 words)
-    #     word 4 (data[0]): entry_slot = 4  (NS[4] Salvation, the default boot target)
-    #     word 5 (data[1]): config_version = STARTUP_CONFIG_VERSION
-    #     word 6 (data[2]): flags = 0
-    #     word 7 (data[3]): fault_count = 0
-    #     words 8-62 (data[4-58]): user params = 0
-    #   word 63:        C-list slot 0 — configured entry E-GT (default: Salvation, slot 4)
-    startup_config_loc = locations[STARTUP_CONFIG_NS_SLOT]
-    mem[startup_config_loc + 0] = pack_lump_header(0, 3, 1, 0)  # 64-word lump header: cw=3, cc=1
-    # Code region (words 1-3)
-    for i, word in enumerate(STARTUP_CONFIG_WORDS):
-        mem[startup_config_loc + 1 + i] = word & 0xFFFFFFFF
-    # Data region starts at SC_DATA_OFFSET (shifted +3 from old data-only layout)
-    mem[startup_config_loc + SC_DATA_OFFSET]     = 4                      # data[0]: entry_slot = 4 (Salvation)
-    mem[startup_config_loc + SC_DATA_OFFSET + 1] = STARTUP_CONFIG_VERSION # data[1]: config_version
-    # data[2..58] remain 0 (mem is zero-initialized)
-    # C-list slot 0 (word 63): Salvation E-GT — the default configured entry
-    # clist_gts[4] is the Salvation E-GT built by the NS loop above (NS slot 4, E perm).
-    mem[startup_config_loc + 63] = clist_gts[4] & 0xFFFFFFFF
-    # Override NS entry for Startup.Config (slot 2):
-    #   lim17 = SLOT_SIZE - cc - 1 = 64 - 1 - 1 = 62 (last data word; c-list at word 63)
-    #   clist_count = 1
-    startup_config_cr_limit = SLOT_SIZE - 1 - 1   # = 62
-    startup_config_ns_base  = ns_table_base + STARTUP_CONFIG_NS_SLOT * NS_ENTRY_WORDS
-    mem[startup_config_ns_base + 1] = pack_ns_word1(startup_config_cr_limit, 0, 0, 0, 0, 1, 1)
-    mem[startup_config_ns_base + 2] = make_version_seals(0, startup_config_loc, startup_config_cr_limit)
+    # Slot 2 freed — Startup.Config removed. The hardware ISA owns M-state per CR register;
+    # CALL through a non-M E-GT (BOOT_ROM_WORDS[2]) drops M automatically.
+    # Thread.CR[0] entry E-GT is written by setBootEntrySlot(); no intermediary lump needed.
 
     # ----- Service abstraction c-lists (Task #971) --------------------------------
     # Populate c-lists for the 14 service abstractions that have declared capability

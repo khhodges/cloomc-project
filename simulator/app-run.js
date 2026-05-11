@@ -9698,6 +9698,7 @@ const INSTRUCTION_DATA = [
           + 'mLoad fetches the GT at CRs + offset, validates version\n'
           + 'and seal, then copies it into CRd.',
         example: 'LOAD CR0, CR6, 7    ; Load word 7 of C-List CR6 into CR0',
+        mState: { badge: 'M↑', note: 'CR15 / CR12 only: M=1 set when loaded GT has all-NULL perms (boot init path). LOAD into CR15 or CR12 with non-NULL perms during M-elevation → fault. All other destination CRs: M-neutral.' },
     },
     {
         opcode: 1, mnemonic: 'SAVE', domain: 'church',
@@ -9725,6 +9726,7 @@ const INSTRUCTION_DATA = [
           + 'and bounds. B=1 is the delegation gate: a callee cannot propagate\n'
           + 'GTs it was only passed for use.',
         example: 'SAVE CR6, CR1, 20   ; Save CR1 (B=1) into word 20 of C-List CR6',
+        mState: { badge: null, note: 'M-neutral — no effect on any CR M-bit.' },
     },
     {
         opcode: 2, mnemonic: 'CALL', domain: 'church',
@@ -9773,6 +9775,7 @@ const INSTRUCTION_DATA = [
           + 'PC is set to 0. RETURN (with a MASK literal) is the only exit.',
         example: 'CALL CR6, 3          ; C-List mode: fetch E-GT at offset 3 from C-List in CR6\n'
                + 'CALL CR2, 0xF        ; Direct mode: CR2 is the E-GT (offset=0xF sentinel)',
+        mState: { badge: 'M↓', note: 'Hardware clears M on all CRs at the dispatch boundary. CR6 M=1 is set transiently for the callee\'s duration (microcode L-perm gate). CR14 is created with RX, M=0. B bit is cleared on all passed GTs.' },
     },
     {
         opcode: 3, mnemonic: 'RETURN', domain: 'church',
@@ -9816,6 +9819,7 @@ const INSTRUCTION_DATA = [
         example: 'RETURN                   ; mask=0 — no scrub, backward-compatible\n'
                + 'RETURN 0b111111011111    ; clear CR0–CR5, CR7–CR11 — scrub all working regs\n'
                + 'RETURN 0b000000011110    ; clear CR1–CR4 only — CR0 carries a return GT',
+        mState: { badge: 'M↓', note: 'Hardware clears all CR M-bits at function exit. CHANGE (not RETURN) is the mechanism that saves and restores M-bits across context switches.' },
     },
     {
         opcode: 4, mnemonic: 'CHANGE', domain: 'church',
@@ -9858,6 +9862,7 @@ const INSTRUCTION_DATA = [
           + '  The suspended thread resumes exactly where it left off.',
         example: 'CHANGE CR12, CR12, 1 ; B:02 INIT_THRD: load thread stack GT from slot 1\n'
                + 'CHANGE CR14, CR6, 3  ; Context switch: activate Thread Abstraction at CR6[3]',
+        mState: { badge: 'M±', note: 'Saves outgoing thread M-bits (per CR) into the context record; restores incoming thread M-bits on resumption. M-state is transparent to CHANGE — it does not add, remove, or inspect M-bits.' },
     },
     {
         opcode: 5, mnemonic: 'SWITCH', domain: 'church',
@@ -9884,6 +9889,7 @@ const INSTRUCTION_DATA = [
           + 'all LOADs, SAVEs, and CALLs resolve through it. The switch is the\n'
           + 'mechanism for domain isolation, sandboxing, and controlled transitions.',
         example: 'SWITCH CR3, 0        ; Switch namespace root (CR15) to namespace in CR3',
+        mState: { badge: null, note: 'M-neutral — no effect on any CR M-bit.' },
     },
     {
         opcode: 6, mnemonic: 'TPERM', domain: 'church',
@@ -9960,6 +9966,7 @@ const INSTRUCTION_DATA = [
           + '; FORM 2 + B-modifier — allow callee to keep the GT\n'
           + 'TPERM CR1, EB          ; keep E, set B (Bind allows SAVE by callee)\n'
           + 'CALL  CR2              ; callee may save CR1 to its own c-list',
+        mState: { badge: 'M!', note: 'Fault if the target CR has M=1. TPERM on an M-elevated register is a programming error — the M-bit signals the register bypassed normal capability validation and must not be restricted until the M-window closes.' },
     },
     {
         opcode: 7, mnemonic: 'LAMBDA', domain: 'church',
@@ -10018,6 +10025,7 @@ const INSTRUCTION_DATA = [
           + 'Used for fast-path lambda calculus operations: SUCC, ADD, MUL, etc.',
         example: 'LAMBDA CR0           ; Immediate — apply reduction via CR0\n'
                + 'LAMBDA CR6, 5        ; Store — load X GT from CR6[5] into CR6, then apply',
+        mState: { badge: null, note: 'M-neutral — in-scope lambda reduction does not cross a capability domain boundary. No CR M-bit is modified.' },
     },
     {
         opcode: 8, mnemonic: 'ELOADCALL', domain: 'church',
@@ -10046,6 +10054,7 @@ const INSTRUCTION_DATA = [
           + '  3. CALL  — enter the abstraction\n'
           + 'Reduces the common 3-instruction entry sequence to a single word.',
         example: 'ELOADCALL CR0, CR6, 12  ; Load word 12 of C-List CR6, verify E, enter',
+        mState: { badge: 'M↓', note: 'Fused LOAD+TPERM(E)+CALL — identical M-state semantics to CALL. Hardware clears M on all CRs at dispatch; CR6 M=1 set transiently for callee duration.' },
     },
     {
         opcode: 9, mnemonic: 'XLOADLAMBDA', domain: 'church',
@@ -10092,6 +10101,7 @@ const INSTRUCTION_DATA = [
           + 'the thread lump stack buffer.\n\n'
           + 'Used for fast-path Church reductions where load + apply is one operation.',
         example: 'XLOADLAMBDA CR0, CR6, 7  ; Load word 7 of C-List CR6, verify X, reduce',
+        mState: { badge: null, note: 'M-neutral — fused LOAD+TPERM(X)+LAMBDA is in-scope. No capability domain boundary is crossed; no CR M-bit is modified.' },
     },
     {
         opcode: 10, mnemonic: 'DREAD', domain: 'turing',
@@ -10122,6 +10132,7 @@ const INSTRUCTION_DATA = [
           + 'HALT in the code lump. Decode fault rule: (CRs>=12) AND NOT (CRs==14).',
         example: 'DREAD DR1, CR2, 0    ; Read word 0 from data object CR2\n'
                + 'DREAD DR1, CR14, 100 ; Read constant at offset 100 in code lump',
+        mState: { badge: null, note: 'M-neutral — Turing-domain data read. No effect on any CR M-bit.' },
     },
     {
         opcode: 11, mnemonic: 'DWRITE', domain: 'turing',
@@ -10151,6 +10162,7 @@ const INSTRUCTION_DATA = [
           + 'W permission at execute time — the carve-out is a decode-fence rule only.\n'
           + 'Decode fault rule: fault = (CRs >= 12) AND NOT (CRs == 14).',
         example: 'DWRITE DR3, CR2, 4   ; Write DR3 to word 4 of data object CR2',
+        mState: { badge: null, note: 'M-neutral — Turing-domain data write. No effect on any CR M-bit.' },
     },
     {
         opcode: 12, mnemonic: 'BFEXT', domain: 'turing',
@@ -10182,6 +10194,7 @@ const INSTRUCTION_DATA = [
           + 'Useful for parsing packed integers, pair fields (fst/snd), and\n'
           + 'protocol fields packed into a single 32-bit word.',
         example: 'BFEXT DR1, DR2, 8, 4  ; Extract 4 bits starting at bit 8 of DR2',
+        mState: { badge: null, note: 'M-neutral — pure data-register operation. No capability or M-state involvement.' },
     },
     {
         opcode: 13, mnemonic: 'BFINS', domain: 'turing',
@@ -10213,6 +10226,7 @@ const INSTRUCTION_DATA = [
           + 'Complement of BFEXT. Used to pack two values into one word,\n'
           + 'e.g. pair packing: SHL DRd, fst, 16  then  BFINS DRd, snd, 0, 16.',
         example: 'BFINS DR1, DR2, 8, 4  ; Insert low 4 bits of DR2 into DR1 at bit 8',
+        mState: { badge: null, note: 'M-neutral — pure data-register operation. No capability or M-state involvement.' },
     },
     {
         opcode: 14, mnemonic: 'MCMP', domain: 'turing',
@@ -10241,6 +10255,7 @@ const INSTRUCTION_DATA = [
           + 'C = 1 if DRa >= DRb (unsigned, no borrow)\n'
           + 'V = 1 if signed overflow',
         example: 'MCMP DR1, DR2        ; Compare DR1 with DR2\nBRANCHEQ equal       ; Branch if DR1 == DR2',
+        mState: { badge: null, note: 'M-neutral — pure data-register comparison. No capability or M-state involvement.' },
     },
     {
         opcode: 15, mnemonic: 'IADD', domain: 'turing',
@@ -10271,6 +10286,7 @@ const INSTRUCTION_DATA = [
           + 'C = 1 if carry out (result > 0xFFFFFFFF)\n'
           + 'V = 1 if signed overflow',
         example: 'IADD DR3, DR1, DR2   ; DR3 = DR1 + DR2, set flags',
+        mState: { badge: null, note: 'M-neutral — pure data-register arithmetic. No capability or M-state involvement.' },
     },
     {
         opcode: 16, mnemonic: 'ISUB', domain: 'turing',
@@ -10301,6 +10317,7 @@ const INSTRUCTION_DATA = [
           + 'C = 1 if no borrow (DRa >= DRb unsigned — ARM convention)\n'
           + 'V = 1 if signed overflow',
         example: 'ISUB DR4, DR3, DR1   ; DR4 = DR3 - DR1, set flags',
+        mState: { badge: null, note: 'M-neutral — pure data-register arithmetic. No capability or M-state involvement.' },
     },
     {
         opcode: 17, mnemonic: 'BRANCH', domain: 'turing',
@@ -10327,6 +10344,7 @@ const INSTRUCTION_DATA = [
           + 'if flags were set by a prior MCMP or arithmetic instruction.\n'
           + 'Branch targets are bounded within the current abstraction.',
         example: 'BRANCHEQ +3          ; If Z=1, skip 3 instructions\nBRANCHNE -5          ; If Z=0, loop back 5',
+        mState: { badge: null, note: 'M-neutral — conditional branch reads flags only. No capability or M-state involvement.' },
     },
     {
         opcode: 18, mnemonic: 'SHL', domain: 'turing',
@@ -10357,6 +10375,7 @@ const INSTRUCTION_DATA = [
           + 'C = last bit shifted out (bit 32-shamt of original value)\n'
           + 'V = always 0',
         example: 'SHL DR2, DR1, 4      ; DR2 = DR1 << 4 (multiply by 16)',
+        mState: { badge: null, note: 'M-neutral — pure data-register shift. No capability or M-state involvement.' },
     },
     {
         opcode: 19, mnemonic: 'SHR', domain: 'turing',
@@ -10392,6 +10411,7 @@ const INSTRUCTION_DATA = [
           + 'C = last bit shifted out (bit shamt-1 of original value)\n'
           + 'V = always 0',
         example: 'SHR DR2, DR1, 3      ; DR2 = DR1 >> 3 (logical)\nSHR DR3, DR1, 1, ASR ; DR3 = DR1 >>> 1 (arithmetic, sign-extending)',
+        mState: { badge: null, note: 'M-neutral — pure data-register shift. No capability or M-state involvement.' },
     },
 ];
 

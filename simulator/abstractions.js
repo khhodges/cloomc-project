@@ -286,18 +286,16 @@ class AbstractionRegistry {
             'Thread stack for the boot thread (loaded into CR12, privileged)',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 0 } });
 
-        this.createAbstraction(2, 'Startup.Config', 0,
-            ['Execute', 'GetEntry', 'SetEntry', 'ReadParam', 'WriteParam', 'Validate', 'Version', 'Reset'],
-            'Startup configuration — patchable boot target seam; Boot.Abstr calls Execute() on every reset (Task #396)',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+        // Slot 2 freed — Startup.Config removed. Hardware ISA owns M-state per CR register;
+        // Thread.CR[0] is pre-populated by the boot image; CALL CR0 drops M automatically.
 
         this.createAbstraction(3, 'LED flash', 0, [],
             'LED flash — combined code (CR14) + c-list (CR6) in one slot',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(4, 'Salvation', 1,
-            ['LOAD', 'TPERM', 'LAMBDA', 'TransitionToNavana', 'Execute'],
-            'First callable abstraction — proves CALL works, calls Navana.Init, then transitions to Navana (does not RETURN)',
+            ['LOAD', 'TPERM', 'LAMBDA', 'TransitionToNavana'],
+            'Built-in system test — proves CALL, LOAD, TPERM, LAMBDA work on first boot; user-selectable boot entry. Does not chain to Navana.',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(5, 'Navana', 1,
@@ -515,3 +513,38 @@ class AbstractionRegistry {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AbstractionRegistry;
 }
+
+// Cache-busting guard: force navigation to the versioned simulator URL if on the plain
+// /simulator/ path.  This file is always revalidated via ETag so even a long-cached tab
+// will execute this code and be redirected to the versioned URL.
+(function _simulatorCacheBust() {
+    if (typeof window === 'undefined' || !window.location) return;
+    var _VER = 'r20260429e';
+    var _path = window.location.pathname;
+    if (_path.indexOf('/simulator/') === 0 && !_path.startsWith('/simulator/~/' + _VER)) {
+        window.location.replace('/simulator/~/' + _VER + (window.location.hash || ''));
+    }
+})();
+
+// Failsafe: inject "Turing DR Test ✦" tab if missing from HTML.
+(function _ensureTuringDRTab() {
+    if (typeof document === 'undefined') return;
+    function _inject() {
+        if (document.querySelector('[data-example="led_turing_full"]')) return;
+        var anchor = document.querySelector('[data-example="turing_test"]');
+        if (!anchor) return;
+        var btn = document.createElement('button');
+        btn.className = 'example-tab';
+        btn.setAttribute('data-example', 'led_turing_full');
+        btn.setAttribute('data-tooltip', 'Turing DR Test \u2014 Full visual ISA test across all DR0\u2013DR15 registers');
+        btn.style.color = '#4ade80';
+        btn.onclick = function() { if (typeof loadExample === 'function') loadExample('led_turing_full'); };
+        btn.textContent = 'Turing DR Test \u2736';
+        anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _inject);
+    } else {
+        _inject();
+    }
+})();

@@ -101,17 +101,7 @@ const M_BIT_PORT_CR15         = 0xFFFFFF1F; // M-bit authority port for CR15
 
 // Module-scope boot constants — referenced by loadProgram, _bootStep, etc.
 const BOOT_ABSTR_NS_SLOT      = 3;  // NS slot of the Boot Abstraction lump (Boot.Abstr)
-const STARTUP_CONFIG_NS_SLOT  = 2;  // NS slot of Startup.Config (Task #396)
 const TUNNEL_NS_SLOT          = 31; // NS slot of the Tunnel abstraction (call-home I/O channel)
-
-// Startup.Config lump layout constants — single source of truth in startup_config_layout.js.
-var {
-    SC_DATA_OFFSET,
-    SC_FLAGS_WORD,
-    SC_FAULT_COUNT_WORD,
-} = (typeof require !== 'undefined')
-    ? require('./startup_config_layout.js')
-    : (window.StartupConfigLayout || {});
 
 // Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM
 // (Task #651 redesign). Written into Boot.Abstr lump code region during _initNamespaceTable()
@@ -826,7 +816,7 @@ class ChurchSimulator {
         return [
             { label: 'Boot.NS',      perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
             { label: 'Boot.Thread',   perms: {R:0,W:0,X:0,L:0,S:0,E:0}, chainable: false },
-            { label: 'Startup.Config', perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false }, // Slot 2: Startup.Config (Task #396)
+            null,              // slot 2 freed — Startup.Config removed; hardware ISA owns M-state per CR register
             { label: 'LED flash',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Salvation',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
             { label: 'Navana',        perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },
@@ -909,11 +899,11 @@ class ChurchSimulator {
         // keeps this path consistent with server/boot_image.py BOOT_ABSTR_DEFAULT_SIZE.
         const BOOT_ABSTR_LUMP_SIZE = 64;
         const NS_LUMP_SIZE         = (_bcStep1 && _bcStep1.namespaceLumpWords) || this.SLOT_SIZE;
-        // BOOT_ABSTR_NS_SLOT — module-level constant; slot 2 is Startup.Config (Task #396).
+        // BOOT_ABSTR_NS_SLOT — module-level constant; slot 2 is freed (Startup.Config removed).
         const slotSizes = {};
         slotSizes[0] = NS_LUMP_SIZE;
         slotSizes[1] = THREAD_LUMP_SIZE;
-        // Slot 2 (Startup.Config) uses the default SLOT_SIZE=64 — no override needed.
+        // Slot 2 freed — no override needed.
         slotSizes[BOOT_ABSTR_NS_SLOT] = BOOT_ABSTR_LUMP_SIZE;  // Boot.Abstr: 64w default
 
         // Boot Image Designer Step 2 (Task #215): per-slot physAddr overrides
@@ -1025,8 +1015,7 @@ class ChurchSimulator {
 
         // Thread caps zone — CR0 home slot at word offset +244 is NULL (0x00000000) at boot.
         // The programmable Entry E-GT is written here only by explicit configuration:
-        //   • Startup.Config.SetEntry(slot) → writes E-GT for the chosen first abstraction
-        //   • setBootEntrySlot(slot) in the simulator UI → same
+        //   • setBootEntrySlot(slot) in the simulator UI → writes E-GT for the chosen boot entry
         // The 3-instruction Boot.Abstr program reads this slot via CHANGE's caps-zone restore,
         // loading it into CR0.  If it remains NULL, CALL CR0 produces a NULL_CAP fault (intended
         // behaviour when no entry has been configured).  NEVER pre-populate this here.
@@ -1111,54 +1100,10 @@ class ChurchSimulator {
         this.memory[entryNSBase + 2] = this.makeVersionSeals(0, bootEntryLoc, entryCRLimit);
         this.nsClistMap[BOOT_ABSTR_NS_SLOT] = [];                     // Boot.Abstr has no c-list (cc=0)
 
-        // ── Startup.Config lump (NS slot 2) ───────────────────────────────────────
-        // 64-word lump with a 3-word CLOOMC code region and a 1-slot c-list (Task #512).
-        //   word  0:        Lump header (cw=3, cc=1)
-        //   words 1-3:      Code region — 3 CLOOMC instructions (LOAD / TPERM / CALL)
-        //   words 4-62:     Data region (59 words)
-        //     word 4 (data[0]): entry_slot  = 4   (NS[4] Salvation, the default boot target)
-        //     word 5 (data[1]): config_version = STARTUP_CONFIG_VERSION_INIT
-        //     word 6 (data[2]): flags = 0
-        //     word 7 (data[3]): fault_count = 0
-        //     words 8-62 (data[4-58]): user params = 0 (already zero-initialized)
-        //   word 63:        C-list slot 0 — configured entry E-GT (default: Salvation, slot 4)
-        //
-        // The CLOOMC program (executed by FPGA on every reset via CALL from Boot.Abstr):
-        //   LOAD  AL, CR0, CR6[0]  — load entry E-GT from Startup.Config c-list[0] into CR0
-        //   TPERM AL, CR0, #E      — restrict CR0 to E permission only
-        //   CALL  AL, CR0, CR0     — enter configured entry abstraction
-        //
-        // DEMO_CLIST[4] now points to Startup.Config (slot 2) instead of Salvation (slot 4).
-        // The boot path becomes: Boot.Abstr → CALL Startup.Config → CALL <configured entry>.
-        // Default configured entry is Salvation (slot 4); changeable via Startup.Config.SetEntry().
-        const STARTUP_CONFIG_VERSION_INIT = 0x00000001;
-        const STARTUP_CONFIG_DEFAULT_ENTRY = 4;
-        // Pre-computed CLOOMC instruction words (Task #512).
-        // Must stay in sync with hardware/boot_rom.py STARTUP_CONFIG_PROGRAM.
-        const STARTUP_CONFIG_WORDS = [
-            0x07030000, // LOAD  AL, CR0, CR6[0]  — load entry E-GT from c-list[0]
-            0x37000008, // TPERM AL, CR0, #E       — restrict to E permission only
-            0x17000000, // CALL  AL, CR0, CR0      — enter configured entry abstraction
-        ];
-        const startupConfigLoc = this.memory[this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS];
-        this.memory[startupConfigLoc + 0] = this.packLumpHeader(0, 3, 1, 0); // 64-word lump header: cw=3, cc=1
-        // Code region (words 1-3)
-        for (let i = 0; i < STARTUP_CONFIG_WORDS.length; i++) {
-            this.memory[startupConfigLoc + 1 + i] = STARTUP_CONFIG_WORDS[i] >>> 0;
-        }
-        // Data region starts at SC_DATA_OFFSET (shifted +3 from old data-only layout)
-        this.memory[startupConfigLoc + SC_DATA_OFFSET]     = STARTUP_CONFIG_DEFAULT_ENTRY;  // data[0]: entry_slot
-        this.memory[startupConfigLoc + SC_DATA_OFFSET + 1] = STARTUP_CONFIG_VERSION_INIT;   // data[1]: config_version
-        // data[2..58] remain 0 (memory is zero-initialized)
-        // C-list slot 0 (word 63): Salvation E-GT — the default configured entry
-        this.memory[startupConfigLoc + 63] = clistGTs[4];   // clistGTs[4] = Salvation E-GT (NS slot 4)
-        // Override NS entry for Startup.Config (slot 2):
-        //   lim17 = lumpSize - cc - 1 = 64 - 1 - 1 = 62 (last data word; c-list at word 63)
-        //   clist_count = 1
-        const startupConfigCRLimit = this.SLOT_SIZE - 1 - 1;  // = 62
-        const startupConfigNSBase  = this.NS_TABLE_BASE + 2 * this.NS_ENTRY_WORDS;
-        this.memory[startupConfigNSBase + 1] = this.packNSWord1(startupConfigCRLimit, 0, 0, 0, 0, 1, 1);
-        this.memory[startupConfigNSBase + 2] = this.makeVersionSeals(0, startupConfigLoc, startupConfigCRLimit);
+        // Slot 2 freed — Startup.Config removed. The hardware ISA owns M-state per CR
+        // register. CALL through a non-M E-GT drops M automatically (BOOT_ROM_WORDS[2]).
+        // Thread.CR[0] entry E-GT is set by the boot image / setBootEntrySlot(); no
+        // intermediary lump is needed.
 
         // ── Service abstraction c-lists (Task #971) ──────────────────────────────
         // Populate c-lists for the 14 service abstractions that have declared
@@ -1625,12 +1570,12 @@ class ChurchSimulator {
                 this.sto = sp_max - 2;
 
                 // ── Step 4: cc=0 (CLOOMC design) vs cc>0 (legacy) ─────────────────────
-                // cc=0: CHANGE→TPERM→CALL path — no c-list.  thread[+244] is NULL here;
-                //       SetEntry (called in B:08 via Startup.Config.Execute) writes the E-GT.
+                // cc=0: CHANGE→TPERM→CALL path — no c-list.  thread[+244] holds the entry
+                //       E-GT written by the boot image or setBootEntrySlot(); CALL CR0 dispatches.
                 // cc>0: derive CR6 (c-list, E) from lump header (legacy saved-lump path).
                 if (cc === 0) {
                     // CLOOMC design (Task #651): no c-list in Boot.Abstr.
-                    // thread[+244] stays NULL until Startup.Config.SetEntry is called (B:08 → Execute → SetEntry).
+                    // thread[+244] holds the boot entry E-GT (set by boot image or setBootEntrySlot()).
                     // The 3-instruction program (CHANGE→TPERM→CALL) reads it from caps zone at runtime.
                     // CR6 was written by B:05 INIT_ABSTR with the Boot.Abstr E-GT; that GT is already
                     // snapshotted into the sentinel frame above (thread[+242]).  Since cc=0 means there
@@ -1640,7 +1585,7 @@ class ChurchSimulator {
                     this.output += `[BOOT] SENTINEL CALL — frame@+${sp_max}=0x${sentinelFrameWord.toString(16).toUpperCase().padStart(8,'0')} (NIA=0x7FFF,sz=1,prev_STO=${sp_max}), E-GT@+${sp_max-1}=0x${oldCR6GT.toString(16).toUpperCase().padStart(8,'0')}, STO=${this.sto}\n`;
                     this.auditLog.push({
                         gate: 'SENTINEL',
-                        desc: `Boot.Abstr cc=0 (no c-list) — sentinel pushed @ +${sp_max}; thread[+${THREAD_CAPS_OFFSET}] remains NULL until SetEntry`,
+                        desc: `Boot.Abstr cc=0 (no c-list) — sentinel pushed @ +${sp_max}; thread[+${THREAD_CAPS_OFFSET}] holds boot entry E-GT`,
                         label: _b4Label + ' (no c-list)',
                         nsIndex: bootEntrySlot,
                         requiredPerm: null,
@@ -1721,41 +1666,20 @@ class ChurchSimulator {
                     stepCtx: 'NUC_CODE CR14',
                 });
 
-                this.bootStep++;                  // advance state machine → B:08 (COMPLETE)
-                this.ledBits = 0b111111;          // all 6 LEDs on = NUC_CODE complete
-                break;
-            }
-
-            // ════════════════════════════════════════════════════════════════════
-            // B:08  COMPLETE  (case 8)
-            // Run Startup.Config.Execute(), drop M-elevation, mark boot done.
-            // ════════════════════════════════════════════════════════════════════
-            case 8: {
-                // Startup.Config.Execute(): automatic dispatch (mirrors
-                // BOOT_ROM_WORDS[7] CALL via c-list[4]) under M-elevation so the
-                // pre-checks always run even if Boot.Thread lacks S-perm.
-                if (this.abstractionRegistry) {
-                    const _scResult = this.abstractionRegistry.dispatchMethod(STARTUP_CONFIG_NS_SLOT, 'Execute', this, {});
-                    if (_scResult && _scResult.ok === false) {
-                        // Execute() already set ledBits = fault_count & 0x3F; preserve it.
-                        this.output += `[BOOT] STARTUP_CONFIG FAILED — ${_scResult.message || _scResult.fault || 'unknown'}. Halting.\n`;
-                        this.fault('BOOT', `Startup.Config.Execute failed: ${_scResult.message || _scResult.fault || 'unknown'}`);
-                        break;  // halt — do not set bootComplete
-                    }
-                }
-
-                this.mElevation = false;            // drop M-elevation: normal capability checks now apply to all subsequent instructions
-                this._resetAllMBits();              // clear M-bits set on CRs during boot (mElevation=true wrote m=1 via _writeCR);
-                                                    // without this, the first CALL after boot would trigger the M-window writeback
-                                                    // gate with NULL DR11 (since _setMWindow was never called during boot).
-                this.bootComplete = true;           // signal the step-loop to stop calling _bootStep and start dispatching instructions
-                this.ledBits = 0b111111;            // Execute() already set ledBits=0x3F on success; keep all LEDs on
+                // B:07 is the final boot step. The hardware ISA owns M-state per CR register —
+                // CALL through a non-M E-GT (BOOT_ROM_WORDS[2]: CALL AL, CR0, CR0) drops M
+                // automatically on dispatch. No Startup.Config intermediary is needed.
+                this.mElevation = false;            // drop M-elevation: normal capability checks now apply
+                this._resetAllMBits();              // clear M-bits set on CRs during boot init;
+                                                    // prevents stale m=1 from triggering writeback gate
+                                                    // on the first CALL after boot completes.
+                this.bootComplete = true;           // signal the step-loop to start dispatching instructions
+                this.ledBits = 0b111111;            // all 6 LEDs on = boot complete
                 this.ledMode = 'boot';              // LED display stays in boot-progress mode until first user toggle
-                this.output += '[BOOT] COMPLETE — M-Elevation OFF. All Layer 0–1 abstractions initialized. Boot complete.\n';
-                // Synthetic audit entry — closes the boot gate trail
+                this.output += '[BOOT] COMPLETE — M-Elevation OFF. CALL CR0 will enter boot entry (Thread.CR[0]). Boot complete.\n';
                 this.auditLog.push({
                     gate: 'CMPL',
-                    desc: 'bootComplete ← true  ·  M-elevation OFF  ·  dispatch begins',
+                    desc: 'bootComplete ← true  ·  M-elevation OFF  ·  CALL CR0 dispatches to boot entry',
                     label: 'Boot complete',
                     nsIndex: null,
                     requiredPerm: null,

@@ -84,15 +84,6 @@
 //
 // =============================================================================
 
-var {
-    SC_DATA_OFFSET,
-    SC_LAST_DATA_KEY,
-    SC_OOB_KEY,
-    SC_FLAGS_WORD,
-    SC_FAULT_COUNT_WORD,
-} = (typeof require !== 'undefined')
-    ? require('./startup_config_layout.js')
-    : (window.StartupConfigLayout || {});
 
 function nextPow2(n) {
     if (n <= 0) return 1;
@@ -112,7 +103,6 @@ class SystemAbstractions {
     }
 
     _bindAll() {
-        this._bindStartupConfig();
         this._bindSalvation();
         this._bindNavana();
         this._bindMint();
@@ -161,225 +151,6 @@ class SystemAbstractions {
         };
     }
 
-    _bindStartupConfig() {
-        // Startup.Config lump layout (Task #512 — cw=3, cc=1 — 64 words total):
-        //   lump[0]     : lump header (packLumpHeader: cw=3, cc=1)
-        //   lump[1..3]  : code region — 3 CLOOMC instructions (LOAD/TPERM/CALL)
-        //   lump[4]     : data[0] = entry_slot  (default 4 = NS[4] Salvation)
-        //   lump[5]     : data[1] = config_version (STARTUP_CONFIG_VERSION = 0x00000001)
-        //   lump[6]     : data[2] = flags (reserved, must be 0)
-        //   lump[7]     : data[3] = fault_count (incremented on Execute pre-check failure)
-        //   lump[8..62] : data[4..58] = user params (R/W via ReadParam/WriteParam)
-        //   lump[63]    : c-list slot 0 — configured entry E-GT (default: Salvation, NS slot 4)
-        //
-        // getData(sim, key) → lump[4 + key]   (data region starts at word 4)
-        // setData(sim, key, value) → lump[4 + key] = value
-        //
-        // Default entry_slot is 4 (NS[4] = Salvation), NOT 3 (Boot.Abstr = NS[3] = LED flash).
-        // Slot 3 is rejected by SetEntry as RECURSIVE_SLOT because Boot.Abstr calls
-        // Startup.Config.Execute(), making slot 3 → Boot.Abstr → slot 2 → slot 3 recursive.
-        //
-        // All state is stored in sim.memory at the slot-2 lump location so that
-        // boot images loaded via loadBootImage() (which may have a different initial
-        // entry_slot or user params) are authoritative.  Methods read/write lump memory
-        // directly instead of keeping a separate closure array.
-        const STARTUP_CONFIG_VERSION = 0x00000001;
-        const STARTUP_CONFIG_DEFAULT_ENTRY = 4;
-
-        function lumpLoc(sim) {
-            return sim.memory[sim.NS_TABLE_BASE + 2 * sim.NS_ENTRY_WORDS] >>> 0;
-        }
-        function getData(sim, key) {
-            // Data region starts at SC_DATA_OFFSET (after header word 0 and 3 code words 1-3).
-            return sim.memory[lumpLoc(sim) + SC_DATA_OFFSET + key] >>> 0;
-        }
-        function setData(sim, key, value) {
-            // Data region starts at SC_DATA_OFFSET (after header word 0 and 3 code words 1-3).
-            sim.memory[lumpLoc(sim) + SC_DATA_OFFSET + key] = value >>> 0;
-        }
-        function bumpFaultCount(sim) {
-            const fc = (getData(sim, 3) + 1) >>> 0;
-            setData(sim, 3, fc);
-            sim.ledBits = fc & 0x3F;
-            return fc;
-        }
-
-        this.registry.bindMethod(2, 'Execute', function(sim, args) {
-            // Pre-check 1: config_version must match compiled-in constant
-            if (getData(sim, 1) !== STARTUP_CONFIG_VERSION) {
-                bumpFaultCount(sim);
-                return { ok: false, result: 1, fault: 'VERSION_MISMATCH',
-                         message: 'Startup.Config.Execute: VERSION_MISMATCH' };
-            }
-            // Pre-check 2: flags must be zero
-            if (getData(sim, 2) !== 0) {
-                bumpFaultCount(sim);
-                return { ok: false, result: 2, fault: 'BAD_FLAGS',
-                         message: 'Startup.Config.Execute: BAD_FLAGS' };
-            }
-            // Pre-check 3: entry_slot in bounds
-            const entrySlot = getData(sim, 0);
-            if (entrySlot >= ((sim.nsCount || 0) >>> 0)) {
-                bumpFaultCount(sim);
-                return { ok: false, result: 3, fault: 'ENTRY_OOB',
-                         message: `Startup.Config.Execute: ENTRY_OOB (slot ${entrySlot})` };
-            }
-            // Pre-check 4: NS[entry_slot] non-null
-            const entryBase = sim.NS_TABLE_BASE + entrySlot * sim.NS_ENTRY_WORDS;
-            if (!(sim.memory[entryBase] >>> 0) && !(sim.memory[entryBase + 1] >>> 0)) {
-                bumpFaultCount(sim);
-                return { ok: false, result: 4, fault: 'ENTRY_NULL',
-                         message: `Startup.Config.Execute: ENTRY_NULL (NS[${entrySlot}])` };
-            }
-            // Pre-check 5: NS[0] non-null (Boot.NS lives at address 0 so word0=0 is valid; check word1 too)
-            const base0 = sim.NS_TABLE_BASE + 0 * sim.NS_ENTRY_WORDS;
-            if (!(sim.memory[base0] >>> 0) && !(sim.memory[base0 + 1] >>> 0)) {
-                bumpFaultCount(sim);
-                return { ok: false, result: 5, fault: 'NS0_MISSING',
-                         message: 'Startup.Config.Execute: NS0_MISSING' };
-            }
-            // Pre-check 6: NS[1] non-null
-            const base1 = sim.NS_TABLE_BASE + 1 * sim.NS_ENTRY_WORDS;
-            if (!(sim.memory[base1] >>> 0) && !(sim.memory[base1 + 1] >>> 0)) {
-                bumpFaultCount(sim);
-                return { ok: false, result: 6, fault: 'NS1_MISSING',
-                         message: 'Startup.Config.Execute: NS1_MISSING' };
-            }
-            // Pre-check 7: NS[3] non-null
-            const base3 = sim.NS_TABLE_BASE + 3 * sim.NS_ENTRY_WORDS;
-            if (!(sim.memory[base3] >>> 0) && !(sim.memory[base3 + 1] >>> 0)) {
-                bumpFaultCount(sim);
-                return { ok: false, result: 7, fault: 'NS3_MISSING',
-                         message: 'Startup.Config.Execute: NS3_MISSING' };
-            }
-            // All pre-checks passed — dispatch to configured entry slot
-            sim.ledBits = 0x3F;
-            const entryLabel = (sim.nsLabels && sim.nsLabels[entrySlot]) || `NS[${entrySlot}]`;
-            let calleeOk = true;
-            let calleeMessage = '';
-            if (sim.abstractionRegistry) {
-                const calleeResult = sim.abstractionRegistry.dispatchMethod(entrySlot, 'Execute', sim, args);
-                // Only treat as CALLEE_FAILED if the callee explicitly returned an
-                // execution error.  A 'METHOD' fault (no Execute on the target) is
-                // acceptable — the target abstraction is not required to implement Execute.
-                if (calleeResult && calleeResult.ok === false && calleeResult.fault !== 'METHOD') {
-                    calleeOk = false;
-                    calleeMessage = calleeResult.message || `NS[${entrySlot}].Execute failed`;
-                    bumpFaultCount(sim);
-                }
-            }
-            if (sim.auditLog) {
-                sim.auditLog.push({
-                    gate: 'Startup.Config.Execute',
-                    label: entryLabel,
-                    nsIndex: entrySlot,
-                    requiredPerm: null,
-                    checks: { execute: { pass: calleeOk } },
-                    b: 0, f: 0,
-                    result: calleeOk ? 'pass' : 'fail',
-                    bootStepName: 'STARTUP_CONFIG',
-                });
-            }
-            if (!calleeOk) {
-                return { ok: false, result: 8, fault: 'CALLEE_FAILED',
-                         message: `Startup.Config.Execute: CALLEE_FAILED (${calleeMessage})` };
-            }
-            return { ok: true, result: 0,
-                     message: `Startup.Config.Execute → ${entryLabel}` };
-        });
-
-        this.registry.bindMethod(2, 'GetEntry', function(sim, args) {
-            const val = getData(sim, 0);
-            return { ok: true, result: val,
-                     message: `Startup.Config.GetEntry → ${val}` };
-        });
-
-        this.registry.bindMethod(2, 'SetEntry', function(sim, args) {
-            const slot = (args && args.dr1 !== undefined) ? (args.dr1 >>> 0) : 0;
-            if (slot === 2 || slot === 3) {
-                return { ok: false, result: 3,
-                         message: `Startup.Config.SetEntry: RECURSIVE_SLOT (slot ${slot})` };
-            }
-            if (slot >= ((sim.nsCount || 0) >>> 0)) {
-                return { ok: false, result: 1,
-                         message: `Startup.Config.SetEntry: OUT_OF_RANGE (slot ${slot})` };
-            }
-            const base = sim.NS_TABLE_BASE + slot * sim.NS_ENTRY_WORDS;
-            if (!(sim.memory[base] >>> 0) && !(sim.memory[base + 1] >>> 0)) {
-                return { ok: false, result: 2,
-                         message: `Startup.Config.SetEntry: ENTRY_NULL (NS[${slot}])` };
-            }
-            setData(sim, 0, slot);
-            // Task #651: Also write E-GT to thread caps zone CR0 slot (thread[+244])
-            // so the new 3-instruction Boot.Abstr CHANGE → TPERM → CALL path picks it up.
-            const threadBase = sim.memory[sim.NS_TABLE_BASE + 1 * sim.NS_ENTRY_WORDS] >>> 0;
-            const capsOffset = (typeof THREAD_CAPS_OFFSET !== 'undefined') ? THREAD_CAPS_OFFSET : 244;
-            const eGT = sim.createGT(0, slot, {E:1}, 1);
-            sim.memory[threadBase + capsOffset] = eGT >>> 0;
-            return { ok: true, result: 0,
-                     message: `Startup.Config.SetEntry(${slot}) → ok` };
-        });
-
-        this.registry.bindMethod(2, 'ReadParam', function(sim, args) {
-            const key = (args && args.dr1 !== undefined) ? (args.dr1 >>> 0) : 0;
-            // 64-word lump: header@0, code@1-3, data@4-62, c-list@63.
-            // Data region = 59 words → keys 0..SC_LAST_DATA_KEY.  SC_OOB_KEY+ reaches c-list or beyond.
-            if (key >= SC_OOB_KEY) {
-                return { ok: true, result: 0xFFFFFFFF,
-                         message: 'Startup.Config.ReadParam: KEY_OOB' };
-            }
-            return { ok: true, result: getData(sim, key),
-                     message: `Startup.Config.ReadParam(${key}) → ${getData(sim, key)}` };
-        });
-
-        this.registry.bindMethod(2, 'WriteParam', function(sim, args) {
-            const key   = (args && args.dr1 !== undefined) ? (args.dr1 >>> 0) : 0;
-            const value = (args && args.dr2 !== undefined) ? (args.dr2 >>> 0) : 0;
-            // Keys 0-2 are read-only (entry_slot, config_version, flags).
-            if (key < 3) {
-                return { ok: false, result: 2,
-                         message: `Startup.Config.WriteParam: READ_ONLY (key ${key})` };
-            }
-            // 64-word lump: header@0, code@1-3, data@4-62, c-list@63.
-            // Data region = 59 words → keys 0..SC_LAST_DATA_KEY.  SC_OOB_KEY+ would corrupt c-list.
-            if (key >= SC_OOB_KEY) {
-                return { ok: false, result: 1,
-                         message: 'Startup.Config.WriteParam: KEY_OOB' };
-            }
-            setData(sim, key, value);
-            return { ok: true, result: 0,
-                     message: `Startup.Config.WriteParam(${key}, ${value}) → ok` };
-        });
-
-        this.registry.bindMethod(2, 'Validate', function(sim, args) {
-            // Returns a 4-bit bitmask for NS slots 0-3 (the foundational quad).
-            // Bit N is set iff NS[N] is non-null (word0 ≠ 0 OR word1 ≠ 0).
-            // Healthy boot image → all four slots present → 0xF.
-            let bitmask = 0;
-            for (let n = 0; n <= 3; n++) {
-                const base = sim.NS_TABLE_BASE + n * sim.NS_ENTRY_WORDS;
-                const w0 = sim.memory[base] >>> 0;
-                const w1 = sim.memory[base + 1] >>> 0;
-                if (w0 !== 0 || w1 !== 0) bitmask |= (1 << n);
-            }
-            return { ok: true, result: bitmask >>> 0,
-                     message: `Startup.Config.Validate → 0x${bitmask.toString(16)}` };
-        });
-
-        this.registry.bindMethod(2, 'Version', function(sim, args) {
-            return { ok: true, result: STARTUP_CONFIG_VERSION >>> 0,
-                     message: `Startup.Config.Version → 0x${STARTUP_CONFIG_VERSION.toString(16)}` };
-        });
-
-        this.registry.bindMethod(2, 'Reset', function(sim, args) {
-            setData(sim, 0, STARTUP_CONFIG_DEFAULT_ENTRY); // entry_slot = 4 (Salvation, default)
-            setData(sim, 2, 0);                             // flags = 0
-            for (let k = 3; k < 59; k++) setData(sim, k, 0); // fault_count + user params = 0 (keys 0..58)
-            // data[1] (config_version) is intentionally preserved across Reset
-            return { ok: true, result: 0, message: 'Startup.Config.Reset → ok' };
-        });
-    }
-
     _bindSalvation() {
         this.registry.bindMethod(4, 'LOAD', function(sim, args) {
             return { ok: true, result: 'Salvation.LOAD: proved namespace lookup' };
@@ -395,22 +166,6 @@ class SystemAbstractions {
                 ok: true,
                 result: 'Salvation.TransitionToNavana: security pipeline verified, transitioning to Navana',
                 message: 'Salvation complete — handing control to Navana (Namespace controller). Navana runs indefinitely.'
-            };
-        });
-        this.registry.bindMethod(4, 'Execute', function(sim, args) {
-            const registry = sim.abstractionRegistry;
-            let initResult = null;
-            if (registry) {
-                initResult = registry.dispatchMethod(5, 'Init', sim, args || {});
-            }
-            const initOk = !!(initResult && initResult.ok);
-            return {
-                ok: initOk,
-                result: initOk ? 1 : 0,
-                initStatus: initResult || null,
-                message: initOk
-                    ? 'Salvation.Execute: security pipeline verified — Navana.Init called'
-                    : 'Salvation.Execute: Navana.Init dispatch failed or was not bound'
             };
         });
     }
