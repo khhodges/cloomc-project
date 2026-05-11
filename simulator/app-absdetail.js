@@ -502,7 +502,7 @@ function showAbstractionDetail(index) {
                 const active = mi === 0 ? ' abs-method-tab-active' : '';
                 const mStatus = _implStatusGet(`${uid}:${m}`);
                 const badgeLabel = IMPL_STATUS_SHORT[mStatus] || mStatus;
-                html += `<span class="abs-method-tab${active}" onclick="absSelectMethod(this,'abs-panel-${uid}-${mi}')">`;
+                html += `<span class="abs-method-tab${active}" onclick="absOpenMethodInEditor(${uid},${JSON.stringify(m)},this,'abs-panel-${uid}-${mi}')">`;
                 html += `${m}`;
                 html += `<span class="abs-method-status-badge abs-method-status-badge-${mStatus}" onclick="event.stopPropagation();absToggleStatusDropdown(${uid},${mi},event)" title="Status: ${IMPL_STATUS_LABELS[mStatus]} — click to change">`;
                 html += `<span class="abs-method-status-badge-dot"></span>${badgeLabel}`;
@@ -671,6 +671,40 @@ function absSelectMethod(tabEl, panelId) {
     }
     const panel = document.getElementById(panelId);
     if (panel) panel.style.display = '';
+}
+
+function absOpenMethodInEditor(absIdx, methodName, tabEl, panelId) {
+    absSelectMethod(tabEl, panelId);
+
+    // Try to find the backing lump for this abstraction by NS slot
+    if (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache)) {
+        const lump = _lumpsCache.find(function(l) {
+            return parseInt(l.ns_slot) === absIdx &&
+                   l.lump_type !== 'namespace' && l.typ !== 10;
+        });
+        if (lump && typeof openLumpInEditor === 'function') {
+            openLumpInEditor(lump.token);
+            return;
+        }
+    }
+
+    // Fallback: load the method pseudocode from the examples table into the editor
+    const abs = (typeof abstractionRegistry !== 'undefined' && abstractionRegistry)
+                    ? abstractionRegistry.getAbstraction(absIdx) : null;
+    const examples = abs ? getMethodExamples(abs) : {};
+    const code = (examples && examples[methodName])
+        || `; ${abs ? abs.name + '.' : ''}${methodName}\n; No lump found for NS[${absIdx}] — boot the simulator or upload a LUMP first.\n`;
+
+    if (typeof switchView === 'function') switchView('editor');
+    const sel = document.getElementById('langSelector');
+    if (sel) sel.value = 'assembly';
+    const asmEd = document.getElementById('asmEditor');
+    if (asmEd) {
+        asmEd.value = code;
+        if (typeof updateLineNumbers === 'function') updateLineNumbers();
+    }
+    const outEl = document.getElementById('assemblyOutput');
+    if (outEl) outEl.innerHTML = '';
 }
 
 function absShowAddForm(absIdx) {
