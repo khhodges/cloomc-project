@@ -2246,7 +2246,7 @@ class CLOOMCCompiler {
         for (const method of parsed.methods) {
             for (const stmt of method.body) {
                 const text = (stmt.text || '').replace(/×/g, '*').replace(/÷/g, '/');
-                if (/[*\/]/.test(text) || /\b(multiply|divide|bernoulli)\s*\(/i.test(text) || /\bSlideRule\.\w+\s*\(/i.test(text)) {
+                if (/[*\/]/.test(text) || /\b(multiply|divide|bernoulli)\s*\(/i.test(text) || /\bSlideRule\.\w+\s*\(/i.test(text) || /\bSlideRule\s*\(/i.test(text)) {
                     return true;
                 }
             }
@@ -2538,6 +2538,29 @@ class CLOOMCCompiler {
                     manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${resultDR}, DR0`, comment: `result → DR${dstDR}` });
                 }
                 return dstDR;
+            }
+
+            const inferCallMatch = expr.match(/^([A-Z][A-Za-z0-9_]*)\s*\(\s*(.+)\s*\)$/);
+            if (inferCallMatch) {
+                const absName = inferCallMatch[1];
+                const innerExpr = inferCallMatch[2].trim();
+                const isKnownAbs = absName === 'SlideRule' || !!this.methodConventions[absName];
+                if (isKnownAbs) {
+                    const opMethodMap = [['*', 'Multiply'], ['/', 'Divide'], ['+', 'Add'], ['-', 'Subtract']];
+                    let routed = false;
+                    for (const [op, method] of opMethodMap) {
+                        const opIdx = innerExpr.indexOf(op);
+                        if (opIdx > 0) {
+                            const left  = innerExpr.slice(0, opIdx).trim();
+                            const right = innerExpr.slice(opIdx + 1).trim();
+                            return emitExpr(`${absName}.${method}(${left}, ${right})`, dstDR, lineNum);
+                        }
+                    }
+                    if (!routed) {
+                        errors.push({ line: lineNum, message: `${absName}(${innerExpr}): cannot infer method — no operator found. Use ${absName}.Sqrt(${innerExpr}) or similar.` });
+                        return dstDR;
+                    }
+                }
             }
 
             const funcMatch = expr.match(/^(multiply|divide|add|subtract|succ|pred|negate|abs|bernoulli)\s*\(\s*(.+)\s*\)$/i);

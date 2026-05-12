@@ -3242,6 +3242,52 @@ function symCompile(body, caps) {
         r.errors.map(e => e.message).join('; '));
 }
 
+// ── Symbolic Math compiler — inferred-method shorthand Abs(expr) ─────────────
+
+{
+    // SC11: SlideRule(5*B) shorthand — * infers Multiply, produces same code as SlideRule.Multiply(5,B)
+    const r1 = symCompile('K = SlideRule(5*B)', ['SlideRule']);
+    const r2 = symCompile('K = SlideRule.Multiply(5, B)', ['SlideRule']);
+    assert('SC11 SlideRule(5*B) shorthand compiles without errors',
+        r1.errors.length === 0, r1.errors.map(e => e.message).join('; '));
+    assert('SC11 SlideRule(5*B) produces same code word count as SlideRule.Multiply(5,B)',
+        r1.errors.length === 0 && r2.errors.length === 0 &&
+        r1.methods[0].code.length === r2.methods[0].code.length,
+        `shorthand=${r1.methods[0]?.code.length} explicit=${r2.methods[0]?.code.length}`);
+}
+
+{
+    // SC12: SlideRule(A/B) shorthand — / infers Divide
+    const r = symCompile('K = SlideRule(A/B)', ['SlideRule']);
+    assert('SC12 SlideRule(A/B) shorthand compiles without errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC13: Circle(r*r) shorthand — Circle has no Multiply method, gives helpful error
+    const r = symCompile('K = Circle(r*r)', ['Circle']);
+    assert('SC13 Circle(r*r) shorthand — error mentions unknown Multiply on Circle',
+        r.errors.length > 0 && r.errors.some(e => e.message.includes('Multiply') || e.message.includes('Circle')),
+        r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC13b: Tunnel(a*b) shorthand — Tunnel has Send(DR1=tag, DR2=count), * infers Multiply via general path
+    // Tunnel doesn't have Multiply either — verifies error is helpful
+    const r = symCompile('Tunnel(V1*V2)', ['Tunnel']);
+    assert('SC13b Tunnel(V1*V2) shorthand — error mentions Multiply or Tunnel',
+        r.errors.length > 0 && r.errors.some(e => e.message.includes('Multiply') || e.message.includes('Tunnel')),
+        r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC14: SlideRule(x) with no operator gives a helpful error
+    const r = symCompile('K = SlideRule(x)', ['SlideRule']);
+    assert('SC14 SlideRule(x) no-operator shorthand — gives helpful error',
+        r.errors.length > 0 && r.errors[0].message.includes('cannot infer method'),
+        r.errors.map(e => e.message).join('; '));
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);
