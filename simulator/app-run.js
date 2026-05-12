@@ -1261,6 +1261,13 @@ function runSim() {
             } else if (totalSteps >= MAX_STEPS) {
                 finishRun('maxSteps');
             } else {
+                // Auto-pause when cumulative fault-free instruction count crosses 1,000
+                if (sim.faultLog.length === 0
+                        && _faultFreeInstrTotal < 1000
+                        && (_faultFreeInstrTotal + totalSteps) >= 1000) {
+                    finishRun('faultFreeLimit');
+                    return;
+                }
                 try { updateDashboard(); } catch(e) { console.error('runBatch updateDashboard:', e); }
                 setTimeout(runBatch, 0);
             }
@@ -1274,7 +1281,8 @@ function runSim() {
         _showStopBtn(false);
         console.log('[finishRun] stopReason=', stopReason, 'halted=', sim.halted, 'bootComplete=', sim.bootComplete, 'faultLog=', sim.faultLog.length, 'steps=', totalSteps);
         if (sim.faultLog.length > 0) console.log('[finishRun] FAULTS:', JSON.stringify(sim.faultLog.map(f => f.type + ': ' + f.message)));
-        const ranClean = (stopReason === 'halted' || sim.halted) && sim.faultLog.length === 0;
+        const ranClean = ((stopReason === 'halted' || sim.halted) && sim.faultLog.length === 0)
+            || stopReason === 'faultFreeLimit';
         const countable = stopReason !== 'breakpoint' && stopReason !== 'bootExit'
             && sim.bootComplete && totalSteps >= 1;
         if (countable && _simRunHash) {
@@ -1295,6 +1303,8 @@ function runSim() {
                 status = `Max steps (${totalSteps}) reached.`;
             } else if (stopReason === 'userStopped') {
                 status = 'Stopped by user.';
+            } else if (stopReason === 'faultFreeLimit') {
+                status = '\u2B50 1,000 fault-free instructions \u2014 MTBF\u00a00.0001 achieved. Program is LUMP-eligible.';
             } else if (stopReason === 'error') {
                 status = 'Runtime error — see console.';
             }
@@ -1307,13 +1317,14 @@ function runSim() {
         // catch here so the Run button is always re-enabled regardless.
         try { updateDashboard(); } catch(e) { console.error('finishRun updateDashboard:', e); }
         // Update Next Steps panel with run outcome before switching view.
-        if (sim.bootComplete && (stopReason === 'halted' || sim.halted)) {
+        if (sim.bootComplete && (stopReason === 'halted' || sim.halted || stopReason === 'faultFreeLimit')) {
             if (typeof showNextSteps === 'function')
                 showNextSteps(ranClean ? 'ran-clean' : 'ran-fault');
         }
         // Clean HALT (no faults, boot complete) → open LUMP page for save workflow.
+        // faultFreeLimit: milestone pause — stay on dashboard and wait for next command.
         // Faults, errors, breakpoints, maxSteps, and userStopped stay on dashboard.
-        switchView(ranClean && sim.bootComplete ? 'lumps' : 'dashboard');
+        switchView(ranClean && sim.bootComplete && stopReason !== 'faultFreeLimit' ? 'lumps' : 'dashboard');
         openCRDetail(14);
         // Persist the fault log so it survives a page reload.
         _saveFaultLog();
