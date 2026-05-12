@@ -889,6 +889,16 @@ const METHOD_REGISTER_CONVENTIONS = {
         'Area':          { index: 0, input: 'DR1 (radius)',              output: 'DR1 = \u03c0r\u00b2',          dispatch: 'CALL 0, CRc',          note: 'Delegates to SlideRule.Multiply and Constants.Pi internally.' },
         'Circumference': { index: 1, input: 'DR1 (radius)',              output: 'DR1 = 2\u03c0r',             dispatch: 'CALL 1, CRc',          note: 'Delegates to SlideRule.Multiply and Constants.Pi internally.' },
     },
+    // Constants: five built-in mathematical constants.
+    // Indices 0–4 match _bindConstants() in system_abstractions.js.
+    // Usage: LOAD CR11, Constants  then  CALL Constants.Pi  (dot-notation) or  CALL CR11, 0
+    'Constants': {
+        'Pi':   { index: 0, input: 'none', output: 'DR1 = \u03c0 (IEEE 754)',  dispatch: 'CALL CR11, 0', note: 'Returns \u03c0 \u2248 3.14159 as a 32-bit value. Load Constants into a CR first, then use dot-notation: CALL Constants.Pi' },
+        'E':    { index: 1, input: 'none', output: 'DR1 = e (IEEE 754)',        dispatch: 'CALL CR11, 1', note: 'Returns Euler\u2019s number \u2248 2.71828.' },
+        'Phi':  { index: 2, input: 'none', output: 'DR1 = \u03c6 (IEEE 754)',  dispatch: 'CALL CR11, 2', note: 'Returns the golden ratio \u03c6 \u2248 1.61803.' },
+        'Zero': { index: 3, input: 'none', output: 'DR1 = 0.0 (IEEE 754)',      dispatch: 'CALL CR11, 3', note: 'Returns IEEE 754 positive zero.' },
+        'One':  { index: 4, input: 'none', output: 'DR1 = 1.0 (IEEE 754)',      dispatch: 'CALL CR11, 4', note: 'Returns IEEE 754 1.0.' },
+    },
 };
 
 function getMethodPurposes(abs) {

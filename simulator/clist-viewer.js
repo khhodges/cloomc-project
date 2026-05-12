@@ -336,6 +336,9 @@
     function emptyState(msg) {
         return '<div class="clist-viewer-header">' +
             '<span class="clist-viewer-title">C-List (CR6)</span>' +
+            '<span style="display:flex;align-items:center;gap:6px;">' +
+            '<button class="clist-add-btn" data-action="show-picker" title="Add a capability to the source c-list">\u2295 Add</button>' +
+            '</span>' +
             '</div>' +
             '<div class="clist-viewer-empty">' + escHtml(msg) + '</div>';
     }

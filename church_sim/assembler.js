@@ -47,6 +47,31 @@ class ChurchAssembler {
                 continue;
             }
 
+            // ── MVN pseudo-instruction ─────────────────────────────────────────
+            // MVN DRd, DRs  →  ~DRs  (ARM-style move-bitwise-NOT)
+            // Expands to three instructions using two's complement identity:
+            //   ISUB DRd, DRs, DRs  ; DRd = 0
+            //   ISUB DRd, DRd, DRs  ; DRd = -DRs
+            //   IADD DRd, DRd, #-1  ; DRd = -DRs - 1 = ~DRs
+            // DRd must differ from DRs — same-register form is a compile-time error.
+            if (/^MVN\b/i.test(line)) {
+                const mvnParts = line.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+                const drDst = (mvnParts[1] || 'DR0').replace(/,/g, '').trim();
+                const drSrc = (mvnParts[2] || 'DR0').replace(/,/g, '').trim();
+                const dstMatch = drDst.match(/^DR(\d+)$/i);
+                const srcMatch = drSrc.match(/^DR(\d+)$/i);
+                if (dstMatch && srcMatch && parseInt(dstMatch[1]) === parseInt(srcMatch[1])) {
+                    this.errors.push({ line: lineNum + 1,
+                        message: `MVN: destination and source must be different registers (both are ${drDst.toUpperCase()}). ` +
+                            `Use a scratch register, e.g.  MVN DR1, DR2  then copy DR1 → DR2 if needed.` });
+                    continue;
+                }
+                instructions.push({ line: `ISUB ${drDst}, ${drSrc}, ${drSrc}`, lineNum: lineNum + 1 });
+                instructions.push({ line: `ISUB ${drDst}, ${drDst}, ${drSrc}`, lineNum: lineNum + 1 });
+                instructions.push({ line: `IADD ${drDst}, ${drDst}, #-1`,      lineNum: lineNum + 1 });
+                continue;
+            }
+
             instructions.push({ line, lineNum: lineNum + 1 });
         }
 
@@ -88,7 +113,9 @@ class ChurchAssembler {
             if (mnemonic === 'HALT' || mnemonic === 'NOP') {
                 return 0;
             }
-            this.errors.push({ line: lineNum, message: `Unknown instruction: ${mnemonic}` });
+            // MVN is intercepted in the instruction-collection pass and never reaches here.
+            const pseudoHint = ' Pseudo-instructions (handled before encoding): NOP, HALT, MVN.';
+            this.errors.push({ line: lineNum, message: `Unknown instruction: ${mnemonic}.${pseudoHint}` });
             return null;
         }
 
@@ -187,13 +214,29 @@ class ChurchAssembler {
             case 15: {
                 crDst = this._parseDR(parts[1], lineNum);
                 crSrc = this._parseDR(parts[2], lineNum);
-                imm = this._parseDR(parts[3], lineNum);
+                // Support optional # immediate operand (e.g. IADD DRd, DRs, #-1)
+                // matching the main assembler's encoding: bit14=1 flags immediate mode.
+                const p3iadd = (parts[3] || '').replace(/,/g, '').trim();
+                if (p3iadd.startsWith('#')) {
+                    const immVal = parseInt(p3iadd.substring(1), 10);
+                    imm = 0x4000 | ((isNaN(immVal) ? 0 : immVal) & 0x3FFF);
+                } else {
+                    imm = this._parseDR(parts[3], lineNum);
+                }
                 break;
             }
             case 16: {
                 crDst = this._parseDR(parts[1], lineNum);
                 crSrc = this._parseDR(parts[2], lineNum);
-                imm = this._parseDR(parts[3], lineNum);
+                // Support optional # immediate operand (e.g. ISUB DRd, DRs, #1)
+                // matching the main assembler's encoding: bit14=1 flags immediate mode.
+                const p3isub = (parts[3] || '').replace(/,/g, '').trim();
+                if (p3isub.startsWith('#')) {
+                    const immVal = parseInt(p3isub.substring(1), 10);
+                    imm = 0x4000 | ((isNaN(immVal) ? 0 : immVal) & 0x3FFF);
+                } else {
+                    imm = this._parseDR(parts[3], lineNum);
+                }
                 break;
             }
             case 17: {
