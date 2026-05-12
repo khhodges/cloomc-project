@@ -311,14 +311,14 @@ function assembleAndLoad() {
         }
         if (result.capabilities && result.capabilities.length > 0) {
             const _cc = result.capabilities.length;
-            listing += `\n\u25C6 c-list  (${_cc} entr${_cc !== 1 ? 'ies' : 'y'})\n`;
+            listing += `\n; c-list  (${_cc} entr${_cc !== 1 ? 'ies' : 'y'})\n`;
             for (let i = 0; i < result.capabilities.length; i++) {
                 const cap = result.capabilities[i];
                 const capName   = typeof cap === 'string' ? cap : (cap.name || String(cap));
                 const capRights = typeof cap === 'string' ? [] : (cap.rights || []);
                 const permsStr  = capRights.length > 0 ? capRights.join('') : '\u2014';
                 const typeStr   = _clistTypeLabel(capName);
-                listing += `  \u25C6 [${i + 1}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
+                listing += `  * [${i + 1}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
             }
         }
         if (con) con.textContent = listing;
@@ -379,14 +379,14 @@ function assembleAndLoad() {
     }
     if (result.capabilities && result.capabilities.length > 0) {
         const _cc2 = result.capabilities.length;
-        listing += `\n\u25C6 c-list  (${_cc2} entr${_cc2 !== 1 ? 'ies' : 'y'})\n`;
+        listing += `\n; c-list  (${_cc2} entr${_cc2 !== 1 ? 'ies' : 'y'})\n`;
         for (let i = 0; i < result.capabilities.length; i++) {
             const cap = result.capabilities[i];
             const capName   = typeof cap === 'string' ? cap : (cap.name || String(cap));
             const capRights = typeof cap === 'string' ? [] : (cap.rights || []);
             const permsStr  = capRights.length > 0 ? capRights.join('') : '\u2014';
             const typeStr   = _clistTypeLabel(capName);
-            listing += `  \u25C6 [${i + 1}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
+            listing += `  * [${i + 1}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
         }
     }
     if (con) con.textContent = listing;
