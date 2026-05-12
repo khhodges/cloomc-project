@@ -1192,6 +1192,35 @@
     color: #fff;
 }
 
+/* ── C-List tab — abstraction group headers ─────────────────────────────── */
+.asm-picker-clist-hdr {
+    padding: 4px 10px 2px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #f4b942;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: rgba(244, 185, 66, 0.07);
+    border-top: 1px solid rgba(244, 185, 66, 0.18);
+    border-bottom: 1px solid rgba(244, 185, 66, 0.10);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+}
+.asm-picker-clist-hdr:first-child {
+    border-top: none;
+}
+/* LOAD rows inside C-List get a subtle left accent */
+.asm-picker-body--flat .asm-picker-item[data-clist-load] {
+    border-left: 2px solid rgba(244, 185, 66, 0.35);
+    padding-left: 8px;
+    color: #f4b942cc;
+}
+.asm-picker-body--flat .asm-picker-item[data-clist-load]:hover,
+.asm-picker-body--flat .asm-picker-item[data-clist-load].asm-picker-item--active {
+    color: #fff;
+}
+
 /* ── Method-name completion popup (asm-method-popup.js) ─────────────────── */
 .asm-method-popup {
     position: fixed;

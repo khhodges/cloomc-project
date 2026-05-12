@@ -78,25 +78,71 @@
                 { label: 'BL offset',     instr: 'BL', ops: 'offset' },
             ]
         },
+        {
+            name: 'C-List', icon: '\uD83D\uDD11', items: []   // populated dynamically at showPicker()
+        },
     ];
 
-    // Flat list of every item across all categories (never changes after init)
-    var allSourceItems = (function () {
-        var acc = [];
-        INSTR_CATEGORIES.forEach(function (cat) {
-            cat.items.forEach(function (item) { acc.push(item); });
-        });
-        return acc;
-    }());
+    // Flat list of every item across all categories (rebuilt by rebuildSourceIndex)
+    var allSourceItems = [];
 
-    // WeakMap: item object → category name (for category-tab filtering)
-    var itemCategoryMap = (function () {
-        var map = new WeakMap();
+    // WeakMap: item object → category name (rebuilt by rebuildSourceIndex)
+    var itemCategoryMap = new WeakMap();
+
+    function rebuildSourceIndex() {
+        allSourceItems = [];
+        itemCategoryMap = new WeakMap();
         INSTR_CATEGORIES.forEach(function (cat) {
-            cat.items.forEach(function (item) { map.set(item, cat.name); });
+            cat.items.forEach(function (item) {
+                allSourceItems.push(item);
+                itemCategoryMap.set(item, cat.name);
+            });
         });
-        return map;
-    }());
+    }
+
+    // Populate the C-List category from METHOD_REGISTER_CONVENTIONS (app-absdetail.js).
+    // Runs every time the picker opens so new abstractions added at runtime appear.
+    function refreshCListItems() {
+        var clistCat = null;
+        for (var ci = 0; ci < INSTR_CATEGORIES.length; ci++) {
+            if (INSTR_CATEGORIES[ci].name === 'C-List') { clistCat = INSTR_CATEGORIES[ci]; break; }
+        }
+        if (!clistCat) return;
+        clistCat.items = [];
+
+        var conv = (typeof METHOD_REGISTER_CONVENTIONS !== 'undefined') ? METHOD_REGISTER_CONVENTIONS : null;
+        if (!conv) { rebuildSourceIndex(); return; }
+
+        Object.keys(conv).sort().forEach(function (absName) {
+            // One LOAD entry per abstraction
+            clistCat.items.push({
+                label: 'LOAD  ' + absName,
+                instr: 'LOAD',
+                ops: 'CR0, ' + absName,
+                _clistAbs: absName
+            });
+            // One ELOADCALL entry per method, sorted by method index
+            var methods = conv[absName];
+            var methodNames = Object.keys(methods).sort(function (a, b) {
+                return ((methods[a] && methods[a].index) || 0) - ((methods[b] && methods[b].index) || 0);
+            });
+            methodNames.forEach(function (mName) {
+                var mc = methods[mName];
+                var hint = '';
+                if (mc && mc.input && mc.input !== 'none') hint = '  \u2190 ' + mc.input;
+                clistCat.items.push({
+                    label: absName + '.' + mName + hint,
+                    instr: 'ELOADCALL',
+                    ops: 'CR0, ' + absName + ', ' + mName,
+                    _clistAbs: absName
+                });
+            });
+        });
+
+        rebuildSourceIndex();
+    }
+
+    rebuildSourceIndex(); // initial build (static categories only; C-List empty until showPicker)
 
     // ── Configurable shortcut ────────────────────────────────────────────────
     // Override before or after the script loads via window.AsmInstructionPickerConfig:
@@ -234,11 +280,21 @@
         if (!cat || !cat.items.length) {
             var empty = document.createElement('div');
             empty.className = 'asm-picker-empty';
-            empty.textContent = 'No items';
+            empty.textContent = catName === 'C-List' ? 'No abstractions registered' : 'No items';
             pickerBodyEl.appendChild(empty);
             return;
         }
+
+        // C-List: inject a group-header row each time the abstraction name changes
+        var lastAbs = null;
         cat.items.forEach(function (item) {
+            if (catName === 'C-List' && item._clistAbs && item._clistAbs !== lastAbs) {
+                lastAbs = item._clistAbs;
+                var hdr = document.createElement('div');
+                hdr.className = 'asm-picker-clist-hdr';
+                hdr.textContent = item._clistAbs;
+                pickerBodyEl.appendChild(hdr);
+            }
             var flatIdx = allFlatItems.length;
             allFlatItems.push(item);
             pickerBodyEl.appendChild(makeItemRow(item, flatIdx));
@@ -371,6 +427,10 @@
         row.className = 'asm-picker-item';
         row.setAttribute('role', 'option');
         row.setAttribute('data-idx', flatIdx);
+        // Mark LOAD rows inside C-List for the accent CSS rule
+        if (item._clistAbs && item.instr === 'LOAD') {
+            row.setAttribute('data-clist-load', '1');
+        }
         if (positions && positions.length) {
             applyHighlight(row, item.label, positions);
         } else {
@@ -496,6 +556,7 @@
     }
 
     function showPicker(textarea) {
+        refreshCListItems();  // rebuild C-List items from METHOD_REGISTER_CONVENTIONS
         activeCatName = INSTR_CATEGORIES[0].name;
         activeEditorEl = textarea;
         buildPickerContent(function (item) { insertIntoEditor(item); });
