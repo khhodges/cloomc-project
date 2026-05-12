@@ -1512,16 +1512,21 @@ class ChurchAssembler {
         // Format a 15-bit offset as a zero-padded hex string with bracket notation
         const hexOff = n => `0x${n.toString(16).toUpperCase().padStart(4, '0')}`;
 
+        // Format a c-list slot access in canonical CD[0x…] notation.
+        // CD = C-list Data; always numeric, never symbolic.
+        const cdOff = n => `CD[${hexOff(n)}]`;
+
         switch (opcode) {
-            // LOAD CRd, CRs[offset]  — load GT from c-list
+            // LOAD CRd, CD[offset]  — load GT from c-list (always numeric)
             case 0: {
-                if (crSrc === 6 && slotNames && slotNames[imm]) {
-                    return `${mnemonic}  CR${crDst}, ${slotNames[imm]}`;
-                }
+                if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
                 return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
             }
-            // SAVE CRd, CRs[offset]  — save GT to c-list
-            case 1: return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
+            // SAVE CRd, CD[offset]  — save GT to c-list (always numeric)
+            case 1: {
+                if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
+                return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
+            }
             // CALL CRd[, MethodName]  — invoke capability via method-table dispatch
             case 2: {
                 if (imm & 0x4000) return `${mnemonic}  CR${crDst}`;
@@ -1552,8 +1557,11 @@ class ChurchAssembler {
                 const retMask = imm & 0xFFF;
                 return retMask ? `${mnemonic}  0b${retMask.toString(2).padStart(12, '0')}` : mnemonic;
             }
-            // CHANGE CRd, CRs[idx]  — load GT via c-list capability into CRd
-            case 4: return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
+            // CHANGE CRd, CD[idx] / CRs[idx]
+            case 4: {
+                if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
+                return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
+            }
             // SWITCH CRs, #tgt  — PassKey-gated one-way install of CRs into CR13 (tgt=5) or CR15 (tgt=7)
             case 5: return `${mnemonic}  CR${crSrc}, CR${imm & 0x7}`;
             // TPERM CRd, preset[B]  — assert/attenuate permission
@@ -1565,24 +1573,21 @@ class ChurchAssembler {
             }
             // LAMBDA CRd  — create closure from template
             case 7: return `${mnemonic}  CR${crDst}`;
-            // ELOADCALL CRd, CRs[row], method  — fused load + method-table call
+            // ELOADCALL CRd, CD[row], method  — fused load + method-table call (always numeric)
             // imm15[7:0] = c-list row; imm15[14:8] = method index (1-based, 0=fast-path)
             // Disassembler prints method as 0-based so output is directly re-assemblable.
             case 8: {
                 const ec8Row    = imm & 0xFF;
                 const ec8Method = (imm >>> 8) & 0x7F;
-                if (crSrc === 6 && slotNames && slotNames[ec8Row]) {
-                    const name = slotNames[ec8Row];
-                    if (ec8Method > 0) return `${mnemonic}  CR${crDst}, ${name}, ${ec8Method - 1}`;
-                    return `${mnemonic}  CR${crDst}, ${name}`;
-                }
-                if (ec8Method > 0) {
-                    return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(ec8Row)}], ${ec8Method - 1}`;
-                }
-                return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(ec8Row)}]`;
+                const ec8Src    = crSrc === 6 ? cdOff(ec8Row) : `CR${crSrc}[${hexOff(ec8Row)}]`;
+                if (ec8Method > 0) return `${mnemonic}  CR${crDst}, ${ec8Src}, ${ec8Method - 1}`;
+                return `${mnemonic}  CR${crDst}, ${ec8Src}`;
             }
-            // XLOADLAMBDA CRd, CRs[offset]  — fused load + lambda
-            case 9: return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
+            // XLOADLAMBDA CRd, CD[offset] / CRs[offset]  — fused load + lambda
+            case 9: {
+                if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
+                return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
+            }
             // DREAD DRd, CRs[offset]  — read data word from capability
             case 10: return `${mnemonic}  DR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
             // DWRITE DRd, CRs[offset]  — write data word via capability
