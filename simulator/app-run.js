@@ -5310,21 +5310,25 @@ SAVE CR0, CR6, 3       ; FAULT: B=0, cannot bind to empty slot 3
 HALT`,
         'constants_dot': `; ============================================================
 ; Abstraction:  ConstantsDot
-; Description:  Dot-notation CALL Constants.* — Pi, E, Phi, Zero, One
+; Description:  Recommended dot-notation style — CALL AbstrName.Method
+;               and ELOADCALL CRd, AbstrName, Method
 ; Author:       Church Machine Educational Platform
-; Version:      1.0
+; Version:      1.1
 ; Created:      2026-05-12
 ; Language:     Assembly
 ; Dependencies: Constants (NS[18])
 ; ============================================================
-; Methods:
-;   1. main — LOAD Constants by name, CALL each via dot-notation
-; ============================================================
+; TWO recommended calling styles are shown here:
 ;
-; Task #1027 registered Constants in METHOD_REGISTER_CONVENTIONS so
-; the assembler resolves dot-notation automatically:
-;   CALL Constants.Pi  →  CALL CR11, 1  (method 0, 1-based encoding)
-;   CALL Constants.E   →  CALL CR11, 2  (method 1)
+;   Style A — two-step (LOAD then CALL dot-notation):
+;     LOAD   CR11, Constants      ; bind CR11 to the abstraction
+;     CALL   Constants.Pi         ; call method by name via CR11
+;
+;   Style B — fused single instruction (ELOADCALL dot-notation):
+;     ELOADCALL CR12, Constants, Pi   ; load + TPERM + call in one op
+;
+; Both styles resolve method names automatically from
+; METHOD_REGISTER_CONVENTIONS — no raw numeric offsets needed.
 ;
 ; Method table (0-based index):
 ;   Pi   (0)  → DR1 = 0x40490FDB  (π  ≈ 3.14159265)
@@ -5334,33 +5338,49 @@ HALT`,
 ;   One  (4)  → DR1 = 0x3F800000  (1.0 IEEE 754)
 ; ============================================================
 
-; ── Step 1: Bind Constants into a CR by name ────────────────
-; Level-2 load: assembler resolves "Constants" → NS[18] E-GT.
-; After this LOAD, CR11 holds the Constants capability.
+; ══════════════════════════════════════════════════════════
+; Style A: LOAD then CALL AbstrName.Method  (two-step)
+; ══════════════════════════════════════════════════════════
+; Bind Constants into CR11 once, then call each method by
+; name. The assembler encodes CALL CR11, <index+1> for you.
+
 LOAD   CR11, Constants   ; CR11 = Constants (E perm, NS[18])
 TPERM  CR11, E           ; Verify E permission → Z=1
 
-; ── Step 2: CALL each constant using dot-notation ───────────
-; The assembler looks up the method index from
-; METHOD_REGISTER_CONVENTIONS and encodes CALL CR11, <index+1>.
-; No manual method numbering needed — the name is the dispatch.
-
 CALL   Constants.Pi      ; DR1 <- 0x40490FDB  (π ≈ 3.14159265)
-
 CALL   Constants.E       ; DR1 <- 0x402DF854  (e ≈ 2.71828183)
-
 CALL   Constants.Phi     ; DR1 <- 0x3FCFBE77  (φ ≈ 1.61803399)
-; Golden ratio — (1 + √5) / 2
-
 CALL   Constants.Zero    ; DR1 <- 0x00000000  (IEEE 754 +0.0)
-
 CALL   Constants.One     ; DR1 <- 0x3F800000  (IEEE 754 1.0)
 
-; ── Step 3: Use π in a comparison ───────────────────────────
-; Reload π and confirm it is non-zero (Z=0 after MCMP)
+; ── Verify π is non-zero (Z=0 after MCMP) ───────────────────
 CALL   Constants.Pi      ; DR1 <- π
 MCMP   DR1, DR0          ; DR1 vs 0 → Z=0 (π is non-zero)
-BRANCHNE done            ; take branch — π ≠ 0 confirmed
+BRANCHNE style_b         ; take branch — π ≠ 0 confirmed
+
+; ══════════════════════════════════════════════════════════
+; Style B: ELOADCALL CRd, AbstrName, Method  (fused, recommended)
+; ══════════════════════════════════════════════════════════
+; ELOADCALL fuses three operations into one instruction:
+;   1. LOAD  — fetch the E-GT from the namespace by name
+;   2. TPERM — verify E permission (faults if absent)
+;   3. CALL  — enter the method's lambda body
+;
+; This is the recommended style when you call a method only
+; once and don't need to hold the capability in a CR register.
+; It is also one instruction shorter than the two-step form.
+
+style_b:
+ELOADCALL CR12, Constants, Pi    ; DR1 <- π  (load+check+call in 1 op)
+ELOADCALL CR12, Constants, E     ; DR1 <- e
+ELOADCALL CR12, Constants, Phi   ; DR1 <- φ  (golden ratio)
+ELOADCALL CR12, Constants, Zero  ; DR1 <- 0.0
+ELOADCALL CR12, Constants, One   ; DR1 <- 1.0
+
+; ── Confirm π from fused path equals π from two-step path ───
+ELOADCALL CR12, Constants, Pi    ; DR1 <- π  (fused path)
+MCMP   DR1, DR0                  ; Z=0 → π ≠ 0
+BRANCHNE done
 
 done:
 HALT`,
