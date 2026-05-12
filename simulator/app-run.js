@@ -762,9 +762,126 @@ function hideRunPopover() {
     if (pop) pop.style.display = 'none';
 }
 
+// ── _injectClistNow ───────────────────────────────────────────────────────────
+// Shared c-list injection helper — safe to call any time after boot is complete.
+// Called from _applyPendingSimLoad (on first Run after compile) AND from
+// _autoLoadDefaultProgram (on every boot/reset, so the c-list survives resets).
+//
+// CASE A — no user capabilities { } block (capability_test, raw examples, …):
+//   Always injects the full 18-entry DEMO_CLIST regardless of current clistCount.
+//   This is the critical fix for the RANGE fault that occurred when switching from
+//   a capabilities-block program (which left clistCount=1) to a raw-offset program
+//   (which needs clistCount=18).  The old code only fired CASE A when clistCount===0,
+//   so the second program would run with cc=1 and hit a RANGE fault on CR6[8].
+//
+// CASE B — user-compiled program with a capabilities { } block:
+//   Mirrors the assembler's 0-based block-position layout at runtime:
+//     • Hardware device (LED0–5, UART, BTN, SlideRule, Timer) → demoClistGTs slot
+//     • NS-based abstraction → freshly-created E-GT pointing to its NS slot
+//     • Unknown name → null GT (0)
+//   cc = lastAssembledCapabilities.length.
+function _injectClistNow() {
+    if (!sim.bootComplete || !sim.demoClistGTs || !sim.demoClistGTs.length) return;
+
+    const _hasUserCaps = !!(lastAssembledCapabilities && lastAssembledCapabilities.length > 0);
+
+    const _devSlotMap = {
+        LED0: 8, LED1: 9, LED2: 10, LED3: 11, LED4: 12, LED5: 13,
+        UART: 14, BTN: 15, SlideRule: 16, Timer: 17, Display: 14,
+    };
+
+    const BOOT_ABSTR_SLOT = 3;
+    const nsBase    = sim.NS_TABLE_BASE + BOOT_ABSTR_SLOT * sim.NS_ENTRY_WORDS;
+    const w1f       = sim.parseNSWord1(sim.memory[nsBase + 1]);
+    const lumpBase  = sim.memory[nsBase] >>> 0;
+    const lumpHdr   = sim.memory[lumpBase] >>> 0;
+    const hdrParsed = sim.parseLumpHeader(lumpHdr);
+    const SLOT_SIZE = hdrParsed.lumpSize;
+
+    if (_hasUserCaps) {
+        // ── CASE B: block-position injection ────────────────────────────────
+        const cc        = lastAssembledCapabilities.length;
+        const clistBase = lumpBase + SLOT_SIZE - cc;
+
+        for (let i = 0; i < cc; i++) {
+            const cap     = lastAssembledCapabilities[i];
+            const capName = (typeof cap === 'string' ? cap : (cap.name || '')).trim();
+            const rights  = typeof cap === 'string' ? [] : (cap.rights || []);
+            if (!capName) { sim.memory[clistBase + i] = 0; continue; }
+
+            const devKey = Object.keys(_devSlotMap)
+                .find(k => k.toLowerCase() === capName.toLowerCase());
+            if (devKey !== undefined) {
+                sim.memory[clistBase + i] =
+                    (sim.demoClistGTs[_devSlotMap[devKey]] || 0) >>> 0;
+                continue;
+            }
+
+            let nsIdx = -1;
+            for (const [idx, lbl] of Object.entries(sim.nsLabels)) {
+                if (lbl.toUpperCase() === capName.toUpperCase()) {
+                    nsIdx = parseInt(idx); break;
+                }
+            }
+            if (nsIdx >= 0) {
+                const perms = {R:0, W:0, X:0, L:0, S:0, E:1};
+                for (const r of rights) {
+                    if      (r === 'R') perms.R = 1;
+                    else if (r === 'W') perms.W = 1;
+                    else if (r === 'X') perms.X = 1;
+                    else if (r === 'E') perms.E = 1;
+                }
+                sim.memory[clistBase + i] =
+                    sim.createGT(0, nsIdx, perms, 1) >>> 0;
+                continue;
+            }
+
+            sim.memory[clistBase + i] = 0;
+        }
+
+        sim.memory[lumpBase] = ((lumpHdr & ~0xFF) | (cc & 0xFF)) >>> 0;
+        const nsWord1B = sim.packNSWord1(
+            w1f.limit, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, cc
+        );
+        sim.memory[nsBase + 1] = nsWord1B;
+        const cr6GTb = sim.createGT(0, BOOT_ABSTR_SLOT, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
+        sim.cr[6] = {
+            word0: cr6GTb,
+            word1: clistBase >>> 0,
+            word2: nsWord1B >>> 0,
+            word3: sim.memory[nsBase + 2] >>> 0,
+            m: 0,
+        };
+
+    } else {
+        // ── CASE A: no capabilities block → inject full DEMO_CLIST ──────────
+        // Fires unconditionally (not just when clistCount===0) so that programs
+        // without a capabilities block always get the correct 18-entry layout,
+        // even after a previous CASE B run left clistCount=1.
+        const cc        = sim.demoClistGTs.length;
+        const clistBase = lumpBase + SLOT_SIZE - cc;
+        for (let i = 0; i < cc; i++) {
+            sim.memory[clistBase + i] = sim.demoClistGTs[i] >>> 0;
+        }
+        sim.memory[lumpBase] = ((lumpHdr & ~0xFF) | (cc & 0xFF)) >>> 0;
+        const nsWord1A = sim.packNSWord1(
+            w1f.limit, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, cc
+        );
+        sim.memory[nsBase + 1] = nsWord1A;
+        const cr6GTa = sim.createGT(0, BOOT_ABSTR_SLOT, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
+        sim.cr[6] = {
+            word0: cr6GTa,
+            word1: clistBase >>> 0,
+            word2: nsWord1A >>> 0,
+            word3: sim.memory[nsBase + 2] >>> 0,
+            m: 0,
+        };
+    }
+}
+
 function _applyPendingSimLoad() {
     if (!_pendingSimLoad || !lastAssembledWords || !lastAssembledWords.length) return;
-    console.log('[applyPendingSimLoad] v20260513h caps=', JSON.stringify(lastAssembledCapabilities));
+    console.log('[applyPendingSimLoad] v20260513k caps=', JSON.stringify(lastAssembledCapabilities));
     sim.loadProgram(lastAssembledWords, 0);
     // Skip past the lump header (word 0) and method table so PC starts at the
     // first real instruction, matching _autoLoadDefaultProgram() on boot/reset.
@@ -780,126 +897,7 @@ function _applyPendingSimLoad() {
     const slot2Base  = sim.bootComplete ? (sim.memory[abstrBase2] || (2 * sim.SLOT_SIZE)) : 0;
     const progBase   = (slot3Base >= 0x0400) ? slot3Base + 1 : slot2Base;
     sim.programBaseAddr = progBase;
-    // ── C-list injection ──────────────────────────────────────────────────────
-    //
-    // CASE A — Non-user lump, cc=0 (boot_image.py left c-list empty):
-    //   Inject the full 18-entry DEMO_CLIST at its canonical positions
-    //   (LED0→slot 8, UART→14, etc.) and promote CR6.
-    //
-    // CASE B — User-compiled program with a  capabilities { }  block:
-    //   The assembler now emits  CR6[0], CR6[1], CR6[2] …  matching the
-    //   0-based declaration order.  Mirror that layout at runtime by writing
-    //   each capability's GT at its block position (index i):
-    //     • Hardware device (LED0–5, UART, BTN, SlideRule, Timer):
-    //         copy GT from demoClistGTs at the device's fixed DEMO_CLIST slot.
-    //     • NS-based abstraction (e.g. Tunnel at NS slot 31):
-    //         create an E-GT (with any declared rights) pointing to that slot.
-    //     • Null-GT row (e.g. Mum — no NS entry): write 0.
-    //   cc = lastAssembledCapabilities.length.  The mLoad range check passes
-    //   because the code only ever accesses offsets 0 … cc-1.
-    const _hasUserCaps = !!(lastAssembledCapabilities && lastAssembledCapabilities.length > 0);
-
-    // Hardware device name → demoClistGTs array index
-    const _devSlotMap = {
-        LED0: 8, LED1: 9, LED2: 10, LED3: 11, LED4: 12, LED5: 13,
-        UART: 14, BTN: 15, SlideRule: 16, Timer: 17, Display: 14,
-    };
-
-    if (sim.bootComplete && sim.demoClistGTs && sim.demoClistGTs.length > 0) {
-        const BOOT_ABSTR_SLOT = 3;
-        const nsBase    = sim.NS_TABLE_BASE + BOOT_ABSTR_SLOT * sim.NS_ENTRY_WORDS;
-        const w1f       = sim.parseNSWord1(sim.memory[nsBase + 1]);
-        const lumpBase  = sim.memory[nsBase] >>> 0;
-        const lumpHdr   = sim.memory[lumpBase] >>> 0;
-        const hdrParsed = sim.parseLumpHeader(lumpHdr);
-        const SLOT_SIZE = hdrParsed.lumpSize;   // 64 words for default Boot.Abstr
-
-        if (_hasUserCaps) {
-            // ── CASE B: block-position injection ────────────────────────────
-            const cc        = lastAssembledCapabilities.length;
-            const clistBase = lumpBase + SLOT_SIZE - cc;
-
-            for (let i = 0; i < cc; i++) {
-                const cap     = lastAssembledCapabilities[i];
-                const capName = (typeof cap === 'string' ? cap : (cap.name || '')).trim();
-                const rights  = typeof cap === 'string' ? [] : (cap.rights || []);
-                if (!capName) { sim.memory[clistBase + i] = 0; continue; }
-
-                // Hardware device — copy GT from demoClistGTs at its device slot
-                const devKey = Object.keys(_devSlotMap)
-                    .find(k => k.toLowerCase() === capName.toLowerCase());
-                if (devKey !== undefined) {
-                    sim.memory[clistBase + i] =
-                        (sim.demoClistGTs[_devSlotMap[devKey]] || 0) >>> 0;
-                    continue;
-                }
-
-                // NS-based abstraction — create GT pointing to its NS slot
-                let nsIdx = -1;
-                for (const [idx, lbl] of Object.entries(sim.nsLabels)) {
-                    if (lbl.toUpperCase() === capName.toUpperCase()) {
-                        nsIdx = parseInt(idx); break;
-                    }
-                }
-                if (nsIdx >= 0) {
-                    const perms = {R:0, W:0, X:0, L:0, S:0, E:1};
-                    for (const r of rights) {
-                        if      (r === 'R') perms.R = 1;
-                        else if (r === 'W') perms.W = 1;
-                        else if (r === 'X') perms.X = 1;
-                        else if (r === 'E') perms.E = 1;
-                    }
-                    sim.memory[clistBase + i] =
-                        sim.createGT(0, nsIdx, perms, 1) >>> 0;
-                    continue;
-                }
-
-                // Null-GT row (no device, no NS entry — e.g. Mum)
-                sim.memory[clistBase + i] = 0;
-            }
-
-            // Patch lump header cc (bits [7:0])
-            sim.memory[lumpBase] = ((lumpHdr & ~0xFF) | (cc & 0xFF)) >>> 0;
-            // Patch NS entry clistCount
-            const nsWord1B = sim.packNSWord1(
-                w1f.limit, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, cc
-            );
-            sim.memory[nsBase + 1] = nsWord1B;
-            // Rebuild CR6 with updated c-list base and count
-            const cr6GTb = sim.createGT(0, BOOT_ABSTR_SLOT, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
-            sim.cr[6] = {
-                word0: cr6GTb,
-                word1: clistBase >>> 0,
-                word2: nsWord1B >>> 0,
-                word3: sim.memory[nsBase + 2] >>> 0,
-                m: 0,
-            };
-
-        } else if (w1f.clistCount === 0) {
-            // ── CASE A: non-user lump with cc=0 → inject full DEMO_CLIST ────
-            // Boot.Abstr boots with cc=0 when boot_image.py left the c-list
-            // incomplete.  Promote to cc=18 using the hardware DEMO_CLIST,
-            // placed in the free region (words 46–63, above code at 1–17).
-            const cc        = sim.demoClistGTs.length;      // 18
-            const clistBase = lumpBase + SLOT_SIZE - cc;    // word 46 (0x1AE)
-            for (let i = 0; i < cc; i++) {
-                sim.memory[clistBase + i] = sim.demoClistGTs[i] >>> 0;
-            }
-            sim.memory[lumpBase] = ((lumpHdr & ~0xFF) | (cc & 0xFF)) >>> 0;
-            const nsWord1A = sim.packNSWord1(
-                w1f.limit, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, cc
-            );
-            sim.memory[nsBase + 1] = nsWord1A;
-            const cr6GTa = sim.createGT(0, BOOT_ABSTR_SLOT, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
-            sim.cr[6] = {
-                word0: cr6GTa,
-                word1: clistBase >>> 0,
-                word2: nsWord1A >>> 0,
-                word3: sim.memory[nsBase + 2] >>> 0,
-                m: 0,
-            };
-        }
-    }
+    _injectClistNow();
     _pendingSimLoad = false;
 }
 
@@ -1157,22 +1155,7 @@ function _autoLoadDefaultProgram() {
             // rather than the boot-image default after reset.
             const _bSlot = (typeof BOOT_ABSTR_NS_SLOT !== 'undefined') ? BOOT_ABSTR_NS_SLOT : 3;
             if (sim.nsLabels && sim.programName) sim.nsLabels[_bSlot] = sim.programName;
-            if (sim.bootComplete && lastAssembledCapabilities && lastAssembledCapabilities.length > 0) {
-                const clistBase = sim.cr[6].word1;
-                for (let ci = 0; ci < lastAssembledCapabilities.length; ci++) {
-                    const cap     = lastAssembledCapabilities[ci];
-                    const capName = typeof cap === 'string' ? cap : (cap.name || '');
-                    if (!capName) continue;
-                    let nsIdx = -1;
-                    for (const [idx, lbl] of Object.entries(sim.nsLabels)) {
-                        if (lbl.toUpperCase() === capName.toUpperCase()) { nsIdx = parseInt(idx); break; }
-                    }
-                    if (nsIdx >= 0) {
-                        const gt = sim.createGT(0, nsIdx, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
-                        sim.memory[clistBase + nsIdx] = gt;
-                    }
-                }
-            }
+            _injectClistNow();
         }
         // Only apply boot lump pet names when no source-compiled program is
         // loaded — in source-assembled context the compiler owns the alias maps.
