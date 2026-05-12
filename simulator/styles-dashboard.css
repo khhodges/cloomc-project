@@ -92,6 +92,40 @@ a.next-step-link:hover {
     color: var(--text-primary);
 }
 
+.fault-free-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.14rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-family: monospace;
+    letter-spacing: 0.4px;
+    cursor: default;
+    white-space: nowrap;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+.fault-free-badge.ff-zero {
+    background: rgba(80,80,80,0.25);
+    color: #777;
+    border: 1px solid rgba(120,120,120,0.25);
+}
+.fault-free-badge.ff-progress {
+    background: rgba(200,155,60,0.12);
+    color: var(--church-gold);
+    border: 1px solid rgba(200,155,60,0.4);
+}
+.fault-free-badge.ff-eligible {
+    background: rgba(102,187,106,0.15);
+    color: #66bb6a;
+    border: 1px solid rgba(102,187,106,0.5);
+    animation: ff-pulse 2s ease-in-out infinite;
+}
+@keyframes ff-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(102,187,106,0); }
+    50%       { box-shadow: 0 0 6px 2px rgba(102,187,106,0.3); }
+}
+
 .next-step-actions {
     display: flex;
     flex-wrap: wrap;

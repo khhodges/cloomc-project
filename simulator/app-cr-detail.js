@@ -683,16 +683,43 @@ function _updateMtbfIndicator() {
     if (_isSourceStale()) {
         el.textContent = 'MTBF: —';
         el.className = 'mtbf-badge mtbf-red';
+        _updateFaultFreeCounter();
         return;
     }
     const n = _getConsecutiveCleanRuns();
     const total = _simRunHistory.filter(r => r.hash === _simRunHash).length;
+    const eligible = _faultFreeInstrTotal >= 1000;
     if (total === 0) {
         el.textContent = 'MTBF: —';
         el.className = 'mtbf-badge mtbf-red';
+    } else if (eligible) {
+        el.textContent = 'MTBF: 0.0001';
+        el.className = 'mtbf-badge mtbf-green';
     } else {
         el.textContent = `MTBF: ${n}/${total}`;
         el.className = 'mtbf-badge ' + (n >= 5 ? 'mtbf-green' : n >= 3 ? 'mtbf-amber' : 'mtbf-red');
+    }
+    _updateFaultFreeCounter();
+}
+
+function _updateFaultFreeCounter() {
+    const el = document.getElementById('faultFreeCounter');
+    if (!el) return;
+    const stale = _isSourceStale();
+    const ffi = stale ? 0 : _faultFreeInstrTotal;
+    const eligible = ffi >= 1000;
+    if (stale || ffi === 0) {
+        el.textContent = '0\u202F/\u202F1K';
+        el.className = 'fault-free-badge ff-zero';
+        el.title = 'Fault-free instructions: run a clean program to accumulate';
+    } else if (eligible) {
+        el.textContent = '\u2713 MTBF 0.0001';
+        el.className = 'fault-free-badge ff-eligible';
+        el.title = `${ffi.toLocaleString()} fault-free instructions \u2014 eligible to save as LUMP`;
+    } else {
+        el.textContent = `${ffi.toLocaleString()}\u202F/\u202F1K`;
+        el.className = 'fault-free-badge ff-progress';
+        el.title = `${ffi.toLocaleString()} / 1,000 fault-free instructions \u2014 run clean programs to reach the threshold`;
     }
 }
 
@@ -734,6 +761,7 @@ function patchSimulator() {
         if (srcHash !== _simRunHash) {
             _simRunHistory = [];
             _simRunHash = srcHash;
+            _faultFreeInstrTotal = 0;
         }
         // Store sticky patch — survives reset+boot, re-applied automatically.
         // Also persist to localStorage so it survives page refresh.

@@ -1279,7 +1279,9 @@ function runSim() {
             && sim.bootComplete && totalSteps >= 1;
         if (countable && _simRunHash) {
             _simRunHistory.push({ hash: _simRunHash, passed: ranClean, timestamp: Date.now() });
+            if (ranClean) _faultFreeInstrTotal += totalSteps;
             _updateMtbfIndicator();
+            if (typeof _updateFaultFreeCounter === 'function') _updateFaultFreeCounter();
         }
         if (con) {
             let status = 'Stopped.';

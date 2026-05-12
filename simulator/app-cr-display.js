@@ -1310,6 +1310,7 @@ function editCRCodeInEditor() {
                 if (_simRunHash && _currentEditorHash() !== _simRunHash) {
                     _simRunHistory = [];
                     _simRunHash = '';
+                    _faultFreeInstrTotal = 0;
                 }
                 _updateMtbfIndicator();
             });
@@ -1318,6 +1319,7 @@ function editCRCodeInEditor() {
     }
     _simRunHash = '';
     _simRunHistory = [];
+    _faultFreeInstrTotal = 0;
     switchCodeTab('console');
     _updateEditorPatchBar();
     _updateMtbfIndicator();

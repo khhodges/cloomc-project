@@ -645,18 +645,31 @@ function showNextSteps(context) {
                 <li>${link('Check the Namespace', 'namespace')} — see the namespace slots and save your program.</li>
                 <li>${link('View the Pipeline', 'pipeline')} — watch instructions flow through the mLoad pipeline.</li>
             </ul>`,
-        'ran-clean': `
+        'ran-clean': (() => {
+            const _ffi = (typeof _faultFreeInstrTotal !== 'undefined') ? _faultFreeInstrTotal : 0;
+            const _eligible = _ffi >= 1000;
+            const _saveLumpBtn = _eligible
+                ? btn('\uD83D\uDCBE', 'Save as LUMP', 'buildAndDownloadLump()', 'ns-btn-lump')
+                : '';
+            const _countLine = _eligible
+                ? `<strong>\u2713 MTBF\u00a00.0001</strong> \u2014 ${_ffi.toLocaleString()} fault-free instructions accumulated.`
+                : `<strong>${_ffi.toLocaleString()}\u00a0/\u00a01,000</strong> fault-free instructions \u2014 run again to build up.`;
+            const _saveLine = _eligible
+                ? `<li><strong>Save as LUMP</strong> \u2014 click the button above to download a deployable binary.</li>`
+                : `<li>Reach <strong>1,000</strong> fault-free instructions to unlock Save as LUMP.</li>`;
+            return `
             <div class="next-step-actions">
                 ${btn('\uD83D\uDC63', 'Step', 'stepSim()')}
                 ${btn('\uD83C\uDFC3', 'Run', 'onRunBtnClick()', 'ns-btn-run')}
-                ${btn('\uD83D\uDCBE', 'Save as LUMP', 'buildAndDownloadLump()', 'ns-btn-lump')}
+                ${_saveLumpBtn}
             </div>
             <ul>
-                <li><strong>Clean run</strong> — no faults. Your program is ready to package.</li>
-                <li><strong>Save as LUMP</strong> — click the button above to compile and download a deployable binary.</li>
-                <li>${link('Inspect Abstractions', 'abstractions')} — review the lump layout and Golden Token.</li>
-                <li>${link('View the Pipeline', 'pipeline')} — watch how capabilities were checked during execution.</li>
-            </ul>`,
+                <li>${_countLine}</li>
+                ${_saveLine}
+                <li>${link('Inspect Abstractions', 'abstractions')} \u2014 review the lump layout and Golden Token.</li>
+                <li>${link('View the Pipeline', 'pipeline')} \u2014 watch how capabilities were checked during execution.</li>
+            </ul>`;
+        })(),
         'ran-fault': `
             <div class="next-step-actions">
                 ${btn('\uD83D\uDC63', 'Step', 'stepSim()')}

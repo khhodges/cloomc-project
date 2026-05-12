@@ -173,6 +173,7 @@
                     </div>
                     <div class="run-wrap" id="runWrap">
                         <button class="btn btn-success sim-icon-btn" id="btnRunSim" onclick="onRunBtnClick()" data-tooltip="Run — single-click to run · double-click for options">&#x1F3C3;</button>
+                        <span id="faultFreeCounter" class="fault-free-badge ff-zero" data-tooltip="Fault-Free Instructions — accumulates across clean runs; reach 1,000 to unlock LUMP save">0&#x202F;/&#x202F;1K</span>
                         <button class="btn btn-danger sim-icon-btn" id="btnStopSim" onclick="stopSim()" style="display:none;" data-tooltip="Stop — Halt execution immediately">&#x23F9;</button>
                         <div class="run-popover" id="runPopover" style="display:none;">
                             <div class="run-popover-title">Run Settings <button class="run-close-btn" onclick="hideRunPopover()" title="Close">&times;</button></div>
@@ -1656,10 +1657,10 @@
     <script async src="english_string_tutorial.js"></script>
     <script async src="english_contact_tutorial.js"></script>
     <script async src="builder.js"></script>
-    <script src="app-shell.js?v=20260510a"></script>
+    <script src="app-shell.js?v=20260512b"></script>
     <script src="app-tools.js?v=20260501a"></script>
-    <script src="app-cr-display.js?v=20260512f"></script>
-    <script src="app-cr-detail.js?v=20260512a"></script>
+    <script src="app-cr-display.js?v=20260512g"></script>
+    <script src="app-cr-detail.js?v=20260512b"></script>
     <script src="tab-correction.js?v=20260501a"></script>
     <script src="pet_name_audit.js"></script>
     <script src="app-memory.js?v=20260512a"></script>
@@ -1670,10 +1671,10 @@
     <!-- Load order matters: app-compile must precede app-run (exports LANG_EXAMPLE_GROUPS
          via window._cloomcLangExampleGroups); both must precede app-source-library. -->
     <script src="app-compile.js?v=20260512h"></script>
-    <script src="app-run.js?v=20260512h"></script>
+    <script src="app-run.js?v=20260512i"></script>
     <script src="app-source-library.js?v=20260509d"></script>
     <script src="app-invoke.js?v=20260501a"></script>
-    <script src="app-misc.js?v=20260512a"></script>
+    <script src="app-misc.js?v=20260512b"></script>
     <script src="asm-instruction-picker.js?v=20260511e"></script>
     <script src="clist-viewer.js?v=20260511c"></script>
     <script src="app-gt-view.js?v=20260510a"></script>

@@ -91,6 +91,7 @@ const POPUPS_DISABLED = false;
 let sim = null;
 let _simRunHistory = [];
 let _simRunHash = '';
+let _faultFreeInstrTotal = 0;  // cumulative fault-free instruction count for current source hash
 let assembler = null;
 let pipelineViz = null;
 let repl = null;
