@@ -1319,7 +1319,7 @@ function runSim() {
             } else if (stopReason === 'userStopped') {
                 status = 'Stopped by user.';
             } else if (stopReason === 'faultFreeLimit') {
-                status = '\u2B50 1,000 fault-free instructions \u2014 MTBF\u00a00.0001 achieved. Program is LUMP-eligible.';
+                status = '\u2B50 1,000 fault-free instructions \u2014 LUMP unlocked. Click \uD83D\uDCBE Save as LUMP in Next Steps.';
             } else if (stopReason === 'error') {
                 status = 'Runtime error — see console.';
             }
@@ -1337,10 +1337,14 @@ function runSim() {
                 showNextSteps(ranClean ? 'ran-clean' : 'ran-fault');
         }
         // Clean HALT (no faults, boot complete) → open LUMP page for save workflow.
-        // faultFreeLimit: milestone pause — stay on dashboard and wait for next command.
+        // faultFreeLimit: milestone reached → return to editor with Save as LUMP unlocked.
         // Faults, errors, breakpoints, maxSteps, and userStopped stay on dashboard.
-        switchView(ranClean && sim.bootComplete && stopReason !== 'faultFreeLimit' ? 'lumps' : 'dashboard');
-        openCRDetail(14);
+        if (stopReason === 'faultFreeLimit') {
+            switchView('editor');
+        } else {
+            switchView(ranClean && sim.bootComplete ? 'lumps' : 'dashboard');
+            openCRDetail(14);
+        }
         // Persist the fault log so it survives a page reload.
         _saveFaultLog();
     }
