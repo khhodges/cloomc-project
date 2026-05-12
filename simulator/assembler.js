@@ -321,14 +321,14 @@ class ChurchAssembler {
 
         // 2.5. Null-GT row pet names (setClistSlots) — user-named c-list slots that
         //      hold no NS entry (e.g. "Mum" at slot 5).  These map directly to the
-        //      c-list offset used in  LOAD  CRd, CD[0x0005].
+        //      c-list offset used in  LOAD  CRd, CR6[0x0005].
         if (this._clistSlots && this._clistSlots[name] !== undefined)
             return this._clistSlots[name];
 
         // 2.6. Capabilities-block pre-pass — non-NS, non-device capabilities declared
         //      in this assembly's  capabilities { }  block, assigned to free c-list
         //      slots 1, 2, 3, … in declaration order.  The GT at that slot may be
-        //      null at runtime; the assembler still emits LOAD CRd, CD[0x000N].
+        //      null at runtime; the assembler still emits LOAD CRd, CR6[0x000N].
         if (this._capBlockSlots && this._capBlockSlots[name] !== undefined)
             return this._capBlockSlots[name];
 
@@ -482,14 +482,19 @@ class ChurchAssembler {
         // Fixed hardware-device slot names — already resolved by other paths.
         const _deviceRE = /^(UART|BTN|SlideRule|Timer|Display)$/i;
 
+        // Assign each non-NS, non-device capability its 1-based position in the
+        // FULL capabilities list.  NS-based and device entries are skipped for
+        // the slot assignment but the counter still advances, so that "Mum" at
+        // position 2 (e.g. after Tunnel) correctly gets slot 2.
         let nextSlot = 1;
         for (const name of capNames) {
-            if (slots[name] !== undefined) continue;        // already assigned
-            if (this.nsSymbols[name] !== undefined) continue; // NS-based: use path 2
-            if (_deviceRE.test(name)) continue;             // device: use path 3/4
-            const ledM = name.match(/^LED(\d)$/i) || name.match(/^LED\[(\d)\]$/i);
-            if (ledM && parseInt(ledM[1], 10) <= 5) continue; // LED0-5: use path 3
-            slots[name] = nextSlot++;
+            const isNS  = this.nsSymbols[name] !== undefined;
+            const isDev = _deviceRE.test(name);
+            const ledM  = name.match(/^LED(\d)$/i) || name.match(/^LED\[(\d)\]$/i);
+            const isLED = ledM && parseInt(ledM[1], 10) <= 5;
+            if (!isNS && !isDev && !isLED && slots[name] === undefined)
+                slots[name] = nextSlot;
+            nextSlot++;   // always advance — position in full list drives the slot
         }
         return slots;
     }
@@ -668,8 +673,8 @@ class ChurchAssembler {
                                 const _knownSlot = (this._clistSlots && this._clistSlots[arg] !== undefined)
                                     ? this._clistSlots[arg] : null;
                                 const _slotHint = _knownSlot !== null
-                                    ? `CD[0x${_knownSlot.toString(16).toUpperCase().padStart(4,'0')}]`
-                                    : `CD[0x…]   ; find "${arg}"'s slot in the C-List viewer`;
+                                    ? `CR6[0x${_knownSlot.toString(16).toUpperCase().padStart(4,'0')}]`
+                                    : `CR6[0x…]   ; find "${arg}"'s slot in the C-List viewer`;
                                 this.errors.push({ line: lineNum + 1, message:
                                     `Argument ${ai + 1} of ${absName}.${methodName}() maps to CR${reg.n}, which holds a capability GT. ` +
                                     `"${arg}" is not a known c-list name — name it in the C-List viewer first, then re-compile.\n` +
@@ -1613,17 +1618,16 @@ class ChurchAssembler {
         // Format a 15-bit offset as a zero-padded hex string with bracket notation
         const hexOff = n => `0x${n.toString(16).toUpperCase().padStart(4, '0')}`;
 
-        // Format a c-list slot access in canonical CD[0x…] notation.
-        // CD = C-list Data; always numeric, never symbolic.
-        const cdOff = n => `CD[${hexOff(n)}]`;
+        // Format a c-list slot access as CR6[0x…] — CR6 holds the c-list base pointer.
+        const cdOff = n => `CR6[${hexOff(n)}]`;
 
         switch (opcode) {
-            // LOAD CRd, CD[offset]  — load GT from c-list (always numeric)
+            // LOAD CRd, CR6[offset]  — load GT from c-list (always numeric)
             case 0: {
                 if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
                 return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
             }
-            // SAVE CRd, CD[offset]  — save GT to c-list (always numeric)
+            // SAVE CRd, CR6[offset]  — save GT to c-list (always numeric)
             case 1: {
                 if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
                 return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
@@ -1658,7 +1662,7 @@ class ChurchAssembler {
                 const retMask = imm & 0xFFF;
                 return retMask ? `${mnemonic}  0b${retMask.toString(2).padStart(12, '0')}` : mnemonic;
             }
-            // CHANGE CRd, CD[idx] / CRs[idx]
+            // CHANGE CRd, CR6[idx] / CRs[idx]
             case 4: {
                 if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
                 return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
@@ -1674,7 +1678,7 @@ class ChurchAssembler {
             }
             // LAMBDA CRd  — create closure from template
             case 7: return `${mnemonic}  CR${crDst}`;
-            // ELOADCALL CRd, CD[row], method  — fused load + method-table call (always numeric)
+            // ELOADCALL CRd, CR6[row], method  — fused load + method-table call (always numeric)
             // imm15[7:0] = c-list row; imm15[14:8] = method index (1-based, 0=fast-path)
             // Disassembler prints method as 0-based so output is directly re-assemblable.
             case 8: {
@@ -1684,7 +1688,7 @@ class ChurchAssembler {
                 if (ec8Method > 0) return `${mnemonic}  CR${crDst}, ${ec8Src}, ${ec8Method - 1}`;
                 return `${mnemonic}  CR${crDst}, ${ec8Src}`;
             }
-            // XLOADLAMBDA CRd, CD[offset] / CRs[offset]  — fused load + lambda
+            // XLOADLAMBDA CRd, CR6[offset] / CRs[offset]  — fused load + lambda
             case 9: {
                 if (crSrc === 6) return `${mnemonic}  CR${crDst}, ${cdOff(imm)}`;
                 return `${mnemonic}  CR${crDst}, CR${crSrc}[${hexOff(imm)}]`;
