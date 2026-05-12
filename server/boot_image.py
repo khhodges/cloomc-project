@@ -680,12 +680,19 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
 
     # ----- Boot.Abstr lump (NS slot 3) ------------------------------------
     # The Boot Abstraction: directly loaded by B:03 (INIT_ABSTR), no director hop.
-    # Task #651 redesign: cc=0 (no c-list), cw=NUC_CODE_WORDS=3.
+    #
+    # When 00000300.lump is present (normal case):
+    #   The saved LED-flash lump is loaded.  It has cc=1, cw=17 (64-word allocation).
+    #   C-List slot 0: Abstract LED GT (R+W), POLA-compacted from boot-C-List slot 8.
+    #   capabilities { LED0 }  — LED0 declared in 00000300.json sidecar.
+    #   Code: LOAD CR3, CR6[0x0000]  →  LED GT → CR3; then toggle loop forever.
+    #
+    # Fallback (00000300.lump absent) — Task #651 redesign: cc=0, cw=NUC_CODE_WORDS=3.
     #   Word  0:      Lump header (n_minus_6, cw=3, cc=0)
     #   Words 1–3:    Code region: CHANGE→TPERM→CALL (3 instructions)
     #   Words 4..end: Freespace (no c-list)
-    # B:06 NUC_CLIST sees cc=0 and skips c-list install; CHANGE first-activation
-    # restores CR0..CR11 from thread caps zone, giving CR0 = programmable E-GT.
+    #   B:06 NUC_CLIST sees cc=0 and skips c-list install; CHANGE first-activation
+    #   restores CR0..CR11 from thread caps zone, giving CR0 = programmable E-GT.
     boot_entry_loc  = locations[BOOT_ABSTR_NS_SLOT]
     entry_ns_base   = ns_table_base + BOOT_ABSTR_NS_SLOT * NS_ENTRY_WORDS
 

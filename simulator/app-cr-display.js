@@ -1251,6 +1251,18 @@ function editCRCodeInEditor() {
 
     const lines = [];
     lines.push(`; Disassembly of CR${crIdx}  NS[${nsIdx}]  @ 0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}  (${codeLimit} word${codeLimit !== 1 ? 's' : ''})`);
+    // Inject capabilities { } block from sidecar metadata when available.
+    if (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache) &&
+            nsIdx !== null && nsIdx !== undefined) {
+        const _lumpMeta = _lumpsCache.find(l =>
+            l.ns_slot !== null && l.ns_slot !== undefined &&
+            parseInt(l.ns_slot) === nsIdx);
+        if (_lumpMeta && Array.isArray(_lumpMeta.capabilities) && _lumpMeta.capabilities.length > 0) {
+            const _capNames = _lumpMeta.capabilities.map(c => c.name).filter(Boolean).join(', ');
+            lines.push(`capabilities { ${_capNames} }`);
+            lines.push('');
+        }
+    }
     if (trimmedWords.length === 0) {
         lines.push('; (empty lump)');
     } else {
