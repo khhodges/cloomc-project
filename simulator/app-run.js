@@ -1304,6 +1304,11 @@ function runSim() {
         // Guard: updateDashboard can crash (e.g. null NS entry after stack overflow fault);
         // catch here so the Run button is always re-enabled regardless.
         try { updateDashboard(); } catch(e) { console.error('finishRun updateDashboard:', e); }
+        // Update Next Steps panel with run outcome before switching view.
+        if (sim.bootComplete && (stopReason === 'halted' || sim.halted)) {
+            if (typeof showNextSteps === 'function')
+                showNextSteps(ranClean ? 'ran-clean' : 'ran-fault');
+        }
         // Clean HALT (no faults, boot complete) → open LUMP page for save workflow.
         // Faults, errors, breakpoints, maxSteps, and userStopped stay on dashboard.
         switchView(ranClean && sim.bootComplete ? 'lumps' : 'dashboard');

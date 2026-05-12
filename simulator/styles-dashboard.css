@@ -92,6 +92,59 @@ a.next-step-link:hover {
     color: var(--text-primary);
 }
 
+.next-step-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.5rem 0 0.25rem 0;
+}
+
+.next-step-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.28rem 0.65rem;
+    border: 1px solid rgba(200,155,60,0.35);
+    border-radius: 5px;
+    background: rgba(200,155,60,0.08);
+    color: var(--church-gold);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.next-step-btn:hover {
+    background: rgba(200,155,60,0.2);
+    border-color: var(--church-gold);
+    color: #e8c84a;
+}
+
+.next-step-btn.ns-btn-run {
+    border-color: rgba(102,187,106,0.4);
+    background: rgba(102,187,106,0.08);
+    color: #66bb6a;
+}
+
+.next-step-btn.ns-btn-run:hover {
+    background: rgba(102,187,106,0.2);
+    border-color: #66bb6a;
+    color: #81c784;
+}
+
+.next-step-btn.ns-btn-lump {
+    border-color: rgba(100,181,246,0.4);
+    background: rgba(100,181,246,0.08);
+    color: #64b5f6;
+}
+
+.next-step-btn.ns-btn-lump:hover {
+    background: rgba(100,181,246,0.2);
+    border-color: #64b5f6;
+    color: #90caf9;
+}
+
 #codeConsoleContent,
 #codeHistoryPanel {
     flex: 1;

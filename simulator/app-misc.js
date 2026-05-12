@@ -621,20 +621,52 @@ function showNextSteps(context) {
     if (!box) return;
 
     const link = (label, view) => `<a class="next-step-link" href="#" onclick="event.preventDefault();switchView('${view}')">${label}</a>`;
+    const btn  = (icon, label, fn, extra) =>
+        `<button class="next-step-btn${extra ? ' ' + extra : ''}" onclick="${fn}" title="${label}">${icon} ${label}</button>`;
     const steps = {
         'compiled': `
+            <div class="next-step-actions">
+                ${btn('\uD83D\uDC63', 'Step', 'stepSim()')}
+            </div>
             <ul>
                 <li>${link('Name this abstract idea', 'abstractions')} — does the abstraction name describe what it does?</li>
                 <li>${link('Check the Namespace', 'namespace')} — see where your abstraction will live once created.</li>
-                <li><strong>Step through it</strong> — click <strong>Step</strong> to watch each instruction execute one at a time.</li>
+                <li><strong>Step through it</strong> — watch each instruction execute one at a time.</li>
                 <li><strong>Create Abstraction</strong> — when you are ready, click the green button to give your idea a Body in the Church Machine.</li>
             </ul>`,
         'assembled': `
+            <div class="next-step-actions">
+                ${btn('\uD83D\uDC63', 'Step', 'stepSim()')}
+                ${btn('\uD83C\uDFC3', 'Run', 'onRunBtnClick()', 'ns-btn-run')}
+            </div>
             <ul>
-                <li><strong>Step through it</strong> — click <strong>Step</strong> to execute one instruction at a time and watch the registers change.</li>
-                <li><strong>Run it</strong> — click <strong>Run</strong> to execute all instructions until halt or fault.</li>
+                <li><strong>Step through it</strong> — execute one instruction at a time and watch the registers change.</li>
+                <li><strong>Run it</strong> — execute all instructions until halt or fault.</li>
                 <li>${link('Check the Namespace', 'namespace')} — see the namespace slots and save your program.</li>
                 <li>${link('View the Pipeline', 'pipeline')} — watch instructions flow through the mLoad pipeline.</li>
+            </ul>`,
+        'ran-clean': `
+            <div class="next-step-actions">
+                ${btn('\uD83D\uDC63', 'Step', 'stepSim()')}
+                ${btn('\uD83C\uDFC3', 'Run', 'onRunBtnClick()', 'ns-btn-run')}
+                ${btn('\uD83D\uDCBE', 'Save as LUMP', 'buildAndDownloadLump()', 'ns-btn-lump')}
+            </div>
+            <ul>
+                <li><strong>Clean run</strong> — no faults. Your program is ready to package.</li>
+                <li><strong>Save as LUMP</strong> — click the button above to compile and download a deployable binary.</li>
+                <li>${link('Inspect Abstractions', 'abstractions')} — review the lump layout and Golden Token.</li>
+                <li>${link('View the Pipeline', 'pipeline')} — watch how capabilities were checked during execution.</li>
+            </ul>`,
+        'ran-fault': `
+            <div class="next-step-actions">
+                ${btn('\uD83D\uDC63', 'Step', 'stepSim()')}
+                ${btn('\uD83C\uDFC3', 'Run', 'onRunBtnClick()', 'ns-btn-run')}
+            </div>
+            <ul>
+                <li><strong>Check the fault log</strong> — the dashboard shows which instruction caused the fault.</li>
+                <li><strong>Step through it</strong> — use Step to trace execution instruction-by-instruction.</li>
+                <li>${link('View the Pipeline', 'pipeline')} — see where the capability check failed.</li>
+                <li>${link('Read the Reference', 'reference')} — look up the faulting instruction and permission requirements.</li>
             </ul>`,
         'created': `
             <ul>
