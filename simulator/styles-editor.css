@@ -1506,6 +1506,74 @@
     font-family: inherit;
 }
 
+/* ── C-List viewer — Null slot form ─────────────────────────────────────── */
+.clist-null-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px 12px;
+}
+.clist-null-form-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #4a5568;
+    margin-top: 4px;
+}
+.clist-null-form-label:first-child { margin-top: 0; }
+.clist-perm-toggles {
+    display: flex;
+    gap: 5px;
+}
+.clist-perm-toggle {
+    flex: 1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 4px 2px;
+    border-radius: 4px;
+    border: 1px solid #333;
+    background: rgba(255,255,255,0.04);
+    color: #555;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.clist-perm-toggle[data-perm="R"].clist-perm-toggle--on { background: #5b9aef22; color: #5b9aef; border-color: #5b9aef66; }
+.clist-perm-toggle[data-perm="W"].clist-perm-toggle--on { background: #e07b5422; color: #e07b54; border-color: #e07b5466; }
+.clist-perm-toggle[data-perm="X"].clist-perm-toggle--on { background: #7ecb6122; color: #7ecb61; border-color: #7ecb6166; }
+.clist-perm-toggle[data-perm="L"].clist-perm-toggle--on { background: #b87ee022; color: #b87ee0; border-color: #b87ee066; }
+.clist-perm-toggle[data-perm="S"].clist-perm-toggle--on { background: #e0d25b22; color: #e0d25b; border-color: #e0d25b66; }
+.clist-perm-toggle[data-perm="E"].clist-perm-toggle--on { background: #f4b94222; color: #f4b942; border-color: #f4b94266; }
+.clist-perm-toggle:hover:not(.clist-perm-toggle--on) { background: rgba(255,255,255,0.08); color: #888; }
+.clist-null-insert-btn {
+    margin-top: 6px;
+    background: rgba(244, 185, 66, 0.12);
+    border: 1px solid rgba(244, 185, 66, 0.45);
+    border-radius: 4px;
+    color: #f4b942;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 5px;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.clist-null-insert-btn:hover { background: rgba(244, 185, 66, 0.24); }
+/* NULL entry in picker */
+.clist-picker-type--null {
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(120,120,180,0.12);
+    color: #9090c0;
+    border: 1px solid rgba(120,120,180,0.3);
+    flex-shrink: 0;
+}
+.clist-picker-row--null-slot {
+    border-bottom: 1px solid #222;
+}
+
 /* ── C-List viewer — Add button ────────────────────────────────────────── */
 .clist-add-btn {
     background: rgba(244, 185, 66, 0.1);

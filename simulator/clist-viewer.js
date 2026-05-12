@@ -83,8 +83,28 @@
             var addBtn = e.target.closest('[data-action="show-picker"]');
             if (addBtn) { showPicker(); return; }
 
+            var permToggle = e.target.closest('.clist-perm-toggle[data-perm]');
+            if (permToggle) { permToggle.classList.toggle('clist-perm-toggle--on'); return; }
+
+            var insertNullBtn = e.target.closest('[data-action="insert-null-slot"]');
+            if (insertNullBtn) {
+                var _form = popupEl && popupEl.querySelector('.clist-null-form');
+                var _ni = _form && _form.querySelector('.clist-null-name-input');
+                var _nm = _ni ? _ni.value.trim() : '';
+                if (!_nm) { if (_ni) _ni.focus(); return; }
+                var _activePerms = _form
+                    ? Array.from(_form.querySelectorAll('.clist-perm-toggle--on')).map(function (b) { return b.dataset.perm; }).join('')
+                    : '';
+                _insertCapability(_nm, _activePerms);
+                return;
+            }
+
             var pickerRow = e.target.closest('.clist-picker-row[data-cap-name]');
-            if (pickerRow) { _insertCapability(pickerRow.dataset.capName, pickerRow.dataset.capRights || ''); return; }
+            if (pickerRow) {
+                if (pickerRow.dataset.capName === '__NULL__') { showNullSlotForm(); return; }
+                _insertCapability(pickerRow.dataset.capName, pickerRow.dataset.capRights || '');
+                return;
+            }
 
             var row = e.target.closest('.clist-row[data-slot]');
             if (!row) return;
@@ -141,7 +161,9 @@
             e.preventDefault();
             if (focusedRow >= 0 && focusedRow < rows.length) {
                 if (inPicker) {
-                    _insertCapability(rows[focusedRow].dataset.capName, rows[focusedRow].dataset.capRights || '');
+                    var _fRow = rows[focusedRow];
+                    if (_fRow.dataset.capName === '__NULL__') { showNullSlotForm(); }
+                    else { _insertCapability(_fRow.dataset.capName, _fRow.dataset.capRights || ''); }
                 } else {
                     insertCROperand(parseInt(rows[focusedRow].dataset.slot, 10));
                 }
@@ -504,6 +526,14 @@
         var s = (typeof sim !== 'undefined') ? sim : null;
         var bodyRows = '';
 
+        // Section 0: NULL — custom named placeholder slot (filled at compile/runtime)
+        bodyRows += '<div class="clist-picker-section-header">Custom</div>' +
+            '<div class="clist-picker-row clist-picker-row--null-slot" data-cap-name="__NULL__">' +
+            '<span class="clist-picker-type clist-picker-type--null">Null</span>' +
+            '<span class="clist-picker-name">NULL</span>' +
+            '<span class="clist-picker-hint">named placeholder \u00b7 choose perms</span>' +
+            '</div>';
+
         // Section 1: Abstractions — Inform GTs from lump library (ns_slot != null)
         try {
             var lresp = await fetch('/api/lumps/list');
@@ -566,6 +596,36 @@
             '<span class="clist-viewer-hint">click to add \u00b7 Esc to go back</span>' +
             '</div>' +
             '<div class="clist-viewer-body">' + bodyRows + '</div>';
+    }
+
+    // ── Null Slot Form ────────────────────────────────────────────────────────
+    function showNullSlotForm() {
+        var popup = getOrCreatePopup();
+        focusedRow = -1;
+        var permsHtml = ['R', 'W', 'X', 'L', 'S', 'E'].map(function (p) {
+            return '<button class="clist-perm-toggle" data-perm="' + p + '">' + p + '</button>';
+        }).join('');
+        popup.innerHTML =
+            '<div class="clist-viewer-header">' +
+            '<button class="clist-back-btn" data-action="show-picker">\u2190 Back</button>' +
+            '<span class="clist-viewer-title">New Null Slot</span>' +
+            '</div>' +
+            '<div class="clist-null-form">' +
+            '<div class="clist-null-form-label">Pet name</div>' +
+            '<input class="clist-pet-name-input clist-null-name-input" type="text" placeholder="placeholder label\u2026" maxlength="32" />' +
+            '<div class="clist-null-form-label">Permissions</div>' +
+            '<div class="clist-perm-toggles">' + permsHtml + '</div>' +
+            '<button class="clist-null-insert-btn" data-action="insert-null-slot">Insert</button>' +
+            '</div>';
+        positionPopup();
+        var inp = popup.querySelector('.clist-null-name-input');
+        if (inp) {
+            inp.focus();
+            // Enter in the name field activates Insert
+            inp.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); popup.querySelector('[data-action="insert-null-slot"]').click(); }
+            }, true);
+        }
     }
 
     function showPicker() {
