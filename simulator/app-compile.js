@@ -514,6 +514,47 @@ function smartCompile() {
     }
 }
 
+// Cross-check declared capability access rights for correctness.
+// caps: array of {name, rights} objects (as produced by the assembler/compiler).
+// Returns { errors: string[], warnings: string[] }.
+// Errors: missing rights, invalid right letters.
+// Warnings: rights exceed what the known type (sidecar) grants.
+function _checkCapAccessRights(caps) {
+    const errors = [], warnings = [];
+    const VALID = new Set(['R', 'W', 'X', 'E']);
+    for (const cap of caps) {
+        const name = typeof cap === 'string' ? cap : (cap.name || '');
+        const rights = (typeof cap === 'string' ? [] : (cap.rights || []));
+        if (rights.length === 0) {
+            errors.push(`[ACL] ${name}: access rights required — e.g. "${name} RW"`);
+            continue;
+        }
+        const bad = rights.filter(r => !VALID.has(r.toUpperCase()));
+        if (bad.length > 0) {
+            errors.push(`[ACL] ${name}: invalid rights "${bad.join('')}" — valid letters: R W X E`);
+            continue;
+        }
+        // Type check: compare declared rights against any known sidecar entry for this name.
+        if (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache)) {
+            let knownGrants = null;
+            for (const lump of _lumpsCache) {
+                const entry = (lump.capabilities || []).find(c =>
+                    c.name && c.name.toUpperCase() === name.toUpperCase() &&
+                    c.grants && c.grants.length > 0);
+                if (entry) { knownGrants = entry.grants; break; }
+            }
+            if (knownGrants) {
+                const grantSet = new Set(knownGrants.map(g => g.toUpperCase()));
+                const over = rights.filter(r => !grantSet.has(r.toUpperCase()));
+                if (over.length > 0) {
+                    warnings.push(`[ACL] ${name}: rights "${over.join('')}" exceed known type grants [${knownGrants.join(',')}]`);
+                }
+            }
+        }
+    }
+    return { errors, warnings };
+}
+
 function compileDraftAssembly(source, con) {
     if (con) con.className = '';
     switchCodeTab('console');
@@ -564,7 +605,11 @@ function compileDraftAssembly(source, con) {
     if (cc > 0) {
         draft += `  Capabilities (${cc}):\n`;
         for (let i = 0; i < cc; i++) {
-            draft += `    [${i}] ${caps[i]}\n`;
+            const _cap = caps[i];
+            const _capName = typeof _cap === 'string' ? _cap : (_cap.name || '?');
+            const _capRights = typeof _cap === 'string' ? [] : (_cap.rights || []);
+            const _rightsStr = _capRights.length > 0 ? _capRights.join('') : '(no rights declared)';
+            draft += `    [${i}] ${_capName}  ${_rightsStr}\n`;
         }
         draft += '\n';
     }
@@ -593,8 +638,24 @@ function compileDraftAssembly(source, con) {
 
     draft += `\n═══════════════════════════════════════════════════\n`;
     if (cc > 0) {
-        draft += `  \u2139 capabilities { ${caps.join(', ')} } declared\n`;
-        draft += `    \u2192 Compile & Load, then Save LUMP to embed C-List.\n`;
+        const _acl = _checkCapAccessRights(caps);
+        if (_acl.errors.length > 0 || _acl.warnings.length > 0) {
+            draft += `  Access Rights Check:\n`;
+            for (const e of _acl.errors)   draft += `    \u2717 ${e}\n`;
+            for (const w of _acl.warnings) draft += `    \u26a0 ${w}\n`;
+            draft += '\n';
+        }
+        const _capStrs = caps.map(c => {
+            const n = typeof c === 'string' ? c : (c.name || '');
+            const r = typeof c === 'string' ? '' : (c.rights || []).join('');
+            return r ? `${n} ${r}` : n;
+        });
+        draft += `  \u2139 capabilities { ${_capStrs.join(', ')} } declared\n`;
+        if (_acl.errors.length > 0) {
+            draft += `    \u2717 Fix rights errors before saving LUMP.\n`;
+        } else {
+            draft += `    \u2192 Compile & Load, then Save LUMP to embed C-List.\n`;
+        }
         draft += `═══════════════════════════════════════════════════\n`;
     }
 
@@ -670,7 +731,11 @@ function compileDraft() {
         draft += `    (none)\n`;
     } else {
         for (let i = 0; i < caps.length; i++) {
-            draft += `    [${i}] ${caps[i]}\n`;
+            const _c = caps[i];
+            const _cn = typeof _c === 'string' ? _c : (_c.name || '?');
+            const _cr = typeof _c === 'string' ? [] : (_c.rights || []);
+            const _crs = _cr.length > 0 ? ('  ' + _cr.join('')) : '  (no rights declared)';
+            draft += `    [${i}] ${_cn}${_crs}\n`;
         }
     }
 
@@ -738,6 +803,27 @@ function compileDraft() {
             draft += comment ? `${line.padEnd(60)}; ${comment}\n` : `${line}\n`;
         }
         draft += '\n';
+    }
+
+    if (clistCount > 0) {
+        const _aclC = _checkCapAccessRights(caps);
+        if (_aclC.errors.length > 0 || _aclC.warnings.length > 0) {
+            draft += `\n═══════════════════════════════════════════════════\n`;
+            draft += `  Access Rights Check:\n`;
+            for (const e of _aclC.errors)   draft += `    \u2717 ${e}\n`;
+            for (const w of _aclC.warnings) draft += `    \u26a0 ${w}\n`;
+        }
+        const _capStrsC = caps.map(c => {
+            const n = typeof c === 'string' ? c : (c.name || '');
+            const r = typeof c === 'string' ? '' : (c.rights || []).join('');
+            return r ? `${n} ${r}` : n;
+        });
+        draft += `\n\u2139 capabilities { ${_capStrsC.join(', ')} } declared\n`;
+        if (_aclC.errors.length > 0) {
+            draft += `  \u2717 Fix rights errors before saving LUMP.\n`;
+        } else {
+            draft += `  \u2192 Build LUMP to embed C-List in binary.\n`;
+        }
     }
 
     if (con) { con.textContent = draft; con.scrollTop = 0; }
@@ -824,7 +910,9 @@ function buildAndDownloadLump() {
                    ((0 & 0x03) << 8) |
                    (cc & 0xFF);
 
-    const resolvedCaps = caps.map(capName => {
+    const resolvedCaps = caps.map(cap => {
+        const capName = typeof cap === 'string' ? cap : (cap.name || '');
+        const capRights = typeof cap === 'string' ? [] : (cap.rights || []);
         let target = -1;
         if (sim && sim.abstractionRegistry) {
             const allAbs = sim.abstractionRegistry.abstractions || [];
@@ -835,7 +923,7 @@ function buildAndDownloadLump() {
                 }
             }
         }
-        return { name: capName, nsIndex: target };
+        return { name: capName, rights: capRights, nsIndex: target };
     });
 
     const lumpWords = new Uint32Array(lumpSize);
@@ -860,7 +948,7 @@ function buildAndDownloadLump() {
         _auditResults = lumpAudit(Array.from(lumpWords), {
             cw, cc, lump_size: lumpSize,
             pet_names:    { CR: _auditPnCR },
-            capabilities: resolvedCaps.map(rc => ({ name: rc.name })),
+            capabilities: resolvedCaps.map(rc => ({ name: rc.name, rights: rc.rights, grants: rc.rights })),
         });
         _auditErrors  = _auditResults.filter(r => r.severity === 'error');
         _auditWarns   = _auditResults.filter(r => r.severity === 'warn');
@@ -958,7 +1046,7 @@ function buildAndDownloadLump() {
             profile:        profile,
             language:       result.language || 'javascript',
             methods:        methodMeta,
-            capabilities:   resolvedCaps.map(rc => ({ name: rc.name, nsIndex: rc.nsIndex })),
+            capabilities:   resolvedCaps.map(rc => ({ name: rc.name, rights: rc.rights, grants: rc.rights, nsIndex: rc.nsIndex })),
             pet_names_dr:   drPetNames,
             pet_names_cr:   crPetNames,
             mtbf_clean_runs: mtbfClean,
@@ -1024,7 +1112,8 @@ function buildAndDownloadLump() {
         for (let i = 0; i < resolvedCaps.length; i++) {
             const rc = resolvedCaps[i];
             const status = rc.nsIndex >= 0 ? `NS[${rc.nsIndex}]` : 'unresolved (null GT)';
-            listing += `    [${i}] ${rc.name} → ${status}\n`;
+            const _rcRightsStr = rc.rights && rc.rights.length > 0 ? ` [${rc.rights.join('')}]` : '';
+            listing += `    [${i}] ${rc.name}${_rcRightsStr} → ${status}\n`;
             if (rc.nsIndex < 0) unresolved.push(rc.name);
         }
         if (unresolved.length > 0) {
@@ -1106,7 +1195,9 @@ function _buildAndDownloadAssemblyLump(source, asmResult, con) {
                    ((0 & 0x03) << 8) |
                    (cc & 0xFF);
 
-    const resolvedCaps = caps.map((capName, i) => {
+    const resolvedCaps = caps.map((cap, i) => {
+        const capName = typeof cap === 'string' ? cap : (cap.name || '');
+        const capRights = typeof cap === 'string' ? [] : (cap.rights || []);
         let target = -1;
         if (sim && sim.abstractionRegistry) {
             const allAbs = sim.abstractionRegistry.abstractions || [];
@@ -1116,7 +1207,7 @@ function _buildAndDownloadAssemblyLump(source, asmResult, con) {
                 }
             }
         }
-        return { name: capName, nsIndex: target };
+        return { name: capName, rights: capRights, nsIndex: target };
     });
 
     const lumpWords = new Uint32Array(lumpSize);
@@ -1136,7 +1227,7 @@ function _buildAndDownloadAssemblyLump(source, asmResult, con) {
         _auditResults = lumpAudit(Array.from(lumpWords), {
             cw, cc, lump_size: lumpSize,
             pet_names:    { CR: _auditPnCR },
-            capabilities: resolvedCaps.map(rc => ({ name: rc.name })),
+            capabilities: resolvedCaps.map(rc => ({ name: rc.name, rights: rc.rights, grants: rc.rights })),
         });
         _auditErrors = _auditResults.filter(r => r.severity === 'error');
         _auditWarns  = _auditResults.filter(r => r.severity === 'warn');
@@ -1198,7 +1289,7 @@ function _buildAndDownloadAssemblyLump(source, asmResult, con) {
             profile:         'IoT',
             language:        'assembly',
             methods:         [{ name: 'main', offset: 0, length: cw, pet_names: { CR: _crNumericMap } }],
-            capabilities:    resolvedCaps.map(rc => ({ name: rc.name, nsIndex: rc.nsIndex })),
+            capabilities:    resolvedCaps.map(rc => ({ name: rc.name, rights: rc.rights, grants: rc.rights, nsIndex: rc.nsIndex })),
             pet_names_dr:    {},
             pet_names_cr:    { CR0: _crNumericMap['0'] || undefined },
             mtbf_clean_runs: mtbfClean,
@@ -1668,7 +1759,9 @@ function compileAndCreateAbstraction() {
         return;
     }
 
-    const uploadCaps = (result.capabilities || []).map((capName, idx) => {
+    const uploadCaps = (result.capabilities || []).map((cap, idx) => {
+        const capName = typeof cap === 'string' ? cap : (cap.name || '');
+        const capRights = typeof cap === 'string' ? [] : (cap.rights || []);
         let target = -1;
         if (sim.abstractionRegistry) {
             const allAbs = sim.abstractionRegistry.abstractions || [];
@@ -1679,7 +1772,7 @@ function compileAndCreateAbstraction() {
                 }
             }
         }
-        return { target: target, name: capName, grants: ['E'] };
+        return { target: target, name: capName, grants: capRights.length > 0 ? capRights : ['E'] };
     }).filter(c => c.target >= 0);
 
     const doc = buildDocBlock(result, source);

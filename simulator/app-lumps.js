@@ -2850,8 +2850,12 @@ async function openLumpInEditor(token) {
             // Inject capabilities { } block from sidecar metadata when available.
             var _lCaps = lump.capabilities;
             if (Array.isArray(_lCaps) && _lCaps.length > 0) {
-                var _capNames = _lCaps.map(function(c) { return c.name; }).filter(Boolean).join(', ');
-                disasmLines.push('capabilities { ' + _capNames + ' }');
+                var _capItems = _lCaps.map(function(c) {
+                    var _n = c.name || String(c);
+                    var _r = (c.grants || c.rights || []).join('');
+                    return _r ? (_n + ' ' + _r) : _n;
+                }).filter(Boolean).join(', ');
+                disasmLines.push('capabilities { ' + _capItems + ' }');
                 disasmLines.push('');
             }
             if (trimmed.length === 0) {

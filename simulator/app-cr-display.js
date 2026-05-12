@@ -1258,8 +1258,12 @@ function editCRCodeInEditor() {
             l.ns_slot !== null && l.ns_slot !== undefined &&
             parseInt(l.ns_slot) === nsIdx);
         if (_lumpMeta && Array.isArray(_lumpMeta.capabilities) && _lumpMeta.capabilities.length > 0) {
-            const _capNames = _lumpMeta.capabilities.map(c => c.name).filter(Boolean).join(', ');
-            lines.push(`capabilities { ${_capNames} }`);
+            const _capItems = _lumpMeta.capabilities.map(c => {
+                const _n = c.name || String(c);
+                const _r = (c.grants || c.rights || []).join('');
+                return _r ? `${_n} ${_r}` : _n;
+            }).filter(Boolean).join(', ');
+            lines.push(`capabilities { ${_capItems} }`);
             lines.push('');
         }
     }

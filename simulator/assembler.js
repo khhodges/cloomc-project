@@ -435,21 +435,29 @@ class ChurchAssembler {
             if (!_inCapBlock && !_inConstBlock && /^capabilities\s*\{/i.test(line)) {
                 const inline = line.match(/^capabilities\s*\{\s*(.*?)\s*\}\s*$/i);
                 if (inline) {
-                    for (const n of inline[1].split(/[\s,]+/).filter(s => /^[A-Za-z]/.test(s)))
-                        this.capabilities.push(n);
+                    for (const item of inline[1].split(',')) {
+                        const cap = ChurchAssembler._parseCapItem(item);
+                        if (cap) this.capabilities.push(cap);
+                    }
                 } else {
                     _inCapBlock = true;
                     const tail = line.replace(/^capabilities\s*\{/i, '').trim();
-                    for (const n of tail.split(/[\s,]+/).filter(s => /^[A-Za-z]/.test(s)))
-                        this.capabilities.push(n);
+                    if (tail) {
+                        for (const item of tail.split(',')) {
+                            const cap = ChurchAssembler._parseCapItem(item);
+                            if (cap) this.capabilities.push(cap);
+                        }
+                    }
                 }
                 continue;
             }
             if (_inCapBlock) {
                 if (line.includes('}')) { _inCapBlock = false; }
                 else {
-                    for (const n of line.split(/[\s,]+/).filter(s => /^[A-Za-z]/.test(s)))
-                        this.capabilities.push(n);
+                    for (const item of line.split(',')) {
+                        const cap = ChurchAssembler._parseCapItem(item);
+                        if (cap) this.capabilities.push(cap);
+                    }
                 }
                 continue;
             }
@@ -1201,6 +1209,28 @@ class ChurchAssembler {
     //   • Out-of-range BRANCH targets (not covered by a label) fall back to
     //     the numeric offset form produced by disassemble().
     //   • Word 0x00000000 is emitted as "NOP".
+
+    // Parse a single "NAME [RIGHTS]" capability item from a capabilities { } block.
+    // Examples: "LED0 RW" → {name:'LED0', rights:['R','W']}
+    //           "SlideRule E" → {name:'SlideRule', rights:['E']}
+    //           "LED0" → {name:'LED0', rights:[]}
+    // Rights tokens contain ONLY letters from the set {R, W, X, E} (no digits/underscores).
+    static _parseCapItem(itemStr) {
+        const tokens = itemStr.trim().split(/\s+/).filter(Boolean);
+        if (!tokens.length) return null;
+        const name = tokens[0];
+        if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) return null;
+        const rights = [];
+        for (const t of tokens.slice(1)) {
+            if (/^[RWXErwxe]+$/.test(t)) {
+                for (const c of t.toUpperCase()) {
+                    if (!rights.includes(c)) rights.push(c);
+                }
+            }
+        }
+        return { name, rights };
+    }
+
     static decompileWords(trimmedWords) {
         const _condNames = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
         const asm = new ChurchAssembler();

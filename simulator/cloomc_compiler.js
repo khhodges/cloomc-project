@@ -282,8 +282,10 @@ class CLOOMCCompiler {
                 const inlineMatch = line.match(/^capabilities\s*\{\s*(.*?)\s*\}$/);
                 if (inlineMatch) {
                     if (inlineMatch[1]) {
-                        const names = inlineMatch[1].replace(/,/g, ' ').split(/\s+/).filter(Boolean);
-                        result.capabilities.push(...names);
+                        for (const item of inlineMatch[1].split(',')) {
+                            const cap = CLOOMCCompiler._parseCapItem(item);
+                            if (cap) result.capabilities.push(cap);
+                        }
                     }
                     i++;
                 } else {
@@ -292,8 +294,10 @@ class CLOOMCCompiler {
                         const capLine = lines[i].trim();
                         if (capLine === '}') { i++; break; }
                         if (capLine && !capLine.startsWith('--')) {
-                            const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
-                            result.capabilities.push(...names);
+                            for (const item of capLine.split(',')) {
+                                const cap = CLOOMCCompiler._parseCapItem(item);
+                                if (cap) result.capabilities.push(cap);
+                            }
                         }
                         i++;
                     }
@@ -634,7 +638,7 @@ class CLOOMCCompiler {
         const rom = {};
         const capNames = declaredCaps || [];
         for (let i = 0; i < capNames.length; i++) {
-            rom[capNames[i].toUpperCase()] = i + 1;
+            rom[(typeof capNames[i] === 'string' ? capNames[i] : capNames[i].name || '').toUpperCase()] = i + 1;
         }
         if (uploadCaps && uploadCaps.length > 0) {
             for (let i = 0; i < uploadCaps.length; i++) {
@@ -645,6 +649,26 @@ class CLOOMCCompiler {
             }
         }
         return rom;
+    }
+
+    // Parse a single "NAME [RIGHTS]" capability item from a capabilities { } block.
+    // Examples: "LED0 RW" → {name:'LED0', rights:['R','W']}
+    //           "Memory E" → {name:'Memory', rights:['E']}
+    //           "LED0" → {name:'LED0', rights:[]}  (missing rights — caller should warn/error)
+    static _parseCapItem(itemStr) {
+        const tokens = itemStr.trim().split(/\s+/).filter(Boolean);
+        if (!tokens.length) return null;
+        const name = tokens[0];
+        if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) return null;
+        const rights = [];
+        for (const t of tokens.slice(1)) {
+            if (/^[RWXErwxe]+$/.test(t)) {
+                for (const c of t.toUpperCase()) {
+                    if (!rights.includes(c)) rights.push(c);
+                }
+            }
+        }
+        return { name, rights };
     }
 
     _parseAbstraction(source, errors) {
@@ -695,8 +719,10 @@ class CLOOMCCompiler {
                 const inlineMatch = line.match(/^capabilities\s*\{\s*(.*?)\s*\}$/);
                 if (inlineMatch) {
                     if (inlineMatch[1]) {
-                        const names = inlineMatch[1].replace(/,/g, ' ').split(/\s+/).filter(Boolean);
-                        result.capabilities.push(...names);
+                        for (const item of inlineMatch[1].split(',')) {
+                            const cap = CLOOMCCompiler._parseCapItem(item);
+                            if (cap) result.capabilities.push(cap);
+                        }
                     }
                     i++;
                 } else {
@@ -705,8 +731,10 @@ class CLOOMCCompiler {
                         const capLine = lines[i].trim();
                         if (capLine === '}') { i++; break; }
                         if (capLine && !capLine.startsWith('//')) {
-                            const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
-                            result.capabilities.push(...names);
+                            for (const item of capLine.split(',')) {
+                                const cap = CLOOMCCompiler._parseCapItem(item);
+                                if (cap) result.capabilities.push(cap);
+                            }
                         }
                         i++;
                     }
@@ -1461,8 +1489,10 @@ class CLOOMCCompiler {
                 const inlineMatch = line.match(/^capabilities\s*\{\s*(.*?)\s*\}$/);
                 if (inlineMatch) {
                     if (inlineMatch[1]) {
-                        const names = inlineMatch[1].replace(/,/g, ' ').split(/\s+/).filter(Boolean);
-                        result.capabilities.push(...names);
+                        for (const item of inlineMatch[1].split(',')) {
+                            const cap = CLOOMCCompiler._parseCapItem(item);
+                            if (cap) result.capabilities.push(cap);
+                        }
                     }
                     i++;
                 } else {
@@ -1471,8 +1501,10 @@ class CLOOMCCompiler {
                         const capLine = lines[i].trim();
                         if (capLine === '}') { i++; break; }
                         if (capLine && !capLine.startsWith('--')) {
-                            const names = capLine.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
-                            result.capabilities.push(...names);
+                            for (const item of capLine.split(',')) {
+                                const cap = CLOOMCCompiler._parseCapItem(item);
+                                if (cap) result.capabilities.push(cap);
+                            }
                         }
                         i++;
                     }
