@@ -1300,9 +1300,16 @@ function runSim() {
             || stopReason === 'faultFreeLimit';
         const countable = stopReason !== 'breakpoint' && stopReason !== 'bootExit'
             && sim.bootComplete && totalSteps >= 1;
+        // faultFreeLimit: always update the counter regardless of _simRunHash so
+        // lumpBtn() sees >= 1000 when showNextSteps is called.
+        if (stopReason === 'faultFreeLimit' && countable) {
+            _faultFreeInstrTotal += totalSteps;
+            _updateMtbfIndicator();
+            if (typeof _updateFaultFreeCounter === 'function') _updateFaultFreeCounter();
+        }
         if (countable && _simRunHash) {
             _simRunHistory.push({ hash: _simRunHash, passed: ranClean, timestamp: Date.now() });
-            if (ranClean) _faultFreeInstrTotal += totalSteps;
+            if (ranClean && stopReason !== 'faultFreeLimit') _faultFreeInstrTotal += totalSteps;
             _updateMtbfIndicator();
             if (typeof _updateFaultFreeCounter === 'function') _updateFaultFreeCounter();
         }
@@ -1318,30 +1325,34 @@ function runSim() {
                 status = `Max steps (${totalSteps}) reached.`;
             } else if (stopReason === 'userStopped') {
                 status = 'Stopped by user.';
-            } else if (stopReason === 'faultFreeLimit') {
-                status = '\u2B50 1,000 fault-free instructions \u2014 LUMP unlocked. Click \uD83D\uDCBE Save as LUMP in Next Steps.';
             } else if (stopReason === 'error') {
                 status = 'Runtime error — see console.';
             }
             const lines = con.textContent.split('\n');
-            lines[lines.length - 1] = `Boot complete. Ran ${totalSteps} steps. ${status}`;
+            if (stopReason === 'faultFreeLimit') {
+                lines[lines.length - 1] = `Boot complete. Ran ${totalSteps} steps.`;
+                lines.push('\u2B50 1,000 fault-free instructions \u2014 LUMP unlocked.');
+                lines.push('\uD83D\uDCBE Click \u201CSave as LUMP\u201D in Next Steps to download.');
+            } else {
+                lines[lines.length - 1] = `Boot complete. Ran ${totalSteps} steps. ${status}`;
+            }
             con.textContent = lines.join('\n');
             con.scrollTop = con.scrollHeight;
         }
         // Guard: updateDashboard can crash (e.g. null NS entry after stack overflow fault);
         // catch here so the Run button is always re-enabled regardless.
         try { updateDashboard(); } catch(e) { console.error('finishRun updateDashboard:', e); }
-        // Update Next Steps panel with run outcome before switching view.
-        if (sim.bootComplete && (stopReason === 'halted' || sim.halted || stopReason === 'faultFreeLimit')) {
-            if (typeof showNextSteps === 'function')
-                showNextSteps(ranClean ? 'ran-clean' : 'ran-fault');
-        }
         // Clean HALT (no faults, boot complete) → open LUMP page for save workflow.
-        // faultFreeLimit: milestone reached → return to editor with Save as LUMP unlocked.
+        // faultFreeLimit: go to editor first, then render Next Steps so lumpBtn sees >= 1000.
         // Faults, errors, breakpoints, maxSteps, and userStopped stay on dashboard.
         if (stopReason === 'faultFreeLimit') {
             switchView('editor');
+            if (typeof showNextSteps === 'function') showNextSteps('ran-clean');
         } else {
+            if (sim.bootComplete && (stopReason === 'halted' || sim.halted)) {
+                if (typeof showNextSteps === 'function')
+                    showNextSteps(ranClean ? 'ran-clean' : 'ran-fault');
+            }
             switchView(ranClean && sim.bootComplete ? 'lumps' : 'dashboard');
             openCRDetail(14);
         }
