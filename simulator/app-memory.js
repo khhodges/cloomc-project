@@ -3679,6 +3679,13 @@ window.applyPOLA = async function(nsIdx) {
                 if (typeof assembler !== 'undefined' && assembler && assembler.nsSymbols) {
                     assembler.nsSymbols[key] = newSlot;
                 }
+                // Persist to the shared class-level map so every future ChurchAssembler
+                // instance (including those created in flushAsmBlock during compilePetName)
+                // inherits the correct POLA-compacted slot rather than the stale boot default.
+                if (typeof ChurchAssembler !== 'undefined') {
+                    ChurchAssembler._sharedNsSymbols = ChurchAssembler._sharedNsSymbols || {};
+                    ChurchAssembler._sharedNsSymbols[key] = newSlot;
+                }
                 if (newSlot !== i) {
                     ledRemappings.push(`  ${key}: slot ${i} \u2192 ${newSlot}`);
                 }

@@ -1399,7 +1399,7 @@ function _resolveClistPetName(clistBase, imm, nsIdx) {
                 try {
                     const ab = sim.parseAbstractGT(gtWord);
                     const DC = { 1: 'LED', 2: 'UART', 3: 'Button', 4: 'Timer', 5: 'Display' };
-                    if (ab.ab_type === 0) return `${DC[ab.device_class] || 'dc'+ab.device_class}[${ab.device_data}]`;
+                    if (ab.ab_type === 0) return `${DC[ab.device_class] || 'dc'+ab.device_class}${ab.device_data}`;
                     return `M-Elev 0x${ab.ab_data.toString(16).toUpperCase()}`;
                 } catch(_e) {}
             }

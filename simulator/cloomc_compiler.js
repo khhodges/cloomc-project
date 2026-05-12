@@ -3503,15 +3503,21 @@ class CLOOMCCompiler {
                     asmBlockSrcLines.push(i);
                     continue;
                 }
-                // LED<N> shorthand (canonical) or legacy LED[N] bracket form:
-                // boot-loaded Abstract GT at fixed c-list slot 8+N.
-                // Not in CAP_NAMES (keyed by abstraction name), so handle directly.
+                // LED<N> shorthand (canonical) or legacy LED[N] bracket form.
+                // Default boot c-list slot is 8+N, but POLA may compact it to a lower
+                // slot and persist the new index into ChurchAssembler._sharedNsSymbols.
+                // Always prefer the shared symbol so recompiling after POLA stays correct.
                 const _ledBracket = petName.match(/^LED(\d)$/i) || petName.match(/^LED\[(\d)\]$/i);
                 if (_ledBracket) {
                     const _n = parseInt(_ledBracket[1], 10);
                     if (_n >= 0 && _n <= 5) {
                         flushAsmBlock();
-                        const _clistOffset = 8 + _n;
+                        const _ledKey = 'LED' + _n;
+                        const _sharedNs = (typeof ChurchAssembler !== 'undefined') &&
+                                          ChurchAssembler._sharedNsSymbols;
+                        const _clistOffset = (_sharedNs && _sharedNs[_ledKey] !== undefined)
+                            ? _sharedNs[_ledKey]
+                            : (8 + _n);
                         const _cr = allocCR(petName, i);
                         crLocals[petName] = _cr;
                         manifest.push({ src: i, addr: code.length,
