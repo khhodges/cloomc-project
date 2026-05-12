@@ -2274,6 +2274,34 @@ const ChurchSimulator = require('./simulator.js');
     }
 }
 
+// ── Shared GT-constant guard (used by both TP and SM sections) ────────────────
+// Guard: verify a GT constant is domain-pure at definition time so that a bad
+// constant causes an immediate, clearly-located throw rather than a cryptic
+// mid-test fault inside sim.step().  Abstract GTs (type===3) repurpose the
+// permission bits as ab_type and are exempt from the check.
+function validateGTConstant(name, word) {
+    word = word >>> 0;
+    const type = (word >>> 23) & 0x3;
+    if (type === 3) return;
+    const permBits = (word >>> 25) & 0x7F;
+    const perms = {
+        B: (permBits >>> 6) & 1,
+        E: (permBits >>> 5) & 1,
+        S: (permBits >>> 4) & 1,
+        L: (permBits >>> 3) & 1,
+        X: (permBits >>> 2) & 1,
+        W: (permBits >>> 1) & 1,
+        R: (permBits >>> 0) & 1,
+    };
+    const purity = ChurchSimulator.isDomainPure(perms);
+    if (!purity.ok) {
+        throw new Error(
+            `GT constant "${name}" (0x${word.toString(16).padStart(8,'0')}) is domain-impure: ` +
+            `mixes Turing and Church permissions (${purity.bits})`
+        );
+    }
+}
+
 // ── TP: TPERM simulator integration tests (task-873) ─────────────────────────
 // These tests exercise _execTperm directly via step() to verify:
 //   C.1 — reserved presets fault with TPERM_RSV (not silent Z=0)
@@ -2287,6 +2315,7 @@ const ChurchSimulator = require('./simulator.js');
 // GT word for CR0: R permission, Inform type, NS index 0, seq 0
 // GT bits: permBits[31:25]=0b0000001(R), type[24:23]=0b01(Inform), seq[22:16]=0, index[15:0]=0
 const TP_GT_R_IDX0 = ((0b0000001 << 25) | (0b01 << 23) | 0) >>> 0;
+validateGTConstant('TP_GT_R_IDX0', TP_GT_R_IDX0);
 
 // Instruction word format: opcode[31:27], cond[26:23], crDst[22:19], crSrc[18:15], imm[14:0]
 // AL (always-execute) condition = 0xE in bits[26:23]
@@ -2403,33 +2432,6 @@ const TP_INSTR_RSV = ((6 << 27) | (0xE << 23) | (0 << 19) | 11) >>> 0;
 // TPERM CR0, CR1, 0x7FFF  (Mode 2 attenuation — imm=0x7FFF, crDst=0, crSrc=1)
 // opcode=6, cond=AL=0xE, crDst=0, crSrc=1, imm=0x7FFF
 const SM_MODE2_INSTR = ((6 << 27) | (0xE << 23) | (0 << 19) | (1 << 15) | 0x7FFF) >>> 0;
-
-// Guard: verify a GT constant is domain-pure at definition time so that a bad
-// constant causes an immediate, clearly-located throw rather than a cryptic
-// mid-test fault inside sim.step().  Abstract GTs (type===3) repurpose the
-// permission bits as ab_type and are exempt from the check.
-function validateGTConstant(name, word) {
-    word = word >>> 0;
-    const type = (word >>> 23) & 0x3;
-    if (type === 3) return;
-    const permBits = (word >>> 25) & 0x7F;
-    const perms = {
-        B: (permBits >>> 6) & 1,
-        E: (permBits >>> 5) & 1,
-        S: (permBits >>> 4) & 1,
-        L: (permBits >>> 3) & 1,
-        X: (permBits >>> 2) & 1,
-        W: (permBits >>> 1) & 1,
-        R: (permBits >>> 0) & 1,
-    };
-    const purity = ChurchSimulator.isDomainPure(perms);
-    if (!purity.ok) {
-        throw new Error(
-            `GT constant "${name}" (0x${word.toString(16).padStart(8,'0')}) is domain-impure: ` +
-            `mixes Turing and Church permissions (${purity.bits})`
-        );
-    }
-}
 
 // GT with R,W,X permissions (full Turing domain), Inform type, NS index 0, seq 0
 // permBits: R=bit0=1, W=bit1=1, X=bit2=1 → 0b000111=0x07; shifted to [31:25]: 0x07<<25=0x0E000000
