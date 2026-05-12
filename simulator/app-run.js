@@ -322,7 +322,7 @@ function assembleAndLoad() {
                 listing += `  * [${i + 1}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
             }
         }
-        if (con) con.textContent = listing;
+        if (con) con.innerHTML = _capRightsHTML(listing);
         if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
         showNextSteps('assembled');
         const saveBtn = document.getElementById('btnSaveNS');
@@ -391,13 +391,24 @@ function assembleAndLoad() {
             listing += `  * [${i + 1}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
         }
     }
-    if (con) con.textContent = listing;
+    if (con) con.innerHTML = _capRightsHTML(listing);
     showNextSteps('assembled');
 
     const saveBtn = document.getElementById('btnSaveNS');
     if (saveBtn) saveBtn.disabled = false;
 
     updateDashboard();
+}
+
+function _capRightsHTML(text) {
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return escaped.replace(/\[([RWXE]+)\]/g, function(_m, rights) {
+        const letters = rights.split('').map(function(ch) {
+            const cls = { R: 'cap-right-r', W: 'cap-right-w', X: 'cap-right-x', E: 'cap-right-e' }[ch];
+            return cls ? '<span class="' + cls + '">' + ch + '</span>' : ch;
+        }).join('');
+        return '[' + letters + ']';
+    });
 }
 
 function _clistTypeLabel(name) {

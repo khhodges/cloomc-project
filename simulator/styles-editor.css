@@ -461,6 +461,10 @@
 #editorConsole.cmp-html {
     white-space: normal;
 }
+.cap-right-r { color: #60a5fa; font-weight: bold; }
+.cap-right-w { color: #4ade80; font-weight: bold; }
+.cap-right-x { color: #f97316; font-weight: bold; }
+.cap-right-e { color: #fbbf24; font-weight: bold; }
 .cmp-file-hdr {
     color: #6b7280;
     margin-bottom: 0.5rem;
