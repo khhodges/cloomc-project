@@ -180,6 +180,14 @@
     letter-spacing: 0.08em;
     color: var(--church-gold);
     padding: 0.35rem 0.85rem 0.2rem;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: color 0.15s, background 0.15s;
+    user-select: none;
+}
+.ham-group-title:hover {
+    color: #f0c040;
+    background: rgba(218,165,32,0.1);
 }
 
 .ham-divider {

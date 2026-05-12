@@ -97,7 +97,7 @@
                         <button class="btn btn-view ham-btn" id="hamBtn" onclick="toggleHamburger()" data-tooltip="Menu — Browse all views">&#9776;</button>
                         <div class="ham-dropdown" id="hamDropdown" style="display:none;">
                             <div class="ham-group">
-                                <div class="ham-group-title">Develop</div>
+                                <div class="ham-group-title" title="Double-click to open Programs" ondblclick="switchView('editor');closeHamburger()">Develop</div>
                                 <button class="ham-item" id="hamItem-editor" onclick="switchView('editor');closeHamburger()">Programs</button>
                                 <button class="ham-item" id="hamItem-repl" onclick="switchView('repl');closeHamburger()">Math<kbd class="ham-kbd">C+M</kbd></button>
                                 <button class="ham-item" id="hamItem-namespace" onclick="switchView('namespace');closeHamburger()">Namespace<kbd class="ham-kbd">C+N</kbd></button>
@@ -105,7 +105,7 @@
                                 <button class="ham-item" id="hamItem-memory" onclick="switchView('memory');closeHamburger()">Memory Dump</button>
                             </div>
                             <div class="ham-group">
-                                <div class="ham-group-title">Test</div>
+                                <div class="ham-group-title" title="Double-click to open Simulator" ondblclick="openSimulatorFromMenu()">Test</div>
                                 <button class="ham-item" id="hamItem-dashboard" onclick="openSimulatorFromMenu()">Simulator<kbd class="ham-kbd">C+D</kbd></button>
                                 <button class="ham-item" id="hamItem-dashboard-dr" onclick="switchView('dashboard');switchDashTab('dr');closeHamburger()">Data Registers</button>
                                 <button class="ham-item" id="hamItem-dashboard-gatelog" onclick="switchView('dashboard');switchDashTab('gatelog');closeHamburger()">Gate Log</button>
@@ -117,7 +117,7 @@
                                 <button class="ham-item" id="hamItem-gt-view" onclick="switchView('gt-view');closeHamburger()">GT Inspector</button>
                             </div>
                             <div class="ham-group">
-                                <div class="ham-group-title">Review</div>
+                                <div class="ham-group-title" title="Double-click to open Logic Catalog" ondblclick="switchView('abstractions');closeHamburger()">Review</div>
                                 <button class="ham-item" id="hamItem-abstractions" onclick="switchView('abstractions');closeHamburger()">Logic Catalog<kbd class="ham-kbd">C+A</kbd></button>
                                 <button class="ham-item" id="hamItem-source-library" onclick="switchView('abstractions');switchAbsSubtab('sources');closeHamburger()">Source Library<kbd class="ham-kbd">C+⇧+L</kbd></button>
                                 <button class="ham-item" id="hamItem-tutorial" onclick="switchView('tutorial');closeHamburger()">Tutorial<kbd class="ham-kbd">C+U</kbd></button>
@@ -126,7 +126,7 @@
                                 <button class="ham-item" id="hamItem-sitemap" onclick="switchView('sitemap');closeHamburger()">Site Map</button>
                             </div>
                             <div class="ham-group">
-                                <div class="ham-group-title">Hardware</div>
+                                <div class="ham-group-title" title="Double-click to open Devices" ondblclick="switchView('devices');closeHamburger()">Hardware</div>
                                 <button class="ham-item" id="fpgaConnBtn" onclick="fpgaConnectToggle()" data-tooltip="FPGA — Click to connect or reconnect hardware via WebSerial">FPGA</button>
                                 <button class="ham-item" id="fpgaBridgeBtn" onclick="fpgaBridgeConnect()" data-tooltip="FPGA Bridge — Connect via local bridge script (use this on ChromeOS)">Bridge</button>
                                 <button class="ham-item" id="fpgaReadBRAMBtn" onclick="fpgaReadBRAM()" data-tooltip="Read BRAM — Dump words from FPGA BRAM over UART (0xBEAD)">BRAM</button>
@@ -137,13 +137,13 @@
                                 <button class="ham-item" id="hamItem-hw-tang9k" onclick="setSelectedBoard('tang-nano-9k');switchView('builder');closeHamburger()">Tang Nano 9K (IoT)</button>
                             </div>
                             <div class="ham-group">
-                                <div class="ham-group-title">Configure</div>
+                                <div class="ham-group-title" title="Double-click to open Devices" ondblclick="switchView('devices');closeHamburger()">Configure</div>
                                 <button class="ham-item" id="hamItem-devices" onclick="switchView('devices');switchDevicesTab('devices');closeHamburger()">Devices<kbd class="ham-kbd">C+V</kbd></button>
                                 <button class="ham-item" id="hamItem-launch" onclick="switchView('devices');switchDevicesTab('launch');closeHamburger()">Launch Readiness</button>
                                 <button class="ham-item" id="hamItem-github" onclick="switchView('github');closeHamburger()">GitHub</button>
                             </div>
                             <div class="ham-group">
-                                <div class="ham-group-title">Install</div>
+                                <div class="ham-group-title" title="Double-click to open Builder" ondblclick="switchView('builder');closeHamburger()">Install</div>
                                 <button class="ham-item" id="hamItem-builder" onclick="switchView('builder');closeHamburger()">Builder<kbd class="ham-kbd">C+B</kbd></button>
                                 <button class="ham-item" id="hamItem-lumps" onclick="switchView('lumps');closeHamburger()">LUMP<kbd class="ham-kbd">C+L</kbd></button>
                 <button class="ham-item" id="hamItem-lumps-import" onclick="switchView('lumps');closeHamburger();setTimeout(showLumpImportModal,150)">Import LUMP</button>

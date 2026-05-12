@@ -63,11 +63,17 @@
             letter-spacing: 0.08em;
             color: #daa520;
             padding: 12px 14px;
-            cursor: default;
+            cursor: pointer;
             display: flex;
             align-items: center;
             gap: 5px;
             user-select: none;
+            border-radius: 4px;
+            transition: color 0.15s, background 0.15s;
+        }
+        .nav-col-header:hover {
+            color: #f0c040;
+            background: rgba(218,165,32,0.08);
         }
         .nav-col-header::after {
             content: '▾';
@@ -240,7 +246,7 @@
     <div class="site-title"><span class="lambda">λ</span> Church Machine</div>
     <nav class="ide-nav">
         <div class="nav-col">
-            <div class="nav-col-header">DEVELOP</div>
+            <div class="nav-col-header" title="Double-click to open Programs" ondblclick="window.location='/simulator/#editor'">DEVELOP</div>
             <div class="nav-dropdown">
                 <a class="nav-item" href="/simulator/#editor">Programs</a>
                 <a class="nav-item" href="/simulator/#repl">Math <span class="nav-kbd">C+M</span></a>
@@ -250,7 +256,7 @@
             </div>
         </div>
         <div class="nav-col">
-            <div class="nav-col-header">TEST</div>
+            <div class="nav-col-header" title="Double-click to open Simulator" ondblclick="window.location='/simulator/#dashboard'">TEST</div>
             <div class="nav-dropdown">
                 <a class="nav-item" href="/simulator/#dashboard">Simulator <span class="nav-kbd">C+D</span></a>
                 <a class="nav-item" href="/simulator/#dashboard">Data Registers</a>
@@ -259,7 +265,7 @@
             </div>
         </div>
         <div class="nav-col">
-            <div class="nav-col-header">REVIEW</div>
+            <div class="nav-col-header" title="Double-click to open Logic Catalog" ondblclick="window.location='/simulator/#abstractions'">REVIEW</div>
             <div class="nav-dropdown">
                 <a class="nav-item" href="/simulator/#abstractions">Logic Catalog <span class="nav-kbd">C+A</span></a>
                 <a class="nav-item" href="/simulator/#tutorial">Tutorial <span class="nav-kbd">C+U</span></a>
@@ -269,7 +275,7 @@
             </div>
         </div>
         <div class="nav-col">
-            <div class="nav-col-header">HARDWARE</div>
+            <div class="nav-col-header" title="Double-click to open Devices" ondblclick="window.location='/simulator/#devices'">HARDWARE</div>
             <div class="nav-dropdown">
                 <a class="nav-item" href="/simulator/#devices">FPGA</a>
                 <a class="nav-item" href="/simulator/#devices">Bridge</a>
@@ -278,7 +284,7 @@
             </div>
         </div>
         <div class="nav-col">
-            <div class="nav-col-header">CONFIGURE</div>
+            <div class="nav-col-header" title="Double-click to open Devices" ondblclick="window.location='/simulator/#devices'">CONFIGURE</div>
             <div class="nav-dropdown">
                 <a class="nav-item" href="/simulator/#devices">Devices <span class="nav-kbd">C+V</span></a>
                 <a class="nav-item" href="/simulator/#devices">Launch Readiness</a>
@@ -286,7 +292,7 @@
             </div>
         </div>
         <div class="nav-col">
-            <div class="nav-col-header">INSTALL</div>
+            <div class="nav-col-header" title="Double-click to open Builder" ondblclick="window.location='/simulator/#builder'">INSTALL</div>
             <div class="nav-dropdown">
                 <a class="nav-item" href="/simulator/#builder">Builder <span class="nav-kbd">C+B</span></a>
                 <a class="nav-item" href="/simulator/#lumps">LUMP <span class="nav-kbd">C+L</span></a>
