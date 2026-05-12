@@ -551,19 +551,33 @@ function compileDraftAssembly(source, con) {
     }
     if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
     const words = result.words;
+    const caps  = result.capabilities || [];
+    const cc    = caps.length;
     const codeSize = words.length;
-    const allocSize = Math.max(32, nextPow2(codeSize));
-    const freespace = allocSize - codeSize;
+    const allocSize = Math.max(32, nextPow2(Math.max(1, codeSize + cc)));
+    const freespace = allocSize - codeSize - cc;
 
     let draft = `═══════════════════════════════════════════════════\n`;
     draft += `  ASSEMBLY DRAFT — ${codeSize} instruction(s) [Machine Code]\n`;
     draft += `═══════════════════════════════════════════════════\n\n`;
+
+    if (cc > 0) {
+        draft += `  Capabilities (${cc}):\n`;
+        for (let i = 0; i < cc; i++) {
+            draft += `    [${i}] ${caps[i]}\n`;
+        }
+        draft += '\n';
+    }
 
     draft += `  Lump Layout:\n`;
     draft += `    ┌─────────────────────────────────────────┐\n`;
     draft += `    │ Code             ${codeSize.toString().padStart(5)} words  (offset 0)  │\n`;
     draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
     draft += `    │ FREESPACE        ${freespace.toString().padStart(5)} words              │\n`;
+    if (cc > 0) {
+        draft += `    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │\n`;
+        draft += `    │ C-List           ${cc.toString().padStart(5)} slot${cc !== 1 ? 's' : ' '}  (POLA)        │\n`;
+    }
     draft += `    └─────────────────────────────────────────┘\n`;
     draft += `    Total alloc: ${allocSize} words (power-of-2)\n\n`;
 
@@ -578,6 +592,11 @@ function compileDraftAssembly(source, con) {
     }
 
     draft += `\n═══════════════════════════════════════════════════\n`;
+    if (cc > 0) {
+        draft += `  \u2139 capabilities { ${caps.join(', ')} } declared\n`;
+        draft += `    \u2192 Compile & Load, then Save LUMP to embed C-List.\n`;
+        draft += `═══════════════════════════════════════════════════\n`;
+    }
 
     if (con) { con.textContent = draft; con.scrollTop = 0; }
     showNextSteps('draft');
@@ -741,8 +760,18 @@ function buildAndDownloadLump() {
                         cloomcCompiler._detectSymbolic(source) ||
                         /^\s*abstraction\s+\w+/m.test(source);
     if (!isHighLevel) {
-        if (con) con.textContent = 'Build LUMP requires a CLOOMC++ abstraction (JavaScript, Haskell, English, Lambda, or Symbolic).\nAssembly programs cannot be packaged as lumps — use Save to NS instead.';
-        return;
+        const _asmR = assembler.assemble(source);
+        if (_asmR.errors.length > 0) {
+            const _asmErr = _asmR.errors.map(e => `Line ${e.line}: ${e.message}`).join('\n');
+            if (con) { con.textContent = `Build LUMP — assembly errors:\n${_asmErr}`; con.scrollTop = 0; }
+            showNextSteps('error');
+            return;
+        }
+        if (!_asmR.capabilities || _asmR.capabilities.length === 0) {
+            if (con) con.textContent = 'Build LUMP requires a CLOOMC++ abstraction (JavaScript, Haskell, English, Lambda, or Symbolic).\nAssembly programs cannot be packaged as lumps — use Save to NS instead.\n\n(Tip: add  capabilities { LED0 }  to your assembly to declare the C-List and enable Save LUMP.)';
+            return;
+        }
+        return _buildAndDownloadAssemblyLump(source, _asmR, con);
     }
 
     const result = cloomcCompiler.compile(source, []);
@@ -1049,6 +1078,194 @@ function buildAndDownloadLump() {
     if (con) { con.textContent = listing; con.scrollTop = 0; }
     trackAction('build_lump', { name: absName, lang: result.language, size: lumpSize });
     appendOutput(`Built LUMP: "${absName}" — ${result.methods.length} methods, ${lumpSize} words, ${sizeBytes} bytes`, 'info');
+}
+
+function _buildAndDownloadAssemblyLump(source, asmResult, con) {
+    const caps    = asmResult.capabilities || [];
+    const cc      = caps.length;
+    const codeWords = asmResult.words || [];
+    const cw      = codeWords.length;
+
+    const _nameMatch = source.match(/^;\s*(?:Disassembly\s+of\s+\S+\s+)?([^\n@]+?)\s+(?:NS\[|\@\s*0x)/m);
+    const absName = _nameMatch ? _nameMatch[1].trim() : 'Assembly';
+
+    if (cc > 255) {
+        if (con) { con.textContent = `Build LUMP — C-List overflow: ${cc} capabilities exceed the 8-bit header limit (max 255).\nRemove ${cc - 255} capability reference${cc - 255 !== 1 ? 's' : ''} from the capabilities { } block.`; con.scrollTop = 0; }
+        return;
+    }
+
+    let lumpSize = 64;
+    while (lumpSize < 1 + cw + cc) lumpSize <<= 1;
+
+    let nMinus6 = 0;
+    while ((64 << nMinus6) < lumpSize) nMinus6++;
+
+    const header = ((0x1F & 0x1F) << 27) |
+                   ((nMinus6 & 0x0F) << 23) |
+                   ((cw & 0x1FFF) << 10) |
+                   ((0 & 0x03) << 8) |
+                   (cc & 0xFF);
+
+    const resolvedCaps = caps.map((capName, i) => {
+        let target = -1;
+        if (sim && sim.abstractionRegistry) {
+            const allAbs = sim.abstractionRegistry.abstractions || [];
+            for (let j = 0; j < allAbs.length; j++) {
+                if (allAbs[j] && allAbs[j].name && allAbs[j].name.toUpperCase() === capName.toUpperCase()) {
+                    target = j; break;
+                }
+            }
+        }
+        return { name: capName, nsIndex: target };
+    });
+
+    const lumpWords = new Uint32Array(lumpSize);
+    lumpWords[0] = header >>> 0;
+    for (let i = 0; i < cw; i++) lumpWords[1 + i] = (codeWords[i] >>> 0);
+    const clistStart = lumpSize - cc;
+    for (let i = 0; i < cc; i++) {
+        lumpWords[clistStart + i] = resolvedCaps[i].nsIndex >= 0 ? (resolvedCaps[i].nsIndex & 0xFFFFFFFF) : 0x00000000;
+    }
+
+    let _auditResults = [], _auditErrors = [], _auditWarns = [];
+    if (typeof lumpAudit === 'function') {
+        const _auditPnCR = {};
+        for (let _i = 0; _i < resolvedCaps.length; _i++) {
+            if (resolvedCaps[_i] && resolvedCaps[_i].name) _auditPnCR[String(_i)] = resolvedCaps[_i].name;
+        }
+        _auditResults = lumpAudit(Array.from(lumpWords), {
+            cw, cc, lump_size: lumpSize,
+            pet_names:    { CR: _auditPnCR },
+            capabilities: resolvedCaps.map(rc => ({ name: rc.name })),
+        });
+        _auditErrors = _auditResults.filter(r => r.severity === 'error');
+        _auditWarns  = _auditResults.filter(r => r.severity === 'warn');
+    }
+
+    if (_auditErrors.length > 0) {
+        let _errL = `\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n`;
+        _errL += `  AUDIT FAILED \u2014 "${absName}" not downloaded or saved\n`;
+        _errL += `\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n`;
+        for (const r of _auditResults) {
+            const _sym = r.severity === 'pass' ? '\u2713' : r.severity === 'warn' ? '\u26a0' : '\u2717';
+            _errL += `    ${_sym} [${r.ruleId}] ${r.message} \u2014 ${r.detail}\n`;
+        }
+        _errL += `\n  \u2717 ${_auditErrors.length} error${_auditErrors.length !== 1 ? 's' : ''} \u2014 binary not downloaded or saved.\n`;
+        if (con) { con.textContent = _errL; con.scrollTop = 0; }
+        return;
+    }
+
+    const binaryBuf = new ArrayBuffer(lumpSize * 4);
+    const view = new DataView(binaryBuf);
+    for (let i = 0; i < lumpSize; i++) view.setUint32(i * 4, lumpWords[i], false);
+
+    const blob = new Blob([binaryBuf], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = absName + '.lump';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const freespace   = lumpSize - 1 - cw - cc;
+    const sizeBytes   = lumpSize * 4;
+    const mtbfClean   = _getConsecutiveCleanRuns();
+    const mtbfTotal   = _simRunHash ? _simRunHistory.filter(r => r.hash === _simRunHash).length : 0;
+    const mtbfStatus  = mtbfTotal === 0 ? 'unknown' : (mtbfClean >= 5 ? 'green' : mtbfClean >= 3 ? 'amber' : 'red');
+
+    const _crNumericMap = {};
+    for (let _i = 0; _i < resolvedCaps.length; _i++) {
+        if (resolvedCaps[_i] && resolvedCaps[_i].name) _crNumericMap[String(_i)] = resolvedCaps[_i].name;
+    }
+
+    let resolvedNsSlot = null;
+    if (sim && sim.abstractionRegistry) {
+        const allAbs = sim.abstractionRegistry.abstractions || [];
+        for (let j = 0; j < allAbs.length; j++) {
+            if (allAbs[j] && allAbs[j].name && allAbs[j].name.toUpperCase() === absName.toUpperCase()) {
+                resolvedNsSlot = j; break;
+            }
+        }
+    }
+
+    const savePayload = {
+        binary:   Array.from(lumpWords),
+        metadata: {
+            abstraction:     absName,
+            ns_slot:         resolvedNsSlot,
+            cw,
+            cc,
+            profile:         'IoT',
+            language:        'assembly',
+            methods:         [{ name: 'main', offset: 0, length: cw, pet_names: { CR: _crNumericMap } }],
+            capabilities:    resolvedCaps.map(rc => ({ name: rc.name, nsIndex: rc.nsIndex })),
+            pet_names_dr:    {},
+            pet_names_cr:    { CR0: _crNumericMap['0'] || undefined },
+            mtbf_clean_runs: mtbfClean,
+            mtbf_total_runs: mtbfTotal,
+            mtbf_status:     mtbfStatus,
+            source_hash:     _simRunHash || _currentEditorHash(),
+            target_board:    'ti60-f225',
+            grants:          ['E'],
+        }
+    };
+
+    fetch('/api/lumps/save', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(savePayload)
+    }).then(r => r.json()).then(resp => {
+        if (resp.ok) {
+            appendOutput(`Saved to library: lumps/${resp.lump} — token 0x${resp.token}`, 'info');
+            window._editorLastSavedToken = resp.token;
+            renderLumps();
+            const savedToken = resp.token;
+            setTimeout(() => {
+                const listEl = document.getElementById('lumpsListContent');
+                if (listEl && savedToken) {
+                    const item = listEl.querySelector(`.lump-item[data-token="${savedToken}"]`);
+                    if (item) { item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); showLumpDetail(savedToken); }
+                }
+            }, 400);
+        } else {
+            appendOutput(`Server save failed: ${resp.error || 'unknown error'}`, 'error');
+        }
+    }).catch(err => { appendOutput(`Server save error: ${err.message}`, 'error'); });
+
+    let listing = `\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n`;
+    listing += `  LUMP BUILT \u2014 "${absName}" [Assembly]\n`;
+    listing += `\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n`;
+    listing += `  Header:    0x${(header >>> 0).toString(16).padStart(8, '0')}\n`;
+    listing += `  Lump Size: ${lumpSize} words (2^${Math.log2(lumpSize)})\n`;
+    listing += `  Code:      ${cw} words\n`;
+    listing += `  C-List:    ${cc} slot${cc !== 1 ? 's' : ''} (cc)\n`;
+    listing += `  Freespace: ${freespace} words\n`;
+    listing += `  Profile:   IoT\n`;
+    listing += `  MTBF:      ${mtbfClean}/${mtbfTotal} clean runs (${mtbfStatus})\n\n`;
+    listing += `  Capabilities (C-List):\n`;
+    for (let i = 0; i < resolvedCaps.length; i++) {
+        const rc = resolvedCaps[i];
+        const status = rc.nsIndex >= 0 ? `NS[${rc.nsIndex}]` : 'unresolved (null GT)';
+        listing += `    [${i}] ${rc.name} \u2192 ${status}\n`;
+    }
+    if (_auditResults.length > 0) {
+        listing += `\n  Pre-build Audit:\n`;
+        for (const r of _auditResults) {
+            const _sym = r.severity === 'pass' ? '\u2713' : r.severity === 'warn' ? '\u26a0' : '\u2717';
+            listing += `    ${_sym} [${r.ruleId}] ${r.message} \u2014 ${r.detail}\n`;
+        }
+        if (_auditWarns.length > 0) {
+            listing += `\n  \u26a0 Audit: ${_auditWarns.length} warning${_auditWarns.length !== 1 ? 's' : ''} \u2014 review before deploying.\n`;
+        } else {
+            listing += `\n  \u2713 Audit passed \u2014 all checks OK.\n`;
+        }
+    }
+    listing += `\n  Downloaded: ${absName}.lump (${sizeBytes} bytes)\n`;
+    listing += `  Saved to: server/lumps/ (binary + metadata sidecar)\n`;
+
+    if (con) { con.textContent = listing; con.scrollTop = 0; }
+    trackAction('build_lump', { name: absName, lang: 'assembly', size: lumpSize });
+    appendOutput(`Built LUMP: "${absName}" [Assembly] \u2014 ${cw} words, cc=${cc}, ${sizeBytes} bytes`, 'info');
 }
 
 function auditLumpOnly() {
