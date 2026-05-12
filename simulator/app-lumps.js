@@ -2843,9 +2843,11 @@ async function openLumpInEditor(token) {
             var addrStr = baseLoc !== null
                 ? ('@ 0x' + baseLoc.toString(16).toUpperCase().padStart(4, '0') + '  ')
                 : '';
+            var _lhFree2 = lhdr.lumpSize - 1 - lhdr.cw - lhdr.cc;
             disasmLines = [
                 '; ' + lumpName + '  ' + nsTag + addrStr +
-                '(' + codeLimit + ' word' + (codeLimit !== 1 ? 's' : '') + ')'
+                '(' + codeLimit + ' word' + (codeLimit !== 1 ? 's' : '') +
+                ', cc=' + lhdr.cc + ', ' + _lhFree2 + ' free)'
             ];
             // Inject capabilities { } block from sidecar metadata when available.
             var _lCaps = lump.capabilities;

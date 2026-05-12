@@ -1250,7 +1250,10 @@ function editCRCodeInEditor() {
     const trimmedWords = rawWords.slice(0, trimLen);
 
     const lines = [];
-    lines.push(`; Disassembly of CR${crIdx}  NS[${nsIdx}]  @ 0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}  (${codeLimit} word${codeLimit !== 1 ? 's' : ''})`);
+    const _lhCc       = lumpHdr.valid ? lumpHdr.cc : null;
+    const _lhFree     = lumpHdr.valid ? (lumpHdr.lumpSize - 1 - lumpHdr.cw - lumpHdr.cc) : null;
+    const _lhExtra    = lumpHdr.valid ? `, cc=${_lhCc}, ${_lhFree} free` : '';
+    lines.push(`; Disassembly of CR${crIdx}  NS[${nsIdx}]  @ 0x${baseLoc.toString(16).toUpperCase().padStart(4,'0')}  (${codeLimit} word${codeLimit !== 1 ? 's' : ''}${_lhExtra})`);
     // Inject capabilities { } block from sidecar metadata when available.
     if (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache) &&
             nsIdx !== null && nsIdx !== undefined) {
