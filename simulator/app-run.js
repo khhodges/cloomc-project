@@ -309,6 +309,14 @@ function assembleAndLoad() {
                 listing += '\n';
             }
         }
+        if (result.capabilities && result.capabilities.length > 0) {
+            listing += '\n; c-list\n';
+            for (let i = 0; i < result.capabilities.length; i++) {
+                const cap = result.capabilities[i];
+                const capName = typeof cap === 'string' ? cap : (cap.name || String(cap));
+                listing += `;   row ${i + 1}  ${capName}\n`;
+            }
+        }
         if (con) con.textContent = listing;
         if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
         showNextSteps('assembled');
@@ -364,6 +372,14 @@ function assembleAndLoad() {
         const mnem = result.words[i] === 0 ? 'NOP' : assembler.disassemble(result.words[i]);
         const cmt  = _srcComments[i] || '';
         listing += cmt ? `${mnem.padEnd(40)}; ${cmt}\n` : `${mnem}\n`;
+    }
+    if (result.capabilities && result.capabilities.length > 0) {
+        listing += '\n; c-list\n';
+        for (let i = 0; i < result.capabilities.length; i++) {
+            const cap = result.capabilities[i];
+            const capName = typeof cap === 'string' ? cap : (cap.name || String(cap));
+            listing += `;   row ${i + 1}  ${capName}\n`;
+        }
     }
     if (con) con.textContent = listing;
     showNextSteps('assembled');
