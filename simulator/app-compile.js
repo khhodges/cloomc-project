@@ -637,29 +637,32 @@ function compileDraftAssembly(source, con) {
     }
 
     draft += `\n═══════════════════════════════════════════════════\n`;
-    if (cc > 0) {
-        const _acl = _checkCapAccessRights(caps);
-        if (_acl.errors.length > 0 || _acl.warnings.length > 0) {
-            draft += `  Access Rights Check:\n`;
-            for (const e of _acl.errors)   draft += `    \u2717 ${e}\n`;
-            for (const w of _acl.warnings) draft += `    \u26a0 ${w}\n`;
-            draft += '\n';
-        }
-        const _capStrs = caps.map(c => {
-            const n = typeof c === 'string' ? c : (c.name || '');
-            const r = typeof c === 'string' ? '' : (c.rights || []).join('');
-            return r ? `${n} ${r}` : n;
-        });
-        draft += `  \u2139 capabilities { ${_capStrs.join(', ')} } declared\n`;
-        if (_acl.errors.length > 0) {
-            draft += `    \u2717 Fix rights errors before saving LUMP.\n`;
-        } else {
-            draft += `    \u2192 Compile & Load, then Save LUMP to embed C-List.\n`;
-        }
-        draft += `═══════════════════════════════════════════════════\n`;
-    }
-
     if (con) { con.textContent = draft; con.scrollTop = 0; }
+    if (cc > 0) {
+        let _aclExtra = '';
+        try {
+            const _acl = _checkCapAccessRights(caps);
+            if (_acl.errors.length > 0 || _acl.warnings.length > 0) {
+                _aclExtra += `  Access Rights Check:\n`;
+                for (const e of _acl.errors)   _aclExtra += `    \u2717 ${e}\n`;
+                for (const w of _acl.warnings) _aclExtra += `    \u26a0 ${w}\n`;
+                _aclExtra += '\n';
+            }
+            const _capStrs = caps.map(c => {
+                const n = typeof c === 'string' ? c : (c.name || '');
+                const r = typeof c === 'string' ? '' : (c.rights || []).join('');
+                return r ? `${n} ${r}` : n;
+            });
+            _aclExtra += `  \u2139 capabilities { ${_capStrs.join(', ')} } declared\n`;
+            if (_acl.errors.length > 0) {
+                _aclExtra += `    \u2717 Fix rights errors before saving LUMP.\n`;
+            } else {
+                _aclExtra += `    \u2192 Compile & Load, then Save LUMP to embed C-List.\n`;
+            }
+            _aclExtra += `═══════════════════════════════════════════════════\n`;
+        } catch (_aclErr) { console.error('[ACL check] _checkCapAccessRights failed:', _aclErr); }
+        if (con && _aclExtra) con.textContent += _aclExtra;
+    }
     showNextSteps('draft');
 }
 
@@ -805,28 +808,31 @@ function compileDraft() {
         draft += '\n';
     }
 
-    if (clistCount > 0) {
-        const _aclC = _checkCapAccessRights(caps);
-        if (_aclC.errors.length > 0 || _aclC.warnings.length > 0) {
-            draft += `\n═══════════════════════════════════════════════════\n`;
-            draft += `  Access Rights Check:\n`;
-            for (const e of _aclC.errors)   draft += `    \u2717 ${e}\n`;
-            for (const w of _aclC.warnings) draft += `    \u26a0 ${w}\n`;
-        }
-        const _capStrsC = caps.map(c => {
-            const n = typeof c === 'string' ? c : (c.name || '');
-            const r = typeof c === 'string' ? '' : (c.rights || []).join('');
-            return r ? `${n} ${r}` : n;
-        });
-        draft += `\n\u2139 capabilities { ${_capStrsC.join(', ')} } declared\n`;
-        if (_aclC.errors.length > 0) {
-            draft += `  \u2717 Fix rights errors before saving LUMP.\n`;
-        } else {
-            draft += `  \u2192 Build LUMP to embed C-List in binary.\n`;
-        }
-    }
-
     if (con) { con.textContent = draft; con.scrollTop = 0; }
+    if (clistCount > 0) {
+        let _aclExtraC = '';
+        try {
+            const _aclC = _checkCapAccessRights(caps);
+            if (_aclC.errors.length > 0 || _aclC.warnings.length > 0) {
+                _aclExtraC += `\n═══════════════════════════════════════════════════\n`;
+                _aclExtraC += `  Access Rights Check:\n`;
+                for (const e of _aclC.errors)   _aclExtraC += `    \u2717 ${e}\n`;
+                for (const w of _aclC.warnings) _aclExtraC += `    \u26a0 ${w}\n`;
+            }
+            const _capStrsC = caps.map(c => {
+                const n = typeof c === 'string' ? c : (c.name || '');
+                const r = typeof c === 'string' ? '' : (c.rights || []).join('');
+                return r ? `${n} ${r}` : n;
+            });
+            _aclExtraC += `\n\u2139 capabilities { ${_capStrsC.join(', ')} } declared\n`;
+            if (_aclC.errors.length > 0) {
+                _aclExtraC += `  \u2717 Fix rights errors before saving LUMP.\n`;
+            } else {
+                _aclExtraC += `  \u2192 Build LUMP to embed C-List in binary.\n`;
+            }
+        } catch (_aclCErr) { console.error('[ACL check] _checkCapAccessRights failed:', _aclCErr); }
+        if (con && _aclExtraC) con.textContent += _aclExtraC;
+    }
     showNextSteps('draft');
     trackAction('draft', { name: result.abstractionName, lang: result.language });
     appendOutput(`Draft: "${result.abstractionName}" — ${result.methods.length} methods, ${clistCount} caps, ${allocSize} alloc`, 'info');
