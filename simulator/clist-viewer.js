@@ -796,11 +796,19 @@
     });
 
     // Publish API first so the mutual-exclusion wrap below can reference it
+    // getNullSlotPetNames() — returns a copy of the slot-index → pet-name map.
+    // Used by the assembler to resolve null-GT row names (e.g. "Mum") to their
+    // c-list slot indices so  LOAD CR2, Mum  encodes correctly.
+    function getNullSlotPetNames() {
+        return Object.assign({}, _nullSlotPetNames);
+    }
+
     window.CListViewer = {
-        show:      showViewer,
-        hide:      hideViewer,
-        toggle:    toggleViewer,
-        isVisible: isVisible,
+        show:                showViewer,
+        hide:                hideViewer,
+        toggle:              toggleViewer,
+        isVisible:           isVisible,
+        getNullSlotPetNames: getNullSlotPetNames,
     };
 
     // ── Mutual exclusion: wrap AsmInstructionPicker.show synchronously ────────

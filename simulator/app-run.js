@@ -332,6 +332,19 @@ function assembleAndLoad() {
         return;
     }
 
+    // ── Pass null-GT row pet names to the assembler ──────────────────────────
+    // CListViewer tracks which c-list slot each pet name (e.g. "Mum") occupies.
+    // Inverting slot→name to name→slot lets _resolveNSName resolve "Mum" to its
+    // c-list offset, so  LOAD CR2, Mum  and  Tunnel.Connect(Mum)  compile cleanly.
+    if (window.CListViewer && typeof window.CListViewer.getNullSlotPetNames === 'function') {
+        const _nullPets  = window.CListViewer.getNullSlotPetNames();
+        const _nameToSlot = {};
+        for (const [slot, name] of Object.entries(_nullPets)) {
+            if (name) _nameToSlot[name] = parseInt(slot, 10);
+        }
+        assembler.setClistSlots(_nameToSlot);
+    }
+
     const result = assembler.assemble(source);
 
     if (result.errors.length > 0) {

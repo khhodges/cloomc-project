@@ -234,8 +234,20 @@ class ChurchAssembler {
         // Inherit the class-level namespace so locally-created assembler instances
         // (e.g. inside tutorials, builder, CLOOMC) automatically get symbol resolution
         // without every call site needing to call setNamespace() individually.
-        this.nsSymbols = Object.assign({}, ChurchAssembler._sharedNsSymbols || {});
-        this.nsLoaded  = {};  // name → CR index (updated during assembly)
+        this.nsSymbols  = Object.assign({}, ChurchAssembler._sharedNsSymbols  || {});
+        this.nsLoaded   = {};  // name → CR index (updated during assembly)
+        // Null-GT row pet names: name → c-list slot index (e.g. {Mum: 5}).
+        // Set via setClistSlots(); inherited class-wide like nsSymbols.
+        this._clistSlots = Object.assign({}, ChurchAssembler._sharedClistSlots || {});
+    }
+
+    // setClistSlots(nameToSlot) — register null-GT row pet names so the assembler
+    // can resolve them to their c-list slot indices.
+    // nameToSlot: plain object  { 'Mum': 5, 'Dad': 6, ... }  (name → slot index).
+    // Persisted class-wide (like setNamespace) so future instances inherit it.
+    setClistSlots(nameToSlot) {
+        ChurchAssembler._sharedClistSlots = Object.assign({}, nameToSlot || {});
+        this._clistSlots = Object.assign({}, ChurchAssembler._sharedClistSlots);
     }
 
     setNamespace(map) {
@@ -304,6 +316,12 @@ class ChurchAssembler {
 
         // 2. Namespace Table (populated via setNamespace from the abstraction slot map)
         if (this.nsSymbols[name] !== undefined) return this.nsSymbols[name];
+
+        // 2.5. Null-GT row pet names (setClistSlots) — user-named c-list slots that
+        //      hold no NS entry (e.g. "Mum" at slot 5).  These map directly to the
+        //      c-list offset used in  LOAD  CRd, CD[0x0005].
+        if (this._clistSlots && this._clistSlots[name] !== undefined)
+            return this._clistSlots[name];
 
         // 3. LED<N> Abstract GT shorthand — LED0–LED5 are boot-loaded AGTs at
         //    c-list slots 8–13.  LOAD CR3, LED0  →  LOAD CR3, CR6, #8
@@ -569,11 +587,17 @@ class ChurchAssembler {
                                 // Runtime GT / c-list entry not in the namespace — emit a targeted
                                 // error immediately rather than generating a broken LOAD that fails
                                 // later with a confusing "Expected a capability register" message.
+                                // Hint: if the name is a known null-GT pet name, show the exact slot.
+                                const _knownSlot = (this._clistSlots && this._clistSlots[arg] !== undefined)
+                                    ? this._clistSlots[arg] : null;
+                                const _slotHint = _knownSlot !== null
+                                    ? `CD[0x${_knownSlot.toString(16).toUpperCase().padStart(4,'0')}]`
+                                    : `CD[0x…]   ; find "${arg}"'s slot in the C-List viewer`;
                                 this.errors.push({ line: lineNum + 1, message:
                                     `Argument ${ai + 1} of ${absName}.${methodName}() maps to CR${reg.n}, which holds a capability GT. ` +
-                                    `"${arg}" is not a known namespace abstraction — it cannot be auto-loaded by name.\n` +
-                                    `If "${arg}" is in your c-list, load it first:\n` +
-                                    `  LOAD  CR${reg.n}, CR6, #<slot>   ; load "${arg}" from your c-list\n` +
+                                    `"${arg}" is not a known c-list name — name it in the C-List viewer first, then re-compile.\n` +
+                                    `If "${arg}" is already named there, load it before the call:\n` +
+                                    `  LOAD  CR${reg.n}, ${_slotHint}\n` +
                                     `Then pass the register directly:\n` +
                                     `  ${absName}.${methodName}(CR${reg.n})` });
                             }
