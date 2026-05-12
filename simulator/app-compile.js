@@ -647,7 +647,7 @@ function compileDraftAssembly(source, con) {
             const _cap = caps[i];
             const _capName = typeof _cap === 'string' ? _cap : (_cap.name || '?');
             const _capRights = typeof _cap === 'string' ? [] : (_cap.rights || []);
-            const _rightsStr = _capRights.length > 0 ? _capRights.join('') : '(no rights declared)';
+            const _rightsStr = _capRights.length > 0 ? `[${_capRights.join('')}]` : '(no rights declared)';
             draft += `    [${i}] ${_capName}  ${_rightsStr}\n`;
         }
         draft += '\n';
@@ -676,7 +676,7 @@ function compileDraftAssembly(source, con) {
     }
 
     draft += `\n═══════════════════════════════════════════════════\n`;
-    if (con) { con.textContent = draft; con.scrollTop = 0; }
+    if (con) { con.innerHTML = _capRightsHTML(draft); con.scrollTop = 0; }
     if (cc > 0) {
         let _aclExtra = '';
         try {
@@ -706,7 +706,7 @@ function compileDraftAssembly(source, con) {
             }
             _aclExtra += `═══════════════════════════════════════════════════\n`;
         } catch (_aclErr) { console.error('[ACL check] _checkCapAccessRights failed:', _aclErr); }
-        if (con && _aclExtra) con.textContent += _aclExtra;
+        if (con && _aclExtra) con.innerHTML += _capRightsHTML(_aclExtra);
     }
     showNextSteps('draft');
 }
@@ -783,7 +783,7 @@ function compileDraft() {
             const _c = caps[i];
             const _cn = typeof _c === 'string' ? _c : (_c.name || '?');
             const _cr = typeof _c === 'string' ? [] : (_c.rights || []);
-            const _crs = _cr.length > 0 ? ('  ' + _cr.join('')) : '  (no rights declared)';
+            const _crs = _cr.length > 0 ? (`  [${_cr.join('')}]`) : '  (no rights declared)';
             draft += `    [${i}] ${_cn}${_crs}\n`;
         }
     }
@@ -854,7 +854,7 @@ function compileDraft() {
         draft += '\n';
     }
 
-    if (con) { con.textContent = draft; con.scrollTop = 0; }
+    if (con) { con.innerHTML = _capRightsHTML(draft); con.scrollTop = 0; }
     if (clistCount > 0) {
         let _aclExtraC = '';
         try {
@@ -886,7 +886,7 @@ function compileDraft() {
                 _aclExtraC += `  \u2192 Build LUMP to embed C-List in binary.\n`;
             }
         } catch (_aclCErr) { console.error('[ACL check] _checkCapAccessRights failed:', _aclCErr); }
-        if (con && _aclExtraC) con.textContent += _aclExtraC;
+        if (con && _aclExtraC) con.innerHTML += _capRightsHTML(_aclExtraC);
     }
     showNextSteps('draft');
     trackAction('draft', { name: result.abstractionName, lang: result.language });
@@ -1226,7 +1226,7 @@ function buildAndDownloadLump() {
     listing += `\n  Downloaded: ${absName}.lump (${sizeBytes} bytes)\n`;
     listing += `  Saved to: server/lumps/ (binary + metadata sidecar)\n`;
 
-    if (con) { con.textContent = listing; con.scrollTop = 0; }
+    if (con) { con.innerHTML = _capRightsHTML(listing); con.scrollTop = 0; }
     trackAction('build_lump', { name: absName, lang: result.language, size: lumpSize });
     appendOutput(`Built LUMP: "${absName}" — ${result.methods.length} methods, ${lumpSize} words, ${sizeBytes} bytes`, 'info');
 }
@@ -1400,7 +1400,8 @@ function _buildAndDownloadAssemblyLump(source, asmResult, con) {
     for (let i = 0; i < resolvedCaps.length; i++) {
         const rc = resolvedCaps[i];
         const status = rc.nsIndex >= 0 ? `NS[${rc.nsIndex}]` : 'unresolved (null GT)';
-        listing += `    [${i}] ${rc.name} \u2192 ${status}\n`;
+        const _rcRStr = rc.rights && rc.rights.length > 0 ? ` [${rc.rights.join('')}]` : '';
+        listing += `    [${i}] ${rc.name}${_rcRStr} \u2192 ${status}\n`;
     }
     if (_auditResults.length > 0) {
         listing += `\n  Pre-build Audit:\n`;
@@ -1417,7 +1418,7 @@ function _buildAndDownloadAssemblyLump(source, asmResult, con) {
     listing += `\n  Downloaded: ${absName}.lump (${sizeBytes} bytes)\n`;
     listing += `  Saved to: server/lumps/ (binary + metadata sidecar)\n`;
 
-    if (con) { con.textContent = listing; con.scrollTop = 0; }
+    if (con) { con.innerHTML = _capRightsHTML(listing); con.scrollTop = 0; }
     trackAction('build_lump', { name: absName, lang: 'assembly', size: lumpSize });
     appendOutput(`Built LUMP: "${absName}" [Assembly] \u2014 ${cw} words, cc=${cc}, ${sizeBytes} bytes`, 'info');
 }
