@@ -2261,6 +2261,14 @@ class CLOOMCCompiler {
             return { methods: [], errors, manifest: [], abstractionName: parsed.name || '', capabilities: parsed.capabilities || [], language: 'symbolic' };
         }
 
+        if (typeof METHOD_REGISTER_CONVENTIONS !== 'undefined') {
+            for (const absName of Object.keys(METHOD_REGISTER_CONVENTIONS)) {
+                if (!this.methodConventions[absName]) {
+                    this.methodConventions[absName] = METHOD_REGISTER_CONVENTIONS[absName];
+                }
+            }
+        }
+
         const needsSlideRule = this._sourceNeedsSlideRule(parsed);
         if (needsSlideRule && !parsed.capabilities.map(c => c.toUpperCase()).includes('SLIDERULE')) {
             parsed.capabilities.push('SlideRule');
@@ -2453,7 +2461,15 @@ class CLOOMCCompiler {
                     errors.push({ line: lineNum, message: `Unknown SlideRule method: ${srMethod}. Available: ${Object.keys(slideRuleMethodIndex).join(', ')}` });
                     return dstDR;
                 }
-                    const srArgs = srArgStr.split(/\s*,\s*/);
+                    const srNaturalOps = { Multiply: '*', Divide: '/', Add: '+', Subtract: '-' };
+                    let srArgs = srArgStr.split(/\s*,\s*/);
+                    if (srArgs.length === 1 && srNaturalOps[srMethodKey]) {
+                        const natOpChar = srNaturalOps[srMethodKey];
+                        const opIdx = srArgStr.indexOf(natOpChar);
+                        if (opIdx > 0) {
+                            srArgs = [srArgStr.slice(0, opIdx).trim(), srArgStr.slice(opIdx + 1).trim()];
+                        }
+                    }
                     const leftArg = parseExprValue(srArgs[0]);
                     const leftDR = loadToReg(leftArg, this.DR_TEMP_START, lineNum);
                     let rightDR = 0;
@@ -2463,6 +2479,65 @@ class CLOOMCCompiler {
                     }
                     emitSlideRuleCall(srMethodKey, leftDR, rightDR, dstDR, lineNum, `SlideRule.${srMethodKey}(${srArgStr})`);
                     return dstDR;
+            }
+
+            const anyAbsCallMatch = expr.match(/^([A-Za-z]\w*)\.(\w+)\s*\(\s*(.*?)\s*\)$/);
+            if (anyAbsCallMatch) {
+                const absName = anyAbsCallMatch[1];
+                const mName   = anyAbsCallMatch[2];
+                const argsStr = anyAbsCallMatch[3];
+                const convEntry = this.methodConventions[absName] || this.methodConventions[absName.toUpperCase()];
+                if (!convEntry) {
+                    errors.push({ line: lineNum, message: `No method conventions registered for "${absName}". Is it declared in capabilities {}?` });
+                    return dstDR;
+                }
+                const methodEntry = convEntry[mName];
+                if (methodEntry === undefined) {
+                    const known = Object.keys(convEntry).join(', ');
+                    errors.push({ line: lineNum, message: `Unknown method "${mName}" on "${absName}". Known: ${known}` });
+                    return dstDR;
+                }
+                const methodIdx = typeof methodEntry === 'object' ? (methodEntry.index != null ? methodEntry.index : 0) : methodEntry;
+                const clistSlot = rom[absName.toUpperCase()];
+                if (clistSlot === undefined) {
+                    errors.push({ line: lineNum, message: `"${absName}" is not in the c-list — add it to capabilities {}.` });
+                    return dstDR;
+                }
+                const inputSpec = (typeof methodEntry === 'object' && methodEntry.input) ? methodEntry.input : '';
+                const drSlots = []; const crSlots = [];
+                const drRe2 = /\bDR(\d+)/g; const crRe2 = /\bCR(\d+)/g;
+                let dm2; while ((dm2 = drRe2.exec(inputSpec)) !== null) drSlots.push(parseInt(dm2[1]));
+                let cm2; while ((cm2 = crRe2.exec(inputSpec)) !== null) crSlots.push(parseInt(cm2[1]));
+                const anyNaturalOps = { Multiply: '*', Divide: '/', Add: '+', Subtract: '-' };
+                let resolvedArgs = argsStr ? argsStr.split(/\s*,\s*/).filter(Boolean) : [];
+                if (resolvedArgs.length === 1 && anyNaturalOps[mName]) {
+                    const natOp = anyNaturalOps[mName];
+                    const opIdx = argsStr.indexOf(natOp);
+                    if (opIdx > 0) resolvedArgs = [argsStr.slice(0, opIdx).trim(), argsStr.slice(opIdx + 1).trim()];
+                }
+                let drArgIdx = 0, crArgIdx = 0;
+                for (let ai = 0; ai < resolvedArgs.length; ai++) {
+                    const arg = resolvedArgs[ai];
+                    const capSlot = rom[arg.toUpperCase()];
+                    if (capSlot !== undefined && crSlots.length > crArgIdx) {
+                        const targetCR = crSlots[crArgIdx++];
+                        code.push(this.encode(this.opcodes.LOAD, 14, targetCR, 6, capSlot));
+                        manifest.push({ line: lineNum, instr: `LOAD CR${targetCR}, CR6, ${capSlot}`, comment: `load ${arg} capability` });
+                    } else {
+                        const targetDR = drSlots.length > drArgIdx ? drSlots[drArgIdx] : (1 + drArgIdx);
+                        drArgIdx++;
+                        emitExpr(arg, targetDR, lineNum);
+                    }
+                }
+                const eloadImm = ((methodIdx + 1) << 8) | (clistSlot & 0xFF);
+                code.push(this.encode(this.opcodes.ELOADCALL, 14, 0, 6, eloadImm));
+                manifest.push({ line: lineNum, instr: `ELOADCALL CR0, CR6[${clistSlot}], method=${methodIdx + 1}`, comment: `${absName}.${mName}(${argsStr}) → DR1` });
+                const resultDR = this.DR_ARGS_START;
+                if (dstDR !== resultDR) {
+                    code.push(this.encode(this.opcodes.IADD, 14, dstDR, resultDR, 0));
+                    manifest.push({ line: lineNum, instr: `IADD DR${dstDR}, DR${resultDR}, DR0`, comment: `result → DR${dstDR}` });
+                }
+                return dstDR;
             }
 
             const funcMatch = expr.match(/^(multiply|divide|add|subtract|succ|pred|negate|abs|bernoulli)\s*\(\s*(.+)\s*\)$/i);
@@ -2689,6 +2764,11 @@ class CLOOMCCompiler {
             if (text.match(/^halt$/i) || text.match(/^stop$/i)) {
                 code.push(0);
                 manifest.push({ line: lineNum, instr: 'HALT', comment: 'halt (zero word)' });
+                continue;
+            }
+
+            if (text.match(/^[A-Za-z]\w*\.\w+\s*\(/)) {
+                emitExpr(text, this.DR_ARGS_START, lineNum);
                 continue;
             }
 

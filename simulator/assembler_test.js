@@ -3113,6 +3113,135 @@ const TUNNEL_NS_BC = { 'Tunnel': 3, 'Mum': 5 };
         a.errors.map(e => e.message).join('; '));
 }
 
+// ── Symbolic Math compiler — explicit Abs.Method(args) call form ─────────────
+// SC1–SC8 test compileSymbolic() in cloomc_compiler.js.
+//
+// Shared fixtures: a fake METHOD_REGISTER_CONVENTIONS that the compiler merges
+// when compileSymbolic() runs (simulated by injecting methodConventions directly
+// since the browser global is not available in Node).
+
+const SC_COMPILER = new CLOOMCCompiler();
+SC_COMPILER.methodConventions = {
+    'SlideRule': {
+        'Multiply': { index: 0, input: 'DR1 (a), DR2 (b)', output: 'DR1 = a * b' },
+        'Divide':   { index: 1, input: 'DR1 (a), DR2 (b)', output: 'DR1 = a / b' },
+        'Sqrt':     { index: 2, input: 'DR1 (x)',           output: 'DR1 = sqrt(x)' },
+    },
+    'Tunnel': {
+        'Connect': { index: 5, input: 'CR2=remote GT', output: 'DR1 = far-end return' },
+        'Send':    { index: 1, input: 'DR1=tag, DR2=count',   output: 'DR1 = 0 queued' },
+    },
+    'Circle': {
+        'Area': { index: 0, input: 'DR1 (radius)', output: 'DR1 = pi*r^2' },
+    },
+};
+
+// Helper: compile a bare-body Symbolic source with given capabilities list.
+function symCompile(body, caps) {
+    const src = (caps && caps.length)
+        ? `abstraction Test {\n  capabilities { ${caps.join(', ')} }\n  method run() {\n${body}\n  }\n}`
+        : `method run() {\n${body}\n}`;
+    const compiler = new CLOOMCCompiler();
+    compiler.methodConventions = SC_COMPILER.methodConventions;
+    const result = compiler.compileSymbolic(src, []);
+    return result;
+}
+
+{
+    // SC1: SlideRule.Multiply(5*B) — single arg with natural operator
+    // The * splits into [5, B], then emits CALL (SlideRule path uses CALL not ELOADCALL).
+    const r = symCompile('let K = SlideRule.Multiply(5*B)', ['SlideRule']);
+    assert('SC1 SlideRule.Multiply(5*B) compiles without errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+    assert('SC1 SlideRule.Multiply(5*B) produces code words',
+        r.methods.length > 0 && r.methods[0].code.length > 0,
+        `methods=${r.methods.length}`);
+}
+
+{
+    // SC2: SlideRule.Divide(A/B) — natural operator split for divide
+    const r = symCompile('let K = SlideRule.Divide(A/B)', ['SlideRule']);
+    assert('SC2 SlideRule.Divide(A/B) compiles without errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC3: K = SlideRule.Multiply(V1*V2) — assignment form
+    const r = symCompile('K = SlideRule.Multiply(V1*V2)', ['SlideRule']);
+    assert('SC3 K = SlideRule.Multiply(V1*V2) assignment form — no errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC4: K = SlideRule.Multiply(5, B) — comma form still works after refactor
+    const r = symCompile('K = SlideRule.Multiply(5, B)', ['SlideRule']);
+    assert('SC4 K = SlideRule.Multiply(5, B) comma form — no errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC5: Circle.Area(r) via general Abs.Method handler — DR arg, ELOADCALL emitted
+    const r = symCompile('K = Circle.Area(r)', ['Circle']);
+    assert('SC5 Circle.Area(r) general handler — no errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+    // ELOADCALL opcode = 8
+    const code = r.methods[0].code;
+    const hasEloadcall = code.some(w => ((w >>> 27) & 0x1F) === 8);
+    assert('SC5 Circle.Area(r) emits at least one ELOADCALL (opcode 8)',
+        hasEloadcall, `words: ${code.map(w => ((w >>> 27) & 0x1F)).join(',')}`);
+}
+
+{
+    // SC6: Tunnel.Connect(Mum) — Mum is a capability in c-list, loaded into CR2
+    const r = symCompile('K = Tunnel.Connect(Mum)', ['Tunnel', 'Mum']);
+    assert('SC6 Tunnel.Connect(Mum) — no errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+    const code = r.methods[0].code;
+    // Should contain a LOAD (opcode 0) for the CR2 capability and an ELOADCALL (opcode 8)
+    const hasLoad     = code.some(w => ((w >>> 27) & 0x1F) === 0);
+    const hasEloadcall = code.some(w => ((w >>> 27) & 0x1F) === 8);
+    assert('SC6 Tunnel.Connect(Mum) emits LOAD for Mum capability',
+        hasLoad, `words: ${code.map(w => ((w >>> 27) & 0x1F)).join(',')}`);
+    assert('SC6 Tunnel.Connect(Mum) emits ELOADCALL',
+        hasEloadcall, `words: ${code.map(w => ((w >>> 27) & 0x1F)).join(',')}`);
+}
+
+{
+    // SC7: Tunnel.Send(a, b) — DR args, ELOADCALL emitted
+    const r = symCompile('Tunnel.Send(V1, V2)', ['Tunnel']);
+    assert('SC7 Tunnel.Send(V1, V2) — no errors',
+        r.errors.length === 0, r.errors.map(e => e.message).join('; '));
+    const code = r.methods[0].code;
+    const hasEloadcall = code.some(w => ((w >>> 27) & 0x1F) === 8);
+    assert('SC7 Tunnel.Send(V1, V2) emits ELOADCALL',
+        hasEloadcall, `words: ${code.map(w => ((w >>> 27) & 0x1F)).join(',')}`);
+}
+
+{
+    // SC8: Unknown abstraction gives a helpful error
+    const r = symCompile('K = Ghost.Foo(x)', ['Ghost']);
+    assert('SC8 Ghost.Foo(x) — error mentions "Ghost"',
+        r.errors.length > 0 && r.errors.some(e => e.message.includes('"Ghost"')),
+        r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC9: Known abstraction, unknown method gives a helpful error
+    const r = symCompile('K = Circle.Bogus(r)', ['Circle']);
+    assert('SC9 Circle.Bogus(r) — error mentions method name',
+        r.errors.length > 0 && r.errors.some(e => e.message.includes('Bogus')),
+        r.errors.map(e => e.message).join('; '));
+}
+
+{
+    // SC10: Abstraction not in c-list gives a helpful error
+    // Circle conventions registered but not in capabilities {}
+    const r = symCompile('K = Circle.Area(r)', []);
+    assert('SC10 Circle.Area(r) without Circle in caps — error mentions c-list or caps',
+        r.errors.length > 0 && r.errors.some(e => e.message.includes('"Circle"')),
+        r.errors.map(e => e.message).join('; '));
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);
