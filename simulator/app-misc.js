@@ -1208,9 +1208,14 @@ function _traceBuildRow(idx) {
         entry.src,
         entry.desc,
     ];
+    const _cc = typeof _colorizeComment === 'function' ? _colorizeComment : null;
     for (let c = 0; c < cells.length; c++) {
         const td = document.createElement('td');
-        td.textContent = cells[c];
+        if (_cc && c >= 3) {
+            td.innerHTML = _cc(String(cells[c] == null ? '' : cells[c]));
+        } else {
+            td.textContent = cells[c];
+        }
         tr.appendChild(td);
     }
     for (let d = 0; d < 16; d++) {

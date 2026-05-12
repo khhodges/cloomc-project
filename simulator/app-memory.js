@@ -430,7 +430,7 @@ function updateCRDetail() {
                 ? `<span class="code-clobber-origin-icon" title="${_clobberOriginInfos.map(o => `CR${o.cr} alias set here \u2014 clobbered at word\u00A0${o.clobberAtWord}`).join('\n')}">&#x25CC;</span> `
                 : '';
             const decompTd = decomp
-                ? `<td class="code-decompiled ${isCompiler ? 'code-decompiled-compiler' : 'code-decompiled-user'}">${_injectCondTooltip(_wrapRegHover(decomp.desc), (word >>> 23) & 0xF)}</td>`
+                ? `<td class="code-decompiled ${isCompiler ? 'code-decompiled-compiler' : 'code-decompiled-user'}">${typeof _colorizeComment === 'function' ? _colorizeComment(decomp.desc) : (decomp.desc || '')}</td>`
                 : '<td class="code-decompiled"></td>';
 
             codeHtml += `<tr class="${rowClass}" style="cursor:pointer;" title="Double-click to set breakpoint" ondblclick="openBreakPopoverAt(${addr})">`;
