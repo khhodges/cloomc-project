@@ -771,6 +771,7 @@ class CLOOMCCompiler {
             // method Name [RAW ISA] { 0xHEX ... }  (inline ISA words)
             const rawIsaMatch = cleanLine.match(/^method\s+(\w+)\s*(?:\([^)]*\))?\s*\[RAW ISA\]\s*\{/);
             if (rawIsaMatch) {
+                const _rawIsaSrcStart = _commentBlockStart >= 0 ? _commentBlockStart : i;
                 _commentBlockStart = -1;
                 const rawWords = [];
                 i++;
@@ -784,7 +785,9 @@ class CLOOMCCompiler {
                     }
                     i++;
                 }
-                result.methods.push({ name: rawIsaMatch[1], rawIsa: rawWords, params: [], body: [], startLine: i, visibility, explicitVisibility });
+                const _rawIsaMethod = { name: rawIsaMatch[1], rawIsa: rawWords, params: [], body: [], startLine: _rawIsaSrcStart, visibility, explicitVisibility };
+                _rawIsaMethod.sourceLines = lines.slice(_rawIsaSrcStart, i).join('\n');
+                result.methods.push(_rawIsaMethod);
                 continue;
             }
 

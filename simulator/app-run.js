@@ -116,6 +116,47 @@ function _applyBootLumpPetNames() {
     if (lump) _applyLumpPetNames(lump);
 }
 
+// Push live snippet history for raw assembly programs.
+// Splits the source by label definitions (matching result.labels keys) so that
+// each labelled section is stored as a separate method entry, exactly mirroring
+// how the high-level CLOOMC++ path stores per-method sourceLines.
+// Falls back to pushing the entire source under the program name when no labels
+// are present (e.g. unlabelled linear programs).
+function _pushAsmLabelSnippets(source, labels, progName) {
+    if (typeof ChurchAssembler === 'undefined') return;
+    const _nameMatch = source.match(/^;\s*(?:Disassembly\s+of\s+\S+\s+)?([^\n@]+?)\s+(?:NS\[|\@\s*0x)/m);
+    const absName = (_nameMatch ? _nameMatch[1].trim() : null) || progName || 'Assembly';
+    const lines = source.split('\n');
+    const labelNames = Object.keys(labels || {});
+    if (labelNames.length === 0) {
+        ChurchAssembler.pushLiveSnippet(absName, absName, source);
+        return;
+    }
+    // Mirror the assembler's own label detection (assembler.js line 654):
+    // a label is a line whose trimmed content ends with ':', name = slice before ':'.
+    const labelLineMap = {};
+    for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trim();
+        if (trimmed.endsWith(':')) {
+            const candidateName = trimmed.slice(0, -1).trim();
+            if (labels[candidateName] !== undefined) {
+                labelLineMap[candidateName] = i;
+            }
+        }
+    }
+    const sortedByLine = Object.entries(labelLineMap).sort((a, b) => a[1] - b[1]);
+    if (sortedByLine.length === 0) {
+        ChurchAssembler.pushLiveSnippet(absName, absName, source);
+        return;
+    }
+    for (let li = 0; li < sortedByLine.length; li++) {
+        const [lName, lLine] = sortedByLine[li];
+        const nextLine = li + 1 < sortedByLine.length ? sortedByLine[li + 1][1] : lines.length;
+        const snippet = lines.slice(lLine, nextLine).join('\n').trimEnd();
+        if (snippet) ChurchAssembler.pushLiveSnippet(absName, lName, snippet);
+    }
+}
+
 function assembleAndLoad() {
     const editor = document.getElementById('asmEditor');
     if (!editor) return;
@@ -326,6 +367,14 @@ function assembleAndLoad() {
         }
         if (con) con.innerHTML = _capRightsHTML(listing);
         if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
+        // Push live snippet history for each method that carried source text
+        if (typeof ChurchAssembler !== 'undefined' && result.abstractionName) {
+            for (const _m of result.methods) {
+                if (_m.sourceLines) {
+                    ChurchAssembler.pushLiveSnippet(result.abstractionName, _m.name, _m.sourceLines);
+                }
+            }
+        }
         showNextSteps('assembled');
         const saveBtn = document.getElementById('btnSaveNS');
         if (saveBtn) saveBtn.disabled = false;
@@ -414,6 +463,8 @@ function assembleAndLoad() {
         }
     }
     if (con) con.innerHTML = _capRightsHTML(listing);
+    // Push live snippet history for each labelled section of the raw assembly source
+    _pushAsmLabelSnippets(source, result.labels || {}, sim.programName);
     showNextSteps('assembled');
 
     const saveBtn = document.getElementById('btnSaveNS');

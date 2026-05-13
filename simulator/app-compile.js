@@ -714,6 +714,11 @@ function compileDraftAssembly(source, con) {
         } catch (_aclErr) { console.error('[ACL check] _checkCapAccessRights failed:', _aclErr); }
         if (con && _aclExtra) con.innerHTML += _capRightsHTML(_aclExtra);
     }
+    // Push live snippet history for each labelled section of the raw assembly source
+    if (typeof _pushAsmLabelSnippets === 'function') {
+        const _draftProgName = Object.keys(result.labels || {})[0] || 'Assembly';
+        _pushAsmLabelSnippets(source, result.labels || {}, _draftProgName);
+    }
     showNextSteps('draft');
 }
 
