@@ -820,6 +820,18 @@ tr.itrace-fault td { color: #ff9999; }
     flex: 1;
 }
 
+.fault-recovery-pill {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+    cursor: default;
+}
+
 .fault-gate-banner-open {
     font-size: 0.75rem;
     flex-shrink: 0;

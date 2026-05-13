@@ -205,6 +205,11 @@ test.describe('Tier 1 (.catch) fault recovery — live IDE', () => {
         await expect(typeBadge).toBeVisible();
         await expect(typeBadge).toHaveText(FAULT_TYPE);
 
+        // Gate Log banner must show the Tier 1 recovery pill
+        const recoveryPill = page.locator('#gateLogContent .fault-recovery-pill');
+        await expect(recoveryPill).toBeVisible();
+        await expect(recoveryPill).toHaveText('Tier 1');
+
         // ── Second pass: open modal from Gate Log banner and re-assert ───────
         await openFaultModalFromGateLog(page);
         await assertFaultModalTier1(page);
@@ -223,6 +228,11 @@ test.describe('Tier 1 (.catch) fault recovery — live IDE', () => {
         const typeBadgeAfter = page.locator('#gateLogContent .fault-type-badge');
         await expect(typeBadgeAfter).toBeVisible();
         await expect(typeBadgeAfter).toHaveText(FAULT_TYPE);
+
+        // Post-reload: banner recovery pill must still show Tier 1
+        const recoveryPillAfter = page.locator('#gateLogContent .fault-recovery-pill');
+        await expect(recoveryPillAfter).toBeVisible();
+        await expect(recoveryPillAfter).toHaveText('Tier 1');
 
         // ── Post-reload: Fault Popup still shows Tier 1 recovery ─────────────
         await openFaultModalFromGateLog(page);

@@ -464,9 +464,29 @@ function updateGateLog() {
             }
         }
 
+        // lf.tier === 1/2/3: recovery succeeded at that tier
+        // lf.tier === null:  recovery logic ran but all tiers were exhausted (halted)
+        // lf.tier === undefined: legacy record pre-Task-#1077 — tier unknown, no pill
+        const lfTierKnown = lf.tier === 1 || lf.tier === 2 || lf.tier === 3 || lf.tier === null;
+        const lfTierPillText  = lf.tier === 1 ? 'Tier 1'
+            : lf.tier === 2 ? 'Tier 2'
+            : lf.tier === 3 ? 'Tier 3'
+            : 'Halted';
+        const lfTierPillColor = lf.tier === 1 ? '#4caf50'
+            : lf.tier === 2 ? '#ff9800'
+            : lf.tier === 3 ? '#e91e63'
+            : '#e05555';
+        const lfTierPillTitle = lf.tier === 1 ? 'Tier 1 — .catch recovered'
+            : lf.tier === 2 ? 'Tier 2 — Scheduler.IRQ recovered'
+            : lf.tier === 3 ? 'Tier 3 — double-fault / PP250 recovery'
+            : 'Unhandled — machine halted';
+
         html += `<div class="fault-gate-banner" style="border-left-color:${lfColor};background:${lfColor}18">`;
         html += `<div class="fault-gate-banner-header">`;
         html += `<span class="fault-type-badge fault-gate-banner-badge" style="background:${lfColor}22;border-color:${lfColor};color:${lfColor}">${lf.type}</span>`;
+        if (lfTierKnown) {
+            html += `<span class="fault-recovery-pill" style="background:${lfTierPillColor}22;border-color:${lfTierPillColor};color:${lfTierPillColor}" title="${lfTierPillTitle}">${lfTierPillText}</span>`;
+        }
         html += `<span class="fault-gate-banner-title">Machine Fault</span>`;
         html += `<button class="gate-loc-step-link fault-gate-banner-open" onclick="showFaultModal(sim.faultLog[sim.faultLog.length-1])" title="Open fault details">&#x1F50D; Details</button>`;
         html += `</div>`;
