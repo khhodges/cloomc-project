@@ -5692,6 +5692,73 @@ CALL Scheduler.pause   ; arm timer again, suspend thread
 CALL Scheduler.Yield   ; give up remaining time slice  (DR1 = 0)
 
 HALT`,
+        'scheduler_wait': `; ============================================================
+; Abstraction:  SchedulerWait
+; Description:  Blocking synchronisation — wait on a DijkstraFlag
+;               then stop a thread cleanly via Scheduler.Stop
+; Author:       Church Machine Educational Platform
+; Version:      1.0
+; Created:      2026-05-13
+; Language:     Assembly
+; Dependencies: Scheduler (NS[8]), DijkstraFlag (NS[10])
+; ============================================================
+; Methods demonstrated:
+;   DijkstraFlag.Signal()           — release the semaphore
+;   Scheduler.Wait(flag_GT)         — block until flag signaled
+;   Scheduler.Stop(threadID)        — terminate a thread
+; ============================================================
+;
+; ============================================================
+; Blocking-wait + thread-stop pattern
+; ============================================================
+;
+; Scheduler.Wait(flag_GT) suspends the calling thread until
+; the DijkstraFlag held in CR2 is signaled.  Once the flag
+; fires the thread is re-queued and resumes at the instruction
+; following CALL Scheduler.Wait.
+;
+; Scheduler.Stop(threadID) terminates the thread whose ID is
+; in DR1.  DR1 = 0 refers to the calling thread itself,
+; producing a clean self-exit rather than a HALT fault.
+;
+; DijkstraFlag.Signal() atomically releases the flag once.
+; If a thread is already waiting it wakes immediately; if not,
+; the signal is remembered so the next Wait returns without
+; blocking.
+;
+; In this example the flag is pre-signaled so Scheduler.Wait
+; returns immediately — demonstrating the calling convention
+; without requiring a second thread to fire the flag.
+;
+; Input convention for Scheduler.Wait:
+;   CR0 = Scheduler capability   (E, NS[8])
+;   CR2 = flag_GT                (DijkstraFlag capability)
+;
+; Input convention for Scheduler.Stop:
+;   CR0 = Scheduler capability   (E, NS[8])
+;   DR1 = threadID to terminate  (0 = calling thread)
+;
+; ── Section 1: load capabilities and verify ──────────────────
+LOAD CR0, Scheduler    ; CR0 = Scheduler capability (E, NS[8])
+TPERM CR0, E           ; Verify E permission  (Z=1 on success)
+
+; ── Section 2: pre-signal the DijkstraFlag ───────────────────
+;   Signal before Wait so Wait returns without blocking.
+;   In production a separate thread calls DijkstraFlag.Signal
+;   to wake the waiting thread.
+LOAD CR0, DijkstraFlag ; CR0 = DijkstraFlag (needed for CALL)
+CALL DijkstraFlag.Signal ; atomically release the semaphore
+
+; ── Section 3: wait for the (already-signaled) flag ──────────
+LOAD CR0, Scheduler    ; CR0 = Scheduler (for CALL Scheduler.Wait)
+LOAD CR2, DijkstraFlag ; CR2 = flag_GT argument for Wait
+CALL Scheduler.Wait    ; block until signaled → returns immediately here
+
+; ── Section 4: stop a thread ─────────────────────────────────
+IADD DR1, DR0, #0      ; DR1 = 0  (threadID — 0 = calling thread)
+CALL Scheduler.Stop    ; terminate thread 0 (clean self-stop)
+
+HALT`,
         'constants_dot': `; ============================================================
 ; Abstraction:  ConstantsDot
 ; Description:  Recommended dot-notation style — CALL AbstrName.Method

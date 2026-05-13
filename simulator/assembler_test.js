@@ -5299,6 +5299,42 @@ HALT
         result.words.length === 8, `got ${result.words.length}`);
 }
 
+// EX-SW: scheduler_wait — LOAD + TPERM + LOAD + Signal + LOAD + LOAD + Wait + IADD + Stop + HALT
+// Verifies that DijkstraFlag.Signal, Scheduler.Wait, and Scheduler.Stop assemble
+// correctly when the method conventions and NS slots for both abstractions are supplied.
+{
+    const EX_SW_CONVENTIONS = {
+        'Scheduler': {
+            'Yield': { index: 0, input: '',                output: 'DR1' },
+            'Wait':  { index: 2, input: 'CR2=flag_GT',     output: 'DR1' },
+            'Stop':  { index: 3, input: 'DR1=threadID',    output: 'DR1' },
+        },
+        'DijkstraFlag': {
+            'Signal': { index: 1, input: '', output: 'DR1' },
+        },
+    };
+    const EX_SW_NS = { 'Scheduler': 8, 'DijkstraFlag': 10 };
+    const EX_SW_SRC = `
+LOAD CR0, Scheduler
+TPERM CR0, E
+LOAD CR0, DijkstraFlag
+CALL DijkstraFlag.Signal
+LOAD CR0, Scheduler
+LOAD CR2, DijkstraFlag
+CALL Scheduler.Wait
+IADD DR1, DR0, #0
+CALL Scheduler.Stop
+HALT
+`;
+    const a = new ChurchAssembler(EX_SW_CONVENTIONS);
+    a.setNamespace(EX_SW_NS);
+    const result = a.assemble(EX_SW_SRC);
+    assert('EX-SW scheduler_wait assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('EX-SW scheduler_wait produces 10 words (LOAD+TPERM+LOAD+Signal+LOAD+LOAD+Wait+IADD+Stop+HALT)',
+        result.words.length === 10, `got ${result.words.length}`);
+}
+
 // EX-DF: dijkstra_flag — LOAD + TPERM + Test + Signal + Test + Wait + Reset + Test + HALT
 // Verifies that DijkstraFlag.Test, Signal, Wait, and Reset assemble correctly
 // when the DijkstraFlag method conventions and NS slot are supplied.
@@ -5334,10 +5370,9 @@ HALT
 
 // EX16: LANG_EXAMPLE_GROUPS.assembly coverage guard
 // Asserts that the assembly key list in app-compile.js is exactly the set
-// covered by EX1–EX15 + CD1–CD10 + EX-SP + EX-SY + EX-DF.  If a new example
+// covered by EX1–EX15 + CD1–CD10 + EX-SP + EX-SY + EX-SW + EX-DF.  If a new example
 // is added to LANG_EXAMPLE_GROUPS.assembly without a corresponding EX test,
-// this list must be updated — that's the deliberate friction that prompts
-// adding a test.
+// this list must be updated — that's the deliberate friction that prompts adding a test.
 {
     const COVERED_ASSEMBLY_EXAMPLES = new Set([
         'ada_note_g',
@@ -5351,11 +5386,12 @@ HALT
         'bind_attack',
         'scheduler_pause',
         'scheduler_yield',
+        'scheduler_wait',
         'dijkstra_flag',
     ]);
-    // These are the twelve keys in LANG_EXAMPLE_GROUPS.assembly as of task-1106.
+    // These are the thirteen keys in LANG_EXAMPLE_GROUPS.assembly as of task-1105/1106.
     // Update both this set AND add an EX test whenever a new example is added.
-    const EXPECTED_COUNT = 12;
+    const EXPECTED_COUNT = 13;
     assert('EX16 LANG_EXAMPLE_GROUPS.assembly coverage set has expected count',
         COVERED_ASSEMBLY_EXAMPLES.size === EXPECTED_COUNT,
         `expected ${EXPECTED_COUNT}, got ${COVERED_ASSEMBLY_EXAMPLES.size}`);
@@ -5372,6 +5408,8 @@ HALT
         COVERED_ASSEMBLY_EXAMPLES.has('scheduler_pause'), 'missing');
     assert('EX16 coverage set contains scheduler_yield (covered by EX-SY)',
         COVERED_ASSEMBLY_EXAMPLES.has('scheduler_yield'), 'missing');
+    assert('EX16 coverage set contains scheduler_wait (covered by EX-SW)',
+        COVERED_ASSEMBLY_EXAMPLES.has('scheduler_wait'), 'missing');
     assert('EX16 coverage set contains dijkstra_flag (covered by EX-DF)',
         COVERED_ASSEMBLY_EXAMPLES.has('dijkstra_flag'), 'missing');
 }
