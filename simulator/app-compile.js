@@ -384,7 +384,7 @@ function renderSyntaxRef(lang) {
 const LANG_EXAMPLE_GROUPS = {
     english:    ['cloomc_english_integer_ops', 'cloomc_english_packed_string', 'cloomc_english_loops', 'cloomc_english_contact', 'cloomc_english_contact_stage2'],
     assembly:   ['ada_note_g', 'capability_test', 'system_patterns', 'compute_demo', 'led_control', 'salvation', 'constants_dot', 'perm_attack', 'bind_attack', 'scheduler_pause', 'scheduler_yield', 'scheduler_wait', 'dijkstra_flag'],
-    javascript: ['cloomc_integer_ops', 'cloomc_packed_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_mint', 'cloomc_sliderule', 'cloomc_contact', 'cloomc_contact_stage2', 'cloomc_contact_call', 'cloomc_stack_overflow', 'cloomc_recall_demo', 'cloomc_billing', 'cloomc_turing_memory', 'cloomc_church_memory', 'cloomc_physical_pool'],
+    javascript: ['cloomc_integer_ops', 'cloomc_packed_string', 'cloomc_memory', 'cloomc_heap', 'cloomc_mint', 'cloomc_sliderule', 'cloomc_contact', 'cloomc_contact_stage2', 'cloomc_contact_call', 'cloomc_stack_overflow', 'cloomc_recall_demo', 'cloomc_billing', 'cloomc_turing_memory', 'cloomc_church_memory', 'cloomc_physical_pool', 'cloomc_dijkstra_flag'],
     haskell:    ['cloomc_church_math', 'cloomc_church_pair', 'cloomc_church_case', 'cloomc_sliderule_hs'],
     symbolic:   ['cloomc_ada_note_g', 'cloomc_ada_note_g_published_bug', 'cloomc_bernoulli_numbers'],
     lambda:     ['cloomc_lambda_church_numerals', 'cloomc_lambda_church_encoding', 'cloomc_lambda_fixed_point', 'cloomc_lambda_sliderule', 'cloomc_lambda_rational'],
@@ -402,7 +402,8 @@ const _CLOOMC_FILE_EXAMPLES = {
     'english_contact_stage2':  '/simulator/cloomc/english/ContactStage2.cloomc',
     'ada_note_g_published_bug':'/simulator/cloomc/ada_note_g_published_bug.cloomc',
     'memory':                  '/simulator/cloomc/memory.cloomc',
-    'sliderule_hs':            '/simulator/cloomc/sliderule_hs.cloomc'
+    'sliderule_hs':            '/simulator/cloomc/sliderule_hs.cloomc',
+    'dijkstra_flag':           '/simulator/cloomc/dijkstra_flag.cloomc'
 };
 const _CLOOMC_FILE_LANGUAGES = {
     'sliderule':               'javascript',
@@ -412,7 +413,8 @@ const _CLOOMC_FILE_LANGUAGES = {
     'english_contact_stage2':  'english',
     'ada_note_g_published_bug':'symbolic',
     'memory':                  'javascript',
-    'sliderule_hs':            'haskell'
+    'sliderule_hs':            'haskell',
+    'dijkstra_flag':           'javascript'
 };
 
 function onLangChange(restoring) {

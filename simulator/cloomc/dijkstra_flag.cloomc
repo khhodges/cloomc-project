@@ -1,0 +1,92 @@
+// ============================================================
+// Abstraction:  FlagSync
+// Description:  Dijkstra flag synchronisation demo — Wait, Signal,
+//               Reset, and Test expressed as named CLOOMC++ calls.
+// Author:       Church Machine Educational Platform
+// Version:      1.0
+// Created:      2026-05-13
+// Language:     CLOOMC++ (JavaScript front-end)
+// Dependencies: DijkstraFlag (NS slot 10)
+// ============================================================
+// DijkstraFlag is a one-bit synchronisation primitive that
+// implements Dijkstra's classic semaphore operations:
+//
+//   Signal()  — V(): raise the flag (wake one blocked waiter, or
+//                set it for the next Wait caller to consume)
+//   Wait()    — P(): block until the flag is signaled; consumes
+//                the signal immediately if already raised
+//   Reset()   — Lower the flag without consuming the signal;
+//                use to clear a flag after inspecting it
+//   Test()    — Non-blocking read; returns 1 if signaled, 0 if not
+//
+// Typical producer/consumer pattern:
+//
+//   producer thread:
+//     call(DijkstraFlag.Signal())   ; — data is ready
+//
+//   consumer thread:
+//     call(DijkstraFlag.Wait())     ; — block until data arrives
+//     call(DijkstraFlag.Reset())    ; — arm for next cycle
+//
+// FlagSync wraps DijkstraFlag and demonstrates the full pattern
+// in a single-threaded sequence.  RunSequence() mirrors the
+// assembly-level dijkstra_flag example step for step so you can
+// compare both front-ends side by side.
+//
+// Method index map (ELOADCALL convention):
+//   RunSequence  index 0  (method selector 1)
+//   Produce      index 1  (method selector 2)
+//   Consume      index 2  (method selector 3)
+//   Peek         index 3  (method selector 4)
+// ============================================================
+
+abstraction FlagSync {
+    capabilities {
+        DijkstraFlag
+    }
+
+    // RunSequence() — exercise all four DijkstraFlag operations in
+    // the same order as the assembly dijkstra_flag example:
+    //   1. Test  → 0  (flag unsignaled at boot)
+    //   2. Signal        raise flag
+    //   3. Test  → 1  (flag now signaled)
+    //   4. Wait  → 1  (flag already up — returns immediately)
+    //   5. Reset         lower flag
+    //   6. Test  → 0  (flag cleared)
+    // Returns final Test result (0 = cleared, 1 = still raised).
+    method RunSequence() {
+        var before = call(DijkstraFlag.Test())
+        call(DijkstraFlag.Signal())
+        var afterSignal = call(DijkstraFlag.Test())
+        var afterWait = call(DijkstraFlag.Wait())
+        call(DijkstraFlag.Reset())
+        var afterReset = call(DijkstraFlag.Test())
+        return(afterReset)
+    }
+
+    // Produce() — V() operation: signal the flag.
+    // Call from the producer side to announce that data is ready.
+    // Returns 1 if a waiter was woken, 0 if the flag was simply set.
+    method Produce() {
+        var result = call(DijkstraFlag.Signal())
+        return(result)
+    }
+
+    // Consume() — P() then Reset: wait until signaled, then clear.
+    // Blocks the calling thread until the flag is raised.
+    // Resets the flag so the next Consume() call will also block.
+    // Returns the Wait result (always 1 when the flag was signaled).
+    method Consume() {
+        var waited = call(DijkstraFlag.Wait())
+        call(DijkstraFlag.Reset())
+        return(waited)
+    }
+
+    // Peek() — non-blocking Test: read flag state without blocking.
+    // Returns 1 if the flag is currently signaled, 0 otherwise.
+    // Does not consume the signal — the flag is unchanged.
+    method Peek() {
+        var state = call(DijkstraFlag.Test())
+        return(state)
+    }
+}

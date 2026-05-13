@@ -5437,6 +5437,40 @@ HALT
         `dot=0x${(dotResult.words[1]>>>0).toString(16)} raw=0x${(rawResult.words[1]>>>0).toString(16)}`);
 }
 
+// EX-JDF: dijkstra_flag.cloomc — structural content test (JS CLOOMC++ front-end)
+// Verifies that simulator/cloomc/dijkstra_flag.cloomc:
+//   1. Declares abstraction FlagSync
+//   2. Lists DijkstraFlag in the capabilities block
+//   3. Contains all four DijkstraFlag method calls (Wait, Signal, Reset, Test)
+//   4. Declares the four public methods: RunSequence, Produce, Consume, Peek
+{
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+        path.join(__dirname, 'cloomc', 'dijkstra_flag.cloomc'), 'utf8');
+
+    assert('EX-JDF dijkstra_flag.cloomc declares abstraction FlagSync',
+        /abstraction\s+FlagSync\s*\{/.test(src), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc lists DijkstraFlag in capabilities block',
+        /capabilities\s*\{[^}]*DijkstraFlag[^}]*\}/.test(src), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc calls DijkstraFlag.Wait()',
+        src.includes('DijkstraFlag.Wait()'), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc calls DijkstraFlag.Signal()',
+        src.includes('DijkstraFlag.Signal()'), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc calls DijkstraFlag.Reset()',
+        src.includes('DijkstraFlag.Reset()'), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc calls DijkstraFlag.Test()',
+        src.includes('DijkstraFlag.Test()'), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc declares method RunSequence',
+        /method\s+RunSequence\s*\(/.test(src), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc declares method Produce',
+        /method\s+Produce\s*\(/.test(src), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc declares method Consume',
+        /method\s+Consume\s*\(/.test(src), 'missing');
+    assert('EX-JDF dijkstra_flag.cloomc declares method Peek',
+        /method\s+Peek\s*\(/.test(src), 'missing');
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);
