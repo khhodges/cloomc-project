@@ -2853,7 +2853,10 @@ class ChurchSimulator {
         }
         const slotGT = this.memory[clistLoc + d.imm] || 0;
         if (slotGT === 0) {
-            this.fault('NULL_CAP', `LOAD: c-list offset ${d.imm} is empty (NULL GT)`);
+            const _pc = this.programCapabilities;
+            const _pce = _pc && _pc[d.imm];
+            const _pcn = _pce ? (typeof _pce === 'string' ? _pce : (_pce.name || null)) : null;
+            this.fault('NULL_CAP', `LOAD: c-list offset ${d.imm}${_pcn ? ` (${_pcn})` : ''} is empty (NULL GT)`);
             return null;
         }
         const slotParsed = this.parseGT(slotGT);
@@ -4274,7 +4277,10 @@ class ChurchSimulator {
 
         let slotGT = this.memory[srcLoc + ecRow] || 0;
         if (slotGT === 0) {
-            this.fault('NULL_CAP', `ELOADCALL: c-list row ${ecRow} is empty`);
+            const _pc = this.programCapabilities;
+            const _pce = _pc && _pc[ecRow];
+            const _pcn = _pce ? (typeof _pce === 'string' ? _pce : (_pce.name || null)) : null;
+            this.fault('NULL_CAP', `ELOADCALL: c-list row ${ecRow}${_pcn ? ` (${_pcn})` : ''} is empty`);
             return null;
         }
         let slotParsed = this.parseGT(slotGT);
@@ -4440,7 +4446,10 @@ class ChurchSimulator {
 
         let slotGT = this.memory[srcLoc + d.imm] || 0;
         if (slotGT === 0) {
-            this.fault('NULL_CAP', `XLOADLAMBDA: c-list offset ${d.imm} is empty`);
+            const _pc = this.programCapabilities;
+            const _pce = _pc && _pc[d.imm];
+            const _pcn = _pce ? (typeof _pce === 'string' ? _pce : (_pce.name || null)) : null;
+            this.fault('NULL_CAP', `XLOADLAMBDA: c-list offset ${d.imm}${_pcn ? ` (${_pcn})` : ''} is empty`);
             return null;
         }
         let slotParsed = this.parseGT(slotGT);

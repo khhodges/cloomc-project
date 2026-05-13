@@ -171,6 +171,7 @@ function assembleAndLoad() {
         lastMethodTableSize = methodTableSize;
         _defaultProgramLoaded = true;
         sim.programLabels = labels;
+        sim.programCapabilities = result.capabilities ? result.capabilities.slice() : [];
         sim.programName = result.abstractionName || (methods.length > 0 ? methods[0].name : 'prog');
         window._assemblerSymbols = { labels, lumpName: sim.programName };
         _pendingSimLoad = true;
@@ -367,6 +368,7 @@ function assembleAndLoad() {
         ? result.capabilities.slice() : null;
     _defaultProgramLoaded = true;
     sim.programLabels = result.labels || {};
+    sim.programCapabilities = result.capabilities ? result.capabilities.slice() : [];
     const entryLabel = Object.keys(result.labels || {}).find(k => (result.labels[k] === 0)) || null;
     sim.programName = entryLabel || (Object.keys(result.labels || {})[0]) || 'prog';
     window._assemblerSymbols = { labels: result.labels || {}, lumpName: sim.programName };
