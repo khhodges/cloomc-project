@@ -5299,11 +5299,45 @@ HALT
         result.words.length === 8, `got ${result.words.length}`);
 }
 
+// EX-DF: dijkstra_flag — LOAD + TPERM + Test + Signal + Test + Wait + Reset + Test + HALT
+// Verifies that DijkstraFlag.Test, Signal, Wait, and Reset assemble correctly
+// when the DijkstraFlag method conventions and NS slot are supplied.
+{
+    const EX_DF_CONVENTIONS = {
+        'DijkstraFlag': {
+            'Wait':   { index: 0, input: '',  output: 'DR1' },
+            'Signal': { index: 1, input: '',  output: 'DR1' },
+            'Reset':  { index: 2, input: '',  output: 'DR1' },
+            'Test':   { index: 3, input: '',  output: 'DR1=1 signaled | 0 unsignaled' },
+        },
+    };
+    const EX_DF_NS = { 'DijkstraFlag': 10 };
+    const EX_DF_SRC = `
+LOAD CR0, DijkstraFlag
+TPERM CR0, E
+CALL DijkstraFlag.Test
+CALL DijkstraFlag.Signal
+CALL DijkstraFlag.Test
+CALL DijkstraFlag.Wait
+CALL DijkstraFlag.Reset
+CALL DijkstraFlag.Test
+HALT
+`;
+    const a = new ChurchAssembler(EX_DF_CONVENTIONS);
+    a.setNamespace(EX_DF_NS);
+    const result = a.assemble(EX_DF_SRC);
+    assert('EX-DF dijkstra_flag assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('EX-DF dijkstra_flag produces 9 words (LOAD+TPERM+Test+Signal+Test+Wait+Reset+Test+HALT)',
+        result.words.length === 9, `got ${result.words.length}`);
+}
+
 // EX16: LANG_EXAMPLE_GROUPS.assembly coverage guard
 // Asserts that the assembly key list in app-compile.js is exactly the set
-// covered by EX1–EX15 + CD1–CD10 + EX-SP + EX-SY.  If a new example is added
-// to LANG_EXAMPLE_GROUPS.assembly without a corresponding EX test, this list
-// must be updated — that's the deliberate friction that prompts adding a test.
+// covered by EX1–EX15 + CD1–CD10 + EX-SP + EX-SY + EX-DF.  If a new example
+// is added to LANG_EXAMPLE_GROUPS.assembly without a corresponding EX test,
+// this list must be updated — that's the deliberate friction that prompts
+// adding a test.
 {
     const COVERED_ASSEMBLY_EXAMPLES = new Set([
         'ada_note_g',
@@ -5317,10 +5351,11 @@ HALT
         'bind_attack',
         'scheduler_pause',
         'scheduler_yield',
+        'dijkstra_flag',
     ]);
-    // These are the eleven keys in LANG_EXAMPLE_GROUPS.assembly as of task-1101.
+    // These are the twelve keys in LANG_EXAMPLE_GROUPS.assembly as of task-1106.
     // Update both this set AND add an EX test whenever a new example is added.
-    const EXPECTED_COUNT = 11;
+    const EXPECTED_COUNT = 12;
     assert('EX16 LANG_EXAMPLE_GROUPS.assembly coverage set has expected count',
         COVERED_ASSEMBLY_EXAMPLES.size === EXPECTED_COUNT,
         `expected ${EXPECTED_COUNT}, got ${COVERED_ASSEMBLY_EXAMPLES.size}`);
@@ -5337,6 +5372,8 @@ HALT
         COVERED_ASSEMBLY_EXAMPLES.has('scheduler_pause'), 'missing');
     assert('EX16 coverage set contains scheduler_yield (covered by EX-SY)',
         COVERED_ASSEMBLY_EXAMPLES.has('scheduler_yield'), 'missing');
+    assert('EX16 coverage set contains dijkstra_flag (covered by EX-DF)',
+        COVERED_ASSEMBLY_EXAMPLES.has('dijkstra_flag'), 'missing');
 }
 
 // EX17–EX19: salvation dot-notation produces identical encoding to raw form

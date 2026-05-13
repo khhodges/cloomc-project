@@ -5527,6 +5527,61 @@ SAVE CR0, CR6, 3       ; FAULT: B=0, cannot bind to empty slot 3
 
 ; --- If we get here, B-bit default failed ---
 HALT`,
+        'dijkstra_flag': `; ============================================================
+; Abstraction:  DijkstraFlag
+; Description:  Flag-based synchronisation — Test, Signal,
+;               Wait, and Reset a shared flag object
+; Author:       Church Machine Educational Platform
+; Version:      1.0
+; Created:      2026-05-13
+; Language:     Assembly
+; Dependencies: DijkstraFlag (NS[10])
+; ============================================================
+; Methods demonstrated:
+;   DijkstraFlag.Test()    — read flag state non-destructively
+;                            DR1 = 1 signaled | 0 unsignaled
+;   DijkstraFlag.Signal()  — raise the flag (mark signaled)
+;   DijkstraFlag.Wait()    — block until flag is signaled
+;   DijkstraFlag.Reset()   — lower the flag (mark unsignaled)
+; ============================================================
+;
+; DijkstraFlag is a one-bit synchronisation object.  A thread
+; calls Signal to raise it and Wait to block until raised.
+; Reset returns it to the unsignaled state.  Test reads the
+; state non-destructively without consuming the signal.
+;
+; Typical producer/consumer pattern:
+;   Producer thread:  CALL DijkstraFlag.Signal
+;   Consumer thread:  CALL DijkstraFlag.Wait   (blocks until signaled)
+;                     CALL DijkstraFlag.Reset   (consume — ready for next cycle)
+;
+; Input convention:
+;   CR0 = DijkstraFlag capability (loaded below)
+;   No data registers required for any method
+;
+; ── Load and verify DijkstraFlag capability ──────────────────
+LOAD CR0, DijkstraFlag    ; CR0 = DijkstraFlag (E, NS[10])
+TPERM CR0, E              ; Verify E permission → Z=1
+
+; ── Section 1: Test initial state (should be unsignaled) ─────
+CALL DijkstraFlag.Test    ; DR1 = 0  (unsignaled at boot)
+
+; ── Section 2: Signal the flag ────────────────────────────────
+CALL DijkstraFlag.Signal  ; raise flag → DR1 = 1
+
+; ── Section 3: Test again — flag is now signaled ──────────────
+CALL DijkstraFlag.Test    ; DR1 = 1  (signaled)
+
+; ── Section 4: Wait — returns immediately (already signaled) ──
+CALL DijkstraFlag.Wait    ; DR1 = 1  (flag was already up)
+
+; ── Section 5: Reset the flag ────────────────────────────────
+CALL DijkstraFlag.Reset   ; lower flag → DR1 = 0
+
+; ── Section 6: Test final state (unsignaled after reset) ──────
+CALL DijkstraFlag.Test    ; DR1 = 0  (unsignaled after reset)
+
+HALT`,
         'scheduler_yield': `; ============================================================
 ; Abstraction:  SchedulerYield
 ; Description:  Cooperative multi-threading — voluntarily yield
