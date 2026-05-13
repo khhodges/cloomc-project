@@ -70,6 +70,16 @@
         .ham-group:last-child { border-right:none; }
         .ham-item { width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; }
         .ham-kbd { font-family:'Courier New',monospace; font-size:0.62rem; color:#555577; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:1px 4px; letter-spacing:0.2px; flex-shrink:0; }
+        .ham-bolt-row { grid-column:1/-1; padding:0.35rem 0.75rem 0.3rem; border-bottom:1px solid var(--border,#2a2a4a); display:flex; align-items:center; gap:0.5rem; }
+        .ham-bolt-drag { font-size:1.05rem; cursor:grab; user-select:none; color:#daa520; padding:0.1rem 0.4rem; border:1px dashed rgba(218,165,32,0.4); border-radius:4px; transition:background 0.15s; }
+        .ham-bolt-drag:hover { background:rgba(218,165,32,0.15); }
+        .ham-bolt-drag:active { cursor:grabbing; }
+        .ham-bolt-hint { font-size:0.63rem; color:#55557a; }
+        .ham-bolt-clear { font-size:0.63rem; color:#886644; cursor:pointer; margin-left:auto; background:none; border:none; padding:0; }
+        .ham-bolt-clear:hover { color:#daa520; }
+        .ham-item.ham-drop-active { background:rgba(218,165,32,0.12) !important; outline:1px solid rgba(218,165,32,0.6); }
+        .ham-item.ham-is-default { color:#daa520; }
+        .ham-item.ham-is-default::after { content:'⚡'; font-size:0.7rem; margin-left:auto; color:#daa520; flex-shrink:0; }
         @media (max-width:640px) {
             #hamDropdown.ham-open { grid-template-columns:1fr; max-height:calc(100vh - 60px); overflow-y:auto; }
             .ham-group { border-right:none; border-bottom:1px solid var(--border,#2a2a4a); }
@@ -96,6 +106,11 @@
                     <div class="ham-wrap" id="hamWrap">
                         <button class="btn btn-view ham-btn" id="hamBtn" onclick="toggleHamburger()" data-tooltip="Menu — Browse all views">&#9776;</button>
                         <div class="ham-dropdown" id="hamDropdown" style="display:none;">
+                            <div class="ham-bolt-row">
+                                <span id="hamDefaultBolt" class="ham-bolt-drag" draggable="true" data-tooltip="Drag ⚡ onto any page below to set it as your default home page">⚡</span>
+                                <span class="ham-bolt-hint">Drag to set default page</span>
+                                <button id="hamDefaultClear" class="ham-bolt-clear" style="display:none;" onclick="_clearDefaultView()" data-tooltip="Remove default page — next load will resume the last visited page">✕ clear default</button>
+                            </div>
                             <div class="ham-group">
                                 <div class="ham-group-title" title="Click to open" onclick="showHamCtxMenu(event,'develop','Open Programs')">Develop</div>
                                 <button class="ham-item" id="hamItem-editor" onclick="switchView('editor');closeHamburger()">Programs</button>
@@ -1658,7 +1673,7 @@
     <script async src="english_string_tutorial.js"></script>
     <script async src="english_contact_tutorial.js"></script>
     <script async src="builder.js"></script>
-    <script src="app-shell.js?v=20260512d"></script>
+    <script src="app-shell.js?v=20260513r"></script>
     <script src="app-tools.js?v=20260501a"></script>
     <script src="app-cr-display.js?v=20260512g"></script>
     <script src="app-cr-detail.js?v=20260512b"></script>

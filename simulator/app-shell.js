@@ -457,6 +457,9 @@ function init() {
     if (hashQuery) hashQuery.split('&').forEach(p => { const [k,v] = p.split('='); hashParams[k] = v; });
     let startView = views.includes(hashView) ? hashView : null;
     if (!startView) {
+        try { const def = localStorage.getItem('church_defaultView'); if (def && views.includes(def)) startView = def; } catch(e) {}
+    }
+    if (!startView) {
         try { const saved = localStorage.getItem('church_lastView'); if (saved && views.includes(saved)) startView = saved; } catch(e) {}
     }
     if (!startView) startView = 'dashboard';
@@ -472,6 +475,7 @@ function init() {
         }
     }
     switchMathMode('hp35');
+    _initDefaultViewBolt();
 
     // Global keyboard shortcuts: Ctrl+<letter> → switch top-level view.
     // Skipped when focus is inside any text input / textarea / contenteditable.
@@ -908,4 +912,59 @@ function switchView(viewId) {
 let _lastGCResult   = null;
 let _gcPhaseStep    = 0;       // 0=idle/done  1..4=waiting for next click
 let _pendingGCPhases = null;   // phases[] from the current in-progress GC run
+
+// ── Default-view lightning bolt drag-and-drop ──────────────────────────────
+function _initDefaultViewBolt() {
+    const views = ['repl','editor','tutorial','dashboard','namespace','hello-mum','abstractions','lumps','pipeline','trace','reference','docs','builder','sitemap','gc','devices','github','memory','gt-view'];
+    const bolt = document.getElementById('hamDefaultBolt');
+    const clearBtn = document.getElementById('hamDefaultClear');
+    if (!bolt) return;
+
+    function _refreshDefaultBadges() {
+        let cur = null;
+        try { cur = localStorage.getItem('church_defaultView'); } catch(e) {}
+        document.querySelectorAll('.ham-item').forEach(function(btn) {
+            btn.classList.remove('ham-is-default');
+        });
+        if (cur) {
+            const el = document.getElementById('hamItem-' + cur);
+            if (el) el.classList.add('ham-is-default');
+        }
+        if (clearBtn) clearBtn.style.display = cur ? 'inline' : 'none';
+    }
+
+    bolt.addEventListener('dragstart', function(e) {
+        e.dataTransfer.setData('text/plain', 'defaultViewBolt');
+        e.dataTransfer.effectAllowed = 'copy';
+    });
+
+    document.querySelectorAll('.ham-item[id^="hamItem-"]').forEach(function(btn) {
+        const viewId = btn.id.replace('hamItem-', '');
+        if (!views.includes(viewId)) return;
+        btn.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            btn.classList.add('ham-drop-active');
+        });
+        btn.addEventListener('dragleave', function() {
+            btn.classList.remove('ham-drop-active');
+        });
+        btn.addEventListener('drop', function(e) {
+            e.preventDefault();
+            btn.classList.remove('ham-drop-active');
+            if (e.dataTransfer.getData('text/plain') !== 'defaultViewBolt') return;
+            try { localStorage.setItem('church_defaultView', viewId); } catch(e2) {}
+            _refreshDefaultBadges();
+            const label = btn.textContent.replace('⚡','').trim().split('\n')[0].trim();
+            appendOutput('Default page set to: ' + label + ' (' + viewId + ')', 'info');
+        });
+    });
+
+    window._clearDefaultView = function() {
+        try { localStorage.removeItem('church_defaultView'); } catch(e) {}
+        _refreshDefaultBadges();
+    };
+
+    _refreshDefaultBadges();
+}
 
