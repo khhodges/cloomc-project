@@ -1532,5 +1532,31 @@
     "grants": [
       "E"
     ]
+  },
+  {
+    "token": "904adefe",
+    "abstraction": "LED flash",
+    "ns_slot": null,
+    "lump_size": 64,
+    "cw": 18,
+    "cc": 2,
+    "author": "",
+    "version": "1.0.1",
+    "methods": [
+      {
+        "name": "main",
+        "offset": 0,
+        "length": 18,
+        "pet_names": {
+          "CR": {
+            "0": "LED0",
+            "1": "Tunnel"
+          }
+        }
+      }
+    ],
+    "grants": [
+      "E"
+    ]
   }
 ]
