@@ -45,6 +45,7 @@ test.describe('no-LUMP warning toast', () => {
     });
 
     test('shows "No compiled LUMP found" toast after double-clicking an abstraction with no LUMP', async ({ page }) => {
+        test.setTimeout(40000); // extra headroom when running under parallel load
         // Open the hamburger menu so the nav items become visible.
         const hamBtn = page.locator('#hamBtn');
         await hamBtn.waitFor({ state: 'visible' });

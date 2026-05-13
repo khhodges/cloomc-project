@@ -37,6 +37,21 @@ The architecture uses a scale-free abstraction model with 47 abstractions in 9 l
 - **APScheduler:** Background scheduler for daily email reports (persisted in `server/scheduler.db`).
 - **Resend:** Transactional email provider for daily progress reports.
 
+## Scheduler Interrupt & Three-Tier Fault Recovery (Task #1077)
+
+Simulation-only (no FPGA hardware). Implemented in JS simulator files only.
+
+- **Structured fault record:** `fault()` now populates `faultCode`, `faultingMnemonic`, `involvedGT`, `pipelineStage`, `faultingAbstractionSlot`, `faultingAbstractionLabel`, `tier`, `catchInvoked`, `irqInvoked`, `tier3Recovery` on every fault entry.
+- **Three-tier recovery:** `fault()` attempts Tier 1 (`.catch` method on faulting NS slot), Tier 2 (`Scheduler.IRQ` via `_fireSchedulerIRQ`), Tier 3 (double-fault `→ _returnToBoot`) before halting. Default behaviour (halt) preserved when no handlers are registered.
+- **Scheduler.pause:** New method (index 4) arms `irqState.timerArmed/timerDeadline`; suspends calling thread.
+- **Scheduler.IRQ:** New method (index 5, NS slot 8). Hidden ELOADCALL — wakes sleeping threads on TIMER fire or attempts fault recovery on FAULT escalation.
+- **Timer check in step():** Before each instruction fetch, if `bootComplete && timerArmed && !irqActive && stepCount >= timerDeadline`, a hidden Scheduler.IRQ is injected.
+- **NS slot 50:** `Scheduler.IRQ.Thread` — fixed boot-image slot for the IRQ thread.
+- **ChurchSimulator static constants:** `FAULT_CODES`, `SCHEDULER_NS_SLOT=8`, `SCHEDULER_IRQ_NS_SLOT=50`.
+- **Fault Popup:** Recovery section added — shows tier, .catch/IRQ invocation, HW code, mnemonic, pipeline stage, GT.
+- **Tests:** `simulator/test_fault_recovery.js` — 6 suites, 38 assertions covering all three tiers, pause, and flag-set wake.
+- **Docs:** `docs/instruction-set.md` Section "Three-Tier Fault Recovery"; `docs/isa_reference.md` Section 9.
+
 ## Daily Progress Report (Task #759)
 An automated daily report emails `sipanticinc@gmail.com` at **05:00 UTC** every day via Resend.
 

@@ -409,4 +409,49 @@ Both `;` and `--` introduce comments.
 - Hexadecimal: `#0x2A`
 - Negative: `#-1`
 ---
+
+## Three-Tier Fault Recovery (Task #1077)
+
+When the simulator detects a fault, it attempts recovery in order before halting:
+
+### Tier 1 — `.catch` Method on the Faulting Abstraction
+
+Before escalating, the simulator checks whether the abstraction currently executing (derived from CR14) has a `.catch` entry in its method dispatch table. If present, `.catch` is invoked with a structured fault record (live machine state — not a snapshot). The handler may return `{ handled: true }` to suppress the halt and advance PC past the faulting instruction.
+
+**Structured fault record fields (Task #1077):**
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | string | Fault type mnemonic (e.g. `'PERM_R'`) |
+| `message` | string | Human-readable fault description |
+| `faultCode` | number \| null | Numeric hardware fault code (from `ChurchSimulator.FAULT_CODES`) |
+| `faultingMnemonic` | string \| null | Instruction name that triggered the fault |
+| `involvedGT` | number \| null | Golden Token value, if relevant |
+| `pipelineStage` | string \| null | mLoad pipeline stage where fault occurred |
+| `faultingAbstractionSlot` | number \| null | NS slot of the executing lump |
+| `faultingAbstractionLabel` | string \| null | Human label of the executing lump |
+| `tier` | 1 \| 2 \| 3 \| null | Which recovery tier handled the fault |
+| `catchInvoked` | boolean | Whether `.catch` was called (Tier 1) |
+| `irqInvoked` | boolean | Whether Scheduler.IRQ was dispatched (Tier 2) |
+| `tier3Recovery` | boolean | Whether Tier 3 CHANGE-to-CR13 was performed |
+
+### Tier 2 — Scheduler.IRQ (Hidden ELOADCALL)
+
+If `.catch` is absent or returns `handled: false`, the fault escalates to `Scheduler.IRQ` (NS slot 8, method index 5). This is a hidden `ELOADCALL` — it does not consume a code word. The Scheduler.IRQ handler succeeds only if a `faultRecoveryHandler` is registered on the scheduler state (`sim._schedulerState.faultRecoveryHandler`). Default is `null` (safe: halts on fault, preserving pre-Task-#1077 behaviour for all existing programs).
+
+### Tier 3 — Double-Fault (CHANGE to CR13)
+
+If a fault occurs while the Scheduler.IRQ frame is already active (`irqState.irqActive === true`), a double-fault is declared. The simulator performs a `CHANGE` to the GT burned into CR13 by PP250 (simulated as `_returnToBoot()`). The machine does not permanently halt; it resets to boot state.
+
+### Scheduler.pause and Timer Interrupts
+
+`Scheduler.pause(duration)` arms the hardware alarm (`irqState.timerArmed = true`, `irqState.timerDeadline = stepCount + duration`). On each `step()` call, before fetching the next instruction, the simulator checks whether the deadline has elapsed. When it fires, a hidden `ELOADCALL Scheduler.IRQ` is injected with `reason='TIMER'`. The IRQ is masked while `irqActive` is true to prevent nesting.
+
+```cloomc
+; Suspend calling thread for 100 simulation steps:
+IADD DR1, DR0, #100    ; duration in DR1
+Scheduler.pause()      ; arms timer; thread state → sleeping
+```
+
+---
 *Confidential — Kenneth Hamer-Hodges — April 2026*

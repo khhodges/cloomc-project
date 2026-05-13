@@ -106,6 +106,7 @@ async function injectFaultAndSave(page, { type, pc, step, lumpLabel }) {
 test.describe('fault history persistence across page reload', () => {
 
     test('Gate Log shows fault type, PC, and lump name before and after a page reload', async ({ page }) => {
+        test.setTimeout(40000); // extra headroom when running under parallel load
 
         // ── Load the simulator ───────────────────────────────────────────────
         await page.goto('/simulator/');

@@ -1389,3 +1389,114 @@ These questions are now resolved. Recorded here to prevent the decisions from be
 | E-4 | CHANGE operand restriction | Assembler convention only, not an ISA rule. Hardware `change.py` accepts any CR12–CR15 destination. The assembler restriction is a toolchain safety guard. **Closed.** |
 
 **Deviation flags:** SWITCH (D-11, closed — simulator now matches hardware). SHR/SHL carry+ASR (D-12, closed). TPERM reserved-preset fault (D-3, closed). TPERM Mode 2 (C.3, Task #874, closed). All deviations closed.
+
+---
+
+## Section 9 — Scheduler Interrupt & Three-Tier Fault Recovery (Task #1077)
+
+### 9.1 Overview
+
+Task #1077 adds a simulation-only (no FPGA hardware) scheduler interrupt and structured fault recovery system. The hardware timer (`timerRegs[3]` = ALARM_CMP, `timerRegs[4]` = CTL) is mirrored into the simulator's `irqState` object. On each `step()` call, before fetching the next instruction, the simulator checks the alarm and injects a hidden `Scheduler.IRQ` call if the deadline has elapsed.
+
+### 9.2 irqState Object
+
+| Field | Type | Description |
+|---|---|---|
+| `timerArmed` | boolean | true when ALARM is armed by `Scheduler.pause` |
+| `timerDeadline` | number | `stepCount` value at which ALARM fires |
+| `timerDuration` | number | duration passed to `Scheduler.pause` |
+| `irqActive` | boolean | true while Scheduler.IRQ frame is executing (single-level only) |
+| `savedContext` | object | PC, DR[], CR[], flags saved at IRQ entry; DR[] and flags are restored on IRQ exit; CR[] restore is omitted — GT-sealed words cannot be overwritten, and the IRQ handler is bound by the **CR non-mutation contract**: it may only modify thread registry state, never machine CR words |
+| `suspendedStep` | number | stepCount at the moment of IRQ entry |
+| `waitingOnFlags` | object | per-thread map: String(threadId) → flag name; each `Scheduler.Wait(flag)` call adds one entry |
+| `pendingWakeFlags` | any[] | flags signaled since last IRQ sweep; IRQ TIMER pass sweeps all entries against `waitingOnFlags` |
+
+### 9.3 Scheduler Methods (NS Slot 8, Task #1077 additions)
+
+| Index | Method | Description |
+|---|---|---|
+| 0 | Yield | Yield remaining time slice |
+| 1 | Spawn | Create a new thread |
+| 2 | Wait | Suspend until flag set |
+| 3 | Stop | Terminate a thread |
+| **4** | **pause** | **Arm hardware ALARM; suspend thread for `duration` steps (DR1)** |
+| **5** | **IRQ** | **Hardware interrupt entry point (hidden ELOADCALL; not user-callable)** |
+
+#### Scheduler.pause(duration)
+- Input: `duration` via `args.duration` or DR1 (steps, > 0)
+- Sets `irqState.timerArmed = true`, `irqState.timerDeadline = stepCount + duration`
+- Mirrors to `timerRegs[3]` (ALARM_CMP) and `timerRegs[4]` (CTL=1)
+- Marks calling thread state → `'sleeping'`
+
+#### Scheduler.Wait(flag) — simulation signal contract
+
+`Scheduler.Wait(flag)` suspends the calling thread until an external event named `flag` is signaled.
+In the current simulation, the wake path is **timer-driven**: an external event signals a flag by
+appending it to `sim.irqState.pendingWakeFlags`. The next `Scheduler.IRQ` TIMER sweep checks all
+`irqState.waitingOnFlags` entries against this set and wakes matching threads.
+
+This means flag wake-ups are delivered at the next timer IRQ tick, not instantaneously. A dedicated
+"external flag IRQ" reason code (separate from `'TIMER'`) is a planned extension (follow-up work)
+that would allow immediate flag-driven interrupts without a periodic timer. For this release, the
+timer-driven delivery is the canonical simulation contract.
+
+External signal example (test or integration code):
+```javascript
+// Signal a flag — will be consumed at the next Scheduler.IRQ TIMER sweep
+sim.irqState.pendingWakeFlags.push('myFlag');
+```
+
+#### Scheduler.IRQ (reason, faultRecord)
+- Called internally by `_fireSchedulerIRQ(reason, faultRecord)`
+- `reason='TIMER'`: sweep all sleeping threads whose `wakeStep ≤ stepCount`; also sweep `waitingOnFlags` against `pendingWakeFlags` (one atomic pass); increment `_irqSweepCount`
+- `reason='FAULT'`: invoke `state.faultRecoveryHandler(faultRecord)` if registered; default null → ok=false (halt preserved)
+- Not user-callable: handler rejects calls with no `reason` argument (`PERM_DENIED`)
+
+### 9.4 Three-Tier Fault Recovery
+
+On any fault, before halting, the simulator attempts recovery in order:
+
+```
+fault(type, message)
+  ├─ irqActive === true?  → Tier 3 (double-fault: _returnToBoot → reset)
+  ├─ .catch on CR14.nsSlot?  → Tier 1 (invoke handler; if handled=true → advance PC, continue)
+  ├─ _fireSchedulerIRQ('FAULT')?  → Tier 2 (Scheduler.IRQ; if ok=true → advance PC, continue)
+  └─ all tiers failed  → halt (pre-Task-#1077 behaviour)
+```
+
+**Tier 1 — .catch convention:**  
+Register a `.catch` dispatch entry via `registry.bindMethod(nsSlot, '.catch', fn)`.  
+Handler receives `(sim, { faultRecord })` and must return `{ handled: true }` to suppress halt.
+
+**Tier 2 — Scheduler.IRQ (FAULT):**  
+Only succeeds when `sim.systemAbstractions._schedulerState.faultRecoveryHandler` is set (a function).  
+Default `null` — Tier 2 falls through to halt (safe for all existing programs and tests).
+
+**Tier 3 — Double-fault:**  
+Fires when `irqState.irqActive === true` at the moment of the second fault.  
+Calls `_returnToBoot()` then clears `irqActive` and sets `halted = false` (clean reset, not permanent halt).
+
+### 9.5 NS Slot 50 — Scheduler.IRQ.Thread
+
+Fixed boot-image slot reserved for the IRQ thread (Task #1077). Not callable by user programs.
+
+| Field | Value |
+|---|---|
+| NS slot | 50 |
+| Label | Scheduler.IRQ.Thread |
+| Layer | 9 (system reserved) |
+| Methods | (none — invoked only by `_fireSchedulerIRQ`) |
+
+### 9.6 ChurchSimulator Static Constants
+
+```javascript
+ChurchSimulator.FAULT_CODES          // { PERM_R: 0x01, PERM_W: 0x02, …, NULL_CAP: 0x07, BOUNDS: 0x08, … }
+ChurchSimulator.SCHEDULER_NS_SLOT    // 8
+ChurchSimulator.SCHEDULER_IRQ_NS_SLOT // 50
+```
+
+### 9.7 Out of Scope
+
+- Nested/masked interrupts beyond single-level (irqActive guard enforces this)
+- Caller-side guarded CALL syntax in CLOOMC (future work)
+- FPGA hardware implementation of the timer peripheral

@@ -1843,14 +1843,34 @@ class SystemAbstractions {
             };
         });
 
+        // Wait(flag): suspend the calling thread until an external event/flag is set.
+        // flag can be any comparable value (string name, number, symbol).
+        // The thread is moved to 'sleeping' so the IRQ timer sweep can wake it.
+        // When the named flag is signalled (enqueued in irqState.pendingWakeFlags)
+        // the next Scheduler.IRQ sweep will find it, clear it, and wake the thread.
         this.registry.bindMethod(8, 'Wait', function(sim, args) {
+            const flag = (args && args.flag !== undefined)
+                ? args.flag
+                : (sim.dr ? (sim.dr[1] >>> 0) : null);
+
             const current = state.threads[state.currentThread];
-            if (current) current.state = 'waiting';
+            if (current) {
+                current.state = 'sleeping';
+                current.waitFlag = flag;
+            }
+
+            // Register the flag in the per-thread waitingOnFlags map so _fireSchedulerIRQ
+            // can sweep all waiting threads in one pass (N-waiter safe).
+            if (sim.irqState) {
+                const tid = String(state.currentThread);
+                sim.irqState.waitingOnFlags = sim.irqState.waitingOnFlags || {};
+                sim.irqState.waitingOnFlags[tid] = flag;
+            }
 
             return {
                 ok: true,
-                result: state.currentThread,
-                message: `Scheduler.Wait: thread ${state.currentThread} now waiting`
+                result: { threadId: state.currentThread, flag },
+                message: `Scheduler.Wait: thread ${state.currentThread} sleeping on flag '${flag}'`
             };
         });
 
@@ -1868,6 +1888,163 @@ class SystemAbstractions {
                 message: `Scheduler.Stop: thread ${threadId} "${thread.name}" stopped`
             };
         });
+
+        // ── Task #1077: Scheduler.pause and Scheduler.IRQ ────────────────────
+
+        // pause(duration): arm the hardware timer and suspend the calling thread.
+        // DR1 = duration in simulation steps (>0). Sets irqState.timerArmed and
+        // irqState.timerDeadline; marks the calling thread as 'sleeping' until
+        // the ALARM fires and Scheduler.IRQ wakes it.
+        this.registry.bindMethod(8, 'pause', function(sim, args) {
+            const duration = (args && args.duration != null)
+                ? args.duration
+                : (sim.dr ? (sim.dr[1] >>> 0) : 0);
+
+            if (!duration || duration <= 0) {
+                return { ok: false, fault: 'INVALID_OP', message: 'Scheduler.pause: duration must be > 0 (pass in DR1 or args.duration)' };
+            }
+
+            // Arm the simulator timer
+            if (sim.irqState) {
+                sim.irqState.timerArmed = true;
+                sim.irqState.timerDeadline = sim.stepCount + duration;
+                sim.irqState.timerDuration = duration;
+            }
+            // Also mirror into timerRegs for DREAD visibility
+            if (sim.timerRegs) {
+                sim.timerRegs[3] = (sim.stepCount + duration) >>> 0;  // ALARM_CMP
+                sim.timerRegs[4] = 1;                                  // CTL: armed
+            }
+
+            const current = state.threads[state.currentThread];
+            if (current) {
+                current.state = 'sleeping';
+                current.wakeStep = sim.stepCount + duration;
+            }
+
+            return {
+                ok: true,
+                result: { deadline: sim.irqState ? sim.irqState.timerDeadline : 0, duration },
+                message: `Scheduler.pause: timer armed for ${duration} steps (deadline=${sim.irqState ? sim.irqState.timerDeadline : '?'})`
+            };
+        });
+
+        // IRQ: the hardware interrupt entry point for the Scheduler.
+        // Called by _fireSchedulerIRQ() when:
+        //   reason='TIMER' — hardware alarm fired; wake sleeping threads
+        //   reason='FAULT' — fault escalated to Tier 2; attempt recovery
+        //
+        // For FAULT recovery: only succeeds when state.faultRecoveryHandler is set.
+        // By default faultRecoveryHandler is null, so Tier 2 falls through to halt
+        // (preserving pre-Task-#1077 behaviour for all existing tests). Programs
+        // that want Tier 2 recovery must register a handler:
+        //   sim._schedulerState.faultRecoveryHandler = (faultRecord) => true;
+        // NOTE: Scheduler.IRQ is a hardware-only interrupt entry point.
+        // It must NEVER be invoked by user CLOOMC code (ELOADCALL or direct method call).
+        // The simulator enforces this: calls that do not originate from _fireSchedulerIRQ
+        // will have reason=undefined, causing the handler to return an error immediately.
+        // In hardware, the mLoad pipeline's ELOADCALL gate for slot 8 method 5 is masked
+        // to user-mode callers — only the hardware timer interrupt path can fire it.
+        this.registry.bindMethod(8, 'IRQ', function(sim, args) {
+            const { reason, faultRecord, savedContext } = (args || {});
+
+            // Enforce not-user-callable: reject any call that did not come from
+            // _fireSchedulerIRQ (which always passes a reason string).
+            if (!reason) {
+                return {
+                    ok: false,
+                    fault: 'PERM_DENIED',
+                    message: 'Scheduler.IRQ: not user-callable (hardware interrupt entry only)'
+                };
+            }
+
+            if (reason === 'TIMER') {
+                // Wake all sleeping threads whose timer deadline has been reached.
+                // Skip threads that are sleeping on a specific flag (t.waitFlag) —
+                // those are only woken by the flag-sweep block below.
+                let woken = 0;
+                state.threads.forEach(t => {
+                    if (t.state === 'sleeping' && !t.waitFlag &&
+                        (t.wakeStep == null || sim.stepCount >= t.wakeStep)) {
+                        t.state = 'ready';
+                        delete t.wakeStep;
+                        woken++;
+                    }
+                });
+                // Sweep ALL threads waiting on a specific flag (N-waiter safe).
+                // Iterate every entry in waitingOnFlags (threadId → flag), wake threads
+                // whose awaited flag appears in pendingWakeFlags, and consume those flags.
+                // The full sweep happens in a single IRQ pass — no stacked/double-fault risk.
+                const waitingOnFlags = (sim.irqState && sim.irqState.waitingOnFlags) || {};
+                const pendingSet = new Set(sim.irqState ? (sim.irqState.pendingWakeFlags || []) : []);
+                const consumed = new Set();
+                Object.entries(waitingOnFlags).forEach(([tid, awaitedFlag]) => {
+                    if (pendingSet.has(awaitedFlag)) {
+                        consumed.add(awaitedFlag);
+                        delete waitingOnFlags[tid];
+                        // Wake the matching thread object
+                        const tidNum = parseInt(tid, 10);
+                        const t = state.threads.find(t2 => t2.id === tidNum);
+                        if (t && t.state === 'sleeping' && t.waitFlag === awaitedFlag) {
+                            t.state = 'ready';
+                            delete t.waitFlag;
+                            woken++;
+                        }
+                    }
+                });
+                if (consumed.size > 0 && sim.irqState) {
+                    sim.irqState.pendingWakeFlags = (sim.irqState.pendingWakeFlags || [])
+                        .filter(f => !consumed.has(f));
+                }
+                state._irqSweepCount = (state._irqSweepCount || 0) + 1;
+                return {
+                    ok: true,
+                    result: { swept: woken, reason, irqSweepCount: state._irqSweepCount },
+                    message: `Scheduler.IRQ: TIMER sweep — ${woken} thread(s) woken (sweep #${state._irqSweepCount})`
+                };
+            }
+
+            if (reason === 'FAULT') {
+                // Tier 2 fault recovery: only attempt if a handler is registered.
+                // Default: no handler → fall through to halt (safe default).
+                if (!state.faultRecoveryHandler) {
+                    return {
+                        ok: false,
+                        fault: 'NO_HANDLER',
+                        message: 'Scheduler.IRQ: no fault recovery handler registered (Tier 2 unavailable)'
+                    };
+                }
+                let handled = false;
+                try {
+                    handled = state.faultRecoveryHandler(faultRecord) !== false;
+                } catch(e) {
+                    return {
+                        ok: false,
+                        fault: 'HANDLER_ERROR',
+                        message: `Scheduler.IRQ: fault recovery handler threw: ${e.message}`
+                    };
+                }
+                return {
+                    ok: handled,
+                    result: { faultType: faultRecord ? faultRecord.type : 'unknown', handled },
+                    message: handled
+                        ? `Scheduler.IRQ: Tier 2 fault recovery accepted (${faultRecord ? faultRecord.type : '?'})`
+                        : `Scheduler.IRQ: Tier 2 fault recovery handler declined (${faultRecord ? faultRecord.type : '?'})`
+                };
+            }
+
+            return {
+                ok: false,
+                fault: 'UNKNOWN_IRQ',
+                message: `Scheduler.IRQ: unrecognised reason '${reason}'`
+            };
+        });
+
+        // Initialise Task #1077 fields on the state object (always reachable;
+        // the `if (!this._schedulerState)` guard at the top of _bindScheduler means
+        // this block only runs once, on first construction).
+        state.faultRecoveryHandler = null;  // null = Tier 2 disabled (safe default)
+        state._irqSweepCount = 0;
     }
 
     _bindStack() {

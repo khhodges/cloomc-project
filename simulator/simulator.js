@@ -102,6 +102,8 @@ const M_BIT_PORT_CR15         = 0xFFFFFF1F; // M-bit authority port for CR15
 // Module-scope boot constants — referenced by loadProgram, _bootStep, etc.
 const BOOT_ABSTR_NS_SLOT      = 3;  // NS slot of the Boot Abstraction lump (Boot.Abstr)
 const TUNNEL_NS_SLOT          = 31; // NS slot of the Tunnel abstraction (call-home I/O channel)
+const SCHEDULER_NS_SLOT       = 8;  // NS slot of the Scheduler abstraction (Task #1077)
+const SCHEDULER_IRQ_NS_SLOT   = 50; // NS slot of the Scheduler.IRQ thread (fixed boot-image slot, Task #1077)
 
 // Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM
 // (Task #651 redesign). Written into Boot.Abstr lump code region during _initNamespaceTable()
@@ -600,6 +602,18 @@ class ChurchSimulator {
         this.auditLog = [];
         this.awaitingLump = null;
 
+        // Three-tier fault recovery and scheduler interrupt state (Task #1077)
+        this.irqState = {
+            timerArmed: false,
+            timerDeadline: 0,
+            timerDuration: 0,
+            irqActive: false,
+            savedContext: null,
+            suspendedStep: null,
+            waitingOnFlags: {},   // Map: threadId (string) → flag name; supports N waiters
+            pendingWakeFlags: [], // Set of signaled flags (array for ordered sweep)
+        };
+
         this.lazyManifest = {};
         this._lastLoadTargetSlot = null;
         this._loaderSlot = 19;
@@ -863,7 +877,14 @@ class ChurchSimulator {
             null,              // slot 46 freed — Circle (future idea, see docs/future-abstractions.md)
             { label: 'Billing',       perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },   // NS[47] — P-GT quota enforcer (Task #760 Stage 1)
             { label: 'TuringMemory',  perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },   // NS[48] — domain-separated code allocator (Task #760 Stage 1)
-            { label: 'ChurchMemory',  perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },   // NS[49] — abstract handle allocator (Task #760 Stage 1)
+            { label: 'ChurchMemory',     perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false },   // NS[49] — abstract handle allocator (Task #760 Stage 1)
+            // NS[50] Scheduler.IRQ.Thread — predefined fixed-residency slot (Task #1077).
+            // In hardware this is a boot-image-resident IRQ thread (fixed address, burned in
+            // alongside Boot.Abstr/PP250). In simulation, _fireSchedulerIRQ sets
+            // irqState.irqThreadSlot = SCHEDULER_IRQ_NS_SLOT (50) to represent the hardware
+            // CHANGE to this slot, and dispatches the IRQ handler on Scheduler (NS[8]).
+            // The boot-image binary for this release does not yet carry the physical slot-50
+            // lump; FPGA peripheral timer hardware is out of scope for Task #1077 (sim-only).
         ];
     }
 
@@ -2604,10 +2625,14 @@ class ChurchSimulator {
         // Resolve the executing lump's label NOW, before any eviction can change nsLabels.
         const _cr14 = this.cr && this.cr[14];
         let faultLabel = null;
+        let faultingAbstractionSlot = null;
         if (_cr14 && _cr14.word0) {
-            const _ni = _cr14.word0 & 0xFFFF;
-            faultLabel = (this.nsLabels && this.nsLabels[_ni]) || `NS[${_ni}]`;
+            faultingAbstractionSlot = _cr14.word0 & 0xFFFF;
+            faultLabel = (this.nsLabels && this.nsLabels[faultingAbstractionSlot]) || `NS[${faultingAbstractionSlot}]`;
         }
+        // Structured fields — Task #1077: shared between Fault Popup and .catch handler
+        const faultCode = ChurchSimulator.FAULT_CODES.hasOwnProperty(type) ? ChurchSimulator.FAULT_CODES[type] : null;
+        const faultingMnemonic = this._currentInstrLabel ? this._currentInstrLabel.opName : null;
         const entry = {
             type, message, pc: this.pc, physicalPC: this.physicalPC, step: this.stepCount,
             crSnapshot: this.cr ? this.cr.map(c => c ? {...c} : null) : [],
@@ -2616,21 +2641,202 @@ class ChurchSimulator {
             instrHistory: this._instrHistory ? this._instrHistory.map(h => ({...h})) : [],
             faultStep: faultStep,
             faultLabel: faultLabel,
+            // Structured fault record fields (Task #1077)
+            faultCode: faultCode,
+            faultingMnemonic: faultingMnemonic,
+            involvedGT: (meta && meta.gt != null) ? meta.gt : null,
+            pipelineStage: (meta && meta.pipelineStage) ? meta.pipelineStage : null,
+            faultingAbstractionSlot: faultingAbstractionSlot,
+            faultingAbstractionLabel: faultLabel,
+            tier: null,
+            catchInvoked: false,
+            irqInvoked: false,
+            tier3Recovery: false,
             ...(meta || {}),
         };
-        this.faultLog.push(entry);
-        this.output += `FAULT [${type}] at PC=${this.pc}: ${message}\n`;
-        this.halted = true;
-        this.running = false;
-        if (this.abstractionRegistry) {
+
+        // Helper: report fault to abstraction registry for MTBF tracking
+        const _reportToRegistry = () => {
+            if (!this.abstractionRegistry) return;
             const idxMatch = message.match(/(?:entry|index|slot|CR)\s*(\d+)/i);
             if (idxMatch) {
                 const idx = parseInt(idxMatch[1]);
-                if (idx < 45) this.abstractionRegistry.reportFault(idx);
+                if (idx < 64) this.abstractionRegistry.reportFault(idx);
+            }
+        };
+
+        // ── Three-tier fault recovery (Task #1077) ────────────────────────────
+        // Tier 3: double-fault — fault while Scheduler.IRQ frame is active
+        if (this.irqState && this.irqState.irqActive) {
+            entry.tier = 3;
+            entry.tier3Recovery = true;
+            this.faultLog.push(entry);
+            this.output += `FAULT [${type}] (DOUBLE-FAULT \u2014 Tier 3) at PC=${this.pc}: ${message}\n`;
+            _reportToRegistry();
+            this._tier3Recovery(entry);
+            this.emit('fault', entry);
+            this.emit('output', this.output);
+            return;
+        }
+
+        // Tier 1: .catch method on the faulting abstraction.
+        // catchInvoked is set true whenever .catch is ATTEMPTED, regardless of outcome.
+        // This matches the structured fault record schema: "whether .catch was called".
+        if (faultingAbstractionSlot !== null && this.abstractionRegistry) {
+            const catchResult = this._invokeCatch(faultingAbstractionSlot, entry);
+            if (catchResult !== null) {
+                entry.catchInvoked = true; // .catch was present and called
+            }
+            if (catchResult && catchResult.handled) {
+                entry.tier = 1;
+                this.faultLog.push(entry);
+                this.output += `FAULT [${type}] at PC=${this.pc} caught by .catch on NS[${faultingAbstractionSlot}] (Tier 1) \u2014 recovered\n`;
+                this.pc++;
+                _reportToRegistry();
+                this.emit('fault', entry);
+                this.emit('output', this.output);
+                return;
             }
         }
+
+        // Tier 2: escalate to Scheduler.IRQ.
+        // _fireSchedulerIRQ returns null when the IRQ frame was not entered (early guard),
+        // true when dispatched + recovered, false when dispatched + not recovered.
+        // irqInvoked reflects "was Scheduler.IRQ actually dispatched?" — null means no.
+        this.output += `FAULT [${type}] at PC=${this.pc}: ${message}\n`;
+        const irqResult = this._fireSchedulerIRQ('FAULT', entry);
+        if (irqResult !== null) {
+            entry.irqInvoked = true; // IRQ frame was entered (dispatch was attempted)
+        }
+        if (irqResult === true) {
+            entry.tier = 2;
+            this.faultLog.push(entry);
+            this.output += `  \u2192 Scheduler.IRQ (Tier 2): fault escalated and handled\n`;
+            _reportToRegistry();
+            this.emit('fault', entry);
+            this.emit('output', this.output);
+            return;
+        }
+
+        // All tiers exhausted — halt (preserves pre-Task-#1077 behaviour)
+        this.faultLog.push(entry);
+        this.halted = true;
+        this.running = false;
+        _reportToRegistry();
         this.emit('fault', entry);
         this.emit('output', this.output);
+    }
+
+    // ── Three-tier fault recovery helpers (Task #1077) ────────────────────────
+
+    // Tier 1: invoke the .catch method on the given NS slot, if bound.
+    // Return contract (distinguishes "not found" from "called"):
+    //   null                    — no .catch method on this slot (not dispatched)
+    //   { invoked:true, handled:true }  — dispatched; handler accepted the fault
+    //   { invoked:true, handled:false } — dispatched; handler declined or threw
+    // catchInvoked in the fault record is set true for any non-null return.
+    _invokeCatch(nsSlot, faultRecord) {
+        if (!this.abstractionRegistry) return null;
+        const a = this.abstractionRegistry.abstractions[nsSlot];
+        if (!a) return null;
+        const catchFn = a.dispatch['.CATCH'] || a.dispatch['CATCH'];
+        if (!catchFn) return null;
+        // .catch exists — dispatch it; catch throws so escalation continues
+        try {
+            const result = catchFn(this, { faultRecord });
+            const handled = !!(result && result.handled);
+            return { invoked: true, handled };
+        } catch(e) {
+            this.output += `  .catch handler on NS[${nsSlot}] threw: ${e.message} (catchInvoked=true, escalating)\n`;
+            return { invoked: true, handled: false };
+        }
+    }
+
+    // Tier 2: fire the Scheduler.IRQ method (hidden ELOADCALL semantics).
+    // Returns true if the IRQ handler accepted and handled the event.
+    // Called both from fault() (reason='FAULT') and from step() timer check (reason='TIMER').
+    // For TIMER: also clears irqState.timerArmed (idempotent when step() already cleared it).
+    // Returns:
+    //   null  — IRQ frame was NOT entered (early guard: no registry, or already in IRQ frame)
+    //   true  — IRQ frame was entered and handler returned ok=true (recovered / swept)
+    //   false — IRQ frame was entered but handler returned ok=false (not recovered)
+    _fireSchedulerIRQ(reason, faultRecord) {
+        if (!this.abstractionRegistry) return null;
+        if (!this.irqState || this.irqState.irqActive) return null;
+
+        // Clear the alarm flag immediately on TIMER fire so timerArmed is false
+        // whether this is called from step() (which pre-clears it) or directly.
+        if (reason === 'TIMER' && this.irqState.timerArmed) {
+            this.irqState.timerArmed = false;
+        }
+
+        this.irqState.irqActive = true;
+        this.irqState.savedContext = {
+            pc: this.pc,
+            dr: this.dr ? [...this.dr] : [],
+            cr: this.cr ? this.cr.map(c => c ? {...c} : null) : [],
+            flags: this.flags ? {...this.flags} : {},
+            sto: this.sto,
+        };
+        this.irqState.suspendedStep = this.stepCount;
+
+        // Simulate CHANGE to the predefined IRQ thread (NS slot 50, Task #1077 §3).
+        // In hardware, Scheduler.IRQ performs CHANGE to the fixed boot-image IRQ thread
+        // at SCHEDULER_IRQ_NS_SLOT; we track this here for auditability.
+        this.irqState.irqThreadSlot = SCHEDULER_IRQ_NS_SLOT;
+        this.output += `  [IRQ] CHANGE \u2192 NS[${SCHEDULER_IRQ_NS_SLOT}] (Scheduler.IRQ.Thread) — context saved at step ${this.stepCount}\n`;
+
+        // Dispatch the IRQ handler on the Scheduler abstraction (NS slot 8).
+        // The handler represents the IRQ thread's sweep logic (wake sleeping threads,
+        // process pending flags, and optionally handle Tier 2 fault recovery).
+        const result = this.abstractionRegistry.dispatchMethod(
+            SCHEDULER_NS_SLOT, 'IRQ', this, { reason, faultRecord, savedContext: this.irqState.savedContext }
+        );
+
+        // CHANGE back to the suspended thread's context (Task #1077 §3 restore).
+        // Restore DR[] and flags saved at IRQ entry so the interrupted thread
+        // resumes with its original register state.  CR[] restore is omitted in
+        // simulation because CR words are GT-sealed and the Scheduler.IRQ handler
+        // is contractually prohibited from mutating machine CRs (non-mutation
+        // contract: IRQ handler may only write to thread registry state, not DR/CR).
+        this.irqState.irqThreadSlot = null;
+        if (this.irqState.savedContext) {
+            const ctx = this.irqState.savedContext;
+            if (this.dr && ctx.dr && ctx.dr.length) {
+                for (let i = 0; i < ctx.dr.length && i < this.dr.length; i++) {
+                    this.dr[i] = ctx.dr[i];
+                }
+            }
+            if (this.flags && ctx.flags) {
+                Object.assign(this.flags, ctx.flags);
+            }
+        }
+        this.irqState.irqActive = false;
+
+        if (result && result.ok) {
+            this.output += `  Scheduler.IRQ: ${result.message}\n`;
+            if (reason === 'FAULT' && this.irqState.savedContext) {
+                // Resume past the faulting instruction
+                this.pc = this.irqState.savedContext.pc + 1;
+            }
+            return true;
+        }
+
+        const errMsg = result ? result.message : 'no IRQ handler bound';
+        this.output += `  Scheduler.IRQ failed: ${errMsg}\n`;
+        return false;
+    }
+
+    // Tier 3: double-fault — CHANGE directly to GT burned into CR13 by PP250.
+    // Simulated as a clean restart (reset to boot state without permanent halt).
+    _tier3Recovery(faultRecord) {
+        const cr13GT = (this.cr && this.cr[13] && this.cr[13].word0)
+            ? (this.cr[13].word0 >>> 0) : 0;
+        this.output += `TIER 3 RECOVERY: double-fault \u2014 CHANGE to CR13 GT=0x${cr13GT.toString(16).toUpperCase().padStart(8, '0')} (PP250 recovery)\n`;
+        if (this.irqState) this.irqState.irqActive = false;
+        this._returnToBoot();
+        this.halted = false;
+        this.running = false;
     }
 
     // Compute the physical memory address of the NEXT instruction to be fetched,
@@ -2684,6 +2890,29 @@ class ChurchSimulator {
         }
         if (this.halted) return null;
         this.auditLog = [];
+
+        // ── Scheduler timer interrupt check (Task #1077) ──────────────────────
+        // Before fetching the next instruction: if the hardware alarm has fired
+        // and Scheduler.IRQ is not already active, inject a hidden Scheduler.IRQ
+        // (equivalent to an ELOADCALL Scheduler.IRQ before the normal instruction).
+        // The timer is masked while irqActive to prevent nested interrupts.
+        if (this.bootComplete && this.irqState &&
+            this.irqState.timerArmed && !this.irqState.irqActive &&
+            this.stepCount >= this.irqState.timerDeadline) {
+            this.irqState.timerArmed = false;
+            this.output += `[Timer] ALARM fired at step ${this.stepCount} (deadline=${this.irqState.timerDeadline}) \u2014 injecting Scheduler.IRQ\n`;
+            this._fireSchedulerIRQ('TIMER', null);
+            const timerResult = {
+                pc: this.pc, physicalPC: this.physicalPC, instr: null,
+                desc: `Timer IRQ: Scheduler.IRQ injected at step ${this.stepCount} (hidden ELOADCALL)`,
+                timerIRQ: true,
+            };
+            timerResult.physicalPC = this.physicalPC;
+            timerResult.auditPipeline = this._auditPipeline ? this._auditPipeline() : [];
+            this.emit('step', timerResult);
+            this.emit('stateChange', this.getState());
+            return timerResult;
+        }
 
         const fetch = this._fetchInstruction();
         if (!fetch.ok) {
@@ -5980,6 +6209,28 @@ class ChurchSimulator {
         return dump;
     }
 }
+
+// ── Task #1077: structured fault record codes ──────────────────────────────
+// Mirrors _FAULT_CODES in app-run.js so fault() can embed a numeric hardware
+// code directly in the fault entry without requiring the IDE to be loaded.
+ChurchSimulator.FAULT_CODES = {
+    PERM_R: 0x01, PERM_W: 0x02, PERM_X: 0x03, PERM_L: 0x04, PERM_S: 0x05, PERM_E: 0x06,
+    NULL_CAP: 0x07, BOUNDS: 0x08, VERSION: 0x09, SEAL: 0x0A, INVALID_OP: 0x0B,
+    TPERM_RSV: 0x0C, DOMAIN_PURITY: 0x0D, BIND: 0x0E, F_BIT: 0x0F,
+    STACK_OVERFLOW: 0x10, ABSENT_OUTFORM: 0x11, STACK_CORRUPT: 0x12,
+    STACK_UNDERFLOW: 0x13, OUTFORM_CRC: 0x15, OUTFORM_ALLOC: 0x16,
+    OUTFORM_MINT: 0x17, OUTFORM_HDR: 0x18, RANGE: 0x10,
+    // Software-only (no hardware code):
+    PERM: null, BOOT: null, MATH_ERROR: null, DOMAIN_ERROR: null,
+    HANDLER: null, PERMISSION: null, TYPE: null, THREAD: null,
+    LUMP_MAGIC: null, LUMP_SIZE: null, LUMP_LAYOUT: null, LUMP_OOM: null,
+    NO_CODE: null, PRIVATE_METHOD: null, CODE_NOT_RESIDENT: null, PRIV_REG: null,
+};
+
+// Task #1077: Scheduler NS slot constants (also available as module-scope consts
+// above, but exposed on the class for external test code).
+ChurchSimulator.SCHEDULER_NS_SLOT     = SCHEDULER_NS_SLOT;
+ChurchSimulator.SCHEDULER_IRQ_NS_SLOT = SCHEDULER_IRQ_NS_SLOT;
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChurchSimulator;

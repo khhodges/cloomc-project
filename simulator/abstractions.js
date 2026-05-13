@@ -314,9 +314,9 @@ class AbstractionRegistry {
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(8, 'Scheduler', 1,
-            ['Yield', 'Spawn', 'Wait', 'Stop'],
-            'Thread scheduling — manages time slices and thread lifecycle',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+            ['Yield', 'Spawn', 'Wait', 'Stop', 'pause', 'IRQ'],
+            'Thread scheduling — manages time slices, thread lifecycle, and hardware timer interrupts (Task #1077)',
+            { author: 'SIPantic', version: '1.1.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(9, 'Stack', 1,
             ['Push', 'Pop', 'Peek', 'Depth'],
@@ -506,6 +506,15 @@ class AbstractionRegistry {
         this.createAbstraction(49, 'ChurchMemory', 1,
             ['AllocAbstract', 'Free'],
             'Abstract handle issuance — tracks per-NS-slot reference counts for abstract (Church-domain) capability handles',
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+
+        // NS slot 50 — Scheduler IRQ thread (Task #1077)
+        // Fixed boot-image slot. Invoked as a hidden ELOADCALL by the simulator
+        // when the hardware ALARM fires or a fault escalates to Tier 2.
+        // Not directly callable by user programs; reserved for simulator internals.
+        this.createAbstraction(50, 'Scheduler.IRQ.Thread', 9,
+            [],
+            'Hardware interrupt entry point — wakes sleeping threads on ALARM fire and handles Tier 2 fault recovery (Task #1077)',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
     }
 }

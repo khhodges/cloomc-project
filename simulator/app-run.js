@@ -2438,6 +2438,80 @@ function showFaultModal(f) {
         }
     }
 
+    // ── Three-tier fault recovery display (Task #1077) ────────────────────────
+    let recoverySection = '';
+    {
+        const hasTier = f.tier != null;
+        const hasStructured = f.faultCode != null || f.faultingMnemonic != null ||
+            f.pipelineStage != null || f.involvedGT != null ||
+            f.faultingAbstractionSlot != null;
+
+        if (hasTier || hasStructured) {
+            const tierLabel = f.tier === 1 ? 'Tier 1 (.catch recovered)'
+                : f.tier === 2 ? 'Tier 2 (Scheduler.IRQ recovered)'
+                : f.tier === 3 ? 'Tier 3 (double-fault \u2014 PP250 recovery)'
+                : 'Unhandled (halted)';
+            const tierColor = f.tier === 1 ? '#4caf50'
+                : f.tier === 2 ? '#ff9800'
+                : f.tier === 3 ? '#e91e63'
+                : '#e05555';
+            const faultCodeStr = f.faultCode != null
+                ? `0x${(f.faultCode >>> 0).toString(16).toUpperCase().padStart(2, '0')}`
+                : '\u2014';
+            const mnemonicStr = f.faultingMnemonic || '\u2014';
+            const pipelineStr = f.pipelineStage || '\u2014';
+            const gtStr = f.involvedGT != null
+                ? `0x${(f.involvedGT >>> 0).toString(16).toUpperCase().padStart(8, '0')}`
+                : '\u2014';
+            const absStr = f.faultingAbstractionSlot != null
+                ? `NS[${f.faultingAbstractionSlot}] ${f.faultingAbstractionLabel || ''}`
+                : '\u2014';
+
+            const rows = [
+                hasTier ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">Recovery</span>
+                    <span class="fault-detail-value"><span style="color:${tierColor};font-weight:600">${tierLabel}</span></span>
+                </div>` : '',
+                hasTier && f.catchInvoked ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">.catch</span>
+                    <span class="fault-detail-value"><code>invoked on ${absStr}</code></span>
+                </div>` : '',
+                hasTier && f.irqInvoked ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">IRQ</span>
+                    <span class="fault-detail-value"><code>Scheduler.IRQ dispatched</code></span>
+                </div>` : '',
+                hasTier && f.tier3Recovery ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">Tier 3</span>
+                    <span class="fault-detail-value"><code>CHANGE to CR13 (PP250)</code></span>
+                </div>` : '',
+                f.faultCode != null ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">HW Code</span>
+                    <span class="fault-detail-value"><code>${faultCodeStr}</code></span>
+                </div>` : '',
+                f.faultingMnemonic ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">Mnemonic</span>
+                    <span class="fault-detail-value"><code>${mnemonicStr}</code></span>
+                </div>` : '',
+                f.pipelineStage ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">Pipeline</span>
+                    <span class="fault-detail-value"><code>${pipelineStr}</code></span>
+                </div>` : '',
+                f.involvedGT != null ? `<div class="fault-detail-row">
+                    <span class="fault-detail-label">GT</span>
+                    <span class="fault-detail-value"><code>${gtStr}</code></span>
+                </div>` : '',
+            ].filter(Boolean).join('\n');
+
+            if (rows) {
+                recoverySection = `
+        <div class="fault-scope-section fault-recovery-section">
+            <div class="fault-scope-label" style="color:${tierColor}">&#x26A1; Fault Recovery</div>
+            <div class="fault-detail-grid">${rows}</div>
+        </div>`;
+            }
+        }
+    }
+
     const instrTrace = f.instrHistory || [];
     let traceTableHtml = '';
     if (instrTrace.length > 0) {
@@ -2582,6 +2656,7 @@ function showFaultModal(f) {
         ${malformedGTSection}
         ${scopeSection}
         ${outformSection}
+        ${recoverySection}
         ${instrTraceSection}
         ${crSection}
         ${drSection}`;
