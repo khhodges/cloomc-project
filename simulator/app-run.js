@@ -2868,7 +2868,9 @@ function runLazyLoadTest() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function resetSim() {
-    switchView('dashboard');
+    // During the startup auto-boot the default view flag is already set;
+    // skip the dashboard redirect so the chosen default view survives.
+    if (!window._autoBootStartupDefaultView) switchView('dashboard');
     _lastFault = null;
     faultAlertOff();
     if (sim && sim.faultLog) sim.faultLog = [];
