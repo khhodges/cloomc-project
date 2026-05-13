@@ -2908,6 +2908,16 @@ const _ABSTRACTION_CONVENTIONS = {
         'Clear':  { index: 1, input: '',          output: 'screen cleared, cursor reset to (0,0)' },
         'Scroll': { index: 2, input: 'DR1=lines', output: 'display scrolled up N lines' },
     },
+    'Memory': {
+        'Allocate': { index: 0, input: 'CR2=pool_GT, DR1=size', output: 'CR2=mem_GT' },
+        'Free':     { index: 1, input: 'CR2=mem_GT',            output: 'DR1' },
+        'Resize':   { index: 2, input: 'CR2=mem_GT, DR1=size',  output: 'DR1' },
+    },
+    'Mint': {
+        'Encode':   { index: 0, input: 'CR2=mem_GT, DR1=base, DR2=exp, DR3=permsBits', output: 'DR1=GT_word' },
+        'Revoke':   { index: 1, input: 'DR1=nsIndex',                                  output: 'DR1' },
+        'Transfer': { index: 2, input: 'CR2=target_GT, DR1=slot',                      output: 'DR1' },
+    },
 };
 
 // Register conventions class-wide so all ChurchAssembler instances created

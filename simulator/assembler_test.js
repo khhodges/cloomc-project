@@ -3689,6 +3689,110 @@ const NEW_ABS_NS_BC = { 'Stack': 9, 'UART': 11, 'LED': 12, 'Display': 15 };
     }
 }
 
+// ── BC61–BC76: Memory and Mint bare-calls (task-1055) ─────────────────────────
+//
+// Conventions mirror _ABSTRACTION_CONVENTIONS entries added for Memory and Mint
+// in app-absdetail.js.  NS slots match repl.js boot table: Mint=6, Memory=7.
+//
+// ELOADCALL imm encoding: imm = ((index+1) << 8) | ns_slot   (index is 0-based)
+
+const SMM_CONVENTIONS_BC = {
+    'Memory': {
+        'Allocate': { index: 0, input: 'CR2=pool_GT, DR1=size', output: 'CR2=mem_GT' },
+        'Free':     { index: 1, input: 'CR2=mem_GT',            output: 'DR1' },
+        'Resize':   { index: 2, input: 'CR2=mem_GT, DR1=size',  output: 'DR1' },
+    },
+    'Mint': {
+        'Encode':   { index: 0, input: 'CR2=mem_GT, DR1=base, DR2=exp, DR3=permsBits', output: 'DR1=GT_word' },
+        'Revoke':   { index: 1, input: 'DR1=nsIndex',                                  output: 'DR1' },
+        'Transfer': { index: 2, input: 'CR2=target_GT, DR1=slot',                      output: 'DR1' },
+    },
+};
+const SMM_NS_BC = {
+    'Memory': 7, 'Mint': 6,
+    'pool_GT':  7,   // Memory pool GT — references Memory NS slot
+    'mem_GT':  20,   // Backing memory GT — arbitrary test slot
+};
+
+{
+    // BC61–BC68: Memory.Allocate(pool_GT) — CR2 arg → LOAD CR2 + ELOADCALL + HALT
+    //
+    // Encoding:
+    //   LOAD CR2, pool_GT  — opcode=0, crDst=2, imm=7 (pool_GT slot)
+    //   ELOADCALL — Allocate index=0 → 1-based=1; Memory slot=7; imm=(1<<8)|7=0x0107
+    const a = new ChurchAssembler(SMM_CONVENTIONS_BC);
+    a.setNamespace(SMM_NS_BC);
+    const result = a.assemble('Memory.Allocate(pool_GT)\nHALT');
+
+    assert('BC61 Memory.Allocate(pool_GT) assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC62 Memory.Allocate(pool_GT) expands to 3 words (LOAD + ELOADCALL + HALT)',
+        result.words.length === 3, `got ${result.words.length}`);
+
+    {
+        const w = result.words[0] >>> 0;
+        assert('BC63 Memory.Allocate(pool_GT) word[0] LOAD — opcode=0',
+            ((w >>> 27) & 0x1F) === 0, `got opcode=${(w >>> 27) & 0x1F}`);
+        assert('BC64 Memory.Allocate(pool_GT) word[0] LOAD — crDst=2 (CR2 from input spec)',
+            ((w >>> 19) & 0xF) === 2, `got crDst=${(w >>> 19) & 0xF}`);
+        assert('BC65 Memory.Allocate(pool_GT) word[0] LOAD — imm=7 (pool_GT NS slot)',
+            (w & 0x7FFF) === 7, `got imm=${w & 0x7FFF}`);
+    }
+
+    {
+        const w      = result.words[1] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x7FFF;
+        const row    = imm & 0xFF;
+        const method = (imm >>> 8) & 0x7F;
+        assert('BC66 Memory.Allocate(pool_GT) word[1] ELOADCALL — opcode=8',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC67 Memory.Allocate(pool_GT) word[1] ELOADCALL — row=7 (Memory NS slot)',
+            row === 7, `got row=${row}`);
+        assert('BC68 Memory.Allocate(pool_GT) word[1] ELOADCALL — method=1 (Allocate index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    // BC69–BC76: Mint.Encode(mem_GT) — CR2 arg → LOAD CR2 + ELOADCALL + HALT
+    //
+    // Encoding:
+    //   LOAD CR2, mem_GT  — opcode=0, crDst=2, imm=20 (mem_GT slot)
+    //   ELOADCALL — Encode index=0 → 1-based=1; Mint slot=6; imm=(1<<8)|6=0x0106
+    const a = new ChurchAssembler(SMM_CONVENTIONS_BC);
+    a.setNamespace(SMM_NS_BC);
+    const result = a.assemble('Mint.Encode(mem_GT)\nHALT');
+
+    assert('BC69 Mint.Encode(mem_GT) assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC70 Mint.Encode(mem_GT) expands to 3 words (LOAD + ELOADCALL + HALT)',
+        result.words.length === 3, `got ${result.words.length}`);
+
+    {
+        const w = result.words[0] >>> 0;
+        assert('BC71 Mint.Encode(mem_GT) word[0] LOAD — opcode=0',
+            ((w >>> 27) & 0x1F) === 0, `got opcode=${(w >>> 27) & 0x1F}`);
+        assert('BC72 Mint.Encode(mem_GT) word[0] LOAD — crDst=2 (CR2 from input spec)',
+            ((w >>> 19) & 0xF) === 2, `got crDst=${(w >>> 19) & 0xF}`);
+        assert('BC73 Mint.Encode(mem_GT) word[0] LOAD — imm=20 (mem_GT NS slot)',
+            (w & 0x7FFF) === 20, `got imm=${w & 0x7FFF}`);
+    }
+
+    {
+        const w      = result.words[1] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x7FFF;
+        const row    = imm & 0xFF;
+        const method = (imm >>> 8) & 0x7F;
+        assert('BC74 Mint.Encode(mem_GT) word[1] ELOADCALL — opcode=8',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC75 Mint.Encode(mem_GT) word[1] ELOADCALL — row=6 (Mint NS slot)',
+            row === 6, `got row=${row}`);
+        assert('BC76 Mint.Encode(mem_GT) word[1] ELOADCALL — method=1 (Encode index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
 
 // ── Symbolic Math compiler — explicit Abs.Method(args) call form ─────────────
 // SC1–SC8 test compileSymbolic() in cloomc_compiler.js.
