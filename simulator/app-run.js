@@ -2014,7 +2014,9 @@ const _FAULT_LOG_LS_KEY = 'cm_fault_log';
 // The subset of fault-object fields we serialise (skips the large instrHistory array).
 const _FAULT_LOG_FIELDS = ['type','message','pc','physicalPC','step','faultStep','userNote',
                            '_nsSnapshot','faultLabel','crSnapshot','drSnapshot','flagsSnapshot',
-                           'malformedReason'];
+                           'malformedReason',
+                           'tier','catchInvoked','irqInvoked','tier3Recovery',
+                           'faultCode','faultingAbstractionSlot','faultingAbstractionLabel'];
 
 function _saveFaultLog() {
     try {
