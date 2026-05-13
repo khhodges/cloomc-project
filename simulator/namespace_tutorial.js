@@ -258,6 +258,49 @@ ${this._memMap(null)}
 <p>The GT in CR15 has no permission bits set (no R, W, X, L, S, E). It is purely structural: it proves to the hardware \u2014 via the CRC-16 seal \u2014 that the namespace description it carries is authentic and unmodified. Any code that attempts to use CR15 as a data or code capability will receive a <code>PERM</code> fault.</p></div>`
             },
             {
+                title: 'Calling a Resident Abstraction \u2014 Constants Dot-Notation',
+                type: 'dotnotation',
+                content: `<p>Knowing the NS Table structure, we can now trace exactly what happens when a program calls a resident abstraction using dot-notation. <strong>Constants</strong> lives at <strong>NS[18]</strong> and exposes five read-only mathematical values as named methods.</p>
+<div class="sr-key-concept"><div class="sr-concept-title">Step 1 \u2014 LOAD CR11, Constants (NS[18] lookup + E-GT into CR11)</div>
+<p><code>LOAD CR11, Constants</code> triggers the <strong>mLoad pipeline</strong> against NS entry&nbsp;18:</p>
+<ol style="margin:4px 0 0 0;padding-left:1.2em;line-height:1.9;">
+<li>Hardware reads the 3-word NS entry at <code>${hex(this.NS_TABLE_BASE)}&nbsp;+&nbsp;18&nbsp;\u00d7&nbsp;3</code>.</li>
+<li>word2 <strong>CRC-16 seal</strong> is recomputed over <code>(word0_location, limit)</code> and compared to the stored seal &mdash; mismatch \u2192 <code>SEAL_MISMATCH</code> fault.</li>
+<li>word2 <strong>gt_seq</strong> is compared to the issuing sequence counter &mdash; mismatch \u2192 <code>VERSION</code> fault (capability revoked).</li>
+<li>The <strong>E (Execute)</strong> permission bit is checked; Constants holds only E. No R/W bits &mdash; it is a pure callable.</li>
+<li>An <strong>E-GT</strong> (Execute Golden Token) is synthesised and written into <strong>CR11</strong>.</li>
+</ol>
+<p>After LOAD, CR11 holds a hardware-verified E-GT. The GT embeds the seal and gt_seq fields so each subsequent CALL can re-verify them without re-reading the NS Table entry from memory.</p></div>
+<div class="sr-key-concept"><div class="sr-concept-title">Step 2 \u2014 CALL Constants.Pi (method dispatch via dot-notation)</div>
+<p>The assembler resolves <code>Constants.Pi</code> to method index&nbsp;0 at assembly time &mdash; no runtime name lookup. <code>CALL Constants.Pi</code> uses the E-GT already in CR11:</p>
+<ol style="margin:4px 0 0 0;padding-left:1.2em;line-height:1.9;">
+<li>Hardware verifies the E-GT in CR11 is still valid (seal + gt_seq re-checked).</li>
+<li>Execution jumps to method&nbsp;0 inside the Constants lump (entry-point table offset 0).</li>
+<li>Constants returns <code>0x40490FDB</code> (&pi;&nbsp;\u2248&nbsp;3.14159) in DR1 and issues RETURN.</li>
+<li>Control resumes at the instruction after CALL.</li>
+</ol></div>
+<div class="sr-key-concept"><div class="sr-concept-title">Assembly \u2014 two calling styles</div>
+<p><strong>Style A</strong> &mdash; LOAD once, then CALL each method (efficient when calling multiple methods):</p>
+<pre class="sr-encoding" style="text-align:left;font-size:0.82rem;line-height:1.6;">LOAD   CR11, Constants   <span style="color:#666">; CR11 = E-GT for NS[18] (mLoad pipeline)</span>
+TPERM  CR11, E           <span style="color:#666">; assert E permission &rarr; faults if absent</span>
+CALL   Constants.Pi      <span style="color:#666">; DR1 &larr; 0x40490FDB  (&pi; &asymp; 3.14159)</span>
+CALL   Constants.E       <span style="color:#666">; DR1 &larr; 0x402DF854  (e &asymp; 2.71828)</span>
+CALL   Constants.Phi     <span style="color:#666">; DR1 &larr; 0x3FCFBE77  (&phi; &asymp; 1.61803)</span></pre>
+<p><strong>Style B</strong> &mdash; ELOADCALL fuses load + permission check + call into one instruction (best for one-off calls):</p>
+<pre class="sr-encoding" style="text-align:left;font-size:0.82rem;line-height:1.6;">ELOADCALL CR8, Constants, Pi    <span style="color:#666">; DR1 &larr; &pi;  (NS[18] lookup + call in 1 op)</span>
+ELOADCALL CR8, Constants, E     <span style="color:#666">; DR1 &larr; e</span>
+ELOADCALL CR8, Constants, Phi   <span style="color:#666">; DR1 &larr; &phi; (golden ratio)</span></pre></div>
+<table class="sr-table" style="margin-top:0.5rem">
+<tr><th>Method</th><th>Index</th><th>NS slot</th><th>Value (IEEE 754 hex)</th><th>Decimal</th></tr>
+<tr><td><code>Constants.Pi</code></td><td>0</td><td>NS[18]</td><td><code>0x40490FDB</code></td><td>&pi; &asymp; 3.14159265</td></tr>
+<tr><td><code>Constants.E</code></td><td>1</td><td>NS[18]</td><td><code>0x402DF854</code></td><td>e &asymp; 2.71828183</td></tr>
+<tr><td><code>Constants.Phi</code></td><td>2</td><td>NS[18]</td><td><code>0x3FCFBE77</code></td><td>&phi; &asymp; 1.61803399</td></tr>
+<tr><td><code>Constants.Zero</code></td><td>3</td><td>NS[18]</td><td><code>0x00000000</code></td><td>0.0</td></tr>
+<tr><td><code>Constants.One</code></td><td>4</td><td>NS[18]</td><td><code>0x3F800000</code></td><td>1.0</td></tr>
+</table>
+<p style="margin-top:0.75rem;">Try it now: switch to <strong>Assembly</strong> language, click the <strong>Constants Dot \u2605</strong> example tab, then click <strong>Assemble &amp; Run</strong>. Watch the mLoad pipeline verify NS[18] on the first LOAD, then each CALL dispatch through the E-GT already in CR11.</p>`
+            },
+            {
                 title: 'Namespace Lifecycle \u2014 Upload to GC',
                 type: 'lifecycle',
                 content: `<p>The namespace evolves through a sequence of operations from system boot to runtime:</p>
