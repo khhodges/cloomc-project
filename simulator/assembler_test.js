@@ -3214,7 +3214,7 @@ const SCHED_NS_BC = {
 };
 
 {
-    // BC18–BC24: Scheduler.Wait(flag_GT) — CR2 arg → LOAD CR2 + ELOADCALL + HALT
+    // BC18–BC25: Scheduler.Wait(flag_GT) — CR2 arg → LOAD CR2 + ELOADCALL + HALT
     //
     // Encoding:
     //   LOAD CR2, flag_GT  — opcode=0, cond=14, crDst=2, crSrc=6, imm=10 (flag_GT slot)
@@ -3366,6 +3366,329 @@ const SCHED_NS_BC = {
         fresh.methodConventions['Scheduler']['Wait'].index === 2,
         `Wait entry: ${JSON.stringify(fresh.methodConventions['Scheduler'] && fresh.methodConventions['Scheduler']['Wait'])}`);
 }
+
+// ── BC43–BC60: Stack, UART, LED, Display bare-calls (task-1053) ──────────────
+
+const NEW_ABS_CONVENTIONS_BC = {
+    'Stack':   {
+        'Push':  { index: 0, input: 'DR1=val',   output: '' },
+        'Pop':   { index: 1, input: '',           output: '' },
+        'Peek':  { index: 2, input: '',           output: '' },
+        'Depth': { index: 3, input: '',           output: '' },
+    },
+    'UART': {
+        'Send':    { index: 0, input: 'DR1=byte', output: '' },
+        'Receive': { index: 1, input: '',         output: '' },
+        'SetBaud': { index: 2, input: 'DR1=rate', output: '' },
+    },
+    'LED': {
+        'Set':    { index: 0, input: '', output: '' },
+        'Clear':  { index: 1, input: '', output: '' },
+        'Toggle': { index: 2, input: '', output: '' },
+        'State':  { index: 3, input: '', output: '' },
+    },
+    'Display': {
+        'Write':  { index: 0, input: 'DR1=char',  output: '' },
+        'Clear':  { index: 1, input: '',          output: '' },
+        'Scroll': { index: 2, input: 'DR1=lines', output: '' },
+    },
+};
+const NEW_ABS_NS_BC = { 'Stack': 9, 'UART': 11, 'LED': 12, 'Display': 15 };
+
+// BC43–BC46: Stack methods
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('Stack.Push()\nHALT');
+    assert('BC43 Stack.Push() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC43 Stack.Push() emits ELOADCALL (2 words: ELOADCALL + HALT)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        assert('BC43 Stack.Push() word[0] opcode=8 (ELOADCALL)',
+            ((w >>> 27) & 0x1F) === 8, `got opcode=${(w >>> 27) & 0x1F}`);
+        const row    = w & 0xFF;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC43 Stack.Push() ELOADCALL row=9 (Stack NS slot)',
+            row === 9, `got row=${row}`);
+        assert('BC43 Stack.Push() ELOADCALL method=1 (Push index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('Stack.Pop()\nHALT');
+    assert('BC44 Stack.Pop() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC44 Stack.Pop() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC44 Stack.Pop() ELOADCALL method=2 (Pop index 1, 1-based)',
+            method === 2, `got method=${method}`);
+    }
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('Stack.Peek()\nHALT');
+    assert('BC45 Stack.Peek() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC45 Stack.Peek() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('Stack.Depth()\nHALT');
+    assert('BC46 Stack.Depth() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC46 Stack.Depth() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC46 Stack.Depth() ELOADCALL method=4 (Depth index 3, 1-based)',
+            method === 4, `got method=${method}`);
+    }
+}
+
+// BC47–BC49: UART methods
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('UART.Send()\nHALT');
+    assert('BC47 UART.Send() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC47 UART.Send() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const row    = w & 0xFF;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC47 UART.Send() ELOADCALL row=11 (UART NS slot)',
+            row === 11, `got row=${row}`);
+        assert('BC47 UART.Send() ELOADCALL method=1 (Send index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('UART.Receive()\nHALT');
+    assert('BC48 UART.Receive() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC48 UART.Receive() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('UART.SetBaud()\nHALT');
+    assert('BC49 UART.SetBaud() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC49 UART.SetBaud() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC49 UART.SetBaud() ELOADCALL method=3 (SetBaud index 2, 1-based)',
+            method === 3, `got method=${method}`);
+    }
+}
+
+// BC50–BC53: LED methods
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('LED.Set()\nHALT');
+    assert('BC50 LED.Set() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC50 LED.Set() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const row    = w & 0xFF;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC50 LED.Set() ELOADCALL row=12 (LED NS slot)',
+            row === 12, `got row=${row}`);
+        assert('BC50 LED.Set() ELOADCALL method=1 (Set index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('LED.Clear()\nHALT');
+    assert('BC51 LED.Clear() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC51 LED.Clear() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('LED.Toggle()\nHALT');
+    assert('BC52 LED.Toggle() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC52 LED.Toggle() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('LED.State()\nHALT');
+    assert('BC53 LED.State() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC53 LED.State() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC53 LED.State() ELOADCALL method=4 (State index 3, 1-based)',
+            method === 4, `got method=${method}`);
+    }
+}
+
+// BC54–BC56: Display methods
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('Display.Write()\nHALT');
+    assert('BC54 Display.Write() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC54 Display.Write() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const row    = w & 0xFF;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC54 Display.Write() ELOADCALL row=15 (Display NS slot)',
+            row === 15, `got row=${row}`);
+        assert('BC54 Display.Write() ELOADCALL method=1 (Write index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('Display.Clear()\nHALT');
+    assert('BC55 Display.Clear() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC55 Display.Clear() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC55 Display.Clear() ELOADCALL method=2 (Clear index 1, 1-based)',
+            method === 2, `got method=${method}`);
+    }
+}
+
+{
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('Display.Scroll()\nHALT');
+    assert('BC56 Display.Scroll() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC56 Display.Scroll() emits ELOADCALL (2 words)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w = r.words[0] >>> 0;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC56 Display.Scroll() ELOADCALL method=3 (Scroll index 2, 1-based)',
+            method === 3, `got method=${method}`);
+    }
+}
+
+// BC57–BC60: argument-bearing forms — pre-load DR1 then bare-call
+// DR1 is pre-loaded with IADD (the assembler's recommended immediate-load form);
+// the sequence emits IADD + ELOADCALL (3 words: IADD + ELOADCALL + HALT).
+
+{
+    // BC57: Stack.Push(val) — pre-load DR1 with IADD, then Push()
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('IADD DR1, DR1, #42\nStack.Push()\nHALT');
+    assert('BC57 Stack.Push(val) pre-load pattern — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC57 Stack.Push(val) emits 3 words (IADD + ELOADCALL + HALT)',
+        r.words.length === 3, `got ${r.words.length}`);
+    {
+        const w1 = r.words[1] >>> 0;
+        assert('BC57 Stack.Push(val) word[1] is ELOADCALL (opcode=8)',
+            ((w1 >>> 27) & 0x1F) === 8, `got opcode=${(w1 >>> 27) & 0x1F}`);
+    }
+}
+
+{
+    // BC58: UART.Send(byte) — pre-load DR1 with IADD, then Send()
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('IADD DR1, DR1, #0x41\nUART.Send()\nHALT');
+    assert('BC58 UART.Send(byte) pre-load pattern — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC58 UART.Send(byte) emits 3 words (IADD + ELOADCALL + HALT)',
+        r.words.length === 3, `got ${r.words.length}`);
+    {
+        const w1 = r.words[1] >>> 0;
+        assert('BC58 UART.Send(byte) word[1] is ELOADCALL (opcode=8)',
+            ((w1 >>> 27) & 0x1F) === 8, `got opcode=${(w1 >>> 27) & 0x1F}`);
+    }
+}
+
+{
+    // BC59: Display.Write(char) — pre-load DR1 with IADD, then Write()
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('IADD DR1, DR1, #0x48\nDisplay.Write()\nHALT');
+    assert('BC59 Display.Write(char) pre-load pattern — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC59 Display.Write(char) emits 3 words (IADD + ELOADCALL + HALT)',
+        r.words.length === 3, `got ${r.words.length}`);
+    {
+        const w1 = r.words[1] >>> 0;
+        assert('BC59 Display.Write(char) word[1] is ELOADCALL (opcode=8)',
+            ((w1 >>> 27) & 0x1F) === 8, `got opcode=${(w1 >>> 27) & 0x1F}`);
+        const row    = w1 & 0xFF;
+        const method = (w1 >>> 8) & 0x7F;
+        assert('BC59 Display.Write(char) ELOADCALL row=15 (Display NS slot)',
+            row === 15, `got row=${row}`);
+        assert('BC59 Display.Write(char) ELOADCALL method=1 (Write index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    // BC60: UART.SetBaud(rate) — pre-load DR1 with IADD, then SetBaud()
+    // Note: 115200 > 14-bit immediate (max 8191); use a smaller sentinel (9600).
+    const a = new ChurchAssembler(NEW_ABS_CONVENTIONS_BC);
+    a.setNamespace(NEW_ABS_NS_BC);
+    const r = a.assemble('IADD DR1, DR1, #9600\nUART.SetBaud()\nHALT');
+    assert('BC60 UART.SetBaud(rate) pre-load pattern — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC60 UART.SetBaud(rate) emits 3 words (IADD + ELOADCALL + HALT)',
+        r.words.length === 3, `got ${r.words.length}`);
+    {
+        const w1 = r.words[1] >>> 0;
+        const method = (w1 >>> 8) & 0x7F;
+        assert('BC60 UART.SetBaud(rate) ELOADCALL method=3 (SetBaud index 2, 1-based)',
+            method === 3, `got method=${method}`);
+    }
+}
+
 
 // ── Symbolic Math compiler — explicit Abs.Method(args) call form ─────────────
 // SC1–SC8 test compileSymbolic() in cloomc_compiler.js.

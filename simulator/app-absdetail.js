@@ -2886,6 +2886,28 @@ const _ABSTRACTION_CONVENTIONS = {
         'Read':     { index: 2, input: '',             output: 'DR1=elapsed ticks' },
         'SetAlarm': { index: 3, input: 'DR1=ticks',    output: 'DR1' },
     },
+    'Stack': {
+        'Push':  { index: 0, input: 'DR1=val',   output: 'DR1=0 ok | -1 overflow' },
+        'Pop':   { index: 1, input: '',           output: 'DR1=popped value | fault on underflow' },
+        'Peek':  { index: 2, input: '',           output: 'DR1=top value (stack unchanged)' },
+        'Depth': { index: 3, input: '',           output: 'DR1=current depth' },
+    },
+    'UART': {
+        'Send':    { index: 0, input: 'DR1=byte', output: 'S-perm SAVE; byte queued for TX' },
+        'Receive': { index: 1, input: '',         output: 'L-perm LOAD; DR1=received byte | 0 if empty' },
+        'SetBaud': { index: 2, input: 'DR1=rate', output: 'DR1=0 ok | -1 unsupported rate' },
+    },
+    'LED': {
+        'Set':    { index: 0, input: '',  output: 'DR1=1 ok | -1 fault' },
+        'Clear':  { index: 1, input: '',  output: 'DR1=1 ok | -1 fault' },
+        'Toggle': { index: 2, input: '',  output: 'DR1=1 ok | -1 fault' },
+        'State':  { index: 3, input: '',  output: 'DR1=1 on | 0 off | -1 fault' },
+    },
+    'Display': {
+        'Write':  { index: 0, input: 'DR1=char',  output: 'char appears at cursor; cursor advances' },
+        'Clear':  { index: 1, input: '',          output: 'screen cleared, cursor reset to (0,0)' },
+        'Scroll': { index: 2, input: 'DR1=lines', output: 'display scrolled up N lines' },
+    },
 };
 
 // Register conventions class-wide so all ChurchAssembler instances created
