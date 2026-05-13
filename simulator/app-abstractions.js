@@ -575,7 +575,10 @@ async function renderLumps() {
         const lumps = await r.json();
         _lumpsCache = lumps;
         if (_pendingLumpAbstractionName) {
-            const _matched = lumps.find(l => l.abstraction === _pendingLumpAbstractionName);
+            // Prefer user-saved (versioned, floating) over boot-resident when names clash.
+            const _allMatched = lumps.filter(l => l.abstraction === _pendingLumpAbstractionName);
+            const _matched = _allMatched.find(l => l.version && (l.ns_slot === null || l.ns_slot === undefined))
+                          || _allMatched[0];
             if (_matched) _selectedLumpToken = _matched.token;
             _pendingLumpAbstractionName = null;
         }
@@ -609,16 +612,18 @@ async function renderLumps() {
                 const lt    = (lump.lump_type    || '').toLowerCase();
                 const ct    = (lump.content_type || '').toLowerCase();
                 const typ   = lump.typ;
+                const isFloat = (lump.ns_slot === null || lump.ns_slot === undefined);
                 const badge = lt === 'boot'                                ? '[BOOT]'
                             : lt === 'namespace'  || typ === 10            ? '[NS]'
                             : ct === 'outform'    || typ === 3             ? '[OTF]'
                             : ct === 'thread'     || typ === 2             ? '[THR]'
                             : ct === 'inform'                              ? '[INF]'
+                            : isFloat && lt !== 'boot'                     ? '[SAVED]'
                             : '';
-                const nsSlot = (lump.ns_slot !== null && lump.ns_slot !== undefined)
-                            ? `NS ${lump.ns_slot}` : '';
+                const nsSlot = !isFloat ? `NS ${lump.ns_slot}` : '';
+                const ver    = lump.version ? `v${lump.version}` : '';
                 const size   = lump.lump_size ? `${lump.lump_size}w` : '';
-                const label  = [name, badge, nsSlot, size].filter(Boolean).join('  ');
+                const label  = [name, ver, badge, nsSlot, size].filter(Boolean).join('  ');
                 const sel    = _selectedLumpToken === token ? ' selected' : '';
                 html += `<option value="${_escHtml(token)}"${sel}>${_escHtml(label)}</option>`;
             }
