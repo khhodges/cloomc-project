@@ -3175,6 +3175,198 @@ const TUNNEL_NS_BC = { 'Tunnel': 3, 'Mum': 5 };
         a.errors.map(e => e.message).join('; '));
 }
 
+// ── BC18+: Scheduler, DijkstraFlag, Button, Timer bare-calls (task-1054) ─────
+//
+// These conventions mirror _ABSTRACTION_CONVENTIONS from app-absdetail.js.
+// NS slots match hw_binary.js / repl.js boot table:
+//   Scheduler=8, DijkstraFlag=10, Button=13, Timer=14, flag_GT=10 (alias for DijkstraFlag)
+//
+// ELOADCALL imm encoding: imm = ((index+1) << 8) | ns_slot   (index is 0-based)
+
+const SCHED_CONVENTIONS_BC = {
+    'Scheduler': {
+        'Yield':  { index: 0, input: '',             output: 'DR1' },
+        'Spawn':  { index: 1, input: 'CR2=code_GT, DR1=entry', output: 'DR1=threadID' },
+        'Wait':   { index: 2, input: 'CR2=flag_GT',  output: 'DR1' },
+        'Stop':   { index: 3, input: 'DR1=threadID', output: 'DR1' },
+    },
+    'DijkstraFlag': {
+        'Wait':   { index: 0, input: '',  output: 'DR1' },
+        'Signal': { index: 1, input: '',  output: 'DR1' },
+        'Reset':  { index: 2, input: '',  output: 'DR1' },
+        'Test':   { index: 3, input: '',  output: 'DR1=1 signaled | 0 unsignaled' },
+    },
+    'Button': {
+        'Read':      { index: 0, input: '',  output: 'DR1=1 pressed | 0 released' },
+        'WaitPress': { index: 1, input: '',  output: 'DR1=1 pressed' },
+        'OnEvent':   { index: 2, input: '',  output: 'DR1=1 press | 2 release | 0 none' },
+    },
+    'Timer': {
+        'Start':    { index: 0, input: 'DR1=channel', output: 'DR1' },
+        'Stop':     { index: 1, input: 'DR1=channel', output: 'DR1' },
+        'Read':     { index: 2, input: '',             output: 'DR1=elapsed ticks' },
+        'SetAlarm': { index: 3, input: 'DR1=ticks',    output: 'DR1' },
+    },
+};
+const SCHED_NS_BC = {
+    'Scheduler': 8, 'DijkstraFlag': 10, 'Button': 13, 'Timer': 14,
+    'flag_GT': 10,
+};
+
+{
+    // BC18–BC24: Scheduler.Wait(flag_GT) — CR2 arg → LOAD CR2 + ELOADCALL + HALT
+    //
+    // Encoding:
+    //   LOAD CR2, flag_GT  — opcode=0, cond=14, crDst=2, crSrc=6, imm=10 (flag_GT slot)
+    //     word = (0<<27)|(14<<23)|(2<<19)|(6<<15)|10 = 0x0713000A
+    //   ELOADCALL — Wait index=2 → 1-based=3; Scheduler slot=8; imm=(3<<8)|8=0x0308
+    //     word = (8<<27)|(14<<23)|(0<<19)|(6<<15)|0x0308 = 0x47030308
+    const a = new ChurchAssembler(SCHED_CONVENTIONS_BC);
+    a.setNamespace(SCHED_NS_BC);
+    const result = a.assemble('Scheduler.Wait(flag_GT)\nHALT');
+
+    assert('BC18 Scheduler.Wait(flag_GT) assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC19 Scheduler.Wait(flag_GT) expands to 3 words (LOAD + ELOADCALL + HALT)',
+        result.words.length === 3, `got ${result.words.length}`);
+
+    {
+        const w = result.words[0] >>> 0;
+        assert('BC20 Scheduler.Wait(flag_GT) word[0] LOAD — opcode=0',
+            ((w >>> 27) & 0x1F) === 0, `got opcode=${(w >>> 27) & 0x1F}`);
+        assert('BC21 Scheduler.Wait(flag_GT) word[0] LOAD — crDst=2 (CR2 from input spec)',
+            ((w >>> 19) & 0xF) === 2, `got crDst=${(w >>> 19) & 0xF}`);
+        assert('BC22 Scheduler.Wait(flag_GT) word[0] LOAD — imm=10 (flag_GT NS slot)',
+            (w & 0x7FFF) === 10, `got imm=${w & 0x7FFF}`);
+    }
+
+    {
+        const w      = result.words[1] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x7FFF;
+        const row    = imm & 0xFF;
+        const method = (imm >>> 8) & 0x7F;
+        assert('BC23 Scheduler.Wait(flag_GT) word[1] ELOADCALL — opcode=8',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC24 Scheduler.Wait(flag_GT) word[1] ELOADCALL — row=8 (Scheduler NS slot)',
+            row === 8, `got row=${row}`);
+        assert('BC25 Scheduler.Wait(flag_GT) word[1] ELOADCALL — method=3 (Wait index 2, 1-based)',
+            method === 3, `got method=${method}`);
+    }
+}
+
+{
+    // BC26–BC29: Scheduler.Yield() — no args → ELOADCALL only (no LOAD)
+    //
+    //   ELOADCALL — Yield index=0 → 1-based=1; Scheduler slot=8; imm=(1<<8)|8=0x0108
+    const a = new ChurchAssembler(SCHED_CONVENTIONS_BC);
+    a.setNamespace(SCHED_NS_BC);
+    const result = a.assemble('Scheduler.Yield()\nHALT');
+
+    assert('BC26 Scheduler.Yield() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC27 Scheduler.Yield() emits 2 words (ELOADCALL + HALT) — no LOAD for empty input',
+        result.words.length === 2, `got ${result.words.length}`);
+
+    {
+        const w      = result.words[0] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x7FFF;
+        const row    = imm & 0xFF;
+        const method = (imm >>> 8) & 0x7F;
+        assert('BC28 Scheduler.Yield() word[0] ELOADCALL — opcode=8',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC29 Scheduler.Yield() word[0] ELOADCALL — method=1 (Yield index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    // BC30–BC34: DijkstraFlag.Signal() — no args → ELOADCALL only
+    //
+    //   ELOADCALL — Signal index=1 → 1-based=2; DijkstraFlag slot=10; imm=(2<<8)|10=0x020A
+    const a = new ChurchAssembler(SCHED_CONVENTIONS_BC);
+    a.setNamespace(SCHED_NS_BC);
+    const result = a.assemble('DijkstraFlag.Signal()\nHALT');
+
+    assert('BC30 DijkstraFlag.Signal() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC31 DijkstraFlag.Signal() emits 2 words (ELOADCALL + HALT)',
+        result.words.length === 2, `got ${result.words.length}`);
+
+    {
+        const w      = result.words[0] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x7FFF;
+        const row    = imm & 0xFF;
+        const method = (imm >>> 8) & 0x7F;
+        assert('BC32 DijkstraFlag.Signal() word[0] ELOADCALL — opcode=8',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC33 DijkstraFlag.Signal() word[0] ELOADCALL — row=10 (DijkstraFlag NS slot)',
+            row === 10, `got row=${row}`);
+        assert('BC34 DijkstraFlag.Signal() word[0] ELOADCALL — method=2 (Signal index 1, 1-based)',
+            method === 2, `got method=${method}`);
+    }
+}
+
+{
+    // BC35–BC39: Button.Read() — no args → ELOADCALL only
+    //
+    //   ELOADCALL — Read index=0 → 1-based=1; Button slot=13; imm=(1<<8)|13=0x010D
+    const a = new ChurchAssembler(SCHED_CONVENTIONS_BC);
+    a.setNamespace(SCHED_NS_BC);
+    const result = a.assemble('Button.Read()\nHALT');
+
+    assert('BC35 Button.Read() assembles without errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC36 Button.Read() emits 2 words (ELOADCALL + HALT)',
+        result.words.length === 2, `got ${result.words.length}`);
+
+    {
+        const w      = result.words[0] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x7FFF;
+        const row    = imm & 0xFF;
+        const method = (imm >>> 8) & 0x7F;
+        assert('BC37 Button.Read() word[0] ELOADCALL — opcode=8',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC38 Button.Read() word[0] ELOADCALL — row=13 (Button NS slot)',
+            row === 13, `got row=${row}`);
+        assert('BC39 Button.Read() word[0] ELOADCALL — method=1 (Read index 0, 1-based)',
+            method === 1, `got method=${method}`);
+    }
+}
+
+{
+    // BC40: Timer.Start(channel) — convention input is DR1=channel; passing a name
+    // as argument should produce an error referencing DR1 (not a CR, cannot auto-LOAD).
+    const a = new ChurchAssembler(SCHED_CONVENTIONS_BC);
+    a.setNamespace(SCHED_NS_BC);
+    a.assemble('Timer.Start(channel)');
+    assert('BC40 Timer.Start(channel) — DR1 input spec gives error mentioning DR1',
+        a.errors.length >= 1 && a.errors[0].message.includes('DR1'),
+        a.errors.map(e => e.message).join('; '));
+}
+
+{
+    // BC41: ChurchAssembler._sharedMethodConventions inheritance
+    // A NEW instance created after setSharedMethodConventions() inherits Scheduler
+    // automatically, without having conventions passed to the constructor.
+    const registrar = new ChurchAssembler({});
+    registrar.setSharedMethodConventions({
+        'Scheduler': SCHED_CONVENTIONS_BC['Scheduler'],
+    });
+    const fresh = new ChurchAssembler();   // no conventions argument
+    assert('BC41 _sharedMethodConventions inheritance — fresh instance has Scheduler.Yield',
+        fresh.methodConventions['Scheduler'] !== undefined &&
+        fresh.methodConventions['Scheduler']['Yield'] !== undefined,
+        `methodConventions keys: ${Object.keys(fresh.methodConventions).join(', ')}`);
+    assert('BC42 _sharedMethodConventions inheritance — Scheduler.Wait index is 2',
+        fresh.methodConventions['Scheduler']['Wait'] !== undefined &&
+        fresh.methodConventions['Scheduler']['Wait'].index === 2,
+        `Wait entry: ${JSON.stringify(fresh.methodConventions['Scheduler'] && fresh.methodConventions['Scheduler']['Wait'])}`);
+}
+
 // ── Symbolic Math compiler — explicit Abs.Method(args) call form ─────────────
 // SC1–SC8 test compileSymbolic() in cloomc_compiler.js.
 //
