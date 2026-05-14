@@ -53,6 +53,58 @@ set_property PULLUP true [get_ports push_button]
 set_false_path -to [get_ports {uart_tx led[*]}]
 set_false_path -from [get_ports {uart_rx push_button}]
 
+# ── Ethernet RMII (LAN8720A or compatible PHY) ────────────────────────────
+# PHY connected to Artix-7 bank 34 (VCCO = 3.3 V, LVCMOS33).
+# Pin assignments from QMTECH Wukong board schematic v1.1, Ethernet section.
+# The PHY provides a 50 MHz reference clock on rmii_ref_clk; constrain as
+# an input clock for static timing analysis.
+set_property PACKAGE_PIN W12 [get_ports rmii_ref_clk]
+set_property IOSTANDARD  LVCMOS33 [get_ports rmii_ref_clk]
+create_clock -period 20.000 -name rmii_ref_clk [get_ports rmii_ref_clk]
+
+set_property PACKAGE_PIN AA11 [get_ports rmii_crs_dv]
+set_property IOSTANDARD  LVCMOS33 [get_ports rmii_crs_dv]
+
+set_property PACKAGE_PIN Y11 [get_ports {rmii_rxd[0]}]
+set_property IOSTANDARD  LVCMOS33 [get_ports {rmii_rxd[0]}]
+
+set_property PACKAGE_PIN Y12 [get_ports {rmii_rxd[1]}]
+set_property IOSTANDARD  LVCMOS33 [get_ports {rmii_rxd[1]}]
+
+set_property PACKAGE_PIN V11 [get_ports rmii_txen]
+set_property IOSTANDARD  LVCMOS33 [get_ports rmii_txen]
+
+set_property PACKAGE_PIN V12 [get_ports {rmii_txd[0]}]
+set_property IOSTANDARD  LVCMOS33 [get_ports {rmii_txd[0]}]
+
+set_property PACKAGE_PIN W11 [get_ports {rmii_txd[1]}]
+set_property IOSTANDARD  LVCMOS33 [get_ports {rmii_txd[1]}]
+
+set_property PACKAGE_PIN U10 [get_ports rmii_nrst]
+set_property IOSTANDARD  LVCMOS33 [get_ports rmii_nrst]
+
+# eth_irq — Ethernet RX-ready interrupt output.
+# Routed to PMOD J3 pin 10 (H16) for debug probing; tie to interrupt
+# controller input in the Tcl integration script when not probing.
+set_property PACKAGE_PIN H16 [get_ports eth_irq]
+set_property IOSTANDARD  LVCMOS33 [get_ports eth_irq]
+
+# RMII input timing: the PHY outputs data synchronous to rmii_ref_clk
+# with setup/hold margins of 4 ns / 2 ns (LAN8720A datasheet).
+set_input_delay  -clock rmii_ref_clk -max  4.0 [get_ports {rmii_crs_dv rmii_rxd[*]}]
+set_input_delay  -clock rmii_ref_clk -min  0.5 [get_ports {rmii_crs_dv rmii_rxd[*]}]
+
+# RMII output timing: PHY latches data on rising rmii_ref_clk.
+set_output_delay -clock rmii_ref_clk -max  4.0 [get_ports {rmii_txen rmii_txd[*]}]
+set_output_delay -clock rmii_ref_clk -min -1.0 [get_ports {rmii_txen rmii_txd[*]}]
+
+# PHY reset is asynchronous (driven LOW for ≥1 ms after power-up).
+set_false_path -to [get_ports rmii_nrst]
+
+# eth_irq is level-sensitive async to the system clock.
+set_false_path -from [get_pins -hierarchical -filter {NAME =~ */rx_ready_reg/Q}] \
+               -to   [get_ports eth_irq]
+
 # ── Configuration ──────────────────────────────────────────────────────────
 set_property CFGBVS         VCCO [current_design]
 set_property CONFIG_VOLTAGE 3.3  [current_design]

@@ -1532,5 +1532,68 @@
       "E"
     ],
     "lump_version": 0
+  },
+  {
+    "token": "00003300",
+    "abstraction": "Ethernet",
+    "ns_slot": 51,
+    "ns_slot_policy": "static",
+    "lump_size": 64,
+    "cw": 13,
+    "cc": 1,
+    "author": "SIPantic",
+    "version": "1.1.0",
+    "methods": [
+      {
+        "name": "Send",
+        "offset": 0,
+        "length": 3,
+        "description": "Arm the transmitter after pre-loading frame bytes into ETH_TX_DATA (offset 6). DR1 = dataGT (reserved for future DMA path, ignored in MMIO model); DR2 = byte count. Returns DR1 = byteLen.",
+        "inputs": [
+          "DR1: dataGT — reserved for future DMA path; ignored in MMIO model",
+          "DR2: byteLen — byte count of frame pre-loaded in TX FIFO (1-1518)"
+        ],
+        "outputs": [
+          "DR1: byteLen (bytes committed to transmit)"
+        ]
+      },
+      {
+        "name": "Receive",
+        "offset": 3,
+        "length": 3,
+        "description": "Poll for a pending frame (non-blocking). Returns DR1 = 0 if no frame waiting, or DR1 = N (byte count) when a frame is ready. Drain via N sequential ETH_RX_DATA reads.",
+        "inputs": [],
+        "outputs": [
+          "DR1: 0 = no frame waiting; N = byte count of pending frame"
+        ]
+      },
+      {
+        "name": "Connect",
+        "offset": 6,
+        "length": 4,
+        "description": "Register a UDP session endpoint. DR1 = packed IPv4 address; DR2 = port number. Returns DR1 = 0 on success, -1 on fault.",
+        "inputs": [
+          "DR1: packed IPv4 address in network byte order (e.g. 0xC0A80001 = 192.168.0.1)",
+          "DR2: UDP port number (1-65535)"
+        ],
+        "outputs": [
+          "DR1: 0 on success, -1 on fault"
+        ]
+      },
+      {
+        "name": "Status",
+        "offset": 10,
+        "length": 3,
+        "description": "Query hardware link state. Returns DR1 = 0 (link down), 1 (link up), or 2 (negotiating).",
+        "inputs": [],
+        "outputs": [
+          "DR1: 0 = link down, 1 = link up, 2 = negotiating"
+        ]
+      }
+    ],
+    "grants": [
+      "E"
+    ],
+    "lump_version": 0
   }
 ]

@@ -516,6 +516,17 @@ class AbstractionRegistry {
             [],
             'Hardware interrupt entry point — wakes sleeping threads on ALARM fire and handles Tier 2 fault recovery (Task #1077)',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 0 } });
+
+        // NS slot 51 — Ethernet (XC7A100T-only)
+        // Application LUMP in the minimal three-LUMP ROM image for the QMTECH Wukong board.
+        // Provides raw Ethernet frame send/receive (no TCP/IP); the Locator uses it to
+        // fetch all remaining abstractions from the IDE/Mum Tunnel on demand over Ethernet,
+        // replacing UART as the lazy-load transport.  Chainable: false — callers hold an
+        // E-only GT; the device GT is internal to the abstraction's c-list.
+        this.createAbstraction(51, 'Ethernet', 2,
+            ['Send', 'Receive', 'Connect', 'Status'],
+            'Raw Ethernet frame transport — XC7A100T lazy-load channel. Send(dataGT, byteLen), Receive() \u2192 (dataGT, byteLen), Connect(ipv4, port), Status() \u2192 0=down/1=up/2=busy. Application LUMP in the 3-LUMP XC7A100T ROM image; Locator fetches all other abstractions through it.',
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
     }
 }
 

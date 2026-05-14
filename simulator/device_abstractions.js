@@ -66,7 +66,8 @@ class DeviceAbstractions {
             led: { state: 0x00, count: 6 },
             button: { pressed: false, eventQueue: [] },
             timer: { running: false, count: 0, alarm: 0, startTime: 0 },
-            display: { buffer: [], width: 80, height: 25, cursorX: 0, cursorY: 0 }
+            display: { buffer: [], width: 80, height: 25, cursorX: 0, cursorY: 0 },
+            ethernet: { linkUp: true, txBuffer: [], rxBuffer: [], endpoint: null }
         };
         this._bindAll();
     }
@@ -77,6 +78,7 @@ class DeviceAbstractions {
         this._bindButton();
         this._bindTimer();
         this._bindDisplay();
+        this._bindEthernet();
     }
 
     _validateDeviceAccess(sim, deviceAddr, perm) {
@@ -383,6 +385,72 @@ class DeviceAbstractions {
                 message: `Display.Scroll: scrolled ${lines} line(s)`
             };
         });
+    }
+
+    _bindEthernet() {
+        const dev = this._deviceState.ethernet;
+
+        this.registry.bindMethod(51, 'Send', function(sim, args) {
+            const dataGT  = (args && args.dr1 !== undefined) ? (args.dr1 >>> 0) : 0;
+            const byteLen = (args && args.dr2 !== undefined) ? (args.dr2 >>> 0) : 0;
+            if (byteLen === 0 || byteLen > 1518) {
+                return { ok: false, fault: 'ARGS', message: `Ethernet.Send: invalid frame length ${byteLen} (valid: 1\u20131518; dataGT=0x${dataGT.toString(16)})` };
+            }
+            dev.txBuffer.push({ len: byteLen, dataGT, time: Date.now() });
+            return {
+                ok: true,
+                result: byteLen,
+                message: `Ethernet.Send: ${byteLen} bytes transmitted (link ${dev.linkUp ? 'UP' : 'DOWN'}, dataGT=0x${dataGT.toString(16)})`
+            };
+        });
+
+        this.registry.bindMethod(51, 'Receive', function(sim, args) {
+            if (dev.rxBuffer.length === 0) {
+                return {
+                    ok: true,
+                    result: 0,
+                    message: 'Ethernet.Receive: no frame waiting (DR1=0)'
+                };
+            }
+            const frame = dev.rxBuffer.shift();
+            return {
+                ok: true,
+                result: frame.len,
+                message: `Ethernet.Receive: DR1=${frame.len} bytes ready — drain via ETH_RX_DATA reads (${dev.rxBuffer.length} remaining)`
+            };
+        });
+
+        this.registry.bindMethod(51, 'Connect', function(sim, args) {
+            const ipv4 = (args && args.dr1 !== undefined) ? (args.dr1 >>> 0) : 0;
+            const port = (args && args.dr2 !== undefined) ? (args.dr2 >>> 0) : 0;
+            if (!ipv4 || port < 1 || port > 65535) {
+                return { ok: false, fault: 'ARGS', result: -1, message: `Ethernet.Connect: invalid endpoint (ip=0x${(ipv4 >>> 0).toString(16).padStart(8, '0')}, port=${port})` };
+            }
+            const a = (ipv4 >>> 24) & 0xFF;
+            const b = (ipv4 >>> 16) & 0xFF;
+            const c = (ipv4 >>>  8) & 0xFF;
+            const d =  ipv4        & 0xFF;
+            dev.endpoint = { ip: `${a}.${b}.${c}.${d}`, port };
+            return {
+                ok: true,
+                result: 0,
+                message: `Ethernet.Connect: endpoint set to ${dev.endpoint.ip}:${port}`
+            };
+        });
+
+        this.registry.bindMethod(51, 'Status', function(sim, args) {
+            const state = dev.linkUp ? 1 : 0;
+            return {
+                ok: true,
+                result: state,
+                message: `Ethernet.Status: link ${dev.linkUp ? 'UP (1)' : 'DOWN (0)'}`
+            };
+        });
+    }
+
+    simulateEthernetReceive(frameBytes) {
+        const len = Array.isArray(frameBytes) ? frameBytes.length : frameBytes;
+        this._deviceState.ethernet.rxBuffer.push({ len, dataGT: 0, time: Date.now() });
     }
 
     simulateButtonPress() {

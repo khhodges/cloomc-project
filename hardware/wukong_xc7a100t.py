@@ -11,6 +11,7 @@ from .boot_rom import (BootRom, FULL_ROM, DEMO_NAMESPACE, DEMO_CLIST,
 from .uart_tx import DebugPrinter
 from .uart_rx import UartRx
 from .uart_crc16 import CRC16_CCITT
+from .ethernet_xc7a100t import EthernetDeviceGT
 
 
 class ChurchWukongXC7A100T(Elaboratable):
@@ -46,6 +47,14 @@ class ChurchWukongXC7A100T(Elaboratable):
         self.push_button = Signal(init=1)  # active-LOW; 1 = released
 
         self.led = [Signal(name=f"led{i}") for i in range(4)]
+
+        self.rmii_ref_clk = Signal()
+        self.rmii_crs_dv  = Signal()
+        self.rmii_rxd     = Signal(2)
+        self.rmii_txen    = Signal()
+        self.rmii_txd     = Signal(2)
+        self.rmii_nrst    = Signal(init=1)
+        self.eth_irq      = Signal()
 
         self.dbg_nia          = Signal(32)
         self.dbg_fault        = Signal(4)
@@ -151,6 +160,14 @@ class ChurchWukongXC7A100T(Elaboratable):
         mmio_reg_sel = Signal(4)
         m.d.comb += mmio_reg_sel.eq(core.dmem_addr[2:6])
 
+        # Split MMIO address space:
+        #   0x40000000..0x4000003F  (addr[12]=0) — base peripherals (LED/UART/BTN/TIMER)
+        #   0x40001000..0x4000101C  (addr[12]=1) — Ethernet device (EthernetDeviceGT)
+        is_base_mmio = Signal()
+        is_eth_mmio  = Signal()
+        m.d.comb += is_base_mmio.eq(is_mmio & ~core.dmem_addr[12])
+        m.d.comb += is_eth_mmio.eq(is_mmio & core.dmem_addr[12])
+
         mmio_led_reg = [Signal(3, name=f"mmio_led{i}") for i in range(5)]
         mmio_uart_tx_wr   = Signal()
         mmio_uart_tx_data = Signal(8)
@@ -175,7 +192,7 @@ class ChurchWukongXC7A100T(Elaboratable):
                 m.d.sync += alarm_fired.eq(1)
 
         is_mmio_write = Signal()
-        m.d.comb += is_mmio_write.eq(is_mmio & core.dmem_wr_en)
+        m.d.comb += is_mmio_write.eq(is_base_mmio & core.dmem_wr_en)
 
         with m.If(is_mmio_write):
             with m.Switch(mmio_reg_sel):
@@ -198,7 +215,7 @@ class ChurchWukongXC7A100T(Elaboratable):
                         m.d.sync += alarm_fired.eq(0)
 
         is_mmio_read = Signal()
-        m.d.comb += is_mmio_read.eq(is_mmio & core.dmem_rd_en)
+        m.d.comb += is_mmio_read.eq(is_base_mmio & core.dmem_rd_en)
 
         mmio_rd_data = Signal(32)
         with m.Switch(mmio_reg_sel):
@@ -229,7 +246,29 @@ class ChurchWukongXC7A100T(Elaboratable):
             with m.Default():
                 m.d.comb += mmio_rd_data.eq(0)
 
-        m.d.comb += core.dmem_rd_data.eq(Mux(is_mmio_read, mmio_rd_data, mem_rd_data))
+        is_eth_mmio_read = Signal()
+        m.d.comb += is_eth_mmio_read.eq(is_eth_mmio & core.dmem_rd_en)
+
+        eth = EthernetDeviceGT(self.clk_freq)
+        m.submodules.eth = eth
+        m.d.comb += [
+            eth.mmio_addr.eq(core.dmem_addr[2:6]),
+            eth.mmio_rd_en.eq(is_eth_mmio_read),
+            eth.mmio_wr_en.eq(is_eth_mmio & core.dmem_wr_en),
+            eth.mmio_wr_data.eq(core.dmem_wr_data),
+            eth.rmii_ref_clk.eq(self.rmii_ref_clk),
+            eth.rmii_crs_dv.eq(self.rmii_crs_dv),
+            eth.rmii_rxd.eq(self.rmii_rxd),
+            self.rmii_txen.eq(eth.rmii_txen),
+            self.rmii_txd.eq(eth.rmii_txd),
+            self.rmii_nrst.eq(eth.rmii_nrst),
+            self.eth_irq.eq(eth.eth_irq),
+        ]
+
+        m.d.comb += core.dmem_rd_data.eq(
+            Mux(is_eth_mmio_read, eth.mmio_rd_data,
+                Mux(is_mmio_read, mmio_rd_data, mem_rd_data))
+        )
         m.d.comb += [
             core.ns_rd_data.eq(Cat(mem_rd_data, C(0, 64))),
             core.clist_rd_data.eq(mem_rd_data),
