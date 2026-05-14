@@ -63,6 +63,10 @@ args = "catalog-compile-tests"
 task = "workflow.run"
 args = "version-telemetry-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "lump-roundtrip"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -191,6 +195,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 -m pytest tests/server/test_version_telemetry.py -v"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "lump-roundtrip"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node simulator/test_lump_roundtrip.js"
 
 [workflows.workflow.metadata]
 outputType = "console"
