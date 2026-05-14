@@ -232,6 +232,19 @@ a.next-step-link:hover {
 .ns-label { color: var(--church-blue); font-style: italic; font-weight: 400; cursor: default; }
 .ns-label-col { font-style: italic; }
 .ns-flag { text-align: center; color: var(--church-gold); font-weight: 600; }
+.ns-perm-chip {
+    display: inline-block;
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.03em;
+}
 .ns-idx-cell { text-align: center; }
 .ns-boot-btn {
     display: inline-block;
@@ -4353,6 +4366,20 @@ a.next-step-link:hover {
     background: rgba(251, 146, 60, 0.18);
     color: #fb923c;
     border: 1px solid rgba(251, 146, 60, 0.3);
+}
+.profile-badge-xc7a100t {
+    background: rgba(167, 139, 250, 0.18);
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+}
+.abs-doc-link {
+    color: #a78bfa;
+    text-decoration: none;
+    font-size: 0.78rem;
+}
+.abs-doc-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
 }
 
 .abs-item-desc {

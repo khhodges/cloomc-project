@@ -593,7 +593,7 @@ function _populateLumpLogicCatalog() {
             const dotColor = (typeof IMPL_STATUS_COLORS !== 'undefined') ? (IMPL_STATUS_COLORS[best] || '#9ca3af') : '#9ca3af';
             const dotTitle = (typeof IMPL_STATUS_LABELS !== 'undefined') ? (IMPL_STATUS_LABELS[best] || best) : best;
             const absProfile = (typeof _getAbstractionProfile === 'function') ? _getAbstractionProfile(abs) : 'IoT';
-            const profileBadgeClass = absProfile === 'Full' ? 'profile-badge-full' : 'profile-badge-iot';
+            const profileBadgeClass = absProfile === 'Full' ? 'profile-badge-full' : absProfile === 'XC7A100T' ? 'profile-badge-xc7a100t' : 'profile-badge-iot';
             const _matchLump = (typeof _lumpsCache !== 'undefined' ? _lumpsCache : []).find(l => l.abstraction === abs.name);
             const _lumpVer = _matchLump ? (_matchLump.lump_version != null ? _matchLump.lump_version : (_matchLump.version != null ? _matchLump.version : 0)) : 0;
             const _lumpTk = _matchLump ? _escHtml(_matchLump.token || '') : '';
@@ -664,7 +664,7 @@ function _populateLumpLogicTab(lump) {
     const layerNames = abstractionRegistry.getLayerNames ? abstractionRegistry.getLayerNames() : {};
     const layerName = layerNames[abs.layer] || `Layer ${abs.layer}`;
     const profile = (typeof _getAbstractionProfile === 'function') ? _getAbstractionProfile(abs) : (abs.profile || 'IoT');
-    const profileClass = profile === 'Full' ? 'profile-badge-full' : 'profile-badge-iot';
+    const profileClass = profile === 'Full' ? 'profile-badge-full' : profile === 'XC7A100T' ? 'profile-badge-xc7a100t' : 'profile-badge-iot';
     const perms = abs.perms || {};
     const permStr = (perms.B?'B':'')+(perms.R?'R':'')+(perms.W?'W':'')+(perms.X?'X':'')+(perms.L?'L':'')+(perms.S?'S':'')+(perms.E?'E':'') || 'none';
 

@@ -340,7 +340,7 @@ function showAbstractionDetail(index) {
     let html = '';
 
     const detailProfile = _getAbstractionProfile(abs);
-    const detailProfileClass = detailProfile === 'Full' ? 'profile-badge-full' : 'profile-badge-iot';
+    const detailProfileClass = detailProfile === 'Full' ? 'profile-badge-full' : detailProfile === 'XC7A100T' ? 'profile-badge-xc7a100t' : 'profile-badge-iot';
 
     html += '<div class="abs-detail-section">';
     html += `<div class="abs-detail-badge layer-${abs.layer}">Layer ${abs.layer} \u2014 ${layerName}</div>`;
@@ -791,6 +791,25 @@ function showAbstractionDetail(index) {
         const _srStyle = _srHtml ? '' : ' style="display:none;"';
         html += `<div class="abs-detail-section abs-signed-return-section" id="absSignedReturnSection"${_srStyle}>`;
         html += _srHtml;
+        html += '</div>';
+    }
+
+    if (abs.index === 51) {
+        html += '<div class="abs-detail-section abs-note-security">';
+        html += '<div class="abs-detail-label">XC7A100T Hardware — Ethernet</div>';
+        html += '<table class="abs-props-table"><tbody>';
+        html += '<tr><td>Board</td><td>QMTECH Wukong Artix-7 XC7A100T</td></tr>';
+        html += '<tr><td>NS Slot</td><td>51</td></tr>';
+        html += '<tr><td>Token</td><td><code>0x00003300</code></td></tr>';
+        html += '<tr><td>Permissions</td><td>[E] — callers hold E-only GT; device GT is internal</td></tr>';
+        html += '<tr><td>Transport</td><td>Raw Ethernet frames (no TCP/IP stack)</td></tr>';
+        html += '<tr><td>Role</td><td>Lazy-load channel — Locator fetches all other abstractions through it</td></tr>';
+        html += '</tbody></table>';
+        html += '<div class="abs-note-text" style="margin-top:8px;">';
+        html += 'This abstraction is present <strong>only</strong> in the 3-LUMP XC7A100T ROM image. ';
+        html += 'Tang Nano 20K and Ti60 F225 boots use UART (Tunnel abstraction) as the lazy-load channel instead. ';
+        html += '</div>';
+        html += `<div style="margin-top:8px;"><a href="#" class="abs-doc-link" onclick="event.preventDefault();openDocAnchor('hardware-wukong-xc7a100t.md','#ethernet-abstraction-ns-slot-51')">View hardware documentation \u2192</a></div>`;
         html += '</div>';
     }
 
@@ -1504,6 +1523,12 @@ const METHOD_REGISTER_CONVENTIONS = {
     // These also drive the dot-notation popup (asm-method-popup.js) and the
     // assembler's CALL Tunnel.X / ELOADCALL encoding (app-shell.js feeds
     // METHOD_REGISTER_CONVENTIONS directly into new ChurchAssembler(conv)).
+    'Ethernet': {
+        'Send':    { index: 0, input: 'CR1 = data GT (R-perm Inform), DR1 = byte length', output: 'DR0 = 0 (queued) | \u22120x01 (TX busy) | \u22120x02 (link down)', dispatch: 'CALL Ethernet.Send',    note: 'Fire-and-forget raw frame send. Caller holds an E-only GT on Ethernet; the device GT is internal to the abstraction\u2019s c-list.' },
+        'Receive': { index: 1, input: 'DR1 = timeout steps (0 = wait forever)',           output: 'CR0 = data GT (R-perm Inform), DR0 = byte length (0 = timeout)', dispatch: 'CALL Ethernet.Receive', note: 'Block until a frame arrives or timeout expires. Returned GT covers exactly byteLen bytes; caller must mSave before returning.' },
+        'Connect': { index: 2, input: 'DR1 = IPv4 address (packed 32-bit), DR2 = port',   output: 'DR0 = 0 (link up) | \u22120x10 (PHY fault) | \u22120x11 (timeout)',  dispatch: 'CALL Ethernet.Connect', note: 'Configure the remote endpoint; arms the PHY and waits for link. Only needed when acting as a client; server mode calls Receive immediately.' },
+        'Status':  { index: 3, input: 'none',                                              output: 'DR0 = 0 (down) | 1 (up) | 2 (busy)',                             dispatch: 'CALL Ethernet.Status',  note: 'Non-blocking status poll. Returns link state without blocking. XC7A100T only \u2014 not present on Tang Nano 20K or Ti60 F225.' },
+    },
     'Tunnel': {
         'Register': { index: 0, input: 'DR1=boot_reason, DR2=last_fault, DR3=fault_NIA', output: 'DR0 = 1 (IDE ACK) | \u22640 (offline)', dispatch: 'CALL Tunnel.Register', note: 'Send 23-byte call-home packet to IDE and await ACK. Replaces hardwired B:02\u00bd boot step.' },
         'Send':     { index: 1, input: 'DR1=FourCC tag, DR2=word count, DR3=first payload', output: 'DR0 = 0 (queued) | 1 (TX overrun)',      dispatch: 'CALL Tunnel.Send',     note: 'Fire-and-forget media packet. Tags: TEXT=0x54455854 \u00b7 LUMP=0x4C554D50 \u00b7 GTKN=0x47544B4E \u2026' },
@@ -1537,6 +1562,12 @@ function getMethodPurposes(abs) {
         'Family': { 'Register': 'Family.Register(parent_GT, child_GT) — bind parent-child in c-list', 'Hello': 'Family.Hello(target_GT) — send greeting to any family member via their GT', 'Oversight': 'Family.Oversight(child_GT) — parent queries child activity' },
         'Schoolroom': { 'Join': 'Schoolroom.Join(class_GT) — student enters class', 'Lesson': 'Schoolroom.Lesson(class_GT, content_GT) — teacher posts lesson', 'Submit': 'Schoolroom.Submit(work_GT) — student submits work', 'Grade': 'Schoolroom.Grade(work_GT, score) — teacher grades work' },
         'Friends': { 'Request': 'Friends.Request(peer_GT) — send friend request (needs parent approval)', 'Accept': 'Friends.Accept(requester_GT) — accept request', 'Share': 'Friends.Share(friend_GT, cap_GT) — share capability', 'Revoke': 'Friends.Revoke(cap_GT) — revoke shared capability' },
+        'Ethernet': {
+            'Send':    'Ethernet.Send(dataGT, byteLen) — transmit a raw Ethernet frame. CR1 = R-perm Inform GT covering the frame buffer; DR1 = byte length. Fire-and-forget; DR0 \u2190 0 queued | \u22120x01 TX busy | \u22120x02 link down. XC7A100T only.',
+            'Receive': 'Ethernet.Receive(timeout) — block until a frame arrives. DR1 = timeout in steps (0 = wait forever). CR0 \u2190 R-perm Inform GT covering exactly byteLen bytes of the received frame; DR0 \u2190 byte length (0 = timeout). Caller must copy data before returning.',
+            'Connect': 'Ethernet.Connect(ipv4, port) — configure remote endpoint and arm the PHY. DR1 = packed IPv4 (big-endian 32-bit); DR2 = port number. DR0 \u2190 0 link up | \u22120x10 PHY fault | \u22120x11 timeout. Only required for client-mode connections.',
+            'Status':  'Ethernet.Status() — non-blocking link state poll. No inputs. DR0 \u2190 0 (down) | 1 (up) | 2 (busy). Use before Send to avoid TX errors. XC7A100T only \u2014 absent on Tang Nano 20K and Ti60 F225.',
+        },
         'Tunnel': {
             'Register': 'Tunnel.Register(boot_reason, last_fault, fault_NIA) — send the 23-byte call-home identification packet [0xCE11 · board · FW · HMAC(4B) · UID(8B) · reason · fault · NIA(4B)] and await ACK. Replaces the hardwired B:02\u00BD boot step. DR0 \u2190 1 (IDE connected) | 0 (offline).',
             'Send': 'Tunnel.Send(type_tag, word_count, payload\u2026) — transmit a self-identifying media packet to the IDE host. DR1 = FourCC type tag (TEXT=0x54455854 \u00b7 VOIC=0x564F4943 \u00b7 LUMP=0x4C554D50 \u00b7 GTKN=0x47544B4E \u00b7 JPEG=0x4A504547 \u00b7 \u2026), DR2 = word count (1\u201313), DR3\u2026 = payload words. Fire-and-forget; no ACK. DR0 \u2190 0 = queued | 0x01 = TX overrun.',

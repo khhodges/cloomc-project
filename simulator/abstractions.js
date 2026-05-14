@@ -526,7 +526,7 @@ class AbstractionRegistry {
         this.createAbstraction(51, 'Ethernet', 2,
             ['Send', 'Receive', 'Connect', 'Status'],
             'Raw Ethernet frame transport — XC7A100T lazy-load channel. Send(dataGT, byteLen), Receive() \u2192 (dataGT, byteLen), Connect(ipv4, port), Status() \u2192 0=down/1=up/2=busy. Application LUMP in the 3-LUMP XC7A100T ROM image; Locator fetches all other abstractions through it.',
-            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
+            { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 }, profile: 'XC7A100T' });
     }
 }
 

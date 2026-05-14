@@ -473,10 +473,11 @@ function renderAbstractions() {
                 const isBootEntry = abs.index === bootEntrySlot;
                 html += `<div class="abs-item${isActive ? ' active' : ''}" onclick="showAbstractionDetail(${abs.index})" ondblclick="event.stopPropagation();_goToLumpByAbstractionName(abstractionRegistry.getAbstraction(${abs.index}).name)" title="Double-click to jump to this abstraction&#39;s LUMP in the Repository">`;
                 const absProfile = _getAbstractionProfile(abs);
-                const profileBadgeClass = absProfile === 'Full' ? 'profile-badge-full' : 'profile-badge-iot';
+                const profileBadgeClass = absProfile === 'Full' ? 'profile-badge-full' : absProfile === 'XC7A100T' ? 'profile-badge-xc7a100t' : 'profile-badge-iot';
+                const profileTitle = absProfile === 'Full' ? 'Ti60 F225 only' : absProfile === 'XC7A100T' ? 'QMTECH Wukong XC7A100T only' : 'runs on both boards';
                 html += `<span class="abs-item-idx abs-boot-entry-btn${isBootEntry ? ' boot-entry-active' : ''}" onclick="event.stopPropagation();setBootEntrySlot(${abs.index})" title="${isBootEntry ? 'Current boot entry' : 'Set as boot entry'}">${isBootEntry ? '\u26a1' : abs.index}</span>`;
                 html += `<span class="abs-item-name">${abs.name}</span>`;
-                html += `<span class="abs-profile-badge ${profileBadgeClass}" title="${absProfile} profile — ${absProfile === 'Full' ? 'Ti60 F225 only' : 'runs on both boards'}">${absProfile}</span>`;
+                html += `<span class="abs-profile-badge ${profileBadgeClass}" title="${absProfile} profile — ${profileTitle}">${absProfile}</span>`;
                 html += `<span class="abs-item-dot" style="background:${dotColor};box-shadow:0 0 4px ${dotColor}80" title="${dotTitle}"></span>`;
                 html += `<span class="abs-item-desc">${abs.description}</span>`;
                 html += `</div>`;
@@ -655,6 +656,29 @@ async function renderLumps() {
             html += `<a class="lump-tier-a-test-id" href="#" onclick="openDocAnchor('launch.md','${ta.docAnchor}'); return false;" title="View acceptance test definition">${safeTestId}</a>`;
             html += `</div>`;
         }
+        html += `</div>`;
+
+        // XC7A100T Hardware section — Ethernet LUMP catalog entry
+        const _ETHERNET_LUMP = { name: 'Ethernet', slot: 51, token: '00003300', cw: 13, cc: 1, lump_size: 64 };
+        html += `<div class="lump-tier-a-section">`;
+        html += `<div class="lump-tier-a-header">XC7A100T Hardware &mdash; Board-Specific Lumps <span class="lump-tier-a-header-sub">(QMTECH Wukong only)</span></div>`;
+        const _ethLump = (lumps || []).find(l => l.token === _ETHERNET_LUMP.token || l.abstraction === _ETHERNET_LUMP.name);
+        const _ethCw = (_ethLump && _ethLump.cw != null) ? _ethLump.cw : _ETHERNET_LUMP.cw;
+        const _ethCc = (_ethLump && _ethLump.cc != null) ? _ethLump.cc : _ETHERNET_LUMP.cc;
+        const _ethSize = (_ethLump && _ethLump.lump_size != null) ? _ethLump.lump_size : _ETHERNET_LUMP.lump_size;
+        const _ethToken = (_ethLump && _ethLump.token) ? _ethLump.token : _ETHERNET_LUMP.token;
+        html += `<div class="lump-tier-a-row">`;
+        if (_ethLump) {
+            const _ethTk = _escHtml(_ethToken);
+            html += `<span class="lump-tier-a-name"><a class="lump-tier-a-link" href="#" onclick="event.preventDefault();showLumpDetail('${_ethTk}')">Ethernet</a></span>`;
+        } else {
+            html += `<span class="lump-tier-a-name">Ethernet</span>`;
+        }
+        html += `<span class="lump-tier-a-slot">slot&nbsp;${_ETHERNET_LUMP.slot}</span>`;
+        html += `<span class="lump-tier-a-status${_ethLump ? ' lump-tier-a-status-present' : ''}">${_ethLump ? 'Saved' : 'ROM only'}</span>`;
+        html += `<span class="lump-tier-a-milestone" style="font-family:monospace;font-size:0.68rem;">0x${_escHtml(_ethToken)} &nbsp; cw=${_ethCw} &nbsp; cc=${_ethCc} &nbsp; ${_ethSize}w</span>`;
+        html += `<a class="lump-tier-a-test-id" href="#" onclick="event.preventDefault();openDocAnchor('hardware-wukong-xc7a100t.md','#ethernet-abstraction-ns-slot-51')" title="View XC7A100T hardware documentation">DOCS</a>`;
+        html += `</div>`;
         html += `</div>`;
 
         listEl.innerHTML = html;

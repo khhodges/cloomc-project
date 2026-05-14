@@ -2751,7 +2751,24 @@ function updateNamespace() {
         const rowOpacity = codeNotResident ? 'opacity:0.8;' : '';
         html += `<tr id="ns-row-${i}" class="ns-row${isExpanded ? ' ns-row-active' : ''}" onclick="toggleNSDetail(${i})" style="cursor:pointer;${rowOpacity}">`;
         html += `<td class="ns-idx-cell"><span class="ns-boot-btn${isBootNS ? ' boot-entry-active' : ''}" onclick="event.stopPropagation();setBootEntrySlot(${i})" title="${isBootNS ? 'Current boot entry' : 'Set as boot entry'}">${isBootNS ? '\u26a1' : i}</span></td>`;
-        html += `<td class="ns-label" style="${warmStyle}" onmouseenter="showNSEntryTooltip(event,${i})" onmouseleave="hideNSEntryTooltip()">${e.label || '-'}</td>`;
+        let nsLabelInner = e.label || '-';
+        {
+            const _reg = (abstractionRegistry && typeof abstractionRegistry.getAbstraction === 'function')
+                ? abstractionRegistry
+                : (sim && sim.abstractionRegistry && typeof sim.abstractionRegistry.getAbstraction === 'function' ? sim.abstractionRegistry : null);
+            if (_reg) {
+                const _nsAbs = _reg.getAbstraction(i);
+                if (_nsAbs) {
+                    const _nsProfile = (typeof _getAbstractionProfile === 'function') ? _getAbstractionProfile(_nsAbs) : (_nsAbs.profile || null);
+                    if (_nsProfile === 'XC7A100T') {
+                        nsLabelInner += ` <span class="ns-perm-chip">E</span><span class="abs-profile-badge profile-badge-xc7a100t" style="font-size:0.6rem;padding:1px 5px;vertical-align:middle;margin-left:3px;">XC7A100T</span>`;
+                    } else if (_nsProfile === 'Full') {
+                        nsLabelInner += ` <span class="abs-profile-badge profile-badge-full" style="font-size:0.6rem;padding:1px 5px;vertical-align:middle;margin-left:3px;">Full</span>`;
+                    }
+                }
+            }
+        }
+        html += `<td class="ns-label" style="${warmStyle}" onmouseenter="showNSEntryTooltip(event,${i})" onmouseleave="hideNSEntryTooltip()">${nsLabelInner}</td>`;
         html += `<td style="${warmStyle}cursor:pointer;text-decoration:underline dotted;color:#4ec9b0;" title="Open memory view at this address" onclick="event.stopPropagation();jumpToMemory(${e.word0_location})">0x${e.word0_location.toString(16).toUpperCase().padStart(8, '0')}</td>`;
         if (codeNotResident) {
             const priorityTag = manifest.priority === 'hot' ? 'Hot' : (manifest.priority === 'cold' ? 'Cold' : 'Warm');
@@ -2778,6 +2795,48 @@ function updateNamespace() {
             html += `</div></td></tr>`;
         }
     }
+
+    // Append virtual rows for board-specific abstraction slots not yet in the loaded namespace
+    {
+        // Static manifest of known board-specific slots (source of truth: abstractions.js)
+        const _BOARD_SLOTS = [{ index: 51, name: 'Ethernet', profile: 'XC7A100T' }];
+        const _nsMax = (sim && sim.nsCount != null) ? sim.nsCount : 0;
+
+        // Try to get live data from the registry; fall back to static manifest
+        let _boardAbs = [];
+        const _reg = (abstractionRegistry && typeof abstractionRegistry.getAbstraction === 'function')
+            ? abstractionRegistry
+            : (sim && sim.abstractionRegistry && typeof sim.abstractionRegistry.getAbstraction === 'function' ? sim.abstractionRegistry : null);
+        if (_reg && _reg.getAllAbstractions) {
+            const _allAbs = _reg.getAllAbstractions();
+            _boardAbs = _allAbs.filter(a => {
+                const p = (typeof _getAbstractionProfile === 'function') ? _getAbstractionProfile(a) : (a.profile || null);
+                return p && p !== 'IoT' && a.index >= _nsMax;
+            });
+        }
+        if (_boardAbs.length === 0) {
+            // Static fallback — always show known board-specific slots below loaded namespace
+            _boardAbs = _BOARD_SLOTS.filter(s => s.index >= _nsMax);
+        }
+
+        if (_boardAbs.length > 0) {
+            html += `<tr><td colspan="10" style="padding:4px 8px 2px;font-size:0.68rem;color:#6b7280;letter-spacing:0.05em;border-top:1px solid rgba(167,139,250,0.15);">BOARD-SPECIFIC SLOTS \u2014 not loaded in current boot profile</td></tr>`;
+            for (const _bAbs of _boardAbs) {
+                const _bp = (typeof _getAbstractionProfile === 'function' && _bAbs.profile !== undefined && typeof _bAbs.dispatch === 'undefined')
+                    ? (_bAbs.profile || '')
+                    : ((typeof _getAbstractionProfile === 'function') ? _getAbstractionProfile(_bAbs) : (_bAbs.profile || ''));
+                const _bBadgeClass = _bp === 'XC7A100T' ? 'profile-badge-xc7a100t' : 'profile-badge-full';
+                const _bLabelInner = `${_bAbs.name} <span class="ns-perm-chip">E</span><span class="abs-profile-badge ${_bBadgeClass}" style="font-size:0.6rem;padding:1px 5px;vertical-align:middle;margin-left:3px;">${_bp}</span>`;
+                html += `<tr class="ns-row" style="opacity:0.55;cursor:default;" title="Not loaded in current board profile">`;
+                html += `<td class="ns-idx-cell"><span class="ns-boot-btn">${_bAbs.index}</span></td>`;
+                html += `<td class="ns-label">${_bLabelInner}</td>`;
+                html += `<td style="color:#6b7280;font-family:monospace;font-size:0.7rem;" colspan="7">\u2014 slot reserved, ROM only in ${_bp} profile \u2014</td>`;
+                html += `<td class="ns-entry-actions"><button class="btn btn-xs" onclick="showAbstractionDetail(${_bAbs.index})" style="background:#4b3f6b;color:#a78bfa;border:1px solid rgba(167,139,250,0.3);">Docs</button></td>`;
+                html += `</tr>`;
+            }
+        }
+    }
+
     html += '</tbody></table>';
     container.innerHTML = html;
 }
@@ -2893,7 +2952,7 @@ function showNSEntryTooltip(evt, idx) {
         const absLayer = absMatch.layer != null ? ` · Layer ${absMatch.layer}` : '';
         const absMethods = Array.isArray(absMatch.methods) ? absMatch.methods : [];
         const ttProfile = _getAbstractionProfile(absMatch);
-        const ttProfileClass = ttProfile === 'Full' ? 'profile-badge-full' : 'profile-badge-iot';
+        const ttProfileClass = ttProfile === 'Full' ? 'profile-badge-full' : ttProfile === 'XC7A100T' ? 'profile-badge-xc7a100t' : 'profile-badge-iot';
         html += `<div class="ns-tt-abs-name">${absName}<span class="abs-profile-badge ${ttProfileClass}" style="margin-left:6px;vertical-align:middle;">${ttProfile}</span><span style="color:#9ca3af;font-weight:400;font-size:0.7rem;">${absLayer}</span></div>`;
         if (absMatch.description) {
             const d = absMatch.description;
