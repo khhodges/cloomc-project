@@ -962,7 +962,11 @@ function _tryAutoAssembleLump(absIdx) {
     for (let i = 0; i < N; i++) {
         const md = userMethodData[`${absIdx}:${methods[i]}`] || {};
         const code = (md.compiled && md.compiled.length > 0) ? md.compiled : [0];
-        methodTable.push(bodyOffset + 1);
+        // Emit a BRANCH instruction (opcode 17) as the method-table entry.
+        // Mirrors _assembleLumpFromCatalog: branchOffset = bodyOffset - i.
+        // CALL dispatcher resolves: pc = (methodIndex-1) + offset = i + (bodyOffset-i) = bodyOffset.
+        const branchOffset = bodyOffset - i;
+        methodTable.push(((17 << 27) | (branchOffset & 0x7FFF)) >>> 0);
         bodies.push(code);
         bodyOffset += code.length;
     }
@@ -1004,11 +1008,17 @@ function _assembleLumpFromCatalog(absIdx) {
     const methodTable = [];   // one entry per method: lump-word address of body start
     const bodies = [];        // concatenated body word arrays
 
-    let bodyOffset = N;  // first body starts at lump-word N+1 (0-indexed offset past table)
+    let bodyOffset = N;  // first body starts at lump-word N+1; lump-relative PC = N
     for (let i = 0; i < N; i++) {
         const md = userMethodData[`${absIdx}:${methods[i]}`] || {};
         const code = (md.compiled && md.compiled.length > 0) ? md.compiled : [0]; // zero-pad placeholder
-        methodTable.push(bodyOffset + 1);  // lump-word address (1-indexed: header = word 0)
+        // Emit a BRANCH instruction (opcode 17) as the method-table entry.
+        // The table entry for method (i+1) sits at lump word (i+1), lump-relative PC = i.
+        // Branch offset = bodyOffset - i so the CALL dispatcher resolves:
+        //   new pc = (methodIndex - 1) + offset = i + (bodyOffset - i) = bodyOffset.
+        // Fetch: physAddr = lump_base + 1 + bodyOffset → first instruction of the body.
+        const branchOffset = bodyOffset - i;
+        methodTable.push(((17 << 27) | (branchOffset & 0x7FFF)) >>> 0);
         bodies.push(code);
         bodyOffset += code.length;
     }
@@ -1080,18 +1090,32 @@ function _assembleLumpFromCatalog(absIdx) {
     }
 }
 
-// Load the most-recently assembled catalog LUMP into the simulator
+// Load the most-recently assembled catalog LUMP into the simulator.
+// Uses sim.loadProgram() directly so the NS-slot redirect and CR14
+// wiring happen immediately (extended-code path included).
 function _loadCatalogLumpIntoSim() {
     const words = window._lastCatalogLumpWords;
     const name = window._lastCatalogLumpName || 'catalog';
     if (!words || !words.length) return;
 
+    if (!sim.bootComplete && typeof instantBoot === 'function') instantBoot();
+
+    // Call loadProgram() directly — handles NS-slot 3 redirect + CR14 wiring.
+    sim.loadProgram(words, 0);
+
+    // Mirror into lastAssembledWords so C-list injection and other
+    // post-load machinery (save-to-NS, code-view labels, etc.) still work.
     if (typeof lastAssembledWords !== 'undefined') lastAssembledWords = words.slice();
     if (typeof _defaultProgramLoaded !== 'undefined') window._defaultProgramLoaded = true;
-    if (typeof _pendingSimLoad !== 'undefined') window._pendingSimLoad = true;
-    if (sim && sim.programName !== undefined) sim.programName = name;
-
-    if (!sim.bootComplete && typeof instantBoot === 'function') instantBoot();
+    // C-list injection: call _injectClistNow if available, otherwise fall
+    // through to _applyPendingSimLoad on first Step/Run.
+    if (typeof _injectClistNow === 'function') {
+        _injectClistNow();
+        if (typeof _pendingSimLoad !== 'undefined') window._pendingSimLoad = false;
+    } else {
+        if (typeof _pendingSimLoad !== 'undefined') window._pendingSimLoad = true;
+    }
+    if (sim.programName !== undefined) sim.programName = name;
 
     const btn = document.querySelector('[onclick="_loadCatalogLumpIntoSim()"]');
     if (btn) { btn.textContent = 'Loaded \u2713'; btn.disabled = true; }

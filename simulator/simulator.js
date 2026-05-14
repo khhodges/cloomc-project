@@ -3561,8 +3561,18 @@ class ChurchSimulator {
         this.output += desc + '\n';
         const prevPC = this.pc;
         // Hardware method-table dispatch.
-        // CALL imm15 = method index.  index=0 → NIA = lump_base + 1 (word 1, single entry point).
-        // index>0 → read memory[lump_base + index] (lump-base-relative word offset); 0 = private → FAULT.
+        // CALL imm15 = method index.
+        //   index=0 → NIA = lump_base + 1 (word 1, single-entry-point shortcut).
+        //   index>0 → read memory[lump_base + index]; 0 = private → FAULT.
+        //
+        // Method-table entries are BRANCH instructions (opcode 17, 15-bit signed
+        // offset in bits [14:0]).  The entry at lump word `methodIndex` sits at
+        // lump-relative PC = methodIndex - 1 (fetch formula: physAddr = base+1+pc).
+        // New PC = (methodIndex - 1) + branchOffset = bodyOffset.
+        //
+        // Backward compat: if the opcode field is not 17, the entry is treated as
+        // a direct lump-relative PC (legacy bare-address format from pre-task-1134
+        // LUMPs stored on disk).
         const methodIndex = (d.imm !== undefined) ? (d.imm & 0x7FFF) : 0;
         if (methodIndex === 0) {
             // Single entry point: word 1 of the lump (lump_base is word-indexed in simulator).
@@ -3574,7 +3584,17 @@ class ChurchSimulator {
                 this.fault('PRIVATE_METHOD', `CALL CR${d.crDst}: method index ${methodIndex} is private (table entry = 0)`);
                 return null;
             }
-            this.pc = tableEntry;  // lump-base-relative word offset = new PC
+            const entryOpcode = (tableEntry >>> 27) & 0x1F;
+            if (entryOpcode === 17) {  // BRANCH-encoded method-table entry (Task #1134)
+                // Decode 15-bit signed offset; table entry at lump PC (methodIndex - 1).
+                const soff = (tableEntry & 0x4000)
+                    ? ((tableEntry & 0x7FFF) | 0xFFFF8000)
+                    : (tableEntry & 0x7FFF);
+                this.pc = (methodIndex - 1) + soff;  // = bodyOffset
+            } else {
+                // Legacy: bare lump-relative PC (pre-task-1134 on-disk LUMPs).
+                this.pc = tableEntry;
+            }
         }
         return { pc: prevPC, instr: d, desc, pipeline: this._callPipeline(d, label) };
     }
