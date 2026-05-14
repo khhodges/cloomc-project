@@ -5802,6 +5802,18 @@ abstraction VlcTest {
     }
 }
 
+// ── History roundtrip sub-suite (Task #1141) ──────────────────────────────────
+// Run as a subprocess so its own counters and stubs don't pollute this suite.
+{
+    const { spawnSync } = require('child_process');
+    const result = spawnSync(process.execPath,
+        [require('path').join(__dirname, 'test_history_roundtrip.js')],
+        { stdio: 'inherit' });
+    assert('HISTORY-ROUNDTRIP: export→import roundtrip suite passes',
+        result.status === 0,
+        result.status !== null ? 'exit code ' + result.status : 'process did not complete');
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);
