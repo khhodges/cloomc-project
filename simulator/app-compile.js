@@ -459,6 +459,10 @@ function onLangChange(restoring) {
     }
 
     if (!restoring) {
+        // A user-initiated lang switch abandons any in-progress catalog edit context
+        // (they are loading a different example, not editing a specific method).
+        if (typeof clearPseudoEditContext === 'function') clearPseudoEditContext();
+
         if (!activeUserTabId && lang !== 'personal') {
             // If the editor holds a wizard-generated scaffold, preserve it across
             // language switches so the user can write method bodies in any language.
@@ -2018,6 +2022,8 @@ function loadCLOOMCExample(name) {
     if (activeUserTabId && userTabDirty) saveActiveUserTab();
     activeUserTabId = null;
     userTabDirty = false;
+    // Loading a built-in example abandons any in-progress catalog edit context
+    if (typeof clearPseudoEditContext === 'function') clearPseudoEditContext();
     renderUserTabs();
     updateSaveUserTabBtn();
 

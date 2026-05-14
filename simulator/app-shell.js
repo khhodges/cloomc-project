@@ -174,6 +174,8 @@ function selectUserTab(id) {
     if (!tab) return;
     activeUserTabId = id;
     userTabDirty = false;
+    // Leaving catalog edit context when user picks a personal tab
+    window._pseudoEditContext = null;
     const editor = document.getElementById('asmEditor');
     if (editor) editor.value = tab.code;
     // Always show the personal group when a user tab is selected
@@ -215,7 +217,22 @@ function updateSavePseudoBtn() {
     const btn = document.getElementById('btnSavePseudo');
     if (!btn) return;
     const ed = document.getElementById('asmEditor');
-    btn.disabled = !ed || !ed.value.trim();
+    const hasContent = !!(ed && ed.value.trim());
+    btn.disabled = !hasContent;
+    if (window._pseudoEditContext) {
+        btn.innerHTML = '&#x2191; Compile &amp; Save';
+        btn.title = 'Compile editor source and save to Logic Catalog method (Ctrl+Shift+S)';
+        btn.setAttribute('data-tooltip', 'Compile & Save \u2014 compile and write back to the Logic Catalog method (Ctrl+Shift+S)');
+    } else {
+        btn.innerHTML = '&#x2193; Download .cloomc';
+        btn.title = 'Download editor contents as .cloomc file';
+        btn.setAttribute('data-tooltip', 'Download .cloomc \u2014 download the current editor source as a .cloomc file (Ctrl+Shift+S)');
+    }
+}
+
+function clearPseudoEditContext() {
+    window._pseudoEditContext = null;
+    updateSavePseudoBtn();
 }
 
 function savePseudoCode() {
@@ -223,13 +240,18 @@ function savePseudoCode() {
     if (!ed || !ed.value.trim()) return;
     const src = ed.value;
 
-    // 1. Try to extract abstraction name from source
+    // If an edit context is live, compile & save to the Logic Catalog
+    if (window._pseudoEditContext) {
+        _compileSaveToMethod(src, window._pseudoEditContext.absIdx, window._pseudoEditContext.methodName);
+        return;
+    }
+
+    // No edit context — download as file (original behaviour)
     var filename = 'program.cloomc';
     var nameMatch = src.match(/^\s*abstraction\s+([A-Za-z_][A-Za-z0-9_]*)/m);
     if (nameMatch) {
         filename = nameMatch[1].toLowerCase() + '.cloomc';
     } else {
-        // 2. Fall back to active user tab name
         if (activeUserTabId) {
             var tab = userTabs.find(function(t) { return t.id === activeUserTabId; });
             if (tab && tab.name) {
@@ -249,7 +271,6 @@ function savePseudoCode() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    // Brief status in editor console
     var outEl = document.getElementById('assemblyOutput');
     if (outEl) {
         var msg = document.createElement('div');
@@ -257,6 +278,97 @@ function savePseudoCode() {
         msg.textContent = 'Saved ' + filename;
         outEl.appendChild(msg);
         setTimeout(function() { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 1500);
+    }
+}
+
+// Maximum versions kept per method in the history stack
+var _METHOD_HISTORY_LIMIT = 20;
+
+function _compileSaveToMethod(src, absIdx, methodName) {
+    const compiler = (typeof cloomcCompiler !== 'undefined') ? cloomcCompiler : null;
+    if (!compiler) {
+        var outEl = document.getElementById('assemblyOutput');
+        if (outEl) {
+            var msg = document.createElement('div');
+            msg.style.cssText = 'color:#f88;padding:2px 0;';
+            msg.textContent = 'Compile & Save: compiler not ready. Try again after boot.';
+            outEl.appendChild(msg);
+        }
+        return;
+    }
+
+    const key = `${absIdx}:${methodName}`;
+    const prev = userMethodData[key] ? JSON.parse(JSON.stringify(userMethodData[key])) : null;
+
+    const result = compiler.compile(src, []);
+    const now = Date.now();
+    const lang = result.language || 'assembly';
+
+    let compiledWords = null;
+    let compileError = null;
+
+    if (result.errors && result.errors.length > 0) {
+        compileError = result.errors.map(function(e) {
+            return 'Line ' + (e.line || '?') + ': ' + e.message;
+        }).join('\n');
+    } else {
+        const targetMethod = (result.methods || []).find(function(m) { return m.name === methodName; });
+        if (targetMethod) {
+            compiledWords = (targetMethod.code || []).slice();
+        } else if (result.methods && result.methods.length > 0) {
+            // Single-method source — use whatever came out
+            compiledWords = (result.methods[0].code || []).slice();
+        } else {
+            compiledWords = [];
+        }
+    }
+
+    if (!userMethodData[key]) userMethodData[key] = {};
+    const current = userMethodData[key];
+
+    // Push previous version onto front of history stack
+    if (prev && (prev.example || prev.compiled || prev.compileError)) {
+        if (!current.history) current.history = [];
+        current.history.unshift({
+            src: prev.example || '',
+            compiled: prev.compiled || null,
+            compileError: prev.compileError || null,
+            savedAt: prev.compiledAt || now,
+            lang: prev.compiledLang || 'unknown'
+        });
+        if (current.history.length > _METHOD_HISTORY_LIMIT) {
+            current.history.length = _METHOD_HISTORY_LIMIT;
+        }
+    }
+
+    // Update current entry
+    current.example = src;
+    current.compiled = compiledWords;
+    current.compileError = compileError;
+    current.compiledAt = now;
+    current.compiledLang = lang;
+
+    _absMethodsSave();
+
+    // Refresh the abstraction detail panel
+    if (typeof showAbstractionDetail === 'function') showAbstractionDetail(absIdx);
+
+    // Auto-assemble if all methods are compiled
+    if (!compileError && typeof _tryAutoAssembleLump === 'function') _tryAutoAssembleLump(absIdx);
+
+    // Show feedback in editor console
+    var outEl = document.getElementById('assemblyOutput');
+    if (outEl) {
+        var msg = document.createElement('div');
+        if (compileError) {
+            msg.style.cssText = 'color:#f88;font-weight:600;padding:2px 0;';
+            msg.textContent = '\u2717 Compile error in ' + methodName + ' \u2014 stored as \u2022Error';
+        } else {
+            msg.style.cssText = 'color:#8f8;font-weight:600;padding:2px 0;';
+            msg.textContent = '\u2713 Compiled & saved ' + methodName + ' (' + (compiledWords ? compiledWords.length : 0) + ' words, ' + lang + ')';
+        }
+        outEl.appendChild(msg);
+        setTimeout(function() { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 3000);
     }
 }
 
@@ -501,6 +613,19 @@ function init() {
     }
     updateLineNumbers();
     loadNamespaceState();
+    // Probe server for OPENAI_API_KEY availability (hides Generate button if missing).
+    // Default false — button stays hidden until server confirms key is set.
+    window._hasOpenAIKey = false;
+    window._generateToken = null;
+    fetch('/api/generate-method-available').then(function(r) { return r.json(); }).then(function(d) {
+        window._hasOpenAIKey = !!d.available;
+        window._generateToken = d.token || null;  // session token for POST /api/generate-method
+        // If the key is confirmed available and an abstraction is currently shown,
+        // re-render the detail panel so the Generate button appears immediately.
+        if (window._hasOpenAIKey && typeof selectedAbsIndex === 'number' && selectedAbsIndex >= 0) {
+            if (typeof showAbstractionDetail === 'function') showAbstractionDetail(selectedAbsIndex);
+        }
+    }).catch(function() { window._hasOpenAIKey = false; });
     checkBootId();
     const views = ['repl','editor','tutorial','dashboard','namespace','hello-mum','abstractions','lumps','pipeline','trace','reference','docs','builder','sitemap','gc','devices','github','memory','gt-view'];
     const rawHash = window.location.hash.replace('#', '');

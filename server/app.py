@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import uuid
+import secrets
 import base64
 import mimetypes
 import zipfile
@@ -17,6 +18,10 @@ from flask import Flask, jsonify, send_from_directory, send_file, redirect, make
 # Ensure the server/ directory is on sys.path so local modules (boot_image, etc.)
 # are importable whether the app is started as `python3 server/app.py` (dev) or
 # `gunicorn server.app:app` from the workspace root (production).
+# Per-process session token for the /api/generate-method endpoint.
+# Generated fresh on every server start so external callers cannot reuse a leaked token.
+_GENERATE_SESSION_TOKEN = secrets.token_urlsafe(32)
+
 _SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SERVER_DIR not in sys.path:
     sys.path.insert(0, _SERVER_DIR)
@@ -5080,6 +5085,99 @@ def mum_regenerate():
         "identity_word_hex": f"0x{word:08X}",
         "protocol": "Ed25519 / GTKN-1",
     })
+
+
+@app.route("/api/generate-method", methods=["POST"])
+def api_generate_method():
+    """Generate CLOOMC source for a method using OpenAI.
+
+    POST { abstraction, method, description, capabilities? }
+    Returns { source } on success or { error } on failure.
+    Hidden in the IDE if OPENAI_API_KEY is unset.
+    Protected by a per-process session token (X-Generate-Token header),
+    returned by /api/generate-method-available when the key is configured.
+    """
+    # Check session token via header only (query-param omitted to avoid log leakage)
+    client_token = request.headers.get("X-Generate-Token", "")
+    if not client_token or client_token != _GENERATE_SESSION_TOKEN:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "OPENAI_API_KEY not configured"}), 503
+
+    data = request.get_json(silent=True) or {}
+    abstraction = data.get("abstraction", "Unknown")
+    method = data.get("method", "Unknown")
+    description = data.get("description", "")
+    capabilities = data.get("capabilities", [])
+
+    caps_text = ""
+    if capabilities:
+        if isinstance(capabilities, list):
+            caps_text = "\nCapabilities (c-list entries): " + ", ".join(
+                c if isinstance(c, str) else (c.get("name", str(c))) for c in capabilities
+            )
+
+    system_prompt = (
+        "You are an expert Church Machine CLOOMC++ programmer. "
+        "The Church Machine is a capability-based processor with a 20-instruction ISA. "
+        "Golden Tokens (GTs) are 32-bit unforgeable capability tokens stored in CR registers. "
+        "Key instructions: LOAD CRn, NS[i] (load capability), CALL d, CRs, #imm (call method), "
+        "RETURN (exit method), DWRITE DRn, #imm (load immediate), IADD/ISUB/IMUL/IDIV (arithmetic), "
+        "BRANCH label, cond (branch), SAVE/DREAD (memory ops). "
+        "Write concise, commented CLOOMC++ assembly for the requested method. "
+        "Use semicolons for comments. Output only the source code, no explanation."
+    )
+
+    user_prompt = (
+        f"Write CLOOMC++ assembly for method `{method}` of abstraction `{abstraction}`.\n"
+        f"Description: {description or 'Dispatched via CALL'}{caps_text}\n\n"
+        "Write the method body as a single .cloomc snippet — no abstraction wrapper needed, "
+        "just the method code with comments. End with RETURN."
+    )
+
+    try:
+        resp = http_requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "max_tokens": 600,
+                "temperature": 0.3,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        source = result["choices"][0]["message"]["content"].strip()
+        # Strip markdown code fences if present
+        if source.startswith("```"):
+            lines = source.split("\n")
+            source = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        return jsonify({"source": source})
+    except Exception as exc:
+        logging.warning("generate-method OpenAI error: %s", exc)
+        return jsonify({"error": "AI generation failed — check server logs for details."}), 500
+
+
+@app.route("/api/generate-method-available", methods=["GET"])
+def api_generate_method_available():
+    """Returns whether the generate-method endpoint is available (OPENAI_API_KEY set).
+    When available, also returns the session token the IDE must include in POST requests.
+    """
+    has_key = bool(os.environ.get("OPENAI_API_KEY", ""))
+    resp = {"available": has_key}
+    if has_key:
+        resp["token"] = _GENERATE_SESSION_TOKEN
+    return jsonify(resp)
 
 
 if __name__ == "__main__":

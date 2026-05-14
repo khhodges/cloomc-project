@@ -4687,6 +4687,8 @@ function loadExample(name) {
     if (activeUserTabId && userTabDirty) saveActiveUserTab();
     activeUserTabId = null;
     userTabDirty = false;
+    // Loading a built-in example abandons any in-progress catalog edit context
+    if (typeof clearPseudoEditContext === 'function') clearPseudoEditContext();
     renderUserTabs();
     updateSaveUserTabBtn();
 

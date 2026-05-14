@@ -121,6 +121,155 @@
 .abs-method-status-badge-tested    { color: var(--impl-tested); }
 .abs-method-status-badge-released  { color: var(--impl-released); }
 
+/* Compile-state badge (•Pseudo / •Compiled / •Error) on method tabs and history rows */
+.abs-compile-state-badge {
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    vertical-align: middle;
+    white-space: nowrap;
+    padding: 1px 4px;
+    border-radius: 6px;
+    pointer-events: none;
+    line-height: 1.4;
+}
+.abs-compile-state-pseudo   { color: #9ca3af; background: rgba(156,163,175,0.12); border: 1px solid rgba(156,163,175,0.25); }
+.abs-compile-state-compiled { color: #4ade80; background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); }
+.abs-compile-state-error    { color: #f87171; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.3); }
+
+/* Compiled metadata line */
+.abs-compiled-meta {
+    font-size: 0.62rem;
+    color: #4ade80;
+    margin: 4px 0 2px;
+    font-style: italic;
+}
+
+/* Compile error block */
+.abs-compile-error-block {
+    margin: 4px 0;
+    padding: 6px 8px;
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.25);
+    border-radius: 4px;
+}
+.abs-compile-error-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #f87171;
+    display: block;
+    margin-bottom: 4px;
+}
+.abs-compile-error-pre {
+    margin: 0;
+    font-size: 0.62rem;
+    color: #fca5a5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* LUMP assembly toolbar */
+.abs-lump-assemble-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: rgba(74,222,128,0.05);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    font-size: 0.65rem;
+}
+.abs-lump-assemble-ready   { color: #4ade80; font-weight: 600; }
+.abs-lump-assemble-partial { color: #9ca3af; }
+.abs-lump-assemble-btn {
+    margin-left: auto;
+    font-size: 0.6rem;
+    padding: 2px 7px;
+    background: rgba(74,222,128,0.15);
+    color: #4ade80;
+    border: 1px solid rgba(74,222,128,0.4);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.abs-lump-assemble-btn:hover { background: rgba(74,222,128,0.25); }
+
+/* Method panel action buttons row */
+.abs-method-panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.abs-generate-btn {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    background: rgba(192,132,252,0.12);
+    color: #c084fc;
+    border: 1px solid rgba(192,132,252,0.35);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.abs-generate-btn:hover { background: rgba(192,132,252,0.22); }
+
+/* Version history panel */
+.abs-method-history-details {
+    margin-top: 6px;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.abs-method-history-summary {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.03);
+    user-select: none;
+    list-style: none;
+}
+.abs-method-history-summary:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+.abs-method-history-list {
+    padding: 2px 0;
+}
+.abs-method-history-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    font-size: 0.6rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.abs-method-history-ver  { color: #6b7280; font-variant-numeric: tabular-nums; min-width: 20px; }
+.abs-method-history-ts   { color: #9ca3af; min-width: 110px; }
+.abs-method-history-lang { color: #6b7280; min-width: 60px; }
+.abs-method-history-restore {
+    margin-left: auto;
+    font-size: 0.58rem;
+    padding: 1px 6px;
+    background: rgba(255,255,255,0.06);
+    color: #9ca3af;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.abs-method-history-restore:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
+.abs-method-history-src-details {
+    margin: 0 8px 4px;
+}
+.abs-method-history-pre {
+    font-size: 0.55rem;
+    max-height: 100px;
+    overflow-y: auto;
+    margin: 2px 0 0;
+    background: rgba(0,0,0,0.2);
+    padding: 4px;
+    border-radius: 3px;
+}
+
 /* Floating status dropdown (appended to body) */
 .abs-status-dropdown {
     position: fixed;

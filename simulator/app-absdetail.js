@@ -496,14 +496,36 @@ function showAbstractionDetail(index) {
             html += `<button class="btn abs-method-ctrl-btn" title="Add method" onclick="absShowAddForm(${uid})">+</button>`;
             html += '</div>';
         } else {
+            // Helper: determine compile-state badge for a method key
+            const _getCompileState = (mKey) => {
+                const md = userMethodData[mKey];
+                if (!md) return 'pseudo';
+                if (md.compileError) return 'error';
+                if (md.compiled && md.compiled.length > 0) return 'compiled';
+                if (md.example) return 'pseudo';
+                return 'pseudo';
+            };
+            const _MONTHS_CS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const _fmtTs = ts => {
+                if (!ts) return '—';
+                const d = new Date(ts);
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                return `${d.getDate()} ${_MONTHS_CS[d.getMonth()]} ${d.getFullYear()} ${hh}:${mm}`;
+            };
+
             html += `<div class="abs-method-tabs" id="abs-tabs-${uid}">`;
             for (let mi = 0; mi < methods.length; mi++) {
                 const m = methods[mi];
                 const active = mi === 0 ? ' abs-method-tab-active' : '';
                 const mStatus = _implStatusGet(`${uid}:${m}`);
                 const badgeLabel = IMPL_STATUS_SHORT[mStatus] || mStatus;
+                const mKey = `${uid}:${m}`;
+                const compileState = _getCompileState(mKey);
+                const csLabel = compileState === 'compiled' ? '\u2022Compiled' : compileState === 'error' ? '\u2022Error' : '\u2022Pseudo';
                 html += `<span class="abs-method-tab${active}" onclick="absOpenMethodInEditor(${uid},'${m}',this,'abs-panel-${uid}-${mi}')">`;
                 html += `${m}`;
+                html += `<span class="abs-compile-state-badge abs-compile-state-${compileState}" title="Compile state: ${csLabel}">${csLabel}</span>`;
                 html += `<span class="abs-method-status-badge abs-method-status-badge-${mStatus}" onclick="event.stopPropagation();absToggleStatusDropdown(${uid},${mi},event)" title="Status: ${IMPL_STATUS_LABELS[mStatus]} — click to change">`;
                 html += `<span class="abs-method-status-badge-dot"></span>${badgeLabel}`;
                 html += `</span>`;
@@ -513,16 +535,49 @@ function showAbstractionDetail(index) {
             html += `<button class="btn abs-method-ctrl-btn" title="Add method" onclick="absShowAddForm(${uid})">+</button>`;
             html += `<button class="btn abs-method-ctrl-btn abs-method-del-ctrl" title="Delete method" onclick="absShowDeleteForm(${uid})">\u2212</button>`;
             html += '</div>';
+
+            // Check if all methods have compiled words for LUMP assembly toolbar
+            const _allCompiled = methods.every(function(m) {
+                const md = userMethodData[`${uid}:${m}`];
+                return md && md.compiled && md.compiled.length > 0;
+            });
+            const _anyCompiled = methods.some(function(m) {
+                const md = userMethodData[`${uid}:${m}`];
+                return md && (md.compiled || md.compileError);
+            });
+            if (_anyCompiled) {
+                html += `<div class="abs-lump-assemble-bar">`;
+                if (_allCompiled) {
+                    html += `<span class="abs-lump-assemble-ready">\u2713 All methods compiled</span>`;
+                } else {
+                    const _nComp = methods.filter(function(m) {
+                        const md = userMethodData[`${uid}:${m}`];
+                        return md && md.compiled && md.compiled.length > 0;
+                    }).length;
+                    html += `<span class="abs-lump-assemble-partial">${_nComp}/${methods.length} methods compiled</span>`;
+                }
+                html += `<button class="btn btn-sm abs-lump-assemble-btn" onclick="_assembleLumpFromCatalog(${uid})" title="Pack all compiled methods into a LUMP binary">Assemble LUMP</button>`;
+                html += `</div>`;
+            }
+
             html += `<div class="abs-method-panels" id="abs-panels-${uid}">`;
             for (let mi = 0; mi < methods.length; mi++) {
                 const m = methods[mi];
                 const purpose = methodPurposes[m] || 'Dispatched via CALL';
                 const example = methodExamples[m] || null;
                 const display = mi === 0 ? '' : ' style="display:none"';
+                const mKey2 = `${uid}:${m}`;
+                const md = userMethodData[mKey2] || {};
                 html += `<div class="abs-method-panel-item" id="abs-panel-${uid}-${mi}"${display}>`;
                 html += `<div class="abs-method-panel-header">`;
                 html += `<div class="abs-method-panel-name">${abs.name}.${m}</div>`;
+                html += `<div class="abs-method-panel-actions">`;
+                // Generate button (hidden if no OPENAI_API_KEY)
+                if (window._hasOpenAIKey !== false) {
+                    html += `<button class="btn btn-sm abs-generate-btn" title="Generate CLOOMC source using AI" onclick="absGenerateMethod(${uid},'${m.replace(/'/g,"\\'")}')">Generate \u2736</button>`;
+                }
                 html += `<button class="btn abs-method-ctrl-btn abs-method-edit-btn" title="Edit method" onclick="absShowEditForm(${uid},${mi})">&#9998;</button>`;
+                html += `</div>`;
                 html += `</div>`;
                 html += `<div class="abs-method-panel-desc">${purpose}</div>`;
                 const regConv = METHOD_REGISTER_CONVENTIONS[abs.name] && METHOD_REGISTER_CONVENTIONS[abs.name][m];
@@ -537,16 +592,18 @@ function showAbstractionDetail(index) {
                     }
                     html += '</tbody></table>';
                 }
+                // Compile error display
+                if (md.compileError) {
+                    html += `<div class="abs-compile-error-block"><span class="abs-compile-error-label">\u2022Error</span><pre class="abs-compile-error-pre">${md.compileError.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></div>`;
+                }
+                // Compiled word count
+                if (md.compiled && md.compiled.length > 0) {
+                    html += `<div class="abs-compiled-meta">\u2022Compiled &mdash; ${md.compiled.length} word${md.compiled.length !== 1 ? 's' : ''}, ${md.compiledLang || 'unknown'}, ${_fmtTs(md.compiledAt)}</div>`;
+                }
+                // Source code block
                 const liveSnips = (typeof ChurchAssembler !== 'undefined') ? ChurchAssembler.getLiveSnippets(abs.name, m) : null;
                 if (liveSnips && liveSnips.length > 0) {
                     html += '<div class="snippet-history">';
-                    const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                    const _fmtTs = ts => {
-                        const d = new Date(ts);
-                        const hh = String(d.getHours()).padStart(2, '0');
-                        const mm = String(d.getMinutes()).padStart(2, '0');
-                        return `${d.getDate()} ${_MONTHS[d.getMonth()]} ${d.getFullYear()} ${hh}:${mm}`;
-                    };
                     html += `<span class="snippet-ts">compiled ${_fmtTs(liveSnips[0].ts)}</span>`;
                     html += `<pre class="abs-method-panel-code">${_annotateAbsCodeHtml(liveSnips[0].source)}</pre>`;
                     for (let _si = 1; _si < liveSnips.length; _si++) {
@@ -555,9 +612,36 @@ function showAbstractionDetail(index) {
                         html += `</details>`;
                     }
                     html += '</div>';
+                } else if (md.example) {
+                    html += `<pre class="abs-method-panel-code">${_annotateAbsCodeHtml(md.example)}</pre>`;
                 } else if (example) {
                     html += `<pre class="abs-method-panel-code">${_annotateAbsCodeHtml(example)}</pre>`;
                 }
+
+                // Version history block
+                const hist = md.history || [];
+                if (hist.length > 0) {
+                    html += `<details class="abs-method-history-details">`;
+                    html += `<summary class="abs-method-history-summary">History (${hist.length} version${hist.length !== 1 ? 's' : ''})</summary>`;
+                    html += `<div class="abs-method-history-list">`;
+                    for (let hi = 0; hi < hist.length; hi++) {
+                        const hv = hist[hi];
+                        const hvState = hv.compileError ? 'error' : (hv.compiled && hv.compiled.length > 0 ? 'compiled' : 'pseudo');
+                        const hvLabel = hvState === 'compiled' ? '\u2022Compiled' : hvState === 'error' ? '\u2022Error' : '\u2022Pseudo';
+                        html += `<div class="abs-method-history-row">`;
+                        html += `<span class="abs-method-history-ver">v${hist.length - hi}</span>`;
+                        html += `<span class="abs-method-history-ts">${_fmtTs(hv.savedAt)}</span>`;
+                        html += `<span class="abs-method-history-lang">${hv.lang || '—'}</span>`;
+                        html += `<span class="abs-compile-state-badge abs-compile-state-${hvState}">${hvLabel}</span>`;
+                        html += `<button class="btn btn-sm abs-method-history-restore" onclick="absRestoreMethodVersion(${uid},'${m.replace(/'/g,"\\'")}',${hi})" title="Load this version into the editor">Restore</button>`;
+                        html += `</div>`;
+                        if (hv.src) {
+                            html += `<details class="abs-method-history-src-details"><summary>Source</summary><pre class="abs-method-panel-code abs-method-history-pre">${hv.src.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></details>`;
+                        }
+                    }
+                    html += `</div></details>`;
+                }
+
                 html += '</div>';
             }
             html += '</div>';
@@ -736,41 +820,26 @@ function absSelectMethod(tabEl, panelId) {
     if (panel) panel.style.display = '';
 }
 
-async function absOpenMethodInEditor(absIdx, methodName, tabEl, panelId) {
+function absOpenMethodInEditor(absIdx, methodName, tabEl, panelId) {
     absSelectMethod(tabEl, panelId);
 
-    // Ensure the lump cache is populated — fetch on demand if the LUMP view
-    // has not been visited yet (cache starts empty until loadLumpsView runs).
-    let cache = (typeof _lumpsCache !== 'undefined' && Array.isArray(_lumpsCache) && _lumpsCache.length > 0)
-        ? _lumpsCache : null;
-    if (!cache) {
-        try {
-            const r = await fetch('/api/lumps/list');
-            if (r.ok) {
-                cache = await r.json();
-                if (typeof _lumpsCache !== 'undefined') _lumpsCache = cache;
-            }
-        } catch (_e) {}
-    }
-
-    // Try to find the backing lump for this abstraction by NS slot
-    if (cache) {
-        const lump = cache.find(function(l) {
-            return parseInt(l.ns_slot) === absIdx &&
-                   l.lump_type !== 'namespace' && l.typ !== 10;
-        });
-        if (lump && typeof openLumpInEditor === 'function') {
-            openLumpInEditor(lump.token);
-            return;
-        }
-    }
-
-    // Fallback: load the method pseudocode from the examples table into the editor
+    // Method-tab clicks always load catalog source into the editor and set the
+    // edit context. The backing LUMP (if any) is a reference file accessible from
+    // the Lumps view — clicking a method tab is specifically a "write this method"
+    // action, so we never redirect to openLumpInEditor here.
+    const key = `${absIdx}:${methodName}`;
     const abs = (typeof abstractionRegistry !== 'undefined' && abstractionRegistry)
                     ? abstractionRegistry.getAbstraction(absIdx) : null;
-    const examples = abs ? getMethodExamples(abs) : {};
-    const code = (examples && examples[methodName])
-        || `; ${abs ? abs.name + '.' : ''}${methodName}\n; No lump found for NS[${absIdx}] — boot the simulator or upload a LUMP first.\n`;
+
+    // Prefer userMethodData.example (catalog source, persisted), then static examples.
+    let code;
+    if (userMethodData[key] && userMethodData[key].example) {
+        code = userMethodData[key].example;
+    } else {
+        const examples = abs ? getMethodExamples(abs) : {};
+        code = (examples && examples[methodName])
+            || `; ${abs ? abs.name + '.' : ''}${methodName}\n; Write CLOOMC++ assembly here and click Compile & Save.\n`;
+    }
 
     if (typeof switchView === 'function') switchView('editor');
     const sel = document.getElementById('langSelector');
@@ -782,6 +851,10 @@ async function absOpenMethodInEditor(absIdx, methodName, tabEl, panelId) {
     }
     const outEl = document.getElementById('assemblyOutput');
     if (outEl) outEl.innerHTML = '';
+
+    // Set catalog edit context so Save button shows "↑ Compile & Save"
+    window._pseudoEditContext = { absIdx: absIdx, methodName: methodName };
+    if (typeof updateSavePseudoBtn === 'function') updateSavePseudoBtn();
 }
 
 function absShowAddForm(absIdx) {
@@ -830,6 +903,254 @@ function absHideForm(absIdx) {
     if (fc) { fc.innerHTML = ''; fc.dataset.mode = ''; }
 }
 
+// Restore a history version: loads its source into the editor and sets the edit context
+function absRestoreMethodVersion(absIdx, methodName, histIdx) {
+    const key = `${absIdx}:${methodName}`;
+    const md = userMethodData[key];
+    if (!md || !md.history || !md.history[histIdx]) return;
+    const hv = md.history[histIdx];
+    const src = hv.src || '';
+
+    if (typeof switchView === 'function') switchView('editor');
+    const sel = document.getElementById('langSelector');
+    if (sel) sel.value = 'assembly';
+    const asmEd = document.getElementById('asmEditor');
+    if (asmEd) {
+        asmEd.value = src;
+        if (typeof updateLineNumbers === 'function') updateLineNumbers();
+    }
+    const outEl = document.getElementById('assemblyOutput');
+    if (outEl) outEl.innerHTML = '';
+
+    window._pseudoEditContext = { absIdx: absIdx, methodName: methodName };
+    if (typeof updateSavePseudoBtn === 'function') updateSavePseudoBtn();
+
+    const msg = document.createElement('div');
+    msg.style.cssText = 'color:#ffb74d;font-style:italic;padding:2px 0;';
+    msg.textContent = '\u21ba Restored v' + (md.history.length - histIdx) + ' of ' + methodName + ' \u2014 review and click Compile & Save when ready';
+    if (outEl) outEl.appendChild(msg);
+    setTimeout(function() { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 4000);
+}
+
+// Check if all methods for an abstraction are compiled; if so, auto-build the LUMP
+// in memory and surface the Load-into-Sim toolbar in the editor console.
+// No download is triggered — the "Assemble LUMP" button in the catalog panel handles that.
+function _tryAutoAssembleLump(absIdx) {
+    const abs = (typeof abstractionRegistry !== 'undefined' && abstractionRegistry)
+        ? abstractionRegistry.getAbstraction(absIdx) : null;
+    if (!abs || !abs.methods || abs.methods.length === 0) return;
+    const allCompiled = abs.methods.every(function(m) {
+        const md = userMethodData[`${absIdx}:${m}`];
+        return md && md.compiled && md.compiled.length > 0;
+    });
+
+    // Always refresh the detail panel so the Assemble LUMP bar updates
+    if (typeof showAbstractionDetail === 'function') showAbstractionDetail(absIdx);
+
+    if (!allCompiled) return;
+
+    // Build the LUMP binary in memory (same layout as _assembleLumpFromCatalog)
+    const methods = abs.methods;
+    const N = methods.length;
+    const methodTable = [];
+    const bodies = [];
+    let bodyOffset = N;
+    for (let i = 0; i < N; i++) {
+        const md = userMethodData[`${absIdx}:${methods[i]}`] || {};
+        const code = (md.compiled && md.compiled.length > 0) ? md.compiled : [0];
+        methodTable.push(bodyOffset + 1);
+        bodies.push(code);
+        bodyOffset += code.length;
+    }
+    const totalWords = 1 + N + bodies.reduce(function(s, b) { return s + b.length; }, 0);
+    const buf = new Uint32Array(totalWords);
+    let lumpSize = 64;
+    while (lumpSize < totalWords) lumpSize *= 2;
+    const n_minus_6 = Math.round(Math.log2(lumpSize)) - 6;
+    const cw = totalWords - 1;
+    buf[0] = ((0x1F << 27) | ((n_minus_6 & 0xF) << 23) | ((cw & 0x1FFF) << 10)) >>> 0;
+    for (let i = 0; i < N; i++) buf[1 + i] = methodTable[i] >>> 0;
+    let wp = 1 + N;
+    for (const body of bodies) { for (const w of body) { buf[wp++] = w >>> 0; } }
+
+    // Persist in-memory payload for Load-into-Sim
+    window._lastCatalogLumpWords = Array.from(buf.slice(1, totalWords));
+    window._lastCatalogLumpName = abs.name;
+
+    // Show Load-into-Sim toolbar in the editor console
+    const con = document.getElementById('editorConsole');
+    if (con) {
+        con.className = 'cmp-html';
+        con.innerHTML = `<div class="cmp-load-toolbar">
+            <button class="cmp-load-sim-btn" onclick="_loadCatalogLumpIntoSim()" data-tooltip="Load assembled catalog LUMP into the simulator">Load into Sim &#x25b6;</button>
+            <button class="cmp-load-sim-btn" style="margin-left:6px;background:rgba(74,222,128,0.15);color:#4ade80;border-color:rgba(74,222,128,0.4);" onclick="_assembleLumpFromCatalog(${absIdx})" data-tooltip="Download LUMP binary">Download .lump</button>
+        </div>
+        <div class="cmp-file-hdr">; Auto-assembled catalog LUMP \u2014 &quot;${abs.name.replace(/</g,'&lt;')}&quot; \u2014 ${N} method${N!==1?'s':''}, ${totalWords} words (all compiled)</div>`;
+    }
+}
+
+// Assemble a LUMP binary from all compiled methods and offer download + Load into Sim
+function _assembleLumpFromCatalog(absIdx) {
+    const abs = (typeof abstractionRegistry !== 'undefined' && abstractionRegistry)
+        ? abstractionRegistry.getAbstraction(absIdx) : null;
+    if (!abs || !abs.methods || abs.methods.length === 0) return;
+
+    const methods = abs.methods;
+    const N = methods.length;
+    const methodTable = [];   // one entry per method: lump-word address of body start
+    const bodies = [];        // concatenated body word arrays
+
+    let bodyOffset = N;  // first body starts at lump-word N+1 (0-indexed offset past table)
+    for (let i = 0; i < N; i++) {
+        const md = userMethodData[`${absIdx}:${methods[i]}`] || {};
+        const code = (md.compiled && md.compiled.length > 0) ? md.compiled : [0]; // zero-pad placeholder
+        methodTable.push(bodyOffset + 1);  // lump-word address (1-indexed: header = word 0)
+        bodies.push(code);
+        bodyOffset += code.length;
+    }
+
+    // Pack words: header (word 0) + method table + bodies
+    const totalWords = 1 + N + bodies.reduce(function(s, b) { return s + b.length; }, 0);
+    const buf = new Uint32Array(totalWords);
+    // Word 0: lump header — simplified (magic + cw + cc)
+    // magic=0x1F (5 bits), n_minus_6 (4 bits, size=next pow2>=totalWords), cw (13 bits), cc (8 bits)
+    let lumpSize = 64;
+    while (lumpSize < totalWords) lumpSize *= 2;
+    const n_minus_6 = Math.round(Math.log2(lumpSize)) - 6;
+    const cw = totalWords - 1;  // code words excluding header
+    const cc = 0;               // no capabilities in assembled LUMP
+    buf[0] = ((0x1F << 27) | ((n_minus_6 & 0xF) << 23) | ((cw & 0x1FFF) << 10) | (cc & 0xFF)) >>> 0;
+    for (let i = 0; i < N; i++) buf[1 + i] = methodTable[i] >>> 0;
+    let wp = 1 + N;
+    for (const body of bodies) {
+        for (const w of body) { buf[wp++] = w >>> 0; }
+    }
+
+    // Zero-pad to lumpSize
+    const padded = new Uint32Array(lumpSize);
+    padded.set(buf);
+
+    // Convert to byte array (big-endian)
+    const bytes = new Uint8Array(lumpSize * 4);
+    for (let i = 0; i < lumpSize; i++) {
+        bytes[i * 4 + 0] = (padded[i] >>> 24) & 0xFF;
+        bytes[i * 4 + 1] = (padded[i] >>> 16) & 0xFF;
+        bytes[i * 4 + 2] = (padded[i] >>> 8) & 0xFF;
+        bytes[i * 4 + 3] = padded[i] & 0xFF;
+    }
+
+    const filename = (abs.name || 'abstraction').toLowerCase().replace(/[^a-z0-9_]/g, '_') + '.lump';
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Also offer Load into Sim using the word array
+    const words = Array.from(buf.slice(1, totalWords));  // skip header
+    window._lastCatalogLumpWords = words;
+    window._lastCatalogLumpName = abs.name;
+
+    // Show feedback
+    const outEl = document.getElementById('assemblyOutput');
+    if (outEl) {
+        const msg = document.createElement('div');
+        msg.style.cssText = 'color:#8f8;font-weight:600;padding:2px 0;';
+        msg.textContent = '\u2713 LUMP assembled \u2014 ' + totalWords + ' words, downloading ' + filename;
+        outEl.appendChild(msg);
+        setTimeout(function() { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 3000);
+    }
+
+    if (typeof switchView === 'function') switchView('editor');
+    const con = document.getElementById('editorConsole');
+    if (con) {
+        con.className = 'cmp-html';
+        con.innerHTML = `<div class="cmp-load-toolbar">
+            <button class="cmp-load-sim-btn" onclick="_loadCatalogLumpIntoSim()" data-tooltip="Load assembled catalog LUMP into the simulator">Load into Sim &#x25b6;</button>
+        </div>
+        <div class="cmp-file-hdr">; Catalog LUMP \u2014 &quot;${abs.name.replace(/</g,'&lt;')}&quot; \u2014 ${N} method${N!==1?'s':''}, ${totalWords} words</div>`;
+    }
+}
+
+// Load the most-recently assembled catalog LUMP into the simulator
+function _loadCatalogLumpIntoSim() {
+    const words = window._lastCatalogLumpWords;
+    const name = window._lastCatalogLumpName || 'catalog';
+    if (!words || !words.length) return;
+
+    if (typeof lastAssembledWords !== 'undefined') lastAssembledWords = words.slice();
+    if (typeof _defaultProgramLoaded !== 'undefined') window._defaultProgramLoaded = true;
+    if (typeof _pendingSimLoad !== 'undefined') window._pendingSimLoad = true;
+    if (sim && sim.programName !== undefined) sim.programName = name;
+
+    if (!sim.bootComplete && typeof instantBoot === 'function') instantBoot();
+
+    const btn = document.querySelector('[onclick="_loadCatalogLumpIntoSim()"]');
+    if (btn) { btn.textContent = 'Loaded \u2713'; btn.disabled = true; }
+
+    const con = document.getElementById('editorConsole');
+    if (con) {
+        con.className = '';
+        con.textContent = 'Loaded catalog LUMP \u201c' + name + '\u201d \u2014 ' + words.length + ' words \u2014 click Step or Run';
+    }
+}
+
+// AI-assisted method generation (Phase 2)
+function absGenerateMethod(absIdx, methodName) {
+    const abs = (typeof abstractionRegistry !== 'undefined' && abstractionRegistry)
+        ? abstractionRegistry.getAbstraction(absIdx) : null;
+    const absName = abs ? abs.name : ('NS[' + absIdx + ']');
+    const purposes = abs ? getMethodPurposes(abs) : {};
+    const desc = purposes[methodName] || '';
+    const caps = (abs && abs.capabilities) ? abs.capabilities : [];
+
+    const btn = document.activeElement;
+    if (btn) { btn.textContent = 'Generating\u2026'; btn.disabled = true; }
+
+    const _genHeaders = { 'Content-Type': 'application/json' };
+    if (window._generateToken) _genHeaders['X-Generate-Token'] = window._generateToken;
+
+    fetch('/api/generate-method', {
+        method: 'POST',
+        headers: _genHeaders,
+        body: JSON.stringify({
+            abstraction: absName,
+            method: methodName,
+            description: desc,
+            capabilities: caps
+        })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.source) {
+            if (typeof switchView === 'function') switchView('editor');
+            const asmEd = document.getElementById('asmEditor');
+            if (asmEd) {
+                asmEd.value = data.source;
+                if (typeof updateLineNumbers === 'function') updateLineNumbers();
+            }
+            window._pseudoEditContext = { absIdx: absIdx, methodName: methodName };
+            if (typeof updateSavePseudoBtn === 'function') updateSavePseudoBtn();
+            const outEl = document.getElementById('assemblyOutput');
+            if (outEl) {
+                const msg = document.createElement('div');
+                msg.style.cssText = 'color:#c084fc;font-style:italic;padding:2px 0;';
+                msg.textContent = '\u2736 AI draft for ' + methodName + ' loaded \u2014 review and click Compile & Save when ready';
+                outEl.appendChild(msg);
+                setTimeout(function() { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 5000);
+            }
+        } else {
+            alert('Generate failed: ' + (data.error || 'unknown error'));
+        }
+    }).catch(function(err) {
+        alert('Generate request failed: ' + err.message);
+    }).finally(function() {
+        if (btn) { btn.textContent = 'Generate \u2736'; btn.disabled = false; }
+    });
+}
+
 function absShowEditForm(absIdx, mi) {
     const fc = document.getElementById(`abs-form-${absIdx}`);
     if (!fc) return;
@@ -870,10 +1191,12 @@ function absUpdateMethod(absIdx) {
     const codeEl = document.getElementById(`abs-edit-code-${absIdx}`);
     if (!descEl) return;
     const key = `${absIdx}:${mName}`;
-    userMethodData[key] = {
+    // Preserve compile state and history; only update purpose and example source
+    const prev = userMethodData[key] || {};
+    userMethodData[key] = Object.assign({}, prev, {
         purpose: descEl.value.trim(),
-        example: codeEl ? codeEl.value.trim() : ''
-    };
+        example: codeEl ? codeEl.value.trim() : (prev.example || '')
+    });
     _absMethodsSave();
     showAbstractionDetail(absIdx);
 }
