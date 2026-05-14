@@ -505,9 +505,21 @@ function _populateLumpLogicCatalog() {
             const dotTitle = (typeof IMPL_STATUS_LABELS !== 'undefined') ? (IMPL_STATUS_LABELS[best] || best) : best;
             const absProfile = (typeof _getAbstractionProfile === 'function') ? _getAbstractionProfile(abs) : 'IoT';
             const profileBadgeClass = absProfile === 'Full' ? 'profile-badge-full' : 'profile-badge-iot';
+            const _matchLump = (typeof _lumpsCache !== 'undefined' ? _lumpsCache : []).find(l => l.abstraction === abs.name);
+            const _lumpVer = _matchLump ? (_matchLump.lump_version != null ? _matchLump.lump_version : (_matchLump.version != null ? _matchLump.version : 0)) : 0;
+            const _lumpTk = _matchLump ? _escHtml(_matchLump.token || '') : '';
+            const _isGold = _lumpVer > 0;
+            const _badgeClass = _isGold ? 'lump-ver-badge lump-ver-badge-gold' : 'lump-ver-badge lump-ver-badge-grey';
+            const _clickHandler = _lumpTk
+                ? `event.stopPropagation();showLumpDetail('${_lumpTk}');_switchLumpTab('${_lumpTk}','versions')`
+                : 'event.stopPropagation()';
+            const _badgeCursor = _lumpTk ? '' : ' style="cursor:default"';
+            const _badgeTitle = _lumpTk ? 'LUMP version \u2014 click to open Versions tab' : 'LUMP version \u2014 not yet compiled';
+            const _verBadgeHtml = `<span class="${_badgeClass}" onclick="${_clickHandler}"${_badgeCursor} title="${_badgeTitle}">v${_lumpVer}</span>`;
             html += `<div class="abs-item" onclick="showAbstractionDetail(${abs.index})" ondblclick="event.stopPropagation();_goToLumpByAbstractionName(abstractionRegistry.getAbstraction(${abs.index}).name)" title="Double-click to jump to this abstraction\u2019s LUMP in the Repository">`;
             html += `<span class="abs-item-idx">${abs.index}</span>`;
             html += `<span class="abs-item-name">${abs.name}</span>`;
+            html += _verBadgeHtml;
             html += `<span class="abs-profile-badge ${profileBadgeClass}">${absProfile}</span>`;
             html += `<span class="abs-item-dot" style="background:${dotColor};box-shadow:0 0 4px ${dotColor}80" title="${dotTitle}"></span>`;
             html += `<span class="abs-item-desc">${abs.description}</span>`;

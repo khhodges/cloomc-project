@@ -5082,6 +5082,36 @@ a.next-step-link:hover {
     color: #8ab4f8;
 }
 
+.lump-ver-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+    transition: opacity 0.15s;
+}
+
+.lump-ver-badge:hover {
+    opacity: 0.75;
+}
+
+.lump-ver-badge-grey {
+    background: rgba(107, 114, 128, 0.25);
+    color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.35);
+}
+
+.lump-ver-badge-gold {
+    background: rgba(244, 185, 66, 0.18);
+    color: var(--church-gold, #f4b942);
+    border: 1px solid rgba(244, 185, 66, 0.4);
+}
+
 .lump-detail-sections {
     padding: 0.5rem 0;
 }
