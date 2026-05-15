@@ -1026,6 +1026,22 @@
     box-shadow: 0 0 0 2px rgba(218,165,32,0.15);
 }
 
+.le-rl-show-all-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.le-rl-show-all-toggle input[type="checkbox"] {
+    accent-color: var(--church-gold);
+    cursor: pointer;
+}
+
 .le-rl-addr-na {
     color: var(--text-secondary);
     font-size: 0.82rem;

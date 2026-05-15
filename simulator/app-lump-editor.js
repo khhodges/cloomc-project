@@ -484,17 +484,34 @@
         if (!_rl.catalog.length) {
             bootEntryCell = '<td class="le-rl-td"><span class="le-rl-boot-note">\u2014 loading catalog \u2014</span></td>';
         } else {
+            var showAll = localStorage.getItem('bootDropdownShowAll') === '1';
+            var validBootTarget = function (ce) {
+                return ce.nsSlotPolicy !== 'dynamic' && ce.hasExecutableMethods;
+            };
+            var hiddenCount = 0;
+            for (var hci = 0; hci < _rl.catalog.length; hci++) {
+                var hce = _rl.catalog[hci];
+                if (!validBootTarget(hce) && hce.nsSlot !== bootSlot) hiddenCount++;
+            }
             var selectOpts = '';
             for (var ci = 0; ci < _rl.catalog.length; ci++) {
                 var ce = _rl.catalog[ci];
+                var isValid = validBootTarget(ce);
+                if (!showAll && !isValid && ce.nsSlot !== bootSlot) continue;
+                var optSuffix = (!isValid) ? ' \u26a0 not a boot target' : '';
                 var optLabel = esc((ce.abstraction || 'Slot ' + ce.nsSlot) +
-                    ' (NS slot ' + ce.nsSlot + ', ' + (ce.lumpSize != null ? ce.lumpSize : '?') + ' words)');
+                    ' (NS slot ' + ce.nsSlot + ', ' + (ce.lumpSize != null ? ce.lumpSize : '?') + ' words)' + optSuffix);
                 selectOpts += '<option value="' + ce.nsSlot + '"' +
                     (ce.nsSlot === bootSlot ? ' selected' : '') + '>' + optLabel + '</option>';
             }
+            var showAllToggle = hiddenCount > 0
+                ? '<label class="le-rl-show-all-toggle">' +
+                  '<input type="checkbox" onchange="lumpEditorBootShowAllToggle(this.checked)"' +
+                  (showAll ? ' checked' : '') + '> show all (' + hiddenCount + ' hidden)</label>'
+                : '';
             bootEntryCell = '<td class="le-rl-td">' +
                 '<select class="le-rl-boot-select" onchange="lumpEditorBootEntryChange(parseInt(this.value,10))">' +
-                selectOpts + '</select></td>';
+                selectOpts + '</select>' + showAllToggle + '</td>';
         }
 
         var rows =
@@ -1055,6 +1072,11 @@
             localStorage.setItem('bootEntrySlot', String(nsSlot));
             renderResidentPanel();
         }
+    };
+
+    window.lumpEditorBootShowAllToggle = function (checked) {
+        localStorage.setItem('bootDropdownShowAll', checked ? '1' : '0');
+        renderResidentPanel();
     };
 
     window.initLumpEditor = function () {

@@ -400,6 +400,8 @@ def _load_lump_catalog():
             "nsSlot": slot,
             "lumpSize": entry.get("lump_size"),
             "token": entry.get("token"),
+            "nsSlotPolicy": entry.get("ns_slot_policy", "static"),
+            "hasExecutableMethods": bool(entry.get("methods")),
         }
         if entry.get("media_tags"):
             e["mediaTags"] = entry["media_tags"]
