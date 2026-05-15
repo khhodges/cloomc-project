@@ -84,6 +84,28 @@
     // Cleared by an explicit user preset pick or banner dismissal.
     var _nsSizeClampedInfo = null;  // { savedN, clampedN, boardLabel } | null
 
+    // Set when clampThreadStateToBoard() reduces lumpPow2 due to a board switch.
+    // Cleared by an explicit user lump-size pick or banner dismissal.
+    var _threadLumpClampedInfo = null;  // { savedExp, clampedExp, boardLabel } | null
+
+    // Clamps lumpPow2 to the maximum valid value for the current board.
+    // Call this whenever the board selection changes to keep state consistent.
+    function clampThreadStateToBoard() {
+        var profile     = getBoardProfile();
+        var budget      = Math.floor(profile.totalRamWords / 2);
+        var count       = clamp(state.thread.count, 1, profile.singleThread ? 1 : 10);
+        var maxLumpWords = Math.max(64, Math.floor(budget / count));
+        var maxExp      = maxExpForWords(Math.min(maxLumpWords, 8192));
+        if (state.thread.lumpPow2 > maxExp) {
+            var savedExp = state.thread.lumpPow2;
+            state.thread.lumpPow2 = maxExp;
+            saveState();
+            _threadLumpClampedInfo = { savedExp: savedExp, clampedExp: maxExp, boardLabel: profile.label };
+        } else {
+            _threadLumpClampedInfo = null;
+        }
+    }
+
     // Clamps n_minus_6 to the maximum valid preset for the current board.
     // Call this whenever the board selection changes to keep state consistent.
     function clampNSStateToBoard() {
@@ -661,6 +683,20 @@
             ? '<div class="le-error-banner">&#x26A0; <strong>Over capacity</strong> \u2014 stack + static zones exceed lump size; heap would be negative. Increase the lump size or reduce stack frames to unlock Save\u00a0/\u00a0Build LUMP.</div>'
             : '';
 
+        var threadClampBanner = '';
+        if (_threadLumpClampedInfo) {
+            var tci = _threadLumpClampedInfo;
+            var savedWords   = fmtWords(Math.pow(2, tci.savedExp));
+            var clampedWords = fmtWords(Math.pow(2, tci.clampedExp));
+            threadClampBanner = '<div class="le-warn-banner">' +
+                '\u26A0 Your saved lump size (' + esc(savedWords) + ' words, 2^' + tci.savedExp + ') ' +
+                'exceeds the maximum for <strong>' + esc(tci.boardLabel) + '</strong> and has been ' +
+                'adjusted to ' + esc(clampedWords) + ' words (2^' + tci.clampedExp + '). ' +
+                'Pick a new lump size below to confirm.' +
+                '<button class="le-warn-dismiss" onclick="lumpEditorDismissThreadWarning()" title="Dismiss">\u00d7</button>' +
+            '</div>';
+        }
+
         var saveBtn = '<div class="le-save-row">' +
             '<button class="le-save-btn"' + (overCapacity ? ' disabled' : '') +
             ' onclick="lumpEditorSaveThread()"' +
@@ -672,6 +708,7 @@
             '</div>';
 
         return '<div class="le-panel">' +
+            threadClampBanner +
             overCapWarning +
             '<p class="le-panel-desc">Choose lump size first (power of two, bounded by board thread budget). Set stack frames. Heap is derived automatically — no wasted freespace.</p>' +
             '<div class="le-field-row">' +
@@ -846,6 +883,7 @@
         var maxWords = Math.min(Math.floor(budget / count), 8192);
         var maxExp   = Math.max(MIN_EXP, Math.min(MAX_EXP, Math.floor(Math.log2(maxWords))));
         state.thread.lumpPow2 = clamp(exp, MIN_EXP, maxExp);
+        _threadLumpClampedInfo = null;
 
         // Patch count slider max in-place so it reacts before the full re-render
         var lumpSize = Math.pow(2, state.thread.lumpPow2);
@@ -895,6 +933,11 @@
         render();
     };
 
+    window.lumpEditorDismissThreadWarning = function () {
+        _threadLumpClampedInfo = null;
+        render();
+    };
+
     window.lumpEditorNSSlots = function (v) {
         var maxSl = Math.pow(2, state.ns.n_minus_6 + 14) / 64;
         state.ns.slots = clamp(v, 1, maxSl);
@@ -918,7 +961,7 @@
         }
     };
 
-    window.lumpEditorRender = function () { clampNSStateToBoard(); render(); };
+    window.lumpEditorRender = function () { clampThreadStateToBoard(); clampNSStateToBoard(); render(); };
     window.lumpEditorRenderResidentPanel = function () {
         var panel = document.getElementById('lumpResidentPanel');
         if (panel && panel.offsetParent !== null) renderResidentPanel();
@@ -1046,6 +1089,7 @@
 
     window.addEventListener('storage', function (ev) {
         if (ev.key === 'fpga_board_target') {
+            clampThreadStateToBoard();
             clampNSStateToBoard();
             render();
             var panel = document.getElementById('lumpResidentPanel');
