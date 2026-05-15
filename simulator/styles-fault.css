@@ -715,11 +715,22 @@
 .le-overflow { color: #f87171; font-weight: 600; }
 
 .le-bar-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
     font-size: 0.72rem;
     color: var(--text-secondary);
     margin-bottom: 0.3rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.le-bar-label-count {
+    font-size: 0.78rem;
+    color: var(--gold, #daa520);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .le-bar {
