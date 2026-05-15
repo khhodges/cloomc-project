@@ -744,6 +744,40 @@
     padding: 0.65rem 0.9rem;
 }
 
+.le-warn-banner {
+    background: rgba(251,191,36,0.10);
+    border: 1px solid rgba(251,191,36,0.40);
+    border-left: 4px solid #fbbf24;
+    border-radius: 5px;
+    color: #fbbf24;
+    font-size: 0.84rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    padding: 0.65rem 0.9rem;
+    position: relative;
+    padding-right: 2.4rem;
+}
+
+.le-warn-dismiss {
+    background: none;
+    border: none;
+    color: #fbbf24;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    opacity: 0.75;
+    padding: 0 0.2rem;
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.le-warn-dismiss:hover {
+    opacity: 1;
+}
+
 .le-save-row {
     display: flex;
     justify-content: flex-start;

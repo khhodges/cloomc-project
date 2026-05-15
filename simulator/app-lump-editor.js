@@ -80,6 +80,10 @@
         return fits.length > 0 ? fits : [NS_PRESETS[0]];
     }
 
+    // Set when clampNSStateToBoard() reduces n_minus_6 due to a board switch.
+    // Cleared by an explicit user preset pick or banner dismissal.
+    var _nsSizeClampedInfo = null;  // { savedN, clampedN, boardLabel } | null
+
     // Clamps n_minus_6 to the maximum valid preset for the current board.
     // Call this whenever the board selection changes to keep state consistent.
     function clampNSStateToBoard() {
@@ -87,10 +91,15 @@
         var valid   = getValidNSPresets(profile.totalRamWords);
         var maxN    = valid[valid.length - 1].n;
         if (state.ns.n_minus_6 > maxN) {
+            var savedN = state.ns.n_minus_6;
             state.ns.n_minus_6 = maxN;
             var newMaxSl = Math.pow(2, maxN + 14) / 64;
             if (state.ns.slots > newMaxSl) state.ns.slots = newMaxSl;
             saveState();
+            _nsSizeClampedInfo = { savedN: savedN, clampedN: maxN, boardLabel: profile.label };
+        } else {
+            // Current size fits the new board — clear any stale clamp warning.
+            _nsSizeClampedInfo = null;
         }
     }
 
@@ -695,6 +704,20 @@
         var noFit = (validPresets.length === 1 && Math.pow(2, validPresets[0].n + 14) > boardRam);
         var maxN   = validPresets[validPresets.length - 1].n;
         var n      = clamp(state.ns.n_minus_6, 0, maxN);
+
+        var clampBanner = '';
+        if (_nsSizeClampedInfo) {
+            var ci = _nsSizeClampedInfo;
+            var savedWords  = fmtWords(Math.pow(2, ci.savedN  + 14));
+            var clampedWords = fmtWords(Math.pow(2, ci.clampedN + 14));
+            clampBanner = '<div class="le-warn-banner">' +
+                '\u26A0 Your saved namespace size (' + esc(savedWords) + ' words, n=' + ci.savedN + ') ' +
+                'exceeds the maximum for <strong>' + esc(ci.boardLabel) + '</strong> and has been ' +
+                'adjusted to ' + esc(clampedWords) + ' words (n=' + ci.clampedN + '). ' +
+                'Pick a new size below to confirm.' +
+                '<button class="le-warn-dismiss" onclick="lumpEditorDismissNSWarning()" title="Dismiss">\u00d7</button>' +
+            '</div>';
+        }
         var total  = Math.pow(2, n + 14);
         var maxSl  = total / 64;
         var slots  = clamp(state.ns.slots, 1, maxSl);
@@ -758,6 +781,7 @@
             '</div>';
 
         return '<div class="le-panel">' +
+            clampBanner +
             '<p class="le-panel-desc">Choose total namespace memory and slot capacity. Slot count is encoded across cw and cc as <code>(cw&lt;&lt;8)|cc</code>.</p>' +
             '<div class="le-field-row">' +
                 '<label class="le-label">Total namespace memory</label>' +
@@ -845,7 +869,13 @@
         state.ns.n_minus_6 = clamp(v, 0, 15);
         var maxSl = Math.pow(2, state.ns.n_minus_6 + 14) / 64;
         if (state.ns.slots > maxSl) state.ns.slots = maxSl;
+        _nsSizeClampedInfo = null;
         saveState();
+        render();
+    };
+
+    window.lumpEditorDismissNSWarning = function () {
+        _nsSizeClampedInfo = null;
         render();
     };
 
