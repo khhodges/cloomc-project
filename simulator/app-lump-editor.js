@@ -170,10 +170,10 @@
                 '</div>' +
             '</div>' +
             '<div class="le-divider"></div>' +
-            grid +
-            '<div class="le-divider"></div>' +
             '<div class="le-bar-label-row"><span>Single thread memory layout</span></div>' +
             bar +
+            '<div class="le-divider"></div>' +
+            grid +
         '</div>';
     }
 
