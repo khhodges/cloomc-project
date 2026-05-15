@@ -122,8 +122,9 @@ test.describe('Resident Lumps tab — table loads', () => {
 
         const panel = page.locator('#lumpResidentPanel');
 
-        // The stub catalog contains one lump named 'LED'.
-        await expect(panel.locator('text=LED')).toBeVisible();
+        // The stub catalog contains one lump named 'LED' (check in table cells,
+        // not the boot-entry dropdown which may also contain 'LED' as an option).
+        await expect(panel.locator('tr.le-rl-row:not(.le-rl-boot-row) td:has-text("LED")')).toBeVisible();
 
         // Its NS slot (12) and size (64) should also be visible in the table.
         const rows = panel.locator('tr.le-rl-row:not(.le-rl-boot-row)');
