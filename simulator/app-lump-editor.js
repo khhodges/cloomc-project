@@ -244,10 +244,19 @@
         var countHint = profile.singleThread ? ' (single-thread board)' : ' 1\u2013' + maxCount;
 
         var overCapWarning = overCapacity
-            ? '<p class="le-overflow le-overcap-warning">&#x26A0; Stack + static zones exceed lump size — heap would be negative. Increase lump size or reduce stack frames.</p>'
+            ? '<div class="le-error-banner">&#x26A0; <strong>Over capacity</strong> \u2014 stack + static zones exceed lump size; heap would be negative. Increase the lump size or reduce stack frames to unlock Save\u00a0/\u00a0Build LUMP.</div>'
             : '';
 
+        var saveBtn = '<div class="le-save-row">' +
+            '<button class="le-save-btn"' + (overCapacity ? ' disabled' : '') +
+            ' onclick="buildAndDownloadLump()"' +
+            ' title="Build and download a .lump binary with the current Thread LUMP header">' +
+            '\u2B07 Save\u00a0/\u00a0Build LUMP' +
+            '</button>' +
+            '</div>';
+
         return '<div class="le-panel">' +
+            overCapWarning +
             '<p class="le-panel-desc">Choose lump size first (power of two, bounded by board thread budget). Set stack frames. Heap is derived automatically — no wasted freespace.</p>' +
             '<div class="le-field-row">' +
                 '<label class="le-label">Lump size<span class="le-range-hint"> 2^' + MIN_EXP + '\u2013' + maxLumpPow2 + ', max ' + fmtWords(Math.pow(2, maxLumpPow2)) + ' w</span></label>' +
@@ -275,12 +284,12 @@
                     '<div class="le-readonly-val">' + heapDisplay + '</div>' +
                 '</div>' +
             '</div>' +
-            overCapWarning +
             '<div class="le-bar-label-row"><span>Single thread memory layout</span><span class="le-bar-label-count">' + esc(lumpSize.toLocaleString() + ' words') + '</span></div>' +
             (zones.length ? renderBar(zones) : '') +
             (zones.length ? renderMagBar(zones) : '') +
             '<div class="le-divider"></div>' +
             grid +
+            saveBtn +
         '</div>';
     }
 
