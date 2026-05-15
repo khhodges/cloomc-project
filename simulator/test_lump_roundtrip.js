@@ -339,6 +339,78 @@ console.log('\n--- T-RT06: Regression gate — BRANCH encoding vs. bare address 
           fetch3.ok && fetch3.word === SENT2B);
 }
 
+// ── T-RT07: Thread LUMP header encoding round-trip ────────────────────────────
+// Mirrors the packHdr logic in simulator/app-lump-editor.js (renderThreadPanel).
+// Constants from the editor (static, never change):
+//   DR_WORDS  = 16   (DR0–DR15)
+//   CAP_WORDS = 12   (CR0–CR11 GT home slots)
+// Header word bit layout:
+//   [31:27] magic   = 0x1F
+//   [26:23] n_minus_6
+//   [22:10] cw      (heap words)
+//   [ 9: 8] typ     = 2  (Thread = binary 10)
+//   [ 7: 0] cc      (stackFrames)
+console.log('\n--- T-RT07: Thread LUMP header encoding round-trip ---');
+{
+    const DR_WORDS  = 16;
+    const CAP_WORDS = 12;
+
+    // Chosen test values
+    const lumpPow2    = 8;          // 256-word lump
+    const stackFrames = 20;         // 20 frames × 2 words = 40 stack words
+
+    // Derived values
+    const lumpSize   = 1 << lumpPow2;                               // 256
+    const n_minus_6  = lumpPow2 - 6;                                // 2
+    const stackWords = stackFrames * 2;                              // 40
+    const heap       = lumpSize - 1 - DR_WORDS - stackWords - CAP_WORDS; // 187
+    const cw         = heap;
+    const cc         = stackFrames;
+    const typ        = 2;   // Thread
+
+    // Pack (mirrors app-lump-editor.js packHdr)
+    const word = (
+        (0x1F          << 27) |
+        ((n_minus_6 & 0xF)  << 23) |
+        ((cw  & 0x1FFF)     << 10) |
+        ((typ & 0x3)        <<  8) |
+        (cc   & 0xFF)
+    ) >>> 0;
+
+    // Unpack and assert each field
+    const upMagic    = (word >>> 27) & 0x1F;
+    const upNMinus6  = (word >>> 23) & 0xF;
+    const upCW       = (word >>> 10) & 0x1FFF;
+    const upTyp      = (word >>>  8) & 0x3;
+    const upCC       =  word         & 0xFF;
+
+    check('T-RT07a: magic = 0x1F',                     upMagic   === 0x1F);
+    check('T-RT07b: n_minus_6 = lumpPow2 - 6 = 2',    upNMinus6 === n_minus_6);
+    check('T-RT07c: cw = heap words = 187',            upCW      === cw);
+    check('T-RT07d: typ = 2 (Thread)',                 upTyp     === 2);
+    check('T-RT07e: cc = stackFrames = 20',            upCC      === cc);
+
+    // Second case: lumpPow2=10 (1024 words), stackFrames=64
+    const lp2b    = 10;
+    const sfb     = 64;
+    const lsb     = 1 << lp2b;                                     // 1024
+    const nmb     = lp2b - 6;                                       // 4
+    const swb     = sfb * 2;                                        // 128
+    const heapB   = lsb - 1 - DR_WORDS - swb - CAP_WORDS;          // 867
+    const wordB   = (
+        (0x1F          << 27) |
+        ((nmb  & 0xF)  << 23) |
+        ((heapB & 0x1FFF) << 10) |
+        ((2    & 0x3)  <<  8) |
+        (sfb   & 0xFF)
+    ) >>> 0;
+
+    check('T-RT07f: case2 n_minus_6 = 4',   ((wordB >>> 23) & 0xF)    === nmb);
+    check('T-RT07g: case2 cw = 867',        ((wordB >>> 10) & 0x1FFF) === heapB);
+    check('T-RT07h: case2 cc = 64',         ( wordB         & 0xFF)   === sfb);
+    check('T-RT07i: case2 typ = 2',         ((wordB >>>  8) & 0x3)    === 2);
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('\n══════════════════════════════════════');
 console.log(`Results: ${pass} passed, ${fail} failed`);
