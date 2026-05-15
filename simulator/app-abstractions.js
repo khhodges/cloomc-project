@@ -523,6 +523,7 @@ function setBootEntrySlot(idx) {
     renderAbstractions();
     if (currentView === 'namespace') updateNamespace();
     _refreshBootNSDetailIfOpen();
+    if (typeof window.lumpEditorRenderResidentPanel === 'function') window.lumpEditorRenderResidentPanel();
 }
 
 function _syncBootEntryFromSim() {
