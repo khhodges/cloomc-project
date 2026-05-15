@@ -25,8 +25,16 @@
 //   T-RT06 — Regression gate: bare-address format (legacy) NOT accepted for
 //             a freshly assembled LUMP (method table must use BRANCH opcode)
 
+const fs   = require('fs');
+const path = require('path');
 const ChurchSimulator = require('./simulator.js');
 const { assembleLump, BRANCH_OPCODE } = require('./lump_assembler.js');
+
+// Load lump-audit.js (browser module — no module.exports) via Function shim
+const _auditSrc = fs.readFileSync(path.join(__dirname, 'lump-audit.js'), 'utf8');
+const _auditMod = new Function(_auditSrc + '\nreturn { lumpAudit, lumpAuditHasErrors };')();
+const lumpAudit          = _auditMod.lumpAudit;
+const lumpAuditHasErrors = _auditMod.lumpAuditHasErrors;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CALL_OPCODE   = 2;
@@ -409,6 +417,50 @@ console.log('\n--- T-RT07: Thread LUMP header encoding round-trip ---');
     check('T-RT07g: case2 cw = 867',        ((wordB >>> 10) & 0x1FFF) === heapB);
     check('T-RT07h: case2 cc = 64',         ( wordB         & 0xFF)   === sfb);
     check('T-RT07i: case2 typ = 2',         ((wordB >>>  8) & 0x3)    === 2);
+}
+
+// ── T-RT07j/k: over-capacity guard — cw clamps to 0, RB1 fires as error ───────
+// Mirror the guard in app-lump-editor.js renderThreadPanel():
+//   heap = lumpSize - 1 - DR_WORDS - stackWords - CAP_WORDS
+//   cw   = overCapacity ? 0 : heap
+// We choose a tiny lump (lumpPow2=6, 64 words) with a large stackFrames (30),
+// which makes heap <= 0.
+console.log('\n--- T-RT07j/k: Thread LUMP over-capacity guard ---');
+{
+    const DR_WORDS    = 16;
+    const CAP_WORDS   = 12;
+    const lumpPow2    = 6;    // 64-word lump — smallest legal Thread LUMP
+    const stackFrames = 30;   // 30 × 2 = 60 stack words  →  heap = 64-1-16-60-12 = -25
+
+    const lumpSize   = 1 << lumpPow2;                                   // 64
+    const n_minus_6  = lumpPow2 - 6;                                    // 0
+    const stackWords = stackFrames * 2;                                  // 60
+    const heap       = lumpSize - 1 - DR_WORDS - stackWords - CAP_WORDS; // -25
+    const overCapacity = heap <= 0;
+
+    // Editor guard: cw = 0 when over-capacity
+    const cw = overCapacity ? 0 : heap;
+    const cc = stackFrames;
+
+    check('T-RT07j: heap <= 0 when over-capacity',  overCapacity === true);
+    check('T-RT07j: cw clamps to 0 (not negative)', cw === 0);
+
+    // Build a minimal binary (64 words) with this header so lumpAudit has a
+    // properly-sized array to inspect (R2 must pass for RB1 to be reached).
+    const hdr = (
+        (0x1F          << 27) |
+        ((n_minus_6 & 0xF)  << 23) |
+        ((cw  & 0x1FFF)     << 10) |
+        ((2   & 0x3)        <<  8) |   // typ = 2 (Thread)
+        (cc   & 0xFF)
+    ) >>> 0;
+    const words = new Array(lumpSize).fill(0);
+    words[0] = hdr;
+
+    const auditResults = lumpAudit(words, null);
+    const rb1 = auditResults.find(r => r.ruleId === 'RB1');
+    check('T-RT07k: RB1 rule present in audit results', rb1 !== undefined);
+    check('T-RT07k: RB1 severity === \'error\' for cw=0', rb1 !== undefined && rb1.severity === 'error');
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────────
