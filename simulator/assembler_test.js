@@ -2279,20 +2279,21 @@ const ChurchSimulator = require('./simulator.js');
 // constant causes an immediate, clearly-located throw rather than a cryptic
 // mid-test fault inside sim.step().  Abstract GTs (type===3) repurpose the
 // permission bits as ab_type and are exempt from the check.
+//
+// New GT word layout (v1.1):
+//   [31]=b_flag [30:28]=perm[2:0] [27]=dom [26]=spare [25]=f_flag
+//   [24:23]=gt_type [22:16]=gt_seq [15:0]=slot_id
+//   dom=0 (Turing): perm[2]=X, perm[1]=W, perm[0]=R
+//   dom=1 (Church):  perm[2]=E, perm[1]=S, perm[0]=L
 function validateGTConstant(name, word) {
     word = word >>> 0;
     const type = (word >>> 23) & 0x3;
     if (type === 3) return;
-    const permBits = (word >>> 25) & 0x7F;
-    const perms = {
-        B: (permBits >>> 6) & 1,
-        E: (permBits >>> 5) & 1,
-        S: (permBits >>> 4) & 1,
-        L: (permBits >>> 3) & 1,
-        X: (permBits >>> 2) & 1,
-        W: (permBits >>> 1) & 1,
-        R: (permBits >>> 0) & 1,
-    };
+    const perm3 = (word >>> 28) & 0x7;
+    const dom   = (word >>> 27) & 0x1;
+    const perms = dom === 0
+        ? { B: (word >>> 31) & 1, X: (perm3 >>> 2) & 1, W: (perm3 >>> 1) & 1, R: (perm3 >>> 0) & 1, L: 0, S: 0, E: 0 }
+        : { B: (word >>> 31) & 1, X: 0, W: 0, R: 0, E: (perm3 >>> 2) & 1, S: (perm3 >>> 1) & 1, L: (perm3 >>> 0) & 1 };
     const purity = ChurchSimulator.isDomainPure(perms);
     if (!purity.ok) {
         throw new Error(
@@ -2309,12 +2310,12 @@ function validateGTConstant(name, word) {
 //   Regression — valid preset + in-range GT still passes (Z=1)
 //
 // TPERM instruction word layout: opcode[31:27]=6, crDst[22:19], imm[14:0]
-// GT word layout: permBits[31:25], type[24:23], seq[22:16], index[15:0]
-//   R perm = permBits bit 0; Inform type = 0b01
+// GT word layout (v1.1): b[31] perm[30:28] dom[27] spare[26] f[25] type[24:23] seq[22:16] index[15:0]
+//   dom=0 (Turing): perm[2]=X, perm[1]=W, perm[0]=R; Inform type = 0b01
 
 // GT word for CR0: R permission, Inform type, NS index 0, seq 0
-// GT bits: permBits[31:25]=0b0000001(R), type[24:23]=0b01(Inform), seq[22:16]=0, index[15:0]=0
-const TP_GT_R_IDX0 = ((0b0000001 << 25) | (0b01 << 23) | 0) >>> 0;
+// New encoding: dom=0 (Turing), perm3=0b001 (R only at perm[0]=bit28), type=Inform(01 at bits[24:23])
+const TP_GT_R_IDX0 = ((0b001 << 28) | (0 << 27) | (0b01 << 23) | 0) >>> 0;
 validateGTConstant('TP_GT_R_IDX0', TP_GT_R_IDX0);
 
 // Instruction word format: opcode[31:27], cond[26:23], crDst[22:19], crSrc[18:15], imm[14:0]
@@ -2426,32 +2427,31 @@ const TP_INSTR_RSV = ((6 << 27) | (0xE << 23) | (0 << 19) | 11) >>> 0;
 // CRd (crDst=0, CR0) holds the source GT (the authority being attenuated).
 // CRs (crSrc=1, CR1) holds the requested permission template GT.
 //
-// GT word layout (bits): B[31] E[30] S[29] L[28] X[27] W[26] R[25] type[24:23] seq[22:16] index[15:0]
-// Inform type = 0b01 (bit 23 set).
+// GT word layout (v1.1): b[31] perm[30:28] dom[27] spare[26] f[25] type[24:23] seq[22:16] index[15:0]
+//   dom=0 (Turing): perm[2]=X, perm[1]=W, perm[0]=R; Inform type = 0b01 (bit 23 set).
 
 // TPERM CR0, CR1, 0x7FFF  (Mode 2 attenuation — imm=0x7FFF, crDst=0, crSrc=1)
 // opcode=6, cond=AL=0xE, crDst=0, crSrc=1, imm=0x7FFF
 const SM_MODE2_INSTR = ((6 << 27) | (0xE << 23) | (0 << 19) | (1 << 15) | 0x7FFF) >>> 0;
 
 // GT with R,W,X permissions (full Turing domain), Inform type, NS index 0, seq 0
-// permBits: R=bit0=1, W=bit1=1, X=bit2=1 → 0b000111=0x07; shifted to [31:25]: 0x07<<25=0x0E000000
-// Inform type: bit23=1 → 0x00800000
-const SM_GT_RWX = ((0x07 << 25) | (0x01 << 23)) >>> 0;
+// New encoding: dom=0, perm3=0b111 (X=perm[2], W=perm[1], R=perm[0]) at bits[30:28]; type=Inform at bits[24:23]
+const SM_GT_RWX = ((0b111 << 28) | (0 << 27) | (0x01 << 23)) >>> 0;
 validateGTConstant('SM_GT_RWX', SM_GT_RWX);
 
 // GT with R,W permissions (Turing subset), Inform type, NS index 1, seq 0
-// permBits: R=1, W=1 → 0b000011=0x03; 0x03<<25=0x06000000; index=1
-const SM_GT_RW_IDX1 = ((0x03 << 25) | (0x01 << 23) | 1) >>> 0;
+// New encoding: dom=0, perm3=0b011 (W=perm[1], R=perm[0]) at bits[30:28]
+const SM_GT_RW_IDX1 = ((0b011 << 28) | (0 << 27) | (0x01 << 23) | 1) >>> 0;
 validateGTConstant('SM_GT_RW_IDX1', SM_GT_RW_IDX1);
 
 // GT with R,W permissions, Inform type, NS index 0, seq 0
-// permBits: R=1, W=1 → 0b000011=0x03; 0x03<<25=0x06000000
-const SM_GT_RW = ((0x03 << 25) | (0x01 << 23)) >>> 0;
+// New encoding: dom=0, perm3=0b011 (W=perm[1], R=perm[0]) at bits[30:28]
+const SM_GT_RW = ((0b011 << 28) | (0 << 27) | (0x01 << 23)) >>> 0;
 validateGTConstant('SM_GT_RW', SM_GT_RW);
 
 // GT with R,W,X permissions (expansion beyond RW), Inform type, NS index 1, seq 0
-// permBits: R=1, W=1, X=1 → 0b000111=0x07; 0x07<<25=0x0E000000; index=1
-const SM_GT_RWX_IDX1 = ((0x07 << 25) | (0x01 << 23) | 1) >>> 0;
+// New encoding: dom=0, perm3=0b111 at bits[30:28]
+const SM_GT_RWX_IDX1 = ((0b111 << 28) | (0 << 27) | (0x01 << 23) | 1) >>> 0;
 validateGTConstant('SM_GT_RWX_IDX1', SM_GT_RWX_IDX1);
 
 // SM1: Valid attenuation (strict subset) — CRd={R,W,X}, CRs={R,W} → Z=1, attenuated GT written

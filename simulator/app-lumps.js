@@ -3348,13 +3348,23 @@ async function _gtPickCommit(lumpToken, slotIndex) {
     const typeEl  = document.getElementById('gtpick-type');
     const gtType  = typeEl ? parseInt(typeEl.value) : 1;
     const permsLabels = ['R','W','X','L','S','E'];
-    let perms = 0;
-    permsLabels.forEach((p, i) => {
-        if (document.getElementById(`gtpick-perm-${p}`)?.checked) perms |= (1 << i);
+    const permsObj = {};
+    permsLabels.forEach(p => {
+        permsObj[p] = document.getElementById(`gtpick-perm-${p}`)?.checked ? 1 : 0;
     });
 
-    // Build GT word: bits[30:25]=perms  bits[24:23]=type  bits[22:16]=gt_seq  bits[15:0]=ns_slot
-    const gt_word = (((perms & 0x3F) << 25) | ((gtType & 0x3) << 23) |
+    // Build GT word using new dom+perm encoding (v1.1):
+    //   [31]=b_flag [30:28]=perm[2:0] [27]=dom [26]=spare=0 [25]=f_flag=0
+    //   [24:23]=gt_type [22:16]=gt_seq [15:0]=ns_slot
+    //   dom=0 (Turing): perm[2]=X, perm[1]=W, perm[0]=R
+    //   dom=1 (Church):  perm[2]=E, perm[1]=S, perm[0]=L
+    const hasChurch = permsObj.L || permsObj.S || permsObj.E;
+    const dom   = hasChurch ? 1 : 0;
+    const perm3 = dom === 0
+        ? (((permsObj.X || 0) << 2) | ((permsObj.W || 0) << 1) | (permsObj.R || 0))
+        : (((permsObj.E || 0) << 2) | ((permsObj.S || 0) << 1) | (permsObj.L || 0));
+    const gt_word = (((perm3 & 0x7) << 28) | ((dom & 1) << 27) |
+                     ((gtType & 0x3) << 23) |
                      ((state.gtSeq & 0x7F) << 16) | (state.nsSlot & 0xFFFF)) >>> 0;
 
     const btn = document.getElementById('gtpick-assign-btn');
