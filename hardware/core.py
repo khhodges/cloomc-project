@@ -1486,9 +1486,10 @@ class ChurchCore(Elaboratable):
             m.d.comb += mint_slot_id_p3.eq(mint_slot_id_reg + 3)
             m.d.comb += mint_clist_slot_base.eq(Cat(Const(0, 8), mint_slot_id_p3))
 
-            # E-GT:  b=0 | perms=E(bit30) | typ=Inform(01<<23) | gt_seq=1(<<16) | slot_id
+            # E-GT:  b=0 | perm[2:0]=0b100(bit30) | dom=1(bit27) | typ=Inform(01<<23) | gt_seq=1(<<16) | slot_id
+            # New GT layout: dom=1 (Church), perm[2]=E → 0x48000000 | (GT_TYPE_INFORM<<23) | (1<<16) | slot
             m.d.comb += mint_e_gt_d.eq(
-                (1 << 30) | (GT_TYPE_INFORM << 23) | (1 << 16) | mint_slot_id_reg
+                (1 << 30) | (1 << GT_DOM_BIT) | (GT_TYPE_INFORM << 23) | (1 << 16) | mint_slot_id_reg
             )
             # W2: spare=0 | gt_seq=1(<<21) | limit_offset = lump_size-1
             mint_w2 = Signal(32)
