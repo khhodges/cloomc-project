@@ -723,7 +723,7 @@ differ.
 | Finding | Status | Section |
 |:--------|:-------|:--------|
 | **65 536-word NS table comment** — `simulator.js` lines 15–19 show an outdated layout where NS table was 256 words and IO/Boot ROM had separate regions.  With `NS_TABLE_RESERVE = 0x400`, the NS table is 1 024 words (0xFC00–0xFFFF in 65 536-word space). | Stale comment | §1.1 |
-| **NS word1 bit comment** — `simulator.js` lines 24–28 have B and G flags described in wrong bit positions.  The code (`packNSWord1` / `parseNSWord1`) is correct. | Stale comment | §2.1 |
+| **NS word1 bit comment** — `simulator.js` line 36: `bit[30] f-flag` corrected to `reserved (f_flag moved to GT word bit[25], per-token not per-NS-entry)`. Code (`packNSWord1` / `parseNSWord1`) was already correct. | Fixed | §2.1 |
 | **Slot 0 Boot.NS** — `memory[0x0000]=0x00000000`, ABSENT (no standard lump header by design) | Expected | §7 |
 | **Slots 4–46** — all 43 lazy lumps INVALID (magic=0x0); body not yet loaded | Expected | §7 |
 | **No address conflicts** — all 46 allocated intervals are disjoint | Clean | §6 |

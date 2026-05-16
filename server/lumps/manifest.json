@@ -1640,6 +1640,7 @@
     "token": "cb8739cf",
     "abstraction": "GT Encoding v1.1 Hardware Self-Test",
     "ns_slot": null,
+    "ns_slot_policy": "dynamic",
     "lump_size": 64,
     "cw": 26,
     "cc": 0,
@@ -1660,8 +1661,9 @@
   },
   {
     "token": "ab3de4fd",
-    "abstraction": "============================================================",
+    "abstraction": "Salvation",
     "ns_slot": null,
+    "ns_slot_policy": "dynamic",
     "lump_size": 256,
     "cw": 141,
     "cc": 0,

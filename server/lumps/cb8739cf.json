@@ -2,6 +2,7 @@
   "token": "cb8739cf",
   "abstraction": "GT Encoding v1.1 Hardware Self-Test",
   "ns_slot": null,
+  "ns_slot_policy": "dynamic",
   "lump_size": 64,
   "typ": 0,
   "content_type": "code",

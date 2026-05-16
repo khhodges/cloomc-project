@@ -1,7 +1,8 @@
 {
   "token": "ab3de4fd",
-  "abstraction": "============================================================",
+  "abstraction": "Salvation",
   "ns_slot": null,
+  "ns_slot_policy": "dynamic",
   "lump_size": 256,
   "typ": 0,
   "content_type": "code",
@@ -33,7 +34,7 @@
   "deployment": {
     "target_board": "ti60-f225",
     "profile": "IoT",
-    "built_at": "2026-05-16T23:07:46.428452Z",
+    "built_at": "2026-05-16T23:07:46.428462Z",
     "builder": "CLOOMC++ IDE v1.0"
   },
   "grants": [

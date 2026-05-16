@@ -33,7 +33,9 @@ if (typeof module !== 'undefined' && typeof AbstractGTManager === 'undefined') {
 //                         Abstract); bit[28] G-bit (GC liveness — matches
 //                         hardware Word1[28], excluded from CRC/integrity32
 //                         by design so GC can set/clear without resealing);
-//                         bit[29] reserved; bit[30] f-flag; bit[31] b-flag
+//                         bit[29] reserved; bit[30] reserved (f_flag moved
+//                         to GT word bit[25], per-token not per-NS-entry);
+//                         bit[31] b-flag
 //     word2  seals      — bits[31:25] version; bits[15:0] CRC-16 seal
 //     word3  reserved   — must be zero; reserved for future Navana per-slot GT
 //
