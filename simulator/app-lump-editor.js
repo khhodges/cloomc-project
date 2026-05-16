@@ -345,6 +345,7 @@
         }
         for (var j = 0; j < _rl.catalog.length; j++) {
             var cat = _rl.catalog[j];
+            if (cat.nsSlotPolicy === 'dynamic' || cat.floating || cat.nsSlot == null) continue;
             var saved = savedMap[cat.nsSlot];
             _rl.step2State[cat.nsSlot] = {
                 resident:    !!(saved && saved.resident),
@@ -494,11 +495,13 @@
             var hiddenCount = 0;
             for (var hci = 0; hci < _rl.catalog.length; hci++) {
                 var hce = _rl.catalog[hci];
+                if (hce.nsSlotPolicy === 'dynamic' || hce.floating || !Number.isFinite(hce.nsSlot)) continue;
                 if (!validBootTarget(hce) && hce.nsSlot !== bootSlot) hiddenCount++;
             }
             var selectOpts = '';
             for (var ci = 0; ci < _rl.catalog.length; ci++) {
                 var ce = _rl.catalog[ci];
+                if (ce.nsSlotPolicy === 'dynamic' || ce.floating || !Number.isFinite(ce.nsSlot)) continue;
                 var isValid = validBootTarget(ce);
                 if (!showAll && !isValid && ce.nsSlot !== bootSlot) continue;
                 var optSuffix = (!isValid) ? ' \u26a0 not a boot target' : '';
@@ -573,12 +576,23 @@
                 ' data-tooltip="No executable methods — cannot be set as boot entry">\u2014 Data only</span>';
         };
 
-        if (!_rl.catalog.length) {
+        var _fixedCatalog    = [];
+        var _floatingCatalog = [];
+        for (var _ci = 0; _ci < _rl.catalog.length; _ci++) {
+            var _ce = _rl.catalog[_ci];
+            if (_ce.nsSlotPolicy === 'dynamic' || _ce.floating || _ce.nsSlot == null) {
+                _floatingCatalog.push(_ce);
+            } else {
+                _fixedCatalog.push(_ce);
+            }
+        }
+
+        if (!_fixedCatalog.length) {
             rows += '<tr><td colspan="6" class="le-rl-empty-msg">No catalog lumps available ' +
                    '(server/lumps/manifest.json has no assignable entries).</td></tr>';
         } else {
-            for (var i = 0; i < _rl.catalog.length; i++) {
-                var cat = _rl.catalog[i];
+            for (var i = 0; i < _fixedCatalog.length; i++) {
+                var cat = _fixedCatalog[i];
                 var st  = _rl.step2State[cat.nsSlot] || {};
                 var physVal = (st.physAddr != null && Number.isFinite(st.physAddr))
                               ? st.physAddr : '';
@@ -612,6 +626,52 @@
             }
         }
 
+        var floatingSection = '';
+        if (_floatingCatalog.length) {
+            var floatRows = '';
+            for (var fi = 0; fi < _floatingCatalog.length; fi++) {
+                var fc = _floatingCatalog[fi];
+                var fcToken = fc.token || '';
+                var fcName  = fc.abstraction || fcToken || '?';
+                var fcSize  = fc.lumpSize != null ? String(fc.lumpSize) : '?';
+                var loadBtn = fcToken
+                    ? '<button class="le-rl-load-sim-btn"' +
+                      ' onclick="_loadLumpBinaryIntoSim(\'' + esc(fcToken) + '\',\'' + esc(fcName.replace(/'/g, '')) + '\',this)"' +
+                      ' title="Load into Sim \u2014 Fetch this LUMP binary and run it in the simulator">' +
+                      'Load into Sim &#x25b6;</button>'
+                    : '<span class="le-rl-badge" style="color:#6b7280;">no token</span>';
+                floatRows +=
+                    '<tr class="le-rl-row le-rl-floating-row">' +
+                    '<td class="le-rl-td">' + esc(fcName) + '</td>' +
+                    '<td class="le-rl-td le-rl-td-num" style="color:#6b7280;font-style:italic;">dynamic</td>' +
+                    '<td class="le-rl-td le-rl-td-num">' + esc(fcSize) + '</td>' +
+                    '<td class="le-rl-td" colspan="2">' +
+                      '<span class="le-rl-badge le-rl-badge-floating"' +
+                      ' data-tooltip="Loads on demand \u2014 NS slot assigned at runtime, not baked into boot image">' +
+                      '\u2014\u202fLoads on demand</span>' +
+                    '</td>' +
+                    '<td class="le-rl-td le-rl-td-boot">' + loadBtn + '</td>' +
+                    '</tr>';
+            }
+            floatingSection =
+                '<div class="le-divider"></div>' +
+                '<div class="le-rl-floating-header">Test &amp; Utility LUMPs' +
+                  '<span class="le-rl-floating-note">These lumps have no fixed NS slot \u2014 they load on demand at runtime and cannot be baked into a boot image. Use <strong>Load into Sim</strong> to test them directly.</span>' +
+                '</div>' +
+                '<div class="le-rl-table-wrap">' +
+                '<table class="le-rl-table">' +
+                '<thead><tr>' +
+                '<th class="le-rl-th">Lump</th>' +
+                '<th class="le-rl-th le-rl-th-narrow">NS</th>' +
+                '<th class="le-rl-th le-rl-th-narrow">Size&nbsp;(w)</th>' +
+                '<th class="le-rl-th le-rl-th-mode" colspan="2">Policy</th>' +
+                '<th class="le-rl-th le-rl-th-boot">Action</th>' +
+                '</tr></thead>' +
+                '<tbody>' + floatRows + '</tbody>' +
+                '</table>' +
+                '</div>';
+        }
+
         var errorBanner  = err
             ? '<div class="le-error-banner">\u26A0 ' + esc(err) + '</div>'
             : '';
@@ -642,6 +702,7 @@
             '<tbody>' + rows + '</tbody>' +
             '</table>' +
             '</div>' +
+            floatingSection +
             '<div class="le-divider"></div>' +
             '<div class="le-field-row">' +
                 '<label class="le-label">Empty NS slots<span class="le-range-hint">Reserve N extra slots at boot for runtime growth</span></label>' +
@@ -1100,6 +1161,7 @@
     };
 
     window.lumpEditorBootEntryChange = function (nsSlot) {
+        if (!Number.isFinite(nsSlot) || nsSlot < 0) return;
         if (typeof setBootEntrySlot === 'function') {
             setBootEntrySlot(nsSlot);
         } else {
