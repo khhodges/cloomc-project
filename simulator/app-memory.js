@@ -2696,12 +2696,12 @@ function _positionNSTooltip(tt, evt, anchorEl) {
     const th = tt.offsetHeight || 140;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    // Use the left edge of the anchor element (3rd column) as the right boundary
+    // Anchor to the left edge of the Location column — popup opens over Location, never hides Label
     const anchorX = anchorEl ? anchorEl.getBoundingClientRect().left : evt.clientX;
-    let x = anchorX - tw - margin;
+    let x = anchorX;
     let y = evt.clientY - th / 2;
-    if (x < 8) x = anchorX + margin;
     if (x + tw > vw - 8) x = vw - tw - 8;
+    if (x < 8) x = 8;
     if (y < 8) y = 8;
     if (y + th > vh - 8) y = vh - th - 8;
     tt.style.left = x + 'px';
