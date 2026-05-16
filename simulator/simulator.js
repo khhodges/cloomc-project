@@ -214,9 +214,9 @@ class ChurchSimulator {
         }
         const discoveredNsTableBase    = tagIdx + 1;
         const discoveredNsTableReserve = src.length - discoveredNsTableBase;
-        // Reserve must be a power-of-2 >= 64 words.
-        if (discoveredNsTableReserve < 64 || (discoveredNsTableReserve & (discoveredNsTableReserve - 1)) !== 0) {
-            this.output += `[BOOTIMG] WARNING: invalid NS table reserve ${discoveredNsTableReserve} derived from tag at word ${tagIdx}; ignoring binary.\n`;
+        // Reserve must be a positive multiple of NS_ENTRY_WORDS (4 words per slot).
+        if (discoveredNsTableReserve < this.NS_ENTRY_WORDS || discoveredNsTableReserve % this.NS_ENTRY_WORDS !== 0) {
+            this.output += `[BOOTIMG] WARNING: invalid NS table reserve ${discoveredNsTableReserve} (not a positive multiple of ${this.NS_ENTRY_WORDS}) derived from tag at word ${tagIdx}; ignoring binary.\n`;
             return false;
         }
         // Update instance variables to match the loaded binary's actual layout.

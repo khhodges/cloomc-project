@@ -367,7 +367,7 @@
             if (_rl.catalog[bi].nsSlot === bootSlot) { bootCatEntry = _rl.catalog[bi]; break; }
         }
         var bootAbstrSz  = (bootCatEntry && bootCatEntry.lumpSize) ? bootCatEntry.lumpSize : 64;
-        var nsReserve = nextPow2(state.ns.slots * 4);
+        var nsReserve = Math.max(16, Math.round(state.ns.slots) * 4);
         var sum    = (s1.namespaceLumpWords || 0) + (s1.threadLumpWords || 0) + bootAbstrSz;
         var total  = s1.totalNamespaceWords || 0;
         var usable = total - nsReserve;
@@ -392,7 +392,7 @@
             if (_rl.catalog[bvi].nsSlot === bootSlotV) { bootCatEntryV = _rl.catalog[bvi]; break; }
         }
         var bootAbstrSz  = (bootCatEntryV && bootCatEntryV.lumpSize) ? bootCatEntryV.lumpSize : 64;
-        var nsReserveV = nextPow2(state.ns.slots * 4);
+        var nsReserveV = Math.max(16, Math.round(state.ns.slots) * 4);
         var sum    = (s1.namespaceLumpWords || 0) + (s1.threadLumpWords || 0) + bootAbstrSz;
         var total  = s1.totalNamespaceWords || 0;
         var usable = total - nsReserveV;
@@ -903,7 +903,7 @@
         var total  = Math.pow(2, n + 14);
         var maxSl  = total / 64;
         var slots  = clamp(state.ns.slots, 1, maxSl);
-        var NS_TABLE_COMPUTED = nextPow2(slots * 4);
+        var NS_TABLE_COMPUTED = Math.max(16, Math.round(slots) * 4);
         var threadLump   = Math.pow(2, clamp(state.thread.lumpPow2, MIN_EXP, MAX_EXP));
         var maxCount     = profile.singleThread ? 1 : Math.min(10, Math.max(1, Math.floor(budget / threadLump)));
         var threadCount  = clamp(state.thread.count, 1, maxCount);
@@ -931,7 +931,7 @@
             { label: 'NS Table',              words: NS_TABLE_COMPUTED,       cls: 'le-zone-heap', onclick: "switchView('namespace')" }
         ];
 
-        var nsTableDesc = esc(NS_TABLE_COMPUTED.toLocaleString() + ' words (nextPow2(' + Math.round(slots) + ' slots × 4))');
+        var nsTableDesc = esc(NS_TABLE_COMPUTED.toLocaleString() + ' words (' + Math.round(slots) + ' slots × 4)');
         var grid = renderGrid([
             ['Target board',   boardInfo, 'le-val-gold'],
             ['Total words',    esc(total.toLocaleString() + '  (2^' + (n + 14) + ')'), noFit ? '' : 'le-val-gold'],

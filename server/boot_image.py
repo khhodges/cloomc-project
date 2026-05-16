@@ -53,19 +53,17 @@ SLOT_SIZE        = 0x40         # 64 words
 def ns_table_reserve_words(ns_slots_max):
     """Return the NS table reservation in words for ns_slots_max configured slots.
 
-    = nextPow2(ns_slots_max * NS_ENTRY_WORDS), clamped to [64, 8192].
+    = ns_slots_max * NS_ENTRY_WORDS exactly (no power-of-2 rounding).
+    Minimum 16 words (4 slots).  No artificial upper cap — the caller's
+    slot-count validation bounds the value.
 
     Examples:
-        ns_slots_max=16  →  64   words (minimum)
-        ns_slots_max=52  →  256  words
-        ns_slots_max=102 →  512  words
-        ns_slots_max=256 →  1024 words  (= module-level NS_TABLE_RESERVE default)
+        ns_slots_max=16  →   64 words
+        ns_slots_max=52  →  208 words
+        ns_slots_max=102 →  408 words
+        ns_slots_max=256 → 1024 words  (= module-level NS_TABLE_RESERVE default)
     """
-    needed = ns_slots_max * NS_ENTRY_WORDS
-    reserve = 64
-    while reserve < needed:
-        reserve <<= 1
-    return min(reserve, 8192)
+    return max(16, ns_slots_max * NS_ENTRY_WORDS)
 
 # Hardware-accurate device register limits (matches simulator.js
 # DEVICE_REG_LIMITS and hardware/boot_rom.py _MMIO_ENTRIES).
@@ -397,11 +395,11 @@ def validate_boot_image(image_bytes, total_namespace_words=None):
     ns_table_base    = tag_idx + 1
     ns_table_reserve = n_words - ns_table_base
 
-    # Reserve must be a power of 2 and at least 64 words (16 slots minimum).
-    if ns_table_reserve < 64 or (ns_table_reserve & (ns_table_reserve - 1)) != 0:
+    # Reserve must be a positive multiple of NS_ENTRY_WORDS (4 words per slot).
+    if ns_table_reserve < NS_ENTRY_WORDS or ns_table_reserve % NS_ENTRY_WORDS != 0:
         raise ValueError(
             f"validate_boot_image: NS table reserve {ns_table_reserve} words derived "
-            f"from tag position ({tag_idx}) is not a power-of-2 >= 64; "
+            f"from tag position ({tag_idx}) is not a positive multiple of {NS_ENTRY_WORDS}; "
             "the boot image is corrupt"
         )
 
