@@ -244,12 +244,15 @@
         var n                  = clamp(state.ns.n_minus_6, 0, maxN);
         var totalNamespaceWords = Math.pow(2, n + 14);
         var threadLumpWords     = Math.pow(2, clamp(state.thread.lumpPow2, MIN_EXP, MAX_EXP));
+        var maxSl               = totalNamespaceWords / 64;
+        var nsSlotsMax          = Math.round(clamp(state.ns.slots, 1, maxSl));
         return {
             targetBoard: board,
             step1: {
                 totalNamespaceWords: totalNamespaceWords,
                 namespaceLumpWords:  64,
-                threadLumpWords:     threadLumpWords
+                threadLumpWords:     threadLumpWords,
+                nsSlotsMax:          nsSlotsMax
             }
         };
     }
@@ -364,10 +367,10 @@
             if (_rl.catalog[bi].nsSlot === bootSlot) { bootCatEntry = _rl.catalog[bi]; break; }
         }
         var bootAbstrSz  = (bootCatEntry && bootCatEntry.lumpSize) ? bootCatEntry.lumpSize : 64;
-        var NS_TABLE_RESERVE = 0x400;
+        var nsReserve = nextPow2(state.ns.slots * 4);
         var sum    = (s1.namespaceLumpWords || 0) + (s1.threadLumpWords || 0) + bootAbstrSz;
         var total  = s1.totalNamespaceWords || 0;
-        var usable = total - NS_TABLE_RESERVE;
+        var usable = total - nsReserve;
         var boardTotalWords = boardProfile.totalRamWords;
         return {
             min:        sum,
@@ -389,10 +392,10 @@
             if (_rl.catalog[bvi].nsSlot === bootSlotV) { bootCatEntryV = _rl.catalog[bvi]; break; }
         }
         var bootAbstrSz  = (bootCatEntryV && bootCatEntryV.lumpSize) ? bootCatEntryV.lumpSize : 64;
-        var NS_TABLE_RESERVE = 0x400;
+        var nsReserveV = nextPow2(state.ns.slots * 4);
         var sum    = (s1.namespaceLumpWords || 0) + (s1.threadLumpWords || 0) + bootAbstrSz;
         var total  = s1.totalNamespaceWords || 0;
-        var usable = total - NS_TABLE_RESERVE;
+        var usable = total - nsReserveV;
         var occ = [];
         for (var slotStr in _rl.step2State) {
             var st = _rl.step2State[slotStr];
@@ -900,7 +903,7 @@
         var total  = Math.pow(2, n + 14);
         var maxSl  = total / 64;
         var slots  = clamp(state.ns.slots, 1, maxSl);
-        var NS_TABLE_FIXED = 768;
+        var NS_TABLE_COMPUTED = nextPow2(slots * 4);
         var threadLump   = Math.pow(2, clamp(state.thread.lumpPow2, MIN_EXP, MAX_EXP));
         var maxCount     = profile.singleThread ? 1 : Math.min(10, Math.max(1, Math.floor(budget / threadLump)));
         var threadCount  = clamp(state.thread.count, 1, maxCount);
@@ -908,7 +911,7 @@
         // Null slot 2 has been removed — no 64-word gap between Thread and Boot.Abstr.
         var namespaceLumpWords = 64;
         var bootOverhead = namespaceLumpWords + threadLump;
-        var pool    = total - bootOverhead - NS_TABLE_FIXED;
+        var pool    = total - bootOverhead - NS_TABLE_COMPUTED;
         var cw      = (slots >>> 8) & 0x1FFF;
         var cc      =  slots & 0xFF;
         var word    = packHdr(n, cw, cc, 1);
@@ -923,18 +926,19 @@
             : esc(profile.label + '  (' + boardRam.toLocaleString() + ' words total)');
 
         var allZones = [
-            { label: 'Boot.NS + Boot.Thread', words: bootOverhead, cls: 'le-zone-hdr' },
-            { label: 'Pool',          words: Math.max(pool, 0),     cls: 'le-zone-free' },
-            { label: 'NS Table',      words: NS_TABLE_FIXED,        cls: 'le-zone-heap', onclick: "switchView('namespace')" }
+            { label: 'Boot.NS + Boot.Thread', words: bootOverhead,           cls: 'le-zone-hdr' },
+            { label: 'Pool',                  words: Math.max(pool, 0),       cls: 'le-zone-free' },
+            { label: 'NS Table',              words: NS_TABLE_COMPUTED,       cls: 'le-zone-heap', onclick: "switchView('namespace')" }
         ];
 
+        var nsTableDesc = esc(NS_TABLE_COMPUTED.toLocaleString() + ' words (nextPow2(' + Math.round(slots) + ' slots × 4))');
         var grid = renderGrid([
             ['Target board',   boardInfo, 'le-val-gold'],
             ['Total words',    esc(total.toLocaleString() + '  (2^' + (n + 14) + ')'), noFit ? '' : 'le-val-gold'],
             ['n_minus_6',     esc(String(n)), ''],
             ['typ field',     '01  (Namespace, reserved)', ''],
             ['Max slots',      esc(maxSl.toLocaleString() + '  (total ÷ 64)'), ''],
-            ['NS table',       '768 words (fixed reservation)', ''],
+            ['NS table',       nsTableDesc, ''],
             ['Boot overhead',  esc(bootOverhead.toLocaleString() + ' words (Boot.NS 64 + Boot.Thread ' + threadLump.toLocaleString() + ')'), ''],
             ['Pool available', pool >= 0 ? esc(pool.toLocaleString() + ' words') : '<span class="le-overflow">overflow</span>', ''],
             ['cw field',       esc(String(cw) + '  (slots >> 8)'), ''],

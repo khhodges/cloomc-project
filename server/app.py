@@ -426,7 +426,8 @@ def _validate_step2(step2, step1, target_board):
     if not isinstance(lumps, list):
         return "step2.lumps must be a list"
     catalog = {e["nsSlot"]: e for e in _load_lump_catalog()}
-    NS_TABLE_RESERVE = 0x400  # keep in sync with simulator.js (64 entries × 4 words)
+    _ns_slots_max_v2 = int(step1.get("nsSlotsMax") or MAX_NS_ENTRIES)
+    NS_TABLE_RESERVE = _boot_image_gen.ns_table_reserve_words(_ns_slots_max_v2)
     total = step1["totalNamespaceWords"]
     # Determine actual Boot.Abstr size from saved 00000300.lump (Task #568).
     # A resident step-2 lump must not overlap whichever Boot.Abstr will actually be placed.
@@ -567,11 +568,19 @@ def _validate_step1(target_board, step1):
     if foundation_sum > total:
         return (f"Sum of foundational lump sizes ({foundation_sum}) exceeds "
                 f"totalNamespaceWords ({total})")
+    # Optional nsSlotsMax — validated here, persisted by boot_config_post (Task #1244).
+    _raw_ns_slots_max = step1.get("nsSlotsMax")
+    if _raw_ns_slots_max is not None:
+        if not isinstance(_raw_ns_slots_max, int) or _raw_ns_slots_max < 1:
+            return "step1.nsSlotsMax must be a positive integer when provided"
+        if _raw_ns_slots_max > MAX_NS_ENTRIES:
+            return (f"step1.nsSlotsMax ({_raw_ns_slots_max}) exceeds the maximum "
+                    f"supported NS slot count ({MAX_NS_ENTRIES})")
     # The simulator reserves the top NS_TABLE_RESERVE words of the namespace
-    # window for the namespace table itself (256 entries × 4 words = 1024).
-    # Foundational lumps grow upward from address 0 and must not collide
-    # with the NS table.
-    NS_TABLE_RESERVE = 0x400  # keep in sync with simulator.js (64 entries × 4 words)
+    # window for the namespace table itself.  Reserve size is now dynamic:
+    # nextPow2(nsSlotsMax × 4), defaulting to 1024 for backward compat.
+    _ns_slots_max_v1 = int(_raw_ns_slots_max or MAX_NS_ENTRIES)
+    NS_TABLE_RESERVE = _boot_image_gen.ns_table_reserve_words(_ns_slots_max_v1)
     usable = total - NS_TABLE_RESERVE
     if foundation_sum > usable:
         return (f"Sum of foundational lump sizes ({foundation_sum}) exceeds the "
@@ -648,6 +657,11 @@ def boot_config_post():
             "threadLumpWords": int(step1["threadLumpWords"]),
         },
     }
+    # Persist nsSlotsMax when provided (Task #1244 — dynamic NS table reserve).
+    # Omitting it from the saved config means downstream code defaults to 256 slots
+    # (1024-word reserve), preserving backward compatibility with old configs.
+    if step1.get("nsSlotsMax") is not None:
+        cfg["step1"]["nsSlotsMax"] = int(step1["nsSlotsMax"])
     if step2 is not None:
         norm = []
         for e in (step2.get("lumps") or []):
@@ -818,7 +832,8 @@ def namespace_lump_json():
             return jsonify({"error": f"Failed to generate boot image: {_e}"}), 500
 
     words          = list(_st.unpack(f"<{total}I", img_bytes[:total * 4]))
-    ns_table_base  = total - _boot_image_gen.NS_TABLE_RESERVE
+    _ns_slots_max_mf = int(step1.get("nsSlotsMax") or _boot_image_gen.MAX_NS_ENTRIES)
+    ns_table_base  = total - _boot_image_gen.ns_table_reserve_words(_ns_slots_max_mf)
     ns_entry_words = _boot_image_gen.NS_ENTRY_WORDS
     catalog        = _boot_image_gen.DEFAULT_ABSTRACTION_CATALOG
 

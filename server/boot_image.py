@@ -44,10 +44,28 @@ try:
 except ImportError:
     from server.boot_constants import NUC_CODE_WORDS, DEMO_CLIST_SIZE, BOOT_ABSTR_DEFAULT_SIZE
 
-NS_TABLE_RESERVE = 0x400        # 1024 words = 256 entries × 4
+NS_TABLE_RESERVE = 0x400        # 1024 words = 256 entries × 4  (module constant; backward compat default)
 NS_ENTRY_WORDS   = 4
 MAX_NS_ENTRIES   = 256
 SLOT_SIZE        = 0x40         # 64 words
+
+
+def ns_table_reserve_words(ns_slots_max):
+    """Return the NS table reservation in words for ns_slots_max configured slots.
+
+    = nextPow2(ns_slots_max * NS_ENTRY_WORDS), clamped to [64, 8192].
+
+    Examples:
+        ns_slots_max=16  →  64   words (minimum)
+        ns_slots_max=52  →  256  words
+        ns_slots_max=102 →  512  words
+        ns_slots_max=256 →  1024 words  (= module-level NS_TABLE_RESERVE default)
+    """
+    needed = ns_slots_max * NS_ENTRY_WORDS
+    reserve = 64
+    while reserve < needed:
+        reserve <<= 1
+    return min(reserve, 8192)
 
 # Hardware-accurate device register limits (matches simulator.js
 # DEVICE_REG_LIMITS and hardware/boot_rom.py _MMIO_ENTRIES).
@@ -351,7 +369,6 @@ def validate_boot_image(image_bytes, total_namespace_words=None):
     if total_namespace_words is None:
         total_namespace_words = len(image_bytes) // 4
     total = total_namespace_words
-    ns_table_base = total - NS_TABLE_RESERVE
     n_words = len(image_bytes) // 4
     if n_words < total:
         raise ValueError(
@@ -359,19 +376,35 @@ def validate_boot_image(image_bytes, total_namespace_words=None):
             f"({n_words} words, expected {total})"
         )
     words = struct.unpack(f"<{n_words}I", image_bytes[: n_words * 4])
-    tag_idx = ns_table_base - 1
-    if tag_idx < 0 or tag_idx >= n_words:
+
+    # Backwards-scan for BOOT_IMAGE_FORMAT_TAG (limit: 2048 words from end).
+    # The tag is written immediately before the NS table; its position encodes
+    # the actual NS table reserve size dynamically (Task #1244).
+    tag_idx = -1
+    scan_limit = min(2048, n_words)
+    for _i in range(1, scan_limit + 1):
+        _pos = n_words - _i
+        if words[_pos] == BOOT_IMAGE_FORMAT_TAG:
+            tag_idx = _pos
+            break
+
+    if tag_idx < 0:
         raise ValueError(
-            f"validate_boot_image: image too small to contain format-version tag "
-            f"(ns_table_base={ns_table_base}, image_words={n_words})"
+            "validate_boot_image: BOOT_IMAGE_FORMAT_TAG not found in last 2048 words; "
+            "the boot image is stale or corrupt and must be regenerated"
         )
-    actual_tag = words[tag_idx]
-    if actual_tag != BOOT_IMAGE_FORMAT_TAG:
+
+    ns_table_base    = tag_idx + 1
+    ns_table_reserve = n_words - ns_table_base
+
+    # Reserve must be a power of 2 and at least 64 words (16 slots minimum).
+    if ns_table_reserve < 64 or (ns_table_reserve & (ns_table_reserve - 1)) != 0:
         raise ValueError(
-            f"validate_boot_image: format-version tag mismatch at word {tag_idx}: "
-            f"got 0x{actual_tag:08x}, expected 0x{BOOT_IMAGE_FORMAT_TAG:08x}; "
-            "the boot image is stale and must be regenerated"
+            f"validate_boot_image: NS table reserve {ns_table_reserve} words derived "
+            f"from tag position ({tag_idx}) is not a power-of-2 >= 64; "
+            "the boot image is corrupt"
         )
+
     for slot in _MANDATORY_NS_SLOTS:
         base = ns_table_base + slot * NS_ENTRY_WORDS
         if base + 1 >= n_words:
@@ -468,6 +501,12 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
     total       = int(step1["totalNamespaceWords"])
     ns_size     = int(step1["namespaceLumpWords"])
     thread_size = int(step1["threadLumpWords"])
+
+    # Dynamic NS table reserve (Task #1244): size follows configured slot capacity.
+    # nsSlotsMax defaults to 256 (→ 1024 words) when absent, preserving backward compat.
+    _ns_slots_max = int(step1.get("nsSlotsMax") or MAX_NS_ENTRIES)
+    NS_TABLE_RESERVE = ns_table_reserve_words(_ns_slots_max)   # local, shadows module constant
+
     if "abstractionLumpWords" in step1:
         print("WARNING: abstractionLumpWords is deprecated and ignored; "
               "Boot.Abstr size is determined by the saved lump (00000300.lump) "
@@ -650,6 +689,12 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
         raise ValueError(
             f"Step 3 emptySlotCount={empty_count} would push NS table to "
             f"{ns_count + empty_count} entries; max {MAX_NS_ENTRIES}."
+        )
+    if _ns_slots_max < ns_count:
+        raise ValueError(
+            f"generate_boot_image: nsSlotsMax={_ns_slots_max} is less than the "
+            f"abstraction catalog count ({ns_count}); the NS table would not fit all "
+            f"catalog entries. Increase nsSlotsMax to at least {ns_count}."
         )
     # Empty entries are already zero (mem is zero-initialised); just
     # advance the conceptual nsCount. We don't write a count word — the

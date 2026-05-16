@@ -135,7 +135,8 @@ def test_validate_boot_image_rejects_zero_format_tag():
     image = generate_boot_image(cfg, LUMPS_DIR)
     stale_image = _set_format_tag(image, cfg, 0)
     total = int(cfg["step1"]["totalNamespaceWords"])
-    with pytest.raises(ValueError, match=r"format-version tag mismatch"):
+    # Backwards-scan (Task #1244) cannot find the tag → error says "not found"
+    with pytest.raises(ValueError, match=r"BOOT_IMAGE_FORMAT_TAG not found"):
         validate_boot_image(stale_image, total)
 
 
@@ -145,17 +146,19 @@ def test_validate_boot_image_rejects_wrong_format_tag():
     image = generate_boot_image(cfg, LUMPS_DIR)
     stale_image = _set_format_tag(image, cfg, 0xB0070247)
     total = int(cfg["step1"]["totalNamespaceWords"])
-    with pytest.raises(ValueError, match=r"format-version tag mismatch"):
+    # Backwards-scan (Task #1244) cannot find the tag → error says "not found"
+    with pytest.raises(ValueError, match=r"BOOT_IMAGE_FORMAT_TAG not found"):
         validate_boot_image(stale_image, total)
 
 
 def test_validate_boot_image_format_tag_error_message_is_descriptive():
-    """The ValueError for a bad tag shows both actual and expected values."""
+    """The ValueError for a bad tag is descriptive about the corrupt/stale state."""
     cfg = _default_cfg()
     image = generate_boot_image(cfg, LUMPS_DIR)
     stale_image = _set_format_tag(image, cfg, 0xDEADBEEF)
     total = int(cfg["step1"]["totalNamespaceWords"])
-    with pytest.raises(ValueError, match=r"0xdeadbeef"):
+    # Backwards-scan (Task #1244): tag not found → error describes situation clearly
+    with pytest.raises(ValueError, match=r"stale or corrupt"):
         validate_boot_image(stale_image, total)
 
 

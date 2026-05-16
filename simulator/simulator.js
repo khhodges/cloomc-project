@@ -194,17 +194,34 @@ class ChurchSimulator {
         if (!arrayBuffer || arrayBuffer.byteLength < 4) return false;
         const src = new Uint32Array(arrayBuffer);
 
-        // Format-version guard: reject binaries generated before Task #568
-        // (dynamic Boot.Abstr placement; size from saved lump or 64w default).
-        // Tag written by boot_image.py at mem[NS_TABLE_BASE - 1].
-        const BOOT_IMAGE_FORMAT_TAG = 0xB0070563;  // must match boot_image.py; bumped Task #563/568 (dynamic Boot.Abstr placement)
-        const tagIdx = src.length - this.NS_TABLE_RESERVE - 1;
-        if (tagIdx >= 0 && tagIdx < src.length) {
-            if ((src[tagIdx] >>> 0) !== BOOT_IMAGE_FORMAT_TAG) {
-                this.output += `[BOOTIMG] WARNING: stale boot image (format tag mismatch at word ${tagIdx}); ignoring binary — using built-in namespace defaults.\n`;
-                return false;   // keep the memory already set up by _initNamespaceTable()
+        // Backwards-scan for BOOT_IMAGE_FORMAT_TAG (Task #1244).
+        // The tag's position encodes the actual NS table reserve size dynamically,
+        // so we discover the reserve by finding the tag rather than using a
+        // hardcoded offset. Limit: 2048 words from the end of the binary.
+        const BOOT_IMAGE_FORMAT_TAG = 0xB0070563;  // must match boot_image.py; bumped Task #563/568
+        let tagIdx = -1;
+        const scanLimit = Math.min(2048, src.length);
+        for (let _si = 1; _si <= scanLimit; _si++) {
+            const _pos = src.length - _si;
+            if ((src[_pos] >>> 0) === BOOT_IMAGE_FORMAT_TAG) {
+                tagIdx = _pos;
+                break;
             }
         }
+        if (tagIdx < 0) {
+            this.output += `[BOOTIMG] WARNING: BOOT_IMAGE_FORMAT_TAG not found in last 2048 words; ignoring binary — using built-in namespace defaults.\n`;
+            return false;
+        }
+        const discoveredNsTableBase    = tagIdx + 1;
+        const discoveredNsTableReserve = src.length - discoveredNsTableBase;
+        // Reserve must be a power-of-2 >= 64 words.
+        if (discoveredNsTableReserve < 64 || (discoveredNsTableReserve & (discoveredNsTableReserve - 1)) !== 0) {
+            this.output += `[BOOTIMG] WARNING: invalid NS table reserve ${discoveredNsTableReserve} derived from tag at word ${tagIdx}; ignoring binary.\n`;
+            return false;
+        }
+        // Update instance variables to match the loaded binary's actual layout.
+        this.NS_TABLE_RESERVE = discoveredNsTableReserve;
+        this.NS_TABLE_BASE    = this.memory.length - this.NS_TABLE_RESERVE;
 
         // Boot-entry slot: stored at mem[NS_TABLE_BASE - 2] by the generator.
         const entrySlotIdx = tagIdx - 1;
