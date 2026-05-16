@@ -1404,6 +1404,24 @@
     padding: 0.4rem 0;
 }
 
+.build-file-row.build-file-absent {
+    opacity: 0.55;
+    border-style: dashed;
+    color: var(--text-secondary);
+}
+
+.build-file-optional-badge {
+    margin-left: auto;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+    font-family: var(--sans, sans-serif);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
 .build-next-steps-title {
     cursor: pointer;
     display: flex;

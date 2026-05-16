@@ -8463,7 +8463,7 @@ function _buildLogSet(text) {
     _buildLogScroll();
 }
 
-function _renderBuildFiles(files, isTi60) {
+function _renderBuildFiles(files, isTi60, board) {
     const list = document.getElementById('buildFileList');
     if (!list) return;
     if (!files || !files.length) {
@@ -8471,11 +8471,35 @@ function _renderBuildFiles(files, isTi60) {
         return;
     }
     const iconMap = { v: '📄', edif: '🔌', il: '⚙️', json: '📋', cst: '📍', makefile: '🛠️', md: '📖', isf: '📌', xdc: '📌', tcl: '📜', xml: '🗂️', sh: '🖥️', py: '🐍' };
-    list.innerHTML = files.map(f => {
+
+    const optionalByBoard = {
+        'tang-nano-20k-iot': [
+            { name: 'church_tang_nano_20k.v',    reason: 'Yosys synthesis' },
+            { name: 'church_tang_nano_20k.json',  reason: 'Yosys synthesis' },
+        ],
+        'wukong-xc7a100t': [
+            { name: 'church_wukong_xc7a100t.v',  reason: 'Yosys synthesis' },
+        ],
+    };
+    const boardKey = board || (isTi60 ? 'ti60-f225' : 'tang-nano-20k-iot');
+    const optionalDefs = optionalByBoard[boardKey] || [];
+
+    const presentSet = new Set(files);
+    const absentOptional = optionalDefs.filter(o => !presentSet.has(o.name));
+
+    const presentRows = files.map(f => {
         const ext = f.split('.').pop().toLowerCase();
         const icon = iconMap[ext] || '📄';
         return `<div class="build-file-row"><span class="build-file-icon">${icon}</span><span>${f}</span></div>`;
-    }).join('');
+    });
+
+    const absentRows = absentOptional.map(o => {
+        const ext = o.name.split('.').pop().toLowerCase();
+        const icon = iconMap[ext] || '📄';
+        return `<div class="build-file-row build-file-absent" title="Not in this ZIP — generated locally if ${o.reason} succeeds"><span class="build-file-icon">${icon}</span><span>${o.name}</span><span class="build-file-optional-badge">optional</span></div>`;
+    });
+
+    list.innerHTML = [...presentRows, ...absentRows].join('');
 }
 
 function _renderBuildNextSteps(isTi60, board) {
@@ -9900,7 +9924,7 @@ async function buildFPGAOnly() {
             _setBuildStatus('ok', `Build succeeded — ${boardLabel}`, boardLabel);
         }
         _buildLogAppend('\nClick "Download FPGA Package" to download the ZIP.\n');
-        _renderBuildFiles(data.files || [], isTi60);
+        _renderBuildFiles(data.files || [], isTi60, board);
         _renderBuildNextSteps(isTi60, board);
         if (dlBtn) dlBtn.disabled = false;
     } catch (e) {
