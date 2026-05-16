@@ -25,6 +25,22 @@
   `docs/isa_reference.md`, `docs/instruction-set.md`, `docs/ctmm-memory-map.md`,
   `docs/cloomc-foundation.md`.
 
+### Ethernet abstraction — NS slot 51 added to boot catalog
+
+- **Boot fault fixed**: `INIT_ABSTR mLoad(Ethernet) failed: namespace index 51 out of bounds`.
+  Ethernet (token `00003300`, ns_slot 51, static) was present in `manifest.json` but absent from
+  `DEFAULT_ABSTRACTION_CATALOG` in `server/boot_image.py` and `_getAbstractionCatalog()` in
+  `simulator/simulator.js`. The boot image therefore allocated only 51 NS entries (slots 0–50),
+  making slot 51 unreachable.
+- **Fix**: added `("Ethernet", {E:1}, False)` at index 51 of `DEFAULT_ABSTRACTION_CATALOG`
+  (`server/boot_image.py`; assert updated 51→52) and the matching entry
+  `{ label: 'Ethernet', perms: {R:0,W:0,X:0,L:0,S:0,E:1}, chainable: false }` at position 51
+  of `_getAbstractionCatalog()` (`simulator/simulator.js`). Boot image now allocates 52 NS
+  entries (slots 0–51); nsCount = 52 on load.
+- **All test suites remain green**: assembler-tests 913/913, boot-image-matches-sim 6/6,
+  fault-recovery-tests 192/192, lump-consistency 126/126, e2e-tests 19/19,
+  hardware-sim ALL PASSED.
+
 ### PostFlashSelfTest lump (token `5e1f0081`)
 
 - **New floating lump**: `server/lumps/5e1f0081.lump` — 1024-word lump packaging all 81
