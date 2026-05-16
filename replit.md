@@ -135,3 +135,38 @@ non-null `variant_group` string. Example: SlideRule + SlideRuleHS share
 | 1.0 | 2026-04-29 | Initial documented release. |
 
 The patch-in-place path (small programs, ≤ maxCW words) is completely unchanged.
+
+## Keeping Canonical Examples in Sync (Task #1238)
+
+The inline assembly examples embedded in `simulator/app-run.js` must stay identical to the canonical source files in `simulator/examples/*.cloomc`. The assembler test suite enforces this at test time, but the sync script lets you repair drift immediately when you edit an inline example.
+
+### When to run it
+
+Run the sync script any time you edit an inline example string in `simulator/app-run.js`:
+
+```bash
+node scripts/sync-canonical-examples.js
+```
+
+This reads every inline example, compares it to the corresponding `simulator/examples/<key>.cloomc` file, and overwrites any file that differs. It exits 0 on success.
+
+### CI guard mode
+
+To check for drift without writing any files (useful in pre-commit hooks or CI):
+
+```bash
+node scripts/sync-canonical-examples.js --check
+```
+
+Exits non-zero and lists drifted files if any canonical file is out of date.
+
+### Excluded key: `led_control`
+
+`led_control` is built via string concatenation in `app-run.js` (not a single backtick literal), so it cannot be extracted by the sync script. Its Section 2 source (`_TURING_DR_TEST_SOURCE`) is verified separately by the EX-LED test suite in `simulator/assembler_test.js`.
+
+### Relevant files
+
+- `scripts/sync-canonical-examples.js` — the sync script
+- `simulator/app-run.js` — source of inline example strings
+- `simulator/examples/*.cloomc` — canonical files kept in sync
+- `simulator/assembler_test.js` — inline-vs-canonical test suite (EX-*-INLINE tests)
