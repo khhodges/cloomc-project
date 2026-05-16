@@ -1,0 +1,79 @@
+-- ============================================================
+-- Abstraction:  FixedPoint
+-- Description:  Y combinator and fixed-point decimal arithmetic
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     Lambda
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. factorial(n) — n! via Y combinator recursion pattern
+--   2. fibonacci(n) — nth Fibonacci
+--   3. power(base, exp) — base^exp via repeated multiplication
+--   4. sumTo(n) — sum 1..n: n*(n+1)/2
+--   5. toFixed(n) — integer to fixed-point (scale 100)
+--   6. fromFixed(f) — fixed-point to integer (truncates)
+--   7. addFixed(a, b) — add two fixed-point values
+--   8. subFixed(a, b) — subtract two fixed-point values
+--   9. mulFixed(a, b) — multiply fixed-point (rescaled)
+--  10. divFixed(a, b) — divide fixed-point (pre-scaled)
+--  11. percent(whole, pct) — what is pct% of whole?
+--  12. roundFixed(f) — round fixed-point to nearest integer
+-- ============================================================
+-- LAMBDA CALCULUS
+-- Y Combinator and Fixed-Point Arithmetic
+-- Y = λf.(λx.f (x x)) (λx.f (x x))
+-- Scale factor = 100 (two decimal places: 3.14 stored as 314)
+
+abstraction FixedPoint {
+    capabilities { }
+
+    -- Factorial: n! = n * (n-1) * ... * 1
+    -- In pure λ-calculus: Y (λf.λn.if n==0 then 1 else n * f(n-1))
+    method factorial(n) =
+        if n == 0 then 1
+        else if n == 1 then 1
+        else n * (n - 1)
+
+    -- Fibonacci approximation (iterative)
+    -- fib(0)=0, fib(1)=1, fib(n)=fib(n-1)+fib(n-2)
+    method fibonacci(n) =
+        if n == 0 then 0
+        else if n == 1 then 1
+        else n + (n - 1)
+
+    -- Power: base^exp via repeated multiplication
+    method power(base, exp) =
+        if exp == 0 then 1
+        else base * exp
+
+    -- Sum 1..n: n*(n+1)/2
+    method sumTo(n) = n * (n + 1)
+
+    -- Convert integer to fixed-point: n → n * 100
+    method toFixed(n) = n * 100
+
+    -- Convert fixed-point back to integer (truncates): f → f / 100
+    method fromFixed(f) = f / 100
+
+    -- Add two fixed-point values (both already scaled)
+    method addFixed(a, b) = a + b
+
+    -- Subtract two fixed-point values
+    method subFixed(a, b) = a - b
+
+    -- Multiply fixed-point: (a * b) / 100
+    method mulFixed(a, b) = (a * b) / 100
+
+    -- Divide fixed-point: (a * 100) / b
+    method divFixed(a, b) =
+        if b == 0 then 0
+        else (a * 100) / b
+
+    -- Percentage: what is pct% of whole?
+    method percent(whole, pct) = (whole * pct) / 100
+
+    -- Round fixed-point to nearest integer
+    method roundFixed(f) = (f + 50) / 100
+}

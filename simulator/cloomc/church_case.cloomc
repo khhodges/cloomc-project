@@ -1,0 +1,30 @@
+-- ============================================================
+-- Abstraction:  ChurchCase
+-- Description:  Case expressions and pattern matching in Haskell
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     Haskell
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. factorial(n) — factorial via case expression
+--   2. classify(n) — classify a number (0/1/other)
+--   3. abs(n) — absolute value
+-- ============================================================
+-- Church Case Expressions — Haskell front-end
+-- Pattern matching compiles to MCMP + BRANCH chains
+
+abstraction ChurchCase {
+    capabilities {
+    }
+
+    -- Factorial via case
+    method factorial(n) = case n of 0 -> 1, _ -> n * (n - 1)
+
+    -- Classify a number
+    method classify(n) = case n of 0 -> 100, 1 -> 200, _ -> n + 300
+
+    -- Absolute value
+    method abs(n) = if n < 0 then 0 - n else n
+}

@@ -1,0 +1,57 @@
+-- ============================================================
+-- Abstraction:  BernoulliNumbers
+-- Description:  Bernoulli numbers via SlideRule.Bernoulli() shorthand
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     Symbolic Math
+-- Dependencies: SlideRule
+-- ============================================================
+-- Methods:
+--   1. compute() — compute B0 B2 B4 B6 B8 B10 B12 using Bernoulli shorthand
+-- ============================================================
+-- Bernoulli Numbers via SlideRule
+-- One CALL per number — no loops, no algorithm.
+-- Ada needed 25 operations; the SlideRule does it in 1.
+--
+-- SlideRule.Bernoulli(n) returns numerator in DR(dst),
+-- denominator in DR(dst+1). Both are machine-accessible.
+-- B(0)=1/1, B(1)=-1/2, B(2)=1/6, B(4)=-1/30,
+-- B(6)=1/42, B(8)=-1/30, B(10)=5/66, B(12)=-691/2730
+
+abstraction BernoulliNumbers {
+    capabilities {
+    }
+
+    method compute() {
+        -- Compute Bernoulli numbers using shorthand syntax
+        -- bernoulli(x) compiles to SlideRule.Bernoulli(x)
+
+        let V1 = bernoulli(0)
+
+        let V2 = 2
+        let V2 = bernoulli(V2)
+
+        let V3 = 4
+        let V3 = bernoulli(V3)
+
+        -- Also supports explicit SlideRule.Bernoulli() form
+        let V4 = 6
+        let V4 = SlideRule.Bernoulli(V4)
+
+        let V5 = 8
+        let V5 = SlideRule.Bernoulli(V5)
+
+        let V6 = 10
+        let V6 = bernoulli(V6)
+
+        let V7 = 12
+        let V7 = bernoulli(V7)
+
+        -- After each call: DR(n) = numerator, DR(n+1) = denominator
+        -- V1=1/1, V2=1/6, V3=-1/30, V4=1/42,
+        -- V5=-1/30, V6=5/66, V7=-691/2730
+
+        halt
+    }
+}

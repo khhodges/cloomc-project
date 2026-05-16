@@ -1,0 +1,80 @@
+-- ============================================================
+-- Abstraction:  EnglishLoops
+-- Description:  Three iteration patterns in plain-English CLOOMC++
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     English
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. WhileSum(n) -- count n + (n-1) + ... + 1 using a while loop (compiled, BRANCH)
+--   2. RecurseSum(n, total) -- same sum via self-invocation (CALL CR6, 2-word frame)
+--   3. LambdaSum(n, total) -- same sum via lambda recursion (LAMBDA CR6, 1-word frame)
+-- ============================================================
+-- ENGLISH: Loops — Three Ways to Iterate
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- The Church Machine offers THREE loop styles in English:
+--
+-- 1. WHILE LOOPS (compiled path):
+--    "While x is greater than 0" / "End while"
+--    Compiles to: MCMP + BRANCH (traditional loop)
+--    Familiar, efficient for tight inner loops.
+--
+-- 2. RECURSIVE REPEAT (CALL path):
+--    "Repeat with x minus 1"
+--    Compiles to: CALL CR6 (re-invoke self)
+--    Capability-checked, predictable control flow.
+--    Pushes a 2-word stack frame (SZ=1).
+--
+-- 3. LAMBDA RECURSION (lightest path):
+--    "Apply lambda with x minus 1"
+--    Compiles to: LAMBDA CR6 (lightweight self-invoke)
+--    Only a 1-word stack frame (SZ=0).
+--    No namespace swap — fastest recursion primitive.
+--
+-- All three produce the same result. Each trades off
+-- between familiarity, security, and overhead.
+--
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create an abstraction called EnglishLoops
+
+-- ── WHILE LOOP (compiled, uses BRANCH) ────────────
+-- Counts down from n to 0, accumulating n + (n-1) + ... + 1
+-- Uses a traditional while loop with compare-and-branch.
+
+Add a method called WhileSum that takes n
+Set total to 0
+While n is greater than 0
+    Set total to total plus n
+    Set n to n minus 1
+End while
+Return total
+
+-- ── RECURSIVE REPEAT (CALL CR6, 2-word frame) ────
+-- Same computation: n + (n-1) + ... + 1
+-- Uses self-invocation instead of looping.
+-- CALL pushes a full 2-word frame and validates capabilities.
+
+Add a method called RecurseSum that takes n and total
+If n is equal to 0
+    Return total
+End if
+Set total to total plus n
+Set n to n minus 1
+Repeat with n, total
+
+-- ── LAMBDA RECURSION (LAMBDA CR6, 1-word frame) ──
+-- Same computation: n + (n-1) + ... + 1
+-- Uses LAMBDA instead of CALL — lighter stack frame,
+-- no namespace gate swap. Fastest recursion primitive.
+
+Add a method called LambdaSum that takes n and total
+If n is equal to 0
+    Return total
+End if
+Set total to total plus n
+Set n to n minus 1
+Apply lambda with n, total

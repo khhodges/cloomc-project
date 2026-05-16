@@ -6105,6 +6105,187 @@ abstraction VlcTest {
     //
     // Section 2 (_TURING_DR_TEST_SOURCE) is a standalone backtick literal and
     // is already assembled and verified by the EX-LED test suite (lines ~10943+).
+
+    // ── Non-Assembly inline-vs-canonical: app-compile.js front-end examples ──────
+    // Non-Assembly inline-vs-canonical word-array comparisons
+    // ==========================================================
+    // Every non-Assembly inline example key in app-compile.js that can be compiled
+    // cleanly by CLOOMCCompiler in isolation has a matching canonical .cloomc file in
+    // simulator/cloomc/.  The canonical was created from the inline source (or vice
+    // versa) and must stay identical.  Any future drift between the inline string in
+    // app-compile.js and the canonical file will cause the relevant test below to fail.
+    //
+    // Coverage by front-end:
+    //   Haskell  — church_math, church_memory, church_pair, church_case
+    //   Lambda   — lambda_church_encoding, lambda_fixed_point, lambda_sliderule,
+    //              lambda_rational
+    //              (lambda_church_numerals excluded: 2 undefined-variable errors)
+    //   English  — english_integer_ops, english_loops, english_packed_string
+    //              (english_contact excluded: external capability convention required)
+    //   Symbolic — ada_note_g (→ ada_note_g_symbolic.cloomc), bernoulli_numbers
+    //
+    // File-backed (no inline backtick string, compile-integrity test only):
+    //   sliderule_hs (EX-SRHS)
+    //
+    // DijkstraFlag-family canonical files (dijkstra_flag_ada.cloomc,
+    // lambda/dijkstra_flag.cloomc, english/dijkstra_flag.cloomc) are excluded:
+    // the ada file is detected as JS but uses `halt` which only the Symbolic
+    // front-end understands; the lambda/english variants use call() syntax that
+    // their respective front-ends do not support without external NS conventions.
+    {
+        const CLOOMCCompiler = require('./cloomc_compiler.js');
+        const appCompileSrc  = fs.readFileSync(
+            path.join(__dirname, 'app-compile.js'), 'utf8');
+
+        // Extract a backtick-delimited inline source string from app-compile.js
+        // and evaluate its template-literal escape sequences exactly as the
+        // browser JavaScript runtime would (e.g. \\n → \n, \\x → \x).
+        function extractInlineFromCompile(key) {
+            const re = new RegExp("'" + key + "'\\s*:\\s*`([\\s\\S]*?)`\\s*,");
+            const m  = appCompileSrc.match(re);
+            if (!m) throw new Error(
+                'Could not find inline source for key in app-compile.js: ' + key);
+            return (new Function('return `' + m[1] + '`'))();
+        }
+
+        // Extract the path string for a file-backed example from _CLOOMC_FILE_EXAMPLES.
+        function extractFilePath(key) {
+            const re = new RegExp("'" + key + "'\\s*:\\s*'([^']+)'");
+            const m  = appCompileSrc.match(re);
+            if (!m) throw new Error(
+                'Could not find _CLOOMC_FILE_EXAMPLES path for key: ' + key);
+            return m[1];
+        }
+
+        function readClomc(relPath) {
+            return fs.readFileSync(
+                path.join(__dirname, 'cloomc', relPath), 'utf8');
+        }
+
+        // Compare an inline example (from app-compile.js) against a canonical
+        // .cloomc file using CLOOMCCompiler word-array comparison.
+        // caps: optional capabilities array passed to compile().
+        function checkInlineVsCanonicalClomc(pfx, inlineKey, canonicalFile, caps) {
+            const inlineSrc    = extractInlineFromCompile(inlineKey);
+            const canonicalSrc = readClomc(canonicalFile);
+            const inlineR    = new CLOOMCCompiler().compile(inlineSrc,    caps || []);
+            const canonicalR = new CLOOMCCompiler().compile(canonicalSrc, caps || []);
+            assert(pfx + ': inline compiles without errors',
+                inlineR.errors.length === 0,
+                inlineR.errors.map(e => 'L' + e.line + ': ' + e.message).join('; '));
+            assert(pfx + ': canonical compiles without errors',
+                canonicalR.errors.length === 0,
+                canonicalR.errors.map(e => 'L' + e.line + ': ' + e.message).join('; '));
+            assert(pfx + ': same method count',
+                inlineR.methods.length === canonicalR.methods.length,
+                'inline=' + inlineR.methods.length +
+                ' canonical=' + canonicalR.methods.length);
+            for (const cm of canonicalR.methods) {
+                const im = inlineR.methods.find(m => m.name === cm.name);
+                assert(pfx + ': method ' + cm.name + ' present in inline',
+                    im !== undefined,
+                    cm.name + ' missing from inline compiled output');
+                if (!im) continue;
+                const cw = cm.code || [];
+                const iw = im.code || [];
+                assert(pfx + ': ' + cm.name +
+                       ' word count (inline=' + iw.length +
+                       ' canonical=' + cw.length + ')',
+                    iw.length === cw.length,
+                    'inline ' + iw.length + ' vs canonical ' + cw.length);
+                const diff = iw.findIndex((w, j) => w !== cw[j]);
+                assert(pfx + ': ' + cm.name + ' all words match',
+                    diff === -1,
+                    diff >= 0
+                        ? 'word[' + diff + ']: inline=0x' +
+                          (iw[diff] >>> 0).toString(16) +
+                          ' canonical=0x' + (cw[diff] >>> 0).toString(16)
+                        : '');
+            }
+        }
+
+        // ── Haskell: EX-CM-INLINE ─────────────────────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-CM-INLINE', 'church_math', 'church_math.cloomc');
+
+        // ── Haskell: EX-CMEM-INLINE ───────────────────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-CMEM-INLINE', 'church_memory', 'church_memory.cloomc');
+
+        // ── Haskell: EX-CP-INLINE — ChurchPair ───────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-CP-INLINE', 'church_pair', 'church_pair.cloomc');
+
+        // ── Haskell: EX-CC-INLINE — ChurchCase ───────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-CC-INLINE', 'church_case', 'church_case.cloomc');
+
+        // ── Lambda: EX-LCE-INLINE — ChurchEncoding ───────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-LCE-INLINE', 'lambda_church_encoding', 'lambda_church_encoding.cloomc');
+
+        // ── Lambda: EX-LFP-INLINE — FixedPoint ───────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-LFP-INLINE', 'lambda_fixed_point', 'lambda_fixed_point.cloomc');
+
+        // ── Lambda: EX-LSR-INLINE — LambdaSlideRule ──────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-LSR-INLINE', 'lambda_sliderule', 'lambda_sliderule.cloomc');
+
+        // ── Lambda: EX-LRA-INLINE — RationalArithmetic ───────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-LRA-INLINE', 'lambda_rational', 'lambda_rational.cloomc');
+
+        // ── English: EX-EIO-INLINE — IntegerOps ──────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-EIO-INLINE', 'english_integer_ops', 'english_integer_ops.cloomc');
+
+        // ── English: EX-EL-INLINE — Loops ────────────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-EL-INLINE', 'english_loops', 'english_loops.cloomc');
+
+        // ── English: EX-EPS-INLINE — PackedString ────────────────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-EPS-INLINE', 'english_packed_string', 'english_packed_string.cloomc');
+
+        // ── Symbolic Math: EX-ANG-SYM-INLINE — NoteG (Symbolic) ─────────────────
+        // ada_note_g.cloomc is the ASSEMBLY canonical for the app-run.js assembly
+        // inline (tested by EX-ANG-INLINE via the assembler).  The app-compile.js
+        // ada_note_g key is a Symbolic Math version of the same algorithm compiled
+        // via CLOOMCCompiler; its canonical is ada_note_g_symbolic.cloomc.
+        checkInlineVsCanonicalClomc(
+            'EX-ANG-SYM-INLINE', 'ada_note_g', 'ada_note_g_symbolic.cloomc');
+
+        // ── Symbolic Math: EX-BN-INLINE — BernoulliNumbers ───────────────────────
+        checkInlineVsCanonicalClomc(
+            'EX-BN-INLINE', 'bernoulli_numbers', 'bernoulli_numbers.cloomc');
+
+        // ── File-backed: EX-SRHS — sliderule_hs compile-integrity ────────────────
+        {
+            const appPath = extractFilePath('sliderule_hs');
+            assert('EX-SRHS: sliderule_hs path is declared in _CLOOMC_FILE_EXAMPLES',
+                !!appPath, 'sliderule_hs not found in _CLOOMC_FILE_EXAMPLES');
+            const absPath = path.join(
+                __dirname, appPath.replace(/^\/simulator\//, ''));
+            const src    = fs.readFileSync(absPath, 'utf8');
+            const result = new CLOOMCCompiler().compile(src);
+            assert('EX-SRHS: sliderule_hs.cloomc compiles without errors',
+                result.errors.length === 0,
+                result.errors.map(e => 'L' + e.line + ': ' + e.message).join('; '));
+            for (const meth of [
+                'Add', 'Sub', 'Mul', 'Sqrt', 'Pow2',
+                'Abs', 'Signum', 'Max', 'Min', 'Clamp'
+            ]) {
+                const m = result.methods.find(x => x.name === meth);
+                assert('EX-SRHS: method ' + meth + ' is compiled',
+                    m !== undefined,
+                    meth + ' not found in compiled output');
+                assert('EX-SRHS: method ' + meth + ' has at least one instruction word',
+                    m !== undefined && (m.code || []).length > 0,
+                    meth + ' compiled to 0 words');
+            }
+        }
+    }
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────

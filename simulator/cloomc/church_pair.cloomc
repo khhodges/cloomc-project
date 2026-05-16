@@ -1,0 +1,49 @@
+-- ============================================================
+-- Abstraction:  ChurchPair
+-- Description:  Church pairs and lambda expressions in Haskell
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     Haskell
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. makePair(a, b) — construct a pair from two values
+--   2. first(p) — extract first element
+--   3. second(p) — extract second element
+--   4. swap(p) — swap pair elements
+--   5. identity(x) — identity function: λx.x
+--   6. constant(x, y) — constant function: returns first arg
+--   7. double_succ(n) — apply successor twice
+--   8. letExample(x) — demonstrate let-binding syntax
+-- ============================================================
+-- Church Pairs and Lambda Expressions — Haskell front-end
+
+abstraction ChurchPair {
+    capabilities {
+    }
+
+    -- Construct a pair from two values
+    method makePair(a, b) = (a, b)
+
+    -- Extract first element
+    method first(p) = fst p
+
+    -- Extract second element
+    method second(p) = snd p
+
+    -- Swap pair elements
+    method swap(p) = (snd p, fst p)
+
+    -- Identity function: λx.x
+    method identity(x) = x
+
+    -- Constant function: returns first arg, ignores second (λx.λy.x)
+    method constant(x, y) = x
+
+    -- Apply successor twice
+    method double_succ(n) = succ (succ n)
+
+    -- Let binding example
+    method letExample(x) = let a = x + 1 in a + a
+}

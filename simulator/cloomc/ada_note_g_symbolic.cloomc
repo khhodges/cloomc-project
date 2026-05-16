@@ -1,0 +1,90 @@
+-- ============================================================
+-- Abstraction:  NoteG
+-- Description:  Ada Lovelace's Note G — the first computer program (1843)
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     Symbolic Math
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. compute() — 25 operations computing Bernoulli number B7 = -1/30
+-- ============================================================
+-- Ada Lovelace — Note G (1843)
+-- The First Computer Program
+-- Computes B7 (Bernoulli number = -1/30)
+-- Written in Symbolic Mathematics notation
+
+abstraction NoteG {
+    capabilities {
+    }
+
+    method compute() {
+        -- Initialize Ada's Store columns
+        let V1 = 1
+        let V2 = 2
+        let V3 = 4
+
+        -- Operation 1: V4 = 2n = 8
+        let V4, V5, V6 = V2 * V3
+
+        -- Operation 2: 2n-1 = 7
+        let V4 = V4 - V1
+
+        -- Operation 3: 2n+1 = 9
+        let V5 = V5 + V1
+
+        -- Operation 4: (2n-1)/(2n+1) — CORRECTED per Bromley (1990)
+        let V11 = V4 / V5
+
+        -- Operation 5: divide coefficient by 2
+        let V11 = V11 / V2
+
+        -- Operation 6: accumulator
+        let V13 = 0
+        let V13 = V13 - V11
+
+        -- Operation 7: loop counter = n-1 = 3
+        let V10 = V3 - V1
+
+        -- Operation 8: denominator counter
+        let V7 = V2
+
+        -- Operation 9: 2n / counter
+        let V11 = V6 / V7
+
+        -- Operation 10: B1 * coefficient
+        let V15 = 1
+        let V12 = V15 * V11
+
+        -- Operation 11: accumulate
+        let V13 = V12 + V13
+
+        -- Operation 12: decrement loop
+        let V10 = V10 - V1
+
+        -- Operations 13-23: loop body
+        repeat V10 as V10
+            let V6 = V6 - V1
+            let V7 = V1 + V7
+            let V8 = V6 / V7
+            let V11 = V8 * V11
+            let V6 = V6 - V1
+            let V7 = V1 + V7
+            let V9 = V6 / V7
+            let V11 = V9 * V11
+            let V15 = 1
+            let V12 = V15 * V11
+            let V13 = V12 + V13
+        end
+
+        -- Operation 24: B7 = -sum
+        let V15 = 0
+        let V15 = V15 - V13
+
+        -- Operation 25: increment n
+        let V3 = V1 + V3
+
+        halt
+    }
+}

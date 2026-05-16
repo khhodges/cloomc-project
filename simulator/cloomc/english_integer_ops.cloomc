@@ -1,0 +1,33 @@
+-- ============================================================
+-- Abstraction:  IntegerOps
+-- Description:  Integer arithmetic in plain-English CLOOMC++
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     English
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. Greet(who) — return who + 1 as a greeting value
+--   2. Increment(value) — add 1 to a value
+--   3. Add(a, b) — sum two integers
+--   4. Double(x) — return x + x
+-- ============================================================
+
+Create an abstraction called IntegerOps
+
+Add a method called Greet that takes who
+Set result to who plus 1
+Return the result
+
+Add a method called Increment that takes value
+Set result to value plus 1
+Return the result
+
+Add a method called Add that takes a and b
+Set result to a plus b
+Return the result
+
+Add a method called Double that takes x
+Set result to x plus x
+Return the result

@@ -1,0 +1,124 @@
+-- ============================================================
+-- Abstraction:  LambdaSlideRule
+-- Description:  Logarithmic slide-rule operations as pure functions
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     Lambda
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. Multiply(a, b) — C/D scale: a × b
+--   2. Divide(a, b) — C/D scale: a / b
+--   3. Square(x) — A/D scale: x²
+--   4. Sqrt(n) — A/D scale: integer √n
+--   5. Cube(x) — K/D scale: x³
+--   6. CubeRoot(n) — K/D scale: integer ∛n (Newton’s approximation)
+--   7. Reciprocal(x) — CI/D scale: 1/x (integer approx)
+--   8. SineApprox(deg) — sine approximation via polynomial (degrees)
+--   9. Abs(n) — absolute value
+--  10. Clamp(x, lo, hi) — clamp to [lo, hi]
+--  11. Max(a, b) — larger of two values
+--  12. Min(a, b) — smaller of two values
+-- ============================================================
+-- LAMBDA CALCULUS
+-- Slide Rule — logarithmic computation as pure functions
+-- A slide rule computes via log identities:
+--   log(a × b) = log(a) + log(b)
+--   log(a / b) = log(a) - log(b)
+--   log(√a)   = log(a) / 2
+--   log(³√a)  = log(a) / 3
+
+abstraction LambdaSlideRule {
+    capabilities { Constants }
+
+    -- C/D Scale: Multiplication
+    -- Slide C so its 1 aligns with a on D, read D under b on C
+    -- λa.λb.a × b  (log addition on the scales)
+    method Multiply(a, b) = a * b
+
+    -- C/D Scale: Division
+    -- Align b on C over a on D, read D under 1 on C
+    -- λa.λb.a / b  (log subtraction)
+    method Divide(a, b) =
+        if b == 0 then 0
+        else a / b
+
+    -- A/D Scale: Square
+    -- Find x on D, read A  (double-decade maps x²)
+    -- λx.x × x
+    method Square(x) = x * x
+
+    -- A/D Scale: Square Root (integer approximation)
+    -- Find n on A (body top), read D (body bottom)
+    -- λn.⌊√n⌋ via conditional lookup
+    method Sqrt(n) =
+        if n < 1 then 0
+        else if n < 4 then 1
+        else if n < 9 then 2
+        else if n < 16 then 3
+        else if n < 25 then 4
+        else if n < 36 then 5
+        else if n < 49 then 6
+        else if n < 64 then 7
+        else if n < 81 then 8
+        else if n < 100 then 9
+        else 10
+
+    -- K/D Scale: Cube
+    -- Find x on D, read K  (triple-decade maps x³)
+    -- λx.x × x × x
+    method Cube(x) = x * x * x
+
+    -- K/D Scale: Cube Root (integer approximation)
+    -- Find n on K (body top), read D (body bottom)
+    -- λn.⌊³√n⌋ via conditional lookup
+    method CubeRoot(n) =
+        if n < 1 then 0
+        else if n < 8 then 1
+        else if n < 27 then 2
+        else if n < 64 then 3
+        else if n < 125 then 4
+        else if n < 216 then 5
+        else if n < 343 then 6
+        else if n < 512 then 7
+        else if n < 729 then 8
+        else if n < 1000 then 9
+        else 10
+
+    -- CI/D Scale: Reciprocal (integer approximation)
+    -- CI runs right-to-left; cursor reads 1/x directly
+    -- λx.1/x — approximated for integer domain
+    method Reciprocal(x) =
+        if x == 0 then 0
+        else if x == 1 then 1
+        else 0
+
+    -- S Scale: Sine (integer approximation, degrees)
+    -- Find angle on S, read sin(θ)×10 on D, divide by 10
+    -- λdeg.sin(deg) approximated as lookup
+    method SineApprox(deg) =
+        if deg < 6 then 1
+        else if deg < 15 then 2
+        else if deg < 25 then 4
+        else if deg < 35 then 5
+        else if deg < 45 then 7
+        else if deg < 60 then 8
+        else if deg < 75 then 9
+        else 10
+
+    -- Absolute value: λn.if n < 0 then 0 - n else n
+    method Abs(n) = if n < 0 then 0 - n else n
+
+    -- Clamp: λx.λlo.λhi.if x < lo then lo else if x > hi then hi else x
+    method Clamp(x, lo, hi) =
+        if x < lo then lo
+        else if x > hi then hi
+        else x
+
+    -- Max: λa.λb.if a > b then a else b
+    method Max(a, b) = if a > b then a else b
+
+    -- Min: λa.λb.if a < b then a else b
+    method Min(a, b) = if a < b then a else b
+}

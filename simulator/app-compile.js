@@ -2417,43 +2417,74 @@ abstraction Heap {
         returnNE(DR1)
     }
 }`,
-        'church_math': `-- ============================================================
--- Abstraction:  ChurchMath
--- Description:  Basic Church numerals in Haskell front-end syntax
--- Author:       Church Machine Educational Platform
--- Version:      1.0
--- Created:      2026-05-09
--- Language:     Haskell
--- Dependencies: None
--- ============================================================
--- Methods:
---   1. successor(n) \u2014 Church successor: n + 1
---   2. add(a, b) \u2014 Church addition
---   3. multiply(a, b) \u2014 Church multiplication
---   4. predecessor(n) \u2014 max(0, n-1)
---   5. isZero(n) \u2014 1 if n==0, else 0
--- ============================================================
--- Church Machine Lambda Calculus
--- Haskell front-end proves universal target
+        'church_math': `-- Church Machine Lambda Calculus \u2014 Haskell front-end
+-- Proves Church Machine is a universal computation target
+-- Church numerals operate on the machine's 20-instruction set
+-- Lambda expressions compile to LAMBDA/CALL instructions
 
 abstraction ChurchMath {
     capabilities {
     }
 
-    -- Church successor: n + 1
+    -- Church successor: \\n -> n + 1
     method successor(n) = n + 1
 
-    -- Church addition: a + b
+    -- Church addition: \\a b -> a + b
     method add(a, b) = a + b
 
-    -- Church multiplication
+    -- Church multiplication via repeated addition
     method multiply(a, b) = a * b
 
-    -- Predecessor: max(0, n-1)
+    -- Church predecessor: max(0, n - 1)
     method predecessor(n) = if n > 0 then n - 1 else 0
 
-    -- isZero: 1 if n==0, else 0
+    -- Church subtraction: max(0, a - b)
+    method monus(a, b) = if a > b then a - b else 0
+
+    -- isZero test: returns 1 if n == 0, else 0
     method isZero(n) = if n == 0 then 1 else 0
+
+    -- Church pair constructor: pack two 16-bit values
+    method pair(a, b) = (a, b)
+
+    -- Extract first element of a pair
+    method first(p) = fst p
+
+    -- Extract second element of a pair
+    method second(p) = snd p
+
+    -- Factorial via case expression
+    method factorial(n) = case n of 0 -> 1, _ -> n * (n - 1)
+
+    -- Lambda identity: \\x -> x (Church I combinator)
+    method identity() = \\x -> x
+
+    -- Lambda constant: \\x -> \\y -> x (Church K combinator)
+    method constant() = \\x -> \\y -> x
+
+    -- Lambda apply: takes a lambda and argument, applies it
+    method apply(f, x) = \\g -> g x
+
+    -- Church numeral zero: \\f -> \\x -> x
+    method churchZero() = \\f -> \\x -> x
+
+    -- Church numeral one: \\f -> \\x -> f x
+    method churchOne() = \\f -> \\x -> succ x
+
+    -- Church succ via lambda: \\n -> n + 1
+    method churchSucc() = \\n -> succ n
+
+    -- Church isZero via lambda: \\n -> isZero n
+    method churchIsZero() = \\n -> isZero n
+
+    -- Let binding with lambda: let id = \\x -> x in id 42
+    method letLambda() = let id = \\x -> x in id 42
+
+    -- Pair via lambda: \\a -> \\b -> (a, b)
+    method pairLambda() = \\a -> \\b -> (a, b)
+
+    -- Church predecessor via lambda
+    method predLambda() = \\n -> if n > 0 then n - 1 else 0
 }`,
         'church_pair': `-- ============================================================
 -- Abstraction:  ChurchPair
@@ -3852,86 +3883,46 @@ abstraction TuringMemory {
     }
 }`,
 
-        'church_memory': `// ============================================================
-// Abstraction:  ChurchMemory
-// Description:  Namespace slot handle management with reference counting (NS 49)
-// Author:       Church Machine Educational Platform
-// Version:      1.0
-// Created:      2026-05-09
-// Language:     CLOOMC++
-// Dependencies: Navana, Billing
-// ============================================================
-// Methods:
-//   1. AllocAbstract(lump, billingAccount) — register a lump; return handle GT
-//   2. Free(handle) — decrement ref count; release NS slot when zero
-// ============================================================
-// ── ChurchMemory (NS 49): Namespace Slot Handles ──
-// Every abstraction on the Church Machine lives at a
-// namespace slot (NS[n]). ChurchMemory (NS 49) manages
-// the lifetime of those slots — it provides reference-
-// counted handles so the system knows when a slot is
-// still in use.
+        'church_memory': `// ChurchMemory — domain-separated abstract handle allocation.  NS slot 49.
 //
-// AllocAbstract(ns_slot) → handle   (selector 0)
-//   Claims a handle for ns_slot. The first claim
-//   creates the tracking entry; subsequent claims
-//   increment a reference count. The handle value
-//   IS the ns_slot number — it doubles as a pointer.
+// Issues only Church-domain handles.  A caller holding an E-GT to ChurchMemory
+// can never receive an R-, W-, or X-permissioned region.
 //
-// Free(ns_slot)                      (selector 1)
-//   Decrements the reference count. When it reaches
-//   zero, the slot is marked free. Any GT pointing
-//   into that slot will then fail TPERM — hardware
-//   enforces the lifetime automatically.
+// AllocAbstract wraps an existing NS entry in an Enter-capable abstract handle.
+// No new physical memory is claimed — it wraps an already-installed lump.
+// This is how user code obtains a callable reference to a resident service.
 //
-// This is capability revocation without a kernel:
-// once every holder has freed its handle, the NS
-// entry is gone. No revocation table, no scan.
+// No Billing charge for AllocAbstract: physical memory was charged at AllocCode
+// or Memory.Allocate time.  (Resolved Q4 — Church wrapping is free.)
 //
-// AbstractionLifecycle wraps ChurchMemory to show
-// single-slot acquire/release and a range-acquire
-// that claims a contiguous block of slots.
+// Bounds validation: AllocAbstract checks that ns_slot is in the range
+// [0, nsCount) before issuing a handle.  An out-of-range slot returns 0
+// (error); the JS binding faults BOUNDS instead.  nsCount is stored in
+// CR7[0] of the ChurchMemory lump data area at boot time.
+//
+// Capabilities:
+//   none — ChurchMemory validates NS slots against its own bounds knowledge,
+//          held in word[0] of its lump data area at boot time.
 
 abstraction ChurchMemory {
     capabilities {
-        ChurchMemory
     }
 
-    // Acquire: register interest in ns_slot.
-    // Returns the handle (same as ns_slot).
-    // Multiple callers may Acquire the same slot —
-    // the reference count tracks them all.
-    method Acquire(ns_slot) {
-        handle = call(ChurchMemory.AllocAbstract(ns_slot))
+    // AllocAbstract(ns_slot) — wrap existing NS entry in an Enter-capable handle.
+    // Returns ns_slot as the handle on success; returns 0 on out-of-range.
+    // JS binding faults BOUNDS on out-of-range instead of returning 0.
+    method AllocAbstract(ns_slot) {
+        var ns_count = read(CR7, 0)
+        if (ns_slot >= ns_count) {
+            return(0)
+        }
+        var handle = bfext(ns_slot, 0, 16)
         return(handle)
     }
 
-    // Release: decrement the reference count for ns_slot.
-    // When the count reaches zero the slot is freed.
-    method Release(ns_slot) {
-        ok = call(ChurchMemory.Free(ns_slot))
-        return(ok)
-    }
-
-    // AcquireRange: claim 'count' consecutive slots
-    // starting at 'first'. Returns first on success.
-    method AcquireRange(first, count) {
-        i = 0
-        while (i < count) {
-            call(ChurchMemory.AllocAbstract(first + i))
-            i = i + 1
-        }
-        return(first)
-    }
-
-    // ReleaseRange: free 'count' consecutive slots
-    // starting at 'first'.
-    method ReleaseRange(first, count) {
-        i = 0
-        while (i < count) {
-            call(ChurchMemory.Free(first + i))
-            i = i + 1
-        }
+    // Free(handle) — release the abstract handle (no-op for simple handles;
+    // reference-counted by the JS binding to track active wrappers).
+    method Free(handle) {
         return(0)
     }
 }`,

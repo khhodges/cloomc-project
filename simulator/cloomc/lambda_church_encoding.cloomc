@@ -1,0 +1,78 @@
+-- ============================================================
+-- Abstraction:  ChurchEncoding
+-- Description:  Church boolean encoding: TRUE/FALSE selectors and derived logic gates
+-- Author:       Church Machine Educational Platform
+-- Version:      1.0
+-- Created:      2026-05-09
+-- Language:     Lambda
+-- Dependencies: None
+-- ============================================================
+-- Methods:
+--   1. true_(x, y) — Church TRUE: λx.λy.x (first selector)
+--   2. false_(x, y) — Church FALSE: λx.λy.y (second selector)
+--   3. and_(p, q) — λp.λq.p q p
+--   4. or_(p, q) — λp.λq.p p q
+--   5. not_(p) — λp.p FALSE TRUE
+--   6. ifthenelse(p, a, b) — λp.λa.λb.p a b
+--   7. pair(a, b) — Church pair: λs.s a b (encode two values as selector)
+--   8. first(p) — extract first element: p true_
+--   9. second(p) — extract second element: p false_
+--  10. swap(p) — exchange elements: pair(second p, first p)
+-- ============================================================
+-- LAMBDA CALCULUS
+-- Church Booleans — truth values as pure selector functions
+-- TRUE  = λx.λy.x   → picks the FIRST argument
+-- FALSE = λx.λy.y   → picks the SECOND argument
+-- IF-THEN-ELSE = λp.λa.λb.p a b  (no compare, no branch — pure application)
+
+abstraction ChurchEncoding {
+    capabilities { }
+
+    -- Church TRUE: λx.λy.x  (CHURCH PATH — no compare, no branch)
+    -- Compiled path: MCMP + BRANCHEQ (2 instructions, 2 clock cycles)
+    method true_(x, y) = x
+
+    -- Church FALSE: λx.λy.y  (CHURCH PATH — no compare, no branch)
+    method false_(x, y) = y
+
+    -- AND: λp.λq.p q p  (if p then q else p)
+    method and_(p, q) = if p == 0 then 0 else q
+
+    -- OR: λp.λq.p p q  (if p then p else q)
+    method or_(p, q) = if p == 0 then q else p
+
+    -- NOT: λp.p FALSE TRUE
+    method not_(p) = if p == 0 then 1 else 0
+
+    -- IF-THEN-ELSE: λp.λa.λb.p a b  (CHURCH PATH — selector application)
+    -- Compiled path: MCMP DR_p, DR_zero + BRANCHEQ then_label + BRANCH else_label
+    method ifthenelse(p, a, b) = if p == 0 then b else a
+
+    -- ── Church Pairs ──────────────────────────────────────
+    -- Pairs encode two values as a selector function:
+    --   pair(a, b) = λs.s a b
+    --   first(p) = p true_   (select left)
+    --   second(p) = p false_  (select right)
+    --   swap(p) = pair(second p, first p)
+
+    -- pair(a, b) packs two small non-negative integers into one word.
+    -- Encoding: a * 256 + b.  Both values must be in [0, 255].
+    -- Mirrors λs.s a b: the word acts as a selector applied to a and b.
+    method pair(a, b) = a * 256 + b
+
+    -- first(p) extracts the left element: p / 256.
+    -- Mirrors: pair(a, b) true_  =  (λs.s a b) (λx.λy.x) = a
+    method first(p) = p / 256
+
+    -- second(p) extracts the right element: p mod 256.
+    -- Mirrors: pair(a, b) false_ =  (λs.s a b) (λx.λy.y) = b
+    method second(p) =
+        if p < 256 then p
+        else p - (p / 256) * 256
+
+    -- swap(p) exchanges the two elements.
+    -- Equivalent to pair(second(p), first(p)).
+    method swap(p) =
+        if p < 256 then p * 256
+        else (p - (p / 256) * 256) * 256 + p / 256
+}
