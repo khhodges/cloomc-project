@@ -245,12 +245,11 @@ def perm_bits(perms):
     return bits & 0x7F
 
 
-def pack_ns_word1(limit17, b, f, g, chainable, gt_type, clist_count):
+def pack_ns_word1(limit17, b, f, g, gt_type, clist_count):
     return _u32(
         ((b & 1) << 31)
         | ((f & 1) << 30)
         | ((g & 1) << 29)
-        | ((chainable & 1) << 28)
         | ((gt_type & 3) << 26)
         | (((clist_count or 0) & 0x1FF) << 17)
         | (limit17 & 0x1FFFF)
@@ -610,8 +609,7 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
 
         base = ns_table_base + i * NS_ENTRY_WORDS
         mem[base + 0] = loc & 0xFFFFFFFF
-        mem[base + 1] = pack_ns_word1(lim17, 0, 0, 0, 1 if chainable else 0,
-                                      1, clist_count)
+        mem[base + 1] = pack_ns_word1(lim17, 0, 0, 0, 1, clist_count)
         mem[base + 2] = make_version_seals(0, loc, lim17)
         mem[base + 3] = _abstract_gt_word(perms)
         clist_gts.append(create_gt(0, i, perms, 1))
@@ -710,7 +708,7 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
         # Derive cc from the saved lump header (already validated above).
         _saved_cc      = abstr_words[0] & 0xFF
         entry_cr_limit = actual_abstr_size - _saved_cc - 1
-        mem[entry_ns_base + 1] = pack_ns_word1(entry_cr_limit, 0, 0, 0, 0, 1, _saved_cc)
+        mem[entry_ns_base + 1] = pack_ns_word1(entry_cr_limit, 0, 0, 0, 1, _saved_cc)
         mem[entry_ns_base + 2] = make_version_seals(0, boot_entry_loc, entry_cr_limit)
     else:
         # No saved lump — synthesise the default Boot.Abstr at 64 words.
@@ -722,7 +720,7 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
             mem[boot_entry_loc + 1 + i] = word & 0xFFFFFFFF
         # cc=0: no c-list region. All words after the code region are freespace (already zero).
         entry_cr_limit = actual_abstr_size - 1
-        mem[entry_ns_base + 1] = pack_ns_word1(entry_cr_limit, 0, 0, 0, 0, 1, 0)
+        mem[entry_ns_base + 1] = pack_ns_word1(entry_cr_limit, 0, 0, 0, 1, 0)
         mem[entry_ns_base + 2] = make_version_seals(0, boot_entry_loc, entry_cr_limit)
 
     # Slot 2 freed — Startup.Config removed. The hardware ISA owns M-state per CR register;
@@ -757,9 +755,8 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
             mem[_loc + _sz - _cc + _ci] = _gt & 0xFFFFFFFF
         # Update NS entry: word1 (lim17 + cc) and word2 (seal)
         _cat = DEFAULT_ABSTRACTION_CATALOG[_cslot]
-        _chainable = 1 if (_cat and _cat[2]) else 0
         _ns_base = ns_table_base + _cslot * NS_ENTRY_WORDS
-        mem[_ns_base + 1] = pack_ns_word1(_lim17, 0, 0, 0, _chainable, 1, _cc)
+        mem[_ns_base + 1] = pack_ns_word1(_lim17, 0, 0, 0, 1, _cc)
         mem[_ns_base + 2] = make_version_seals(0, _loc, _lim17)
 
     # Boot-entry slot: stored at NS_TABLE_BASE - 2 so that loadBootImage()

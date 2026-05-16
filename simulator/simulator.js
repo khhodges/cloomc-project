@@ -33,7 +33,7 @@ if (typeof module !== 'undefined' && typeof AbstractGTManager === 'undefined') {
 //                         Abstract); bit[28] G-bit (GC liveness — matches
 //                         hardware Word1[28], excluded from CRC/integrity32
 //                         by design so GC can set/clear without resealing);
-//                         bit[29] chainable; bit[30] f-flag; bit[31] b-flag
+//                         bit[29] reserved; bit[30] f-flag; bit[31] b-flag
 //     word2  seals      — bits[31:25] version; bits[15:0] CRC-16 seal
 //     word3  reserved   — must be zero; reserved for future Navana per-slot GT
 //
@@ -314,7 +314,7 @@ class ChurchSimulator {
                 const coldW1f = this.parseNSWord1(coldW1);
                 this.memory[coldNsBase + 1] = this.packNSWord1(
                     coldW1f.limit, coldW1f.b, coldW1f.f, coldW1f.g,
-                    coldW1f.chainable, 2 /* Outform */, coldW1f.clistCount);
+                    2 /* Outform */, coldW1f.clistCount);
             }
         }
         if (warmCount + coldCount > 0) {
@@ -440,7 +440,7 @@ class ChurchSimulator {
             if (promW1f.gtType === 2) {
                 this.memory[promNsBase + 1] = this.packNSWord1(
                     promW1f.limit, promW1f.b, promW1f.f, promW1f.g,
-                    promW1f.chainable, 1 /* Inform */, promW1f.clistCount);
+                    1 /* Inform */, promW1f.clistCount);
                 this.output += `[LOADER] NS[${slotIndex}] Outform→Inform promotion in NS entry word1\n`;
             }
         }
@@ -566,6 +566,7 @@ class ChurchSimulator {
         this.NS_TABLE_BASE = this.memory.length - this.NS_TABLE_RESERVE;
 
         this.nsLabels = {};
+        this.nsChainable = {};
         this.nsCount = 0;
         this.gcPolarity = 0;
         this.nsHandlers = {};
@@ -663,12 +664,12 @@ class ChurchSimulator {
         this.emit('stateChange', this.getState());
     }
 
-    packNSWord1(limit17, bFlag, fFlag, gBit, chainable, gtType, clistCount) {
+    packNSWord1(limit17, bFlag, fFlag, gBit, gtType, clistCount) {
         return (
             ((bFlag & 1) << 31) |
             ((fFlag & 1) << 30) |
             ((gBit & 1) << 29) |        // G-bit at bit[29] — matches server/boot_image.py pack_ns_word1 g→29.
-            ((chainable & 1) << 28) |   // chainable at bit[28] — matches server/boot_image.py chainable→28.
+            // bit[28] reserved — NOT used for chainable; chainable lives in this.nsChainable[] side-table.
             ((gtType & 3) << 26) |
             (((clistCount || 0) & 0x1FF) << 17) |
             (limit17 & 0x1FFFF)
@@ -679,8 +680,8 @@ class ChurchSimulator {
         return {
             b: (word1 >>> 31) & 1,
             f: (word1 >>> 30) & 1,
-            g: (word1 >>> 29) & 1,          // G-bit at bit[29] — matches packNSWord1 and boot_image.py.
-            chainable: (word1 >>> 28) & 1,  // chainable at bit[28] — matches packNSWord1 and boot_image.py.
+            g: (word1 >>> 29) & 1,      // G-bit at bit[29] — matches packNSWord1 and boot_image.py.
+            // bit[28] reserved — chainable is NOT in Word 1; see this.nsChainable[] side-table.
             gtType: (word1 >>> 26) & 3,
             clistCount: (word1 >>> 17) & 0x1FF,
             limit: word1 & 0x1FFFF,
@@ -688,7 +689,7 @@ class ChurchSimulator {
     }
 
     packLimitWord(limit17, bFlag, fFlag) {
-        return this.packNSWord1(limit17, bFlag, fFlag, 0, 0, 0, 0);
+        return this.packNSWord1(limit17, bFlag, fFlag, 0, 0, 0);
     }
 
     parseLimitWord(word1) {
@@ -744,7 +745,7 @@ class ChurchSimulator {
         return { magic, n_minus_6, lumpSize, cw, typ, cc, valid: magic === 0x1F };
     }
 
-    writeNSEntry(idx, location, limit17, bFlag, fFlag, gBit, chainable, gtType, version, clistCount, abstract_gt) {
+    writeNSEntry(idx, location, limit17, bFlag, fFlag, gBit, gtType, version, clistCount, abstract_gt) {
         if (gtType === 3) {
             throw new Error(
                 `writeNSEntry(slot ${idx}): Abstract GTs (gtType=3) must never have NS entries. ` +
@@ -754,7 +755,7 @@ class ChurchSimulator {
         }
         const base = this.NS_TABLE_BASE + idx * this.NS_ENTRY_WORDS;
         this.memory[base + 0] = location >>> 0;
-        this.memory[base + 1] = this.packNSWord1(limit17, bFlag, fFlag, gBit, chainable, gtType, clistCount || 0);
+        this.memory[base + 1] = this.packNSWord1(limit17, bFlag, fFlag, gBit, gtType, clistCount || 0);
         this.memory[base + 2] = this.makeVersionSeals(version || 0, location, limit17);
         this.memory[base + 3] = (abstract_gt || 0) >>> 0;
         if (idx >= this.nsCount) this.nsCount = idx + 1;
@@ -777,7 +778,7 @@ class ChurchSimulator {
             gBit: parsed.g,
             gtType: parsed.gtType,
             clistCount: parsed.clistCount,
-            chainable: parsed.chainable ? true : false,
+            chainable: this.nsChainable[idx] || false,
             label: this.nsLabels[idx] || '',
         };
     }
@@ -880,6 +881,7 @@ class ChurchSimulator {
         // because they reference concrete physical memory lumps in the namespace table.
         // Abstract (type=3) GTs are only created by Navana.Abstraction.Add (user uploads) and Navana.MintPassKey.
         this.nsLabels = {};
+        this.nsChainable = {};
         this.nsCount = 0;
         const abstractions = this._getAbstractionCatalog();
         const clistChildren = [];
@@ -962,7 +964,8 @@ class ChurchSimulator {
                         : (mySize - 1));
             const nsTableCount = (i === 0) ? abstractions.length : 0;
             const abstractGtWord = (this.getPermBits(a.perms) << 25) >>> 0;
-            this.writeNSEntry(i, loc, lim17, 0, 0, 0, a.chainable ? 1 : 0, 1, 0, nsTableCount, abstractGtWord);
+            this.writeNSEntry(i, loc, lim17, 0, 0, 0, 1, 0, nsTableCount, abstractGtWord);
+            this.nsChainable[i] = a.chainable || false;
             this.nsLabels[i] = a.label;
             if (a.handler) {
                 this.nsHandlers[i] = a.handler;
@@ -1101,7 +1104,7 @@ class ChurchSimulator {
         // cc=0: no c-list region. All words after code region are freespace (already zero).
         const entryCRLimit     = entryLumpSize - 1;
         const entryNSBase      = this.NS_TABLE_BASE + BOOT_ABSTR_NS_SLOT * this.NS_ENTRY_WORDS;
-        this.memory[entryNSBase + 1] = this.packNSWord1(entryCRLimit, 0, 0, 0, 0, 1, 0);
+        this.memory[entryNSBase + 1] = this.packNSWord1(entryCRLimit, 0, 0, 0, 1, 0);
         this.memory[entryNSBase + 2] = this.makeVersionSeals(0, bootEntryLoc, entryCRLimit);
         this.nsClistMap[BOOT_ABSTR_NS_SLOT] = [];                     // Boot.Abstr has no c-list (cc=0)
 
@@ -1175,9 +1178,8 @@ class ChurchSimulator {
             }
             // Update NS entry word1 (lim17 + cc) and word2 (seal)
             const catEntry  = abstractions[cslot];
-            const chainable = (catEntry && catEntry.chainable) ? 1 : 0;
             const nsBase    = this.NS_TABLE_BASE + cslot * this.NS_ENTRY_WORDS;
-            this.memory[nsBase + 1] = this.packNSWord1(lim17, 0, 0, 0, chainable, 1, cc) >>> 0;
+            this.memory[nsBase + 1] = this.packNSWord1(lim17, 0, 0, 0, 1, cc) >>> 0;
             this.memory[nsBase + 2] = this.makeVersionSeals(0, loc, lim17) >>> 0;
         }
 
@@ -5501,7 +5503,7 @@ class ChurchSimulator {
                         const existingGtSeq = (oldW2 >>> 25) & 0x7F;
                         this.memory[nsBase + 0] = newLumpBase >>> 0;
                         this.memory[nsBase + 1] = this.packNSWord1(
-                            words.length, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, 0
+                            words.length, w1f.b, w1f.f, w1f.g, w1f.gtType, 0
                         );
                         this.memory[nsBase + 2] = this.makeVersionSeals(existingGtSeq, newLumpBase, words.length);
 
@@ -5576,7 +5578,7 @@ class ChurchSimulator {
                     const newLimit17   = newCW;
                     // Always keep NS slot 3 word0 pointing at the actual lump base
                     this.memory[nsBase + 0] = baseAddr >>> 0;
-                    this.memory[nsBase + 1] = this.packNSWord1(newLimit17, w1f.b, w1f.f, w1f.g, w1f.chainable, w1f.gtType, w1f.clistCount);
+                    this.memory[nsBase + 1] = this.packNSWord1(newLimit17, w1f.b, w1f.f, w1f.g, w1f.gtType, w1f.clistCount);
                     const existingGtSeq    = (oldW2 >>> 25) & 0x7F;
                     this.memory[nsBase + 2] = this.makeVersionSeals(existingGtSeq, baseAddr, newLimit17);
                     const cr14 = this.cr[14];
@@ -6199,7 +6201,7 @@ class ChurchSimulator {
         const loc = entry.word0_location;
         const lim17 = Math.min(dataWords.length - 1, 0x1FFFF);
         const parsed = this.parseNSWord1(entry.word1_limit);
-        this.writeNSEntry(idx, loc, lim17, parsed.b, parsed.f, parsed.g, parsed.chainable, parsed.gtType, (entry.word2_seals >>> 25) & 0x7F, undefined, entry.word3_abstract_gt || 0);
+        this.writeNSEntry(idx, loc, lim17, parsed.b, parsed.f, parsed.g, parsed.gtType, (entry.word2_seals >>> 25) & 0x7F, undefined, entry.word3_abstract_gt || 0);
         for (let i = 0; i < dataWords.length; i++) {
             this.memory[loc + i] = dataWords[i] >>> 0;
         }

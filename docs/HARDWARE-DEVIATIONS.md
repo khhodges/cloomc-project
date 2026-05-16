@@ -128,7 +128,7 @@ All deviations D-1 through D-12 are **CLOSED/RESOLVED**. No open hardware deviat
 
 **Simulator** (`simulator.js`, May 2026): G-bit corrected from bit [29] → bit [28] to match hardware. `packNSWord1`, `parseNSWord1`, `markLive`, `markGarbage`, `getGBit` all updated. `mLoad` already called `markLive` in real-time (line 1974) — no change needed there. The simulator's CRC-16 seal covers only `location + limit17` (bits [16:0]) so bit [28] was already outside the seal input regardless of position — now bit positions are aligned.
 
-The broader NS Word 1 bit layout is intentionally different between hardware and simulator: the simulator carries additional fields (`chainable`, `clistCount`, `gtType`, `bFlag`, `fFlag`) in Word 1 that the hardware derives by reading the lump header. This is an accepted implementation difference, not a functional deviation. The G-bit position (bit [28] in both) is now aligned.
+The broader NS Word 1 bit layout is intentionally different between hardware and simulator: the simulator carries additional fields (`clistCount`, `gtType`, `bFlag`, `fFlag`) in Word 1 that the hardware derives by reading the lump header. `chainable` is **not** stored in NS Word 1 on either hardware or simulator — the simulator tracks it in a parallel side-table (`this.nsChainable[]`) populated at boot init from the catalog, so NS Word 1 stays architecturally clean. This is an accepted implementation difference, not a functional deviation. The G-bit position (bit [28] in both) is now aligned.
 
 **Status**: **CLOSED**.
 ---
