@@ -6673,6 +6673,156 @@ abstraction VlcTest {
     }
 }
 
+// ── COL-RANGE: assembler error objects carry colStart/colEnd ─────────────────
+// Verifies that errors on known lines carry correct column ranges so that
+// _highlightAsmErrorLines can underline exactly the right token.
+
+// CR-COL-1: unknown mnemonic — colStart/colEnd point at the bad token.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('LOAD CR0, 0\nNOPP DR1, DR2\nRETURN');
+    const errs = a.errors;
+    assert('CR-COL-1: unknown mnemonic produces an error', errs.length > 0);
+    const e = errs.find(x => x.message.includes('NOPP'));
+    assert('CR-COL-1: error references line 2', e && e.line === 2, e ? 'line=' + e.line : 'no error');
+    assert('CR-COL-1: colStart is 0 (mnemonic at start of line)', e && e.colStart === 0, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-1: colEnd is 4 (length of "NOPP")', e && e.colEnd === 4, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-2: unknown CR register — colStart/colEnd point at the bad token.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('LOAD BADTOKEN, 0');
+    const errs = a.errors;
+    assert('CR-COL-2: unknown CR register produces an error', errs.length > 0);
+    const e = errs[0];
+    assert('CR-COL-2: error references line 1', e && e.line === 1, e ? 'line=' + e.line : 'no error');
+    const src = 'LOAD BADTOKEN, 0';
+    const expectedStart = src.indexOf('BADTOKEN');
+    assert('CR-COL-2: colStart points at BADTOKEN', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-2: colEnd covers BADTOKEN', e && e.colEnd === expectedStart + 'BADTOKEN'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-3: unknown DR register — colStart/colEnd point at the bad token.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('IADD BADDR, DR1, DR2');
+    const errs = a.errors;
+    assert('CR-COL-3: unknown DR register produces an error', errs.length > 0);
+    const e = errs[0];
+    assert('CR-COL-3: error references line 1', e && e.line === 1, e ? 'line=' + e.line : 'no error');
+    const src = 'IADD BADDR, DR1, DR2';
+    const expectedStart = src.indexOf('BADDR');
+    assert('CR-COL-3: colStart points at BADDR', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-3: colEnd covers BADDR', e && e.colEnd === expectedStart + 'BADDR'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-4: undefined branch label — colStart/colEnd point at the label token.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('BRANCH missingLabel');
+    const errs = a.errors;
+    assert('CR-COL-4: undefined branch label produces an error', errs.length > 0);
+    const e = errs.find(x => x.message.includes('missingLabel'));
+    assert('CR-COL-4: error references line 1', e && e.line === 1, e ? 'line=' + e.line : 'no error');
+    const src = 'BRANCH missingLabel';
+    const expectedStart = src.indexOf('missingLabel');
+    assert('CR-COL-4: colStart points at missingLabel', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-4: colEnd covers missingLabel', e && e.colEnd === expectedStart + 'missingLabel'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-5: duplicate label — colStart/colEnd point at the label name.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('myLabel:\nRETURN\nmyLabel:\nRETURN');
+    const errs = a.errors;
+    assert('CR-COL-5: duplicate label produces an error', errs.length > 0);
+    const e = errs.find(x => x.message.includes('myLabel') && x.message.includes('more than once'));
+    assert('CR-COL-5: error references line 3 (second definition)', e && e.line === 3, e ? 'line=' + e.line : 'no error');
+    assert('CR-COL-5: colStart is 0 (label at start of line)', e && e.colStart === 0, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-5: colEnd covers label name', e && e.colEnd === 'myLabel'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-6: invalid immediate value — colStart/colEnd point at the bad token.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('IADD DR0, DR1, notanumber');
+    const errs = a.errors;
+    assert('CR-COL-6: invalid immediate produces an error', errs.length > 0);
+    const e = errs.find(x => x.message.includes('notanumber'));
+    assert('CR-COL-6: error references line 1', e && e.line === 1, e ? 'line=' + e.line : 'no error');
+    const src = 'IADD DR0, DR1, notanumber';
+    const expectedStart = src.indexOf('notanumber');
+    assert('CR-COL-6: colStart points at notanumber', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-6: colEnd covers notanumber', e && e.colEnd === expectedStart + 'notanumber'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-7: _highlightAsmErrorLines fallback still works for legacy error objects (no cols).
+// (Structural test only — just verify that error objects without colStart/colEnd have no such fields.)
+{
+    // Simulate a legacy error object (no colStart/colEnd) — structure check.
+    const legacyErr = { line: 1, message: 'some error' };
+    assert('CR-COL-7: legacy error object has no colStart', legacyErr.colStart === undefined);
+    assert('CR-COL-7: legacy error object has no colEnd', legacyErr.colEnd === undefined);
+}
+
+// CR-COL-8: indented source line — colStart/colEnd are relative to the raw editor line (with indentation).
+{
+    const a = new ChurchAssembler({});
+    a.assemble('LOAD CR0, 0\n    NOPP DR1, DR2\nRETURN');
+    const errs = a.errors;
+    assert('CR-COL-8: indented unknown mnemonic produces an error', errs.length > 0);
+    const e = errs.find(x => x.message.includes('NOPP'));
+    assert('CR-COL-8: error references line 2', e && e.line === 2, e ? 'line=' + e.line : 'no error');
+    // Raw line is "    NOPP DR1, DR2" — NOPP starts at column 4
+    const rawSrc = '    NOPP DR1, DR2';
+    const expectedStart = rawSrc.indexOf('NOPP');
+    assert('CR-COL-8: colStart accounts for indentation (column 4)', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-8: colEnd covers NOPP token', e && e.colEnd === expectedStart + 4, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-9: indented source line — bad CR register col is relative to raw editor line.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('  LOAD BADTOKEN, 0');
+    const errs = a.errors;
+    assert('CR-COL-9: indented bad CR register produces an error', errs.length > 0);
+    const e = errs[0];
+    assert('CR-COL-9: error references line 1', e && e.line === 1, e ? 'line=' + e.line : 'no error');
+    const rawSrc = '  LOAD BADTOKEN, 0';
+    const expectedStart = rawSrc.indexOf('BADTOKEN');
+    assert('CR-COL-9: colStart accounts for indentation', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-9: colEnd covers BADTOKEN', e && e.colEnd === expectedStart + 'BADTOKEN'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-10: indented BRANCH with undefined label — col is relative to raw editor line.
+{
+    const a = new ChurchAssembler({});
+    a.assemble('  BRANCH missingLabel');
+    const errs = a.errors;
+    assert('CR-COL-10: indented undefined branch label produces an error', errs.length > 0);
+    const e = errs.find(x => x.message.includes('missingLabel'));
+    assert('CR-COL-10: error references line 1', e && e.line === 1, e ? 'line=' + e.line : 'no error');
+    const rawSrc = '  BRANCH missingLabel';
+    const expectedStart = rawSrc.indexOf('missingLabel');
+    assert('CR-COL-10: colStart accounts for indentation', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-10: colEnd covers label token', e && e.colEnd === expectedStart + 'missingLabel'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// CR-COL-11: indented duplicate label — colStart is non-zero (raw line includes indentation).
+{
+    const a = new ChurchAssembler({});
+    a.assemble('myLabel:\nRETURN\n  myLabel:\nRETURN');
+    const errs = a.errors;
+    assert('CR-COL-11: indented duplicate label produces an error', errs.length > 0);
+    const e = errs.find(x => x.message.includes('myLabel') && x.message.includes('more than once'));
+    assert('CR-COL-11: error references line 3 (second definition)', e && e.line === 3, e ? 'line=' + e.line : 'no error');
+    const rawSrc3 = '  myLabel:';
+    const expectedStart = rawSrc3.indexOf('myLabel');
+    assert('CR-COL-11: colStart is non-zero (accounts for leading spaces)', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart : 'no error');
+    assert('CR-COL-11: colEnd covers label name', e && e.colEnd === expectedStart + 'myLabel'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);

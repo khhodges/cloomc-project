@@ -466,11 +466,13 @@ class ChurchAssembler {
             if (di >= 0) line = line.substring(0, di).trim();
             const sli = line.indexOf('//');
             if (sli >= 0) line = line.substring(0, sli).trim();
+            const rawLine = (this._rawLines && this._rawLines[lineNum]) || line;
             const m = line.match(/^\.pet\s+([A-Za-z_][A-Za-z0-9_]*)\s+(DR|CR)(\d+)\s*$/i);
             if (!m) {
                 // Line starts with .pet but doesn't match the valid form — report a syntax error
                 if (/^\.pet\b/i.test(line)) {
-                    this.errors.push({ line: lineNum + 1, message: `invalid .pet syntax — expected: .pet <alias> DR<n>  or  .pet <alias> CR<n>` });
+                    const petIdx = rawLine.search(/\.pet\b/i);
+                    this.errors.push({ line: lineNum + 1, colStart: petIdx >= 0 ? petIdx : 0, colEnd: rawLine.length, message: `invalid .pet syntax — expected: .pet <alias> DR<n>  or  .pet <alias> CR<n>` });
                 }
                 continue;
             }
@@ -479,11 +481,14 @@ class ChurchAssembler {
             const regIdx  = parseInt(m[3], 10);
             // Built-in register names DR0..DR15 and CR0..CR15 cannot be used as aliases.
             if (/^(DR|CR)(1[0-5]|[0-9])$/i.test(alias)) {
-                this.errors.push({ line: lineNum + 1, message: `'${alias}' is a built-in register name and cannot be used as a .pet alias` });
+                const aliasIdx = rawLine.indexOf(alias);
+                this.errors.push({ line: lineNum + 1, colStart: aliasIdx >= 0 ? aliasIdx : 0, colEnd: aliasIdx >= 0 ? aliasIdx + alias.length : rawLine.length, message: `'${alias}' is a built-in register name and cannot be used as a .pet alias` });
                 continue;
             }
             if (regIdx > 15) {
-                this.errors.push({ line: lineNum + 1, message: `${regType}${regIdx} out of range — ${regType} aliases must be ${regType}0–${regType}15` });
+                const regTokStr = regType + m[3];
+                const regTokIdx = rawLine.indexOf(regTokStr);
+                this.errors.push({ line: lineNum + 1, colStart: regTokIdx >= 0 ? regTokIdx : 0, colEnd: regTokIdx >= 0 ? regTokIdx + regTokStr.length : rawLine.length, message: `${regType}${regIdx} out of range — ${regType} aliases must be ${regType}0–${regType}15` });
                 continue;
             }
             if (regType === 'DR') {
@@ -594,7 +599,9 @@ class ChurchAssembler {
         this._drAliases = Object.assign({}, ChurchAssembler._sharedDrAliases || {});
         this._crAliases = Object.assign({}, ChurchAssembler._sharedCrAliases || {});
         this.nsLoaded = {};   // reset per-assembly loaded-CR tracking
+        this._currentLineText = '';   // set before every error-producing context for _tokenCols
         const lines = source.split('\n');
+        this._rawLines = lines.slice();  // original untrimmed lines — used by _tokenCols for accurate col positions
         this._parsePetDirectives(lines);               // pre-pass: .pet aliases
         this._capBlockSlots = this._parseCapBlockSlots(lines); // pre-pass: capabilities {} → slot map
         const instructions = [];
@@ -611,6 +618,7 @@ class ChurchAssembler {
             const slashComment = line.indexOf('//');
             if (slashComment >= 0) line = line.substring(0, slashComment).trim();
             if (!line) continue;
+            this._currentLineText = this._rawLines[lineNum];
 
             // ── capabilities { } block ─────────────────────────────────────────
             // CLOOMC-format header section listing the CRs this lump needs.
@@ -663,7 +671,7 @@ class ChurchAssembler {
                 // Label definition — store word offset (= current instruction count)
                 const labelName = line.slice(0, -1).trim();
                 if (this.labels[labelName] !== undefined) {
-                    this.errors.push({ line: lineNum + 1, message: `Label "${labelName}" is defined more than once. Each label must be unique within a code lump.` });
+                    this.errors.push({ line: lineNum + 1, ...this._tokenCols(this._currentLineText, labelName), message: `Label "${labelName}" is defined more than once. Each label must be unique within a code lump.` });
                 }
                 this.labels[labelName] = instructions.length;
                 continue;
@@ -719,14 +727,14 @@ class ChurchAssembler {
                     const argsStr    = bcMatch[3].trim();
                     const conv       = this.methodConventions[absName];
                     if (!conv) {
-                        this.errors.push({ line: lineNum + 1, message:
+                        this.errors.push({ line: lineNum + 1, ...this._tokenCols(line, absName), message:
                             `"${absName}" is not a known abstraction in the bare-call form "${absName}.${methodName}(...)". ` +
                             `Use LOAD to bind it first or check the method conventions.` });
                         continue;
                     }
                     if (!conv[methodName]) {
                         const known = Object.keys(conv).join(', ');
-                        this.errors.push({ line: lineNum + 1, message:
+                        this.errors.push({ line: lineNum + 1, ...this._tokenCols(line, methodName), message:
                             `"${methodName}" is not a known method of ${absName}. Known methods: ${known}.` });
                         continue;
                     }
@@ -761,7 +769,7 @@ class ChurchAssembler {
                                 const _slotHint = _knownSlot !== null
                                     ? `CR6[0x${_knownSlot.toString(16).toUpperCase().padStart(4,'0')}]`
                                     : `CR6[0x…]   ; find "${arg}"'s slot in the C-List viewer`;
-                                this.errors.push({ line: lineNum + 1, message:
+                                this.errors.push({ line: lineNum + 1, ...this._tokenCols(this._currentLineText, arg), message:
                                     `Argument ${ai + 1} of ${absName}.${methodName}() maps to CR${reg.n}, which holds a capability GT. ` +
                                     `"${arg}" is not declared as a capability — add it to your capabilities block:\n` +
                                     `  capabilities { ${arg} }\n` +
@@ -778,13 +786,13 @@ class ChurchAssembler {
                                 // Literal value passed directly — give a targeted DWRITE hint.
                                 const rawValue = isCharLiteral ? arg.charCodeAt(1) : arg;
                                 const specDesc = (inputSpec.match(new RegExp(`\\bDR${reg.n}=(\\w+)`)) || [])[1] || 'val';
-                                this.errors.push({ line: lineNum + 1, message:
+                                this.errors.push({ line: lineNum + 1, ...this._tokenCols(this._currentLineText, arg), message:
                                     `${absName}.${methodName} uses DR${reg.n} for the ${specDesc} — ` +
                                     `pre-load it with DWRITE DR${reg.n}, #${rawValue} before calling ${absName}.${methodName}()\n` +
                                     `  DWRITE DR${reg.n}, #${rawValue}\n` +
                                     `  ${absName}.${methodName}()` });
                             } else {
-                                this.errors.push({ line: lineNum + 1, message:
+                                this.errors.push({ line: lineNum + 1, ...this._tokenCols(this._currentLineText, arg), message:
                                     `Argument ${ai + 1} of ${absName}.${methodName}() maps to DR${reg.n}, which holds a data value. ` +
                                     `"${arg}" cannot be auto-loaded into a DR — pre-load it before the call:\n` +
                                     `  IADD  DR${reg.n}, DR${reg.n}, #${arg}   ; small literal (fits in 14 bits)\n` +
@@ -892,8 +900,10 @@ class ChurchAssembler {
             if (target < 0 || target >= totalWords) {
                 const condCode = (w >>> 23) & 0xF;
                 const mnemonic = 'BRANCH' + _condNames[condCode];
+                const _rawBranchLine = this._rawLines && this._rawLines[lineNums[i] - 1];
                 this.errors.push({
                     line: lineNums[i],
+                    ...(_rawBranchLine ? this._tokenCols(_rawBranchLine, mnemonic) : {}),
                     message: `${mnemonic} at word ${i} → target ${target} is outside the code lump [0, ${totalWords})`
                 });
             }
@@ -909,6 +919,7 @@ class ChurchAssembler {
     }
 
     _assembleLine(line, lineNum, addr) {
+        this._currentLineText = (this._rawLines && this._rawLines[lineNum - 1]) || line;
         const parts = line.replace(/,/g, ' ').replace(/\[/g, ' ').replace(/\]/g, ' ').split(/\s+/).filter(Boolean);
         if (parts.length === 0) return null;
 
@@ -938,7 +949,7 @@ class ChurchAssembler {
             // MVN/MVNcc is intercepted in pass 1 and never reaches here; listed as a hint
             // for completeness so the suggestion is accurate if this path is ever hit.
             const pseudoHint = ' Pseudo-instructions (handled before encoding): NOP, HALT, MVN, MVNcc (e.g. MVNEQ, MVNNE).';
-            this.errors.push({ line: lineNum, message: `Oops! I don't recognise the instruction "${mnemonic}". Check your spelling — every letter matters!${pseudoHint}` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, parts[0]), message: `Oops! I don't recognise the instruction "${mnemonic}". Check your spelling — every letter matters!${pseudoHint}` });
             return null;
         }
 
@@ -985,7 +996,7 @@ class ChurchAssembler {
                     const _dotParts = rawDotTok.split('.');
                     const _dAbs = _dotParts[0], _dMeth = _dotParts[1] || '';
                     const _extra = (parts[2] || '').replace(/,/g, '').trim();
-                    this.errors.push({ line: lineNum, message:
+                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _extra), message:
                         `Dot-notation CALL does not take a second operand — remove ", ${_extra}". ` +
                         `Pass arguments in DR/CR registers before the CALL:\n` +
                         `  LOAD  CR2, ${_extra}          ; load the remote GT into CR2\n` +
@@ -1009,7 +1020,7 @@ class ChurchAssembler {
                             const conv = this.methodConventions[dotAbsName][bareMethod];
                             if (conv.input) suggestion += `   ; ${conv.input}`;
                         }
-                        this.errors.push({ line: lineNum, message:
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, dotAbsName + '.' + bareMethod + '(' + argStr + ')') , message:
                             `CLOOMC does not support function-call syntax — remove the "(${argStr})" from "${dotAbsName}.${bareMethod}(${argStr})". ` +
                             `Load arguments into DR/CR registers before the CALL:\n${suggestion}` });
                         break;
@@ -1025,17 +1036,17 @@ class ChurchAssembler {
                                 if (idx >= 0 && idx <= 16383) {
                                     imm = idx + 1;  // 1-based: imm=0 reserved for fast-path
                                 } else {
-                                    this.errors.push({ line: lineNum, message: `Method "${dotMethodName}" of ${dotAbsName} has index ${idx} which is out of range — method selectors must be 0–16383.` });
+                                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, dotMethodName), message: `Method "${dotMethodName}" of ${dotAbsName} has index ${idx} which is out of range — method selectors must be 0–16383.` });
                                 }
                             } else {
                                 const known = Object.keys(this.methodConventions[dotAbsName]).join(', ');
-                                this.errors.push({ line: lineNum, message: `"${dotMethodName}" is not a known method of ${dotAbsName}. Known methods: ${known}.` });
+                                this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, dotMethodName), message: `"${dotMethodName}" is not a known method of ${dotAbsName}. Known methods: ${known}.` });
                             }
                         } else {
-                            this.errors.push({ line: lineNum, message: `No method conventions registered for "${dotAbsName}".` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, dotAbsName), message: `No method conventions registered for "${dotAbsName}".` });
                         }
                     } else {
-                        this.errors.push({ line: lineNum, message: `"${dotAbsName}" has not been loaded. Use LOAD to bind it first.` });
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, dotAbsName), message: `"${dotAbsName}" has not been loaded. Use LOAD to bind it first.` });
                     }
                     break;
                 }
@@ -1059,13 +1070,13 @@ class ChurchAssembler {
                             crSrc  = 6;
                             const _methIdx = typeof _methEntry === 'object' ? _methEntry.index : _methEntry;
                             if (_methIdx < 0 || _methIdx > 126) {
-                                this.errors.push({ line: lineNum, message: `Method "${_methName}" of ${rawDotTok} has index ${_methIdx} which is out of range (0–126 allowed for ELOADCALL).` });
+                                this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _methName), message: `Method "${_methName}" of ${rawDotTok} has index ${_methIdx} which is out of range (0–126 allowed for ELOADCALL).` });
                             } else {
                                 imm = ((_methIdx + 1) << 8) | (_nsSlot & 0xFF);
                             }
                         } else {
                             const _known = Object.keys(this.methodConventions[rawDotTok]).join(', ');
-                            this.errors.push({ line: lineNum, message: `"${_methName}" is not a known method of ${rawDotTok}. Known methods: ${_known}.` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _methName), message: `"${_methName}" is not a known method of ${rawDotTok}. Known methods: ${_known}.` });
                         }
                         break;
                     }
@@ -1087,9 +1098,9 @@ class ChurchAssembler {
                             }
                         }
                         if (!absName) {
-                            this.errors.push({ line: lineNum, message: `CR${crDst} has no known abstraction binding — use a numeric selector (0–15) or load an abstraction into CR${crDst} with LOAD first.` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, 'CR' + crDst), message: `CR${crDst} has no known abstraction binding — use a numeric selector (0–15) or load an abstraction into CR${crDst} with LOAD first.` });
                         } else if (!this.methodConventions[absName]) {
-                            this.errors.push({ line: lineNum, message: `No method conventions registered for "${absName}" (bound to CR${crDst}). Cannot resolve method name "${rawTok2}".` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok2), message: `No method conventions registered for "${absName}" (bound to CR${crDst}). Cannot resolve method name "${rawTok2}".` });
                         } else {
                             const methodEntry = this.methodConventions[absName][rawTok2];
                             if (methodEntry !== undefined) {
@@ -1097,11 +1108,11 @@ class ChurchAssembler {
                                 if (idx >= 0 && idx <= 16383) {
                                     imm = idx + 1;  // 1-based: imm=0 reserved for fast-path
                                 } else {
-                                    this.errors.push({ line: lineNum, message: `Method "${rawTok2}" of ${absName} has index ${idx} which is out of range — method selectors must be 0–16383.` });
+                                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok2), message: `Method "${rawTok2}" of ${absName} has index ${idx} which is out of range — method selectors must be 0–16383.` });
                                 }
                             } else {
                                 const known = Object.keys(this.methodConventions[absName]).join(', ');
-                                this.errors.push({ line: lineNum, message: `"${rawTok2}" is not a known method of ${absName} (bound to CR${crDst}). Known methods: ${known}.` });
+                                this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok2), message: `"${rawTok2}" is not a known method of ${absName} (bound to CR${crDst}). Known methods: ${known}.` });
                             }
                         }
                     } else {
@@ -1122,10 +1133,10 @@ class ChurchAssembler {
                         } else if (this._crAliases[tok2] !== undefined) {
                             numIdx = this._crAliases[tok2];
                         } else {
-                            this.errors.push({ line: lineNum, message: `Expected a method selector (0–16383, CRn, or hex 0x...), but got "${tok2}".` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, tok2), message: `Expected a method selector (0–16383, CRn, or hex 0x...), but got "${tok2}".` });
                         }
                         if (numIdx < 0 || numIdx > 16383) {
-                            this.errors.push({ line: lineNum, message: `Method selector ${numIdx} is out of range — must be 0–16383.` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, tok2), message: `Method selector ${numIdx} is out of range — must be 0–16383.` });
                             numIdx = 0;
                         }
                         imm = (numIdx + 1) & 0x7FFF;
@@ -1169,7 +1180,7 @@ class ChurchAssembler {
                 // (CR8→CR0, CR9→CR1, CR10→CR2, CR11→CR3). CR12–CR15 are already
                 // rejected by _checkPrivCR above.
                 if (crSrc > 7 && crSrc < 12) {
-                    this.errors.push({ line: lineNum, message: `SWITCH: CR${crSrc} is out of range — source must be CR0–CR7 (hardware uses a 3-bit crSrc field; CR8–CR11 silently truncate to CR0–CR3)` });
+                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, 'CR' + crSrc), message: `SWITCH: CR${crSrc} is out of range — source must be CR0–CR7 (hardware uses a 3-bit crSrc field; CR8–CR11 silently truncate to CR0–CR3)` });
                 }
                 imm = this._parseImm(parts[2], lineNum) & 0x7;
                 break;
@@ -1205,7 +1216,7 @@ class ChurchAssembler {
                     // imm15[7:0] = c-list row; imm15[14:8] = 0 (fast-path, NIA = lump word 1)
                     crSrc = 6;
                     if (res8.slot < 0 || res8.slot > 255) {
-                        this.errors.push({ line: lineNum, message: `ELOADCALL c-list row ${res8.slot} is out of range (0–255 allowed).` });
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, res8.key), message: `ELOADCALL c-list row ${res8.slot} is out of range (0–255 allowed).` });
                     }
                     imm   = res8.slot & 0xFF;
                 } else if (res8 !== null && parts[3] && !res8.consumed) {
@@ -1214,7 +1225,7 @@ class ChurchAssembler {
                     crSrc = 6;
                     const rawSlot8v = res8.slot;
                     if (rawSlot8v < 0 || rawSlot8v > 255) {
-                        this.errors.push({ line: lineNum, message: `ELOADCALL c-list row ${rawSlot8v} is out of range (0–255 allowed).` });
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, res8.key), message: `ELOADCALL c-list row ${rawSlot8v} is out of range (0–255 allowed).` });
                     }
                     const clistRow8 = rawSlot8v & 0xFF;
                     const rawMeth8  = (parts[3] || '').replace(/,/g, '').trim();
@@ -1228,7 +1239,7 @@ class ChurchAssembler {
                         // Numeric 0-based index (valid range: 0–126)
                         const m8 = parseInt(rawMeth8);
                         if (m8 < 0 || m8 > 126) {
-                            this.errors.push({ line: lineNum, message: `ELOADCALL method index ${m8} is out of range (0–126 allowed).` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawMeth8), message: `ELOADCALL method index ${m8} is out of range (0–126 allowed).` });
                         } else {
                             methodIdx8 = m8 + 1;  // store 1-based in bits[14:8]
                         }
@@ -1236,15 +1247,15 @@ class ChurchAssembler {
                         const mEntry8 = this.methodConventions[absKey8][rawMeth8];
                         const mIdx8   = typeof mEntry8 === 'object' ? (mEntry8.index || 0) : mEntry8;
                         if (mIdx8 < 0 || mIdx8 > 126) {
-                            this.errors.push({ line: lineNum, message: `ELOADCALL method "${rawMeth8}" has index ${mIdx8} out of range (0–126 allowed).` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawMeth8), message: `ELOADCALL method "${rawMeth8}" has index ${mIdx8} out of range (0–126 allowed).` });
                         } else {
                             methodIdx8 = mIdx8 + 1;  // store 1-based in bits[14:8]
                         }
                     } else if (this.methodConventions[absKey8]) {
                         const known8 = Object.keys(this.methodConventions[absKey8]).join(', ');
-                        this.errors.push({ line: lineNum, message: `"${rawMeth8}" is not a known method of ${res8.key}. Known methods: ${known8}.` });
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawMeth8), message: `"${rawMeth8}" is not a known method of ${res8.key}. Known methods: ${known8}.` });
                     } else {
-                        this.errors.push({ line: lineNum, message: `No method conventions for "${res8.key}"; cannot resolve method "${rawMeth8}". Use a numeric 0-based index instead.` });
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawMeth8), message: `No method conventions for "${res8.key}"; cannot resolve method "${rawMeth8}". Use a numeric 0-based index instead.` });
                     }
                     imm = (methodIdx8 << 8) | clistRow8;
                 } else {
@@ -1254,7 +1265,8 @@ class ChurchAssembler {
                     this._checkPrivCR(crSrc, 'ELOADCALL', lineNum);
                     const rawSlot8v  = this._parseImm(parts[3], lineNum);
                     if (rawSlot8v < 0 || rawSlot8v > 255) {
-                        this.errors.push({ line: lineNum, message: `ELOADCALL c-list row ${rawSlot8v} is out of range (0–255 allowed).` });
+                        const _slotTok = (parts[3] || '').replace(/,/g, '').trim();
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _slotTok), message: `ELOADCALL c-list row ${rawSlot8v} is out of range (0–255 allowed).` });
                     }
                     const rawSlot8   = rawSlot8v & 0xFF;
                     let methodIdx8e  = 0;
@@ -1263,12 +1275,12 @@ class ChurchAssembler {
                         if (/^\d+$/.test(rawMeth8e)) {
                             const m8e = parseInt(rawMeth8e);
                             if (m8e < 0 || m8e > 126) {
-                                this.errors.push({ line: lineNum, message: `ELOADCALL method index ${m8e} is out of range (0–126 allowed).` });
+                                this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawMeth8e), message: `ELOADCALL method index ${m8e} is out of range (0–126 allowed).` });
                             } else {
                                 methodIdx8e = m8e + 1;  // store 1-based in bits[14:8]
                             }
                         } else {
-                            this.errors.push({ line: lineNum, message: `ELOADCALL: expected a 0-based numeric method index as 4th operand, got "${rawMeth8e}".` });
+                            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawMeth8e), message: `ELOADCALL: expected a 0-based numeric method index as 4th operand, got "${rawMeth8e}".` });
                         }
                     }
                     imm = (methodIdx8e << 8) | rawSlot8;
@@ -1313,9 +1325,11 @@ class ChurchAssembler {
                 const pos12 = this._parseImm(parts[3], lineNum) & 0x1F;
                 const wid12 = rawWid12 & 0x1F;
                 if (wid12 === 0) {
-                    this.errors.push({ line: lineNum, message: `BFEXT: width must be ≥ 1 (got ${rawWid12})` });
+                    const _widTok12 = (parts[4] || '').replace(/,/g, '').trim();
+                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _widTok12), message: `BFEXT: width must be ≥ 1 (got ${rawWid12})` });
                 } else if (pos12 + wid12 > 32) {
-                    this.errors.push({ line: lineNum, message: `BFEXT: pos+width must be ≤ 32 (pos=${pos12}, width=${wid12}, sum=${pos12 + wid12})` });
+                    const _posTok12 = (parts[3] || '').replace(/,/g, '').trim();
+                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _posTok12), message: `BFEXT: pos+width must be ≤ 32 (pos=${pos12}, width=${wid12}, sum=${pos12 + wid12})` });
                 }
                 imm = (pos12 << 5) | wid12;
                 break;
@@ -1327,9 +1341,11 @@ class ChurchAssembler {
                 const pos13 = this._parseImm(parts[3], lineNum) & 0x1F;
                 const wid13 = rawWid13 & 0x1F;
                 if (wid13 === 0) {
-                    this.errors.push({ line: lineNum, message: `BFINS: width must be ≥ 1 (got ${rawWid13})` });
+                    const _widTok13 = (parts[4] || '').replace(/,/g, '').trim();
+                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _widTok13), message: `BFINS: width must be ≥ 1 (got ${rawWid13})` });
                 } else if (pos13 + wid13 > 32) {
-                    this.errors.push({ line: lineNum, message: `BFINS: pos+width must be ≤ 32 (pos=${pos13}, width=${wid13}, sum=${pos13 + wid13})` });
+                    const _posTok13 = (parts[3] || '').replace(/,/g, '').trim();
+                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _posTok13), message: `BFINS: pos+width must be ≤ 32 (pos=${pos13}, width=${wid13}, sum=${pos13 + wid13})` });
                 }
                 imm = (pos13 << 5) | wid13;
                 break;
@@ -1376,7 +1392,7 @@ class ChurchAssembler {
                     if (this.labels[branchToken] !== undefined) {
                         imm = this.labels[branchToken] - addr;   // signed relative offset
                     } else {
-                        this.errors.push({ line: lineNum, message: `Label "${branchToken}" is not defined. Define it with "${branchToken}:" on its own line before the target instruction.` });
+                        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, branchToken), message: `Label "${branchToken}" is not defined. Define it with "${branchToken}:" on its own line before the target instruction.` });
                         imm = 0;
                     }
                 } else {
@@ -1418,7 +1434,7 @@ class ChurchAssembler {
                     wordVal = parseInt(rawTok, 10);
                 }
                 if (isNaN(wordVal)) {
-                    this.errors.push({ line: lineNum, message: `WORD expects a numeric value (decimal, 0x hex, or 0b binary) but got "${rawTok}".` });
+                    this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok), message: `WORD expects a numeric value (decimal, 0x hex, or 0b binary) but got "${rawTok}".` });
                     wordVal = 0;
                 }
                 return ((0x1E << 27) | (wordVal >>> 0 & 0x7FFFFFF)) >>> 0;
@@ -1437,11 +1453,21 @@ class ChurchAssembler {
     // Emit an error if idx refers to CR12–CR15 (the Privilege Zone).
     // Called after _parseCR() for any instruction that writes to crDst.
     // Returns true if an error was pushed (callers may abort further checks).
+    _tokenCols(lineText, token) {
+        if (!lineText || !token) return {};
+        let idx = lineText.indexOf(token);
+        if (idx < 0) idx = lineText.toUpperCase().indexOf(token.toUpperCase());
+        if (idx < 0) return {};
+        return { colStart: idx, colEnd: idx + token.length };
+    }
+
     _checkPrivCR(idx, mnemonic, lineNum) {
         if (idx >= 12 && idx <= 15) {
             const names = { 12: 'Thread', 13: 'Nucleus', 14: 'Current-Lump', 15: 'Namespace' };
+            const crTok = 'CR' + idx;
             this.errors.push({
                 line: lineNum,
+                ...this._tokenCols(this._currentLineText, crTok),
                 message: `CR${idx} (${names[idx] || 'Privilege Zone'}) is in the Privilege Zone \u2014 CR12\u2013CR15 are reserved for microcode tasks and cannot be referenced in ${mnemonic}. Use CR0\u2013CR11 instead.`,
             });
             return true;
@@ -1451,7 +1477,8 @@ class ChurchAssembler {
 
     _parseCR(token, lineNum) {
         if (!token) {
-            this.errors.push({ line: lineNum, message: 'A capability register (like CR0, CR6, CR11, 6, or hex 0x0\u20130xF) is needed here, but nothing was given.' });
+            const _mnTok = (this._currentLineText || '').trim().split(/[\s,]+/)[0] || '';
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _mnTok), message: 'A capability register (like CR0, CR6, CR11, 6, or hex 0x0\u20130xF) is needed here, but nothing was given.' });
             return 0;
         }
         // Preserve original-case token for Level 2 and error messages.
@@ -1463,21 +1490,21 @@ class ChurchAssembler {
         if (m) {
             const idx = parseInt(m[1]);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `CR${idx} is too big! Capability registers go from CR0 to CR15 (that's 16 registers).` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok), message: `CR${idx} is too big! Capability registers go from CR0 to CR15 (that's 16 registers).` });
             return 0;
         }
         const hexMatch = uToken.match(/^0X([0-9A-F]+)$/);
         if (hexMatch) {
             const idx = parseInt(hexMatch[1], 16);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `0x${hexMatch[1]} (=${idx}) is out of range for a capability register — must be 0x0–0xF (CR0–CR15).` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok), message: `0x${hexMatch[1]} (=${idx}) is out of range for a capability register — must be 0x0–0xF (CR0–CR15).` });
             return 0;
         }
         const bareMatch = uToken.match(/^(\d+)$/);
         if (bareMatch) {
             const idx = parseInt(bareMatch[1]);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `${idx} is out of range for a capability register — must be 0–15 (CR0–CR15).` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok), message: `${idx} is out of range for a capability register — must be 0–15 (CR0–CR15).` });
             return 0;
         }
 
@@ -1488,7 +1515,7 @@ class ChurchAssembler {
         // cross-type error if the name is a DR alias used in a CR position.
         if (this._crAliases[rawTok] !== undefined) return this._crAliases[rawTok];
         if (this._drAliases[rawTok] !== undefined) {
-            this.errors.push({ line: lineNum, message: `'${rawTok}' is a DR alias — expected a CR here` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok), message: `'${rawTok}' is a DR alias — expected a CR here` });
             return 0;
         }
 
@@ -1500,7 +1527,7 @@ class ChurchAssembler {
             hint += ` Known abstractions: ${shown}${knownNames.length > 6 ? '…' : ''}.`;
         }
         if (loadedNames.length) hint += ` Loaded in CRs: ${loadedNames.join(', ')}.`;
-        this.errors.push({ line: lineNum, message: `Expected a capability register like CR0, CR6, 6, or hex 0x6, but got "${rawTok}".${hint}` });
+        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawTok), message: `Expected a capability register like CR0, CR6, 6, or hex 0x6, but got "${rawTok}".${hint}` });
         return 0;
     }
 
@@ -1512,32 +1539,33 @@ class ChurchAssembler {
         if (crMatch) {
             const idx = parseInt(crMatch[1]);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `CR${idx} is too big! Capability registers go from CR0 to CR15.` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `CR${idx} is too big! Capability registers go from CR0 to CR15.` });
             return 0;
         }
         const hexMatch = token.match(/^0X([0-9A-F]+)$/);
         if (hexMatch) {
             const idx = parseInt(hexMatch[1], 16);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `Method selector 0x${hexMatch[1]} (=${idx}) is too big — must be 0–15 (0x0–0xF).` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `Method selector 0x${hexMatch[1]} (=${idx}) is too big — must be 0–15 (0x0–0xF).` });
             return 0;
         }
         const bareMatch = token.match(/^(\d+)$/);
         if (bareMatch) {
             const idx = parseInt(bareMatch[1]);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `Method selector ${idx} is too big — must be 0–15.` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `Method selector ${idx} is too big — must be 0–15.` });
             return 0;
         }
         // .pet CR alias — allows a named capability register as a method selector
         if (this._crAliases[rawAlias] !== undefined) return this._crAliases[rawAlias];
-        this.errors.push({ line: lineNum, message: `Expected a method selector (0–15, 0x0–0xF, or CR0–CR15), but got "${rawAlias}".` });
+        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `Expected a method selector (0–15, 0x0–0xF, or CR0–CR15), but got "${rawAlias}".` });
         return 0;
     }
 
     _parseDR(token, lineNum) {
         if (!token) {
-            this.errors.push({ line: lineNum, message: 'A data register (like DR0, DR1, 1, or hex 0x0–0xF) is needed here, but nothing was given.' });
+            const _mnTok = (this._currentLineText || '').trim().split(/[\s,]+/)[0] || '';
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, _mnTok), message: 'A data register (like DR0, DR1, 1, or hex 0x0–0xF) is needed here, but nothing was given.' });
             return 0;
         }
         const rawAlias = token.replace(/,/g, '').trim();  // preserve case for alias lookup
@@ -1546,31 +1574,31 @@ class ChurchAssembler {
         if (m) {
             const idx = parseInt(m[1]);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `DR${idx} is too big! Data registers go from DR0 to DR15 (that's 16 registers).` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `DR${idx} is too big! Data registers go from DR0 to DR15 (that's 16 registers).` });
             return 0;
         }
         const hexMatch = token.match(/^0X([0-9A-F]+)$/);
         if (hexMatch) {
             const idx = parseInt(hexMatch[1], 16);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `0x${hexMatch[1]} (=${idx}) is out of range for a data register — must be 0x0–0xF (DR0–DR15).` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `0x${hexMatch[1]} (=${idx}) is out of range for a data register — must be 0x0–0xF (DR0–DR15).` });
             return 0;
         }
         const bareMatch = token.match(/^(\d+)$/);
         if (bareMatch) {
             const idx = parseInt(bareMatch[1]);
             if (idx >= 0 && idx <= 15) return idx;
-            this.errors.push({ line: lineNum, message: `${idx} is out of range for a data register — must be 0–15 (DR0–DR15).` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `${idx} is out of range for a data register — must be 0–15 (DR0–DR15).` });
             return 0;
         }
         // .pet alias lookup — check DR aliases first, then give a helpful
         // cross-type error if the name is a CR alias used in a DR position.
         if (this._drAliases[rawAlias] !== undefined) return this._drAliases[rawAlias];
         if (this._crAliases[rawAlias] !== undefined) {
-            this.errors.push({ line: lineNum, message: `'${rawAlias}' is a CR alias — expected a DR here` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `'${rawAlias}' is a CR alias — expected a DR here` });
             return 0;
         }
-        this.errors.push({ line: lineNum, message: `Expected a data register like DR0, DR1, 1, or hex 0x1, but got "${rawAlias}". Data registers are DR0–DR15 (or 0–15, or 0x0–0xF).` });
+        this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, rawAlias), message: `Expected a data register like DR0, DR1, 1, or hex 0x1, but got "${rawAlias}". Data registers are DR0–DR15 (or 0–15, or 0x0–0xF).` });
         return 0;
     }
 
@@ -1598,7 +1626,7 @@ class ChurchAssembler {
         }
 
         if (isNaN(val)) {
-            this.errors.push({ line: lineNum, message: `"${token}" isn't a number I understand. Try a decimal number like 42, hex like 0xFF, or binary like 0b1010.` });
+            this.errors.push({ line: lineNum, ...this._tokenCols(this._currentLineText, token), message: `"${token}" isn't a number I understand. Try a decimal number like 42, hex like 0xFF, or binary like 0b1010.` });
             return 0;
         }
         return val & 0xFFFF;

@@ -377,28 +377,33 @@ function _highlightAsmErrorLines(errors) {
             var lineTop = paddingTop + (e.line - 1) * lineHeight;
             var colStart = 0, colEnd = 0;
 
-            // Try to locate the quoted token from the error message in the source line.
-            var tokenFound = false;
-            if (e.message) {
-                var qm = e.message.match(/"([^"]+)"/);
-                if (qm) {
-                    var tok = qm[1];
-                    var idx = lineText.indexOf(tok);
-                    if (idx < 0) idx = lineText.toUpperCase().indexOf(tok.toUpperCase());
-                    if (idx >= 0) {
-                        colStart = idx;
-                        colEnd = idx + tok.length;
-                        tokenFound = true;
+            if (e.colStart !== undefined && e.colEnd !== undefined) {
+                // Assembler-supplied precise column range — use directly.
+                colStart = e.colStart;
+                colEnd   = e.colEnd;
+            } else {
+                // Legacy fallback: try to locate the quoted token from the error message.
+                var tokenFound = false;
+                if (e.message) {
+                    var qm = e.message.match(/"([^"]+)"/);
+                    if (qm) {
+                        var tok = qm[1];
+                        var idx = lineText.indexOf(tok);
+                        if (idx < 0) idx = lineText.toUpperCase().indexOf(tok.toUpperCase());
+                        if (idx >= 0) {
+                            colStart = idx;
+                            colEnd = idx + tok.length;
+                            tokenFound = true;
+                        }
                     }
                 }
-            }
-
-            if (!tokenFound) {
-                // Fall back: underline from first non-whitespace to end of non-comment content.
-                var strippedLine = lineText.replace(/;.*$/, '').replace(/\s+$/, '');
-                var firstNonWs = strippedLine.search(/\S/);
-                colStart = firstNonWs >= 0 ? firstNonWs : 0;
-                colEnd = strippedLine.length;
+                if (!tokenFound) {
+                    // Last resort: underline from first non-whitespace to end of non-comment content.
+                    var strippedLine = lineText.replace(/;.*$/, '').replace(/\s+$/, '');
+                    var firstNonWs = strippedLine.search(/\S/);
+                    colStart = firstNonWs >= 0 ? firstNonWs : 0;
+                    colEnd = strippedLine.length;
+                }
             }
 
             if (colEnd > colStart) {
