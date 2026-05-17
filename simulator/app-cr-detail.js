@@ -239,6 +239,15 @@ function _getSyntaxSuggestion(msg) {
             example: 'DREAD  DR0, CR3, #0   ; valid DR operands\nIADD   DR1, DR0, #1'
         };
     }
+    if (/is out of range for a 32-bit Church Machine register/i.test(msg)) {
+        var litMatch = msg.match(/Literal\s+(-?\d+)/);
+        var badLit = litMatch ? litMatch[1] : 'the value';
+        return {
+            title: 'Literal too large for a 32-bit register',
+            body: 'Church Machine registers hold signed 32-bit integers. <strong>' + _escHtml(badLit) + '</strong> does not fit. Use a value between <code>-2147483648</code> and <code>2147483647</code>.',
+            example: 'let x = 2147483647   -- largest positive 32-bit value\nlet y = -2147483648  -- most negative 32-bit value\nlet z = 0x7FFF       -- small hex literals are fine'
+        };
+    }
     return null;
 }
 

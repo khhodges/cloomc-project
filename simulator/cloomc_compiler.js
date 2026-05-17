@@ -1026,7 +1026,7 @@ class CLOOMCCompiler {
         const numMatch = expr.match(/^(0x[0-9a-fA-F]+|\d+)$/);
         if (numMatch) {
             const val = parseInt(numMatch[1]);
-            if (val > 2147483647) {
+            if (val > 2147483647 || val < -2147483648) {
                 errors.push({ line: lineNum, message: `Literal ${val} is out of range for a 32-bit Church Machine register (must be between -2147483648 and 2147483647)` });
                 return this._allocTemp(locals);
             }
@@ -1976,6 +1976,10 @@ class CLOOMCCompiler {
 
         switch (node.type) {
             case 'literal': {
+                if (node.value > 2147483647 || node.value < -2147483648) {
+                    errors.push({ line: lineNum, message: `Literal ${node.value} is out of range for a 32-bit Church Machine register (must be between -2147483648 and 2147483647)` });
+                    return 0;
+                }
                 const dr = this._allocTemp(locals);
                 if (node.value > 2147483647 || node.value < -2147483648) {
                     errors.push({ line: lineNum, message: `Literal ${node.value} is out of range for a 32-bit Church Machine register (must be between -2147483648 and 2147483647)` });
@@ -2564,9 +2568,9 @@ class CLOOMCCompiler {
             return { type: 'expr', text: expr };
         };
 
-        const emitLoadConst = (dr, value) => {
+        const emitLoadConst = (dr, value, lineNum) => {
             if (value > 2147483647 || value < -2147483648) {
-                errors.push({ line: 0, message: `Literal ${value} is out of range for a 32-bit Church Machine register (must be between -2147483648 and 2147483647)` });
+                errors.push({ line: lineNum || 0, message: `Literal ${value} is out of range for a 32-bit Church Machine register (must be between -2147483648 and 2147483647)` });
                 return;
             }
             if (value < 0) {
@@ -2847,7 +2851,7 @@ class CLOOMCCompiler {
                 return getVar(val.name);
             }
             if (val.type === 'const') {
-                emitLoadConst(preferDR, val.value);
+                emitLoadConst(preferDR, val.value, lineNum);
                 return preferDR;
             }
             if (val.type === 'expr') {
