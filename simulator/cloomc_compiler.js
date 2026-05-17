@@ -314,10 +314,13 @@ class CLOOMCCompiler {
 
             const methodMatch = cleanLine.match(/^method\s+(\w+)\s*\(([^)]*)\)\s*=\s*(.+)$/);
             if (methodMatch) {
+                const _rawLine0 = lines[i];
+                const _ls0 = _rawLine0.length - _rawLine0.trimStart().length;
                 const method = {
                     name: methodMatch[1],
                     params: methodMatch[2] ? methodMatch[2].split(',').map(p => p.trim()).filter(Boolean) : [],
                     expr: methodMatch[3].trim(),
+                    exprOffset: _ls0 + (line.length - methodMatch[3].length),
                     startLine: i,
                     isLambda: true,
                     visibility,
@@ -340,6 +343,7 @@ class CLOOMCCompiler {
                     name: blockMethodMatch[1],
                     params: blockMethodMatch[2] ? blockMethodMatch[2].split(',').map(p => p.trim()).filter(Boolean) : [],
                     expr: '',
+                    exprOffset: 0,
                     startLine: i,
                     isLambda: true,
                     visibility,
@@ -389,10 +393,11 @@ class CLOOMCCompiler {
             if (input[i] === '+') { tokens.push({ type: 'op', value: '+', pos: i }); i++; continue; }
             if (input[i] === '-' && i + 1 < input.length) {
                 if (/\d/.test(input[i + 1]) && (tokens.length === 0 || tokens[tokens.length - 1].type === 'op' || tokens[tokens.length - 1].type === 'dot' || tokens[tokens.length - 1].type === 'lambda')) {
+                    const negStart = i;
                     let num = '-';
                     i++;
                     while (i < input.length && /\d/.test(input[i])) { num += input[i]; i++; }
-                    tokens.push({ type: 'number', value: parseInt(num), pos: i });
+                    tokens.push({ type: 'number', value: parseInt(num), pos: negStart });
                     continue;
                 }
                 tokens.push({ type: 'op', value: '-', pos: i }); i++; continue;
@@ -407,6 +412,7 @@ class CLOOMCCompiler {
 
             if (/\d/.test(input[i])) {
                 let num = '';
+                const numStart = i;
                 if (input[i] === '0' && i + 1 < input.length && input[i + 1] === 'x') {
                     num = '0x';
                     i += 2;
@@ -414,24 +420,25 @@ class CLOOMCCompiler {
                 } else {
                     while (i < input.length && /\d/.test(input[i])) { num += input[i]; i++; }
                 }
-                tokens.push({ type: 'number', value: parseInt(num), pos: i });
+                tokens.push({ type: 'number', value: parseInt(num), pos: numStart });
                 continue;
             }
 
             if (/[a-zA-Z_]/.test(input[i])) {
                 let ident = '';
+                const identStart = i;
                 while (i < input.length && /[a-zA-Z0-9_]/.test(input[i])) { ident += input[i]; i++; }
                 if (i < input.length && input[i] === '.' && /[A-Z]/.test(ident[0])) {
                     ident += '.';
                     i++;
                     while (i < input.length && /[a-zA-Z0-9_]/.test(input[i])) { ident += input[i]; i++; }
                 }
-                if (ident === 'let') tokens.push({ type: 'let', pos: i });
-                else if (ident === 'in') tokens.push({ type: 'in', pos: i });
-                else if (ident === 'if') tokens.push({ type: 'hif', pos: i });
-                else if (ident === 'then') tokens.push({ type: 'then', pos: i });
-                else if (ident === 'else') tokens.push({ type: 'helse', pos: i });
-                else tokens.push({ type: 'ident', value: ident, pos: i });
+                if (ident === 'let') tokens.push({ type: 'let', pos: identStart });
+                else if (ident === 'in') tokens.push({ type: 'in', pos: identStart });
+                else if (ident === 'if') tokens.push({ type: 'hif', pos: identStart });
+                else if (ident === 'then') tokens.push({ type: 'then', pos: identStart });
+                else if (ident === 'else') tokens.push({ type: 'helse', pos: identStart });
+                else tokens.push({ type: 'ident', value: ident, pos: identStart });
                 continue;
             }
 
@@ -504,9 +511,10 @@ class CLOOMCCompiler {
 
         while (pos < tokens.length && tokens[pos].type === 'op') {
             const op = tokens[pos].value;
+            const opPos = tokens[pos].pos;
             pos++;
             const right = this._parseLambdaApp(tokens, pos);
-            left = { node: { type: 'binop', op: op, left: left.node, right: right.node }, pos: right.pos };
+            left = { node: { type: 'binop', op: op, opPos: opPos, left: left.node, right: right.node }, pos: right.pos };
             pos = right.pos;
         }
 
@@ -537,11 +545,11 @@ class CLOOMCCompiler {
         const t = tokens[pos];
 
         if (t.type === 'number') {
-            return { node: { type: 'literal', value: t.value }, pos: pos + 1 };
+            return { node: { type: 'literal', value: t.value, pos: t.pos }, pos: pos + 1 };
         }
 
         if (t.type === 'ident') {
-            return { node: { type: 'var', name: t.value }, pos: pos + 1 };
+            return { node: { type: 'var', name: t.value, pos: t.pos }, pos: pos + 1 };
         }
 
         if (t.type === 'lparen') {
@@ -612,7 +620,7 @@ class CLOOMCCompiler {
         }
 
         const ast = this._parseLambdaExpr(method.expr);
-        const resultReg = this._emitHaskellExpr(ast, code, locals, rom, capNames, errors, manifest, method.startLine);
+        const resultReg = this._emitHaskellExpr(ast, code, locals, rom, capNames, errors, manifest, method.startLine, method.exprOffset || 0);
 
         if (errors.length > 0) {
             return { code: [], errors, manifest: [] };
@@ -1643,10 +1651,13 @@ class CLOOMCCompiler {
 
             const methodMatch = cleanLine.match(/^method\s+(\w+)\s*\(([^)]*)\)\s*=\s*(.+)$/);
             if (methodMatch) {
+                const _rawLine0 = lines[i];
+                const _ls0 = _rawLine0.length - _rawLine0.trimStart().length;
                 const method = {
                     name: methodMatch[1],
                     params: methodMatch[2] ? methodMatch[2].split(',').map(p => p.trim()).filter(Boolean) : [],
                     expr: methodMatch[3].trim(),
+                    exprOffset: _ls0 + (line.length - methodMatch[3].length),
                     startLine: i,
                     isLambda: true,
                     visibility,
@@ -1669,6 +1680,7 @@ class CLOOMCCompiler {
                     name: blockMethodMatch[1],
                     params: blockMethodMatch[2] ? blockMethodMatch[2].split(',').map(p => p.trim()).filter(Boolean) : [],
                     expr: '',
+                    exprOffset: 0,
                     startLine: i,
                     isLambda: true,
                     visibility,
@@ -1716,10 +1728,11 @@ class CLOOMCCompiler {
             if (input[i] === '+') { tokens.push({ type: 'op', value: '+', pos: i }); i++; continue; }
             if (input[i] === '-' && i + 1 < input.length && input[i + 1] !== '>') {
                 if (i + 1 < input.length && /\d/.test(input[i + 1]) && (tokens.length === 0 || tokens[tokens.length - 1].type === 'op' || tokens[tokens.length - 1].type === 'arrow' || tokens[tokens.length - 1].type === 'lambda')) {
+                    const negStart = i;
                     let num = '-';
                     i++;
                     while (i < input.length && /\d/.test(input[i])) { num += input[i]; i++; }
-                    tokens.push({ type: 'number', value: parseInt(num), pos: i });
+                    tokens.push({ type: 'number', value: parseInt(num), pos: negStart });
                     continue;
                 }
                 tokens.push({ type: 'op', value: '-', pos: i }); i++; continue;
@@ -1734,6 +1747,7 @@ class CLOOMCCompiler {
 
             if (/\d/.test(input[i]) || (input[i] === '0' && input[i + 1] === 'x')) {
                 let num = '';
+                const numStart = i;
                 if (input[i] === '0' && i + 1 < input.length && input[i + 1] === 'x') {
                     num = '0x';
                     i += 2;
@@ -1741,22 +1755,23 @@ class CLOOMCCompiler {
                 } else {
                     while (i < input.length && /\d/.test(input[i])) { num += input[i]; i++; }
                 }
-                tokens.push({ type: 'number', value: parseInt(num), pos: i });
+                tokens.push({ type: 'number', value: parseInt(num), pos: numStart });
                 continue;
             }
 
             if (/[a-zA-Z_]/.test(input[i])) {
                 let ident = '';
+                const identStart = i;
                 while (i < input.length && /[a-zA-Z0-9_.]/.test(input[i])) { ident += input[i]; i++; }
-                if (ident === 'let') tokens.push({ type: 'let', pos: i });
-                else if (ident === 'in') tokens.push({ type: 'in', pos: i });
-                else if (ident === 'case') tokens.push({ type: 'case', pos: i });
-                else if (ident === 'of') tokens.push({ type: 'of', pos: i });
-                else if (ident === 'if') tokens.push({ type: 'hif', pos: i });
-                else if (ident === 'then') tokens.push({ type: 'then', pos: i });
-                else if (ident === 'else') tokens.push({ type: 'helse', pos: i });
-                else if (ident === 'pure') tokens.push({ type: 'pure', pos: i });
-                else tokens.push({ type: 'ident', value: ident, pos: i });
+                if (ident === 'let') tokens.push({ type: 'let', pos: identStart });
+                else if (ident === 'in') tokens.push({ type: 'in', pos: identStart });
+                else if (ident === 'case') tokens.push({ type: 'case', pos: identStart });
+                else if (ident === 'of') tokens.push({ type: 'of', pos: identStart });
+                else if (ident === 'if') tokens.push({ type: 'hif', pos: identStart });
+                else if (ident === 'then') tokens.push({ type: 'then', pos: identStart });
+                else if (ident === 'else') tokens.push({ type: 'helse', pos: identStart });
+                else if (ident === 'pure') tokens.push({ type: 'pure', pos: identStart });
+                else tokens.push({ type: 'ident', value: ident, pos: identStart });
                 continue;
             }
 
@@ -1853,9 +1868,10 @@ class CLOOMCCompiler {
 
         while (pos < tokens.length && tokens[pos].type === 'op') {
             const op = tokens[pos].value;
+            const opPos = tokens[pos].pos;
             pos++;
             const right = this._parseHaskellApp(tokens, pos);
-            left = { node: { type: 'binop', op: op, left: left.node, right: right.node }, pos: right.pos };
+            left = { node: { type: 'binop', op: op, opPos: opPos, left: left.node, right: right.node }, pos: right.pos };
             pos = right.pos;
         }
 
@@ -1886,11 +1902,11 @@ class CLOOMCCompiler {
         const t = tokens[pos];
 
         if (t.type === 'number') {
-            return { node: { type: 'literal', value: t.value }, pos: pos + 1 };
+            return { node: { type: 'literal', value: t.value, pos: t.pos }, pos: pos + 1 };
         }
 
         if (t.type === 'ident') {
-            return { node: { type: 'var', name: t.value }, pos: pos + 1 };
+            return { node: { type: 'var', name: t.value, pos: t.pos }, pos: pos + 1 };
         }
 
         if (t.type === 'lparen') {
@@ -1971,7 +1987,7 @@ class CLOOMCCompiler {
         }
 
         const ast = this._parseHaskellExpr(method.expr);
-        const resultReg = this._emitHaskellExpr(ast, code, locals, rom, capNames, errors, manifest, method.startLine);
+        const resultReg = this._emitHaskellExpr(ast, code, locals, rom, capNames, errors, manifest, method.startLine, method.exprOffset || 0);
 
         if (errors.length > 0) {
             return { code: [], errors, manifest: [] };
@@ -1986,13 +2002,15 @@ class CLOOMCCompiler {
         return { code, errors, manifest };
     }
 
-    _emitHaskellExpr(node, code, locals, rom, capNames, errors, manifest, lineNum) {
+    _emitHaskellExpr(node, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset = 0) {
         if (!node) return 0;
 
         switch (node.type) {
             case 'literal': {
                 if (node.value > 2147483647 || node.value < -2147483648) {
-                    errors.push({ line: lineNum, message: `Literal ${node.value} is out of range for a 32-bit Church Machine register (must be between -2147483648 and 2147483647)` });
+                    const _lStart = (exprOffset || 0) + (node.pos !== undefined ? node.pos : 0);
+                    const _lText = String(node.value);
+                    errors.push({ line: lineNum, message: `Literal ${node.value} is out of range for a 32-bit Church Machine register (must be between -2147483648 and 2147483647)`, colStart: _lStart, colEnd: _lStart + _lText.length });
                     return 0;
                 }
                 const dr = this._allocTemp(locals);
@@ -2018,7 +2036,8 @@ class CLOOMCCompiler {
                     code.push(this.encode(this.opcodes.IADD, 14, dr, 0, 0));
                     return dr;
                 }
-                errors.push({ line: lineNum, message: `Undefined variable: ${node.name}` });
+                const _vStart = (exprOffset || 0) + (node.pos !== undefined ? node.pos : 0);
+                errors.push({ line: lineNum, message: `Undefined variable: ${node.name}`, colStart: _vStart, colEnd: _vStart + node.name.length });
                 return 0;
             }
 
@@ -2035,7 +2054,7 @@ class CLOOMCCompiler {
                 const bodyStart = code.length;
                 manifest.push({ src: lineNum, addr: bodyStart, desc: `lambda \\${node.params.join(' ')} -> ...` });
 
-                const resultReg = this._emitHaskellExpr(node.body, code, lambdaLocals, rom, capNames, errors, manifest, lineNum);
+                const resultReg = this._emitHaskellExpr(node.body, code, lambdaLocals, rom, capNames, errors, manifest, lineNum, exprOffset);
 
                 if (resultReg !== this.DR_ARGS_START) {
                     code.push(this.encode(this.opcodes.IADD, 14, this.DR_ARGS_START, resultReg, 0));
@@ -2058,7 +2077,7 @@ class CLOOMCCompiler {
                     const capIdx = rom[absName];
 
                     if (capIdx !== undefined) {
-                        const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                        const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                         if (argReg !== this.DR_ARGS_START) {
                             code.push(this.encode(this.opcodes.IADD, 14, this.DR_ARGS_START, argReg, 0));
                         }
@@ -2073,7 +2092,7 @@ class CLOOMCCompiler {
                 }
 
                 if (node.func.type === 'var' && node.func.name === 'succ') {
-                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                     const dr = this._allocTemp(locals);
                     manifest.push({ src: lineNum, addr: code.length, desc: 'succ (Church successor)' });
                     code.push(this.encode(this.opcodes.IADD, 14, dr, argReg, 1));
@@ -2081,7 +2100,7 @@ class CLOOMCCompiler {
                 }
 
                 if (node.func.type === 'var' && node.func.name === 'pred') {
-                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                     const dr = this._allocTemp(locals);
                     manifest.push({ src: lineNum, addr: code.length, desc: 'pred (Church predecessor)' });
                     code.push(this.encode(this.opcodes.ISUB, 14, dr, argReg, 1));
@@ -2089,7 +2108,7 @@ class CLOOMCCompiler {
                 }
 
                 if (node.func.type === 'var' && node.func.name === 'isZero') {
-                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                     const dr = this._allocTemp(locals);
                     manifest.push({ src: lineNum, addr: code.length, desc: 'isZero check' });
                     code.push(this.encode(this.opcodes.MCMP, 14, argReg, 0, 0));
@@ -2099,7 +2118,7 @@ class CLOOMCCompiler {
                 }
 
                 if (node.func.type === 'var' && node.func.name === 'fst') {
-                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                     const dr = this._allocTemp(locals);
                     manifest.push({ src: lineNum, addr: code.length, desc: 'fst (pair first)' });
                     code.push(this.encode(this.opcodes.SHR, 14, dr, argReg, 16));
@@ -2107,15 +2126,15 @@ class CLOOMCCompiler {
                 }
 
                 if (node.func.type === 'var' && node.func.name === 'snd') {
-                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                    const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                     const dr = this._allocTemp(locals);
                     manifest.push({ src: lineNum, addr: code.length, desc: 'snd (pair second)' });
                     code.push(this.encode(this.opcodes.BFEXT, 14, dr, argReg, (0 << 5) | 16));
                     return dr;
                 }
 
-                const funcReg = this._emitHaskellExpr(node.func, code, locals, rom, capNames, errors, manifest, lineNum);
-                const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum);
+                const funcReg = this._emitHaskellExpr(node.func, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
+                const argReg = this._emitHaskellExpr(node.arg, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
 
                 if (argReg !== this.DR_ARGS_START) {
                     code.push(this.encode(this.opcodes.IADD, 14, this.DR_ARGS_START, argReg, 0));
@@ -2129,8 +2148,8 @@ class CLOOMCCompiler {
             }
 
             case 'binop': {
-                const leftReg = this._emitHaskellExpr(node.left, code, locals, rom, capNames, errors, manifest, lineNum);
-                const rightReg = this._emitHaskellExpr(node.right, code, locals, rom, capNames, errors, manifest, lineNum);
+                const leftReg = this._emitHaskellExpr(node.left, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
+                const rightReg = this._emitHaskellExpr(node.right, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                 const dr = this._allocTemp(locals);
 
                 switch (node.op) {
@@ -2231,7 +2250,8 @@ class CLOOMCCompiler {
                         code.push(this.encode(this.opcodes.IADD, this.conditions.LT, dr, 0, 0));
                         break;
                     default:
-                        errors.push({ line: lineNum, message: `Unknown operator: ${node.op}` });
+                        const _opStart = (exprOffset || 0) + (node.opPos !== undefined ? node.opPos : 0);
+                        errors.push({ line: lineNum, message: `Unknown operator: ${node.op}`, colStart: _opStart, colEnd: _opStart + node.op.length });
                         return 0;
                 }
                 return dr;
@@ -2240,18 +2260,18 @@ class CLOOMCCompiler {
             case 'let': {
                 const letLocals = { ...locals };
                 for (const binding of node.bindings) {
-                    const valReg = this._emitHaskellExpr(binding.value, code, letLocals, rom, capNames, errors, manifest, lineNum);
+                    const valReg = this._emitHaskellExpr(binding.value, code, letLocals, rom, capNames, errors, manifest, lineNum, exprOffset);
                     const dr = this._allocLocal(binding.name, letLocals, errors, lineNum);
                     if (valReg !== dr) {
                         code.push(this.encode(this.opcodes.IADD, 14, dr, valReg, 0));
                     }
                     manifest.push({ src: lineNum, addr: code.length - 1, desc: `let ${binding.name}` });
                 }
-                return this._emitHaskellExpr(node.body, code, letLocals, rom, capNames, errors, manifest, lineNum);
+                return this._emitHaskellExpr(node.body, code, letLocals, rom, capNames, errors, manifest, lineNum, exprOffset);
             }
 
             case 'case': {
-                const scrutReg = this._emitHaskellExpr(node.scrutinee, code, locals, rom, capNames, errors, manifest, lineNum);
+                const scrutReg = this._emitHaskellExpr(node.scrutinee, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                 const resultDR = this._allocTemp(locals);
                 const endLabels = [];
 
@@ -2267,7 +2287,7 @@ class CLOOMCCompiler {
                         manifest.push({ src: lineNum, addr: skipAddr, desc: `case ${branch.pattern.value} ->` });
 
                         const branchLocals = { ...locals };
-                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum);
+                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum, exprOffset);
                         code.push(this.encode(this.opcodes.IADD, 14, resultDR, bodyReg, 0));
                         const jumpEnd = code.length;
                         code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
@@ -2283,7 +2303,7 @@ class CLOOMCCompiler {
                             code.push(this.encode(this.opcodes.IADD, 14, dr, scrutReg, 0));
                         }
                         manifest.push({ src: lineNum, addr: code.length, desc: `case ${branch.pattern.name} ->` });
-                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum);
+                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum, exprOffset);
                         code.push(this.encode(this.opcodes.IADD, 14, resultDR, bodyReg, 0));
                         const jumpEnd = code.length;
                         code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
@@ -2292,7 +2312,7 @@ class CLOOMCCompiler {
                     } else {
                         manifest.push({ src: lineNum, addr: code.length, desc: 'case _ ->' });
                         const branchLocals = { ...locals };
-                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum);
+                        const bodyReg = this._emitHaskellExpr(branch.body, code, branchLocals, rom, capNames, errors, manifest, lineNum, exprOffset);
                         code.push(this.encode(this.opcodes.IADD, 14, resultDR, bodyReg, 0));
                         const jumpEnd = code.length;
                         code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
@@ -2310,14 +2330,14 @@ class CLOOMCCompiler {
             }
 
             case 'ifExpr': {
-                const condReg = this._emitHaskellExpr(node.cond, code, locals, rom, capNames, errors, manifest, lineNum);
+                const condReg = this._emitHaskellExpr(node.cond, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                 code.push(this.encode(this.opcodes.MCMP, 14, condReg, 0, 0));
                 const skipThen = code.length;
                 code.push(this.encode(this.opcodes.BRANCH, this.conditions.EQ, 0, 0, 0));
                 manifest.push({ src: lineNum, addr: skipThen, desc: 'if-then-else' });
 
                 const resultDR = this._allocTemp(locals);
-                const thenReg = this._emitHaskellExpr(node.thenBranch, code, locals, rom, capNames, errors, manifest, lineNum);
+                const thenReg = this._emitHaskellExpr(node.thenBranch, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                 code.push(this.encode(this.opcodes.IADD, 14, resultDR, thenReg, 0));
                 const skipElse = code.length;
                 code.push(this.encode(this.opcodes.BRANCH, 14, 0, 0, 0));
@@ -2325,7 +2345,7 @@ class CLOOMCCompiler {
                 code[skipThen] = (code[skipThen] & ~0x7FFF) | (code.length & 0x7FFF);
                 code[skipThen] = code[skipThen] >>> 0;
 
-                const elseReg = this._emitHaskellExpr(node.elseBranch, code, locals, rom, capNames, errors, manifest, lineNum);
+                const elseReg = this._emitHaskellExpr(node.elseBranch, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                 code.push(this.encode(this.opcodes.IADD, 14, resultDR, elseReg, 0));
 
                 code[skipElse] = (code[skipElse] & ~0x7FFF) | (code.length & 0x7FFF);
@@ -2335,8 +2355,8 @@ class CLOOMCCompiler {
             }
 
             case 'pair': {
-                const fstReg = this._emitHaskellExpr(node.fst, code, locals, rom, capNames, errors, manifest, lineNum);
-                const sndReg = this._emitHaskellExpr(node.snd, code, locals, rom, capNames, errors, manifest, lineNum);
+                const fstReg = this._emitHaskellExpr(node.fst, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
+                const sndReg = this._emitHaskellExpr(node.snd, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
                 const dr = this._allocTemp(locals);
                 manifest.push({ src: lineNum, addr: code.length, desc: 'pair (fst, snd)' });
                 code.push(this.encode(this.opcodes.SHL, 14, dr, fstReg, 16));
@@ -2345,7 +2365,7 @@ class CLOOMCCompiler {
             }
 
             case 'pure': {
-                return this._emitHaskellExpr(node.value, code, locals, rom, capNames, errors, manifest, lineNum);
+                return this._emitHaskellExpr(node.value, code, locals, rom, capNames, errors, manifest, lineNum, exprOffset);
             }
 
             default:

@@ -7166,6 +7166,76 @@ Add a method called Run
         e ? 'colEnd=' + e.colEnd + ' expected=' + (expectedStart + 'unknownVar'.length) : 'no error');
 }
 
+// ── HC-COL: Haskell compiler errors carry colStart/colEnd ────────────────────
+// Verifies that _compileHaskellMethod / _emitHaskellExpr errors on identifiable
+// tokens carry correct column ranges, matching the precision of JS/CLOOMC errors.
+
+// HC-COL-1: undefined variable in Haskell method — colStart/colEnd point at the variable.
+{
+    const cc = new CLOOMCCompiler();
+    const src = 'method run(x) = x + ghostVar';
+    const result = cc.compileHaskell('abstraction T {\n' + src + '\n}');
+    const e = result.errors.find(x => x.message.includes('ghostVar'));
+    assert('HC-COL-1: undefined variable produces an error', e != null);
+    const expectedStart = src.indexOf('ghostVar');
+    assert('HC-COL-1: colStart points at ghostVar', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart + ' expected=' + expectedStart : 'no error');
+    assert('HC-COL-1: colEnd covers ghostVar', e && e.colEnd === expectedStart + 'ghostVar'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// HC-COL-2: literal out of range in Haskell method — colStart/colEnd point at the literal.
+{
+    const cc = new CLOOMCCompiler();
+    const src = 'method run(x) = 9999999999';
+    const result = cc.compileHaskell('abstraction T {\n' + src + '\n}');
+    const e = result.errors.find(x => x.message.includes('out of range'));
+    assert('HC-COL-2: out-of-range literal produces an error', e != null);
+    const expectedStart = src.indexOf('9999999999');
+    assert('HC-COL-2: colStart points at literal', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart + ' expected=' + expectedStart : 'no error');
+    assert('HC-COL-2: colEnd covers literal', e && e.colEnd === expectedStart + '9999999999'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// HC-COL-3: unknown operator in Haskell — test via direct _emitHaskellExpr call
+//           with a hand-crafted binop node that carries opPos.
+{
+    const cc = new CLOOMCCompiler();
+    const errors = [];
+    const exprOffset = 3;
+    const node = { type: 'binop', op: '??', opPos: 5, left: { type: 'literal', value: 0 }, right: { type: 'literal', value: 0 } };
+    cc._emitHaskellExpr(node, [], {}, {}, [], errors, [], 1, exprOffset);
+    const e = errors.find(x => x.message && x.message.includes('Unknown operator'));
+    assert('HC-COL-3: unknown operator produces an error', e != null);
+    assert('HC-COL-3: colStart = exprOffset + opPos', e && e.colStart === exprOffset + 5, e ? 'colStart=' + e.colStart : 'no error');
+    assert('HC-COL-3: colEnd covers operator token', e && e.colEnd === exprOffset + 5 + '??'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// ── LC-COL: Lambda Calculus compiler errors carry colStart/colEnd ─────────────
+// Same precision requirement for the Lambda Calculus front-end, which shares
+// _emitHaskellExpr but feeds it AST nodes from _parseLambdaExpr.
+
+// LC-COL-1: undefined variable in Lambda Calculus method — colStart/colEnd point at the variable.
+{
+    const cc = new CLOOMCCompiler();
+    const src = 'method run(x) = x + shadowGhost';
+    const result = cc.compileLambda('abstraction T {\n' + src + '\n}');
+    const e = result.errors.find(x => x.message.includes('shadowGhost'));
+    assert('LC-COL-1: undefined variable produces an error', e != null);
+    const expectedStart = src.indexOf('shadowGhost');
+    assert('LC-COL-1: colStart points at shadowGhost', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart + ' expected=' + expectedStart : 'no error');
+    assert('LC-COL-1: colEnd covers shadowGhost', e && e.colEnd === expectedStart + 'shadowGhost'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// LC-COL-2: literal out of range in Lambda Calculus method — colStart/colEnd point at the literal.
+{
+    const cc = new CLOOMCCompiler();
+    const src = 'method run(x) = 9999999999';
+    const result = cc.compileLambda('abstraction T {\n' + src + '\n}');
+    const e = result.errors.find(x => x.message.includes('out of range'));
+    assert('LC-COL-2: out-of-range literal produces an error', e != null);
+    const expectedStart = src.indexOf('9999999999');
+    assert('LC-COL-2: colStart points at literal', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart + ' expected=' + expectedStart : 'no error');
+    assert('LC-COL-2: colEnd covers literal', e && e.colEnd === expectedStart + '9999999999'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);
