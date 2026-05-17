@@ -103,7 +103,17 @@ function makeCtx({ lumpsCache = [], fetchImpl = null } = {}) {
     const timers = makeFakeTimers();
     const switchCalls = [];
 
-    const ctx = vm.createContext({
+    // ── Sandbox stub registry ────────────────────────────────────────────────
+    // Every global that the extracted production functions reference must be
+    // present here, otherwise the VM throws a ReferenceError.
+    //
+    // CATCH-ALL PROXY: The sandbox is wrapped in a Proxy so that any NEW
+    // helper added to _goToLumpByAbstractionName / _showFpgaToast /
+    // _dismissFpgaToast in the future will silently no-op instead of crashing
+    // with a ReferenceError.  Explicit stubs above are kept for documentation
+    // and for the switchView/fetch spies; the Proxy covers anything not yet
+    // listed here.
+    const sandbox = {
         document,
         // Fake timer hooks forwarded to our controllable fake clock.
         setTimeout:   timers.setTimeout,
@@ -117,7 +127,30 @@ function makeCtx({ lumpsCache = [], fetchImpl = null } = {}) {
         fetch: fetchImpl || (async () => { throw new Error('fetch not configured'); }),
         // Required by async function support in vm.
         Promise,
-    });
+    };
+
+    const ctx = vm.createContext(new Proxy(sandbox, {
+        get(target, prop, receiver) {
+            if (prop in target) return Reflect.get(target, prop, receiver);
+            // Pass JavaScript built-ins (String, Number, Object, Math, …)
+            // through from the host globalThis so the VM code continues to
+            // work normally.
+            if (typeof prop === 'string' && prop in globalThis) {
+                return globalThis[prop];
+            }
+            // Return a silent no-op for any unknown production helper
+            // (underscore- or letter-prefixed identifier).  This prevents
+            // ReferenceErrors when new DOM-touching helpers are added to the
+            // extracted functions without a simultaneous update to this file.
+            if (typeof prop === 'string' && /^[_a-zA-Z]/.test(prop)) {
+                return function() {};
+            }
+            return undefined;
+        },
+        has(target, prop) {
+            return true;
+        },
+    }));
 
     // Evaluate the real production source inside the context.
     vm.runInContext(TOAST_SRC,    ctx, { filename: 'app-run.js' });
