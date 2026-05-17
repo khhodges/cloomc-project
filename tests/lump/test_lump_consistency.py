@@ -406,7 +406,7 @@ BOOT_ABSTR_E_GT = 0x48800003
 BOOT_NUCS_X_GT  = 0x40800001
 
 SELFTEST_LUMP_CASES = [
-    ("82f5ef56", "PostFlashSelftest"),
+    ("d906a27f", "PostFlashSelftest"),
     ("cb8739cf", "GT Encoding v1.1 Hardware Self-Test"),
 ]
 
@@ -414,7 +414,7 @@ SELFTEST_LUMP_CASES = [
 class TestR13_SelftestClistGTs:
     """R13: Selftest lumps carry the expected Boot.Abstr and Boot.Nucs GT values.
 
-    PostFlashSelftest (82f5ef56) and GT Encoding v1.1 (cb8739cf) each embed
+    PostFlashSelftest (d906a27f) and GT Encoding v1.1 (cb8739cf) each embed
     Boot.Abstr E-GT (0x48800003) at c-list slot 3 and Boot.Nucs X-GT
     (0x40800001) at c-list slot 7.  Any recompile that accidentally zeroes
     one of these slots would silently break hardware self-tests; this test
