@@ -87,6 +87,10 @@ args = "e2e-tests"
 task = "workflow.run"
 args = "check-selftest-lump-stale"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "warning-panel-tests"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -296,6 +300,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node scripts/check_selftest_lump_stale.js && node scripts/test_check_selftest_lump_stale.js"
+
+[[workflows.workflow]]
+name = "warning-panel-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node simulator/test_asm_warning_panel.js"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [[ports]]
 localPort = 5000

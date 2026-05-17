@@ -73,6 +73,9 @@ function makeCtx() {
         // Stub for line-highlight side-effect (touches many DOM elements not
         // relevant to panel correctness).
         _highlightAsmWarningLines: function() {},
+        // Stub for badge update (touches asmWarnBadge elements not in the
+        // test fixture — the real function guards with if (!badge) return).
+        _updateAsmWarnBadge: function() {},
         // Spy: records every call to _jumpToAsmLine.
         _jumpToAsmLine: function(lineNum) { jumpCalls.push(lineNum); },
     });
