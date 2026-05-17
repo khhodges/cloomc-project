@@ -7303,6 +7303,7 @@ Add a method called Run
     assert('SM-COL-3: colEnd covers first token', e && e.colEnd === expectedStart + 'xyzzy'.length, e ? 'colEnd=' + e.colEnd : 'no error');
 }
 
+<<<<<<< HEAD
 // EN-COL-5: Multiple unrecognised block-form statements — each error carries
 //           its own colStart/colEnd pointing only at the bad keyword, not the
 //           whole statement.  This verifies that the squiggle renderer will draw
@@ -7342,6 +7343,36 @@ Add a method called Run
     assert('EN-COL-5: colEnd < full line length (narrow underline, not whole-line)',
         eWiggle && eWiggle.colEnd < rawWiggle.length,
         eWiggle ? 'colEnd=' + eWiggle.colEnd + ' lineLen=' + rawWiggle.length : 'no error');
+=======
+// ── SM-PARSE-COL: parse-phase (_parseSymbolicBody) errors carry colStart/colEnd ──
+// These errors are emitted before code generation — when a line inside an
+// abstraction body does not match any recognised keyword (capabilities / method / }).
+
+// SM-PARSE-COL-1: unrecognised token at abstraction body level — colStart/colEnd point at the first word.
+{
+    const cc = new CLOOMCCompiler();
+    const badLine = '  glorbulate fizz';
+    const src = 'abstraction T {\n' + badLine + '\n  method compute() {\n    return 1\n  }\n}';
+    const result = cc.compileSymbolic(src);
+    const e = result.errors.find(x => x.message && x.message.includes('Cannot understand') && x.message.includes('glorbulate'));
+    assert('SM-PARSE-COL-1: unrecognised body token produces an error', e != null);
+    const expectedStart = badLine.indexOf('glorbulate');
+    assert('SM-PARSE-COL-1: colStart points at glorbulate', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart + ' expected=' + expectedStart : 'no error');
+    assert('SM-PARSE-COL-1: colEnd covers glorbulate', e && e.colEnd === expectedStart + 'glorbulate'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+}
+
+// SM-PARSE-COL-2: multi-word unrecognised token at body level — colStart/colEnd point only at the first word.
+{
+    const cc = new CLOOMCCompiler();
+    const badLine = '    zapwidget alpha beta';
+    const src = 'abstraction Q {\n' + badLine + '\n  method run() {\n    return 0\n  }\n}';
+    const result = cc.compileSymbolic(src);
+    const e = result.errors.find(x => x.message && x.message.includes('Cannot understand') && x.message.includes('zapwidget'));
+    assert('SM-PARSE-COL-2: multi-word unrecognised token produces an error', e != null);
+    const expectedStart = badLine.indexOf('zapwidget');
+    assert('SM-PARSE-COL-2: colStart points at zapwidget', e && e.colStart === expectedStart, e ? 'colStart=' + e.colStart + ' expected=' + expectedStart : 'no error');
+    assert('SM-PARSE-COL-2: colEnd covers zapwidget only', e && e.colEnd === expectedStart + 'zapwidget'.length, e ? 'colEnd=' + e.colEnd : 'no error');
+>>>>>>> 33bfd94a (Task #1341: Extend exact token underlines to Pure Math (Ada) parse-phase errors)
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────

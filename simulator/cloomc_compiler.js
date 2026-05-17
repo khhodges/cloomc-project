@@ -2539,6 +2539,8 @@ class CLOOMCCompiler {
                 continue;
             }
 
+            const _firstWord = line.split(/\s+/)[0];
+            errors.push({ line: i + 1, message: `Cannot understand: "${line}"`, ...CLOOMCCompiler._tokenCols(lines[i], _firstWord) });
             i++;
         }
         for (let _mi = 0; _mi < result.methods.length; _mi++) {
