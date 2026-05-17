@@ -28,8 +28,48 @@ import os
 import subprocess
 import sys
 
-ROOT    = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-HARNESS = os.path.join(ROOT, 'tests', 'simulator', 'sim_selftest_lump_runs.js')
+import pytest
+
+ROOT         = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+HARNESS      = os.path.join(ROOT, 'tests', 'simulator', 'sim_selftest_lump_runs.js')
+STALE_CHECK  = os.path.join(ROOT, 'scripts', 'check_selftest_lump_stale.js')
+
+
+@pytest.fixture(scope='module', autouse=True)
+def _selftest_lump_stale_check():
+    """Fail the module early if the selftest lump binary is stale.
+
+    Runs ``node scripts/check_selftest_lump_stale.js`` once before any test in
+    this module executes.  A non-zero exit code means the binary is missing or
+    out-of-date; the whole module is failed immediately with a clear message so
+    the developer knows to run ``node scripts/build_selftest_lump.js``.
+    """
+    try:
+        proc = subprocess.run(
+            ['node', STALE_CHECK],
+            capture_output=True,
+            timeout=60,
+            cwd=ROOT,
+        )
+    except FileNotFoundError:
+        pytest.skip('Node.js not available — skipping selftest-lump stale check')
+        return
+    except subprocess.TimeoutExpired:
+        pytest.fail(
+            'selftest-lump stale check timed out after 60 s — '
+            'check scripts/check_selftest_lump_stale.js for issues'
+        )
+        return
+
+    if proc.returncode != 0:
+        stdout = proc.stdout.decode('utf-8', errors='replace').strip()
+        stderr = proc.stderr.decode('utf-8', errors='replace').strip()
+        output = '\n'.join(filter(None, [stdout, stderr]))
+        pytest.fail(
+            'selftest lump is stale or missing — run: '
+            'node scripts/build_selftest_lump.js\n\n'
+            + output
+        )
 
 
 def _node_available():
