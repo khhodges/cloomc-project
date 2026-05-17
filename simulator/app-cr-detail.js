@@ -114,7 +114,10 @@ function _jumpToAsmLine(lineNum) {
     var targetScrollTop = paddingTop + (targetLine - 1) * lineHeight - editor.clientHeight / 3;
     editor.scrollTop = Math.max(0, targetScrollTop);
     var overlay = document.getElementById('asmErrorOverlay');
-    if (overlay) overlay.scrollTop = editor.scrollTop;
+    if (overlay) {
+        overlay.scrollTop = editor.scrollTop;
+        overlay.scrollLeft = editor.scrollLeft;
+    }
 }
 
 function _getSyntaxSuggestion(msg) {
@@ -329,25 +332,88 @@ function _highlightAsmErrorLines(errors) {
         var style = getComputedStyle(editor);
         var lineHeight = parseFloat(style.lineHeight) || 19.2;
         var paddingTop = parseFloat(style.paddingTop) || 0;
+        var paddingLeft = parseFloat(style.paddingLeft) || 0;
         var totalLines = editor.value.split('\n').length;
+        var sourceLines = editor.value.split('\n');
+
+        // Measure monospace character width via canvas using the editor's computed font.
+        var charWidth = 0;
+        try {
+            var _cvs = document.createElement('canvas');
+            var _ctx = _cvs.getContext('2d');
+            _ctx.font = style.fontSize + ' ' + (style.fontFamily || "'Courier New', monospace");
+            charWidth = _ctx.measureText('M').width;
+        } catch (_ex) { charWidth = 0; }
+
+        // Compute the minimum inner width so underlines on long lines stay
+        // within the scrollable content and aren't clipped.
+        var maxLineLen = 0;
+        sourceLines.forEach(function(l) { if (l.length > maxLineLen) maxLineLen = l.length; });
+        var innerMinWidth = paddingLeft + maxLineLen * charWidth + paddingLeft;
 
         var inner = document.createElement('div');
         inner.className = 'asm-error-overlay-inner';
         inner.style.height = (paddingTop * 2 + totalLines * lineHeight) + 'px';
+        if (charWidth > 0) inner.style.minWidth = innerMinWidth + 'px';
 
+        // Pass 1: one background bar per unique line.
         var seenLines = {};
         errors.forEach(function(e) {
             if (!e.line || seenLines[e.line]) return;
             seenLines[e.line] = true;
-            var div = document.createElement('div');
-            div.className = 'asm-error-line-bg';
-            div.style.top = (paddingTop + (e.line - 1) * lineHeight) + 'px';
-            div.style.height = lineHeight + 'px';
-            inner.appendChild(div);
+            var bgDiv = document.createElement('div');
+            bgDiv.className = 'asm-error-line-bg';
+            bgDiv.style.top = (paddingTop + (e.line - 1) * lineHeight) + 'px';
+            bgDiv.style.height = lineHeight + 'px';
+            inner.appendChild(bgDiv);
+        });
+
+        // Pass 2: one underline per error (multiple errors on the same line each
+        // get their own underline, so every offending token is marked).
+        errors.forEach(function(e) {
+            if (!e.line || !charWidth || e.line > sourceLines.length) return;
+
+            var lineText = sourceLines[e.line - 1] || '';
+            var lineTop = paddingTop + (e.line - 1) * lineHeight;
+            var colStart = 0, colEnd = 0;
+
+            // Try to locate the quoted token from the error message in the source line.
+            var tokenFound = false;
+            if (e.message) {
+                var qm = e.message.match(/"([^"]+)"/);
+                if (qm) {
+                    var tok = qm[1];
+                    var idx = lineText.indexOf(tok);
+                    if (idx < 0) idx = lineText.toUpperCase().indexOf(tok.toUpperCase());
+                    if (idx >= 0) {
+                        colStart = idx;
+                        colEnd = idx + tok.length;
+                        tokenFound = true;
+                    }
+                }
+            }
+
+            if (!tokenFound) {
+                // Fall back: underline from first non-whitespace to end of non-comment content.
+                var strippedLine = lineText.replace(/;.*$/, '').replace(/\s+$/, '');
+                var firstNonWs = strippedLine.search(/\S/);
+                colStart = firstNonWs >= 0 ? firstNonWs : 0;
+                colEnd = strippedLine.length;
+            }
+
+            if (colEnd > colStart) {
+                var ulDiv = document.createElement('div');
+                ulDiv.className = 'asm-error-underline';
+                ulDiv.style.top = (lineTop + lineHeight - 3) + 'px';
+                ulDiv.style.left = (paddingLeft + colStart * charWidth) + 'px';
+                ulDiv.style.width = ((colEnd - colStart) * charWidth) + 'px';
+                inner.appendChild(ulDiv);
+            }
         });
 
         overlay.appendChild(inner);
         overlay.scrollTop = editor.scrollTop;
+        overlay.scrollLeft = editor.scrollLeft;
     }
 
     if (minLine && editor) {
@@ -356,7 +422,10 @@ function _highlightAsmErrorLines(errors) {
         var paddingTop2 = parseFloat(style2.paddingTop) || 0;
         var targetScrollTop = paddingTop2 + (minLine - 1) * lineHeight2 - editor.clientHeight / 3;
         editor.scrollTop = Math.max(0, targetScrollTop);
-        if (overlay) overlay.scrollTop = editor.scrollTop;
+        if (overlay) {
+            overlay.scrollTop = editor.scrollTop;
+            overlay.scrollLeft = editor.scrollLeft;
+        }
     }
 }
 

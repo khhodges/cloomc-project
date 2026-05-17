@@ -61,6 +61,14 @@
     box-sizing: border-box;
 }
 
+.asm-error-underline {
+    position: absolute;
+    height: 2px;
+    background: #ef4444;
+    border-radius: 1px;
+    pointer-events: none;
+}
+
 /* ── Breakpoint button ───────────────────────────────────────────────────── */
 .btn-break {
     background: #1c1a1a;

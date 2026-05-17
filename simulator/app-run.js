@@ -7061,7 +7061,10 @@ function syncLineScroll() {
     if (editor && gutter) {
         gutter.scrollTop = editor.scrollTop;
         const overlay = document.getElementById('asmErrorOverlay');
-        if (overlay) overlay.scrollTop = editor.scrollTop;
+        if (overlay) {
+            overlay.scrollTop = editor.scrollTop;
+            overlay.scrollLeft = editor.scrollLeft;
+        }
     }
 }
 
