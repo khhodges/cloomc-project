@@ -3441,6 +3441,14 @@ async function _loadLumpBinaryIntoSim(token, name, btn, nsSlot) {
         const loaded = sim.loadLumpBinary(rawWords, (nsSlot !== null && nsSlot !== undefined) ? nsSlot : undefined);
         if (!loaded) throw new Error('loadLumpBinary rejected the binary — check the console output for details');
 
+        // Update the NS-slot label so the Code-view panel title reflects the
+        // loaded LUMP, not the original boot-time label ("LED flash").
+        // The resolved slot mirrors what loadLumpBinary does internally.
+        const _resolvedSlot = (nsSlot !== null && nsSlot !== undefined)
+            ? Number(nsSlot)
+            : (sim.bootEntrySlot || 3);
+        if (sim.nsLabels) sim.nsLabels[_resolvedSlot] = name || token;
+
         if (typeof _syncBootEntryFromSim === 'function') _syncBootEntryFromSim();
         // Do NOT set lastAssembledWords: that variable is for assembler-path programs.
         // Setting it to a full lump binary would cause _autoLoadDefaultProgram() to feed
