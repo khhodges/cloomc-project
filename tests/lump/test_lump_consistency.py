@@ -358,3 +358,148 @@ class TestR11_SidecarFilesExist:
         assert not missing, (
             "Manifest entries missing sidecar .json:\n  " + "\n  ".join(missing)
         )
+
+
+def _read_clist_word(token, slot_index):
+    """Return the raw 32-bit word at c-list[slot_index] for the named lump."""
+    path = os.path.join(LUMPS_DIR, f"{token}.lump")
+    with open(path, "rb") as f:
+        raw = f.read()
+    words = struct.unpack(f">{len(raw) // 4}I", raw)
+    h = _parse_header(words[0])
+    clist_start = h["lump_sz"] - h["cc"]
+    return words[clist_start + slot_index]
+
+
+def _decode_gt(word):
+    """Decode a Golden Token word using the Church Machine GT layout.
+
+    Layout: [31]=b_flag [30:28]=perm[2:0] [27]=dom [26]=spare [25]=f_flag
+            [24:23]=gt_type [22:16]=gt_seq [15:0]=slot_id
+
+    Returns a dict with: type (0-3), type_name, dom (0=Turing/1=Church),
+    perm3 (raw 3-bit field), slot_id, and decoded permission flags.
+    """
+    word = word & 0xFFFFFFFF
+    gt_type = (word >> 23) & 0x3
+    dom     = (word >> 27) & 0x1
+    perm3   = (word >> 28) & 0x7
+    slot_id =  word        & 0xFFFF
+    if dom == 0:
+        perms = {"R": (perm3 >> 0) & 1, "W": (perm3 >> 1) & 1, "X": (perm3 >> 2) & 1,
+                 "L": 0, "S": 0, "E": 0}
+    else:
+        perms = {"R": 0, "W": 0, "X": 0,
+                 "L": (perm3 >> 0) & 1, "S": (perm3 >> 1) & 1, "E": (perm3 >> 2) & 1}
+    return {
+        "type": gt_type,
+        "type_name": ["NULL", "Inform", "Outform", "Abstract"][gt_type],
+        "dom": dom,
+        "dom_name": "Church" if dom else "Turing",
+        "perm3": perm3,
+        "slot_id": slot_id,
+        "perms": perms,
+    }
+
+
+BOOT_ABSTR_E_GT = 0x48800003
+BOOT_NUCS_X_GT  = 0x40800001
+
+SELFTEST_LUMP_CASES = [
+    ("82f5ef56", "PostFlashSelftest"),
+    ("cb8739cf", "GT Encoding v1.1 Hardware Self-Test"),
+]
+
+
+class TestR13_SelftestClistGTs:
+    """R13: Selftest lumps carry the expected Boot.Abstr and Boot.Nucs GT values.
+
+    PostFlashSelftest (82f5ef56) and GT Encoding v1.1 (cb8739cf) each embed
+    Boot.Abstr E-GT (0x48800003) at c-list slot 3 and Boot.Nucs X-GT
+    (0x40800001) at c-list slot 7.  Any recompile that accidentally zeroes
+    one of these slots would silently break hardware self-tests; this test
+    catches that regression immediately.
+
+    The GT words are also verified to decode as Inform-type (type=1) with
+    the correct domain (Church for E, Turing for X) and permission bits (E
+    and X respectively), so encoding errors are distinguished from simple
+    slot-assignment errors.
+    """
+
+    @pytest.mark.parametrize("token,label", SELFTEST_LUMP_CASES)
+    def test_slot3_raw_value(self, token, label):
+        actual = _read_clist_word(token, 3)
+        assert actual == BOOT_ABSTR_E_GT, (
+            f"{token} ({label}): c-list[3] = {actual:#010x}, "
+            f"expected Boot.Abstr E-GT = {BOOT_ABSTR_E_GT:#010x}.\n"
+            "  Repack the binary so that slot 3 holds the Boot.Abstr E capability."
+        )
+
+    @pytest.mark.parametrize("token,label", SELFTEST_LUMP_CASES)
+    def test_slot7_raw_value(self, token, label):
+        actual = _read_clist_word(token, 7)
+        assert actual == BOOT_NUCS_X_GT, (
+            f"{token} ({label}): c-list[7] = {actual:#010x}, "
+            f"expected Boot.Nucs X-GT = {BOOT_NUCS_X_GT:#010x}.\n"
+            "  Repack the binary so that slot 7 holds the Boot.Nucs X capability."
+        )
+
+    @pytest.mark.parametrize("token,label", SELFTEST_LUMP_CASES)
+    def test_slot3_is_inform_type(self, token, label):
+        word = _read_clist_word(token, 3)
+        gt = _decode_gt(word)
+        assert gt["type"] == 1, (
+            f"{token} ({label}): c-list[3] = {word:#010x} decodes as "
+            f"type={gt['type']} ({gt['type_name']}), expected Inform (1).\n"
+            "  GT type bits[24:23] must equal 0b01."
+        )
+
+    @pytest.mark.parametrize("token,label", SELFTEST_LUMP_CASES)
+    def test_slot7_is_inform_type(self, token, label):
+        word = _read_clist_word(token, 7)
+        gt = _decode_gt(word)
+        assert gt["type"] == 1, (
+            f"{token} ({label}): c-list[7] = {word:#010x} decodes as "
+            f"type={gt['type']} ({gt['type_name']}), expected Inform (1).\n"
+            "  GT type bits[24:23] must equal 0b01."
+        )
+
+    @pytest.mark.parametrize("token,label", SELFTEST_LUMP_CASES)
+    def test_slot3_church_domain_e_permission(self, token, label):
+        word = _read_clist_word(token, 3)
+        gt = _decode_gt(word)
+        assert gt["dom"] == 1, (
+            f"{token} ({label}): c-list[3] = {word:#010x}: dom={gt['dom']} "
+            f"({gt['dom_name']}), expected Church (1).\n"
+            "  Boot.Abstr E-GT must have bit[27]=1 (Church domain)."
+        )
+        assert gt["perms"]["E"] == 1, (
+            f"{token} ({label}): c-list[3] = {word:#010x}: E-permission is not set "
+            f"(perm3={gt['perm3']:#05b}).\n"
+            "  Boot.Abstr E-GT must carry E permission (perm3 bit[2]=1)."
+        )
+        assert gt["perms"]["L"] == 0 and gt["perms"]["S"] == 0, (
+            f"{token} ({label}): c-list[3] = {word:#010x}: unexpected L or S permission "
+            f"set alongside E (perm3={gt['perm3']:#05b}).\n"
+            "  E-GTs must carry exactly one Church permission bit."
+        )
+
+    @pytest.mark.parametrize("token,label", SELFTEST_LUMP_CASES)
+    def test_slot7_turing_domain_x_permission(self, token, label):
+        word = _read_clist_word(token, 7)
+        gt = _decode_gt(word)
+        assert gt["dom"] == 0, (
+            f"{token} ({label}): c-list[7] = {word:#010x}: dom={gt['dom']} "
+            f"({gt['dom_name']}), expected Turing (0).\n"
+            "  Boot.Nucs X-GT must have bit[27]=0 (Turing domain)."
+        )
+        assert gt["perms"]["X"] == 1, (
+            f"{token} ({label}): c-list[7] = {word:#010x}: X-permission is not set "
+            f"(perm3={gt['perm3']:#05b}).\n"
+            "  Boot.Nucs X-GT must carry X permission (perm3 bit[2]=1)."
+        )
+        assert gt["perms"]["R"] == 0 and gt["perms"]["W"] == 0, (
+            f"{token} ({label}): c-list[7] = {word:#010x}: unexpected R or W permission "
+            f"set alongside X (perm3={gt['perm3']:#05b}).\n"
+            "  Boot.Nucs X-GT must carry exactly X permission."
+        )
