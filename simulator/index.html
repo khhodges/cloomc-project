@@ -28,7 +28,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0a1a'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='22' font-weight='bold' fill='%23daa520' text-anchor='middle'%3E%CE%BB%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="styles-base.css?v=20260425">
     <link rel="stylesheet" href="styles-toolbar.css?v=20260512e">
-    <link rel="stylesheet" href="styles-editor.css?v=20260517h">
+    <link rel="stylesheet" href="styles-editor.css?v=20260517i">
     <link rel="stylesheet" href="styles-dashboard.css?v=20260517e">
     <link rel="stylesheet" href="styles-lumps.css?v=20260517i">
     <link rel="stylesheet" href="styles-gatelog.css?v=20260513a">
@@ -349,6 +349,7 @@
                         </select>
                         <span id="editorCodeName" class="editor-code-name"></span>
                         <button class="btn btn-compile-inline" id="btnToolbarCompile" onclick="smartCompile()" data-tooltip="Compile — Compile with auto-detected or selected language">Compile</button>
+                        <span id="asmWarnBadge" class="asm-warn-badge" style="display:none;" title="Assembly warnings — scroll up to review">&#x26A0; <span id="asmWarnBadgeCount"></span></span>
                     </div>
                 </div>
                 <div class="example-tabs-row">

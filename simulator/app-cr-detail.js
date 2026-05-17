@@ -521,11 +521,25 @@ function _highlightAsmWarningLines(warnings) {
     }
 }
 
+function _updateAsmWarnBadge(count) {
+    var badge = document.getElementById('asmWarnBadge');
+    var badgeCount = document.getElementById('asmWarnBadgeCount');
+    if (!badge) return;
+    if (count > 0) {
+        if (badgeCount) badgeCount.textContent = count;
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+        if (badgeCount) badgeCount.textContent = '';
+    }
+}
+
 function _showAsmWarnings(warnings) {
     var panel = document.getElementById('asmWarningPanel');
     if (!warnings || warnings.length === 0) { _clearAsmWarnings(); return; }
     _activeAsmWarnings = warnings.slice();
     _highlightAsmWarningLines(warnings);
+    _updateAsmWarnBadge(warnings.length);
     if (!panel) return;
     var count = warnings.length;
     var title = 'Warning' + (count > 1 ? 's' : '') + ' \u2014 ' + count + ' issue' + (count > 1 ? 's' : '') + ' to review';
@@ -568,6 +582,7 @@ function _clearAsmWarnings() {
     }
     _activeAsmWarnings = [];
     _highlightAsmWarningLines([]);
+    _updateAsmWarnBadge(0);
 }
 
 function _updateEditorPatchBar() {
