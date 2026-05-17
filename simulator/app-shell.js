@@ -601,6 +601,9 @@ function init() {
     if (asmEd) {
         asmEd.addEventListener('input', function() { updateLineNumbers(); markUserTabDirty(); updateSavePseudoBtn(); });
         asmEd.addEventListener('scroll', syncLineScroll);
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(syncLineScroll).observe(asmEd);
+        }
         asmEd.addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
@@ -615,6 +618,11 @@ function init() {
                 if (activeUserTabId) saveActiveUserTab();
             }
         });
+    }
+    window.addEventListener('resize', syncLineScroll);
+    const asmOverlay = document.getElementById('asmErrorOverlay');
+    if (asmOverlay && typeof MutationObserver !== 'undefined') {
+        new MutationObserver(syncLineScroll).observe(asmOverlay, { childList: true });
     }
     updateLineNumbers();
     loadNamespaceState();
