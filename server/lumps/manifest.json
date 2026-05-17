@@ -1689,7 +1689,7 @@
     "ns_slot_policy": "dynamic",
     "lump_size": 64,
     "cw": 37,
-    "cc": 0,
+    "cc": 1,
     "author": "",
     "version": "2026.05.17",
     "lump_version": 1,

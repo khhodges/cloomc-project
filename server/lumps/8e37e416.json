@@ -6,7 +6,7 @@
   "typ": 0,
   "content_type": "code",
   "cw": 37,
-  "cc": 0,
+  "cc": 1,
   "profile": "IoT",
   "language": "assembly",
   "author": "",
@@ -19,7 +19,7 @@
       "length": 37
     }
   ],
-  "capabilities": [],
+  "capabilities": [{"name": "RemoteAbs", "grants": ["E"]}],
   "pet_names": {
     "DR": {},
     "CR": {}
