@@ -5708,11 +5708,22 @@ class ChurchSimulator {
         this.memory[nsBase + 1] = this.packNSWord1(hdr.cw, w1f.b, w1f.g, w1f.gtType, hdr.cc);
         this.memory[nsBase + 2] = this.makeVersionSeals(existingGtSeq, EXTENDED_BASE, hdr.cw);
 
-        const cr14 = this.cr[14];
-        if (cr14) {
-            cr14.word1 = EXTENDED_BASE >>> 0;
-            cr14.word2 = this.memory[nsBase + 1];
-            cr14.word3 = this.memory[nsBase + 2];
+        // Only update CR14 when the target slot is the boot-entry slot.
+        // CR14.word0 encodes the NS-slot index used for every subsequent
+        // instruction fetch (mLoad 'X' check).  If we updated CR14 for a
+        // non-boot-entry slot the GT would still reference slot 3, but
+        // CR14.word1 would point to EXTENDED_BASE — and the first fetch would
+        // fail the RANGE check because NS slot 3 still points at the original
+        // LED-flash lump location.  Guard on bootEntrySlot so "Load into Sim"
+        // on a service-abstraction lump (ns_slot ≠ 3) installs it at the
+        // correct NS slot without poisoning the code-register state.
+        if (abstrSlot === this.bootEntrySlot) {
+            const cr14 = this.cr[14];
+            if (cr14) {
+                cr14.word1 = EXTENDED_BASE >>> 0;
+                cr14.word2 = this.memory[nsBase + 1];
+                cr14.word3 = this.memory[nsBase + 2];
+            }
         }
 
         // Set CR6 to point to the c-list that is already embedded in the lump.

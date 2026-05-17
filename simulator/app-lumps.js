@@ -567,9 +567,15 @@ function _runSelectedLumpInSim(btn) {
     if (!_selectedLumpToken) return;
     const lump = _lumpsCache.find(l => l.token === _selectedLumpToken);
     if (!lump) return;
-    const nsSlotParsed = (lump.ns_slot !== null && lump.ns_slot !== undefined) ? Number(lump.ns_slot) : NaN;
-    const nsSlot = Number.isInteger(nsSlotParsed) ? nsSlotParsed : null;
-    _loadLumpBinaryIntoSim(_selectedLumpToken, lump.abstraction || _selectedLumpToken, btn, nsSlot);
+    // Always force NS slot 3 (Boot.Abstr) for interactive execution.
+    // CR14 is the code register and always points to the boot-entry slot (3)
+    // after boot.  If we loaded into the lump's own ns_slot (which may be any
+    // slot 4-63), CR14.word0 would still encode slot 3 and the first fetch
+    // would fail a RANGE check against the old LED-flash lump bounds — the
+    // classic "LED flash LUMP stays in place" bug.  Passing null forces
+    // loadLumpBinary to target BOOT_ABSTR_NS_SLOT so the new code is reachable
+    // via CR14 immediately.
+    _loadLumpBinaryIntoSim(_selectedLumpToken, lump.abstraction || _selectedLumpToken, btn, null);
 }
 
 function _showLumpWorkspaceTabs() {
