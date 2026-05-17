@@ -1686,6 +1686,7 @@
     "token": "8e37e416",
     "abstraction": "Tunnel  (37 words, cc=1, 25 free)",
     "ns_slot": null,
+    "ns_slot_policy": "dynamic",
     "lump_size": 64,
     "cw": 37,
     "cc": 0,
