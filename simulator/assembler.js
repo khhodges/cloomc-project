@@ -494,21 +494,25 @@ class ChurchAssembler {
             if (regType === 'DR') {
                 if (this._drAliases[alias] !== undefined && this._drAliases[alias] !== regIdx) {
                     // Non-fatal: warn but allow the redefinition
-                    this.warnings.push({ line: lineNum + 1, message: `'.pet ${alias}' already declared as DR${this._drAliases[alias]}; redefining to DR${regIdx}` });
+                    const aliasIdx = rawLine.indexOf(alias);
+                    this.warnings.push({ line: lineNum + 1, colStart: aliasIdx >= 0 ? aliasIdx : 0, colEnd: aliasIdx >= 0 ? aliasIdx + alias.length : rawLine.length, message: `'.pet ${alias}' already declared as DR${this._drAliases[alias]}; redefining to DR${regIdx}` });
                 }
                 if (this._crAliases[alias] !== undefined) {
                     // Cross-type: alias was previously a CR alias, now declared as DR
-                    this.warnings.push({ line: lineNum + 1, message: `'.pet ${alias}' was previously declared as a CR alias; redefining as DR${regIdx}` });
+                    const aliasIdx = rawLine.indexOf(alias);
+                    this.warnings.push({ line: lineNum + 1, colStart: aliasIdx >= 0 ? aliasIdx : 0, colEnd: aliasIdx >= 0 ? aliasIdx + alias.length : rawLine.length, message: `'.pet ${alias}' was previously declared as a CR alias; redefining as DR${regIdx}` });
                     delete this._crAliases[alias];
                 }
                 this._drAliases[alias] = regIdx;
             } else {
                 if (this._crAliases[alias] !== undefined && this._crAliases[alias] !== regIdx) {
-                    this.warnings.push({ line: lineNum + 1, message: `'.pet ${alias}' already declared as CR${this._crAliases[alias]}; redefining to CR${regIdx}` });
+                    const aliasIdx = rawLine.indexOf(alias);
+                    this.warnings.push({ line: lineNum + 1, colStart: aliasIdx >= 0 ? aliasIdx : 0, colEnd: aliasIdx >= 0 ? aliasIdx + alias.length : rawLine.length, message: `'.pet ${alias}' already declared as CR${this._crAliases[alias]}; redefining to CR${regIdx}` });
                 }
                 if (this._drAliases[alias] !== undefined) {
                     // Cross-type: alias was previously a DR alias, now declared as CR
-                    this.warnings.push({ line: lineNum + 1, message: `'.pet ${alias}' was previously declared as a DR alias; redefining as CR${regIdx}` });
+                    const aliasIdx = rawLine.indexOf(alias);
+                    this.warnings.push({ line: lineNum + 1, colStart: aliasIdx >= 0 ? aliasIdx : 0, colEnd: aliasIdx >= 0 ? aliasIdx + alias.length : rawLine.length, message: `'.pet ${alias}' was previously declared as a DR alias; redefining as CR${regIdx}` });
                     delete this._drAliases[alias];
                 }
                 this._crAliases[alias] = regIdx;
@@ -1153,8 +1157,10 @@ class ChurchAssembler {
                     for (let b = 0; b < 12; b++) {
                         if (imm & (1 << b)) setBits.push(b);
                     }
+                    const maskTok = parts.length > 1 ? parts[1] : parts[0];
                     this.warnings.push({
                         line: lineNum,
+                        ...this._tokenCols(this._currentLineText, maskTok),
                         message: `Warning: RETURN mask bits [${setBits.join(', ')}] set — mask field is not implemented; bits are ignored.`
                     });
                 }

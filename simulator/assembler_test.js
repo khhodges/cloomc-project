@@ -340,6 +340,17 @@ const NS_SYMBOLS = { 'SlideRule': 3 };
     assert('P7 warning mentions redefining',
         a.warnings.some(w => w.message.includes('redefining')),
         a.warnings.map(w => w.message).join('; '));
+    // column-range assertions (task-1315)
+    const p7w = a.warnings[0];
+    assert('P7 warning has colStart', typeof p7w.colStart === 'number',
+        'colStart = ' + p7w.colStart);
+    assert('P7 warning has colEnd', typeof p7w.colEnd === 'number',
+        'colEnd = ' + p7w.colEnd);
+    // '.pet x DR2' — alias 'x' starts at index 5, length 1
+    assert('P7 warning colStart points to alias token', p7w.colStart === 5,
+        'expected colStart=5, got ' + p7w.colStart);
+    assert('P7 warning colEnd = colStart + alias.length', p7w.colEnd === 6,
+        'expected colEnd=6, got ' + p7w.colEnd);
 }
 
 // P8: out-of-range register — error
@@ -2565,6 +2576,15 @@ validateGTConstant('SM_GT_RWX_IDX1', SM_GT_RWX_IDX1);
         a.warnings.length > 0 ? a.warnings[0].message : '(no warning)');
     const mask = r.words[0] & 0xFFF;
     assert('RM2 RETURN 32: mask field = 32 in encoded word', mask === 32, 'got ' + mask);
+    // column-range assertions (task-1315): 'RETURN 32' — '32' at index 7, length 2
+    assert('RM2 RETURN 32: warning has colStart', typeof a.warnings[0].colStart === 'number',
+        'colStart = ' + a.warnings[0].colStart);
+    assert('RM2 RETURN 32: warning has colEnd', typeof a.warnings[0].colEnd === 'number',
+        'colEnd = ' + a.warnings[0].colEnd);
+    assert('RM2 RETURN 32: warning colStart points to mask token', a.warnings[0].colStart === 7,
+        'expected colStart=7, got ' + a.warnings[0].colStart);
+    assert('RM2 RETURN 32: warning colEnd = colStart + 2', a.warnings[0].colEnd === 9,
+        'expected colEnd=9, got ' + a.warnings[0].colEnd);
 }
 
 // RM3: RETURN with multiple mask bits set lists all set bit positions in warning
@@ -2581,6 +2601,15 @@ validateGTConstant('SM_GT_RWX_IDX1', SM_GT_RWX_IDX1);
         a.warnings.length > 0 ? a.warnings[0].message : '(no warning)');
     assert('RM3 RETURN 0xFFF: no errors', a.errors.length === 0,
         a.errors.map(e => e.message).join('; '));
+    // column-range assertions (task-1315): 'RETURN 0xFFF' — '0xFFF' at index 7, length 5
+    assert('RM3 RETURN 0xFFF: warning has colStart', typeof a.warnings[0].colStart === 'number',
+        'colStart = ' + a.warnings[0].colStart);
+    assert('RM3 RETURN 0xFFF: warning has colEnd', typeof a.warnings[0].colEnd === 'number',
+        'colEnd = ' + a.warnings[0].colEnd);
+    assert('RM3 RETURN 0xFFF: warning colStart points to mask token', a.warnings[0].colStart === 7,
+        'expected colStart=7, got ' + a.warnings[0].colStart);
+    assert('RM3 RETURN 0xFFF: warning colEnd = colStart + 5', a.warnings[0].colEnd === 12,
+        'expected colEnd=12, got ' + a.warnings[0].colEnd);
 }
 
 // ── SWITCH simulator tests (D-11 fix) ────────────────────────────────────────
