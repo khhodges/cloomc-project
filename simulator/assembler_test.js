@@ -7744,6 +7744,36 @@ Add a method called Run
         'got ' + a.warnings.filter(w => w.message.includes('uplicate')).length);
 }
 
+// ── CAP-V14/15: CALL AbsName, method capabilities check (task-1356) ──────────
+
+// CAP-V14: CALL AbsName, method — AbsName absent from capabilities block → error.
+// This covers the unloaded-but-known-NS-symbol path (opcode-2, ELOADCALL emit).
+{
+    const CONV = { 'Scheduler': { 'pause': { index: 0 } } };
+    const NS = { 'Scheduler': 8 };
+    const a = new ChurchAssembler(CONV);
+    a.setNamespace(NS);
+    // capabilities block is present but does not include Scheduler.
+    a.assemble('capabilities { Navana E }\nCALL Scheduler, pause');
+    const capErr = a.errors.find(e => e.message.includes('Scheduler') && e.message.includes('not declared'));
+    assert('CAP-V14: CALL AbsName, method with name absent from capabilities block produces error',
+        capErr != null,
+        a.errors.length > 0 ? a.errors.map(e => e.message).join('; ') : '(no error)');
+}
+
+// CAP-V15: CALL AbsName, method — AbsName declared in capabilities block → no cap error.
+{
+    const CONV = { 'Scheduler': { 'pause': { index: 0 } } };
+    const NS = { 'Scheduler': 8 };
+    const a = new ChurchAssembler(CONV);
+    a.setNamespace(NS);
+    a.assemble('capabilities { Scheduler E }\nCALL Scheduler, pause');
+    const capErrs = a.errors.filter(e => e.message.includes('not declared'));
+    assert('CAP-V15: CALL AbsName, method with declared capability produces no cap error',
+        capErrs.length === 0,
+        capErrs.map(e => e.message).join('; '));
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);

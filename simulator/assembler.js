@@ -1126,6 +1126,7 @@ class ChurchAssembler {
                                      this.nsSymbols[rawDotTok] !== undefined)
                                     ? this.nsSymbols[rawDotTok] : null;
                     if (_nsSlot !== null && this.methodConventions[rawDotTok]) {
+                        this._checkCapDeclared(rawDotTok, lineNum);
                         const _methName = (parts[2] || '').replace(/,/g, '').trim();
                         const _methEntry = this.methodConventions[rawDotTok][_methName];
                         if (_methEntry !== undefined) {
