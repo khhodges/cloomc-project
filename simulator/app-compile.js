@@ -520,6 +520,7 @@ function smartCompile() {
         console.error('smartCompile error:', e);
         const con = document.getElementById('editorConsole');
         if (con) con.textContent = 'Compile error: ' + (e.message || e);
+        if (typeof _showAsmErrors === 'function') _showAsmErrors([{line: null, message: e.message || String(e)}], 'Compile error \u2014 code not applied');
         showNextSteps('error');
     }
 }
@@ -625,6 +626,7 @@ function compileDraft() {
         const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
         const _dSrc = _getActiveSourceLabel(); const _dSrcH = _dSrc ? ` · ${_dSrc}` : '';
         if (con) { con.textContent = `CLOOMC++ Draft${_dSrcH} — compilation errors:\n${errText}`; con.scrollTop = 0; }
+        const _de = result.errors.length; if (typeof _showAsmErrors === 'function') _showAsmErrors(result.errors, 'Compile error' + (_de > 1 ? 's' : '') + ' \u2014 code not applied');
         showNextSteps('error');
         return;
     }
@@ -780,6 +782,7 @@ function compileDraft() {
             }
         }
     }
+    if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
     showNextSteps('draft');
     trackAction('draft', { name: result.abstractionName, lang: result.language });
     appendOutput(`Draft: "${result.abstractionName}" — ${result.methods.length} methods, ${clistCount} caps, ${allocSize} alloc`, 'info');
@@ -926,6 +929,7 @@ function compileAndBuild() {
     if (result.errors.length > 0) {
         const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
         if (con) { con.textContent = `Compile — compilation errors:\n${errText}`; con.scrollTop = 0; }
+        const _ce = result.errors.length; if (typeof _showAsmErrors === 'function') _showAsmErrors(result.errors, 'Compile error' + (_ce > 1 ? 's' : '') + ' \u2014 code not applied');
         showNextSteps('error');
         return;
     }
@@ -951,6 +955,7 @@ function compileAndBuild() {
         _ovfListing += `  \u2717 [RCC] C-list overflow: ${cc} capabilities exceed the 8-bit header limit (max 255).\n`;
         _ovfListing += `  Remove ${cc - 255} capability reference${cc - 255 !== 1 ? 's' : ''} from the abstraction.\n`;
         if (con) { con.textContent = _ovfListing; con.scrollTop = 0; }
+        if (typeof _showAsmErrors === 'function') _showAsmErrors([{line: null, message: `[RCC] C-list overflow: ${cc} capabilities exceed the 8-bit header limit (max 255). Remove ${cc - 255} reference${cc - 255 !== 1 ? 's' : ''}.`}], 'Capability error \u2014 code not applied');
         return;
     }
 
@@ -1032,6 +1037,7 @@ function compileAndBuild() {
         }
         _errListing += `\n  \u2717 ${_auditErrors.length} error${_auditErrors.length !== 1 ? 's' : ''} \u2014 binary not downloaded or saved.\n`;
         if (con) { con.textContent = _errListing; con.scrollTop = 0; }
+        if (typeof _showAsmErrors === 'function') _showAsmErrors(_auditErrors.map(r => ({line: null, message: `[${r.ruleId}] ${r.message} \u2014 ${r.detail}`})), 'Audit error' + (_auditErrors.length > 1 ? 's' : '') + ' \u2014 code not applied');
         return;
     }
 

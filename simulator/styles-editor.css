@@ -914,6 +914,16 @@
     color: #fecaca;
 }
 
+.asm-error-item-noline {
+    display: block;
+    padding: 0.3rem 0.5rem;
+    color: #fca5a5;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: default;
+    user-select: text;
+}
+
 .asm-error-line {
     color: #f87171;
     font-weight: 700;

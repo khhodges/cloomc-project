@@ -1681,5 +1681,27 @@
     "grants": [
       "E"
     ]
+  },
+  {
+    "token": "8e37e416",
+    "abstraction": "Tunnel  (37 words, cc=1, 25 free)",
+    "ns_slot": null,
+    "lump_size": 64,
+    "cw": 37,
+    "cc": 0,
+    "author": "",
+    "version": "2026.05.17",
+    "lump_version": 1,
+    "compiled_at": 1779027769.2562387,
+    "methods": [
+      {
+        "name": "run",
+        "offset": 0,
+        "length": 37
+      }
+    ],
+    "grants": [
+      "E"
+    ]
   }
 ]

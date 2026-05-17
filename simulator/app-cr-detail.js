@@ -242,22 +242,31 @@ function _getSyntaxSuggestion(msg) {
     return null;
 }
 
-function _showAsmErrors(errors) {
+function _showAsmErrors(errors, titleOverride) {
     var panel = document.getElementById('asmErrorPanel');
     if (!panel) return;
     if (!errors || errors.length === 0) { _clearAsmErrors(); return; }
     var count = errors.length;
+    var title = titleOverride || ('Assembly error' + (count > 1 ? 's' : '') + ' \u2014 code not applied');
     var html = '<div class="asm-error-panel-header">'
              + '<span class="asm-error-panel-icon">&#x26A0;</span>'
-             + '<span class="asm-error-panel-title">Assembly error' + (count > 1 ? 's' : '') + ' \u2014 code not applied</span>'
+             + '<span class="asm-error-panel-title">' + _escHtml(title) + '</span>'
              + '</div>'
              + '<ul class="asm-error-panel-list">';
     errors.forEach(function(e) {
         var sugg = _getSyntaxSuggestion(e.message);
-        html += '<li>'
-              + '<button type="button" class="asm-error-item" data-line="' + e.line + '" title="Jump to line ' + e.line + '">'
-              + '<span class="asm-error-line">Line ' + (e.line || '?') + ':</span>' + _escHtml(e.message)
-              + '</button>';
+        var hasLine = e.line != null && !isNaN(e.line);
+        if (hasLine) {
+            html += '<li>'
+                  + '<button type="button" class="asm-error-item" data-line="' + e.line + '" title="Jump to line ' + e.line + '">'
+                  + '<span class="asm-error-line">Line ' + e.line + ':</span>' + _escHtml(e.message)
+                  + '</button>';
+        } else {
+            html += '<li>'
+                  + '<span class="asm-error-item asm-error-item-noline">'
+                  + _escHtml(e.message)
+                  + '</span>';
+        }
         if (sugg) {
             html += '<div class="asm-error-suggestion">'
                   + '<div class="aes-title">&#x1F4A1; ' + sugg.title + '</div>'
@@ -269,7 +278,7 @@ function _showAsmErrors(errors) {
     });
     html += '</ul>';
     panel.innerHTML = html;
-    panel.querySelectorAll('.asm-error-item').forEach(function(btn) {
+    panel.querySelectorAll('.asm-error-item[data-line]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             _jumpToAsmLine(parseInt(btn.getAttribute('data-line'), 10));
         });
