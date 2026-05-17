@@ -290,12 +290,12 @@ isValidation = true
 name = "check-selftest-lump-stale"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node scripts/check_selftest_lump_stale.js"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/check_selftest_lump_stale.js && node scripts/test_check_selftest_lump_stale.js"
 
 [[ports]]
 localPort = 5000

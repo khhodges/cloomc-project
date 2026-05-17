@@ -128,7 +128,12 @@ function crc32(buf) {
 const token       = crc32(bytes).toString(16).toLowerCase().padStart(8, '0');
 const lumpPath    = path.join(LUMPS_DIR, `${token}.lump`);
 const sidecarPath = path.join(LUMPS_DIR, `${token}.json`);
-const MANIFEST    = path.join(LUMPS_DIR, 'manifest.json');
+
+// Allow --manifest <path> override for testing
+const manifestArgIdx = process.argv.indexOf('--manifest');
+const MANIFEST = manifestArgIdx !== -1 && process.argv[manifestArgIdx + 1]
+    ? path.resolve(process.argv[manifestArgIdx + 1])
+    : path.join(LUMPS_DIR, 'manifest.json');
 
 // ── Check ────────────────────────────────────────────────────────────────────
 console.log(`Source:         ${path.relative(ROOT, SOURCE)}`);
