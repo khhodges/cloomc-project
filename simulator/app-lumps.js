@@ -3708,9 +3708,12 @@ async function _loadLumpBinaryIntoSim(token, name, btn, nsSlot) {
         if (sim.nsLabels) sim.nsLabels[_resolvedSlot] = name || token;
 
         if (typeof _syncBootEntryFromSim === 'function') _syncBootEntryFromSim();
-        // Do NOT set lastAssembledWords: that variable is for assembler-path programs.
-        // Setting it to a full lump binary would cause _autoLoadDefaultProgram() to feed
-        // the binary (including header word) into loadProgram() on every subsequent reset.
+        // Clear the assembler-path words so that _autoLoadDefaultProgram() cannot
+        // re-apply a previously assembled program on the next reset/reboot and silently
+        // overwrite this LUMP binary.  (Do NOT store the lump binary in lastAssembledWords
+        // either — loadProgram() interprets word[0] as an instruction, not a LUMP header,
+        // and would corrupt the boot-entry code-word on every subsequent reset.)
+        if (typeof window.lastAssembledWords !== 'undefined') window.lastAssembledWords = null;
         if (typeof _defaultProgramLoaded !== 'undefined') window._defaultProgramLoaded = true;
         // Do NOT call _injectClistNow(): the c-list is already loaded verbatim inside the
         // lump binary by loadLumpBinary(), and CR6 has been updated to point to it.
