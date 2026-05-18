@@ -595,6 +595,23 @@ function _hideLumpWorkspaceTabs() {
 
 let _logicCatalogSearch = '';
 
+function _lumpCatalogHighlight(text, q) {
+    if (!text) return '';
+    const escaped = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (!q) return escaped(text);
+    const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    let result = '';
+    let last = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+        result += escaped(text.slice(last, m.index));
+        result += `<mark class="abs-search-highlight">${escaped(m[0])}</mark>`;
+        last = m.index + m[0].length;
+    }
+    result += escaped(text.slice(last));
+    return result;
+}
+
 function _lumpLogicCatalogSearchInput() {
     _logicCatalogSearch = document.getElementById('lumpLogicCatalogSearch')?.value || '';
     _populateLumpLogicCatalog();
@@ -650,14 +667,14 @@ function _populateLumpLogicCatalog() {
         html += `<div class="abs-item" onclick="showAbstractionDetail(${abs.index})" ondblclick="event.stopPropagation();_goToLumpByAbstractionName(abstractionRegistry.getAbstraction(${abs.index}).name)" title="Double-click to jump to this abstraction\u2019s LUMP in the Repository">`;
         html += `<div class="abs-item-row1">`;
         html += `<span class="abs-item-idx">${abs.index}</span>`;
-        html += `<span class="abs-item-name">${abs.name}</span>`;
+        html += `<span class="abs-item-name">${_lumpCatalogHighlight(abs.name, q)}</span>`;
         html += _verBadgeHtml;
         html += `<span class="abs-profile-badge ${profileBadgeClass}">${absProfile}</span>`;
         if (compiledAt) html += `<span class="abs-item-date" title="Compiled ${compiledAt}">${compiledAt}</span>`;
         if (matchLump) html += `<span class="mtbf-badge lump-mtbf-badge ${mtbfClass}" title="MTBF: ${mtbfSt}">${mtbfLabel}</span>`;
         html += `<span class="abs-item-dot" style="background:${dotColor};box-shadow:0 0 4px ${dotColor}80" title="${dotTitle}"></span>`;
         html += `</div>`;
-        html += `<div class="abs-item-desc">${abs.description}</div>`;
+        html += `<div class="abs-item-desc">${_lumpCatalogHighlight(abs.description, q)}</div>`;
         html += `</div>`;
     }
     html += `</div>`;
