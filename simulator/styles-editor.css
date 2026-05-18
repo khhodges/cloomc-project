@@ -1479,6 +1479,140 @@
     flex: 1;
 }
 
+.asm-method-popup-sig {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.65rem;
+    color: #9ab4d0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    font-style: italic;
+}
+
+.asm-method-popup-perms {
+    font-size: 0.60rem;
+    font-weight: 700;
+    color: #12121f;
+    background: #f4b942;
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+}
+
+/* ── Inline signature parameter hint (VS Code style) ─────────────────────── */
+#asmSigHint,
+.asm-sig-hint {
+    position: fixed;
+    z-index: 9650;
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: #0e0e1c;
+    border: 1px solid rgba(244, 185, 66, 0.55);
+    border-radius: 5px;
+    padding: 4px 10px 4px 8px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.65);
+    font-size: 0.71rem;
+    max-width: 640px;
+    animation: asmPickerIn 0.10s ease;
+    pointer-events: auto;
+}
+
+.asm-sig-hint-abs {
+    font-family: 'Courier New', Courier, monospace;
+    color: #c8a84b;
+    font-weight: 700;
+    font-size: 0.72rem;
+}
+
+.asm-sig-hint-dot {
+    color: #f4b942;
+    font-weight: 700;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.asm-sig-hint-method {
+    font-family: 'Courier New', Courier, monospace;
+    color: #f0d070;
+    font-weight: 700;
+    font-size: 0.72rem;
+}
+
+.asm-sig-hint-sig {
+    font-family: 'Courier New', Courier, monospace;
+    color: #9ab4d0;
+    font-size: 0.68rem;
+    font-style: italic;
+    margin-left: 2px;
+}
+
+.asm-sig-hint-perm-label {
+    color: #556;
+    font-size: 0.62rem;
+    margin-left: 4px;
+}
+
+.asm-sig-hint-perm {
+    font-size: 0.60rem;
+    font-weight: 700;
+    color: #12121f;
+    background: #f4b942;
+    border-radius: 3px;
+    padding: 1px 5px;
+    letter-spacing: 0.04em;
+}
+
+.asm-sig-hint-desc {
+    color: #7a8a9a;
+    font-size: 0.64rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+    margin-left: 4px;
+}
+
+.asm-sig-hint-badge {
+    font-size: 0.58rem;
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 1px 5px;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.asm-sig-hint-badge--impl {
+    background: rgba(80, 200, 120, 0.18);
+    color: #50c878;
+    border: 1px solid rgba(80, 200, 120, 0.4);
+}
+
+.asm-sig-hint-badge--planned {
+    background: rgba(180, 100, 60, 0.18);
+    color: #e0804a;
+    border: 1px solid rgba(180, 100, 60, 0.4);
+}
+
+.asm-sig-hint-dismiss {
+    margin-left: 6px;
+    color: #445;
+    cursor: pointer;
+    font-size: 0.80rem;
+    line-height: 1;
+    flex-shrink: 0;
+    padding: 0 2px;
+    transition: color 0.1s ease;
+}
+
+.asm-sig-hint-dismiss:hover {
+    color: #f4b942;
+}
+
 /* ── C-List Viewer button ─────────────────────────────────────────────────── */
 .btn-clist-viewer {
     padding: 2px 8px;
