@@ -95,6 +95,10 @@ args = "warning-panel-tests"
 task = "workflow.run"
 args = "check-capabilities-blocks"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check-api-reference-stale"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -323,6 +327,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node scripts/check-capabilities-blocks.js"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check-api-reference-stale"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/gen-api-reference.js --check"
 
 [workflows.workflow.metadata]
 isValidation = true
