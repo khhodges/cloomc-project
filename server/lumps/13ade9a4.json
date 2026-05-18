@@ -16,13 +16,7 @@
     {
       "name": "run",
       "offset": 0,
-      "length": 17,
-      "pet_names": {
-        "DR": {},
-        "CR": {
-          "0": "LED0"
-        }
-      }
+      "length": 17
     }
   ],
   "capabilities": [
@@ -41,25 +35,23 @@
   ],
   "pet_names": {
     "DR": {},
-    "CR": {
-      "CR0": "LED0"
-    }
+    "CR": {}
   },
   "mtbf": {
     "consecutive_clean": 0,
     "total_runs": 0,
     "status": "unknown",
-    "source_hash": "184f9699"
+    "source_hash": "88006a20"
   },
   "deployment": {
     "target_board": "ti60-f225",
     "profile": "IoT",
-    "built_at": "2026-05-18T17:15:22.678772Z",
+    "built_at": "2026-05-18T18:28:15.856976Z",
     "builder": "CLOOMC++ IDE v1.0"
   },
   "grants": [
     "E"
   ],
   "lump_version": 1,
-  "compiled_at": 1779124522.6791952
+  "compiled_at": 1779128895.8574944
 }
