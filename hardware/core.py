@@ -561,6 +561,19 @@ class ChurchCore(Elaboratable):
                 u_regs.flags_in.eq(mcmp_flags_sig),
                 u_regs.flags_wr_en.eq(1),
             ]
+        with m.Elif(u_tperm.tperm_complete):
+            # TPERM complete: update N/Z from tperm_z_result; C and V always 0.
+            # A.10: TPERM flag invariants — N = !Z, C = 0, V = 0.
+            tperm_flags_sig = Signal(COND_FLAGS_LAYOUT)
+            tperm_flags_view = View(COND_FLAGS_LAYOUT, tperm_flags_sig)
+            m.d.comb += [
+                tperm_flags_view.Z.eq(u_tperm.tperm_z_result),
+                tperm_flags_view.N.eq(~u_tperm.tperm_z_result),
+                tperm_flags_view.C.eq(0),
+                tperm_flags_view.V.eq(0),
+                u_regs.flags_in.eq(tperm_flags_sig),
+                u_regs.flags_wr_en.eq(1),
+            ]
         with m.Else():
             m.d.comb += [
                 u_regs.dr_wr_addr.eq(0),
@@ -989,6 +1002,12 @@ class ChurchCore(Elaboratable):
             u_tperm.cr_src.eq(cr_src),
             u_tperm.preset.eq(u_decoder.tperm_preset),
             u_tperm.cr_rd_data.eq(u_regs.cr_rd_data),
+            # FRAME preset: Z=1 if a real return frame exists (STO < sp_max).
+            # STO is held in thread memory (Heap[0]); a cached register is needed
+            # to drive this without a memory read cycle.  Tied to 0 until the
+            # thread-scheduler exposes a cached sto_reg signal here.
+            # TODO: wire to sto_cached < sp_max when core gains an STO cache.
+            u_tperm.stack_has_frame.eq(0),
         ]
 
         save_start_sig = Signal()

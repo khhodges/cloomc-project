@@ -172,7 +172,7 @@ TPERM CRs, #preset, offset
 - **Z = 1**: all checks passed (permissions present, valid, in bounds)
 - **Z = 0**: one or more checks failed
 
-**Faulting**: TPERM faults with `TPERM_RSV` if the preset code is reserved (codes 11–15 and their B-modifier variants 0x1B–0x1F). For all valid presets, TPERM does not fault — if a permission check fails the Z flag says so and software decides what to do via conditional execution. The actual LOAD/SAVE/CALL instructions that follow enforce safety. TPERM is the "ask first" instruction.
+**Faulting**: TPERM faults with `TPERM_RSV` if the preset code is reserved (codes 11–12 and 15, and their B-modifier variants 0x1B–0x1F). Codes 13 (FRAME) and 14 (EXACT) are valid non-permission presets — they perform hardware state queries rather than GT permission checks and never fault. For all valid presets, TPERM does not fault — if a permission check fails the Z flag says so and software decides what to do via conditional execution. The actual LOAD/SAVE/CALL instructions that follow enforce safety. TPERM is the "ask first" instruction.
 
 ##### Conditional Execution: Zero-Cost Try-Catch
 
@@ -252,11 +252,21 @@ ANDs the preset mask with CRd's current permissions. Permissions can only be rem
 | 10   | LE    | **FAULT** (`TPERM_RSV`) — E isolation: E may not combine with L |
 | 11   | SE    | **FAULT** (`TPERM_RSV`) — E isolation: E may not combine with S |
 | 12   | LSE   | **FAULT** (`TPERM_RSV`) — E isolation: E may not combine with L or S |
-| 13   | RSV2  | **FAULT** (`TPERM_RSV`) — reserved |
+| 13   | FRAME | Call-stack query: Z=1 if a real return frame exists (RETURN would not underflow). No GT is read; crDst is ignored. |
 | 14   | EXACT | Bit-exact identity check: Z=1 iff `CRd.word0 == CRs.word0` (all 32 bits). No fault on mismatch — sets Z=0. |
 | 15   | RSV1  | **FAULT** (`TPERM_RSV`) — reserved |
 
 **E isolation**: E permission must not be combined with L or S in a single GT. E grants entry into an abstraction as a black box; L or S grant c-list visibility. A holder of both could inspect or modify the abstraction's hidden implementation — violating encapsulation. Codes 10 (LE), 11 (SE), 12 (LSE) are therefore reserved.
+
+**FRAME (preset 13)**: Call-stack query. Tests whether a genuine caller return frame exists on the hardware call stack — i.e., whether RETURN would succeed without underflowing into the boot sentinel. Z=1 if a real frame is present; Z=0 if only the sentinel remains or the stack is empty. No GT is read (crDst is ignored). No stack frame is pushed. This is the only safe way to pre-check RETURN: a CALL to query depth would itself consume a frame, making the reading stale before it arrives.
+
+```
+TPERM CR0, FRAME       ; Z=1 if caller frame exists
+BRANCH.Z no_caller     ; skip RETURN if nothing to return to
+RETURN
+no_caller:
+; root-level exit path
+```
 
 **EXACT (preset 14)**: Credential identity check. Compares CRd.word0 (the 32-bit GT word) against CRs.word0 bit-for-bit. Sets Z=1 if they are identical, Z=0 otherwise. EXACT never faults — it is a pure comparison operator. Use it to verify that a credential has not been attenuated or substituted.
 

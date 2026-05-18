@@ -206,8 +206,7 @@ class ChurchDecoder(Elaboratable):
                     self.fault.eq(FaultType.INVALID_OP),
                 ]
             with m.Elif((opcode_field == ChurchOpcode.TPERM) &
-                         ((imm_field[:4] == TpermPreset.RSV2) |
-                          (imm_field[:4] == TpermPreset.RSV1))):
+                         (imm_field[:4] == TpermPreset.RSV1)):
                 m.d.comb += [
                     self.fault_valid.eq(1),
                     self.fault.eq(FaultType.TPERM_RSV),

@@ -252,8 +252,8 @@ permission preset. The assembled word uses the numeric code directly.
 | 0x0A | *(rsv)* | 0x1A | *(rsv)*  |
 | 0x0B | *(rsv)* | 0x1B | *(rsv)*  |
 | 0x0C | *(rsv)* | 0x1C | *(rsv)*  |
-| 0x0D | *(rsv)* | 0x1D | *(rsv)*  |
-| 0x0E | *(rsv)* | 0x1E | *(rsv)*  |
+| 0x0D | FRAME   | 0x1D | *(rsv)*  |
+| 0x0E | EXACT   | 0x1E | *(rsv)*  |
 | 0x0F | *(rsv)* | 0x1F | *(rsv)*  |
 
 Permission bit key: **R**=Read, **W**=Write, **X**=Execute, **L**=Load
