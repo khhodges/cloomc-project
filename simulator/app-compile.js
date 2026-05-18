@@ -89,6 +89,49 @@ function renderReference() {
     turingList.appendChild(returnCard);
 }
 
+// Walk text nodes inside `node` and wrap matches of `re` in <mark> elements.
+// Child element structure (e.g. slot/badge spans) is left completely intact.
+function _absHighlightNodes(node, re) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.nodeValue;
+        re.lastIndex = 0;
+        if (!re.test(text)) return;
+        re.lastIndex = 0;
+        const frag = document.createDocumentFragment();
+        let last = 0;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+            const mark = document.createElement('mark');
+            mark.className = 'abs-search-highlight';
+            mark.textContent = m[0];
+            frag.appendChild(mark);
+            last = m.index + m[0].length;
+        }
+        if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+        node.parentNode.replaceChild(frag, node);
+    } else if (node.nodeType === Node.ELEMENT_NODE &&
+               !(node.classList && node.classList.contains('abs-search-highlight'))) {
+        Array.from(node.childNodes).forEach(child => _absHighlightNodes(child, re));
+    }
+}
+
+// Highlight `q` inside `el`, or restore the original markup when `q` is empty.
+// Stores the full original innerHTML so nested elements (slot/badge spans) are
+// preserved exactly on restore.
+function _absHighlightText(el, q) {
+    if (!el) return;
+    // Restore original innerHTML saved from a previous highlight pass
+    if (el.dataset.origHtml !== undefined) {
+        el.innerHTML = el.dataset.origHtml;
+        delete el.dataset.origHtml;
+    }
+    if (!q) return;
+    el.dataset.origHtml = el.innerHTML;
+    const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    _absHighlightNodes(el, re);
+}
+
 function filterAbstractions(query) {
     const absList = document.getElementById('instrListAbstractions');
     if (!absList) return;
@@ -97,7 +140,13 @@ function filterAbstractions(query) {
     const headers = absList.querySelectorAll('.api-ref-layer-header');
 
     if (!q) {
-        cards.forEach(c => c.style.display = '');
+        cards.forEach(c => {
+            c.style.display = '';
+            const nameEl = c.querySelector('.api-ref-abs-name') || c.querySelector('.instr-mnemonic');
+            const descEl = c.querySelector('.api-ref-abs-desc') || c.querySelector('.instr-brief');
+            _absHighlightText(nameEl, '');
+            _absHighlightText(descEl, '');
+        });
         headers.forEach(h => h.style.display = '');
         return;
     }
@@ -105,6 +154,8 @@ function filterAbstractions(query) {
     // Show/hide each card based on name, description, or slot number.
     // Handles both the API-data path (.api-ref-abs-card) and the legacy
     // fallback path (.instr-card.abs-card).
+    // textContent gives correct plain text even when highlights are active
+    // (mark element text is still included), so no special-casing needed.
     cards.forEach(card => {
         const nameEl = card.querySelector('.api-ref-abs-name') || card.querySelector('.instr-mnemonic');
         const descEl = card.querySelector('.api-ref-abs-desc') || card.querySelector('.instr-brief');
@@ -114,6 +165,14 @@ function filterAbstractions(query) {
         const slot = slotEl ? slotEl.textContent.toLowerCase() : '';
         const match = name.includes(q) || desc.includes(q) || slot.includes(q);
         card.style.display = match ? '' : 'none';
+        if (match) {
+            _absHighlightText(nameEl, q);
+            _absHighlightText(descEl, q);
+        } else {
+            // Clear any stale highlight on hidden cards
+            _absHighlightText(nameEl, '');
+            _absHighlightText(descEl, '');
+        }
     });
 
     // Show a layer header only if at least one card after it is visible

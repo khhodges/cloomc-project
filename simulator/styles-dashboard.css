@@ -4302,6 +4302,15 @@ a.next-step-link:hover {
     white-space: nowrap;
 }
 
+mark.abs-search-highlight {
+    background: var(--church-gold, #c8a84b);
+    color: #000;
+    border-radius: 2px;
+    padding: 0 1px;
+    font-style: inherit;
+    font-weight: 600;
+}
+
 .abs-item-row1 {
     display: flex;
     align-items: center;
