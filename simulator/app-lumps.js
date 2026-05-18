@@ -654,7 +654,7 @@ function _populateLumpLogicCatalog() {
         const profileBadgeClass = absProfile === 'Full' ? 'profile-badge-full' : absProfile === 'XC7A100T' ? 'profile-badge-xc7a100t' : 'profile-badge-iot';
         const matchLump = (typeof _lumpsCache !== 'undefined' ? _lumpsCache : []).find(l => l.abstraction === abs.name);
         const compiledAt = matchLump?.compiled_at
-            ? new Date(matchLump.compiled_at * 1000).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})
+            ? new Date(matchLump.compiled_at * 1000).toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit'})
             : null;
         const mtbf = matchLump?.mtbf || {};
         const mtbfSt = mtbf.status || 'unknown';
@@ -737,7 +737,7 @@ function _populateLumpLogicTab(lump) {
     const perms = abs.perms || {};
     const permStr = (perms.B?'B':'')+(perms.R?'R':'')+(perms.W?'W':'')+(perms.X?'X':'')+(perms.L?'L':'')+(perms.S?'S':'')+(perms.E?'E':'') || 'none';
     const _compiledAt = lump.compiled_at
-        ? new Date(lump.compiled_at * 1000).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})
+        ? new Date(lump.compiled_at * 1000).toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit'})
         : null;
     const _lMtbf = lump.mtbf || {};
     const _lMtbfSt = _lMtbf.status || 'unknown';
@@ -1225,7 +1225,7 @@ async function _fetchAndShowLumpVersions(token, lump) {
                 const rowStyle = isCurrent ? ' style="background:var(--bg-selected,rgba(99,102,241,0.08));"' : '';
                 html += `<tr${rowStyle}>`;
                 const compiledStr = v.compiled_at
-                    ? new Date(v.compiled_at * 1000).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})
+                    ? new Date(v.compiled_at * 1000).toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit'})
                     : (v.lump_version === 0 ? 'system' : '\u2014');
                 html += `<td><strong>v${v.lump_version}</strong>${isCurrent ? ' <span style="font-size:0.65rem;color:#818cf8;">(this)</span>' : ''}<br><span style="font-size:0.65rem;color:var(--text-secondary)">${e(compiledStr)}</span></td>`;
                 html += `<td style="font-family:monospace;font-size:0.75rem;">0x${e(v.lump_token)}</td>`;
