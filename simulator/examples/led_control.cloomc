@@ -1,0 +1,83 @@
+; ============================================================
+; Abstraction:  LedControl
+; Description:  LED control — Section 1: LED blink (Ti60 F225 nucleus) / Section 2: Turing DR Test (full ISA exercise)
+; Author:       Church Machine Educational Platform
+; Version:      1.2
+; Created:      2026-05-09
+; Language:     Assembly
+; Dependencies: LED device (Abstract GT — boot C-List slot 8)
+; ============================================================
+; Capabilities required by this lump:
+capabilities { LED0 RW }
+; Methods:
+;   1. blink — toggle LED0 at 1 Hz using nested delay loops (Ti60 F225 nucleus program)
+; ============================================================
+; ============================================
+; LED Blink — Ti60 F225 Hardware Nucleus Code
+; ============================================
+;
+; This is the exact binary burned into the
+; Ti60 F225 FPGA. It produces the 1 Hz LED
+; blink you can see on the board right now.
+;
+; HOW TO WATCH THIS IN THE SIMULATOR:
+; 1. Boot the machine (click Boot, or Step x6).
+; 2. Assemble this code, then click Step.
+; 3. Switch to Ti60 255 IDE — watch the Ti60 F225
+;    LED strip: LED0 (green) toggles with each
+;    DWRITE, exactly as on the physical board.
+;
+; ── Dot-notation load style (recommended) ───────────────────
+;
+;   LOAD CR3, LED0            ; named load — resolves by device name
+;
+; Equivalent raw form (slot number explicit):
+;
+;   LOAD CR3, CR6, 8          ; CR6 = boot C-List; slot 8 = LED0
+;
+; Both produce identical machine code.  The named form (used here)
+; is preferred: it stays correct if the boot C-List is renumbered.
+;
+; LED0 is a device GT (W-perm only) — it is accessed with DWRITE,
+; not CALL.  Device GTs have no callable methods, so dot-notation
+; CALL does not apply here; dot-notation LOAD is still recommended.
+;
+; Path: LOAD CR3, LED0   → resolves LED0 → C-List[8] → LED_DEV GT
+;       DWRITE DR1, CR3, 0 → LED0 on
+;       DWRITE DR0, CR3, 0 → LED0 off
+;
+; On the FPGA (50 MHz): 380 × 16383 iters ≈ 0.5 s
+; per phase → 1 Hz blink total.
+; ============================================
+
+; --- Load LED0 Abstract GT from the boot C-List (dot-notation) ---
+; Named load: equiv. to raw form  LOAD CR3, CR6, 8
+LOAD CR3, LED0            ; LED0 Abstract GT → CR3 (boot C-List slot 8)
+
+; --- DR1 = 1 (the "on" value) ---
+IADD DR1, DR0, #1
+
+; ── LED ON phase ─────────────────────────────
+led_on:
+DWRITE DR1, CR3, 0        ; LED0 = 1  (write 1 through gate)
+IADD DR3, DR0, #3         ; outer delay count  (FPGA: 380)
+outer_on:
+IADD DR2, DR0, #3         ; inner delay count  (FPGA: 16383)
+inner_on:
+ISUB DR2, DR2, #1
+BRANCHNE inner_on
+ISUB DR3, DR3, #1
+BRANCHNE outer_on
+
+; ── LED OFF phase ────────────────────────────
+DWRITE DR0, CR3, 0        ; LED0 = 0  (write 0 through gate)
+IADD DR3, DR0, #3
+outer_off:
+IADD DR2, DR0, #3
+inner_off:
+ISUB DR2, DR2, #1
+BRANCHNE inner_off
+ISUB DR3, DR3, #1
+BRANCHNE outer_off
+
+BRANCH led_on             ; loop forever

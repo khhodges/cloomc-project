@@ -3516,7 +3516,14 @@ const _TURING_DR_TEST_SOURCE = `; ==============================================
 ; Dependencies: LED device (Abstract GT — boot C-List slot 8)
 ; ============================================================
 ; Capabilities required by this lump:
-capabilities { LED0, LED1, LED2, LED3, LED4, LED5 }
+capabilities {
+    LED0 RW
+    LED1 RW
+    LED2 RW
+    LED3 RW
+    LED4 RW
+    LED5 RW
+}
 ; Methods:
 ;   1. main — 6-phase visual test; all pass → 6 LEDs blink 3×; fault → LED2 latches
 ; ============================================================
@@ -6955,10 +6962,9 @@ HALT`,
 ; Dependencies: LED device (Abstract GT — boot C-List slot 8)
 ; ============================================================
 ; Capabilities required by this lump:
-capabilities { LED0 }
+capabilities { LED0 RW }
 ; Methods:
 ;   1. blink — toggle LED0 at 1 Hz using nested delay loops (Ti60 F225 nucleus program)
-;   2. turingDRTest — full visual ISA exercise across all DR0–DR15 registers
 ; ============================================================
 ; ============================================
 ; LED Blink — Ti60 F225 Hardware Nucleus Code
@@ -7029,8 +7035,8 @@ ISUB DR3, DR3, #1
 BRANCHNE outer_off
 
 BRANCH led_on             ; loop forever
-
-` + '; ────────────────────────────────────────────────────────────\n; Section 2: Turing DR Test ✦\n; ────────────────────────────────────────────────────────────\n' + _TURING_DR_TEST_SOURCE.slice(_TURING_DR_TEST_SOURCE.indexOf('; Turing DR Test')),
+`,
+        'led_dr_test': _TURING_DR_TEST_SOURCE,
     };
 
     window._asmExampleSources      = examples;

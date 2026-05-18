@@ -13,13 +13,13 @@
 //
 // Skipped keys
 // ────────────
-// led_control is deliberately excluded.  In app-run.js it is assembled from
-// two pieces via string concatenation:
-//   'led_control': `...Section 1...` + '; header\n' + _TURING_DR_TEST_SOURCE.slice(...)
-// The extraction regex (which stops at the first backtick-comma pair) would
-// capture an incorrect fragment for that key.  The led_control Section 2
-// source (_TURING_DR_TEST_SOURCE) is a separate top-level backtick literal and
-// is already verified by the EX-LED test suite in assembler_test.js.
+// led_dr_test is deliberately excluded.  In app-run.js it is a variable
+// reference, not a backtick literal:
+//   'led_dr_test': _TURING_DR_TEST_SOURCE,
+// The extraction regex (which matches 'key': `...`) cannot capture a variable
+// reference.  The led_dr_test source (_TURING_DR_TEST_SOURCE) is a separate
+// top-level backtick literal and is already verified by the EX-LED test suite
+// in assembler_test.js (EX14–EX15).
 
 'use strict';
 
@@ -32,7 +32,7 @@ const APP_RUN     = path.join(ROOT, 'simulator', 'app-run.js');
 const EXAMPLES_DIR = path.join(ROOT, 'simulator', 'examples');
 
 // Keys that cannot be extracted with the simple backtick regex.
-const SKIP_KEYS = new Set(['led_control']);
+const SKIP_KEYS = new Set(['led_dr_test']);
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,7 +68,7 @@ let errors   = 0;
 
 for (const key of allKeys) {
     if (SKIP_KEYS.has(key)) {
-        console.log(`  skip   ${key}  (concatenated literal — see comment at top of script)`);
+        console.log(`  skip   ${key}  (variable reference — see comment at top of script)`);
         skipped++;
         continue;
     }

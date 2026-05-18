@@ -4551,7 +4551,7 @@ function symCompile(body, caps) {
 //
 // Covered examples: capability_test, system_patterns, compute_demo,
 //   salvation, perm_attack, bind_attack, ada_note_g,
-//   led_control (Section 1 blink), led_control (Section 2 Turing DR Test).
+//   led_control (Section 1 blink), led_dr_test (Turing DR Test, standalone).
 // constants_dot is already covered by CD1-CD10 above.
 
 // EX1: capability_test — raw slot access, no NS symbols required
@@ -4980,7 +4980,7 @@ HALT
 // EX12–EX13: led_control Section 1 — LED blink with capabilities block + LED0 shorthand
 {
     const EX12_SRC = `
-capabilities { LED0 }
+capabilities { LED0 RW }
 LOAD CR3, LED0
 IADD DR1, DR0, #1
 led_on:
@@ -5012,11 +5012,18 @@ BRANCH led_on
         result.words.length > 0, `got ${result.words.length}`);
 }
 
-// EX14–EX15: led_control Section 2 (Turing DR Test) — 6-phase ISA exercise
+// EX14–EX15: led_dr_test (Turing DR Test) — 6-phase ISA exercise, standalone tab
 // Source mirrors _TURING_DR_TEST_SOURCE from simulator/app-run.js
 {
     const EX14_SRC = `
-capabilities { LED0, LED1, LED2, LED3, LED4, LED5 }
+capabilities {
+    LED0 RW
+    LED1 RW
+    LED2 RW
+    LED3 RW
+    LED4 RW
+    LED5 RW
+}
 LOAD CR3, LED0
 IADD DR1, DR0, #1
 DWRITE DR0, CR3, 0
@@ -5262,9 +5269,9 @@ BRANCH fail
 `;
     const a = new ChurchAssembler({});
     const result = a.assemble(EX14_SRC);
-    assert('EX14 led_control Turing DR Test assembles without errors',
+    assert('EX14 led_dr_test Turing DR Test assembles without errors',
         a.errors.length === 0, a.errors.map(e => e.message).join('; '));
-    assert('EX15 led_control Turing DR Test produces at least one word',
+    assert('EX15 led_dr_test Turing DR Test produces at least one word',
         result.words.length > 0, `got ${result.words.length}`);
 }
 
@@ -5409,6 +5416,7 @@ HALT
         'system_patterns',
         'compute_demo',
         'led_control',
+        'led_dr_test',
         'salvation',
         'constants_dot',
         'perm_attack',
@@ -5418,9 +5426,9 @@ HALT
         'scheduler_wait',
         'dijkstra_flag',
     ]);
-    // These are the thirteen keys in LANG_EXAMPLE_GROUPS.assembly as of task-1105/1106.
+    // These are the fourteen keys covered by EX tests as of the led_dr_test split.
     // Update both this set AND add an EX test whenever a new example is added.
-    const EXPECTED_COUNT = 13;
+    const EXPECTED_COUNT = 14;
     assert('EX16 LANG_EXAMPLE_GROUPS.assembly coverage set has expected count',
         COVERED_ASSEMBLY_EXAMPLES.size === EXPECTED_COUNT,
         `expected ${EXPECTED_COUNT}, got ${COVERED_ASSEMBLY_EXAMPLES.size}`);
@@ -5429,6 +5437,8 @@ HALT
         COVERED_ASSEMBLY_EXAMPLES.has('ada_note_g'), 'missing');
     assert('EX16 coverage set contains led_control',
         COVERED_ASSEMBLY_EXAMPLES.has('led_control'), 'missing');
+    assert('EX16 coverage set contains led_dr_test',
+        COVERED_ASSEMBLY_EXAMPLES.has('led_dr_test'), 'missing');
     assert('EX16 coverage set contains salvation',
         COVERED_ASSEMBLY_EXAMPLES.has('salvation'), 'missing');
     assert('EX16 coverage set contains constants_dot (covered by CD1-CD10)',
@@ -6123,17 +6133,21 @@ abstraction VlcTest {
     checkInlineVsCanonical('EX-CDT-INLINE', 'constants_dot',
         { conventions: CONSTANTS_CONV, ns: CONSTANTS_NS });
 
-    // ── led_control: excluded from inline-vs-canonical ───────────────────────
-    // led_control is NOT a simple backtick literal.  In app-run.js it is built
-    // via string concatenation:
-    //   'led_control': `...Section 1...` + '; Section 2 header\n' + _TURING_DR_TEST_SOURCE.slice(...)
-    // The extractInline() regex stops at the first ` followed by \s*,, which is
-    // not line 6802's closing ` (followed by +), so the regex over-captures and
-    // produces an incorrect fragment.  There is no single extractable backtick
-    // literal to compare against a canonical file.
+    // ── EX-LED-INLINE inline vs canonical (led_control) ──────────────────────
+    // led_control is now a simple backtick literal in app-run.js (no concatenation).
+    checkInlineVsCanonical('EX-LED-INLINE', 'led_control');
+
+    // ── led_dr_test: excluded from inline-vs-canonical ───────────────────────
+    // led_dr_test is NOT a backtick literal in app-run.js.  It is a variable
+    // reference:
+    //   'led_dr_test': _TURING_DR_TEST_SOURCE,
+    // The extractInline() regex cannot match a variable reference.  The source
+    // (_TURING_DR_TEST_SOURCE) is a standalone backtick literal and is already
+    // assembled and verified by EX14–EX15 in this test suite.
     //
-    // Section 2 (_TURING_DR_TEST_SOURCE) is a standalone backtick literal and
-    // is already assembled and verified by the EX-LED test suite (lines ~10943+).
+    // led_control IS now a simple backtick literal (no concatenation) and is
+    // therefore included in the inline-vs-canonical checks above (EX-LED-INLINE).
+    // See scripts/sync-canonical-examples.js for the sync tool.
 
     // ── Non-Assembly inline-vs-canonical: app-compile.js front-end examples ──────
     // Non-Assembly inline-vs-canonical word-array comparisons

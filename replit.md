@@ -160,9 +160,15 @@ node scripts/sync-canonical-examples.js --check
 
 Exits non-zero and lists drifted files if any canonical file is out of date.
 
-### Excluded key: `led_control`
+### Excluded key: `led_dr_test`
 
-`led_control` is built via string concatenation in `app-run.js` (not a single backtick literal), so it cannot be extracted by the sync script. Its Section 2 source (`_TURING_DR_TEST_SOURCE`) is verified separately by the EX-LED test suite in `simulator/assembler_test.js`.
+`led_dr_test` is a variable reference in `app-run.js` (not a backtick literal), so it cannot be extracted by the sync script:
+
+```javascript
+'led_dr_test': _TURING_DR_TEST_SOURCE,
+```
+
+Its source (`_TURING_DR_TEST_SOURCE`) is a standalone backtick literal verified separately by EX14–EX15 in `simulator/assembler_test.js`. `led_control` is now a plain backtick literal and is fully synced by the script.
 
 ### Relevant files
 
