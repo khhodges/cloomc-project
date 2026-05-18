@@ -3,6 +3,8 @@
 **v1.0 — 2026-04-29**
 **CONFIDENTIAL**
 
+> **Quick API Reference** — For a fast, scannable per-slot method table (slot number, required permission, signature, one-liner) see [`docs/api-reference.md`](api-reference.md). The document below is the authoritative narrative covering lump structure, rationale, and architectural detail.
+
 ## Canonical Form
 
 Every abstraction in the Church Machine is a **security block** — a protected unit of functionality with measurable reliability.

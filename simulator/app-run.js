@@ -12770,6 +12770,89 @@ function showAbstractionRefDetail(id) {
     `;
 }
 
+function showApiAbstractionDetail(slot) {
+    if (typeof API_DATA === 'undefined') return;
+    _selectedAbstraction = 'api:' + slot;
+    renderReference();
+    const title = document.getElementById('instrDetailTitle');
+    const body = document.getElementById('instrDetailContent');
+    const abs = apiLookupBySlot(slot);
+    if (!abs || !body) return;
+
+    const layerName = (typeof API_LAYER_NAMES !== 'undefined' && API_LAYER_NAMES[abs.layer])
+        || ('Layer ' + abs.layer);
+    if (title) title.textContent = abs.name + ' \u2014 NS[' + abs.slot + ']';
+
+    function esc(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    const implBadge = abs.implemented === true
+        ? '<span class="api-ref-impl-badge api-ref-impl-true">Implemented</span>'
+        : abs.implemented === 'partial'
+        ? '<span class="api-ref-impl-badge api-ref-impl-partial">Partial</span>'
+        : '<span class="api-ref-impl-badge api-ref-impl-false">Planned</span>';
+
+    const profileClass = abs.profile === 'IoT' ? 'iot' : abs.profile === 'XC7A100T' ? 'xc7a100t' : '';
+    const profileBadge = abs.profile !== 'Full'
+        ? `<span class="api-profile-chip ${profileClass}">${esc(abs.profile)}</span>` : '';
+
+    let methodsHtml = '';
+    if (abs.methods.length > 0) {
+        const rows = abs.methods.map(m => {
+            const mImplBadge = m.implemented
+                ? '<span class="api-ref-impl-badge api-ref-impl-true" title="Implemented in simulator">✓</span>'
+                : '<span class="api-ref-impl-badge api-ref-impl-false" title="Planned">planned</span>';
+            const rowClass = m.implemented ? '' : ' class="api-method-planned"';
+            return `<tr${rowClass}>
+                <td class="api-method-name">${esc(m.name)}</td>
+                <td class="api-method-sig">${esc(m.signature)}</td>
+                <td class="api-method-perm">${esc(m.perms)}</td>
+                <td class="api-method-desc">${esc(m.description)}</td>
+                <td>${mImplBadge}</td>
+            </tr>`;
+        }).join('');
+        methodsHtml = `
+        <div class="instr-detail-section">
+            <div class="instr-detail-label">Methods (${abs.methods.length})</div>
+            <table class="api-method-table">
+                <thead><tr>
+                    <th>Name</th><th>Signature</th><th>Perm</th><th>Description</th><th></th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+    } else {
+        methodsHtml = `
+        <div class="instr-detail-section">
+            <div class="instr-detail-label">Methods</div>
+            <div class="instr-detail-value" style="color:var(--text-secondary);font-style:italic;">No callable methods — boot primitive or pure lambda value.</div>
+        </div>`;
+    }
+
+    body.innerHTML = `
+        <div class="instr-detail-section">
+            <div class="instr-detail-badge church">${esc(layerName)}</div>
+            <div style="margin-top:0.4rem;" class="api-detail-perms-row">
+                <span style="font-size:0.72rem;color:var(--text-secondary);">Permission:</span>
+                <span class="api-perm-chip">${esc(abs.perms)}</span>
+                ${profileBadge}
+                ${implBadge}
+            </div>
+            <div class="instr-detail-desc">${esc(abs.description)}</div>
+        </div>
+        ${methodsHtml}
+        <div class="instr-detail-section">
+            <div class="instr-detail-label">Quick reference</div>
+            <div class="instr-detail-value" style="font-size:0.78rem;">
+                See <code style="color:var(--church-gold);font-size:0.75rem;">docs/api-reference.md</code> for the full reference document,
+                or <a href="#" style="color:var(--church-blue);text-decoration:none;" onclick="event.preventDefault();if(typeof switchView==='function')switchView('docs');">open the Docs view</a>.
+            </div>
+        </div>
+    `;
+}
+
 /* ── Assembly structural globals ─────────────────────────────────────────────
  * Exposes window._asmExampleSources at module-load time (analogous to
  * _initCloomcStructuralGlobals in app-compile.js) so the Source Library can

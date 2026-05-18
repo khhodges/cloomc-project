@@ -5,14 +5,49 @@ function renderReference() {
 
     if (absList) {
         absList.innerHTML = '';
-        ABSTRACTION_DATA.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'instr-card abs-card' + (_selectedAbstraction === item.id ? ' active' : '');
-            card.innerHTML = `<span class="instr-mnemonic">${item.name}</span><span class="instr-brief">${item.brief}</span>`;
-            card.onclick = () => { _refTipHide(); showAbstractionRefDetail(item.id); };
-            _attachRefTip(card, item.brief);
-            absList.appendChild(card);
-        });
+        // Use api-data.js catalogue if available, else fall back to ABSTRACTION_DATA
+        if (typeof API_DATA !== 'undefined' && typeof API_LAYER_NAMES !== 'undefined') {
+            const groups = apiGroupByLayer();
+            const layerOrder = [0,1,2,3,4,5,6,7,8,9];
+            for (const layerNum of layerOrder) {
+                const entries = groups[layerNum];
+                if (!entries || entries.length === 0) continue;
+                const header = document.createElement('div');
+                header.className = 'api-ref-layer-header';
+                header.textContent = (API_LAYER_NAMES[layerNum] || ('Layer ' + layerNum));
+                absList.appendChild(header);
+                for (const abs of entries) {
+                    if (abs.slot === 2) continue;
+                    const card = document.createElement('div');
+                    const isActive = (_selectedAbstraction === 'api:' + abs.slot);
+                    card.className = 'api-ref-abs-card' + (isActive ? ' active' : '');
+                    const implClass = abs.implemented === true ? 'api-ref-impl-true'
+                        : abs.implemented === 'partial' ? 'api-ref-impl-partial'
+                        : 'api-ref-impl-false';
+                    const implLabel = abs.implemented === true ? 'impl'
+                        : abs.implemented === 'partial' ? 'partial'
+                        : 'planned';
+                    card.innerHTML =
+                        `<div class="api-ref-abs-name">` +
+                        `${_escHtml(abs.name)}` +
+                        `<span class="api-ref-abs-slot">NS[${abs.slot}]</span>` +
+                        `<span class="api-ref-impl-badge ${implClass}">${implLabel}</span>` +
+                        `</div>` +
+                        `<div class="api-ref-abs-desc">${_escHtml(abs.description)}</div>`;
+                    card.onclick = () => { _refTipHide(); showApiAbstractionDetail(abs.slot); };
+                    absList.appendChild(card);
+                }
+            }
+        } else {
+            ABSTRACTION_DATA.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'instr-card abs-card' + (_selectedAbstraction === item.id ? ' active' : '');
+                card.innerHTML = `<span class="instr-mnemonic">${item.name}</span><span class="instr-brief">${item.brief}</span>`;
+                card.onclick = () => { _refTipHide(); showAbstractionRefDetail(item.id); };
+                _attachRefTip(card, item.brief);
+                absList.appendChild(card);
+            });
+        }
     }
 
     if (!churchList || !turingList) return;
@@ -49,6 +84,15 @@ function renderReference() {
     returnCard.onclick = () => { _refTipHide(); _selectedAbstraction = null; showInstructionDetail(3); };
     _attachRefTip(returnCard, 'Shared \u2014 exit from Turing abstraction');
     turingList.appendChild(returnCard);
+}
+
+function _escHtml(s) {
+    if (!s) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 function _mStateBadgeText(state) {

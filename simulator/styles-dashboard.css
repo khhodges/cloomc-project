@@ -5740,3 +5740,302 @@ a.next-step-link:hover {
     font-size: 0.7rem;
     line-height: 1.4;
 }
+
+/* ── API Reference Panel — method table + layer headers ──────────────────── */
+.api-ref-layer-header {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    padding: 0.6rem 0.5rem 0.25rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.3rem;
+}
+.api-ref-layer-header:first-child {
+    border-top: none;
+    margin-top: 0;
+}
+
+.api-ref-abs-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+    font-size: 0.78rem;
+}
+.api-ref-abs-card:hover {
+    background: rgba(251, 191, 36, 0.08);
+    border-color: var(--border);
+}
+.api-ref-abs-card.active {
+    background: rgba(251, 191, 36, 0.18);
+    border-color: var(--church-gold);
+}
+.api-ref-abs-name {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--church-gold);
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.api-ref-abs-slot {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+.api-ref-abs-desc {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    line-height: 1.3;
+    white-space: normal;
+}
+.api-ref-impl-badge {
+    display: inline-block;
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.api-ref-impl-true  { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid #4ade80; }
+.api-ref-impl-partial { background: rgba(251,191,36,0.15); color: var(--church-gold); border: 1px solid var(--church-gold); }
+.api-ref-impl-false { background: rgba(160,160,160,0.1); color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* ── API detail pane — method table ─────────────────────────────────────── */
+.api-method-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.77rem;
+    margin-top: 0.4rem;
+}
+.api-method-table th {
+    text-align: left;
+    padding: 0.3rem 0.5rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.api-method-table td {
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: top;
+    line-height: 1.4;
+}
+.api-method-table tr:last-child td { border-bottom: none; }
+.api-method-name {
+    font-family: 'Courier New', monospace;
+    color: var(--church-gold);
+    white-space: nowrap;
+}
+.api-method-sig {
+    font-family: 'Courier New', monospace;
+    font-size: 0.74rem;
+    color: var(--church-blue);
+    white-space: nowrap;
+}
+.api-method-perm {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    color: #a78bfa;
+    white-space: nowrap;
+}
+.api-method-desc { color: var(--text-secondary); }
+.api-method-planned { opacity: 0.5; }
+.api-detail-perms-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+.api-perm-chip {
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(96,165,250,0.15);
+    color: var(--church-blue);
+    border: 1px solid var(--church-blue);
+}
+.api-profile-chip {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(74,222,128,0.12);
+    color: #4ade80;
+    border: 1px solid #4ade80;
+}
+.api-profile-chip.iot   { background: rgba(251,191,36,0.12); color: var(--church-gold); border-color: var(--church-gold); }
+.api-profile-chip.xc7a100t { background: rgba(167,139,250,0.12); color: #a78bfa; border-color: #a78bfa; }
+
+/* ── In-editor API contextual popup ─────────────────────────────────────── */
+.api-popup {
+    position: fixed;
+    z-index: 3000;
+    min-width: 280px;
+    max-width: 420px;
+    background: #0f1a2e;
+    border: 1px solid var(--church-gold);
+    border-radius: 6px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(251,191,36,0.1);
+    font-size: 0.8rem;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--text-primary);
+    padding: 0.6rem 0.75rem 0.5rem;
+    line-height: 1.5;
+    pointer-events: auto;
+}
+.api-popup-header {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+.api-popup-abs-name {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--church-gold);
+    font-size: 0.85rem;
+}
+.api-popup-dot {
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+}
+.api-popup-method-name {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--church-blue);
+    font-size: 0.85rem;
+}
+.api-popup-slot {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.07);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+.api-popup-profile {
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(167,139,250,0.15);
+    color: #a78bfa;
+    border: 1px solid #a78bfa;
+}
+.api-popup-sig {
+    margin-bottom: 0.25rem;
+}
+.api-popup-sig code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    color: var(--church-blue);
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+.api-popup-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.3rem;
+    font-size: 0.72rem;
+}
+.api-popup-layer { color: var(--text-secondary); }
+.api-popup-perm-label { color: var(--text-secondary); }
+.api-popup-perm {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #a78bfa;
+}
+.api-popup-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.api-popup-badge-impl    { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid #4ade80; }
+.api-popup-badge-partial { background: rgba(251,191,36,0.15); color: var(--church-gold); border: 1px solid var(--church-gold); }
+.api-popup-badge-planned { background: rgba(160,160,160,0.1); color: var(--text-secondary); border: 1px solid var(--border); }
+.api-popup-desc {
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+    line-height: 1.45;
+}
+.api-popup-method-list {
+    border-top: 1px solid var(--border);
+    padding-top: 0.3rem;
+    margin-bottom: 0.3rem;
+}
+.api-popup-method-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    padding: 0.15rem 0;
+}
+.api-popup-method-sig {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    color: var(--church-gold);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.api-popup-method-brief {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.api-popup-method-more {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    padding: 0.1rem 0;
+    font-style: italic;
+}
+.api-popup-empty {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    padding: 0.2rem 0;
+    font-style: italic;
+}
+.api-popup-footer {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 0.3rem;
+    margin-top: 0.25rem;
+}
+.api-popup-footer kbd {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    background: rgba(255,255,255,0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+}
+.api-popup-ref-link {
+    color: var(--church-blue);
+    text-decoration: none;
+    cursor: pointer;
+}
+.api-popup-ref-link:hover { text-decoration: underline; }
