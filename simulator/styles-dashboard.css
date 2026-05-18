@@ -5741,6 +5741,35 @@ a.next-step-link:hover {
     line-height: 1.4;
 }
 
+/* ── Abstractions search input ───────────────────────────────────────────── */
+.abs-search-wrap {
+    padding: 0.5rem 0.5rem 0.35rem;
+}
+.abs-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    padding: 0.35rem 0.6rem;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+}
+.abs-search-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+.abs-search-input:focus {
+    border-color: var(--church-gold);
+    background: rgba(251,191,36,0.05);
+}
+.abs-search-input::-webkit-search-cancel-button {
+    filter: invert(0.6);
+    cursor: pointer;
+}
+
 /* ── API Reference Panel — method table + layer headers ──────────────────── */
 .api-ref-layer-header {
     font-size: 0.65rem;

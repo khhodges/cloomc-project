@@ -951,7 +951,11 @@
             <div class="ref-list-panel">
                 <div class="panel" id="refPanel-abstractions">
                     <div class="panel-title">Abstractions &amp; Methods</div>
-                    <div class="instr-domain-header">Concepts</div>
+                    <div class="abs-search-wrap">
+                        <input id="absSearchInput" type="search" class="abs-search-input"
+                               placeholder="Search by name, keyword, or slot number&hellip;"
+                               oninput="filterAbstractions(this.value)" />
+                    </div>
                     <div id="instrListAbstractions" class="instr-list"></div>
                 </div>
                 <div class="panel" id="refPanel-hardware" style="display:none;">

@@ -48,6 +48,9 @@ function renderReference() {
                 absList.appendChild(card);
             });
         }
+        // Re-apply any active search filter after (re)render
+        const searchInput = document.getElementById('absSearchInput');
+        if (searchInput && searchInput.value) filterAbstractions(searchInput.value);
     }
 
     if (!churchList || !turingList) return;
@@ -84,6 +87,48 @@ function renderReference() {
     returnCard.onclick = () => { _refTipHide(); _selectedAbstraction = null; showInstructionDetail(3); };
     _attachRefTip(returnCard, 'Shared \u2014 exit from Turing abstraction');
     turingList.appendChild(returnCard);
+}
+
+function filterAbstractions(query) {
+    const absList = document.getElementById('instrListAbstractions');
+    if (!absList) return;
+    const q = (query || '').trim().toLowerCase();
+    const cards = absList.querySelectorAll('.api-ref-abs-card');
+    const headers = absList.querySelectorAll('.api-ref-layer-header');
+
+    if (!q) {
+        cards.forEach(c => c.style.display = '');
+        headers.forEach(h => h.style.display = '');
+        return;
+    }
+
+    // Show/hide each card based on name, description, or slot number.
+    // Handles both the API-data path (.api-ref-abs-card) and the legacy
+    // fallback path (.instr-card.abs-card).
+    cards.forEach(card => {
+        const nameEl = card.querySelector('.api-ref-abs-name') || card.querySelector('.instr-mnemonic');
+        const descEl = card.querySelector('.api-ref-abs-desc') || card.querySelector('.instr-brief');
+        const slotEl = card.querySelector('.api-ref-abs-slot');
+        const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+        const desc = descEl ? descEl.textContent.toLowerCase() : '';
+        const slot = slotEl ? slotEl.textContent.toLowerCase() : '';
+        const match = name.includes(q) || desc.includes(q) || slot.includes(q);
+        card.style.display = match ? '' : 'none';
+    });
+
+    // Show a layer header only if at least one card after it is visible
+    headers.forEach(header => {
+        let sibling = header.nextElementSibling;
+        let hasVisible = false;
+        while (sibling && !sibling.classList.contains('api-ref-layer-header')) {
+            if (sibling.classList.contains('api-ref-abs-card') && sibling.style.display !== 'none') {
+                hasVisible = true;
+                break;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+        header.style.display = hasVisible ? '' : 'none';
+    });
 }
 
 function _escHtml(s) {
