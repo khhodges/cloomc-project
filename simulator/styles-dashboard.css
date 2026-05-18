@@ -5105,6 +5105,20 @@ mark.abs-search-highlight {
     color: var(--text-primary, #e8e0c8);
 }
 
+.lump-viewing-label {
+    display: none;
+    font-size: 0.72rem;
+    color: var(--accent-color, #c89b3c);
+    background: var(--bg-secondary, #1a1a2e);
+    border: 1px solid var(--border-color, #3a3a5c);
+    border-radius: 4px;
+    padding: 0.25rem 0.55rem;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .lumps-detail-panel {
     overflow-y: auto;
 }

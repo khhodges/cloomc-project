@@ -607,6 +607,7 @@ async function renderLumps() {
                 html += `<option value="${_escHtml(token)}"${sel}>${_escHtml(label)}</option>`;
             }
             html += `</select>`;
+            html += `<div id="lumpViewingLabel" class="lump-viewing-label"></div>`;
         }
 
         // XC7A100T Hardware section — Ethernet LUMP catalog entry
@@ -647,14 +648,34 @@ async function renderLumps() {
 
 // Called by the lump picker <select> when the user chooses a different lump.
 window.lumpPickerChanged = function(token) {
-    if (!token) return;
+    if (!token) { _updateLumpViewingLabel(''); return; }
     _selectedLumpToken = token;
     _lumpRecordView(token);
     showLumpDetail(token);
-    // Reset picker to placeholder so re-selecting the same item fires onchange next time.
-    const _pickerSel = document.getElementById('lumpPickerSelect');
-    if (_pickerSel) _pickerSel.value = '';
 };
+
+// Updates the "Viewing: <name> [TYPE]" label below the picker.
+function _updateLumpViewingLabel(token) {
+    const el = document.getElementById('lumpViewingLabel');
+    if (!el) return;
+    if (!token || !_lumpsCache) { el.style.display = 'none'; el.textContent = ''; return; }
+    const lump = _lumpsCache.find(l => l.token === token);
+    if (!lump) { el.style.display = 'none'; return; }
+    const lt      = (lump.lump_type    || '').toLowerCase();
+    const ct      = (lump.content_type || '').toLowerCase();
+    const typ     = lump.typ;
+    const isFloat = (lump.ns_slot === null || lump.ns_slot === undefined);
+    const badge   = lt === 'boot'                     ? '[BOOT]'
+                  : lt === 'namespace' || typ === 10  ? '[NS]'
+                  : ct === 'outform'   || typ === 3   ? '[OTF]'
+                  : ct === 'thread'    || typ === 2   ? '[THR]'
+                  : ct === 'inform'                   ? '[INF]'
+                  : isFloat && lt !== 'boot'          ? '[SAVED]'
+                  : '';
+    const name = lump.abstraction || 'Unknown';
+    el.textContent = 'Viewing: ' + name + (badge ? ' ' + badge : '');
+    el.style.display = '';
+}
 
 // Returns a sorted copy of the lumps array according to _lumpSortOrder.
 function _lumpsSorted(lumps) {
