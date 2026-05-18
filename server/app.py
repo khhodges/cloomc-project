@@ -153,6 +153,23 @@ def index():
     landing_path = os.path.join(BASE_DIR, "landing.html")
     return send_file(landing_path, mimetype="text/html")
 
+@app.route("/robots.txt")
+def robots_txt():
+    content = "User-agent: *\nAllow: /\nSitemap: https://haskell-main-1.replit.app/sitemap.xml\n"
+    return make_response(content, 200, {"Content-Type": "text/plain; charset=utf-8"})
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    content = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url><loc>https://haskell-main-1.replit.app/</loc><priority>1.0</priority></url>\n'
+        '  <url><loc>https://haskell-main-1.replit.app/simulator/</loc><priority>0.9</priority></url>\n'
+        '  <url><loc>https://haskell-main-1.replit.app/docs/</loc><priority>0.7</priority></url>\n'
+        '</urlset>\n'
+    )
+    return make_response(content, 200, {"Content-Type": "application/xml; charset=utf-8"})
+
 @app.route("/api/health")
 @app.route("/health")
 def health():
