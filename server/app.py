@@ -3176,7 +3176,9 @@ def save_lump():
         "methods":       sidecar["methods"],
         "grants":        sidecar["grants"],
     }
-    if ns_slot is not None:
+    if ns_slot is None:
+        new_entry["ns_slot_policy"] = "dynamic"
+    else:
         new_entry["variant_group"] = vg_key
     manifest.append(new_entry)
 

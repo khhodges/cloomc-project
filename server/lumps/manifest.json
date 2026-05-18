@@ -1755,13 +1755,14 @@
     "token": "13ade9a4",
     "abstraction": "Abstraction:  LedControl",
     "ns_slot": null,
+    "ns_slot_policy": "dynamic",
     "lump_size": 64,
     "cw": 17,
     "cc": 1,
     "author": "",
     "version": "2026.05.18",
     "lump_version": 1,
-    "compiled_at": 1779119555.0571306,
+    "compiled_at": 1779120590.7957027,
     "methods": [
       {
         "name": "run",
