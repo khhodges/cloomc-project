@@ -1732,6 +1732,7 @@
     "token": "13812cdf",
     "abstraction": "Church Machine Post-Flash Exhaustive Self-Test v1.1",
     "ns_slot": null,
+    "ns_slot_policy": "dynamic",
     "lump_size": 1024,
     "cw": 512,
     "cc": 0,
