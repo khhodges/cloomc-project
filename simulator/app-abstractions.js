@@ -439,6 +439,16 @@ function renderAbstractions() {
     html += `</div>`;
 
     listEl.innerHTML = html;
+
+    // Re-apply text highlights after every rebuild so a query that was active
+    // before the rebuild (e.g. a namespace update) is immediately visible.
+    // Elements are freshly created so there are no stale data-orig-html attrs.
+    if (q && typeof _absHighlightText === 'function') {
+        listEl.querySelectorAll('.abs-item').forEach(card => {
+            _absHighlightText(card.querySelector('.abs-item-name'), q);
+            _absHighlightText(card.querySelector('.abs-item-desc'), q);
+        });
+    }
 }
 
 function setBootEntrySlot(idx) {
