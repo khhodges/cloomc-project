@@ -1411,6 +1411,7 @@ async function _lumpHistoryPreview(token, version, cw, cc, lumpSize, tk) {
             t += `<div class="lump-hex-diff-summary lump-hex-diff-summary--none">Identical to current version \u2014 no words changed</div>`;
         } else {
             t += `<div class="lump-hex-diff-summary lump-hex-diff-summary--changed">${diffCount} word${diffCount === 1 ? '' : 's'} changed</div>`;
+            t += `<div class="lump-hex-diff-legend"><span class="lump-hex-diff-legend-arch">archived (v${version})</span><span class="lump-hex-diff-legend-sep">\u2192</span><span class="lump-hex-diff-legend-cur">current</span></div>`;
         }
         t += '<table class="lump-hex-table lump-hex-table-wide"><thead><tr><th>Addr</th>';
         for (let c = 0; c < COLS; c++) t += `<th>+${c}</th>`;
@@ -1418,7 +1419,7 @@ async function _lumpHistoryPreview(token, version, cw, cc, lumpSize, tk) {
         for (let row = 0; row < rowCount; row++) {
             const baseIdx  = row * COLS;
             const baseAddr = (baseIdx * 4).toString(16).toUpperCase().padStart(6, '0');
-            let rowHex = '', rowAsc = '', rowClass = '';
+            let rowHex = '', rowAscArch = '', rowAscCur = '', rowHasChange = false, rowClass = '';
             if (baseIdx === 0)                            rowClass = 'lump-hex-hdr-row';
             else if (cc > 0 && baseIdx >= lumpSize - cc)  rowClass = 'lump-hex-clist-row';
             else if (baseIdx >= cw + 1)                    rowClass = 'lump-hex-pad-row';
@@ -1428,14 +1429,25 @@ async function _lumpHistoryPreview(token, version, cw, cc, lumpSize, tk) {
                     const archVal = words[i] >>> 0;
                     const curVal  = i < curWords.length ? (curWords[i] >>> 0) : null;
                     const changed = !curFetchFailed && (curVal === null || archVal !== curVal);
-                    const cellClass = changed ? ' class="lump-hex-diff-changed"' : '';
-                    rowHex += `<td${cellClass}>${hexw(archVal)}</td>`;
-                    rowAsc += pack4ascii(archVal);
+                    if (changed) {
+                        rowHasChange = true;
+                        const curDisplay = curVal === null ? '<span class="lump-hex-diff-absent">(absent)</span>' : hexw(curVal);
+                        rowHex += `<td class="lump-hex-diff-changed"><span class="lump-hex-diff-arch">${hexw(archVal)}</span><span class="lump-hex-diff-cur">${curDisplay}</span></td>`;
+                    } else {
+                        rowHex += `<td>${hexw(archVal)}</td>`;
+                    }
+                    rowAscArch += pack4ascii(archVal);
+                    rowAscCur  += curVal !== null ? pack4ascii(curVal) : '.'.repeat(4);
                 } else {
                     rowHex += '<td class="lump-hex-empty"></td>';
+                    rowAscArch += '    ';
+                    rowAscCur  += '    ';
                 }
             }
-            t += `<tr class="${rowClass}"><td class="lump-hex-addr">0x${baseAddr}</td>${rowHex}<td class="lump-hex-ascii">${e(rowAsc)}</td></tr>`;
+            const ascCell = rowHasChange && !curFetchFailed
+                ? `<td class="lump-hex-ascii lump-hex-ascii--split"><span class="lump-hex-diff-arch">${e(rowAscArch)}</span><span class="lump-hex-diff-cur">${e(rowAscCur)}</span></td>`
+                : `<td class="lump-hex-ascii">${e(rowAscArch)}</td>`;
+            t += `<tr class="${rowClass}"><td class="lump-hex-addr">0x${baseAddr}</td>${rowHex}${ascCell}</tr>`;
         }
         t += '</tbody></table></div>';
         previewEl.innerHTML = t;
