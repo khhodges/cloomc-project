@@ -580,18 +580,6 @@ async function renderLumps() {
             html = '<div class="lumps-placeholder">No lumps saved yet. Use Build LUMP in the editor to compile and save an abstraction.</div>';
         } else {
             const _sortedLumps = _lumpsSorted(lumps);
-            const _sortOptName     = _lumpSortOrder === 'name'     ? ' selected' : '';
-            const _sortOptRecent   = _lumpSortOrder === 'recent'   ? ' selected' : '';
-            const _sortOptCompiled = _lumpSortOrder === 'compiled'  ? ' selected' : '';
-            const _sortOptMtbf     = _lumpSortOrder === 'mtbf'     ? ' selected' : '';
-            html += `<div class="lump-sort-bar">`;
-            html += `<label class="lump-sort-label" for="lumpSortSelect">Sort</label>`;
-            html += `<select id="lumpSortSelect" class="lump-sort-select" onchange="_lumpSortChanged(this.value)">`;
-            html += `<option value="name"${_sortOptName}>Name (A\u2013Z)</option>`;
-            html += `<option value="recent"${_sortOptRecent}>Most Recent</option>`;
-            html += `<option value="compiled"${_sortOptCompiled}>Newest Compile</option>`;
-            html += `<option value="mtbf"${_sortOptMtbf}>Best MTBF</option>`;
-            html += `</select></div>`;
             html += `<select id="lumpPickerSelect" class="lump-picker-select" onchange="lumpPickerChanged(this.value)">`;
             html += `<option value="">— pick a lump —</option>`;
             for (const lump of _sortedLumps) {
@@ -618,30 +606,9 @@ async function renderLumps() {
             html += `</select>`;
         }
 
-        // XC7A100T Hardware section — Ethernet LUMP catalog entry
-        const _ETHERNET_LUMP = { name: 'Ethernet', slot: 51, token: '00003300', cw: 13, cc: 1, lump_size: 64 };
-        html += `<div class="lump-tier-a-section">`;
-        html += `<div class="lump-tier-a-header">XC7A100T Hardware &mdash; Board-Specific Lumps <span class="lump-tier-a-header-sub">(QMTECH Wukong only)</span></div>`;
-        const _ethLump = (lumps || []).find(l => l.token === _ETHERNET_LUMP.token || l.abstraction === _ETHERNET_LUMP.name);
-        const _ethCw = (_ethLump && _ethLump.cw != null) ? _ethLump.cw : _ETHERNET_LUMP.cw;
-        const _ethCc = (_ethLump && _ethLump.cc != null) ? _ethLump.cc : _ETHERNET_LUMP.cc;
-        const _ethSize = (_ethLump && _ethLump.lump_size != null) ? _ethLump.lump_size : _ETHERNET_LUMP.lump_size;
-        const _ethToken = (_ethLump && _ethLump.token) ? _ethLump.token : _ETHERNET_LUMP.token;
-        html += `<div class="lump-tier-a-row">`;
-        if (_ethLump) {
-            const _ethTk = _escHtml(_ethToken);
-            html += `<span class="lump-tier-a-name"><a class="lump-tier-a-link" href="#" onclick="event.preventDefault();showLumpDetail('${_ethTk}')">Ethernet</a></span>`;
-        } else {
-            html += `<span class="lump-tier-a-name">Ethernet</span>`;
-        }
-        html += `<span class="lump-tier-a-slot">slot&nbsp;${_ETHERNET_LUMP.slot}</span>`;
-        html += `<span class="lump-tier-a-status${_ethLump ? ' lump-tier-a-status-present' : ''}">${_ethLump ? 'Saved' : 'ROM only'}</span>`;
-        html += `<span class="lump-tier-a-milestone" style="font-family:monospace;font-size:0.68rem;">0x${_escHtml(_ethToken)} &nbsp; cw=${_ethCw} &nbsp; cc=${_ethCc} &nbsp; ${_ethSize}w</span>`;
-        html += `<a class="lump-tier-a-test-id" href="#" onclick="event.preventDefault();openDocAnchor('hardware-wukong-xc7a100t.md','#ethernet-abstraction-ns-slot-51')" title="View XC7A100T hardware documentation">DOCS</a>`;
-        html += `</div>`;
-        html += `</div>`;
-
         listEl.innerHTML = html;
+        const _ss = document.getElementById('lumpSortSelect');
+        if (_ss) _ss.value = _lumpSortOrder;
 
         if (_selectedLumpToken) {
             // Always re-render the detail panel so compress/POLA/save changes

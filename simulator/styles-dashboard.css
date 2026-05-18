@@ -5063,7 +5063,8 @@ mark.abs-search-highlight {
 }
 
 .lump-sort-select {
-    flex: 1;
+    width: 9rem;
+    flex-shrink: 0;
     background: var(--bg-secondary, #1a1a2e);
     color: var(--text-primary, #e8e0c8);
     border: 1px solid var(--border-color, #3a3a5c);
@@ -5137,8 +5138,10 @@ mark.abs-search-highlight {
 .lumps-catalog-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
+}
+.lumps-catalog-header .ham-wrap {
+    margin-left: auto;
 }
 
 .lumps-actions-dropdown {
