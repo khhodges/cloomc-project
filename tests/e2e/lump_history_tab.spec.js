@@ -106,6 +106,15 @@ const STUB_WORDS_V1 = {
     author:      '',
 };
 
+// Response for GET /api/lump/<token>/words — current (live) version, 64 words.
+// Note the singular "lump" path used by _lumpHistoryPreview for the diff fetch.
+const CURRENT_WORDS = makeWords(64);
+const STUB_WORDS_CURRENT = {
+    token:  STUB_TOKEN,
+    words:  CURRENT_WORDS,
+    count:  CURRENT_WORDS.length,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Navigation helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -466,6 +475,169 @@ test.describe('LUMP History tab — Restore fires /api/lumps/save', () => {
 
         // No save must have been attempted.
         expect(saveCallCount).toBe(0);
+    });
+
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared helpers for Suites 4 and 5 — Preview / row-onclick paths
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Stubs all four endpoints consumed by _lumpHistoryPreview:
+//   /api/lumps/list, /api/lumps/<token>/history,
+//   /api/lumps/<token>/words/1 (archived binary),
+//   /api/lump/<token>/words  (current binary for diff — singular "lump" path).
+async function stubPreviewRoutes(page) {
+    await page.route('**/api/lumps/list', async route => {
+        await route.fulfill({
+            status:      200,
+            contentType: 'application/json',
+            body:        JSON.stringify([STUB_LUMP]),
+        });
+    });
+    await page.route(`**/api/lumps/${STUB_TOKEN}/history`, async route => {
+        await route.fulfill({
+            status:      200,
+            contentType: 'application/json',
+            body:        JSON.stringify(STUB_HISTORY_RESPONSE),
+        });
+    });
+    await page.route(`**/api/lumps/${STUB_TOKEN}/words/1`, async route => {
+        await route.fulfill({
+            status:      200,
+            contentType: 'application/json',
+            body:        JSON.stringify(STUB_WORDS_V1),
+        });
+    });
+    await page.route(`**/api/lump/${STUB_TOKEN}/words`, async route => {
+        await route.fulfill({
+            status:      200,
+            contentType: 'application/json',
+            body:        JSON.stringify(STUB_WORDS_CURRENT),
+        });
+    });
+}
+
+// Waits until the hex preview div contains a rendered lump-hex-table.
+async function waitForHexTable(page) {
+    const previewDiv = page.locator(`#lumpHistoryHexPreview_${STUB_TK}`);
+    await expect(previewDiv.locator('table.lump-hex-table')).toBeVisible({ timeout: 10000 });
+    return previewDiv;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Suite 4 — Preview button fetches archived binary and renders hex dump table
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Clicking the "Preview" button on a history row calls _lumpHistoryPreview,
+// which fetches /api/lumps/<token>/words/<version> (archived binary) and
+// /api/lump/<token>/words (current binary for diff), then renders a
+// lump-hex-table inside #lumpHistoryHexPreview_<tk>.
+
+test.describe('LUMP History tab — Preview button renders hex dump', () => {
+
+    test('clicking Preview button fetches /api/lumps/<token>/words/1 and renders lump-hex-table', async ({ page }) => {
+        test.setTimeout(40000);
+
+        await stubPreviewRoutes(page);
+        await openLumpDetail(page);
+        await clickHistoryTab(page);
+
+        const histBody = page.locator(`#lumpHistoryBody_${STUB_TK}`);
+        const row = histBody.locator('tr.lump-history-row').first();
+        await expect(row).toBeVisible({ timeout: 8000 });
+
+        // Click the Preview button — stopPropagation means only _lumpHistoryPreview fires.
+        const previewBtn = row.locator('button[title^="Preview hex dump"]');
+        await expect(previewBtn).toBeVisible();
+        await previewBtn.click();
+
+        // The hex table must appear inside the preview div.
+        const previewDiv = await waitForHexTable(page);
+        const hexTable = previewDiv.locator('table.lump-hex-table');
+        await expect(hexTable).toBeVisible();
+
+        // The first address cell must show offset 0x000000.
+        await expect(hexTable.locator('td.lump-hex-addr').first()).toHaveText('0x000000');
+    });
+
+    test('clicking Preview button shows hex table with correct row count for 32-word binary', async ({ page }) => {
+        test.setTimeout(40000);
+
+        await stubPreviewRoutes(page);
+        await openLumpDetail(page);
+        await clickHistoryTab(page);
+
+        const histBody = page.locator(`#lumpHistoryBody_${STUB_TK}`);
+        const row = histBody.locator('tr.lump-history-row').first();
+        await expect(row).toBeVisible({ timeout: 8000 });
+
+        await row.locator('button[title^="Preview hex dump"]').click();
+
+        const previewDiv = await waitForHexTable(page);
+        const hexTable = previewDiv.locator('table.lump-hex-table');
+
+        // ARCHIVED_WORDS is 32 words, 8 columns → ceil(32/8) = 4 data rows.
+        // Each data row has class lump-hex-hdr-row, lump-hex-clist-row,
+        // lump-hex-pad-row, or no class — they are all <tr> inside <tbody>.
+        const dataRows = hexTable.locator('tbody tr');
+        await expect(dataRows).toHaveCount(4);
+
+        // The diff summary section must also be present (changed or identical).
+        await expect(previewDiv.locator('.lump-detail-section')).toBeVisible();
+    });
+
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Suite 5 — Row onclick (_lumpHistorySelectRow) also triggers the hex preview
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Clicking anywhere on a history row (not on a button) calls
+// _lumpHistorySelectRow, which in turn calls _lumpHistoryPreview.
+// The resulting hex dump must be identical to the button-triggered path.
+
+test.describe('LUMP History tab — row onclick triggers hex preview', () => {
+
+    test('clicking a history row directly renders the hex dump table', async ({ page }) => {
+        test.setTimeout(40000);
+
+        await stubPreviewRoutes(page);
+        await openLumpDetail(page);
+        await clickHistoryTab(page);
+
+        const histBody = page.locator(`#lumpHistoryBody_${STUB_TK}`);
+        const row = histBody.locator('tr.lump-history-row').first();
+        await expect(row).toBeVisible({ timeout: 8000 });
+
+        // Click the version cell (first <td>) to avoid hitting a button.
+        await row.locator('td').first().click();
+
+        // The hex table must appear in the preview div.
+        const previewDiv = page.locator(`#lumpHistoryHexPreview_${STUB_TK}`);
+        await expect(previewDiv.locator('table.lump-hex-table')).toBeVisible({ timeout: 10000 });
+
+        // Address column for offset 0x000000 must be present.
+        await expect(
+            previewDiv.locator('table.lump-hex-table td.lump-hex-addr').first()
+        ).toHaveText('0x000000');
+    });
+
+    test('clicking a history row directly adds the lump-hex-hdr-row highlight class', async ({ page }) => {
+        test.setTimeout(40000);
+
+        await stubPreviewRoutes(page);
+        await openLumpDetail(page);
+        await clickHistoryTab(page);
+
+        const histBody = page.locator(`#lumpHistoryBody_${STUB_TK}`);
+        const row = histBody.locator('tr.lump-history-row').first();
+        await expect(row).toBeVisible({ timeout: 8000 });
+
+        await row.locator('td').first().click();
+
+        // _lumpHistorySelectRow adds class lump-hex-hdr-row to the clicked row.
+        await expect(row).toHaveClass(/lump-hex-hdr-row/, { timeout: 5000 });
     });
 
 });
