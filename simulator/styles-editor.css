@@ -1859,6 +1859,24 @@
     color: #f0b850;
     border-color: rgba(200, 130, 30, 0.7);
 }
+.clist-resolve-btn--disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    pointer-events: auto;
+    border-color: rgba(140, 140, 140, 0.35);
+    background: rgba(140, 140, 140, 0.08);
+    color: #888;
+}
+.clist-resolve-btn--disabled:hover {
+    background: rgba(140, 140, 140, 0.08);
+    color: #888;
+    border-color: rgba(140, 140, 140, 0.35);
+}
+.clist-resolve-btn--toast {
+    opacity: 0.75;
+    color: #c98c30;
+    font-style: italic;
+}
 .clist-row--pending {
     cursor: pointer;
 }

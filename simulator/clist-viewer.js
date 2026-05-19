@@ -102,6 +102,10 @@
             var resolveBtn = e.target.closest('[data-action="resolve-pending"]');
             if (resolveBtn) {
                 e.stopPropagation();
+                if (resolveBtn.classList.contains('clist-resolve-btn--disabled')) {
+                    _showDisabledResolveToast(resolveBtn);
+                    return;
+                }
                 var _rpSlot = parseInt(resolveBtn.dataset.slot, 10);
                 var _rpName = resolveBtn.dataset.pendingName || '';
                 showResolvePicker(_rpSlot, _rpName);
@@ -136,6 +140,12 @@
             }
             if (row.classList.contains('clist-row--pending')) {
                 var _pName = row.dataset.pendingName || '';
+                var _rowCanResolve = (typeof sim !== 'undefined') && sim && sim.bootComplete;
+                if (!_rowCanResolve) {
+                    var _disabledBtn = row.querySelector('.clist-resolve-btn--disabled');
+                    if (_disabledBtn) _showDisabledResolveToast(_disabledBtn);
+                    return;
+                }
                 showResolvePicker(slotIdx, _pName);
                 return;
             }
@@ -330,15 +340,18 @@
                 var _canResolve  = (typeof sim !== 'undefined') && sim && sim.bootComplete;
                 html += '<div class="clist-row clist-row--pending" data-slot="' + i + '" ' +
                     'data-pending-name="' + escHtml(_pendingName) + '" tabindex="-1" ' +
-                    'title="' + escHtml(_pendingName) + ' \u2014 declared but not yet introduced to a live GT. Click to resolve.">' +
+                    'title="' + escHtml(_pendingName) + ' \u2014 declared but not yet introduced to a live GT.' +
+                    (_canResolve ? ' Click to resolve.' : ' Boot the program first to resolve.') + '">' +
                     '<span class="clist-slot">CR' + i + '</span>' +
                     '<span class="clist-pending-name">' + escHtml(_pendingName) + '</span>' +
                     '<span class="clist-pending-badge">not yet introduced</span>' +
-                    (_canResolve
-                        ? '<button class="clist-resolve-btn" data-action="resolve-pending" ' +
+                    '<button class="clist-resolve-btn' + (_canResolve ? '' : ' clist-resolve-btn--disabled') + '" ' +
+                          'data-action="resolve-pending" ' +
                           'data-slot="' + i + '" data-pending-name="' + escHtml(_pendingName) + '" ' +
-                          'title="Resolve Now: introduce a live GT to this slot">\u26A1 Resolve</button>'
-                        : '') +
+                          'title="' + (_canResolve
+                              ? 'Resolve Now: introduce a live GT to this slot'
+                              : 'Boot the program first to resolve this slot') + '">' +
+                          '\u26A1 Resolve</button>' +
                     '</div>';
                 continue;
             }
@@ -534,6 +547,19 @@
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    function _showDisabledResolveToast(btn) {
+        if (btn._disabledToastActive) return;
+        btn._disabledToastActive = true;
+        var orig = btn.textContent;
+        btn.textContent = 'Run the program first to introduce a live GT';
+        btn.classList.add('clist-resolve-btn--toast');
+        setTimeout(function () {
+            btn.textContent = orig;
+            btn.classList.remove('clist-resolve-btn--toast');
+            btn._disabledToastActive = false;
+        }, 2000);
     }
 
     // ── Position popup below the toolbar button ───────────────────────────────
