@@ -1194,22 +1194,9 @@ function compileAndBuild() {
         _errListing += `\n  \u2717 ${_auditErrors.length} error${_auditErrors.length !== 1 ? 's' : ''} \u2014 binary not downloaded or saved.\n`;
         if (con) { con.textContent = _errListing; con.scrollTop = 0; }
         if (typeof _showAsmErrors === 'function') {
-            const _showErrs = [];
-            for (const r of _auditErrors) {
-                if (r.ruleId === 'RCI' && Array.isArray(r.violations) && r.violations.length > 0) {
-                    const _beforeLen = _showErrs.length;
-                    for (const v of r.violations) {
-                        if (v.sourceLine != null && v.sourceLine > 0) {
-                            _showErrs.push({ line: v.sourceLine, message: `[RCI] ${v.msg}` });
-                        }
-                    }
-                    if (_showErrs.length === _beforeLen) {
-                        _showErrs.push({ line: null, message: `[RCI] ${r.message} \u2014 ${r.detail}` });
-                    }
-                } else {
-                    _showErrs.push({ line: null, message: `[${r.ruleId}] ${r.message} \u2014 ${r.detail}` });
-                }
-            }
+            const _showErrs = (typeof mapRciAuditErrorsToShowErrs === 'function')
+                ? mapRciAuditErrorsToShowErrs(_auditErrors)
+                : _auditErrors.map(r => ({ line: null, message: `[${r.ruleId}] ${r.message} \u2014 ${r.detail}` }));
             _showAsmErrors(_showErrs, 'Audit error' + (_auditErrors.length > 1 ? 's' : '') + ' \u2014 code not applied');
         }
         return;
@@ -1539,22 +1526,9 @@ function auditLumpOnly() {
     if (auditErrors.length > 0) {
         listing += `\n  \u2717 AUDIT FAILED: ${auditErrors.length} error${auditErrors.length !== 1 ? 's' : ''} \u2014 fix before Compile.\n`;
         if (typeof _showAsmErrors === 'function') {
-            const _aloShowErrs = [];
-            for (const r of auditErrors) {
-                if (r.ruleId === 'RCI' && Array.isArray(r.violations) && r.violations.length > 0) {
-                    const _beforeLen = _aloShowErrs.length;
-                    for (const v of r.violations) {
-                        if (v.sourceLine != null && v.sourceLine > 0) {
-                            _aloShowErrs.push({ line: v.sourceLine, message: `[RCI] ${v.msg}` });
-                        }
-                    }
-                    if (_aloShowErrs.length === _beforeLen) {
-                        _aloShowErrs.push({ line: null, message: `[RCI] ${r.message} \u2014 ${r.detail}` });
-                    }
-                } else {
-                    _aloShowErrs.push({ line: null, message: `[${r.ruleId}] ${r.message} \u2014 ${r.detail}` });
-                }
-            }
+            const _aloShowErrs = (typeof mapRciAuditErrorsToShowErrs === 'function')
+                ? mapRciAuditErrorsToShowErrs(auditErrors)
+                : auditErrors.map(r => ({ line: null, message: `[${r.ruleId}] ${r.message} \u2014 ${r.detail}` }));
             _showAsmErrors(_aloShowErrs, 'Audit LUMP \u2014 ' + auditErrors.length + ' error' + (auditErrors.length !== 1 ? 's' : ''));
         }
     } else if (auditWarns.length > 0) {

@@ -15,6 +15,8 @@
 // lump-audit.js has no module.exports in browser mode, so we load it via the
 // Node.js-appended export shim added to the file.
 const { lumpAudit } = require('./lump-audit.js');
+// rci-show-errs.js exports the production mapping function used by app-compile.js
+const { mapRciAuditErrorsToShowErrs } = require('./rci-show-errs.js');
 
 // compileAssembly lives inside CLOOMCCompiler; it also needs ChurchAssembler
 // visible in global scope (same pattern used by the compiler in the browser).
@@ -228,6 +230,130 @@ function loadViaSlot(slot) {
     assert('RCI-pass violations array absent or empty on pass',
         !rci || !rci.violations || rci.violations.length === 0,
         rci && rci.violations ? String(rci.violations.length) : 'ok');
+}
+
+// ── Display-layer mapping (Task #1417) ───────────────────────────────────────
+//
+// DSP1–DSP8 use the real production function mapRciAuditErrorsToShowErrs()
+// from rci-show-errs.js (the same function called by app-compile.js at both
+// _showAsmErrors call sites).  This ensures tests fail if the production path
+// regresses, rather than testing a local copy of the logic.
+//
+// Mapping contract:
+//   • RCI error with violations: one entry per violation that has sourceLine > 0
+//     (line = sourceLine); if none qualify, one fallback entry with line: null.
+//   • Non-RCI error: one entry with line: null.
+
+// DSP1: single violation with sourceLine → line set
+{
+    const words    = buildLump64([loadViaSlot(1), RETURN_AL], 1);
+    const lineNums = [null, 12, 13];
+    const errors   = lumpAudit(words, null, lineNums).filter(r => r.severity === 'error');
+    const show     = mapRciAuditErrorsToShowErrs(errors);
+
+    assert('DSP1 one show-error entry produced', show.length === 1, `got ${show.length}`);
+    assert('DSP1 line equals sourceLine (12)', show[0] && show[0].line === 12,
+        show[0] ? String(show[0].line) : '–');
+    assert('DSP1 message starts with [RCI]', show[0] && show[0].message.startsWith('[RCI]'),
+        show[0] ? show[0].message : '–');
+}
+
+// DSP2: single violation without lineNums → line: null
+{
+    const words  = buildLump64([loadViaSlot(1), RETURN_AL], 1);
+    const errors = lumpAudit(words, null).filter(r => r.severity === 'error');
+    const show   = mapRciAuditErrorsToShowErrs(errors);
+
+    assert('DSP2 one show-error entry produced', show.length === 1, `got ${show.length}`);
+    assert('DSP2 line is null when no lineNums', show[0] && show[0].line === null,
+        show[0] ? String(show[0].line) : '–');
+}
+
+// DSP3: multiple violations each with sourceLine → one entry per violation
+{
+    const words    = buildLump64([loadViaSlot(5), loadViaSlot(5), RETURN_AL], 1);
+    const lineNums = [null, 20, 21, 22];
+    const errors   = lumpAudit(words, null, lineNums).filter(r => r.severity === 'error');
+    const show     = mapRciAuditErrorsToShowErrs(errors);
+
+    assert('DSP3 two entries produced', show.length === 2, `got ${show.length}`);
+    assert('DSP3 first entry line = 20', show[0] && show[0].line === 20,
+        show[0] ? String(show[0].line) : '–');
+    assert('DSP3 second entry line = 21', show[1] && show[1].line === 21,
+        show[1] ? String(show[1].line) : '–');
+}
+
+// DSP4: two violations — first has sourceLine, second does not → only first emitted
+{
+    const words    = buildLump64([loadViaSlot(5), loadViaSlot(5), RETURN_AL], 1);
+    const lineNums = [null, 30]; // lineNums[2] missing → second violation gets null
+    const errors   = lumpAudit(words, null, lineNums).filter(r => r.severity === 'error');
+    const show     = mapRciAuditErrorsToShowErrs(errors);
+
+    assert('DSP4 only violations with non-null sourceLine become entries',
+        show.length === 1, `got ${show.length}`);
+    assert('DSP4 entry line = 30', show[0] && show[0].line === 30,
+        show[0] ? String(show[0].line) : '–');
+}
+
+// DSP5: all violations have sourceLine null → single fallback with line: null
+{
+    const words  = buildLump64([loadViaSlot(3), RETURN_AL], 1);
+    const errors = lumpAudit(words, null).filter(r => r.severity === 'error');
+    const show   = mapRciAuditErrorsToShowErrs(errors);
+
+    assert('DSP5 fallback: one entry when all violations have null sourceLine',
+        show.length === 1, `got ${show.length}`);
+    assert('DSP5 fallback line is null', show[0] && show[0].line === null,
+        show[0] ? String(show[0].line) : '–');
+    assert('DSP5 fallback message starts with [RCI]',
+        show[0] && show[0].message.startsWith('[RCI]'),
+        show[0] ? show[0].message : '–');
+}
+
+// DSP6: non-RCI audit error → line: null, message contains ruleId
+{
+    const fake  = [{ ruleId: 'R1', severity: 'error', message: 'Bad magic', detail: 'word[0]' }];
+    const show  = mapRciAuditErrorsToShowErrs(fake);
+
+    assert('DSP6 non-RCI produces one entry', show.length === 1, `got ${show.length}`);
+    assert('DSP6 line is null for non-RCI', show[0] && show[0].line === null,
+        show[0] ? String(show[0].line) : '–');
+    assert('DSP6 message includes [R1]', show[0] && show[0].message.includes('[R1]'),
+        show[0] ? show[0].message : '–');
+}
+
+// DSP7: RCI + non-RCI mixed → both mapped correctly
+{
+    const words    = buildLump64([loadViaSlot(2), RETURN_AL], 1);
+    const lineNums = [null, 7, 8];
+    const rciErrs  = lumpAudit(words, null, lineNums).filter(r => r.severity === 'error');
+    const mixed    = [{ ruleId: 'R99', severity: 'error', message: 'Fake', detail: 'injected' }, ...rciErrs];
+    const show     = mapRciAuditErrorsToShowErrs(mixed);
+
+    assert('DSP7 two entries total (R99 + RCI)', show.length === 2, `got ${show.length}`);
+    assert('DSP7 first entry [R99] has null line',
+        show[0] && show[0].line === null && show[0].message.includes('[R99]'),
+        show[0] ? JSON.stringify(show[0]) : '–');
+    assert('DSP7 second entry [RCI] has line = 7',
+        show[1] && show[1].line === 7 && show[1].message.startsWith('[RCI]'),
+        show[1] ? JSON.stringify(show[1]) : '–');
+}
+
+// DSP8: BRANCH violation with sourceLine → line set on entry
+{
+    const BRANCH_FAR = encodeInstr(17, AL, 0, 0, 10); // offset 10 out-of-range for cw=1
+    const words      = buildLump64([BRANCH_FAR], 0);
+    const lineNums   = [null, 99];
+    const errors     = lumpAudit(words, null, lineNums).filter(r => r.severity === 'error');
+    const show       = mapRciAuditErrorsToShowErrs(errors);
+
+    assert('DSP8 one show-error entry for BRANCH violation', show.length === 1, `got ${show.length}`);
+    assert('DSP8 BRANCH violation line = 99', show[0] && show[0].line === 99,
+        show[0] ? String(show[0].line) : '–');
+    assert('DSP8 BRANCH violation message starts with [RCI]',
+        show[0] && show[0].message.startsWith('[RCI]'),
+        show[0] ? show[0].message : '–');
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────────
