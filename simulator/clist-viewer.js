@@ -99,6 +99,27 @@
                 return;
             }
 
+            var resolveBtn = e.target.closest('[data-action="resolve-pending"]');
+            if (resolveBtn) {
+                e.stopPropagation();
+                var _rpSlot = parseInt(resolveBtn.dataset.slot, 10);
+                var _rpName = resolveBtn.dataset.pendingName || '';
+                showResolvePicker(_rpSlot, _rpName);
+                return;
+            }
+
+            var resolvePickerRow = e.target.closest('.clist-resolve-row[data-ns-idx]');
+            if (resolvePickerRow) {
+                var _rsSlot  = parseInt(resolvePickerRow.dataset.slot, 10);
+                var _rsNsIdx = parseInt(resolvePickerRow.dataset.nsIdx, 10);
+                var _rsSim = (typeof sim !== 'undefined') ? sim : null;
+                if (_rsSim && _rsSim.resolvePendingSlot) {
+                    _rsSim.resolvePendingSlot(_rsSlot, _rsNsIdx);
+                }
+                showViewer();
+                return;
+            }
+
             var pickerRow = e.target.closest('.clist-picker-row[data-cap-name]');
             if (pickerRow) {
                 if (pickerRow.dataset.capName === '__NULL__') { showNullSlotForm(); return; }
@@ -111,6 +132,11 @@
             var slotIdx = parseInt(row.dataset.slot, 10);
             if (row.classList.contains('clist-row--null')) {
                 _editNullSlotPetName(row, slotIdx);
+                return;
+            }
+            if (row.classList.contains('clist-row--pending')) {
+                var _pName = row.dataset.pendingName || '';
+                showResolvePicker(slotIdx, _pName);
                 return;
             }
             insertCROperand(slotIdx);
@@ -301,11 +327,18 @@
             var isPending = !isNull && _CSSim && _CSSim.isPendingGT && _CSSim.isPendingGT(rawWord);
             if (isPending) {
                 var _pendingName = _CSSim.pendingGTName(rawWord);
-                html += '<div class="clist-row clist-row--pending" data-slot="' + i + '" tabindex="-1" ' +
-                    'title="' + escHtml(_pendingName) + ' \u2014 declared but not yet introduced to a live GT">' +
+                var _canResolve  = (typeof sim !== 'undefined') && sim && sim.bootComplete;
+                html += '<div class="clist-row clist-row--pending" data-slot="' + i + '" ' +
+                    'data-pending-name="' + escHtml(_pendingName) + '" tabindex="-1" ' +
+                    'title="' + escHtml(_pendingName) + ' \u2014 declared but not yet introduced to a live GT. Click to resolve.">' +
                     '<span class="clist-slot">CR' + i + '</span>' +
                     '<span class="clist-pending-name">' + escHtml(_pendingName) + '</span>' +
                     '<span class="clist-pending-badge">not yet introduced</span>' +
+                    (_canResolve
+                        ? '<button class="clist-resolve-btn" data-action="resolve-pending" ' +
+                          'data-slot="' + i + '" data-pending-name="' + escHtml(_pendingName) + '" ' +
+                          'title="Resolve Now: introduce a live GT to this slot">\u26A1 Resolve</button>'
+                        : '') +
                     '</div>';
                 continue;
             }
@@ -676,6 +709,64 @@
                 if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); popup.querySelector('[data-action="insert-null-slot"]').click(); }
             }, true);
         }
+    }
+
+    // ── Resolve Picker: choose an NS abstraction to introduce to a pending slot ─
+    function showResolvePicker(slotIdx, pendingName) {
+        var popup = getOrCreatePopup();
+        focusedRow = -1;
+
+        var s = (typeof sim !== 'undefined') ? sim : null;
+        var bodyRows = '';
+
+        // Section 1: System abstractions (fixed NS slots, always available)
+        bodyRows += '<div class="clist-picker-section-header">System</div>';
+        PICKER_SYSTEM.forEach(function (a) {
+            bodyRows +=
+                '<div class="clist-resolve-row" data-slot="' + slotIdx + '" data-ns-idx="' + a.slot + '">' +
+                '<span class="clist-resolve-ns-slot">NS[' + a.slot + ']</span>' +
+                '<span class="clist-resolve-name">' + escHtml(a.name) + '</span>' +
+                '<span class="clist-resolve-hint">' + escHtml(a.hint) + '</span>' +
+                '</div>';
+        });
+
+        // Section 2: Live namespace entries not already in PICKER_SYSTEM
+        if (s && s.nsTable && s.nsLabels) {
+            var liveRows = '';
+            for (var li = 0; li < s.nsTable.length; li++) {
+                if (!s.nsTable[li]) continue;
+                var _lbl = (s.nsLabels && s.nsLabels[li]) || '';
+                if (!_lbl) continue;
+                var _alreadySystem = PICKER_SYSTEM.some(function (a) { return a.slot === li; });
+                if (_alreadySystem) continue;
+                try {
+                    if (s.isNSEntryValid(li)) {
+                        liveRows +=
+                            '<div class="clist-resolve-row" data-slot="' + slotIdx + '" data-ns-idx="' + li + '">' +
+                            '<span class="clist-resolve-ns-slot">NS[' + li + ']</span>' +
+                            '<span class="clist-resolve-name">' + escHtml(_lbl) + '</span>' +
+                            '<span class="clist-resolve-hint">live</span>' +
+                            '</div>';
+                    }
+                } catch (e3) { /* skip */ }
+            }
+            if (liveRows) {
+                bodyRows += '<div class="clist-picker-section-header">Live Namespace</div>' + liveRows;
+            }
+        }
+
+        popup.innerHTML =
+            '<div class="clist-viewer-header">' +
+            '<button class="clist-back-btn" data-action="show-view">\u2190 Back</button>' +
+            '<span class="clist-viewer-title">Resolve \u201c' + escHtml(pendingName || ('CR' + slotIdx)) + '\u201d</span>' +
+            '<span class="clist-viewer-hint">pick an abstraction</span>' +
+            '</div>' +
+            '<div class="clist-resolve-pending-label">CR' + slotIdx +
+            (pendingName ? ' \u201c' + escHtml(pendingName) + '\u201d' : '') +
+            ' \u2014 introduce to a live GT:</div>' +
+            '<div class="clist-viewer-body">' + bodyRows + '</div>';
+        popup.style.display = 'flex';
+        positionPopup();
     }
 
     function showPicker() {

@@ -1840,6 +1840,79 @@
     flex-shrink: 0;
     white-space: nowrap;
 }
+.clist-resolve-btn {
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(200, 130, 30, 0.45);
+    background: rgba(200, 130, 30, 0.15);
+    color: #d9a040;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1.4;
+    margin-left: 2px;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.clist-resolve-btn:hover {
+    background: rgba(200, 130, 30, 0.32);
+    color: #f0b850;
+    border-color: rgba(200, 130, 30, 0.7);
+}
+.clist-row--pending {
+    cursor: pointer;
+}
+.clist-resolve-pending-label {
+    font-size: 0.67rem;
+    color: #c98c30;
+    padding: 5px 10px 6px;
+    font-style: italic;
+    border-bottom: 1px solid rgba(200, 130, 30, 0.18);
+    background: rgba(200, 130, 30, 0.05);
+    flex-shrink: 0;
+}
+.clist-resolve-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.1s;
+}
+.clist-resolve-row:hover {
+    background: rgba(91, 154, 239, 0.1);
+}
+.clist-resolve-ns-slot {
+    font-size: 0.63rem;
+    color: #6a8aba;
+    background: rgba(91, 154, 239, 0.1);
+    border: 1px solid rgba(91, 154, 239, 0.25);
+    border-radius: 3px;
+    padding: 1px 4px;
+    flex-shrink: 0;
+    font-family: monospace;
+    min-width: 3.2em;
+    text-align: center;
+}
+.clist-resolve-name {
+    font-size: 0.75rem;
+    color: #d4cbbf;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.clist-resolve-hint {
+    font-size: 0.62rem;
+    color: #5a5a6a;
+    flex-shrink: 0;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 /* Null row with a user-set pet name: full opacity, pointer cursor */
 .clist-row--null.clist-row--named {

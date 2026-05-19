@@ -811,6 +811,42 @@ class ChurchSimulator {
         return (this.memory[base] !== 0 || this.memory[base + 1] !== 0);
     }
 
+    // ── Interactive Pending-GT Resolution (Task #1448) ────────────────────────
+    // Called by CListViewer when the user picks an NS abstraction from the
+    // "Resolve Now" popover.  Writes a live Inform GT (E permission) into the
+    // c-list slot that currently holds a pending sentinel (0xFEED____).
+    //
+    // Returns { ok: true, gt: <word> } on success, or { ok: false, error: <msg> }.
+    resolvePendingSlot(slotIdx, nsIdx) {
+        if (!this.bootComplete) return { ok: false, error: 'Simulator not booted' };
+        if (nsIdx < 0 || !this.isNSEntryValid(nsIdx)) {
+            return { ok: false, error: `NS[${nsIdx}] is not a valid namespace entry` };
+        }
+
+        const cr6 = this.cr && this.cr[6];
+        if (!cr6 || (cr6.word0 >>> 0) === 0) return { ok: false, error: 'CR6 is null — no active c-list' };
+
+        const clistBase = cr6.word1 >>> 0;
+        let clistCount = 0;
+        try { clistCount = this.parseNSWord1(cr6.word2).clistCount; } catch (e) { clistCount = 0; }
+
+        if (slotIdx < 0 || slotIdx >= clistCount) {
+            return { ok: false, error: `Slot ${slotIdx} is out of range (c-list has ${clistCount} entries)` };
+        }
+
+        const addr = clistBase + slotIdx;
+        const existing = (this.memory[addr] >>> 0);
+        if (!ChurchSimulator.isPendingGT(existing)) {
+            return { ok: false, error: `Slot ${slotIdx} does not hold a pending sentinel` };
+        }
+
+        const pendingName = ChurchSimulator.pendingGTName(existing);
+        const newGT = this.createGT(0, nsIdx, { R:0, W:0, X:0, L:0, S:0, E:1 }, 1);
+        this.memory[addr] = newGT >>> 0;
+        this.output += `[RESOLVE] CR${slotIdx} "${pendingName}" \u2192 NS[${nsIdx}] introduced interactively.\n`;
+        return { ok: true, gt: newGT, pendingName, nsIdx };
+    }
+
     get namespaceTable() {
         const entries = [];
         for (let i = 0; i < this.nsCount; i++) {
