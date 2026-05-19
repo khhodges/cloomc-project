@@ -7,7 +7,7 @@
 //   RCI3 — lumpAudit() with partial lineNums (slot missing): falls back to null for that slot
 //   RCI4 — compileAssembly result carries lineNums with length matching assembled word count
 //   RCI5 — compileAssembly lineNums values are correct 1-based source line numbers
-//   RCI6 — lumpAudit() with lineNums: BRANCH violation also carries sourceLine (null for now)
+//   RCI6 — lumpAudit() with lineNums: BRANCH violation carries correct sourceLine from lineNums
 //   RCI7 — lumpAudit() with multiple RCI violations: each violation gets its own sourceLine
 'use strict';
 
