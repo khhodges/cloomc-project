@@ -863,6 +863,20 @@
     background: rgba(200, 168, 75, 0.07);
 }
 
+/* Amber dot shown on CLOOMC tab when a fork is in progress (uncompiled) */
+.lump-tab-fork-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f9a825;
+    margin-left: 5px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+    box-shadow: 0 0 4px rgba(249, 168, 37, 0.6);
+}
+
 /* ── LUMP tab panels ───────────────────────────────────── */
 .lump-tab-panel {
     display: none;

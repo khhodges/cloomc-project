@@ -82,7 +82,7 @@ function showLumpDetail(token) {
     let _tabBar = `<div class="lump-tabs-bar" id="lumpTabBar_${_tk}">`;
     if (!isNamespace) {
         _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','logic')">Logic</button>`;
-        _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','clooms')">CLOOMC</button>`;
+        _tabBar += `<button class="lump-tab" id="lumpTabBtnClooms_${_tk}" onclick="_switchLumpTab('${_tk}','clooms')">CLOOMC<span class="lump-tab-fork-dot" id="lumpTabForkDot_${_tk}" style="display:none" title="Uncompiled — fork in progress"></span></button>`;
     }
     _tabBar += `<button class="lump-tab${isNamespace ? ' lump-tab-active' : ''}" onclick="_switchLumpTab('${_tk}','overview')">Overview</button>`;
     if (!isNamespace) {
@@ -916,6 +916,8 @@ async function _populateLumpSourceTab(lump, targetId) {
                     _banner.textContent = `Editing v${lump.lump_version} \u2014 v${_prevVer} compiled binary preserved in Versions tab`;
                 }
                 const _tk = (lump.token || '').replace(/[^a-z0-9]/gi, '');
+                const _dot0 = document.getElementById(`lumpTabForkDot_${_tk}`);
+                if (_dot0) _dot0.style.display = '';
                 const _badge = document.getElementById(`lumpVersionBadge_${_tk}`);
                 if (_badge) _badge.innerHTML = `<span class="lump-hs-label">Ver</span>v${lump.lump_version}`;
             } else if (_lumpIsSealed(lump)) {
@@ -938,6 +940,8 @@ async function _populateLumpSourceTab(lump, targetId) {
                             _banner.style.display = '';
                             _banner.textContent = `Editing v${_newVer} \u2014 v${_prevVer} compiled binary preserved in Versions tab`;
                             const _tk = (lump.token || '').replace(/[^a-z0-9]/gi, '');
+                            const _dot1 = document.getElementById(`lumpTabForkDot_${_tk}`);
+                            if (_dot1) _dot1.style.display = '';
                             const _badge = document.getElementById(`lumpVersionBadge_${_tk}`);
                             if (_badge) _badge.innerHTML = `<span class="lump-hs-label">Ver</span>v${_newVer}`;
                             // Update both the local reference and the cache entry so that
@@ -1060,6 +1064,7 @@ function _lumpSourceCompile() {
         if (status) { status.textContent = 'Compiled \u2014 Binary tab updated.'; status.className = 'lump-source-status ok'; }
         const _forkBanner = document.getElementById('lumpForkBanner');
         if (_forkBanner) _forkBanner.style.display = 'none';
+        document.querySelectorAll('[id^="lumpTabForkDot_"]').forEach(d => { d.style.display = 'none'; });
         _lumpSourceShowCompiledBinary(result, null);
         switchLumpWsTab('binary');
 
