@@ -259,7 +259,8 @@ function lumpAudit(words, manifest, lineNums) {
                 if (target < 0 || target >= cw) {
                     const _branchMsg = `word[${wi}] BRANCH: offset ${off} \u2192 target code[${target}] ` +
                         `out of range [0\u2013${cw - 1}]`;
-                    _rciViolations.push({ msg: _branchMsg, sourceLine: null });
+                    const _branchSrcLine = lineNums && lineNums[wi] != null ? lineNums[wi] : null;
+                    _rciViolations.push({ msg: _branchMsg, sourceLine: _branchSrcLine });
                 }
             }
         }
