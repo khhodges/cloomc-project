@@ -1509,19 +1509,24 @@ function auditLumpOnly() {
     const auditErrors  = auditResults.filter(r => r.severity === 'error');
     const auditWarns   = auditResults.filter(r => r.severity === 'warn');
 
+    const _auditHE = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const _auditJumpBtn = ln => `<button style="margin-left:6px;padding:0 5px;font-size:0.8em;line-height:1.4;cursor:pointer;background:#4a3800;color:#ffd700;border:1px solid #ffd700;border-radius:3px;font-family:inherit;vertical-align:middle" onclick="if(typeof _jumpToAsmLine==='function')_jumpToAsmLine(${ln | 0})">&#8593; line ${ln | 0}</button>`;
+
     let listing = `\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n`;
-    listing += `  LUMP AUDIT \u2014 "${absName}"\n`;
+    listing += `  LUMP AUDIT \u2014 &quot;${_auditHE(absName)}&quot;\n`;
     listing += `\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n`;
     listing += `  Binary: ${lumpSize} words, cw=${cw}, cc=${cc}\n`;
     listing += `  Header: 0x${(header >>> 0).toString(16).padStart(8, '0')}\n\n`;
     listing += `  Checks:\n`;
     for (const r of auditResults) {
         const _sym = r.severity === 'pass' ? '\u2713' : r.severity === 'warn' ? '\u26a0' : '\u2717';
-        listing += `    ${_sym} [${r.ruleId}] ${r.message} \u2014 ${r.detail}\n`;
+        listing += `    ${_sym} [${_auditHE(r.ruleId)}] ${_auditHE(r.message)} \u2014 ${_auditHE(r.detail)}\n`;
         if (r.ruleId === 'RCI' && r.severity === 'error' && Array.isArray(r.violations)) {
             for (const v of r.violations) {
-                const _lineHint = v.sourceLine != null ? ` (line ${v.sourceLine})` : '';
-                listing += `        \u2022 ${v.msg}${_lineHint}\n`;
+                const _ln = v.sourceLine != null ? (v.sourceLine | 0) : null;
+                const _lineHint = _ln != null ? ` (line ${_ln})` : '';
+                const _jumpHtml = _ln != null ? _auditJumpBtn(_ln) : '';
+                listing += `        \u2022 ${_auditHE(v.msg)}${_lineHint}${_jumpHtml}\n`;
             }
         }
     }
@@ -1546,7 +1551,7 @@ function auditLumpOnly() {
         listing += `\n  \u2713 All checks passed \u2014 safe to Compile.\n`;
     }
 
-    if (con) { con.textContent = listing; con.scrollTop = 0; }
+    if (con) { con.className = 'cmp-html'; con.innerHTML = listing.replace(/\n/g, '<br>'); con.scrollTop = 0; }
 }
 
 // Load the most-recently-compiled CLOOMC++ lump into the simulator so the user
