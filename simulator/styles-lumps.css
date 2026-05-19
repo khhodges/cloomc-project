@@ -5016,6 +5016,52 @@ pre:hover .code-copy-btn {
 .lump-audit-row-warn  .lump-audit-detail { color: #c08840; }
 .lump-audit-row-error .lump-audit-detail { color: #b05050; }
 
+/* Per-violation sub-rows inside an RCI error result */
+.lump-audit-violation-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.1rem 0.55rem 0.1rem 2.5rem;
+    border-bottom: none;
+    font-size: 0.68rem;
+    color: #c06060;
+}
+
+.lump-audit-violation-bullet {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.lump-audit-violation-msg {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 0.66rem;
+    color: #b05858;
+}
+
+.lump-audit-jump-btn {
+    flex-shrink: 0;
+    margin-left: 4px;
+    padding: 1px 6px;
+    font-size: 0.66rem;
+    line-height: 1.5;
+    cursor: pointer;
+    background: rgba(74, 56, 0, 0.7);
+    color: #ffd700;
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    border-radius: 3px;
+    font-family: inherit;
+    vertical-align: middle;
+    white-space: nowrap;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.lump-audit-jump-btn:hover {
+    background: rgba(100, 80, 0, 0.85);
+    border-color: #ffd700;
+    color: #ffe94d;
+}
+
 /* Audit button in action bar */
 .lump-audit-btn {
     background: rgba(80, 120, 200, 0.12);

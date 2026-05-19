@@ -458,6 +458,39 @@ function lumpAuditRenderPanel(container, results, opts) {
         row.appendChild(msgSpan);
         row.appendChild(detailSpan);
         body.appendChild(row);
+
+        if (r.ruleId === 'RCI' && r.severity === 'error' && Array.isArray(r.violations)) {
+            for (const v of r.violations) {
+                const vRow = document.createElement('div');
+                vRow.className = 'lump-audit-row lump-audit-violation-row';
+
+                const bullet = document.createElement('span');
+                bullet.className = 'lump-audit-violation-bullet';
+                bullet.textContent = '\u2022 ';
+
+                const vMsg = document.createElement('span');
+                vMsg.className = 'lump-audit-violation-msg';
+                vMsg.textContent = v.msg;
+
+                vRow.appendChild(bullet);
+                vRow.appendChild(vMsg);
+
+                const ln = v.sourceLine != null ? (v.sourceLine | 0) : null;
+                if (ln != null) {
+                    const jumpBtn = document.createElement('button');
+                    jumpBtn.className = 'lump-audit-jump-btn';
+                    jumpBtn.textContent = '\u2191 line ' + ln;
+                    jumpBtn.title = 'Jump to line ' + ln + ' in the editor';
+                    jumpBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (typeof _jumpToAsmLine === 'function') _jumpToAsmLine(ln);
+                    });
+                    vRow.appendChild(jumpBtn);
+                }
+
+                body.appendChild(vRow);
+            }
+        }
     }
 
     panel.appendChild(body);
