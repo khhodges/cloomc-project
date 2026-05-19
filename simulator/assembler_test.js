@@ -5703,10 +5703,10 @@ HALT
         eloadWords.length === 6,
         `got ${eloadWords.length} ELOADCALL word(s)`);
 
-    // Verify each ELOADCALL targets C-list row 1 (DijkstraFlag is the sole capability)
-    const allRow1 = eloadWords.every(w => (w & 0xFF) === 1);
-    assert('EX-JDF-RUN-C5: all 6 ELOADCALL words target C-list row 1 (DijkstraFlag)',
-        allRow1,
+    // Verify each ELOADCALL targets C-list row 0 (DijkstraFlag is the sole capability, 0-based)
+    const allRow0 = eloadWords.every(w => (w & 0xFF) === 0);
+    assert('EX-JDF-RUN-C5: all 6 ELOADCALL words target C-list row 0 (DijkstraFlag)',
+        allRow0,
         `rows: ${eloadWords.map(w => w & 0xFF).join(', ')}`);
 
     // ── Phase B: DijkstraFlag binding trace ──────────────────────────────────
