@@ -43,12 +43,12 @@
   "deployment": {
     "target_board": "ti60-f225",
     "profile": "Full",
-    "built_at": "2026-05-19T13:19:06.715178Z",
+    "built_at": "2026-05-19T13:57:49.389112Z",
     "builder": "CLOOMC++ IDE v1.0"
   },
   "grants": [
     "E"
   ],
-  "lump_version": 1,
-  "compiled_at": 1779196746.7156434
+  "lump_version": 2,
+  "compiled_at": 1779199069.389551
 }
