@@ -3605,6 +3605,10 @@ async function openLumpInEditor(token) {
         selectedCR = resolvedCRIdx;
     }
 
+    // ── Unseal before switching — must happen before switchView so the editor
+    //    init code does not see a stale seal and make the textarea read-only.
+    localStorage.removeItem('cm_sealed_lump');
+
     switchView('editor');
 
     var sel = document.getElementById('langSelector');
@@ -3616,8 +3620,16 @@ async function openLumpInEditor(token) {
         var _existingMfBanner = document.getElementById('_lumpMalformedBanner');
         if (_existingMfBanner) _existingMfBanner.remove();
 
+        // ── Always make the editor fully editable on LUMP-panel open ──────
+        asmEd.readOnly = false;
+        asmEd.classList.remove('cm-editor-sealed');
+        var _tabsRow = document.querySelector('.example-tabs-row');
+        if (_tabsRow) _tabsRow.style.display = '';
+
+        // ── Determine the compiled (canonical) disasm text ─────────────────
+        var _compiledDisasm;
         if (disasmLines) {
-            asmEd.value = disasmLines.join('\n');
+            _compiledDisasm = disasmLines.join('\n');
         } else {
             // Binary parse failed — try canonical source as fallback.
             var _malformedSrc = null;
@@ -3635,12 +3647,12 @@ async function openLumpInEditor(token) {
             }
             var _mfBannerMsg;
             if (_malformedSrc) {
-                asmEd.value = _malformedSrc;
+                _compiledDisasm = _malformedSrc;
                 _mfBannerMsg = 'Binary is malformed \u2014 showing canonical source. Compile to rebuild the binary.';
             } else {
                 var cwHint = (lump.cw  > 0) ? ('\n; Code region: ' + lump.cw  + ' word' + (lump.cw  !== 1 ? 's' : '')) : '';
                 var ccHint = (lump.cc  > 0) ? ('\n; C-List: '      + lump.cc  + ' GT slot' + (lump.cc  !== 1 ? 's' : '')) : '';
-                asmEd.value = '; ' + lumpName + cwHint + ccHint +
+                _compiledDisasm = '; ' + lumpName + cwHint + ccHint +
                               '\n; Boot the machine to edit live code\n';
                 _mfBannerMsg = 'Binary is malformed \u2014 no canonical source found. Author a .cloomc file to enable source editing.';
             }
@@ -3652,15 +3664,103 @@ async function openLumpInEditor(token) {
                 '<button class="lump-malformed-banner-dismiss" onclick="this.parentNode.remove()" title="Dismiss">\u00D7</button>';
             if (asmEd.parentNode) asmEd.parentNode.insertBefore(_mfBanner, asmEd);
         }
+
+        // ── Record original (compiled) text for dirty comparison ──────────
+        window._editorOriginalDisasm = _compiledDisasm;
+
+        // ── Check for a saved draft from a previous session ───────────────
+        var _savedDraft = _draftLsGet(token);
+        var _hasDraft   = _savedDraft !== null && _savedDraft !== _compiledDisasm;
+
+        if (_hasDraft) {
+            // Restore draft content into editor
+            asmEd.value = _savedDraft;
+            // Show draft-restore banner above the editor
+            var _existingDraftBanner = document.getElementById('_lumpDraftBanner');
+            if (_existingDraftBanner) _existingDraftBanner.remove();
+            var _draftBanner = document.createElement('div');
+            _draftBanner.id = '_lumpDraftBanner';
+            _draftBanner.className = 'lump-draft-restore-banner';
+            _draftBanner.innerHTML =
+                '<span>Unsaved draft \u2014 your last edits are restored. Compile to save, or </span>' +
+                '<button class="btn btn-sm lump-draft-discard-btn" id="_lumpDraftBannerDiscard">Discard</button>';
+            if (asmEd.parentNode) asmEd.parentNode.insertBefore(_draftBanner, asmEd);
+            var _bannerDiscardBtn = _draftBanner.querySelector('#_lumpDraftBannerDiscard');
+            if (_bannerDiscardBtn) {
+                _bannerDiscardBtn.addEventListener('click', function() {
+                    _draftLsDel(token);
+                    asmEd.value = window._editorOriginalDisasm || '';
+                    _draftBanner.remove();
+                    if (typeof updateLineNumbers === 'function') updateLineNumbers();
+                });
+            }
+        } else {
+            // No draft — show the compiled disasm
+            asmEd.value = _compiledDisasm;
+        }
+
         if (typeof updateLineNumbers === 'function') updateLineNumbers();
         // Title must always follow the code module name without exception.
         if (typeof _updateEditorCodeName === 'function') _updateEditorCodeName(lumpName);
+
+        // ── Wire dirty-tracking: auto-save draft on every keystroke ───────
+        // Remove any previous listener registered by an earlier openLumpInEditor call.
+        if (window._editorLumpDirtyListener && window._editorLumpDirtyListenerEl) {
+            window._editorLumpDirtyListenerEl.removeEventListener('input', window._editorLumpDirtyListener);
+        }
+        window._editorLumpDirtyListenerEl = asmEd;
+        window._editorLumpDirtyToken = token;
+        window._editorLumpDirtyListener = function() {
+            var _tk = window._editorLumpDirtyToken;
+            if (!_tk) return;
+            if (asmEd.value !== window._editorOriginalDisasm) {
+                _draftLsSet(_tk, asmEd.value);
+            } else {
+                // Back to original — remove any draft that was saved
+                _draftLsDel(_tk);
+            }
+        };
+        asmEd.addEventListener('input', window._editorLumpDirtyListener);
     }
 
     if (typeof _updateEditorPatchBar   === 'function') _updateEditorPatchBar();
     if (typeof _updateMtbfIndicator    === 'function') _updateMtbfIndicator();
     var outEl = document.getElementById('assemblyOutput');
     if (outEl) outEl.innerHTML = '';
+
+    // ── Inject / refresh Discard toolbar button ───────────────────────────
+    var _existingDiscardBtn = document.getElementById('btnDiscardLumpEdit');
+    if (_existingDiscardBtn) _existingDiscardBtn.remove();
+    var _discardBtn = document.createElement('button');
+    _discardBtn.id = 'btnDiscardLumpEdit';
+    _discardBtn.className = 'btn btn-sm lump-editor-discard-btn';
+    _discardBtn.setAttribute('data-tooltip', 'Discard — Clear draft, restore compiled disasm, return to LUMP panel');
+    _discardBtn.textContent = 'Discard';
+    _discardBtn.addEventListener('click', function() {
+        _draftLsDel(token);
+        var _ed = document.getElementById('asmEditor');
+        if (_ed) {
+            _ed.value = window._editorOriginalDisasm || '';
+            if (typeof updateLineNumbers === 'function') updateLineNumbers();
+        }
+        // Detach dirty listener
+        if (window._editorLumpDirtyListener && window._editorLumpDirtyListenerEl) {
+            window._editorLumpDirtyListenerEl.removeEventListener('input', window._editorLumpDirtyListener);
+        }
+        window._editorLumpDirtyToken       = null;
+        window._editorLumpDirtyListener    = null;
+        window._editorLastSavedToken       = null;
+        // Remove banners and the button itself
+        var _db = document.getElementById('_lumpDraftBanner');
+        if (_db) _db.remove();
+        _discardBtn.remove();
+        if (typeof switchView === 'function') switchView('lumps');
+    });
+    // Insert the Discard button into the toolbar, after the inline Compile button
+    var _compileInlineBtn = document.getElementById('btnToolbarCompile');
+    if (_compileInlineBtn && _compileInlineBtn.parentNode) {
+        _compileInlineBtn.parentNode.insertBefore(_discardBtn, _compileInlineBtn.nextSibling);
+    }
 
     // Expose this lump's token so the C-List viewer can show its baked-in
     // c-list without requiring a recompile.  The compile-start path already

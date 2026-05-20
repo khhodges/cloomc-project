@@ -1097,6 +1097,18 @@ function switchView(viewId) {
         document.querySelectorAll('.trace-row-highlighted').forEach(el => el.classList.remove('trace-row-highlighted'));
         document.querySelectorAll('.trace-gatelog-back').forEach(el => el.remove());
     }
+    // ── LUMP-edit dirty-listener teardown when leaving the editor ─────────
+    // Prevents stale autosave listeners from persisting across view switches.
+    if (viewId !== 'editor' && currentView === 'editor') {
+        if (window._editorLumpDirtyListener && window._editorLumpDirtyListenerEl) {
+            window._editorLumpDirtyListenerEl.removeEventListener('input', window._editorLumpDirtyListener);
+        }
+        window._editorLumpDirtyListener = null;
+        window._editorLumpDirtyToken    = null;
+        // Remove the toolbar Discard button if it was injected for a LUMP edit
+        var _exitDiscardBtn = document.getElementById('btnDiscardLumpEdit');
+        if (_exitDiscardBtn) _exitDiscardBtn.remove();
+    }
     if (viewId !== currentView && currentView === 'devices' && typeof stopDeviceTunnelPolling === 'function') {
         stopDeviceTunnelPolling();
     }

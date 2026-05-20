@@ -965,6 +965,10 @@ function compileDraft() {
 
 // ── LUMP Release popup ────────────────────────────────────────────────────
 let _pendingLumpRelease = null;
+// Token of any active LUMP-panel edit draft at compile-start — captured
+// before compileAndBuild() resets _editorLastSavedToken to null.  Used to
+// delete the draft on compile success regardless of which success path runs.
+let _compileDraftToken = null;
 
 function _queueLumpRelease(data) {
     _pendingLumpRelease = data;
@@ -1063,6 +1067,7 @@ function _confirmLumpRelease() {
     }).then(r => r.json()).then(resp => {
         if (resp.ok) {
             appendOutput(`Saved to library: lumps/${resp.lump} \u2014 token 0x${resp.token} \u00b7 v${ver}`, 'info');
+            if (_compileDraftToken && typeof _draftLsDel === 'function') { _draftLsDel(_compileDraftToken); _compileDraftToken = null; }
             window._editorLastSavedToken = resp.token;
             renderLumps();
             const savedToken = resp.token;
@@ -1095,6 +1100,9 @@ function compileAndBuild() {
     const con = document.getElementById('editorConsole');
     if (con) con.className = '';
     switchCodeTab('console');
+    // Capture any active LUMP-edit draft token before resetting to null.
+    // Both compile success paths use _compileDraftToken to delete the draft.
+    _compileDraftToken = window._editorLastSavedToken;
     window._editorLastSavedToken = null;
     _runStopped = true;
     sim.running = false;
@@ -1419,6 +1427,7 @@ function compileAndBuild() {
     }).then(r => r.json()).then(resp => {
         if (resp.ok) {
             appendOutput(`Saved to library: lumps/${resp.lump} \u2014 token 0x${resp.token} \u00b7 v${_autoVer}`, 'info');
+            if (_compileDraftToken && typeof _draftLsDel === 'function') { _draftLsDel(_compileDraftToken); _compileDraftToken = null; }
             window._editorLastSavedToken = resp.token;
             renderLumps && renderLumps();
             const _savedToken = resp.token;
