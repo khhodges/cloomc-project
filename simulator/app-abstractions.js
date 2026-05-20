@@ -610,11 +610,12 @@ async function renderLumps() {
                             : ct === 'inform'                              ? '[INF]'
                             : isFloat && lt !== 'boot'                     ? '[SAVED]'
                             : '';
-                const nsSlot = !isFloat ? `NS ${lump.ns_slot}` : '';
-                const ver    = lump.version ? `v${lump.version}` : '';
-                const size   = lump.lump_size ? `${lump.lump_size}w` : '';
-                const label  = [name, ver, badge, nsSlot, size].filter(Boolean).join('  ');
-                const sel    = _selectedLumpToken === token ? ' selected' : '';
+                const nsSlot  = !isFloat ? `NS ${lump.ns_slot}` : '';
+                const ver     = lump.version ? `v${lump.version}` : '';
+                const size    = lump.lump_size ? `${lump.lump_size}w` : '';
+                const dateStr = _lumpDateStr(lump);
+                const label   = [name, ver, badge, nsSlot, size, dateStr].filter(Boolean).join('  ');
+                const sel     = _selectedLumpToken === token ? ' selected' : '';
                 html += `<option value="${_escHtml(token)}"${sel}>${_escHtml(label)}</option>`;
             }
             html += `</select>`;
@@ -645,6 +646,19 @@ async function renderLumps() {
     } catch (err) {
         listEl.innerHTML = `<div class="lumps-placeholder">Error loading lumps: ${_escHtml(err.message)}</div>`;
     }
+}
+
+// Returns a compact "YYYY-MM-DD HH:MM" local-time string for lump.compiled_at,
+// or '' if the lump has no compiled_at timestamp.
+function _lumpDateStr(lump) {
+    if (!lump || !lump.compiled_at) return '';
+    const d  = new Date(lump.compiled_at * 1000);
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const dy = String(d.getDate()).padStart(2, '0');
+    const hr = String(d.getHours()).padStart(2, '0');
+    const mn = String(d.getMinutes()).padStart(2, '0');
+    return `${yr}-${mo}-${dy} ${hr}:${mn}`;
 }
 
 // Updates the x/y health counter in the "LUMP Repository" panel header.
@@ -771,7 +785,8 @@ window._lumpSortChanged = function(val) {
         const nsSlot  = !isFloat ? `NS ${lump.ns_slot}` : '';
         const ver     = lump.version   ? `v${lump.version}`    : '';
         const size    = lump.lump_size ? `${lump.lump_size}w`  : '';
-        const label   = [name, ver, badge, nsSlot, size].filter(Boolean).join('  ');
+        const dateStr = _lumpDateStr(lump);
+        const label   = [name, ver, badge, nsSlot, size, dateStr].filter(Boolean).join('  ');
         const chosen  = _selectedLumpToken === token ? ' selected' : '';
         opts += `<option value="${e(token)}"${chosen}>${e(label)}</option>`;
     }
