@@ -107,6 +107,10 @@ args = "rci-threading-tests"
 task = "workflow.run"
 args = "pending-gt-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "all-tests"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -368,6 +372,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node simulator/test_lazy_resolve_pending.js"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "all-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/run-all-tests.sh"
 
 [workflows.workflow.metadata]
 outputType = "console"
