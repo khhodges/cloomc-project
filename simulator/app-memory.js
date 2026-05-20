@@ -2437,6 +2437,7 @@ function handleBootImageUpload(input) {
 function updateNamespace() {
     const container = document.getElementById('namespaceTable');
     if (!container) return;
+    if (!sim) return;
     // Lazily warm _lumpsCache so Source buttons appear even on first NS view load,
     // before the user has visited the Repository view.
     // _lumpsCacheWarmPending  — in-flight guard; cleared on settle.
