@@ -10,6 +10,7 @@
 #   ./scripts/run-all-tests.sh --group boot                       # run all boot-image-* suites
 #   ./scripts/run-all-tests.sh --group lump                       # run lump-consistency, lump-binary-tests, lump-roundtrip
 #   ./scripts/run-all-tests.sh --group simulator                  # run simulator suites
+#   ./scripts/run-all-tests.sh --group lump --group boot          # run suites from multiple groups, no duplicates
 #   ./scripts/run-all-tests.sh --group lump assembler-tests       # group + extra suite(s), no duplicates
 #   ./scripts/run-all-tests.sh assembler-tests --group lump       # same — order of flags doesn't matter
 #
@@ -35,7 +36,7 @@ set -uo pipefail
 # ---------------------------------------------------------------------------
 SHOW_PROGRESS=0
 PROGRESS_INTERVAL=5
-GROUP=""
+GROUPS=()
 EXPLICIT_SUITES=()
 
 _args=("$@")
@@ -55,10 +56,10 @@ while [ $_i -lt ${#_args[@]} ]; do
                 echo "ERROR: --group requires an argument" >&2
                 exit 1
             fi
-            GROUP="${_args[$_i]}"
+            GROUPS+=("${_args[$_i]}")
             ;;
         --group=*)
-            GROUP="${_arg#--group=}"
+            GROUPS+=("${_arg#--group=}")
             ;;
         *)
             EXPLICIT_SUITES+=("$_arg")
@@ -237,12 +238,12 @@ node scripts/check-run-all-tests-sync.js || {
 SUITE_NAMES=()
 SUITE_CMDS=()
 
-# Resolve --group into a list of suite names to request
+# Resolve --group flags into a list of suite names to request
 REQUESTED_SUITES=("${EXPLICIT_SUITES[@]+"${EXPLICIT_SUITES[@]}"}")
 
-if [ -n "$GROUP" ]; then
-    if [ -z "${ALL_GROUPS[$GROUP]+set}" ]; then
-        echo "ERROR: unknown group '$GROUP'" >&2
+for _grp_name in "${GROUPS[@]+"${GROUPS[@]}"}"; do
+    if [ -z "${ALL_GROUPS[$_grp_name]+set}" ]; then
+        echo "ERROR: unknown group '$_grp_name'" >&2
         echo "" >&2
         echo "Valid groups:" >&2
         for g in $(echo "${!ALL_GROUPS[@]}" | tr ' ' '\n' | sort); do
@@ -251,10 +252,11 @@ if [ -n "$GROUP" ]; then
         exit 1
     fi
     # shellcheck disable=SC2206
-    read -r -a _group_suites <<< "${ALL_GROUPS[$GROUP]}"
+    read -r -a _group_suites <<< "${ALL_GROUPS[$_grp_name]}"
     REQUESTED_SUITES+=("${_group_suites[@]}")
     unset _group_suites
-fi
+done
+unset _grp_name
 
 if [ "${#REQUESTED_SUITES[@]}" -eq 0 ]; then
     # No filtering — run everything

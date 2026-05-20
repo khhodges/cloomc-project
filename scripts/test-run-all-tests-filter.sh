@@ -43,7 +43,7 @@ _ALL_GROUPS["overlap"]="alpha charlie"
 
 # Runs the filter logic given raw argv and sets _RESULT (space-separated).
 _run_filter() {
-    local _group=""
+    local _groups=()
     local _explicit=()
 
     local _args=("$@")
@@ -53,10 +53,10 @@ _run_filter() {
         case "$_arg" in
             --group)
                 _i=$((_i + 1))
-                _group="${_args[$_i]}"
+                _groups+=("${_args[$_i]}")
                 ;;
             --group=*)
-                _group="${_arg#--group=}"
+                _groups+=("${_arg#--group=}")
                 ;;
             *)
                 _explicit+=("$_arg")
@@ -67,15 +67,17 @@ _run_filter() {
 
     local _requested=("${_explicit[@]+"${_explicit[@]}"}")
 
-    if [ -n "$_group" ]; then
-        if [ -z "${_ALL_GROUPS[$_group]+set}" ]; then
-            _RESULT="ERROR:unknown-group:$_group"
+    local _grp
+    for _grp in "${_groups[@]+"${_groups[@]}"}"; do
+        if [ -z "${_ALL_GROUPS[$_grp]+set}" ]; then
+            _RESULT="ERROR:unknown-group:$_grp"
             return
         fi
-        read -r -a _gs <<< "${_ALL_GROUPS[$_group]}"
+        read -r -a _gs <<< "${_ALL_GROUPS[$_grp]}"
         _requested+=("${_gs[@]}")
         unset _gs
-    fi
+    done
+    unset _grp
 
     local _selected=()
     if [ "${#_requested[@]}" -eq 0 ]; then
@@ -164,6 +166,42 @@ echo "── Unknown group name → error token ──────────�
 _run_filter --group nosuchgroup
 _assert_eq "--group nosuchgroup → error token" \
            "ERROR:unknown-group:nosuchgroup" "$_RESULT"
+
+# ---------------------------------------------------------------------------
+echo "── Multiple --group flags ───────────────────────────────────────────"
+
+_run_filter --group first --group second
+_assert_eq "--group first --group second → alpha bravo charlie delta" \
+           "alpha bravo charlie delta" "$_RESULT"
+
+_run_filter --group second --group first
+_assert_eq "--group second --group first → declaration order alpha bravo charlie delta" \
+           "alpha bravo charlie delta" "$_RESULT"
+
+# Groups with overlapping members are deduplicated
+_run_filter --group first --group overlap
+_assert_eq "--group first --group overlap → dedup alpha bravo charlie" \
+           "alpha bravo charlie" "$_RESULT"
+
+# Multi-group combined with an explicit suite name
+_run_filter --group first --group second foxtrot
+_assert_eq "--group first --group second foxtrot → alpha bravo charlie delta foxtrot" \
+           "alpha bravo charlie delta foxtrot" "$_RESULT"
+
+# Multi-group combined with an explicit suite that's already in a group (dedup)
+_run_filter --group first --group second alpha
+_assert_eq "--group first --group second alpha (alpha already in first) → alpha bravo charlie delta" \
+           "alpha bravo charlie delta" "$_RESULT"
+
+# Second group name is unknown → error on that group
+_run_filter --group first --group nosuchgroup
+_assert_eq "--group first --group nosuchgroup → error on nosuchgroup" \
+           "ERROR:unknown-group:nosuchgroup" "$_RESULT"
+
+# Three groups
+_run_filter --group first --group second --group overlap
+_assert_eq "--group first --group second --group overlap → dedup alpha bravo charlie delta" \
+           "alpha bravo charlie delta" "$_RESULT"
 
 # ---------------------------------------------------------------------------
 echo ""
