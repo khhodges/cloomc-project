@@ -70,6 +70,7 @@ function showLumpDetail(token) {
         const _canShrink = _curSize > _minSize;
         const _saved = _curSize - _minSize;
         _headerStrip += `<button class="lump-hs-resize-btn${_canShrink ? '' : ' lump-hs-resize-disabled'}" ` +
+            `id="lumpShrinkBtn_${_tk}" ` +
             `onclick="${_canShrink ? `_resizeLump('${_e(lump.token)}')` : ''}" ` +
             `${_canShrink ? '' : 'disabled '}` +
             `title="${_canShrink ? `Remove unused freespace — shrink from ${_curSize}w to ${_minSize}w (save ${_saved}w)` : `Already at minimum size (${_curSize}w)`}">` +
@@ -421,6 +422,8 @@ function showLumpDetail(token) {
             `<div id="lumpBinBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
 
     contentEl.innerHTML = html;
+    // Asynchronously patch CC badge + shrink button + malformed chip from binary.
+    if (!isNamespace) _patchCcFromBinary(token, lump, _tk);
     const delBtn = contentEl.querySelector('.lump-delete-btn[data-delete-token]');
     if (delBtn) delBtn.addEventListener('click', () => deleteLump(delBtn.dataset.deleteToken));
     const editBtn = contentEl.querySelector('.lump-edit-btn[data-edit-token]');
@@ -466,6 +469,66 @@ function showLumpDetail(token) {
 
     // Outer workspace tab bar is collapsed into the inner tab bar — always hide it
     _hideLumpWorkspaceTabs();
+}
+
+// Fetch binary words, parse the lump header, and patch the CC badge / shrink button /
+// malformed chip in the already-rendered header strip.  Fires after contentEl.innerHTML
+// so the DOM elements already exist.  Also populates _lumpBinaryHdrCache[token] for
+// later reuse by _renderLumpCodeContent and _loadLumpTokens.
+async function _patchCcFromBinary(token, lump, tk) {
+    if (!token || !lump) return;
+    try {
+        let words = [];
+        // Reuse cached entry when available (avoids a second round-trip when the
+        // Content or Tokens tab was already loaded for this token).
+        const _cached = _lumpBinaryHdrCache[token];
+        if (_cached && _cached.hdr && _cached.hdr.valid) {
+            words = _cached.words || [];
+        } else {
+            const resp = await fetch(`/api/lump/${token}/words`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            words = data.words || [];
+        }
+        if (!words.length) return;
+        const hdr = (typeof sim !== 'undefined' && sim && sim.parseLumpHeader)
+            ? sim.parseLumpHeader(words[0] >>> 0) : null;
+        if (!hdr || !hdr.valid) return;
+        _lumpBinaryHdrCache[token] = { hdr, words };
+
+        // ── Patch CC badge ───────────────────────────────────────────────────
+        const ccBadge = document.getElementById(`lumpCcChip_${tk}`);
+        if (ccBadge) {
+            ccBadge.innerHTML = `<span class="lump-hs-label">CC</span>${hdr.cc}`;
+        }
+
+        // ── Patch shrink button ──────────────────────────────────────────────
+        const shrinkBtn = document.getElementById(`lumpShrinkBtn_${tk}`);
+        if (shrinkBtn) {
+            const _curSize = parseInt(lump.lump_size) || 0;
+            const _cw      = parseInt(lump.cw) || 0;
+            const _cc      = hdr.cc;
+            const _minCont = 1 + _cw + _cc;
+            let _minSize   = 64;
+            while (_minSize < _minCont) _minSize *= 2;
+            const _canShrink = _curSize > _minSize;
+            const _saved     = _curSize - _minSize;
+            shrinkBtn.className = `lump-hs-resize-btn${_canShrink ? '' : ' lump-hs-resize-disabled'}`;
+            shrinkBtn.disabled  = !_canShrink;
+            shrinkBtn.onclick   = _canShrink ? () => _resizeLump(lump.token) : null;
+            shrinkBtn.title     = _canShrink
+                ? `Remove unused freespace — shrink from ${_curSize}w to ${_minSize}w (save ${_saved}w)`
+                : `Already at minimum size (${_curSize}w)`;
+            shrinkBtn.textContent = `Shrink to ${_minSize}w ▼`;
+        }
+
+        // ── Show malformed chip when binary cc ≠ manifest cc ────────────────
+        const manifestCc = (lump.cc !== undefined && lump.cc !== null) ? parseInt(lump.cc) : null;
+        if (manifestCc !== null && manifestCc !== hdr.cc) {
+            const chip = document.getElementById(`lumpMalformedChip_${tk}`);
+            if (chip) chip.style.display = '';
+        }
+    } catch (_e) { /* silent — best-effort patch */ }
 }
 
 async function _fetchAndShowLumpBinary(token, lump) {
@@ -584,6 +647,9 @@ const _lumpHexLoaded      = {};
 const _lumpTokensLoaded   = {};
 const _lumpEditorOpen     = {};
 const _lumpEditorDraftText = {};
+// Cache of binary-derived lump header info, keyed by token.
+// Populated by _patchCcFromBinary and reused by _renderLumpCodeContent / _loadLumpTokens.
+const _lumpBinaryHdrCache = {};
 
 // ── Workspace outer tabs (Logic / Source / Binary) ────────────────────────
 
@@ -2321,11 +2387,13 @@ function _renderLumpCodeContent(bodyEl, lump, words, token) {
     // Prefer binary-header values — they are the authoritative source and will
     // differ from the manifest when the lump was recompiled but the manifest
     // cache was not yet refreshed (the classic "stale manifest" conflict).
-    const _binaryHdr = (words.length > 0 && typeof sim !== 'undefined' && sim && sim.parseLumpHeader)
+    const _binaryHdr = (words && words.length > 0 && typeof sim !== 'undefined' && sim && sim.parseLumpHeader)
         ? sim.parseLumpHeader(words[0] >>> 0) : null;
     const cw        = (_binaryHdr && _binaryHdr.valid) ? _binaryHdr.cw       : (parseInt(lump.cw)        || 0);
     const cc        = (_binaryHdr && _binaryHdr.valid) ? _binaryHdr.cc       : (parseInt(lump.cc)        || 0);
     const lumpSize  = (_binaryHdr && _binaryHdr.valid) ? _binaryHdr.lumpSize : (parseInt(lump.lump_size) || words.length);
+    // Keep cache current for any tab that loads after Content.
+    if (_binaryHdr && _binaryHdr.valid) _lumpBinaryHdrCache[token] = { hdr: _binaryHdr, words };
     const abstName  = lump.abstraction || 'Lump';
 
     // Build per-method DR pet-name lookup (numeric key → label).
@@ -2886,11 +2954,39 @@ async function _loadLumpTokens(token, lump) {
     const bodyEl = document.getElementById(`lumpTokensBody_${tk}`);
     if (!bodyEl) return;
 
-    const e         = _escHtml;
-    // Start with manifest values; will be overwritten from binary header after the fetch.
-    let cc        = parseInt(lump.cc) || 0;
-    let lumpSize  = parseInt(lump.lump_size) || 0;
-    const nsIdx     = (lump.ns_slot !== null && lump.ns_slot !== undefined) ? parseInt(lump.ns_slot) : null;
+    const e        = _escHtml;
+    const nsIdx    = (lump.ns_slot !== null && lump.ns_slot !== undefined) ? parseInt(lump.ns_slot) : null;
+
+    // ── Fetch words first so we can derive cc+lumpSize from the binary header ─
+    let words    = [];
+    let cc       = parseInt(lump.cc)        || 0;  // manifest fallback until binary confirms
+    let lumpSize = parseInt(lump.lump_size) || 0;
+    try {
+        // Reuse cached words when available (Content tab may have loaded first).
+        const _cachedEntry = _lumpBinaryHdrCache[token];
+        if (_cachedEntry && _cachedEntry.hdr && _cachedEntry.hdr.valid) {
+            words = _cachedEntry.words || [];
+        } else {
+            const resp = await fetch(`/api/lump/${token}/words`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            words = data.words || [];
+        }
+        if (words.length > 0 && typeof sim !== 'undefined' && sim && sim.parseLumpHeader) {
+            const _bh = sim.parseLumpHeader(words[0] >>> 0);
+            if (_bh && _bh.valid) {
+                cc = _bh.cc;
+                lumpSize = _bh.lumpSize;
+                _lumpBinaryHdrCache[token] = { hdr: _bh, words };
+            }
+        }
+    } catch (err) {
+        const errHtml = `<div class="lump-clist-section"><div style="color:#f87171;font-size:0.8rem;padding:0.4rem 0;">` +
+            `Failed to load token words: ${e(err.message)}</div></div>`;
+        bodyEl.innerHTML = errHtml;
+        bodyEl.className = '';
+        return;
+    }
 
     // ── POLA action strip ────────────────────────────────────────────────────
     let html = `<div class="lump-clist-section">`;
@@ -2919,26 +3015,6 @@ async function _loadLumpTokens(token, lump) {
         html += `<div class="lump-clist-section"><div class="lump-clist-table">` +
             `<div style="color:var(--text-secondary,#888);font-size:0.8rem;padding:0.5rem 0;">` +
             `This lump has no capability slots (cc\u202F=\u202F0).</div></div></div>`;
-        bodyEl.innerHTML = html;
-        bodyEl.className = '';
-        return;
-    }
-
-    // Fetch words to decode GT values
-    let words = [];
-    try {
-        const resp = await fetch(`/api/lump/${token}/words`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        words = data.words || [];
-        // Override manifest cc/lumpSize with authoritative binary-header values.
-        if (words.length > 0 && typeof sim !== 'undefined' && sim && sim.parseLumpHeader) {
-            const _bh = sim.parseLumpHeader(words[0] >>> 0);
-            if (_bh && _bh.valid) { cc = _bh.cc; lumpSize = _bh.lumpSize; }
-        }
-    } catch (err) {
-        html += `<div class="lump-clist-section"><div style="color:#f87171;font-size:0.8rem;padding:0.4rem 0;">` +
-            `Failed to load token words: ${e(err.message)}</div></div>`;
         bodyEl.innerHTML = html;
         bodyEl.className = '';
         return;
