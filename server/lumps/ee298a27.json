@@ -20,81 +20,64 @@
       "pet_names": {
         "DR": {},
         "CR": {
-          "0": "LED0"
+          "0": "LED.LED0"
         }
       }
     }
   ],
   "capabilities": [
     {
-      "name": "Salvation",
-      "rights": [
-        "E"
-      ],
-      "grants": [
-        "E"
-      ],
-      "nsIndex": -1
+      "slot": 0,
+      "name": "Salvation.E",
+      "target_ns": 4,
+      "note": "Salvation E-GT (NS[4]) — first callable abstraction; used to prove CALL works in the capability test",
+      "gt": "0x48800004"
     },
     {
-      "name": "Navana",
-      "rights": [
-        "E"
-      ],
-      "grants": [
-        "E"
-      ],
-      "nsIndex": -1
+      "slot": 1,
+      "name": "Navana.E",
+      "target_ns": 5,
+      "note": "Navana E-GT (NS[5]) — namespace table writer; tested for E-permission validity",
+      "gt": "0x48800005"
     },
     {
-      "name": "Mint",
-      "rights": [
-        "E"
-      ],
-      "grants": [
-        "E"
-      ],
-      "nsIndex": -1
+      "slot": 2,
+      "name": "Mint.E",
+      "target_ns": 6,
+      "note": "Mint E-GT (NS[6]) — GT lifecycle manager; tested for E-permission validity",
+      "gt": "0x48800006"
     },
     {
-      "name": "Memory",
-      "rights": [
-        "E"
-      ],
-      "grants": [
-        "E"
-      ],
-      "nsIndex": -1
+      "slot": 3,
+      "name": "Memory.E",
+      "target_ns": 7,
+      "note": "Memory E-GT (NS[7]) — physical allocator; tested for E-permission validity",
+      "gt": "0x48800007"
     },
     {
-      "name": "LED",
-      "rights": [
-        "R",
-        "W"
-      ],
-      "grants": [
-        "R",
-        "W"
-      ],
-      "nsIndex": -1
+      "slot": 4,
+      "name": "LED.LED0",
+      "abstract_gt": "0x07800100",
+      "note": "Abstract LED0 RW GT — self-describing hardware LED capability; used in the LED on/off test sequence",
+      "gt": "0x07800100"
     },
     {
-      "name": "UART",
-      "rights": [
-        "R",
-        "W"
-      ],
-      "grants": [
-        "R",
-        "W"
-      ],
-      "nsIndex": -1
+      "slot": 5,
+      "name": "UART.Device",
+      "abstract_gt": "0x07800200",
+      "note": "Abstract UART RW GT — self-describing hardware serial capability; used in the UART TX/RX test sequence",
+      "gt": "0x07800200"
     }
   ],
   "pet_names": {
     "DR": {},
     "CR": {
-      "CR0": "LED0"
+      "0": "Salvation.E",
+      "1": "Navana.E",
+      "2": "Mint.E",
+      "3": "Memory.E",
+      "4": "LED.LED0",
+      "5": "UART.Device"
     }
   },
   "mtbf": {

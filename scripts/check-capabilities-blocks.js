@@ -293,3 +293,17 @@ if (violations > 0) {
 } else {
     console.log(`check-capabilities-blocks: all ${files.length} file(s) pass.`);
 }
+
+// ── audit_clist guard ─────────────────────────────────────────────────────────
+// Ensure every empty c-list slot in every lump binary has a registered name.
+const { spawnSync } = require('child_process');
+const auditResult = spawnSync(
+    'python',
+    [path.join(ROOT, 'scripts', 'audit_clist.py'), '--check'],
+    { encoding: 'utf8', cwd: ROOT }
+);
+if (auditResult.stdout) process.stdout.write(auditResult.stdout);
+if (auditResult.stderr) process.stderr.write(auditResult.stderr);
+if (auditResult.status !== 0) {
+    process.exit(auditResult.status || 1);
+}

@@ -12,5 +12,18 @@
   "grants": [
     "E"
   ],
-  "lump_version": 0
+  "lump_version": 0,
+  "capabilities": [
+    {
+      "slot": 0,
+      "name": "SlideRuleHS.SelfDataR",
+      "note": "self-data read-only cap — grants read access to the embedded constant tables baked into the Haskell-style SlideRule lump body"
+    }
+  ],
+  "pet_names": {
+    "DR": {},
+    "CR": {
+      "0": "SlideRuleHS.SelfDataR"
+    }
+  }
 }

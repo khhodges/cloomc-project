@@ -21,15 +21,18 @@
   ],
   "capabilities": [
     {
-      "name": "SlideRule",
-      "rights": [],
-      "grants": [],
-      "nsIndex": -1
+      "slot": 0,
+      "name": "SlideRule.Multiply",
+      "target_ns": 16,
+      "note": "SlideRule E-GT (NS[16]) — provides floating-point arithmetic for the corrected Ada Note G Bernoulli number computation",
+      "gt": "0x48800010"
     }
   ],
   "pet_names": {
     "DR": {},
-    "CR": {}
+    "CR": {
+      "0": "SlideRule.Multiply"
+    }
   },
   "mtbf": {
     "consecutive_clean": 0,

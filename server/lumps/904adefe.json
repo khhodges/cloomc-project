@@ -27,32 +27,25 @@
   ],
   "capabilities": [
     {
+      "slot": 0,
       "name": "LED0",
-      "rights": [
-        "R",
-        "W"
-      ],
-      "grants": [
-        "R",
-        "W"
-      ],
-      "nsIndex": -1
+      "abstract_gt": "0x07800100",
+      "note": "Abstract LED0 RW GT — self-describing hardware capability for LED 0; used to blink the board LED",
+      "gt": "0x07800100"
     },
     {
-      "name": "Tunnel",
-      "rights": [
-        "E"
-      ],
-      "grants": [
-        "E"
-      ],
-      "nsIndex": -1
+      "slot": 1,
+      "name": "Tunnel.Send",
+      "target_ns": 31,
+      "note": "Tunnel E-GT (NS[31]) — used to report blink status to the IDE over the call-home channel",
+      "gt": "0x4880001f"
     }
   ],
   "pet_names": {
     "DR": {},
     "CR": {
-      "CR0": "LED0"
+      "0": "LED0",
+      "1": "Tunnel.Send"
     }
   },
   "mtbf": {

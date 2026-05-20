@@ -154,5 +154,26 @@
     "One"
   ],
   "self_data_r": true,
-  "lump_version": 0
+  "author": "Test",
+  "version": "1.0",
+  "lump_version": 0,
+  "capabilities": [
+    {
+      "slot": 0,
+      "name": "Constants.SelfDataR",
+      "note": "self-data read-only cap — grants read access to the embedded constant data words (Pi, E, Phi, Zero, One)"
+    },
+    {
+      "slot": 1,
+      "name": "Constants.PoolRW",
+      "note": "pool storage RW cap — grants read/write access to the mutable user-constant pool used by Add and Get methods"
+    }
+  ],
+  "pet_names": {
+    "DR": {},
+    "CR": {
+      "0": "Constants.SelfDataR",
+      "1": "Constants.PoolRW"
+    }
+  }
 }

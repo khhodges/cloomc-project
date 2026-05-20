@@ -12,5 +12,18 @@
   "grants": [
     "E"
   ],
-  "lump_version": 0
+  "lump_version": 0,
+  "capabilities": [
+    {
+      "slot": 0,
+      "name": "SlideRule.SelfDataR",
+      "note": "self-data read-only cap — grants read access to the embedded trig and math constant tables baked into the lump body"
+    }
+  ],
+  "pet_names": {
+    "DR": {},
+    "CR": {
+      "0": "SlideRule.SelfDataR"
+    }
+  }
 }

@@ -19,10 +19,19 @@
       "length": 37
     }
   ],
-  "capabilities": [{"name": "RemoteAbs", "grants": ["E"]}],
+  "capabilities": [
+    {
+      "slot": 0,
+      "name": "Tunnel.RemoteAbs",
+      "filled_by": "runtime",
+      "note": "Remote abstraction E-GT — the far-end capability this Tunnel instance wraps; injected at runtime when the tunnel session is established"
+    }
+  ],
   "pet_names": {
     "DR": {},
-    "CR": {}
+    "CR": {
+      "0": "Tunnel.RemoteAbs"
+    }
   },
   "mtbf": {
     "consecutive_clean": 0,

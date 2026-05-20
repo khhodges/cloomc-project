@@ -21,21 +21,18 @@
   ],
   "capabilities": [
     {
+      "slot": 0,
       "name": "LED0",
-      "rights": [
-        "R",
-        "W"
-      ],
-      "grants": [
-        "R",
-        "W"
-      ],
-      "nsIndex": -1
+      "abstract_gt": "0x07800100",
+      "note": "Abstract LED0 RW GT — self-describing hardware capability for LED 0 (on/off/toggle); no NS slot",
+      "gt": "0x07800100"
     }
   ],
   "pet_names": {
     "DR": {},
-    "CR": {}
+    "CR": {
+      "0": "LED0"
+    }
   },
   "mtbf": {
     "consecutive_clean": 0,

@@ -21,18 +21,68 @@
     }
   ],
   "capabilities": [
-    {"name": "null", "grants": [], "gt": "0x00000000", "note": "unused"},
-    {"name": "null", "grants": [], "gt": "0x00000000", "note": "unused"},
-    {"name": "null", "grants": [], "gt": "0x00000000", "note": "null GT (NS slot 2 freed)"},
-    {"name": "Boot.Abstr", "grants": ["E"], "gt": "0x48800003", "ns_slot": 3, "note": "Boot.Abstr E-GT — Church domain enter; TPERM E tests (Tests 3, 4)"},
-    {"name": "null", "grants": [], "gt": "0x00000000", "note": "unused"},
-    {"name": "null", "grants": [], "gt": "0x00000000", "note": "unused"},
-    {"name": "null", "grants": [], "gt": "0x00000000", "note": "unused"},
-    {"name": "Boot.Nucs", "grants": ["X"], "gt": "0x40800001", "ns_slot": 1, "note": "Boot.Thread X-GT (nucleus execute) — Turing domain; TPERM X tests (Tests 1, 2, 5)"}
+    {
+      "slot": 0,
+      "name": "GTTest.Null0",
+      "intentionally_null": true,
+      "note": "unused — slot 0 reserved; test suite accesses all caps by explicit slot index"
+    },
+    {
+      "slot": 1,
+      "name": "GTTest.Null1",
+      "intentionally_null": true,
+      "note": "unused — reserved slot"
+    },
+    {
+      "slot": 2,
+      "name": "GTTest.Null2",
+      "intentionally_null": true,
+      "note": "unused — NS slot 2 freed; null GT placed here to verify NULL_GT detection"
+    },
+    {
+      "slot": 3,
+      "name": "Boot.Abstr.E",
+      "target_ns": 3,
+      "note": "Boot.Abstr E-GT (NS[3]) — Church domain enter; subject of TPERM E tests (Tests 3, 4)",
+      "gt": "0x48800003"
+    },
+    {
+      "slot": 4,
+      "name": "GTTest.Null4",
+      "intentionally_null": true,
+      "note": "unused — reserved slot"
+    },
+    {
+      "slot": 5,
+      "name": "GTTest.Null5",
+      "intentionally_null": true,
+      "note": "unused — reserved slot"
+    },
+    {
+      "slot": 6,
+      "name": "GTTest.Null6",
+      "intentionally_null": true,
+      "note": "unused — reserved slot"
+    },
+    {
+      "slot": 7,
+      "name": "Boot.Nucs.X",
+      "note": "Boot.Thread X-GT (NS[1], Turing X-perm) — nucleus execute; subject of TPERM X tests (Tests 1, 2, 5)",
+      "gt": "0x40800001"
+    }
   ],
   "pet_names": {
     "DR": {},
-    "CR": {}
+    "CR": {
+      "0": "GTTest.Null0",
+      "1": "GTTest.Null1",
+      "2": "GTTest.Null2",
+      "3": "Boot.Abstr.E",
+      "4": "GTTest.Null4",
+      "5": "GTTest.Null5",
+      "6": "GTTest.Null6",
+      "7": "Boot.Nucs.X"
+    }
   },
   "mtbf": {
     "consecutive_clean": 0,
