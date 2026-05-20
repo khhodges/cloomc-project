@@ -1,3 +1,143 @@
+/* ── Compile-failed status banner ────────────────────────────────────────── */
+.compile-failed-banner {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    background: #7f1d1d;
+    border-bottom: 2px solid #ef4444;
+    padding: 0.38rem 0.8rem;
+    font-family: system-ui, sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.compile-failed-banner-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    color: #fca5a5;
+}
+
+/* ── Inline advisory popup ───────────────────────────────────────────────── */
+.asm-advisory-popup {
+    position: fixed;
+    z-index: 9999;
+    max-width: 420px;
+    min-width: 260px;
+    background: #1c1610;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    border-left: 4px solid #ef4444;
+    border-radius: 0 6px 6px 0;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    padding: 0.6rem 0.75rem 0.6rem 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    pointer-events: auto;
+}
+
+.asm-advisory-popup.is-warning {
+    border-color: rgba(245, 158, 11, 0.45);
+    border-left-color: #f59e0b;
+}
+
+.asm-advisory-popup-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+
+.asm-advisory-popup-msg {
+    font-family: 'Courier New', monospace;
+    font-size: 0.77rem;
+    color: #fca5a5;
+    line-height: 1.4;
+    flex: 1;
+    word-break: break-word;
+}
+
+.asm-advisory-popup.is-warning .asm-advisory-popup-msg {
+    color: #fde68a;
+}
+
+.asm-advisory-popup-dismiss {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0 0 0 0.2rem;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: -1px;
+}
+
+.asm-advisory-popup-dismiss:hover { color: #fff; }
+
+.asm-advisory-popup-sugg {
+    margin-top: 0.1rem;
+    padding: 0.4rem 0.55rem;
+    background: rgba(251, 191, 36, 0.07);
+    border: 1px solid rgba(251, 191, 36, 0.22);
+    border-left: 3px solid rgba(251, 191, 36, 0.6);
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.asm-advisory-popup-sugg-title {
+    font-family: system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fcd34d;
+}
+
+.asm-advisory-popup-sugg-body {
+    font-family: system-ui, sans-serif;
+    font-size: 0.7rem;
+    color: #e5d3a0;
+    line-height: 1.35;
+}
+
+.asm-advisory-popup-sugg-code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.69rem;
+    color: #86efac;
+    background: rgba(0,0,0,0.35);
+    padding: 0.25rem 0.4rem;
+    border-radius: 3px;
+    white-space: pre;
+    overflow-x: auto;
+    margin: 0;
+}
+
+.asm-advisory-popup-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.05rem;
+}
+
+.asm-advisory-popup-jump {
+    background: none;
+    border: none;
+    color: #93c5fd;
+    font-size: 0.72rem;
+    font-family: system-ui, sans-serif;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.asm-advisory-popup-jump:hover { color: #bfdbfe; }
+
 /* ── Sealed editor — read-only state after a clean compile ───────────────── */
 #asmEditor.cm-editor-sealed {
     opacity: 0.72;

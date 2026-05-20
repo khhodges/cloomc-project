@@ -376,6 +376,7 @@ function assembleAndLoad() {
         if (con) con.innerHTML = _capRightsHTML(listing);
         if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
         if (typeof _clearAsmWarnings === 'function') _clearAsmWarnings();
+        if (typeof _showAsmWarnings === 'function') _showAsmWarnings(result.warnings || []);
         // Push live snippet history for each method that carried source text
         if (typeof ChurchAssembler !== 'undefined' && result.abstractionName) {
             for (const _m of result.methods) {

@@ -1,6 +1,91 @@
 var _activeAsmErrors = [];
 var _activeAsmWarnings = [];
 
+function _showCompileFailedBanner(count) {
+    var banner = document.getElementById('compileFailedBanner');
+    var text   = document.getElementById('compileFailedBannerText');
+    if (!banner) return;
+    if (text) text.textContent = '\u2716 COMPILE FAILED \u2014 ' + count + ' error' + (count !== 1 ? 's' : '');
+    banner.style.display = 'flex';
+}
+
+function _hideCompileFailedBanner() {
+    var banner = document.getElementById('compileFailedBanner');
+    if (banner) banner.style.display = 'none';
+}
+
+var _asmAdvisoryPopupEl = null;
+var _asmAdvisoryKeydownBound = false;
+
+function _dismissAsmAdvisoryPopup() {
+    if (_asmAdvisoryPopupEl && _asmAdvisoryPopupEl.parentNode) {
+        _asmAdvisoryPopupEl.parentNode.removeChild(_asmAdvisoryPopupEl);
+    }
+    _asmAdvisoryPopupEl = null;
+}
+
+function _showAsmAdvisoryPopup(entry, isWarning, anchorX, anchorY) {
+    _dismissAsmAdvisoryPopup();
+    if (!entry) return;
+
+    var popup = document.createElement('div');
+    popup.className = 'asm-advisory-popup' + (isWarning ? ' is-warning' : '');
+    _asmAdvisoryPopupEl = popup;
+
+    var sugg = (typeof _getSyntaxSuggestion === 'function') ? _getSyntaxSuggestion(entry.message) : null;
+
+    var headerHtml = '<div class="asm-advisory-popup-header">'
+        + '<span class="asm-advisory-popup-msg">' + _escHtml(entry.message || '') + '</span>'
+        + '<button type="button" class="asm-advisory-popup-dismiss" title="Dismiss">\u00d7</button>'
+        + '</div>';
+
+    var suggHtml = '';
+    if (sugg) {
+        suggHtml = '<div class="asm-advisory-popup-sugg">'
+            + '<div class="asm-advisory-popup-sugg-title">&#x1F4A1; ' + _escHtml(sugg.title) + '</div>'
+            + '<div class="asm-advisory-popup-sugg-body">' + _escHtml(sugg.body) + '</div>'
+            + '<pre class="asm-advisory-popup-sugg-code">' + _escHtml(sugg.example) + '</pre>'
+            + '</div>';
+    }
+
+    var footerHtml = '';
+    if (entry.line != null && !isNaN(entry.line)) {
+        footerHtml = '<div class="asm-advisory-popup-footer">'
+            + '<button type="button" class="asm-advisory-popup-jump" data-line="' + entry.line + '">Jump to error in panel \u2193</button>'
+            + '</div>';
+    }
+
+    popup.innerHTML = headerHtml + suggHtml + footerHtml;
+    document.body.appendChild(popup);
+
+    var vpW = window.innerWidth, vpH = window.innerHeight;
+    var px = Math.min(anchorX + 10, vpW - 440);
+    var py = anchorY + 20;
+    if (py + 260 > vpH) py = Math.max(4, anchorY - 270);
+    popup.style.left = Math.max(4, px) + 'px';
+    popup.style.top  = Math.max(4, py) + 'px';
+
+    popup.querySelector('.asm-advisory-popup-dismiss').addEventListener('click', function() {
+        _dismissAsmAdvisoryPopup();
+    });
+
+    var jumpBtn = popup.querySelector('.asm-advisory-popup-jump');
+    if (jumpBtn) {
+        jumpBtn.addEventListener('click', function() {
+            var ln = parseInt(jumpBtn.getAttribute('data-line'), 10);
+            if (typeof _jumpToAsmLine === 'function') _jumpToAsmLine(ln);
+            _dismissAsmAdvisoryPopup();
+            var panel = document.getElementById('asmErrorPanel');
+            if (!panel) panel = document.getElementById('asmWarningPanel');
+            if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+
+    popup.addEventListener('mouseleave', function() {
+        _dismissAsmAdvisoryPopup();
+    });
+}
+
 // ── Sticky Patches ────────────────────────────────────────────────────────
 // Keyed by nsIdx. Each entry: { words, newCW, nsIdx, crIdx, src }.
 // Re-applied automatically after every boot sequence completes.
@@ -88,10 +173,51 @@ function _clearPersistedStickyPatch(nsIdx) {
 
 // Wire up keystroke auto-save once the DOM is ready.
 document.addEventListener('DOMContentLoaded', function() {
-    const ed = document.getElementById('asmEditor');
+    var ed = document.getElementById('asmEditor');
     if (ed) {
         ed.addEventListener('input', function() {
             _asmSrcSave(_asmEditorNsIdx, ed.value);
+            _hideCompileFailedBanner();
+            _dismissAsmAdvisoryPopup();
+        });
+
+        ed.addEventListener('keydown', function() {
+            _dismissAsmAdvisoryPopup();
+        });
+
+        ed.addEventListener('click', function(ev) {
+            var lines = ed.value.split('\n');
+            var pos = ed.selectionStart;
+            var lineNum = 1;
+            var counted = 0;
+            for (var i = 0; i < lines.length; i++) {
+                counted += lines[i].length + 1;
+                if (counted > pos) { lineNum = i + 1; break; }
+            }
+
+            var errorEntry = null;
+            var isWarning = false;
+            for (var ei = 0; ei < _activeAsmErrors.length; ei++) {
+                if (_activeAsmErrors[ei].line === lineNum) {
+                    errorEntry = _activeAsmErrors[ei];
+                    break;
+                }
+            }
+            if (!errorEntry) {
+                for (var wi = 0; wi < _activeAsmWarnings.length; wi++) {
+                    if (_activeAsmWarnings[wi].line === lineNum) {
+                        errorEntry = _activeAsmWarnings[wi];
+                        isWarning = true;
+                        break;
+                    }
+                }
+            }
+
+            if (errorEntry) {
+                _showAsmAdvisoryPopup(errorEntry, isWarning, ev.clientX, ev.clientY);
+            } else {
+                _dismissAsmAdvisoryPopup();
+            }
         });
     }
 });
@@ -348,6 +474,7 @@ function _showAsmErrors(errors, titleOverride) {
     panel.style.display = 'flex';
     _activeAsmErrors = errors.slice();
     _highlightAsmErrorLines(errors);
+    _showCompileFailedBanner(errors.length);
 }
 
 function _clearAsmErrors() {
@@ -357,6 +484,7 @@ function _clearAsmErrors() {
     panel.innerHTML = '';
     _activeAsmErrors = [];
     _highlightAsmErrorLines([]);
+    _hideCompileFailedBanner();
 }
 
 function _highlightAsmErrorLines(errors) {

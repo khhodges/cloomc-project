@@ -776,6 +776,7 @@ function compileDraft() {
 
     if (!cloomcCompiler) return;
     switchCodeTab('console');
+    if (typeof _clearAsmWarnings === 'function') _clearAsmWarnings();
 
     const result = cloomcCompiler.compile(source, []);
 
@@ -898,10 +899,21 @@ function compileDraft() {
     }
 
     if (con) { con.innerHTML = _capRightsHTML(draft); con.scrollTop = 0; }
+    let _capAclErrors = [], _capAclWarnings = [];
     if (clistCount > 0) {
         let _aclExtraC = '';
         try {
             const _aclC = _checkCapAccessRights(caps);
+            // Find the `capabilities {` line so ACL errors highlight in the editor.
+            const _capLine = (function(src) {
+                const _ls = src.split('\n');
+                for (let _li = 0; _li < _ls.length; _li++) {
+                    if (/^\s*capabilities\s*\{/.test(_ls[_li])) return _li + 1;
+                }
+                return null;
+            })(source);
+            for (const _e of _aclC.errors)   _capAclErrors.push({ line: _capLine, message: _e });
+            for (const _w of _aclC.warnings) _capAclWarnings.push({ line: _capLine, message: _w });
             const _hasAclOutputC = _aclC.errors.length > 0 || _aclC.warnings.length > 0 ||
                 (_afResultC && _afResultC.filled.length > 0);
             if (_hasAclOutputC) {
@@ -939,7 +951,13 @@ function compileDraft() {
             }
         }
     }
-    if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
+    if (_capAclErrors.length > 0) {
+        if (typeof _showAsmErrors === 'function') _showAsmErrors(_capAclErrors, 'Capability error' + (_capAclErrors.length > 1 ? 's' : '') + ' \u2014 fix before build');
+    } else {
+        if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
+    }
+    const _draftAllWarnings = [].concat(result.warnings || []).concat(_capAclWarnings);
+    if (typeof _showAsmWarnings === 'function') _showAsmWarnings(_draftAllWarnings);
     showNextSteps('draft');
     trackAction('draft', { name: result.abstractionName, lang: result.language });
     appendOutput(`Draft: "${result.abstractionName}" — ${result.methods.length} methods, ${clistCount} caps, ${allocSize} alloc`, 'info');
@@ -1097,6 +1115,8 @@ function compileAndBuild() {
     // Store for Load-into-Sim button
     window._lastCLOOMCResult = result;
     if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
+    if (typeof _clearAsmWarnings === 'function') _clearAsmWarnings();
+    if (typeof _showAsmWarnings === 'function') _showAsmWarnings(result.warnings || []);
 
     const absName = result.abstractionName || 'Unnamed';
     const caps = result.capabilities || [];
@@ -1461,14 +1481,18 @@ function auditLumpOnly() {
     const con = document.getElementById('editorConsole');
     if (con) con.className = '';
     switchCodeTab('console');
+    if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
+    if (typeof _clearAsmWarnings === 'function') _clearAsmWarnings();
 
     const result = cloomcCompiler.compile(source, []);
     if (result.errors.length > 0) {
         const errText = result.errors.map(e => `Line ${e.line || '?'}: ${e.message}`).join('\n');
         if (con) { con.textContent = `Audit LUMP — compilation errors:\n${errText}`; con.scrollTop = 0; }
         const _ae = result.errors.length; if (typeof _showAsmErrors === 'function') _showAsmErrors(result.errors, 'Audit LUMP — compile error' + (_ae > 1 ? 's' : ''));
+        if (typeof _showAsmWarnings === 'function') _showAsmWarnings(result.warnings || []);
         return;
     }
+    if (typeof _showAsmWarnings === 'function') _showAsmWarnings(result.warnings || []);
 
     const absName = result.abstractionName || 'Unnamed';
     const caps    = result.capabilities || [];
@@ -1561,6 +1585,10 @@ function auditLumpOnly() {
         }
     } else if (auditWarns.length > 0) {
         listing += `\n  \u26a0 Audit passed with ${auditWarns.length} warning${auditWarns.length !== 1 ? 's' : ''} \u2014 review before deploying.\n`;
+        if (typeof _showAsmWarnings === 'function') {
+            const _aloWarnErrs = auditWarns.map(r => ({ line: null, message: `[${r.ruleId}] ${r.message} \u2014 ${r.detail}` }));
+            _showAsmWarnings(_aloWarnErrs);
+        }
     } else {
         listing += `\n  \u2713 All checks passed \u2014 safe to Compile.\n`;
     }
@@ -1709,6 +1737,8 @@ function compileAndCreateAbstraction() {
     const source = editor.value;
     const con = document.getElementById('editorConsole');
     if (con) con.className = '';
+    if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
+    if (typeof _clearAsmWarnings === 'function') _clearAsmWarnings();
 
     const result = cloomcCompiler.compile(source, []);
 
