@@ -42,7 +42,7 @@ set -uo pipefail
 SHOW_PROGRESS=0
 PROGRESS_INTERVAL=5
 MAX_PARALLEL=8
-GROUPS=()
+_GROUP_ARGS=()
 EXPLICIT_SUITES=()
 
 _args=("$@")
@@ -73,10 +73,10 @@ while [ $_i -lt ${#_args[@]} ]; do
                 echo "ERROR: --group requires an argument" >&2
                 exit 1
             fi
-            GROUPS+=("${_args[$_i]}")
+            _GROUP_ARGS+=("${_args[$_i]}")
             ;;
         --group=*)
-            GROUPS+=("${_arg#--group=}")
+            _GROUP_ARGS+=("${_arg#--group=}")
             ;;
         *)
             EXPLICIT_SUITES+=("$_arg")
@@ -151,7 +151,7 @@ register_suite "pending-gt-tests" \
     'node simulator/test_lazy_resolve_pending.js'
 
 register_suite "selftest-lump-runs" \
-    'python -m pytest tests/simulator/test_selftest_lump_runs.py -v'
+    'python -m pytest tests/simulator/test_selftest_lump_runs.py tests/simulator/test_run_lump_boots_slot3.py -v'
 
 register_suite "boot-image-matches-sim" \
     'python3 -m pytest tests/boot/test_boot_image_matches_simulator.py -v'
@@ -258,7 +258,7 @@ SUITE_CMDS=()
 # Resolve --group flags into a list of suite names to request
 REQUESTED_SUITES=("${EXPLICIT_SUITES[@]+"${EXPLICIT_SUITES[@]}"}")
 
-for _grp_name in "${GROUPS[@]+"${GROUPS[@]}"}"; do
+for _grp_name in "${_GROUP_ARGS[@]+"${_GROUP_ARGS[@]}"}"; do
     if [ -z "${ALL_GROUPS[$_grp_name]+set}" ]; then
         echo "ERROR: unknown group '$_grp_name'" >&2
         echo "" >&2

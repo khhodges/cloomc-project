@@ -3968,18 +3968,60 @@ async function _loadLumpBinaryIntoSim(token, name, btn, nsSlot) {
         if (!rawWords.length) throw new Error('Empty LUMP \u2014 no words returned');
 
         if (typeof sim === 'undefined' || !sim) throw new Error('Simulator not ready');
+
+        // Guard: when nsSlot is null/undefined we force the lump into
+        // BOOT_ABSTR_NS_SLOT (slot 3 — Boot.Abstr, the only slot CR14
+        // references after boot).  But sim.bootEntrySlot may still hold a
+        // previously-selected slot (e.g. 51 for Ethernet) from a boot-entry
+        // badge click.  instantBoot() runs NUC_CLIST which does an mLoad on
+        // sim.bootEntrySlot; if that slot has no installed lump the mLoad
+        // faults with LUMP_MAGIC before we ever write our binary.
+        // Fix: temporarily force both sim.bootEntrySlot and the module-level
+        // bootEntrySlot (declared in app-memory.js) to BOOT_ABSTR_NS_SLOT for
+        // the instantBoot call.  We restore unconditionally — on success and on
+        // any error — so the user's boot-entry UI selection is always preserved.
+        const _BOOT_SLOT = (typeof BOOT_ABSTR_NS_SLOT !== 'undefined') ? BOOT_ABSTR_NS_SLOT : 3;
+        const _forcingBootSlot = (nsSlot === null || nsSlot === undefined);
+        const _savedSimBootEntry = sim.bootEntrySlot;
+        // bootEntrySlot is a let-declared cross-file global in app-memory.js.
+        // let vars are NOT on window, so we reference it by name directly.
+        const _savedModBootEntry = (typeof bootEntrySlot !== 'undefined') ? bootEntrySlot : _BOOT_SLOT;
+        if (_forcingBootSlot) {
+            sim.bootEntrySlot = _BOOT_SLOT;
+            if (typeof bootEntrySlot !== 'undefined') bootEntrySlot = _BOOT_SLOT;
+        }
+
+        // Helper to restore the saved boot-entry selection.  Called on both
+        // the success path and from the catch block so state is always clean.
+        const _restoreBootEntry = () => {
+            if (_forcingBootSlot) {
+                sim.bootEntrySlot = _savedSimBootEntry;
+                if (typeof bootEntrySlot !== 'undefined') bootEntrySlot = _savedModBootEntry;
+            }
+        };
+
         if (!sim.bootComplete && typeof instantBoot === 'function') instantBoot();
 
         const loaded = sim.loadLumpBinary(rawWords, (nsSlot !== null && nsSlot !== undefined) ? nsSlot : undefined);
-        if (!loaded) throw new Error('loadLumpBinary rejected the binary — check the console output for details');
+        if (!loaded) {
+            _restoreBootEntry();
+            throw new Error('loadLumpBinary rejected the binary — check the console output for details');
+        }
 
         // Update the NS-slot label so the Code-view panel title reflects the
         // loaded LUMP, not the original boot-time label ("LED flash").
         // The resolved slot mirrors what loadLumpBinary does internally.
+        // Compute _resolvedSlot while sim.bootEntrySlot is still _BOOT_SLOT
+        // (before restore) so it correctly evaluates to slot 3 on the forced path.
         const _resolvedSlot = (nsSlot !== null && nsSlot !== undefined)
             ? Number(nsSlot)
-            : (sim.bootEntrySlot || 3);
+            : (sim.bootEntrySlot || _BOOT_SLOT);
         if (sim.nsLabels) sim.nsLabels[_resolvedSlot] = name || token;
+
+        // Restore the user's prior boot-entry selection now that the lump is
+        // safely installed.  The simulator is configured to run from slot 3
+        // regardless; restoring preserves the user's UI preference only.
+        _restoreBootEntry();
 
         if (typeof _syncBootEntryFromSim === 'function') _syncBootEntryFromSim();
         // Clear the assembler-path state so that _applyPendingSimLoad() (called on every
