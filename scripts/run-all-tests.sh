@@ -159,6 +159,9 @@ register_suite "hardware-sim" \
 register_suite "e2e-tests" \
     'CHROMIUM=$(which chromium) && mkdir -p .cache/ms-playwright/chromium-1217/chrome-linux64 && ln -sf "$CHROMIUM" .cache/ms-playwright/chromium-1217/chrome-linux64/chrome && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npx --yes playwright test'
 
+register_suite "sync-guard-tests" \
+    'node scripts/test_sync_guard.js'
+
 # ---------------------------------------------------------------------------
 # Group registry — map a short group name to a list of suite names
 # ---------------------------------------------------------------------------

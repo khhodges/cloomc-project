@@ -111,6 +111,10 @@ args = "all-tests"
 task = "workflow.run"
 args = "check-api-reference-stale"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "sync-guard-tests"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -383,6 +387,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node scripts/gen-api-reference.js --check && node scripts/check-run-all-tests-sync.js"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "sync-guard-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/test_sync_guard.js"
 
 [workflows.workflow.metadata]
 outputType = "console"
