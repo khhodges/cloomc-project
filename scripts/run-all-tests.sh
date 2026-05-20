@@ -4,12 +4,14 @@
 # Exits non-zero if any suite fails.
 #
 # Usage:
-#   ./scripts/run-all-tests.sh                          # run all suites
-#   ./scripts/run-all-tests.sh assembler-tests lump-roundtrip  # run named suites only
-#   ./scripts/run-all-tests.sh --progress               # run all suites with live status
-#   ./scripts/run-all-tests.sh --group boot             # run all boot-image-* suites
-#   ./scripts/run-all-tests.sh --group lump             # run lump-consistency, lump-binary-tests, lump-roundtrip
-#   ./scripts/run-all-tests.sh --group simulator        # run simulator suites
+#   ./scripts/run-all-tests.sh                                    # run all suites
+#   ./scripts/run-all-tests.sh assembler-tests lump-roundtrip     # run named suites only
+#   ./scripts/run-all-tests.sh --progress                         # run all suites with live status
+#   ./scripts/run-all-tests.sh --group boot                       # run all boot-image-* suites
+#   ./scripts/run-all-tests.sh --group lump                       # run lump-consistency, lump-binary-tests, lump-roundtrip
+#   ./scripts/run-all-tests.sh --group simulator                  # run simulator suites
+#   ./scripts/run-all-tests.sh --group lump assembler-tests       # group + extra suite(s), no duplicates
+#   ./scripts/run-all-tests.sh assembler-tests --group lump       # same — order of flags doesn't matter
 #
 # Flags:
 #   --progress              Print a live "[X/N done — waiting on: …]" status
@@ -22,6 +24,9 @@
 #                           defined in the "Group registry" section below.
 #                           Unknown group names print an error listing valid
 #                           groups and exit non-zero.
+#                           May be combined with explicit suite names in the
+#                           same invocation; duplicate suite names are silently
+#                           deduplicated, preserving declaration order.
 
 set -uo pipefail
 
