@@ -21,6 +21,11 @@
 #                           disrupted.
 #   --progress-interval=N   Seconds between progress lines (default 5).
 #                           Only meaningful when --progress is also set.
+#   --max-parallel=N        Cap how many suites run concurrently (default 8).
+#                           Use 0 to launch all suites simultaneously (the old
+#                           behaviour).  Capping prevents OOM-kills of the live
+#                           dev server when running on resource-constrained
+#                           containers.
 #   --group <name>          Run all suites in the named group.  Groups are
 #                           defined in the "Group registry" section below.
 #                           Unknown group names print an error listing valid
@@ -36,6 +41,7 @@ set -uo pipefail
 # ---------------------------------------------------------------------------
 SHOW_PROGRESS=0
 PROGRESS_INTERVAL=5
+MAX_PARALLEL=8
 GROUPS=()
 EXPLICIT_SUITES=()
 
@@ -49,6 +55,17 @@ while [ $_i -lt ${#_args[@]} ]; do
             ;;
         --progress-interval=*)
             PROGRESS_INTERVAL="${_arg#--progress-interval=}"
+            ;;
+        --max-parallel=*)
+            MAX_PARALLEL="${_arg#--max-parallel=}"
+            ;;
+        --max-parallel)
+            _i=$((_i + 1))
+            if [ $_i -ge ${#_args[@]} ]; then
+                echo "ERROR: --max-parallel requires an argument" >&2
+                exit 1
+            fi
+            MAX_PARALLEL="${_args[$_i]}"
             ;;
         --group)
             _i=$((_i + 1))
@@ -328,7 +345,26 @@ launch_suite() {
     echo $! > "$pid_file"
 }
 
+# _throttle_launch: block until fewer than MAX_PARALLEL suites are running.
+# Uses kill -0 to check whether a launched PID is still alive.
+# No-op when MAX_PARALLEL=0 (unlimited).
+_throttle_launch() {
+    [ "$MAX_PARALLEL" -le 0 ] && return 0
+    while true; do
+        local _active=0
+        for _tn in "${SUITE_NAMES[@]}"; do
+            local _tpf="$WORK_DIR/${_tn}.pid"
+            [ -f "$_tpf" ] || continue
+            local _tp; _tp=$(cat "$_tpf")
+            kill -0 "$_tp" 2>/dev/null && _active=$((_active + 1))
+        done
+        [ "$_active" -lt "$MAX_PARALLEL" ] && return 0
+        sleep 0.3
+    done
+}
+
 for i in "${!SUITE_NAMES[@]}"; do
+    _throttle_launch
     launch_suite "${SUITE_NAMES[$i]}" "${SUITE_CMDS[$i]}"
 done
 
