@@ -7,6 +7,9 @@
 #   ./scripts/run-all-tests.sh                          # run all suites
 #   ./scripts/run-all-tests.sh assembler-tests lump-roundtrip  # run named suites only
 #   ./scripts/run-all-tests.sh --progress               # run all suites with live status
+#   ./scripts/run-all-tests.sh --group boot             # run all boot-image-* suites
+#   ./scripts/run-all-tests.sh --group lump             # run lump-consistency, lump-binary-tests, lump-roundtrip
+#   ./scripts/run-all-tests.sh --group simulator        # run simulator suites
 #
 # Flags:
 #   --progress              Print a live "[X/N done — waiting on: …]" status
@@ -15,6 +18,10 @@
 #                           disrupted.
 #   --progress-interval=N   Seconds between progress lines (default 5).
 #                           Only meaningful when --progress is also set.
+#   --group <name>          Run all suites in the named group.  Groups are
+#                           defined in the "Group registry" section below.
+#                           Unknown group names print an error listing valid
+#                           groups and exit non-zero.
 
 set -uo pipefail
 
@@ -23,12 +30,38 @@ set -uo pipefail
 # ---------------------------------------------------------------------------
 SHOW_PROGRESS=0
 PROGRESS_INTERVAL=5
-for arg in "$@"; do
-    case "$arg" in
-        --progress) SHOW_PROGRESS=1 ;;
-        --progress-interval=*) PROGRESS_INTERVAL="${arg#--progress-interval=}" ;;
+GROUP=""
+EXPLICIT_SUITES=()
+
+_args=("$@")
+_i=0
+while [ $_i -lt ${#_args[@]} ]; do
+    _arg="${_args[$_i]}"
+    case "$_arg" in
+        --progress)
+            SHOW_PROGRESS=1
+            ;;
+        --progress-interval=*)
+            PROGRESS_INTERVAL="${_arg#--progress-interval=}"
+            ;;
+        --group)
+            _i=$((_i + 1))
+            if [ $_i -ge ${#_args[@]} ]; then
+                echo "ERROR: --group requires an argument" >&2
+                exit 1
+            fi
+            GROUP="${_args[$_i]}"
+            ;;
+        --group=*)
+            GROUP="${_arg#--group=}"
+            ;;
+        *)
+            EXPLICIT_SUITES+=("$_arg")
+            ;;
     esac
+    _i=$((_i + 1))
 done
+unset _args _i _arg
 
 cd "$(dirname "$0")/.."
 
@@ -133,19 +166,57 @@ register_suite "e2e-tests" \
     'CHROMIUM=$(which chromium) && mkdir -p .cache/ms-playwright/chromium-1217/chrome-linux64 && ln -sf "$CHROMIUM" .cache/ms-playwright/chromium-1217/chrome-linux64/chrome && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npx --yes playwright test'
 
 # ---------------------------------------------------------------------------
+# Group registry — map a short group name to a list of suite names
+# ---------------------------------------------------------------------------
+# Keys are group names; values are space-separated suite name lists.
+
+declare -A ALL_GROUPS
+
+ALL_GROUPS["boot"]="boot-image-matches-sim boot-image-loads-and-boots boot-image-upload-endpoint boot-image-serve-endpoints boot-layout-regression"
+
+ALL_GROUPS["lump"]="lump-consistency lump-binary-tests lump-roundtrip"
+
+ALL_GROUPS["simulator"]="fault-recovery-tests assembler-tests catalog-compile-tests rci-threading-tests pending-gt-tests warning-panel-tests boot-entry-sync-tests selftest-lump-runs"
+
+ALL_GROUPS["checks"]="check-stale-cr7 check-selftest-lump-stale check-capabilities-blocks check-api-reference-stale"
+
+ALL_GROUPS["hardware"]="hardware-sim"
+
+ALL_GROUPS["e2e"]="e2e-tests"
+
+# ---------------------------------------------------------------------------
 # Filter suites based on command-line arguments
 # ---------------------------------------------------------------------------
 SUITE_NAMES=()
 SUITE_CMDS=()
 
-if [ "$#" -eq 0 ]; then
-    # No arguments — run everything
+# Resolve --group into a list of suite names to request
+REQUESTED_SUITES=("${EXPLICIT_SUITES[@]+"${EXPLICIT_SUITES[@]}"}")
+
+if [ -n "$GROUP" ]; then
+    if [ -z "${ALL_GROUPS[$GROUP]+set}" ]; then
+        echo "ERROR: unknown group '$GROUP'" >&2
+        echo "" >&2
+        echo "Valid groups:" >&2
+        for g in $(echo "${!ALL_GROUPS[@]}" | tr ' ' '\n' | sort); do
+            echo "  $g  →  ${ALL_GROUPS[$g]}" >&2
+        done
+        exit 1
+    fi
+    # shellcheck disable=SC2206
+    read -r -a _group_suites <<< "${ALL_GROUPS[$GROUP]}"
+    REQUESTED_SUITES+=("${_group_suites[@]}")
+    unset _group_suites
+fi
+
+if [ "${#REQUESTED_SUITES[@]}" -eq 0 ]; then
+    # No filtering — run everything
     SUITE_NAMES=("${ALL_SUITE_NAMES[@]}")
     SUITE_CMDS=("${ALL_SUITE_CMDS[@]}")
 else
     # Validate every requested name before launching anything
     INVALID=()
-    for requested in "$@"; do
+    for requested in "${REQUESTED_SUITES[@]}"; do
         found=0
         for registered in "${ALL_SUITE_NAMES[@]}"; do
             if [ "$requested" = "$registered" ]; then
@@ -174,7 +245,7 @@ else
     # Build the filtered lists preserving declaration order
     for i in "${!ALL_SUITE_NAMES[@]}"; do
         name="${ALL_SUITE_NAMES[$i]}"
-        for requested in "$@"; do
+        for requested in "${REQUESTED_SUITES[@]}"; do
             if [ "$requested" = "$name" ]; then
                 SUITE_NAMES+=("$name")
                 SUITE_CMDS+=("${ALL_SUITE_CMDS[$i]}")
