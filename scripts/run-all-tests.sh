@@ -7,6 +7,17 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  PRE-FLIGHT: checking run-all-tests.sh is in sync"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+node scripts/check-run-all-tests-sync.js || {
+    echo ""
+    echo "STOPPING: run-all-tests.sh is out of sync with .replit workflows."
+    echo "Fix the sync issues reported above, then re-run."
+    exit 1
+}
+
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 

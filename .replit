@@ -97,10 +97,6 @@ args = "check-capabilities-blocks"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "check-api-reference-stale"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "rci-threading-tests"
 
 [[workflows.workflow.tasks]]
@@ -110,6 +106,10 @@ args = "pending-gt-tests"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "all-tests"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check-api-reference-stale"
 
 [[workflows.workflow]]
 name = "Church Machine IDE"
@@ -344,17 +344,6 @@ args = "node scripts/check-capabilities-blocks.js"
 isValidation = true
 
 [[workflows.workflow]]
-name = "check-api-reference-stale"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node scripts/gen-api-reference.js --check"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
 name = "rci-threading-tests"
 author = "agent"
 
@@ -383,6 +372,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash scripts/run-all-tests.sh"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "check-api-reference-stale"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/gen-api-reference.js --check && node scripts/check-run-all-tests-sync.js"
 
 [workflows.workflow.metadata]
 outputType = "console"
