@@ -1855,6 +1855,107 @@ console.log('\n--- T017: SCHEDULER_IRQ_CLIST authority check (Task #1530) ---');
     }
 }
 
+// ── T018: LAZY_RESOLVE wired from _execLoad (petNameMemory path, Task #1551) ──
+//
+// Integration tests: drives step() through a real LOAD instruction whose
+// target c-list slot holds a NULL GT.
+//   T018-A: unnamed slot → NULL_CAP fault fires, machine halts.
+//   T018-B: slot in petNameMemory → Scheduler.IRQ(LAZY_RESOLVE) fires,
+//           machine NOT halted, no fault logged in faultLog.
+//   T018-C: petNameMemory LOAD returns the expected lazySuspended result shape.
+console.log('\n--- T018: LAZY_RESOLVE wired from _execLoad (petNameMemory) ---');
+{
+    const LOAD_SLOT  = 3;    // c-list slot holding the NULL GT
+    const NS_SLOT7   = 7;    // NS slot backing CR6's c-list
+    const CLIST_BASE = 0x500;
+
+    // LOAD AL, CR1, CR6, LOAD_SLOT
+    // opcode=0(5b), cond=AL=14(4b), crDst=1(4b), crSrc=6(4b), imm=LOAD_SLOT(15b)
+    const LOAD_INSTR = ((0 << 27) | (14 << 23) | (1 << 19) | (6 << 15) | LOAD_SLOT) >>> 0;
+
+    function makeLoadSim() {
+        const { sim, registry, sysAbs } = makeTestSim();
+        // bootComplete=false → _fetchInstruction uses direct memory[pc] path,
+        // no CR14 setup required (same pattern as T016 makeEloadSim).
+        sim.bootComplete = false;
+
+        // NS slot 7 backs CR6 (the c-list GT); clistCount=10 so LOAD_SLOT=3 is in range.
+        sim.writeNSEntry(NS_SLOT7, CLIST_BASE, 63, 0, 0, 1, 1, 10, 0);
+
+        // CR6 = E-perm Inform GT for slot 7; word1 = c-list base; word2 encodes clistCount.
+        const cr6GT = sim.createGT(1, NS_SLOT7, { E: 1 }, 1);
+        sim.cr[6] = {
+            word0: cr6GT,
+            word1: CLIST_BASE,
+            word2: sim.packNSWord1(63, 0, 0, 1, 10),
+            word3: 0, m: 0
+        };
+
+        // NULL GT at the target c-list slot.
+        sim.memory[CLIST_BASE + LOAD_SLOT] = 0;
+
+        // Place LOAD instruction at PC=0.
+        sim.memory[0] = LOAD_INSTR;
+
+        // Track _fireSchedulerIRQ calls.
+        let irqReason = null, irqSlot = null;
+        const origFire = sim._fireSchedulerIRQ.bind(sim);
+        sim._fireSchedulerIRQ = function(reason, faultRecord, slot) {
+            irqReason = reason;
+            irqSlot   = slot;
+            return origFire(reason, faultRecord, slot);
+        };
+
+        return { sim, registry, sysAbs, getIRQ: () => ({ reason: irqReason, slot: irqSlot }) };
+    }
+
+    // ── T018-A: unnamed slot → NULL_CAP fault fires ──────────────────────────
+    {
+        const { sim, getIRQ } = makeLoadSim();
+
+        // LOAD_SLOT is NOT in petNameMemory.
+        sim.petNameMemory.delete(LOAD_SLOT);
+
+        sim.step();
+        const irq = getIRQ();
+
+        check('T018-A1: machine IS halted after NULL_CAP on unnamed slot',
+            sim.halted === true);
+        check('T018-A2: faultLog has at least one entry (NULL_CAP logged)',
+            sim.faultLog.length >= 1);
+        check('T018-A3: fault code is NULL_CAP',
+            sim.faultLog.some(f => f.faultCode === ChurchSimulator.FAULT_CODES.NULL_CAP));
+        check('T018-A4: _fireSchedulerIRQ NOT called with LAZY_RESOLVE on unnamed slot',
+            irq.reason !== 'LAZY_RESOLVE');
+    }
+
+    // ── T018-B: petNameMemory slot → LAZY_RESOLVE fires ─────────────────────
+    {
+        const { sim, getIRQ } = makeLoadSim();
+
+        // Register LOAD_SLOT in petNameMemory (simulates .petname pseudo-instruction).
+        sim.petNameMemory.add(LOAD_SLOT);
+
+        const result = sim.step();
+        const irq = getIRQ();
+
+        check('T018-B1: machine NOT halted after LAZY_RESOLVE on named slot',
+            sim.halted === false);
+        check('T018-B2: faultLog is empty (LAZY_RESOLVE is not a halt-level fault)',
+            sim.faultLog.length === 0);
+        check('T018-B3: _fireSchedulerIRQ was called with reason "LAZY_RESOLVE"',
+            irq.reason === 'LAZY_RESOLVE');
+        check('T018-B4: _fireSchedulerIRQ received the correct c-list slot',
+            irq.slot === LOAD_SLOT);
+        check('T018-B5: step() returned a non-null lazySuspended result',
+            result !== null && result && result.lazySuspended === true);
+        check('T018-B6: result.slot matches LOAD_SLOT',
+            result && result.slot === LOAD_SLOT);
+        check('T018-B7: output contains [LAZY-RESOLVE] tag',
+            sim.output.includes('[LAZY-RESOLVE]'));
+    }
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
