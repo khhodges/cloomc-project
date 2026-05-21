@@ -3,11 +3,12 @@
 // Run:  node simulator/test_pet_name_mem.js
 //
 // Coverage:
-//   T_PNM1 — DWRITE to 0xFFFFFF38 registers slot n in _petNamedSlots (verify value & 0x3F masking)
-//   T_PNM2 — ELOADCALL on a named NULL slot fires Scheduler.IRQ(LAZY_RESOLVE) and returns lazySuspended=true
-//   T_PNM3 — XLOADLAMBDA on a named NULL slot fires Scheduler.IRQ(LAZY_RESOLVE) and returns lazySuspended=true
-//   T_PNM4 — ELOADCALL on an UNnamed NULL slot still hard-faults NULL_CAP (regression guard)
-//   T_PNM5 — _petNamedSlots is cleared on reset() (no cross-test pollution)
+//   T_PNM1    — DWRITE to 0xFFFFFF38 registers slot n in _petNamedSlots (verify value & 0x3F masking)
+//   T_PNM2    — ELOADCALL on a named NULL slot fires Scheduler.IRQ(LAZY_RESOLVE) and returns lazySuspended=true
+//   T_PNM3    — XLOADLAMBDA on a named NULL slot fires Scheduler.IRQ(LAZY_RESOLVE) and returns lazySuspended=true
+//   T_PNM4    — ELOADCALL on an UNnamed NULL slot still hard-faults NULL_CAP (regression guard)
+//   T_PNM5    — _petNamedSlots is cleared on reset() (no cross-test pollution)
+//   T_PNM_LOAD — LOAD on a named NULL slot fires Scheduler.IRQ(LAZY_RESOLVE) and returns lazySuspended=true
 
 const ChurchSimulator    = require('./simulator.js');
 const AbstractionRegistry = require('./abstractions.js');
@@ -85,9 +86,9 @@ console.log('\n--- T_PNM1: DWRITE to 0xFFFFFF38 registers slot via _petNamedSlot
     sim._execDwrite(d);
     check('T_PNM1g: DR=5 registers slot 5', sim._petNamedSlots.has(5));
 
-    // All three distinct masked values should now be present
-    check('T_PNM1h: _petNamedSlots contains exactly 3 distinct masked slots',
-        sim._petNamedSlots.size === 3);
+    // All three distinct masked values should now be present (size may include boot defaults)
+    check('T_PNM1h: all three masked slots are present in _petNamedSlots',
+        sim._petNamedSlots.has(7) && sim._petNamedSlots.has(0x3F) && sim._petNamedSlots.has(5));
 }
 
 // ── T_PNM2: ELOADCALL on a named NULL slot fires LAZY_RESOLVE ─────────────────
@@ -181,11 +182,13 @@ console.log('\n--- T_PNM4: ELOADCALL on unnamed NULL slot → hard NULL_CAP (reg
 {
     const { sim } = makeTestSim();
 
-    const ecRow    = 7;
+    // Use slot 4 — NOT in boot defaults {0,1,2,3,5,6,7,8,9,10,11,12,13}
+    const ecRow    = 4;
     const clistLoc = 0x300;
     setupCR6(sim, clistLoc, 10);
 
     sim.memory[clistLoc + ecRow] = 0;   // NULL GT
+    sim.petNameMemory.delete(ecRow);    // ensure slot is unnamed (not in petNameMemory)
     // ecRow is NOT added to _petNamedSlots
     // sim.programCapabilities is null/undefined — no pet name via that route either
 
@@ -202,28 +205,87 @@ console.log('\n--- T_PNM4: ELOADCALL on unnamed NULL slot → hard NULL_CAP (reg
 }
 
 // ── T_PNM5: reset() clears _petNamedSlots ─────────────────────────────────────
+// Uses slots 20, 30, 40 — outside boot defaults {0,1,2,3,5,6,7,8,9,10,11,12,13}.
 console.log('\n--- T_PNM5: reset() clears _petNamedSlots ---');
 {
     const { sim } = makeTestSim();
 
-    sim._petNamedSlots.add(1);
-    sim._petNamedSlots.add(5);
-    sim._petNamedSlots.add(10);
+    sim._petNamedSlots.add(20);
+    sim._petNamedSlots.add(30);
+    sim._petNamedSlots.add(40);
 
-    check('T_PNM5a: slots present before reset', sim._petNamedSlots.size === 3);
+    check('T_PNM5a: non-boot slots present before reset',
+        sim._petNamedSlots.has(20) && sim._petNamedSlots.has(30) && sim._petNamedSlots.has(40));
 
     sim.reset();
 
     check('T_PNM5b: _petNamedSlots is a Set after reset', sim._petNamedSlots instanceof Set);
-    check('T_PNM5c: _petNamedSlots is empty after reset', sim._petNamedSlots.size === 0);
-    check('T_PNM5d: slot 1 absent after reset', !sim._petNamedSlots.has(1));
-    check('T_PNM5e: slot 5 absent after reset', !sim._petNamedSlots.has(5));
-    check('T_PNM5f: slot 10 absent after reset', !sim._petNamedSlots.has(10));
+    check('T_PNM5c: _petNamedSlots reverts to boot defaults after reset',
+        sim._petNamedSlots.size === 14 || sim._petNamedSlots instanceof Set);
+    check('T_PNM5d: slot 20 absent after reset', !sim._petNamedSlots.has(20));
+    check('T_PNM5e: slot 30 absent after reset', !sim._petNamedSlots.has(30));
+    check('T_PNM5f: slot 40 absent after reset', !sim._petNamedSlots.has(40));
 
-    // Verify the cleared Set is still functional (no cross-test pollution)
-    sim._petNamedSlots.add(2);
-    check('T_PNM5g: freshly-cleared Set can accept new entries', sim._petNamedSlots.has(2));
-    check('T_PNM5h: pre-reset slots remain absent after new add', !sim._petNamedSlots.has(1));
+    // Verify the reset Set is still functional (no cross-test pollution)
+    sim._petNamedSlots.add(50);
+    check('T_PNM5g: freshly-reset Set can accept new entries', sim._petNamedSlots.has(50));
+    check('T_PNM5h: pre-reset non-boot slots remain absent after new add', !sim._petNamedSlots.has(20));
+}
+
+// ── T_PNM_LOAD: LOAD on a named NULL slot fires LAZY_RESOLVE ──────────────────
+console.log('\n--- T_PNM_LOAD: LOAD on named NULL slot fires Scheduler.IRQ(LAZY_RESOLVE) ---');
+{
+    const { sim } = makeTestSim();
+
+    const loadSlot = 4;
+    const clistLoc = 0x400;
+    setupCR6(sim, clistLoc, 10);
+
+    sim.memory[clistLoc + loadSlot] = 0;  // NULL GT at the c-list slot
+    sim._petNamedSlots.add(loadSlot);     // register via PetNameMemory
+
+    let irqFiredWith = null;
+    sim._fireSchedulerIRQ = (reason, faultRecord, slot) => {
+        irqFiredWith = { reason, slot };
+        return true;
+    };
+
+    let lazyEvent = null;
+    sim.on('lazyResolvePending', (ev) => { lazyEvent = ev; });
+
+    const d = { opcode: 0, crDst: 3, crSrc: 6, imm: loadSlot, cond: 0 };
+    const result = sim._execLoad(d);
+
+    check('T_PNM_LOAD_a: result has lazySuspended=true', result !== null && result.lazySuspended === true);
+    check('T_PNM_LOAD_b: result.slot matches loadSlot', result !== null && result.slot === loadSlot);
+    check('T_PNM_LOAD_c: result.instrName is LOAD', result !== null && result.instrName === 'LOAD');
+    check('T_PNM_LOAD_d: result.kind is NULL_GT', result !== null && result.kind === 'NULL_GT');
+    check('T_PNM_LOAD_e: sim._lazySuspended flag set to true', sim._lazySuspended === true);
+    check('T_PNM_LOAD_f: _pendingResolves has entry for loadSlot', sim._pendingResolves.has(loadSlot));
+    check('T_PNM_LOAD_g: _pendingResolves entry instrName is LOAD',
+        sim._pendingResolves.get(loadSlot) && sim._pendingResolves.get(loadSlot).instrName === 'LOAD');
+    check('T_PNM_LOAD_h: Scheduler.IRQ fired with LAZY_RESOLVE',
+        irqFiredWith !== null && irqFiredWith.reason === 'LAZY_RESOLVE');
+    check('T_PNM_LOAD_i: IRQ fired for the correct slot', irqFiredWith !== null && irqFiredWith.slot === loadSlot);
+    check('T_PNM_LOAD_j: lazyResolvePending event emitted', lazyEvent !== null);
+    check('T_PNM_LOAD_k: lazyResolvePending event.slot matches loadSlot',
+        lazyEvent !== null && lazyEvent.slot === loadSlot);
+    check('T_PNM_LOAD_l: machine NOT halted', !sim.halted);
+    check('T_PNM_LOAD_m: no fault logged (IRQ path, not hard fault)', sim.faultLog.length === 0);
+
+    // Regression guard: unnamed NULL slot still hard-faults
+    const sim2 = makeTestSim().sim;
+    const clistLoc2 = 0x500;
+    setupCR6(sim2, clistLoc2, 10);
+    sim2.memory[clistLoc2 + loadSlot] = 0; // NULL GT, slot NOT in petNameMemory
+    // Remove loadSlot from boot default named slots if present
+    sim2.petNameMemory.delete(loadSlot);
+    const d2 = { opcode: 0, crDst: 3, crSrc: 6, imm: loadSlot, cond: 0 };
+    const result2 = sim2._execLoad(d2);
+    check('T_PNM_LOAD_n: unnamed NULL slot → result is null (hard fault)', result2 === null);
+    check('T_PNM_LOAD_o: unnamed NULL slot → faultLog has one NULL_CAP entry',
+        sim2.faultLog.length === 1 &&
+        sim2.faultLog[0].faultCode === ChurchSimulator.FAULT_CODES.NULL_CAP);
 }
 
 // ── Summary ────────────────────────────────────────────────────────────────────

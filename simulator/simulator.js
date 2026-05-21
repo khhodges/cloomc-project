@@ -3315,6 +3315,24 @@ class ChurchSimulator {
                     this.emit('lazyResolvePending', { petName: _pcn, slot: d.imm, instrName: 'LOAD', kind: 'NULL_GT' });
                     return { lazySuspended: true, petName: _pcn, slot: d.imm, instrName: 'LOAD', kind: 'NULL_GT', pc: this.pc, instr: d, desc: `LOAD: waiting for '${_pcn}' (slot ${d.imm})` };
                 }
+            } else if (this.petNameMemory.has(d.imm)) {
+                // petNameMemory: slot was registered via IO_PORT_PET_NAME_WR or markNamedSlots().
+                // Fire Scheduler.IRQ(LAZY_RESOLVE) instead of a hard NULL_CAP fault.
+                this._pendingResolves.set(d.imm, {
+                    petName: `slot${d.imm}`, slot: d.imm, instrName: 'LOAD', kind: 'NULL_GT',
+                    pc: this.pc,
+                    savedDRs: [...this.dr],
+                    savedCRs: this.cr.map(c => ({ ...c })),
+                    savedFlags: { ...this.flags },
+                    savedSto: this.sto,
+                });
+                this._lazySuspended = true;
+                this.output += `[LAZY-RESOLVE] LOAD: c-list slot ${d.imm} is named (PetNameMemory) \u2014 firing Scheduler.IRQ(LAZY_RESOLVE, slot=${d.imm})\n`;
+                this.emit('lazyResolvePending', { petName: `slot${d.imm}`, slot: d.imm, instrName: 'LOAD', kind: 'NULL_GT' });
+                this._fireSchedulerIRQ('LAZY_RESOLVE', null, d.imm);
+                return { lazySuspended: true, petName: `slot${d.imm}`, slot: d.imm, instrName: 'LOAD',
+                         kind: 'NULL_GT', pc: this.pc, instr: d,
+                         desc: `LOAD: named slot ${d.imm} (PetNameMemory) \u2014 Scheduler.IRQ(LAZY_RESOLVE) fired` };
             } else {
                 this.fault('NULL_CAP', `LOAD: c-list offset ${d.imm} is empty (NULL GT)`);
                 return null;
@@ -6680,6 +6698,9 @@ class ChurchSimulator {
     isNamedSlot(slot) {
         return this.petNameMemory.has(slot);
     }
+
+    // _petNamedSlots — alias for petNameMemory, used by tests and external tooling.
+    get _petNamedSlots() { return this.petNameMemory; }
 
     getState() {
         return {
