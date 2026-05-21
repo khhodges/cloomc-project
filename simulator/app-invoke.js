@@ -56,6 +56,7 @@ function _pinLabel(pinName, pin) {
 
 // Called by updateDashboard() in app-tools.js after every Step.
 function renderWatchStrip() {
+    if (!sim) return;
     const el = document.getElementById('watchStrip');
     if (!el) return;
 
