@@ -17,7 +17,6 @@ module.exports = defineConfig({
         timeout: 5000,
     },
     webServer: {
-        command: 'python3 server/app.py',
         url: 'http://localhost:5000',
         reuseExistingServer: true,
         timeout: 30000,
