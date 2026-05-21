@@ -386,6 +386,300 @@ console.log('\n--- T005: lump-audit RPN — pending sentinel prevents unnamed-sl
     }
 }
 
+// ── T006: NULL GT in named c-list slot → lazy suspend (LOAD) ─────────────────
+// When _execLoad encounters a NULL (0x00000000) GT in a named c-list slot, it
+// must suspend the thread (_lazySuspended=true) without firing a fault, and
+// emit lazyResolvePending.
+console.log('\n--- T006: NULL GT named slot → lazy-suspend via LOAD ---');
+{
+    resetPendingRegistry();
+
+    const sim = bootSim();
+    if (!sim.bootComplete) {
+        console.log('SKIP T006: boot did not complete');
+    } else {
+        // 'NavanaService' is NOT in nsLabels — instant-resolve will fail,
+        // forcing the suspend path.
+
+        setupCR6(sim);
+        // Write NULL GT (0) to c-list slot 0.
+        sim.memory[500] = 0;
+
+        // Populate programCapabilities so _execLoad sees the pet name.
+        sim.programCapabilities = [{ name: 'NavanaService', rights: ['E'] }];
+
+        // Encode LOAD CR1, [CR6+0] at PC=0.
+        const instr = sim.encodeInstruction(0, 0xE, 1, 6, 0);
+        const cr14  = sim.cr[14];
+        sim.memory[cr14.word1 + 1] = instr >>> 0;
+        sim.pc     = 0;
+        sim.halted = false;
+
+        const faultCountBefore = sim.faultLog.length;
+        let lazyEvent = null;
+        sim.on('lazyResolvePending', e => { lazyEvent = e; });
+
+        const result = sim.step();
+
+        check('T006a: step() returns a truthy result (not null)',
+            result !== null && result !== undefined);
+
+        check('T006b: result.lazySuspended === true',
+            result && result.lazySuspended === true);
+
+        check('T006c: sim._lazySuspended flag is set',
+            sim._lazySuspended === true);
+
+        check('T006d: no fault was logged (transparent suspension)',
+            sim.faultLog.length === faultCountBefore);
+
+        check('T006e: result carries the pet name "NavanaService"',
+            result && result.petName === 'NavanaService');
+
+        check('T006f: result carries slot index 0',
+            result && result.slot === 0);
+
+        check('T006g: _pendingResolves Map has one entry for slot 0',
+            sim._pendingResolves.size === 1 && sim._pendingResolves.has(0));
+
+        check('T006h: lazyResolvePending event was emitted',
+            lazyEvent !== null);
+
+        check('T006i: event carries petName "NavanaService"',
+            lazyEvent && lazyEvent.petName === 'NavanaService');
+
+        check('T006j: sim.output contains [LAZY-RESOLVE] marker',
+            sim.output.includes('[LAZY-RESOLVE]'));
+
+        // Subsequent step() must be a no-op while suspended.
+        const result2 = sim.step();
+        check('T006k: second step() returns lazySuspended sentinel (thread still waiting)',
+            result2 && result2.lazySuspended === true);
+    }
+}
+
+// ── T007: NULL GT named slot → lazy suspend (ELOADCALL) ──────────────────────
+console.log('\n--- T007: NULL GT named slot → lazy-suspend via ELOADCALL ---');
+{
+    resetPendingRegistry();
+
+    const sim = bootSim();
+    if (!sim.bootComplete) {
+        console.log('SKIP T007: boot did not complete');
+    } else {
+        // 'AlphaService' is NOT in nsLabels — instant-resolve fails → suspend path.
+
+        setupCR6(sim);
+        sim.memory[500] = 0;
+        sim.programCapabilities = [{ name: 'AlphaService', rights: ['E'] }];
+
+        // ELOADCALL opcode = 8; use encodeInstruction to include cond=0xE (always).
+        // encodeInstruction(opcode, cond, crDst, crSrc, imm) — imm[7:0] = ecRow.
+        const ELOADCALL_OPCODE = 8;
+        const ecRow = 0;
+        const instr = sim.encodeInstruction(ELOADCALL_OPCODE, 0xE /* AL */, 0, 6, ecRow);
+        const cr14  = sim.cr[14];
+        sim.memory[cr14.word1 + 1] = instr >>> 0;
+        sim.pc     = 0;
+        sim.halted = false;
+
+        const faultCountBefore = sim.faultLog.length;
+        const result = sim.step();
+
+        check('T007a: result is truthy',
+            result !== null && result !== undefined);
+
+        check('T007b: result.lazySuspended === true or no fault on NULL slot',
+            (result && result.lazySuspended === true) || sim.faultLog.length === faultCountBefore);
+
+        check('T007c: sim output mentions ELOADCALL lazy suspend or LAZY-RESOLVE',
+            sim.output.includes('[LAZY-RESOLVE]') || (result && result.lazySuspended));
+
+        check('T007d: no NULL_CAP fault was raised (transparent suspension)',
+            !sim.faultLog.slice(faultCountBefore).some(f => f.type === 'NULL_CAP'));
+    }
+}
+
+// ── T008: NULL GT with NO pet name → fault immediately (no suspension) ────────
+console.log('\n--- T008: NULL GT no pet name → immediate NULL_CAP fault ---');
+{
+    resetPendingRegistry();
+
+    const sim = bootSim();
+    if (!sim.bootComplete) {
+        console.log('SKIP T008: boot did not complete');
+    } else {
+        setupCR6(sim);
+        sim.memory[500] = 0;
+        // Leave programCapabilities empty → no pet name for slot 0.
+        sim.programCapabilities = null;
+
+        const instr = sim.encodeInstruction(0, 0xE, 1, 6, 0);
+        const cr14  = sim.cr[14];
+        sim.memory[cr14.word1 + 1] = instr >>> 0;
+        sim.pc     = 0;
+        sim.halted = false;
+
+        const faultCountBefore = sim.faultLog.length;
+        const result = sim.step();
+
+        check('T008a: result is null or a fault result (not lazy suspension)',
+            result === null || (result && result.lazySuspended !== true));
+
+        check('T008b: NULL_CAP fault was raised',
+            sim.faultLog.slice(faultCountBefore).some(f => f.type === 'NULL_CAP'));
+
+        check('T008c: sim._lazySuspended is false (no suspension)',
+            sim._lazySuspended === false);
+    }
+}
+
+// ── T009: resolvePendingSlot resolves a NULL GT slot (Task #1519) ─────────────
+console.log('\n--- T009: resolvePendingSlot — NULL slot (Task #1519 path) ---');
+{
+    resetPendingRegistry();
+
+    const sim = bootSim();
+    if (!sim.bootComplete) {
+        console.log('SKIP T009: boot did not complete');
+    } else {
+        // Seed a valid NS entry at slot 6.
+        const NS6_BASE = sim.NS_TABLE_BASE + 6 * sim.NS_ENTRY_WORDS;
+        sim.memory[NS6_BASE]     = 0x00000001 >>> 0;
+        sim.memory[NS6_BASE + 1] = 0x00000041 >>> 0;
+        if (sim.nsCount < 7) sim.nsCount = 7;
+        sim.nsLabels[6] = 'BetaService';
+
+        setupCR6(sim);
+        // Plant a NULL GT and manually inject the lazy resolve entry.
+        sim.memory[500] = 0;
+        sim._pendingResolves.set(0, {
+            petName: 'BetaService', slot: 0, instrName: 'LOAD', kind: 'NULL_GT',
+            pc: 0,
+            savedDRs: [...sim.dr],
+            savedCRs: sim.cr.map(c => ({ ...c })),
+            savedFlags: { ...sim.flags },
+            savedSto: sim.sto,
+        });
+        sim._lazySuspended = true;
+
+        const res = sim.resolvePendingSlot(0, 6);
+
+        check('T009a: resolvePendingSlot returns ok=true for NULL slot',
+            res && res.ok === true);
+
+        check('T009b: memory at c-list slot 0 is now non-zero (GT written)',
+            (sim.memory[500] >>> 0) !== 0);
+
+        check('T009c: written GT is not a pending sentinel (0xFEED____)',
+            !((sim.memory[500] >>> 0).toString(16).startsWith('feed')));
+
+        check('T009d: _pendingResolves entry for slot 0 is cleared',
+            !sim._pendingResolves.has(0));
+
+        check('T009e: sim._lazySuspended is false after resolve clears all pending',
+            sim._lazySuspended === false);
+
+        check('T009f: sim.output contains [RESOLVE] marker',
+            sim.output.includes('[RESOLVE]'));
+
+        check('T009g: result.pendingName contains "BetaService"',
+            res && res.pendingName === 'BetaService');
+    }
+}
+
+// ── T010: escalateLazyResolve escalates to NULL_CAP fault ────────────────────
+console.log('\n--- T010: escalateLazyResolve — fires NULL_CAP fault ---');
+{
+    resetPendingRegistry();
+
+    const sim = bootSim();
+    if (!sim.bootComplete) {
+        console.log('SKIP T010: boot did not complete');
+    } else {
+        // 'GammaService' is NOT in nsLabels — instant-resolve fails → suspend path.
+
+        setupCR6(sim);
+        sim.memory[500] = 0;
+        sim.programCapabilities = [{ name: 'GammaService', rights: ['E'] }];
+
+        const instr = sim.encodeInstruction(0, 0xE, 1, 6, 0);
+        const cr14  = sim.cr[14];
+        sim.memory[cr14.word1 + 1] = instr >>> 0;
+        sim.pc     = 0;
+        sim.halted = false;
+
+        const result = sim.step();
+        if (!result || !result.lazySuspended) {
+            console.log('SKIP T010: did not suspend on NULL GT');
+        } else {
+            const faultCountBefore = sim.faultLog.length;
+            sim.escalateLazyResolve(0);
+
+            check('T010a: escalate fires at least one fault',
+                sim.faultLog.length > faultCountBefore);
+
+            const escalFault = sim.faultLog.slice(faultCountBefore).find(
+                f => f.type === 'NULL_CAP' || f.type === 'LAZY_RESOLVE_PENDING');
+            check('T010b: escalated fault is NULL_CAP or LAZY_RESOLVE_PENDING',
+                escalFault !== undefined);
+
+            check('T010c: sim._lazySuspended is false after escalation',
+                sim._lazySuspended === false);
+
+            check('T010d: _pendingResolves cleared after escalation',
+                !sim._pendingResolves.has(0));
+        }
+    }
+}
+
+// ── T011: Instant resolution for NULL GT when NS entry IS valid ───────────────
+// When the NULL GT slot has a pet name and the nsLabel matches a valid NS entry,
+// the simulator must resolve it inline (no suspension needed).
+console.log('\n--- T011: NULL GT instant inline resolution when NS label is valid ---');
+{
+    resetPendingRegistry();
+
+    const sim = bootSim();
+    if (!sim.bootComplete) {
+        console.log('SKIP T011: boot did not complete');
+    } else {
+        // Seed a fully valid NS entry at slot 9.
+        const NS9_BASE = sim.NS_TABLE_BASE + 9 * sim.NS_ENTRY_WORDS;
+        sim.memory[NS9_BASE]     = 0x00000001 >>> 0;
+        sim.memory[NS9_BASE + 1] = 0x00000041 >>> 0;
+        if (sim.nsCount < 10) sim.nsCount = 10;
+        sim.nsLabels[9] = 'DeltaService';
+
+        setupCR6(sim);
+        sim.memory[500] = 0;
+        sim.programCapabilities = [{ name: 'DeltaService', rights: ['E'] }];
+
+        const instr = sim.encodeInstruction(0, 0xE, 1, 6, 0);
+        const cr14  = sim.cr[14];
+        sim.memory[cr14.word1 + 1] = instr >>> 0;
+        sim.pc     = 0;
+        sim.halted = false;
+
+        const faultCountBefore = sim.faultLog.length;
+        sim.step();
+
+        check('T011a: sim._lazySuspended is false (resolved inline, no suspension)',
+            sim._lazySuspended === false);
+
+        check('T011b: c-list slot 0 is now a real GT (not null, not pending)',
+            (sim.memory[500] >>> 0) !== 0 &&
+            !ChurchSimulator.isPendingGT(sim.memory[500] >>> 0));
+
+        check('T011c: sim.output contains [LAZY-RESOLVE] inline marker',
+            sim.output.includes('[LAZY-RESOLVE]'));
+
+        check('T011d: no NULL_CAP or LAZY_RESOLVE_PENDING fault was logged',
+            !sim.faultLog.slice(faultCountBefore).some(
+                f => f.type === 'NULL_CAP' || f.type === 'LAZY_RESOLVE_PENDING'));
+    }
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(60)}`);
 console.log(`Results: ${pass} passed, ${fail} failed`);

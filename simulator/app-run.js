@@ -757,6 +757,19 @@ function stepSim() {
         updateDashboard();
         return;
     }
+    if (result && result.lazySuspended) {
+        // Lazy-Resolve: thread suspended waiting for IDE to supply a GT (Task #1519).
+        const con = document.getElementById('editorConsole');
+        if (con) {
+            const petName = result.petName || '?';
+            const slot = result.slot !== undefined ? result.slot : '?';
+            con.textContent += `\n⏸ Thread suspended — waiting for '${petName}' (c-list slot ${slot})\n  Link it via the Pending Capabilities panel below to resume.`;
+            con.scrollTop = con.scrollHeight;
+        }
+        _registerLazyResolvePending(result);
+        updateDashboard();
+        return;
+    }
     if (result) {
         const con = document.getElementById('editorConsole');
         if (con) {
@@ -1461,6 +1474,23 @@ function runSim() {
                 }
                 updateDashboard();
                 triggerLazyLoad({ token: sim.awaitingLump.token, nsIndex: sim.awaitingLump.nsIndex, label: sim.nsLabels[sim.awaitingLump.nsIndex] || 'entry_'+sim.awaitingLump.nsIndex });
+                return;
+            }
+            // Lazy-resolve NULL GT: sim suspended waiting for IDE to supply the GT (Task #1519).
+            if (sim._lazySuspended) {
+                _showStopBtn(false);
+                if (con) {
+                    const pending = [...(sim._pendingResolves || new Map()).values()];
+                    const names = pending.map(p => `'${p.petName}'`).join(', ') || '(unknown)';
+                    const lines = con.textContent.split('\n');
+                    lines[lines.length - 1] = `⏸ Thread suspended — waiting for ${names} (${totalSteps} steps)`;
+                    con.textContent = lines.join('\n');
+                    con.scrollTop = con.scrollHeight;
+                }
+                for (const p of (sim._pendingResolves || new Map()).values()) {
+                    _registerLazyResolvePending(p);
+                }
+                updateDashboard();
                 return;
             }
             if (result.stopReason !== 'maxSteps') {
@@ -2800,6 +2830,83 @@ function faultModalRetryDownload() {
 }
 
 // ── Lazy-load lump fetch ──────────────────────────────────────────────────────
+// ── Pending Capabilities panel (Task #1519 — NULL GT Lazy-Resolve) ────────────
+//
+// Tracks NULL-GT slots that suspended the thread.  The IDE renders a small
+// collapsible panel so the user can link each pet name to a live NS entry.
+
+const _lazyResolvePending = new Map();   // slotIdx → { petName, slot, instrName, ts }
+const _LAZY_RESOLVE_TIMEOUT_KEY = 'church_lazy_resolve_timeout_ms';
+
+function _getLazyResolveTimeoutMs() {
+    try {
+        const v = parseInt(localStorage.getItem(_LAZY_RESOLVE_TIMEOUT_KEY), 10);
+        return isNaN(v) ? 30 * 24 * 3600 * 1000 : v;   // default: 30 days
+    } catch(e) { return 30 * 24 * 3600 * 1000; }
+}
+
+function _registerLazyResolvePending(info) {
+    if (!info) return;
+    const slotIdx  = info.slot !== undefined ? info.slot : -1;
+    const petName  = info.petName || '?';
+    const instrName = info.instrName || 'LOAD';
+    if (!_lazyResolvePending.has(slotIdx)) {
+        _lazyResolvePending.set(slotIdx, {
+            petName, slot: slotIdx, instrName, ts: Date.now()
+        });
+    }
+    _renderPendingCapPanel();
+
+    // Schedule deadline escalation.
+    const deadline = _getLazyResolveTimeoutMs();
+    if (deadline < Infinity && deadline > 0) {
+        setTimeout(() => {
+            if (_lazyResolvePending.has(slotIdx) && sim && sim._lazySuspended) {
+                console.warn(`[LazyResolve] Deadline expired for slot ${slotIdx} ('${petName}') — escalating to NULL_CAP fault.`);
+                if (typeof sim.escalateLazyResolve === 'function') {
+                    sim.escalateLazyResolve(slotIdx);
+                }
+                _lazyResolvePending.delete(slotIdx);
+                _renderPendingCapPanel();
+                updateDashboard();
+            }
+        }, deadline);
+    }
+}
+
+function _renderPendingCapPanel() {
+    const area = document.getElementById('editorConsole');
+    if (!area) return;
+    const PANEL_ID = 'lazyResolvePendingPanel';
+    let panel = document.getElementById(PANEL_ID);
+    if (_lazyResolvePending.size === 0) {
+        if (panel) panel.remove();
+        return;
+    }
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = PANEL_ID;
+        panel.style.cssText = 'margin-top:8px;padding:8px 10px;background:#2a1a00;border:1px solid #c8960c;border-radius:4px;font-family:monospace;font-size:12px;color:#f5d87a;';
+        panel.innerHTML = '<b>⏸ Pending Capabilities</b> <small style="color:#aaa">(thread suspended)</small>';
+        const list = document.createElement('ul');
+        list.id = PANEL_ID + '_list';
+        list.style.cssText = 'margin:6px 0 0 0;padding:0 0 0 16px;';
+        panel.appendChild(list);
+        area.parentNode && area.parentNode.insertBefore(panel, area.nextSibling);
+    }
+    const list = document.getElementById(PANEL_ID + '_list');
+    if (!list) return;
+    list.innerHTML = '';
+    for (const [slotIdx, entry] of _lazyResolvePending) {
+        const li = document.createElement('li');
+        li.style.cssText = 'margin:3px 0;';
+        li.textContent = `Slot ${slotIdx}: '${entry.petName}' (${entry.instrName}) — waiting for NS link`;
+        list.appendChild(li);
+    }
+}
+
+// ── End Pending Capabilities panel ─────────────────────────────────────────────
+
 // Called when the simulator returns { absent: true } from step() or stops a
 // run() batch with sim.awaitingLump set.  Fetches the lump from the IDE server,
 // validates the magic, writes it into simulator memory via sim.receiveLump(),

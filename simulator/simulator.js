@@ -622,6 +622,12 @@ class ChurchSimulator {
             pendingWakeFlags: [], // Set of signaled flags (array for ordered sweep)
         };
 
+        // Lazy-Resolve: Transparent Thread Suspension (Task #1519)
+        // Registry of pending NULL-GT or 0xFEED resolves, keyed by c-list slot index.
+        // Each entry: { petName, slot, instrName, kind, pc, savedDRs, savedCRs, savedFlags, savedSto }
+        this._pendingResolves = new Map();
+        this._lazySuspended = false;
+
         this.lazyManifest = {};
         this._lastLoadTargetSlot = null;
         this._loaderSlot = 19;
@@ -811,10 +817,11 @@ class ChurchSimulator {
         return (this.memory[base] !== 0 || this.memory[base + 1] !== 0);
     }
 
-    // ── Interactive Pending-GT Resolution (Task #1448) ────────────────────────
+    // ── Interactive Pending-GT Resolution (Task #1448 + Task #1519) ────────────
     // Called by CListViewer when the user picks an NS abstraction from the
     // "Resolve Now" popover.  Writes a live Inform GT (E permission) into the
-    // c-list slot that currently holds a pending sentinel (0xFEED____).
+    // c-list slot that currently holds a pending sentinel (0xFEED____) or a
+    // NULL GT (0x00000000) that triggered a lazy-suspend (Task #1519).
     //
     // Returns { ok: true, gt: <word> } on success, or { ok: false, error: <msg> }.
     resolvePendingSlot(slotIdx, nsIdx) {
@@ -836,15 +843,76 @@ class ChurchSimulator {
 
         const addr = clistBase + slotIdx;
         const existing = (this.memory[addr] >>> 0);
-        if (!ChurchSimulator.isPendingGT(existing)) {
+        const hasLazyEntry = this._pendingResolves && this._pendingResolves.has(slotIdx);
+
+        // Accept 0xFEED pending sentinels (Task #1448) and NULL GTs that are
+        // registered in _pendingResolves due to a lazy-suspend (Task #1519).
+        if (!ChurchSimulator.isPendingGT(existing) && !(existing === 0 && hasLazyEntry)) {
             return { ok: false, error: `Slot ${slotIdx} does not hold a pending sentinel` };
         }
 
-        const pendingName = ChurchSimulator.pendingGTName(existing);
+        const pendingName = ChurchSimulator.isPendingGT(existing)
+            ? ChurchSimulator.pendingGTName(existing)
+            : (hasLazyEntry ? this._pendingResolves.get(slotIdx).petName : `slot${slotIdx}`);
         const newGT = this.createGT(0, nsIdx, { R:0, W:0, X:0, L:0, S:0, E:1 }, 1);
         this.memory[addr] = newGT >>> 0;
-        this.output += `[RESOLVE] CR${slotIdx} "${pendingName}" \u2192 NS[${nsIdx}] introduced interactively.\n`;
+        this.output += `[RESOLVE] Slot ${slotIdx} "${pendingName}" \u2192 NS[${nsIdx}] introduced interactively.\n`;
+
+        // Resume suspended thread if this slot was the cause of a lazy-suspend.
+        if (this._lazySuspended && hasLazyEntry) {
+            const ctx = this._pendingResolves.get(slotIdx);
+            this.pc = ctx.pc;
+            if (ctx.savedCRs) {
+                for (let i = 0; i < ctx.savedCRs.length; i++) {
+                    if (ctx.savedCRs[i]) this.cr[i] = { ...ctx.savedCRs[i] };
+                }
+            }
+            if (ctx.savedDRs) {
+                for (let i = 0; i < ctx.savedDRs.length; i++) {
+                    this.dr[i] = ctx.savedDRs[i];
+                }
+            }
+            if (ctx.savedFlags) Object.assign(this.flags, ctx.savedFlags);
+            this.sto = ctx.savedSto;
+            this._lazySuspended = false;
+            this._pendingResolves.delete(slotIdx);
+            this.output += `[LAZY-RESOLVE] Thread resumed from PC=${ctx.pc} \u2014 retrying ${ctx.instrName} for slot ${slotIdx} "${pendingName}".\n`;
+        }
+
         return { ok: true, gt: newGT, pendingName, nsIdx };
+    }
+
+    // ── Escalate Lazy-Resolve to NULL_CAP fault (Task #1519) ─────────────────
+    // Called by the IDE after the wall-clock deadline expires.  Restores thread
+    // context so the fault record carries the original PC / instruction, then
+    // fires NULL_CAP with full details.
+    escalateLazyResolve(slot) {
+        const entry = this._pendingResolves.get(slot);
+        if (!entry) {
+            return { ok: false, error: `No pending resolve for slot ${slot}` };
+        }
+        // Restore context so the fault shows the original PC / instruction.
+        this.pc = entry.pc;
+        if (entry.savedCRs) {
+            for (let i = 0; i < entry.savedCRs.length; i++) {
+                if (entry.savedCRs[i]) this.cr[i] = { ...entry.savedCRs[i] };
+            }
+        }
+        if (entry.savedDRs) {
+            for (let i = 0; i < entry.savedDRs.length; i++) {
+                this.dr[i] = entry.savedDRs[i];
+            }
+        }
+        if (entry.savedFlags) Object.assign(this.flags, entry.savedFlags);
+        this.sto = entry.savedSto;
+        this._lazySuspended = false;
+        this._pendingResolves.delete(slot);
+        // Fire the NULL_CAP fault with full context so the programmer knows exactly what to do.
+        this.fault('NULL_CAP',
+            `${entry.instrName}: c-list slot ${slot} "${entry.petName}" deadline expired \u2014 Link Pet name '${entry.petName}' to a live NS entry to resolve`,
+            { petName: entry.petName, slot, instrName: entry.instrName, savedPC: entry.pc, kind: entry.kind }
+        );
+        return { ok: true };
     }
 
     get namespaceTable() {
@@ -2946,6 +3014,17 @@ class ChurchSimulator {
         if (this.awaitingLump) {
             return { suspended: true, awaitingLump: this.awaitingLump };
         }
+        // Lazy-Resolve: thread suspended waiting for IDE to supply a GT (Task #1519).
+        // Return a sentinel so the IDE can display the Pending Capabilities panel.
+        // Execution resumes when resolvePendingSlot() or escalateLazyResolve() is called.
+        if (this._lazySuspended) {
+            return {
+                lazySuspended: true,
+                pendingResolves: [...this._pendingResolves.entries()].map(([slot, e]) => ({
+                    slot, petName: e.petName, instrName: e.instrName, kind: e.kind,
+                })),
+            };
+        }
         if (this.halted) return null;
         this.auditLog = [];
 
@@ -3143,8 +3222,40 @@ class ChurchSimulator {
             const _pc = this.programCapabilities;
             const _pce = _pc && _pc[d.imm];
             const _pcn = _pce ? (typeof _pce === 'string' ? _pce : (_pce.name || null)) : null;
-            this.fault('NULL_CAP', `LOAD: c-list offset ${d.imm}${_pcn ? ` (${_pcn})` : ''} is empty (NULL GT)`);
-            return null;
+            // ── Lazy-Resolve: NULL GT with pet name → suspend thread (Task #1519) ──
+            if (_pcn) {
+                let _resolvedNsIdx = -1;
+                for (const [_ridx, _rlbl] of Object.entries(this.nsLabels)) {
+                    if (String(_rlbl).toUpperCase() === _pcn.toUpperCase()) {
+                        _resolvedNsIdx = parseInt(_ridx, 10);
+                        break;
+                    }
+                }
+                if (_resolvedNsIdx >= 0 && this.isNSEntryValid(_resolvedNsIdx)) {
+                    const _resolvedGT = this.createGT(0, _resolvedNsIdx, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
+                    this.memory[clistLoc + d.imm] = _resolvedGT >>> 0;
+                    slotGT = _resolvedGT >>> 0;
+                    this.output += `[LAZY-RESOLVE] NULL Slot ${d.imm} "${_pcn}" \u2192 NS[${_resolvedNsIdx}] resolved instantly.\n`;
+                    // Fall through to continue LOAD processing
+                } else {
+                    // No NS match — save context and suspend thread transparently
+                    this._pendingResolves.set(d.imm, {
+                        petName: _pcn, slot: d.imm, instrName: 'LOAD', kind: 'NULL_GT',
+                        pc: this.pc,
+                        savedDRs: [...this.dr],
+                        savedCRs: this.cr.map(c => ({ ...c })),
+                        savedFlags: { ...this.flags },
+                        savedSto: this.sto,
+                    });
+                    this._lazySuspended = true;
+                    this.output += `[LAZY-RESOLVE] LOAD: c-list slot ${d.imm} "${_pcn}" is NULL \u2014 thread suspended; link Pet name '${_pcn}' to a live NS entry to resume.\n`;
+                    this.emit('lazyResolvePending', { petName: _pcn, slot: d.imm, instrName: 'LOAD', kind: 'NULL_GT' });
+                    return { lazySuspended: true, petName: _pcn, slot: d.imm, instrName: 'LOAD', kind: 'NULL_GT', pc: this.pc, instr: d, desc: `LOAD: waiting for '${_pcn}' (slot ${d.imm})` };
+                }
+            } else {
+                this.fault('NULL_CAP', `LOAD: c-list offset ${d.imm} is empty (NULL GT)`);
+                return null;
+            }
         }
         // ── Lazy-Resolve: pending GT intercept ────────────────────────────────
         // A pending sentinel (0xFEED____) means the slot has a declared pet name
@@ -4648,8 +4759,39 @@ class ChurchSimulator {
             const _pc = this.programCapabilities;
             const _pce = _pc && _pc[ecRow];
             const _pcn = _pce ? (typeof _pce === 'string' ? _pce : (_pce.name || null)) : null;
-            this.fault('NULL_CAP', `ELOADCALL: c-list row ${ecRow}${_pcn ? ` (${_pcn})` : ''} is empty`);
-            return null;
+            // ── Lazy-Resolve: NULL GT with pet name → suspend thread (Task #1519) ──
+            if (_pcn) {
+                let _resolvedNsIdx = -1;
+                for (const [_ridx, _rlbl] of Object.entries(this.nsLabels)) {
+                    if (String(_rlbl).toUpperCase() === _pcn.toUpperCase()) {
+                        _resolvedNsIdx = parseInt(_ridx, 10);
+                        break;
+                    }
+                }
+                if (_resolvedNsIdx >= 0 && this.isNSEntryValid(_resolvedNsIdx)) {
+                    const _resolvedGT = this.createGT(0, _resolvedNsIdx, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
+                    this.memory[srcLoc + ecRow] = _resolvedGT >>> 0;
+                    slotGT = _resolvedGT >>> 0;
+                    this.output += `[LAZY-RESOLVE] NULL Slot ${ecRow} "${_pcn}" \u2192 NS[${_resolvedNsIdx}] resolved instantly.\n`;
+                    // Fall through to continue ELOADCALL processing
+                } else {
+                    this._pendingResolves.set(ecRow, {
+                        petName: _pcn, slot: ecRow, instrName: 'ELOADCALL', kind: 'NULL_GT',
+                        pc: this.pc,
+                        savedDRs: [...this.dr],
+                        savedCRs: this.cr.map(c => ({ ...c })),
+                        savedFlags: { ...this.flags },
+                        savedSto: this.sto,
+                    });
+                    this._lazySuspended = true;
+                    this.output += `[LAZY-RESOLVE] ELOADCALL: c-list row ${ecRow} "${_pcn}" is NULL \u2014 thread suspended; link Pet name '${_pcn}' to a live NS entry to resume.\n`;
+                    this.emit('lazyResolvePending', { petName: _pcn, slot: ecRow, instrName: 'ELOADCALL', kind: 'NULL_GT' });
+                    return { lazySuspended: true, petName: _pcn, slot: ecRow, instrName: 'ELOADCALL', kind: 'NULL_GT', pc: this.pc, instr: d, desc: `ELOADCALL: waiting for '${_pcn}' (slot ${ecRow})` };
+                }
+            } else {
+                this.fault('NULL_CAP', `ELOADCALL: c-list row ${ecRow} is empty`);
+                return null;
+            }
         }
         let slotParsed = this.parseGT(slotGT);
         const targetIdx = slotParsed.index;
@@ -4817,8 +4959,39 @@ class ChurchSimulator {
             const _pc = this.programCapabilities;
             const _pce = _pc && _pc[d.imm];
             const _pcn = _pce ? (typeof _pce === 'string' ? _pce : (_pce.name || null)) : null;
-            this.fault('NULL_CAP', `XLOADLAMBDA: c-list offset ${d.imm}${_pcn ? ` (${_pcn})` : ''} is empty`);
-            return null;
+            // ── Lazy-Resolve: NULL GT with pet name → suspend thread (Task #1519) ──
+            if (_pcn) {
+                let _resolvedNsIdx = -1;
+                for (const [_ridx, _rlbl] of Object.entries(this.nsLabels)) {
+                    if (String(_rlbl).toUpperCase() === _pcn.toUpperCase()) {
+                        _resolvedNsIdx = parseInt(_ridx, 10);
+                        break;
+                    }
+                }
+                if (_resolvedNsIdx >= 0 && this.isNSEntryValid(_resolvedNsIdx)) {
+                    const _resolvedGT = this.createGT(0, _resolvedNsIdx, {R:0,W:0,X:0,L:0,S:0,E:1}, 1);
+                    this.memory[srcLoc + d.imm] = _resolvedGT >>> 0;
+                    slotGT = _resolvedGT >>> 0;
+                    this.output += `[LAZY-RESOLVE] NULL Slot ${d.imm} "${_pcn}" \u2192 NS[${_resolvedNsIdx}] resolved instantly.\n`;
+                    // Fall through to continue XLOADLAMBDA processing
+                } else {
+                    this._pendingResolves.set(d.imm, {
+                        petName: _pcn, slot: d.imm, instrName: 'XLOADLAMBDA', kind: 'NULL_GT',
+                        pc: this.pc,
+                        savedDRs: [...this.dr],
+                        savedCRs: this.cr.map(c => ({ ...c })),
+                        savedFlags: { ...this.flags },
+                        savedSto: this.sto,
+                    });
+                    this._lazySuspended = true;
+                    this.output += `[LAZY-RESOLVE] XLOADLAMBDA: c-list slot ${d.imm} "${_pcn}" is NULL \u2014 thread suspended; link Pet name '${_pcn}' to a live NS entry to resume.\n`;
+                    this.emit('lazyResolvePending', { petName: _pcn, slot: d.imm, instrName: 'XLOADLAMBDA', kind: 'NULL_GT' });
+                    return { lazySuspended: true, petName: _pcn, slot: d.imm, instrName: 'XLOADLAMBDA', kind: 'NULL_GT', pc: this.pc, instr: d, desc: `XLOADLAMBDA: waiting for '${_pcn}' (slot ${d.imm})` };
+                }
+            } else {
+                this.fault('NULL_CAP', `XLOADLAMBDA: c-list offset ${d.imm} is empty`);
+                return null;
+            }
         }
         let slotParsed = this.parseGT(slotGT);
         const targetIdx = slotParsed.index;
@@ -6159,7 +6332,7 @@ class ChurchSimulator {
         let steps = 0;
         let stopReason = 'stopped';
         let breakpointAddr = null;
-        while (this.running && !this.halted && !this.awaitingLump && this.bootComplete && steps < maxSteps) {
+        while (this.running && !this.halted && !this.awaitingLump && !this._lazySuspended && this.bootComplete && steps < maxSteps) {
             // Stop-before-execute breakpoint check: compute the physical address of the NEXT
             // instruction to be fetched (from this.pc + CR14 lump base) and compare against
             // the breakpoint set.  Skip on the very first step so we advance past any BP the

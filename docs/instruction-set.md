@@ -60,6 +60,8 @@ Loads a Golden Token from the c-list pointed to by CRs at the given row (word of
 
 **Security**: mLoad validates version, seal, bounds, L permission, and F-bit.
 
+**Transparent Suspension (NULL GT)**: If the c-list slot contains a NULL GT (0x00000000) and the slot has a pet name (from `programCapabilities`), the simulator first attempts **inline resolution** — searching `nsLabels` for a case-insensitive match. If a match is found and the NS entry is valid, the GT is written in place and execution continues normally. If no match is found, the thread is **suspended transparently** (`_lazySuspended = true`): no fault is raised, a `lazyResolvePending` event is emitted, and the IDE has until the deadline to supply the GT via `sim.resolvePendingSlot(slot, nsIdx)`. Only if the deadline expires does the simulator escalate to a `NULL_CAP` fault via `sim.escalateLazyResolve(slot)`. If the slot is NULL and has **no pet name**, a `NULL_CAP` fault is raised immediately. See `docs/transparent-suspension.md` for the full protocol. Same transparent-suspension logic applies to ELOADCALL and XLOADLAMBDA.
+
 ### SAVE (opcode 1)
 
 ```

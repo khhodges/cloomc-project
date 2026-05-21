@@ -138,5 +138,13 @@ only the active set needs to be resident.
 4. GT, c-list, and seals are preserved across all load/evict cycles
 5. Loader.Evict clears code (cw=0) — GT stays, next call re-loads
 6. MTBF = ∞ for Loader itself — zero faults in the load path
+
+## Related: NULL GT Transparent Suspension (Task #1519)
+
+The lazy-resolve mechanism also applies when a c-list slot contains a **NULL GT**
+(0x00000000) at run-time rather than a 0xFEED pending sentinel. See
+`docs/transparent-suspension.md` for the full protocol covering inline resolution,
+thread suspension, IDE panel integration, and deadline-driven NULL_CAP escalation.
+
 ---
 *Confidential — Kenneth Hamer-Hodges — April 2026*
