@@ -5091,10 +5091,9 @@ pre:hover .code-copy-btn {
 }
 
 .lump-audit-row {
-    display: grid;
-    grid-template-columns: 2.8rem 6.5rem 1fr;
+    display: flex;
     align-items: baseline;
-    gap: 0.3rem 0.55rem;
+    gap: 0.55rem;
     padding: 0.18rem 0.55rem;
     border-bottom: 1px solid rgba(100, 160, 255, 0.05);
     font-size: 0.71rem;
@@ -5112,11 +5111,20 @@ pre:hover .code-copy-btn {
     font-size: 0.66rem;
     opacity: 0.75;
     white-space: nowrap;
+    flex-shrink: 0;
+    width: 2.8rem;
+}
+
+.lump-audit-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
 }
 
 .lump-audit-msg {
     font-weight: 600;
-    white-space: nowrap;
 }
 
 .lump-audit-detail {

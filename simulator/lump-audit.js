@@ -523,6 +523,9 @@ function lumpAuditRenderPanel(container, results, opts) {
         ruleSpan.style.fontSize = '0.72em';
         ruleSpan.style.opacity = '0.4';
 
+        const content = document.createElement('div');
+        content.className = 'lump-audit-content';
+
         const msgSpan = document.createElement('span');
         msgSpan.className = 'lump-audit-msg';
         msgSpan.textContent = r.message;
@@ -531,9 +534,10 @@ function lumpAuditRenderPanel(container, results, opts) {
         detailSpan.className = 'lump-audit-detail';
         detailSpan.textContent = r.detail;
 
+        content.appendChild(msgSpan);
+        content.appendChild(detailSpan);
         row.appendChild(ruleSpan);
-        row.appendChild(msgSpan);
-        row.appendChild(detailSpan);
+        row.appendChild(content);
         body.appendChild(row);
 
         if (r.ruleId === 'RCI' && r.severity === 'error' && Array.isArray(r.violations)) {
