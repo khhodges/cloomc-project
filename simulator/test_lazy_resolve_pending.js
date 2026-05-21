@@ -280,6 +280,7 @@ console.log('\n--- T004: _injectClistNow CASE B — integration test ---');
             sim: sim2,
             ChurchSimulator,
             lastAssembledCapabilities,
+            lastAssembledNamedSlots: null,
             console,
             window: { bootConfig: {} },
         });
@@ -510,11 +511,15 @@ console.log('\n--- T008: NULL GT no pet name → immediate NULL_CAP fault ---');
         console.log('SKIP T008: boot did not complete');
     } else {
         setupCR6(sim);
-        sim.memory[500] = 0;
-        // Leave programCapabilities empty → no pet name for slot 0.
+        // Use slot 4 — the gap in BOOT_NAMED_SLOTS [0,1,2,3,5-13].
+        // Slot 4 is not pre-seeded as named, so a NULL GT there must hard-fault.
+        // Extend clistCount to 5 so the slot-4 access is in-bounds.
+        sim.cr[6].word2 = sim.packNSWord1(0, 0, 0, 0, 5);  // clistCount = 5
+        sim.memory[504] = 0;  // slot 4 → NULL GT (500 + 4)
+        // Leave programCapabilities empty → no pet name for slot 4.
         sim.programCapabilities = null;
 
-        const instr = sim.encodeInstruction(0, 0xE, 1, 6, 0);
+        const instr = sim.encodeInstruction(0, 0xE, 1, 6, 4);  // ecRow = 4
         const cr14  = sim.cr[14];
         sim.memory[cr14.word1 + 1] = instr >>> 0;
         sim.pc     = 0;

@@ -236,6 +236,7 @@ test.describe('pet names in run listing (trace view) survive page reload', () =>
     //   6. Inject the same entry from the live label and verify it appears again.
 
     test('pet name appears in trace Description column before and after reload', async ({ page }) => {
+        test.setTimeout(30000);
         await page.goto('/simulator/');
         await page.waitForLoadState('networkidle');
 
@@ -285,6 +286,13 @@ test.describe('pet names in run listing (trace view) survive page reload', () =>
         // ── Reload ────────────────────────────────────────────────────────────
         await page.reload();
         await page.waitForLoadState('networkidle');
+        // Wait until sim.nsLabels is populated (_initNamespaceTable runs during reset(),
+        // long before bootComplete — this fires seconds earlier than waiting for bootComplete).
+        await page.waitForFunction(() =>
+            typeof sim !== 'undefined' && sim !== null &&
+            typeof sim.nsLabels === 'object' && sim.nsLabels !== null &&
+            Object.keys(sim.nsLabels).length > 0
+        );
 
         // ── Post-reload: verify label persists in nsLabels AND appears in table ─
         // Read the live label from sim.nsLabels (not a constant) and inject a

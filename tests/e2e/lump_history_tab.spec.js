@@ -124,6 +124,8 @@ const STUB_WORDS_CURRENT = {
 async function openLumpDetail(page) {
     await page.goto('/simulator/');
     await page.waitForLoadState('networkidle');
+    // Wait until app-shell.js has executed and switchView is in scope.
+    await page.waitForFunction(() => typeof switchView === 'function');
 
     // switchView('lumps') automatically calls renderLumps() which fetches
     // /api/lumps/list and populates _lumpsCache.
