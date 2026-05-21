@@ -871,6 +871,12 @@ function hideRunPopover() {
 function _injectClistNow() {
     if (!sim.bootComplete || !sim.demoClistGTs || !sim.demoClistGTs.length) return;
 
+    // Guard against stale named-slot entries from a previous program (Task #1547).
+    // Reset petNameMemory to the hardware boot defaults before any markNamedSlots()
+    // call so that slots declared only by program A cannot suppress NULL_CAP faults
+    // in program B (which never declared those slots).
+    sim.resetNamedSlots();
+
     const _hasUserCaps = !!(lastAssembledCapabilities && lastAssembledCapabilities.length > 0);
 
     const _devSlotMap = {

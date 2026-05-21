@@ -111,6 +111,11 @@ const M_BIT_PORT_CR13         = 0xFFFFFF1D; // M-bit authority port for CR13
 const M_BIT_PORT_CR14         = 0xFFFFFF1E; // M-bit authority port for CR14
 const M_BIT_PORT_CR15         = 0xFFFFFF1F; // M-bit authority port for CR15
 const IO_PORT_PET_NAME_WR     = 0xFFFFFF38; // DWRITE to this addr marks c-list slot (value & 0x3F) as named
+// Boot-default named slots — matches hardware/boot_rom.py DEMO_CLIST_NAMED_SLOTS.
+// Used to reset petNameMemory to a clean baseline between program loads so that
+// stale named-slot entries from a previous program cannot suppress NULL_CAP faults
+// in a subsequent program that never declared those slots.
+const BOOT_NAMED_SLOTS = Object.freeze([0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
 
 // Module-scope boot constants — referenced by loadProgram, _bootStep, etc.
 const BOOT_ABSTR_NS_SLOT      = 3;  // NS slot of the Boot Abstraction lump (Boot.Abstr)
@@ -645,7 +650,7 @@ class ChurchSimulator {
         // Initialised with the boot c-list named slots; updated by DWRITE to IO_PORT_PET_NAME_WR
         // (0xFFFFFF38) and by markNamedSlots() when a program with a capabilities block loads.
         // Boot named slots: {0,1,2,3,5,6,7,8,9,10,11,12,13} — matches DEMO_CLIST_NAMED_SLOTS.
-        this.petNameMemory = new Set([0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+        this.petNameMemory = new Set(BOOT_NAMED_SLOTS);
 
         // Lazy-Resolve: Transparent Thread Suspension (Task #1519)
         // Registry of pending NULL-GT or 0xFEED resolves, keyed by c-list slot index.
@@ -6646,6 +6651,16 @@ class ChurchSimulator {
         return aligned >>> 0;
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    // resetNamedSlots() — resets petNameMemory to the hardware boot defaults.
+    // Must be called by _injectClistNow() (app-run.js) at the start of every
+    // program load so that named-slot entries from a previous program (program A)
+    // cannot linger and incorrectly suppress NULL_CAP faults for slots that the
+    // new program (program B) never declared.  Without this reset a stale entry
+    // could cause LAZY_RESOLVE to fire on an anonymous NULL instead of halting.
+    resetNamedSlots() {
+        this.petNameMemory = new Set(BOOT_NAMED_SLOTS);
+    }
 
     // markNamedSlots(slots) — out-of-band registration of named c-list slot indices.
     // Called by _injectClistNow() (app-run.js) after loading a program whose capabilities
