@@ -154,11 +154,11 @@ class ChurchSimulator {
     constructor() {
         this._listeners = {};
         // NS_TABLE_BASE is recomputed in reset() (and in the binary loaders) to
-        // memory.length − NS_TABLE_RESERVE. For a 65536-word space: 0xFC00.
-        this.NS_TABLE_RESERVE = 0x400;   // default 256 entries × 4 words; updated in reset() from binary
-        this.NS_TABLE_BASE = 0xFC00;
+        // memory.length − NS_TABLE_RESERVE. For a 65536-word space: 0xF000.
+        this.NS_TABLE_RESERVE = 0x1000;  // default 1024 entries × 4 words; updated in reset() from binary
+        this.NS_TABLE_BASE = 0xF000;    // for 65536-word space: 0x10000 - 0x1000; recomputed in reset()
         this.NS_ENTRY_WORDS = 4;
-        this.MAX_NS_ENTRIES = 256;       // default; updated in reset() to match actual NS_TABLE_RESERVE
+        this.MAX_NS_ENTRIES = 1024;     // default; updated in reset() to match actual NS_TABLE_RESERVE
         this.SLOT_SIZE = 0x40;   // 64 words — FPGA minimum slot allocation (boot_rom.py line 339)
 
         // TPERM preset → required-permission array.

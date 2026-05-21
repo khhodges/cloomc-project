@@ -44,9 +44,9 @@ try:
 except ImportError:
     from server.boot_constants import NUC_CODE_WORDS, DEMO_CLIST_SIZE, BOOT_ABSTR_DEFAULT_SIZE
 
-NS_TABLE_RESERVE = 0x400        # 1024 words = 256 entries × 4  (module constant; backward compat default)
 NS_ENTRY_WORDS   = 4
 MAX_NS_ENTRIES   = 1024         # GT bits[15:0] support 65535; 1024 is the practical cap
+NS_TABLE_RESERVE = MAX_NS_ENTRIES * NS_ENTRY_WORDS  # 4096 words = 1024 entries × 4
 SLOT_SIZE        = 0x40         # 64 words
 
 
@@ -61,7 +61,7 @@ def ns_table_reserve_words(ns_slots_max):
         ns_slots_max=16  →   64 words
         ns_slots_max=52  →  208 words
         ns_slots_max=102 →  408 words
-        ns_slots_max=256 → 1024 words  (= module-level NS_TABLE_RESERVE default)
+        ns_slots_max=1024 → 4096 words  (= module-level NS_TABLE_RESERVE default)
     """
     return max(16, ns_slots_max * NS_ENTRY_WORDS)
 
