@@ -388,24 +388,24 @@ def _make_ns_entry(gt_type, perms, slot_id, gt_seq, location, alloc_size, cw=0, 
 #
 # These S-perm authority caps govern privileged CR12/CR13 writes.
 # They are NOT included in DEMO_CLIST (user-space boot c-list).
-# Scheduler.IRQ (NS slot 8) is the only current recipient; it receives
-# E-perm GTs pointing at each of these four authority objects so it can
-# invoke the CHANGE CR12/CR13 and M-bit-set operations.  Thread Manager
-# will receive separate capability copies in a future task.
-# See SCHEDULER_IRQ_CLIST below for the four E-perm GT words.
+# Scheduler.IRQ (NS slot 8) receives E-perm GTs for all four authority
+# objects (slots 19–22) so it can invoke CHANGE CR12/CR13 and M-bit-set.
+# Thread Manager (NS slot 45) receives E-perm GTs for the CR12 caps only
+# (slots 19 and 21); CR13 caps remain IRQ-manager territory.
+# See SCHEDULER_IRQ_CLIST and THREAD_MANAGER_CLIST below.
 #
 #   Slot 19: CR12_PORT_CAP  — 0xFFFFFF0C, S-perm, limit=0
 #             Authority to CHANGE CR12 (thread stack).
-#             Distributed to: Scheduler.IRQ c-list (E-perm GT).
+#             Distributed to: Scheduler.IRQ c-list AND Thread Manager c-list (E-perm GTs).
 #   Slot 20: CR13_PORT_CAP  — 0xFFFFFF0D, S-perm, limit=0
 #             Authority to CHANGE CR13 (interrupt handler).
-#             Distributed to: Scheduler.IRQ c-list (E-perm GT).
+#             Distributed to: Scheduler.IRQ c-list only (E-perm GT; IRQ-manager territory).
 #   Slot 21: CR12_MBIT_CAP  — 0xFFFFFF1C, S-perm, limit=0
 #             Authority to set the M bit on a GT installed into CR12.
-#             Distributed to: Scheduler.IRQ c-list (E-perm GT).
+#             Distributed to: Scheduler.IRQ c-list AND Thread Manager c-list (E-perm GTs).
 #   Slot 22: CR13_MBIT_CAP  — 0xFFFFFF1D, S-perm, limit=0
 #             Authority to set the M bit on a GT installed into CR13.
-#             Distributed to: Scheduler.IRQ c-list (E-perm GT).
+#             Distributed to: Scheduler.IRQ c-list only (E-perm GT; IRQ-manager territory).
 #
 # Physical LED mapping (R bit = bit 0 of each word):
 #   Ti60 F225 (4 LEDs active-HIGH):
@@ -419,7 +419,8 @@ MMIO_BTN_SLOT   = 13
 MMIO_TIMER_SLOT = 14
 
 # Church Hardware Address Range NS slot assignments
-# S-perm caps distributed to Scheduler.IRQ c-list (E-perm GTs); Thread Manager future.
+# CR12 caps (slots 19, 21) distributed to Scheduler.IRQ AND Thread Manager c-lists.
+# CR13 caps (slots 20, 22) distributed to Scheduler.IRQ c-list only (IRQ-manager territory).
 CHURCH_HW_CR12_PORT_SLOT  = 19   # authority to CHANGE CR12  (0xFFFFFF0C, S-perm)
 CHURCH_HW_CR13_PORT_SLOT  = 20   # authority to CHANGE CR13  (0xFFFFFF0D, S-perm)
 CHURCH_HW_CR12_MBIT_SLOT  = 21   # authority for CR12 M-bit  (0xFFFFFF1C, S-perm)
@@ -450,6 +451,28 @@ SCHEDULER_IRQ_CLIST = [
     make_gt(GT_TYPE_INFORM, PERM_MASK_E, CHURCH_HW_CR13_PORT_SLOT, 0),  # idx 1: CR13_PORT E-GT → NS[20]
     make_gt(GT_TYPE_INFORM, PERM_MASK_E, CHURCH_HW_CR12_MBIT_SLOT, 0),  # idx 2: CR12_MBIT E-GT → NS[21]
     make_gt(GT_TYPE_INFORM, PERM_MASK_E, CHURCH_HW_CR13_MBIT_SLOT, 0),  # idx 3: CR13_MBIT E-GT → NS[22]
+]
+
+# ---------------------------------------------------------------------------
+# THREAD_MANAGER_CLIST — capability list entries for Thread Manager (NS slot 45)
+#
+# Thread Manager needs cooperative-scheduling authority over CR12 (thread
+# stacks) but NOT CR13 (interrupt-handler register — IRQ-manager territory).
+# It therefore receives E-perm GTs for the two CR12 authority objects only:
+#
+#   CHANGE CR12   — install a new thread-stack capability into CR12
+#   SET CR12 M-BIT — mark a thread-stack GT as M-elevated before install
+#
+# CR13 caps (slots 20, 22) remain exclusive to Scheduler.IRQ.
+#
+# Layout (cc = 2; appended after the existing Scheduler-E and Memory-E GTs
+# at c-list indices 2 and 3 of the Thread Manager lump tail):
+#   idx 0 (clist idx 2): E-perm GT → NS slot 19  CR12_PORT_CAP  (CHANGE CR12)
+#   idx 1 (clist idx 3): E-perm GT → NS slot 21  CR12_MBIT_CAP  (CR12 M-bit)
+# ---------------------------------------------------------------------------
+THREAD_MANAGER_CLIST = [
+    make_gt(GT_TYPE_INFORM, PERM_MASK_E, CHURCH_HW_CR12_PORT_SLOT, 0),  # idx 0: CR12_PORT E-GT → NS[19]
+    make_gt(GT_TYPE_INFORM, PERM_MASK_E, CHURCH_HW_CR12_MBIT_SLOT, 0),  # idx 1: CR12_MBIT E-GT → NS[21]
 ]
 
 MMIO_LED_ADDR   = 0x40000000   # offsets 0–4: LED0–LED4, bits[2:0]={B,G,R}

@@ -1285,7 +1285,9 @@ class ChurchSimulator {
             [44, [{ type:'inform', ref:5,  perms:{E:1} },                                                      // GC:           Navana E
                   { type:'inform', ref:7,  perms:{E:1} }]],                                                    //               Memory E
             [45, [{ type:'inform', ref:8,  perms:{E:1} },                                                      // Thread:       Scheduler E
-                  { type:'inform', ref:7,  perms:{E:1} }]],                                                    //               Memory E
+                  { type:'inform', ref:7,  perms:{E:1} },                                                      //               Memory E
+                  { type:'inform', ref:19, perms:{E:1} },                                                      //               CR12_PORT_CAP E-GT (CHANGE CR12 authority; hw NS slot 19)
+                  { type:'inform', ref:21, perms:{E:1} }]],                                                    //               CR12_MBIT_CAP E-GT (CR12 M-bit authority; hw NS slot 21)
             [47, [{ type:'inform', ref:7,  perms:{E:1} },                                                      // Billing:      Memory E
                   { type:'inform', ref:5,  perms:{E:1} }]],                                                    //               Navana E
             [48, [{ type:'inform', ref:7,  perms:{E:1} },                                                      // TuringMemory: Memory E

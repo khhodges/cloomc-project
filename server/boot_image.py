@@ -249,7 +249,9 @@ SERVICE_CLIST_DEFS = {
     44: [("inform", 5,  {"E":1}),                                      # GC:           Navana E
          ("inform", 7,  {"E":1})],                                     #               Memory E
     45: [("inform", 8,  {"E":1}),                                      # Thread:       Scheduler E
-         ("inform", 7,  {"E":1})],                                     #               Memory E
+         ("inform", 7,  {"E":1}),                                      #               Memory E
+         ("inform", 19, {"E":1}),                                      #               CR12_PORT_CAP E-GT (CHANGE CR12 authority; NS slot 19)
+         ("inform", 21, {"E":1})],                                     #               CR12_MBIT_CAP E-GT (CR12 M-bit authority; NS slot 21)
     47: [("inform", 7,  {"E":1}),                                      # Billing:      Memory E
          ("inform", 5,  {"E":1})],                                     #               Navana E
     48: [("inform", 7,  {"E":1}),                                      # TuringMemory: Memory E
