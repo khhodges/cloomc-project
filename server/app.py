@@ -2400,7 +2400,6 @@ def _make_fpga_zip(board, is_ti60, paths, zip_name, build_md):
         )
         with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
             zf.write(paths["verilog"], "church_ti60_f225.v")
-            zf.write(paths["isf"],     "ti60_f225.isf")
             zf.writestr("church_ti60_f225.xml",      project_xml)
             zf.write(paths["sdc"],     "church_ti60_f225.sdc")
             zf.write(paths["peri"],    "church_ti60_f225.peri.xml")
