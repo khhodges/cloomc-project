@@ -280,7 +280,14 @@ def _decode_alu_block(block):
 
 
 def _rtlil_to_verilog(il_path, v_path):
-    """Convert Amaranth RTLIL to Verilog via Yosys for use in Efinity IDE."""
+    """Convert Amaranth RTLIL to Verilog via Yosys for use in Efinity IDE.
+
+    The `techmap` pass before write_verilog is essential: it expands Yosys
+    internal cells ($alu, $macc) into standard RTL arithmetic that Efinity's
+    efx_map synthesiser recognises.  Without it, write_verilog emits these
+    as module instantiations of unknown modules and Efinity fails with
+    "instantiating unknown module '$alu'" / "$macc" errors.
+    """
     script = (
         f"read_rtlil {il_path}; "
         f"hierarchy -top top; "
@@ -291,6 +298,7 @@ def _rtlil_to_verilog(il_path, v_path):
         f"opt_reduce; "
         f"opt_clean; "
         f"opt -fast; "
+        f"techmap; "
         f"clean; "
         f"write_verilog -noattr {v_path}"
     )
