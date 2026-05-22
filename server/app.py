@@ -2322,8 +2322,11 @@ def _fpga_paths(board):
         gen_args = ["python3", "-m", "hardware.gen_rtlil", "build", "--ti60"]
         synth_cmd_tpl = (
             "read_rtlil {rtlil}; "
-            "synth_efinix -top top -run begin:map_ram; "
-            "write_verilog {verilog}"
+            "hierarchy -top top; "
+            "proc; flatten; "
+            "opt -mux_undef -undriven; opt; opt_reduce; opt_clean; opt -fast; "
+            "techmap; clean; "
+            "write_verilog -noattr {verilog}"
         )
     elif board == "wukong-xc7a100t":
         paths = {
