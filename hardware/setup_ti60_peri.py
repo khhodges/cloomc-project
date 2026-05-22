@@ -11,7 +11,7 @@ Usage (from the Efinity project directory that contains church_ti60_f225.peri.xm
 Pin map (confirmed from Ti60F225_kit.isf reference designs):
   clk         B2  = 25 MHz on-board crystal  → CLKMUX_T ROUTE0 (Phase A, no PLL)
   uart_tx     H14 = GPIOR_P_11  (external header, not FT4232H)
-  uart_rx     M14 = GPIOR_P_02  (external header, not FT4232H)
+  uart_rx     G14 = GPIOR_N_11  (external header, N-pair of H14, not FT4232H)
   push_button A7  = GPIOT_N_06  USER_PB active-low (weak pull-up)
   led0        K14 = USER_LED[0]
   led1        J15 = USER_LED[1]
@@ -105,7 +105,7 @@ design.create_output_gpio("led3")
 design.set_property("push_button", "PULL_OPTION", "WEAK_PULLUP")
 
 design.assign_pkg_pin("uart_tx",     "H14")
-design.assign_pkg_pin("uart_rx",     "M14")
+design.assign_pkg_pin("uart_rx",     "G14")
 design.assign_pkg_pin("push_button", "A7")
 design.assign_pkg_pin("led0",        "K14")
 design.assign_pkg_pin("led1",        "J15")
