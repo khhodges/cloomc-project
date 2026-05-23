@@ -613,7 +613,10 @@ class ChurchTi60F225(Elaboratable):
 
             with m.State("HALTED"):
                 with m.If(btn_hold_done):
-                    m.next = "ENTER_FREE_RUN"
+                    # Long hold: retransmit call-home banner then resume.
+                    # Useful when picocom is opened after boot has already sent.
+                    m.d.sync += [banner_idx.eq(0), halted.eq(1)]
+                    m.next = "SEND_BANNER"
                 with m.Elif(rx_valid & (rx_data == 0xBE)):
                     m.d.sync += pl_active.eq(1)
                     m.d.comb += crc_mod.reset.eq(1)
