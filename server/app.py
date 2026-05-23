@@ -156,6 +156,14 @@ def download_ti60v():
                      download_name="church_ti60_f225.v",
                      mimetype="text/plain")
 
+@app.route("/dl/ti60peri")
+def download_ti60peri():
+    peri_path = os.path.join(os.path.dirname(__file__), "..", "hardware", "ti60_f225.peri.xml")
+    return send_file(os.path.abspath(peri_path),
+                     as_attachment=True,
+                     download_name="church_ti60_f225.peri.xml",
+                     mimetype="text/xml")
+
 @app.route("/")
 def index():
     landing_path = os.path.join(BASE_DIR, "landing.html")
