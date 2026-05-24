@@ -22,14 +22,17 @@ Usage:
     python3 scripts/test_ti60_uart.py [--port=/dev/ttyUSB2] [--timeout=10] [--ide=URL]
 
 Flags:
-    --dry-run          Run parser logic against canned transcript; no serial
-                       port required.  Suitable for CI.
-    --port=PATH        Serial port to open (default: /dev/ttyUSB2)
-    --baud=N           Baud rate (default: 115200)
-    --timeout=N        Seconds to wait for output in live mode (default: 10)
-    --ide=URL          Check for a call-home ACK from the IDE server at URL
-                       (optional; skipped if not provided)
-    --verbose          Print each received line with its timestamp
+    --dry-run              Run parser logic against canned transcript; no serial
+                           port required.  Suitable for CI.
+    --port=PATH            Serial port to open (default: /dev/ttyUSB2)
+    --baud=N               Baud rate (default: 115200)
+    --timeout=N            Seconds to wait for output in live mode (default: 10)
+    --ide=URL              Check for a call-home ACK from the IDE server at URL
+                           (optional; skipped if not provided)
+    --report-launch=TEST-NN  On completion, POST the overall PASS/FAIL result to
+                           the IDE launch-test tracker at /api/launch-tests/TEST-NN.
+                           Requires --ide=URL.  Recommended ID: TEST-09 (UART).
+    --verbose              Print each received line with its timestamp
 """
 
 import sys
@@ -44,6 +47,7 @@ _SERIAL_PORT = '/dev/ttyUSB2'
 _BAUD = 115200
 _TIMEOUT = 10.0
 _IDE_SERVER_URL = None
+_REPORT_LAUNCH_ID = None
 _VERBOSE = False
 
 for _a in sys.argv[1:]:
@@ -57,6 +61,8 @@ for _a in sys.argv[1:]:
         _TIMEOUT = float(_a[10:])
     elif _a.startswith('--ide='):
         _IDE_SERVER_URL = _a[6:].rstrip('/')
+    elif _a.startswith('--report-launch='):
+        _REPORT_LAUNCH_ID = _a[len('--report-launch='):]
     elif _a == '--verbose':
         _VERBOSE = True
     elif _a in ('-h', '--help'):
@@ -371,6 +377,45 @@ def _print_results(checks, mode):
 
 
 # ---------------------------------------------------------------------------
+# Launch-test reporting
+# ---------------------------------------------------------------------------
+
+def _report_launch_test(test_id, status, notes=""):
+    """
+    POST a launch-test status update to the IDE server.
+
+    Mirrors the pattern used in server/local_bridge.py:_report_launch_test.
+    status must be "passing" or "failing".
+    Requires _IDE_SERVER_URL to be set.
+    """
+    if not _IDE_SERVER_URL:
+        print(f'  [LAUNCH] Cannot report {test_id}: no --ide=URL configured',
+              file=sys.stderr)
+        return
+    try:
+        import urllib.request
+        payload = json.dumps({
+            "status": status,
+            "device_uid": "",
+            "notes": notes,
+        }).encode()
+        req = urllib.request.Request(
+            f"{_IDE_SERVER_URL}/api/launch-tests/{test_id}",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="PUT",
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read())
+        if result.get("ok"):
+            print(f'  [LAUNCH] {test_id} reported as {status}')
+        else:
+            print(f'  [LAUNCH] {test_id} report failed: {result}', file=sys.stderr)
+    except Exception as e:
+        print(f'  [LAUNCH] {test_id} report error: {e}', file=sys.stderr)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -379,4 +424,21 @@ if __name__ == '__main__':
         success = run_dry_run()
     else:
         success = run_live()
+
+    if _REPORT_LAUNCH_ID:
+        if _IDE_SERVER_URL:
+            status = "passing" if success else "failing"
+            notes = (
+                "Ti60 UART smoke-test PASS (dry-run)" if (_DRY_RUN and success)
+                else "Ti60 UART smoke-test PASS" if success
+                else "Ti60 UART smoke-test FAIL"
+            )
+            _report_launch_test(_REPORT_LAUNCH_ID, status, notes)
+        else:
+            print(
+                f"  [LAUNCH] --report-launch={_REPORT_LAUNCH_ID} set but "
+                "--ide=URL is missing; skipping launch-test report.",
+                file=sys.stderr,
+            )
+
     sys.exit(0 if success else 1)

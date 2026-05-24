@@ -179,6 +179,20 @@ python3 scripts/test_ti60_uart.py --port=/dev/ttyUSB2 --timeout=15 \
     --ide=http://localhost:5000
 ```
 
+To also report the result to the IDE Dashboard launch-test tracker (TEST-09 —
+UART), add `--report-launch=TEST-09`:
+
+```bash
+python3 scripts/test_ti60_uart.py --port=/dev/ttyUSB2 --timeout=15 \
+    --ide=http://localhost:5000 \
+    --report-launch=TEST-09
+```
+
+The script will POST the overall PASS/FAIL result to
+`/api/launch-tests/TEST-09` so the IDE Dashboard reflects real Ti60 hardware
+test status alongside the other boards.  **TEST-09** is the correct launch-test
+ID for this smoke-test (UART).
+
 > **No hardware?** Run with `--dry-run` to validate the parser logic against a
 > canned transcript without a serial port:
 > ```bash
