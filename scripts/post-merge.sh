@@ -3,6 +3,10 @@ set -e
 
 echo "Post-merge setup complete (no dependencies to install)"
 
+# Push to GitHub so the mirror never goes stale.
+# Requires GITHUB_PAT secret — see scripts/sync-to-github.sh for details.
+bash scripts/sync-to-github.sh || true
+
 # Record task completion in the cost-tracking table and update task status.
 # TASK_ID and TASK_TITLE are passed safely via environment — no shell injection.
 DB="server/church_machine.db"
