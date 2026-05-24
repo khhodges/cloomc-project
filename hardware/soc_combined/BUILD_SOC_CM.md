@@ -7,7 +7,9 @@ Church Machine RTL side-by-side in a single Efinity project.
 
 On power-on:
 - The Sapphire SoC boots its firmware and sends `CHURCH Ti60 SoC+CM v1.0\r\n`
-  over **ttyUSB2** (115200 baud).
+  over **ttyUSB2** (115200 baud, GPIOL_02 → FT4232H interface 2).
+- The Church Machine streams NIA traces, fault codes, and call-home packets
+  over **ttyUSB3** (115200 baud, GPIOL_P_03 → FT4232H interface 3).
 - The Church Machine boots its internal boot sequence automatically.
 - LED0 lights when the SoC is out of reset.
 - LED1 lights when the CM completes its boot sequence.
@@ -149,7 +151,7 @@ Efinity will:
 
 ### Step 8 — Test
 
-**SoC UART greeting (ttyUSB2):**
+**SoC UART greeting (ttyUSB2 — Sapphire SoC console):**
 
 ```bash
 python3 -c "
@@ -168,6 +170,23 @@ CHURCH Ti60 SoC+CM v1.0
 CM boot_complete: 1
 CM NIA: 0x...
 ```
+
+**CM debug UART (ttyUSB3 — Church Machine debug port):**
+
+```bash
+python3 -c "
+import serial
+s = serial.Serial('/dev/ttyUSB3', 115200, timeout=5)
+s.setRTS(False)
+s.setDTR(False)
+print(s.read(400).decode(errors='replace'))
+"
+```
+
+Expected output: NIA trace lines, call-home packets, and any fault codes emitted
+by the Church Machine during boot and free-run.  The exact format depends on the
+CM firmware version.  A silent ttyUSB3 after boot indicates no faults and a
+quiescent CM (heartbeat only visible on LED3).
 
 **LED pattern after ~3 seconds:**
 
@@ -222,7 +241,7 @@ CM_CTRL = 0x1;
 | `apb3_cm_bridge.v` | APB3 slave register bank — SoC ↔ CM control and status |
 | `church_ti60_f225.v` | **(generated — not in repo)** Church Machine RTL for Ti60F225 |
 | `church_soc_cm.xml` | Efinity project file |
-| `church_soc_cm.peri.xml` | Pin assignments — clock, UART, push button, 4 LEDs |
+| `church_soc_cm.peri.xml` | Pin assignments — clock, SoC UART (ttyUSB2), CM UART (ttyUSB3), push button, 4 LEDs |
 | `sapphire.v` | **(copy from Efinity IP — not in repo)** Sapphire SoC RTL |
 | `sapphire_define.vh` | **(copy from Efinity IP — not in repo)** Sapphire SoC defines |
 | `firmware/` | SoC bare-metal C firmware (adapts `soc_minimal` firmware) |
@@ -319,7 +338,6 @@ make check-util-ci     # same but --missing-ok (safe for CI)
 - FreeRTOS on the SoC.
 - SPI flash boot for SoC firmware.
 - JTAG debugging of either core.
-- CM UART debug port pinned out to a second USB channel.
 - DMA path from SoC to CM data BRAM (PATCH_LUMP over APB3).
 - PLL upclocking to 50 MHz (Phase B clock plan).
 

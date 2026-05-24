@@ -15,10 +15,9 @@
 // UART partitioning
 //   uart_tx / uart_rx — GPIOL_02 / GPIOL_01 → FT4232H interface 2 (ttyUSB2)
 //                       Sapphire SoC UART0; SoC firmware talks to the host.
-//   cm_uart_tx        — Church Machine UART debug output (internal; not
-//                       pinned out in this integration milestone so the CM
-//                       debug stream doesn't compete with the SoC console).
-//                       Connect to a spare GPIO in a future revision.
+//   cm_uart_tx        — Church Machine UART debug output (NIA, fault codes,
+//                       call-home packets) → GPIOL_P_03 → FT4232H interface 3
+//                       (ttyUSB3).  115200 baud, 3.3 V LVCMOS.
 //
 // APB3 bridge register map (see apb3_cm_bridge.v for full description):
 //   0x00  CTRL   [0]=cm_pb  (0=button pressed → step/free-run, 1=released)
@@ -41,6 +40,7 @@ module top (
     input  wire clk,           // 25 MHz crystal — GPIOL_P_18 via CLKMUX_T
     output wire uart_tx,       // GPIOL_02 → FT4232H interface 2 → ttyUSB2
     input  wire uart_rx,       // GPIOL_01 ← FT4232H interface 2
+    output wire cm_uart_tx,    // GPIOL_P_03 → FT4232H interface 3 → ttyUSB3
     input  wire push_button,   // GPIOT_N_06, active-low, weak pull-up (to SoC GPIO)
     output wire led0,          // GPIOR_P_07  SoC out of reset
     output wire led1,          // GPIOR_P_08  CM boot complete
@@ -73,8 +73,7 @@ module top (
     // CM LED outputs (raw from church_ti60f225)
     wire cm_led0, cm_led1, cm_led2, cm_led3;
 
-    // CM UART (debug; not pinned out in this revision)
-    wire cm_uart_tx_unused;
+    // cm_uart_tx is a top-level output port (GPIOL_P_03 → ttyUSB3)
 
     // ----------------------------------------------------------------
     // Sapphire SoC instantiation
@@ -172,14 +171,14 @@ module top (
     // Holding LOW for ≥ 25 000 000 cycles (1 s @ 25 MHz) enters free-run.
     // A brief LOW pulse (< 1 s) triggers single-step.
     //
-    // The CM has its own UART debug port; in this revision it is not
-    // pinned out to avoid contention with the SoC console on ttyUSB2.
-    // Connect cm_uart_tx to a spare GPIO (e.g., GPIOT_P_03) in a future
-    // revision when a second USB-UART path is available.
+    // The CM UART debug port is pinned out to GPIOL_P_03 → FT4232H
+    // interface 3 (ttyUSB3) so that NIA traces, fault codes, and
+    // call-home packets are observable without competing with the
+    // Sapphire SoC console on ttyUSB2.  115200 baud, 3.3 V LVCMOS.
     // ----------------------------------------------------------------
     church_ti60f225 u_cm (
         .clk         (clk),
-        .uart_tx     (cm_uart_tx_unused),   // CM debug UART — not pinned out
+        .uart_tx     (cm_uart_tx),          // CM debug UART → GPIOL_P_03 → ttyUSB3
         .uart_rx     (1'b1),                // CM UART RX — idle (no host driver)
         .push_button (cm_push_button_driven),
 
