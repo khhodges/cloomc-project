@@ -278,6 +278,33 @@ The SoC accesses the CM bridge at base address `APB_APB_SLAVE_0_BASE`
 | 0x04 | STATUS | RO  | [2] | `fault_latched` — sticky; any past fault since reset. |
 | 0x08 | NIA    | RO  | [31:0] | CM next-instruction address. |
 | 0x0C | FAULT  | RO  | [4:0] | CM fault code (valid when `fault_valid` or `fault_latched`). |
+| 0x10 | UID_LO | R/W | [31:0] | Lower 32 bits of 64-bit device UID. Written by firmware at boot; reads back the written value. Reset: 0x00000000. |
+| 0x14 | UID_HI | R/W | [31:0] | Upper 32 bits of 64-bit device UID. Written by firmware at boot; reads back the written value. Reset: 0x00000000. |
+
+`UID_HI:UID_LO` together form a 64-bit device identity emitted as 16 lowercase
+hex digits in every `CALLHOME` JSON packet.  When multiple Ti60 boards share
+the same IDE server, each board must be compiled with a distinct UID pair so
+the server can distinguish them.  See **Per-board UID** below.
+
+### Per-board UID
+
+The firmware default is `BOARD_UID_HI=0xC0FFEE01` / `BOARD_UID_LO=0x00000001`.
+Override at compile time for each additional board:
+
+```bash
+# Board #1 (default — already built)
+make -C hardware/soc_combined/firmware
+
+# Board #2
+make -C hardware/soc_combined/firmware \
+    CFLAGS="-DBOARD_UID_HI=0xC0FFEE01 -DBOARD_UID_LO=0x00000002"
+
+# Board #3
+make -C hardware/soc_combined/firmware \
+    CFLAGS="-DBOARD_UID_HI=0xC0FFEE01 -DBOARD_UID_LO=0x00000003"
+```
+
+Any non-zero, per-board-unique 64-bit value is valid.
 
 **Example C access:**
 
@@ -287,6 +314,12 @@ The SoC accesses the CM bridge at base address `APB_APB_SLAVE_0_BASE`
 #define CM_STATUS    (*(volatile uint32_t *)(CM_APB_BASE + 0x04))
 #define CM_NIA       (*(volatile uint32_t *)(CM_APB_BASE + 0x08))
 #define CM_FAULT     (*(volatile uint32_t *)(CM_APB_BASE + 0x0C))
+#define CM_UID_LO    (*(volatile uint32_t *)(CM_APB_BASE + 0x10))
+#define CM_UID_HI    (*(volatile uint32_t *)(CM_APB_BASE + 0x14))
+
+/* Write device UID before waiting for CM boot */
+CM_UID_LO = BOARD_UID_LO;
+CM_UID_HI = BOARD_UID_HI;
 
 /* Wait for CM boot */
 while (!(CM_STATUS & 0x1));

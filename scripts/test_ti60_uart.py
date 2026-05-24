@@ -75,7 +75,8 @@ for _a in sys.argv[1:]:
 # Canned transcript used by --dry-run
 # ---------------------------------------------------------------------------
 DRY_RUN_TRANSCRIPT = [
-    "CHURCH Ti60 SoC+CM v1.0",
+    "CHURCH Ti60 SoC+CM v1.1",
+    "UID=c0ffee0100000001",
     "Waiting for CM boot...",
     "CM boot_complete: 1",
     "CM fault at boot! code=0x00",
@@ -83,9 +84,9 @@ DRY_RUN_TRANSCRIPT = [
     "CM free-run kick released.",
     "Monitoring CM NIA (Ctrl+C to stop host terminal):",
     "NIA=0x00000010",
-    'CALLHOME:{"board":"Ti60F225","uid":"0000000000000000","nia":"0x00000010","boot_ok":1,"fault":0,"fault_code":0,"fw_major":1,"fw_minor":0}',
+    'CALLHOME:{"board":"Ti60F225","uid":"c0ffee0100000001","nia":"0x00000010","boot_ok":1,"fault":0,"fault_code":0,"fw_major":1,"fw_minor":0}',
     "NIA=0x00000014",
-    'CALLHOME:{"board":"Ti60F225","uid":"0000000000000000","nia":"0x00000014","boot_ok":1,"fault":0,"fault_code":0,"fw_major":1,"fw_minor":0}',
+    'CALLHOME:{"board":"Ti60F225","uid":"c0ffee0100000001","nia":"0x00000014","boot_ok":1,"fault":0,"fault_code":0,"fw_major":1,"fw_minor":0}',
 ]
 
 # ---------------------------------------------------------------------------

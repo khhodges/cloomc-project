@@ -5,10 +5,11 @@
  * bitstream on the Ti60F225 devkit.
  *
  * On boot:
- *   1. Sends greeting over UART.
- *   2. Waits for the CM to complete its boot sequence (polls STATUS register).
- *   3. Triggers CM free-run by asserting push_button LOW for 1 second.
- *   4. Loops, printing the CM NIA every second via UART.
+ *   1. Writes the compile-time board UID to the APB3 UID registers.
+ *   2. Sends greeting over UART.
+ *   3. Waits for the CM to complete its boot sequence (polls STATUS register).
+ *   4. Triggers CM free-run by asserting push_button LOW for 1 second.
+ *   5. Loops, printing the CM NIA every second via UART.
  *
  * UART:    Sapphire UART0 at 0xF0010000, 115200 baud, 25 MHz clock.
  * APB3:    Church Machine bridge at APB_SLAVE_0_BASE (0xF0040000).
@@ -18,9 +19,34 @@
  *   +0x04 STATUS RO   [0]=boot_complete [1]=fault_valid [2]=fault_latched
  *   +0x08 NIA    RO   [31:0]=next instruction address
  *   +0x0C FAULT  RO   [4:0]=fault code
+ *   +0x10 UID_LO R/W  [31:0]=lower 32 bits of 64-bit device UID
+ *   +0x14 UID_HI R/W  [31:0]=upper 32 bits of 64-bit device UID
+ *
+ * Per-board UID configuration
+ * ===========================
+ * BOARD_UID_HI and BOARD_UID_LO are compile-time constants that form a
+ * 64-bit device identity written into the APB3 bridge UID registers at
+ * boot and echoed in every CALLHOME JSON packet.
+ *
+ * When programming multiple Ti60 boards for the same IDE server, recompile
+ * the firmware with a distinct UID pair for each board so the IDE Dashboard
+ * can track them as separate devices.  Any non-zero 64-bit value works;
+ * a simple scheme is to increment BOARD_UID_LO by 1 per board while keeping
+ * BOARD_UID_HI fixed (e.g. 0xC0FFEE00 as a site-specific prefix).
+ *
+ * Example for board #2:
+ *   make CFLAGS="-DBOARD_UID_HI=0xC0FFEE00 -DBOARD_UID_LO=0x00000002"
  */
 
 #include <stdint.h>
+
+/* ── Per-board compile-time UID ────────────────────────────────────────────── */
+#ifndef BOARD_UID_HI
+#define BOARD_UID_HI  0xC0FFEE01UL   /* upper 32 bits — change per site/batch */
+#endif
+#ifndef BOARD_UID_LO
+#define BOARD_UID_LO  0x00000001UL   /* lower 32 bits — change per board      */
+#endif
 
 /* ── Sapphire UART0 registers ─────────────────────────────────────────────── */
 #define UART_BASE       0xF0010000UL
@@ -34,6 +60,8 @@
 #define CM_STATUS       (*(volatile uint32_t *)(CM_APB_BASE + 0x04))
 #define CM_NIA          (*(volatile uint32_t *)(CM_APB_BASE + 0x08))
 #define CM_FAULT        (*(volatile uint32_t *)(CM_APB_BASE + 0x0C))
+#define CM_UID_LO       (*(volatile uint32_t *)(CM_APB_BASE + 0x10))
+#define CM_UID_HI       (*(volatile uint32_t *)(CM_APB_BASE + 0x14))
 
 #define CM_STATUS_BOOT_COMPLETE  (1u << 0)
 #define CM_STATUS_FAULT_VALID    (1u << 1)
@@ -72,6 +100,21 @@ static void uart_puthex32(uint32_t v)
         uart_putc(hex[(v >> i) & 0xF]);
 }
 
+/*
+ * Emit a 16-char lowercase hex string for a 64-bit value (hi:lo).
+ * No "0x" prefix — used inline inside JSON string values.
+ */
+static void uart_puthex64_raw(uint32_t hi, uint32_t lo)
+{
+    static const char hex[] = "0123456789abcdef";
+    uint32_t words[2] = {hi, lo};
+    for (int w = 0; w < 2; w++) {
+        uint32_t v = words[w];
+        for (int i = 28; i >= 0; i -= 4)
+            uart_putc(hex[(v >> i) & 0xF]);
+    }
+}
+
 static void delay_loops(uint32_t loops)
 {
     volatile uint32_t i;
@@ -85,11 +128,11 @@ static void delay_loops(uint32_t loops)
 
 /*
  * Emit a machine-parseable CALLHOME JSON line:
- *   CALLHOME:{"board":"Ti60F225","uid":"0000000000000000","nia":"0xNNNNNNNN","boot_ok":1,"fault":F,"fault_code":C,"fw_major":1,"fw_minor":0}\r\n
+ *   CALLHOME:{"board":"Ti60F225","uid":"HHHHHHHHHHHHHHHH","nia":"0xNNNNNNNN","boot_ok":1,"fault":F,"fault_code":C,"fw_major":1,"fw_minor":0}\r\n
  *
  * Fields:
  *   board      — fixed "Ti60F225"
- *   uid        — 16-hex-digit device UID (all-zeros; no UID register in current bridge)
+ *   uid        — 16 lowercase hex digits from the APB3 UID registers
  *   nia        — current CM next-instruction address as 0x hex string
  *   boot_ok    — 1 (always 1 in monitor loop; we only reach here after boot_complete)
  *   fault      — 1 if fault_latched sticky bit is set, 0 otherwise
@@ -97,12 +140,15 @@ static void delay_loops(uint32_t loops)
  *   fw_major   — firmware major version (FW_MAJOR)
  *   fw_minor   — firmware minor version (FW_MINOR)
  */
-static void uart_emit_callhome(uint32_t nia, uint32_t status)
+static void uart_emit_callhome(uint32_t nia, uint32_t status,
+                               uint32_t uid_hi, uint32_t uid_lo)
 {
     uint32_t fault_latched = (status & CM_STATUS_FAULT_LATCHED) ? 1u : 0u;
     uint32_t fault_code    = fault_latched ? (CM_FAULT & 0x1Fu) : 0u;
 
-    uart_puts("CALLHOME:{\"board\":\"Ti60F225\",\"uid\":\"0000000000000000\",\"nia\":\"");
+    uart_puts("CALLHOME:{\"board\":\"Ti60F225\",\"uid\":\"");
+    uart_puthex64_raw(uid_hi, uid_lo);
+    uart_puts("\",\"nia\":\"");
     uart_puthex32(nia);
     uart_puts("\",\"boot_ok\":1,\"fault\":");
     uart_putc(fault_latched ? '1' : '0');
@@ -123,8 +169,23 @@ static void uart_emit_callhome(uint32_t nia, uint32_t status)
 
 void main(void)
 {
+    /*
+     * Step 1 — Write the compile-time board UID into the APB3 bridge.
+     * Write LO before HI; order does not matter to the hardware but
+     * following a consistent convention aids readability.
+     */
+    CM_UID_LO = BOARD_UID_LO;
+    CM_UID_HI = BOARD_UID_HI;
+
+    /* Read back to confirm (also holds the values for later use) */
+    uint32_t uid_lo = CM_UID_LO;
+    uint32_t uid_hi = CM_UID_HI;
+
     /* Greeting */
-    uart_puts("CHURCH Ti60 SoC+CM v1.0\r\n");
+    uart_puts("CHURCH Ti60 SoC+CM v1.1\r\n");
+    uart_puts("UID=");
+    uart_puthex64_raw(uid_hi, uid_lo);
+    uart_puts("\r\n");
 
     /* Ensure CM push_button starts released */
     CM_CTRL = CM_CTRL_RELEASED;
@@ -171,7 +232,7 @@ void main(void)
         uart_puts("\r\n");
 
         /* Machine-parseable call-home line for local_bridge.py */
-        uart_emit_callhome(nia, status);
+        uart_emit_callhome(nia, status, uid_hi, uid_lo);
 
         delay_loops(LOOPS_PER_SECOND);
     }

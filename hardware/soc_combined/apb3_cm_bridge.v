@@ -19,6 +19,17 @@
 //                              [2] fault_latched — sticky; any past fault.
 //  0x08    NIA         RO      [31:0] next instruction address (CM program counter).
 //  0x0C    FAULT       RO      [4:0] fault code from CM.
+//  0x10    UID_LO      R/W     [31:0] lower 32 bits of 64-bit device UID.
+//                              Written by firmware at boot (e.g. board serial or
+//                              a per-device compile-time constant).  Reads back
+//                              the last written value.  Reset value: 0x00000000.
+//  0x14    UID_HI      R/W     [31:0] upper 32 bits of 64-bit device UID.
+//                              Written by firmware at boot.  Reset value: 0x00000000.
+//
+// Together UID_HI:UID_LO form a 64-bit value printed as 16 hex digits in every
+// CALLHOME JSON packet so the IDE can distinguish multiple boards of the same
+// model.  The firmware writes these registers once during initialisation before
+// starting the CM boot-wait loop.
 //
 // All other addresses alias to zero on read; writes are ignored.
 //
@@ -96,14 +107,30 @@ module apb3_cm_bridge #(
     end
 
     // ----------------------------------------------------------------
-    // Write path — CTRL register only
+    // 64-bit software-writable device UID register
+    //
+    // The SoC firmware writes UID_LO then UID_HI during initialisation
+    // before waiting for CM boot_complete.  The IDE reads the values
+    // back via the CALLHOME JSON line emitted by the firmware's monitor
+    // loop.  Two boards configured with different UIDs will appear as
+    // distinct entries in the IDE Dashboard device list.
+    // ----------------------------------------------------------------
+    reg [31:0] uid_lo_r;
+    reg [31:0] uid_hi_r;
+
+    // ----------------------------------------------------------------
+    // Write path — CTRL, UID_LO, UID_HI registers
     // ----------------------------------------------------------------
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             cm_push_button <= 1'b1;   // released / idle
+            uid_lo_r       <= 32'h0;
+            uid_hi_r       <= 32'h0;
         end else if (apb_write) begin
             case (reg_idx)
                 4'h0: cm_push_button <= PWDATA[0];  // CTRL
+                4'h4: uid_lo_r       <= PWDATA;     // UID_LO  (offset 0x10)
+                4'h5: uid_hi_r       <= PWDATA;     // UID_HI  (offset 0x14)
                 default: ;
             endcase
         end
@@ -119,6 +146,8 @@ module apb3_cm_bridge #(
                             cm_fault_valid, cm_boot_complete};        // STATUS
             4'h2: PRDATA = cm_nia;                                    // NIA
             4'h3: PRDATA = {27'h0, fault_code_r};                    // FAULT
+            4'h4: PRDATA = uid_lo_r;                                  // UID_LO
+            4'h5: PRDATA = uid_hi_r;                                  // UID_HI
             default: PRDATA = 32'h0;
         endcase
     end

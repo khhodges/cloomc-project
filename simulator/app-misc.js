@@ -1473,7 +1473,9 @@ function loadDeviceList() {
                 const isOnline = dev.status === 'online';
                 if (dev.last_seen) _devLastSeenMap[dev.id] = dev.last_seen;
                 const profileClass = dev.profile === 'IoT' ? 'dev-badge-iot' : 'dev-badge-full';
-                const petName = (dev.label || '').trim() || dev.board_name;
+                const _uidSuffix = (dev.device_uid && dev.device_uid !== '0000000000000000')
+                    ? ' #' + dev.device_uid.slice(-8).toUpperCase() : '';
+                const petName = (dev.label || '').trim() || (dev.board_name + _uidSuffix);
                 const statusChip = isOnline
                     ? 'Online'
                     : 'Offline' + (dev.last_seen ? ' · ' + _devRelativeTime(dev.last_seen) : '');
