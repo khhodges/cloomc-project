@@ -99,8 +99,18 @@ def _get_resend_credentials():
     return (api_key or None), from_email
 
 
+def _alert_email_enabled() -> bool:
+    """Return False if GITHUB_SYNC_ALERT_EMAIL is explicitly set to '0' or 'false'."""
+    val = os.environ.get("GITHUB_SYNC_ALERT_EMAIL", "").strip().lower()
+    return val not in ("0", "false")
+
+
 def send_failure_alert(branch: str, sha: str, error: str) -> None:
     """Send an immediate Resend email when the GitHub push fails."""
+    if not _alert_email_enabled():
+        print("github_sync_alert: GITHUB_SYNC_ALERT_EMAIL disabled — alert email skipped.")
+        return
+
     api_key, from_email = _get_resend_credentials()
     if not api_key:
         print("github_sync_alert: Resend API key not available — alert not sent.", file=sys.stderr)
