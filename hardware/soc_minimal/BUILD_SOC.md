@@ -3,8 +3,11 @@
 ## What this builds
 
 A minimal Efinix Sapphire SoC bitstream for the Ti60F225 devkit.
-On power-on it sends `CHURCH Ti60 v1.0\r\n` over **ttyUSB2** at 115200 baud
-and then loops forever.  LED0 lights when the SoC is out of reset.
+On power-on it sends `CHURCH Ti60 v1.0\r\n` over **ttyUSB2** at 115200 baud.
+Pressing the push button (**GPIOT_N_06**, active-low) re-sends the same
+greeting without reprogramming or power-cycling the board — useful for
+repeated UART path verification during hardware bring-up.
+LED0 lights when the SoC is out of reset.
 
 This is the gate test confirming the physical UART path through the FT4232H
 chip (GPIOL_01/02 → FT4232H interface 2 → ttyUSB2).
@@ -60,6 +63,12 @@ Open `hardware/soc_minimal/sapphire_define.vh` and confirm:
 
 - **UART0 base address** — typically `` `define APB_UART0_BASE 32'hF0010000 ``.
   If different, update `UART_BASE` in `firmware/main.c`.
+
+- **GPIO base address** — typically `` `define APB_GPIO_BASE 32'hF0020000 ``.
+  If different, update `GPIO_BASE` in `firmware/main.c`.
+  The push button (GPIOT_N_06) is read from **bit 6** of the GPIO input register
+  (`GPIO_BASE + 0x00`).  The pin is active-low (hardware weak pull-up set in
+  `church_soc.peri.xml`); a logical 0 means pressed.
 
 No changes needed if the defaults match.
 
@@ -125,7 +134,12 @@ and Efinity's default timing constraints are sufficient.
 ### Step 7 — Test: receive the UART message
 
 After programming, within 3 seconds of power-on (or reset) the board sends the
-greeting.  Test it with either of these commands:
+greeting.  Press the push button (**GPIOT_N_06**) at any time to re-send the
+greeting without reprogramming.  A ~10 ms software debounce (250,000 cycles at
+25 MHz) is applied; hold the button for at least 10 ms for a clean trigger.
+The firmware re-arms after full release, so one press = one retransmit.
+
+Test it with either of these commands:
 
 **Quick Python one-liner:**
 
@@ -163,7 +177,7 @@ Press `Ctrl+A Ctrl+X` to exit picocom.
 | `top.v` | Top-level Verilog — instantiates the Sapphire SoC, wires UART and LEDs |
 | `church_soc.xml` | Efinity project file — device, sources, synthesis settings |
 | `church_soc.peri.xml` | Pin assignments — clock, UART TX/RX, push button, LEDs |
-| `firmware/main.c` | Bare-metal C — sends greeting string via UART, loops |
+| `firmware/main.c` | Bare-metal C — sends greeting on boot; re-sends on button press (debounced) |
 | `firmware/crt0.S` | RISC-V startup — sets stack, zeroes BSS, calls main |
 | `firmware/link.ld` | Linker script — ROM at 0x00000000, RAM at 0x00080000 |
 | `firmware/Makefile` | Builds `firmware.elf` then `firmware.hex` |
@@ -197,3 +211,14 @@ name, then update `top.v` accordingly.  Common alternative: `BOOT_HEX`.
 **Wrong UART address (garbage / no output, but LED0 lit)**
 → Check `sapphire_define.vh` for the UART0 base address and update
 `UART_BASE` in `firmware/main.c`, then rebuild and re-synthesize.
+
+**Button press does not retransmit the greeting**
+→ Confirm the GPIO base address: open `sapphire_define.vh` and look for
+`APB_GPIO_BASE` (or `APB_GPIO_A_BASE`).  If it differs from `0xF0020000`,
+update `GPIO_BASE` in `firmware/main.c`, rebuild, and re-synthesize.
+→ Confirm the bit position: GPIOT_N_06 is bit 6.  If the Sapphire SoC
+maps GPIOT to a different port word, adjust `BUTTON_BIT` accordingly.
+→ The button is active-low.  If the pull-up is missing, the input floats
+and `BUTTON_PRESSED` may read true permanently — the firmware will send
+the greeting continuously at boot.  Verify the weak pull-up assignment in
+`church_soc.peri.xml`.
