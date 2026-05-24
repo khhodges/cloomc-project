@@ -128,6 +128,10 @@ def validate_callhome(pkt):
         errors.append(f"fault must be 0 or 1, got {pkt.get('fault')!r}")
     if not isinstance(pkt.get("fault_code"), int) or not (0 <= pkt["fault_code"] <= 31):
         errors.append(f"fault_code must be 0-31, got {pkt.get('fault_code')!r}")
+    if "fw_major" in pkt and (not isinstance(pkt["fw_major"], int) or pkt["fw_major"] < 0):
+        errors.append(f"fw_major must be a non-negative integer, got {pkt.get('fw_major')!r}")
+    if "fw_minor" in pkt and (not isinstance(pkt["fw_minor"], int) or pkt["fw_minor"] < 0):
+        errors.append(f"fw_minor must be a non-negative integer, got {pkt.get('fw_minor')!r}")
     return errors
 
 # ---------------------------------------------------------------------------
@@ -201,8 +205,11 @@ def process_lines(lines, checks, verbose=False):
                     callhome_errors.append(f"validation errors {errs} in {line!r}")
                 else:
                     callhome_seen += 1
+                    fw_str = ""
+                    if "fw_major" in pkt and "fw_minor" in pkt:
+                        fw_str = f" fw={pkt['fw_major']}.{pkt['fw_minor']}"
                     checks_by_name["CALLHOME_JSON"].mark_pass(
-                        f"{callhome_seen} valid packet(s); last board={pkt['board']} nia={pkt['nia']}"
+                        f"{callhome_seen} valid packet(s); last board={pkt['board']}{fw_str} nia={pkt['nia']}"
                     )
 
     # Report any CALLHOME parse/validation failures
