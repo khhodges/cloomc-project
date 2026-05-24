@@ -123,6 +123,10 @@ args = "pet-name-memory-tests"
 task = "workflow.run"
 args = "pet-name-mem-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ti60-utilisation"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -431,6 +435,17 @@ args = "node simulator/test_pet_name_mem.js"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "ti60-utilisation"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scripts/check_ti60_utilisation.py --missing-ok"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [[ports]]
 localPort = 5000

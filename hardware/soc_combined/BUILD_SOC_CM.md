@@ -230,6 +230,83 @@ CM_CTRL = 0x1;
 
 ---
 
+## Resource Utilisation Check (CI guard)
+
+A lightweight CI script enforces that the combined SoC+CM bitstream never
+silently exceeds Ti60F225 capacity.
+
+### Thresholds
+
+| Resource | Ti60F225 total | Failure threshold |
+|---|---|---|
+| Logic Elements (LE) | 59 904 | > 90 % (≥ 53 914 LE used) |
+| Block RAM (BRAM) | 256 KB | > 90 % (≥ 231 KB used) |
+
+If either metric exceeds 90 % the script exits non-zero, blocking the CI step.
+
+### Report location
+
+Efinity writes synthesis resource data to the `work_syn/` subdirectory of the
+project after a successful **Synthesis** run.  The script scans all `.rpt`,
+`.log`, and `.txt` files in that directory automatically:
+
+```
+hardware/soc_combined/work_syn/
+    church_soc_cm.map.rpt        ← primary resource report
+    church_soc_cm.timing.rpt     ← timing report (not used by the check)
+    ...
+```
+
+### Running the check manually
+
+```bash
+python scripts/check_ti60_utilisation.py
+```
+
+The script defaults to `--report-dir hardware/soc_combined/work_syn`.
+Use `--missing-ok` to suppress exit code 2 when no synthesis has been run yet
+(useful for CI runs that skip hardware synthesis):
+
+```bash
+python scripts/check_ti60_utilisation.py --missing-ok
+```
+
+Additional options:
+
+| Flag | Default | Description |
+|---|---|---|
+| `--report-dir PATH` | `hardware/soc_combined/work_syn` | Directory containing Efinity `.rpt` files |
+| `--report-file PATH` | — | Parse a single named file instead of scanning the directory |
+| `--le-threshold N` | `90` | Fail if LE utilisation exceeds N % |
+| `--bram-threshold N` | `90` | Fail if BRAM utilisation exceeds N % |
+| `--le-total N` | `59904` | Override total LE count (Ti60F225 default) |
+| `--bram-total-kb N` | `256` | Override total BRAM in KB (Ti60F225 default) |
+| `--missing-ok` | off | Exit 0 with a warning instead of exit 2 when no reports found |
+
+### CI wiring (Replit validation)
+
+The check is registered as the `ti60-utilisation` validation step.  It uses
+`--missing-ok` so the step is a no-op in pull-request runs that skip hardware
+synthesis:
+
+```bash
+python scripts/check_ti60_utilisation.py --missing-ok
+```
+
+To run it (and all other validation steps) via the Replit validation UI, trigger
+the `ti60-utilisation` step.
+
+### Makefile target
+
+A convenience `make` target is available from `hardware/soc_combined/`:
+
+```bash
+make check-util        # exits non-zero if thresholds exceeded
+make check-util-ci     # same but --missing-ok (safe for CI)
+```
+
+---
+
 ## Scope / Out of scope
 
 **In scope for this integration milestone:**
