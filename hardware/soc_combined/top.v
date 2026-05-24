@@ -107,7 +107,7 @@ module top (
         .system_spi_0_io_data_3_write       (),
         .system_spi_0_io_data_3_writeEnable (),
         .system_spi_0_io_sclk_write         (),
-        .system_spi_0_io_ss                 (1'b1),
+        .system_spi_0_io_ss                 (),
 
         // APB slave 0 — wired to Church Machine bridge
         .io_apbSlave_0_PADDR    (apb_paddr),
