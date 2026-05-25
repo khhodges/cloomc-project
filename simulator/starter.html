@@ -391,11 +391,10 @@
 ; Every line below runs inside a capability-secured lump.
 ; The hardware checks every memory access before it happens.
 ;
-; Let's add two numbers and see the result.
+; Let's count up to 42 — the answer to everything.
 
-    MOVI  DR0, #12      ; load the number 12
-    MOVI  DR1, #30      ; load the number 30
-    ADD   DR0, DR0, DR1 ; add them together → DR0 = 42
+    IADD  DR0, DR0, #12 ; DR0 = 0 + 12  →  DR0 = 12
+    IADD  DR0, DR0, #30 ; DR0 = 12 + 30 →  DR0 = 42
     HALT                ; done — result is in DR0
 </textarea>
         <div class="s-annotation">
