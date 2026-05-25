@@ -75,18 +75,17 @@ cp build/church_ti60_f225.v hardware/soc_combined/
 
 ### Step 3 — Verify Sapphire addresses (optional but recommended)
 
-Open `hardware/soc_combined/sapphire_define.vh` and confirm the standard
-base addresses used by the SoC firmware:
+Check the Efinix-generated `bsp/efinix/EfxSapphireSoc/include/soc.h` (from
+the sapphire_backup path) and confirm the addresses used by the SoC firmware.
+`sapphire_define.vh` does **not** contain address defines — addresses come from
+`soc.h`:
 
-| Symbol | Expected value | Used by |
+| Symbol | Value | Used by |
 |---|---|---|
-| `` `ONCHIP_MEM_BASE `` | `32'h00000000` | Linker script ROM origin |
-| `` `ONCHIP_MEM_BASE_1 `` | `32'h00080000` | Linker script RAM origin |
-| `` `APB_UART0_BASE `` | `32'hF0010000` | `firmware/main.c` UART_BASE |
-| `` `APB_APB_SLAVE_0_BASE `` | `32'hF0040000` | `firmware/main.c` CM_APB_BASE |
+| `SYSTEM_UART_0_IO_CTRL` | `0xF8010000` | `firmware/main.c` `UART_BASE` |
+| APB slave 0 (CM bridge) | `0xF0040000` | `firmware/main.c` `CM_APB_BASE` |
 
-If any value differs, update `firmware/main.c` and/or `firmware/link.ld`
-accordingly.
+If the values in your `soc.h` differ, update `firmware/main.c` accordingly.
 
 ---
 
@@ -121,6 +120,18 @@ ls -lh hardware/soc_combined/EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_sym
 ```
 
 You should see four files of ~1.2 MB each (131 072 words × 9 chars/line).
+
+> **Critical — copy symbol files into `work_syn/` before synthesis.**
+> EFX_MAP resolves `$readmemb` relative to its own working directory (`work_syn/`),
+> not the project root.  If the files are only in `hardware/soc_combined/` the
+> BRAM is silently zero-initialised and the CPU executes NOPs forever.
+>
+> ```bash
+> cp hardware/soc_combined/EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol*.bin \
+>    hardware/soc_combined/work_syn/
+> ```
+>
+> Run this copy every time you rebuild the firmware, before re-running synthesis.
 
 The firmware:
 1. Sends the boot greeting over UART.
@@ -479,11 +490,17 @@ make check-util-ci     # same but --missing-ok (safe for CI)
 → Re-run Step 4.
 
 **SoC UART silent after flashing / LED0 never lights**
-→ The four `*_symbol{0..3}.bin` files are missing.  Re-run Step 4 and confirm
-the files are present in `hardware/soc_combined/` before re-synthesising.
-`FIRMWARE_INIT_FILE` in `top.v` is a simulation-only parameter and is ignored
-by Efinity synthesis — only the `$readmemb` symbol files actually embed
-firmware into the bitstream.
+→ The four `*_symbol{0..3}.bin` files must be in **`work_syn/`** (not just
+`hardware/soc_combined/`) when synthesis runs.  EFX_MAP resolves `$readmemb`
+paths relative to its own working directory (`work_syn/`); files only in the
+project root are silently ignored, leaving the BRAM zero-initialised.
+
+```bash
+cp hardware/soc_combined/EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol*.bin \
+   hardware/soc_combined/work_syn/
+# then re-run synthesis
+bash hardware/soc_combined/work_syn/run_efx_map.sh
+```
 
 **LED1 never lights (CM boot_complete stays 0)**
 → Check that `church_ti60_f225.v` was generated without errors.  Confirm the
