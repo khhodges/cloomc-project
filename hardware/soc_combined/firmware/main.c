@@ -203,11 +203,15 @@ void main(void)
     /* Ensure CM push_button starts released */
     CM_CTRL = CM_CTRL_RELEASED;
 
-    /* Wait for CM boot_complete */
+    /* Wait for CM boot_complete — 8-second timeout so we never hang */
     uart_puts("Waiting for CM boot...\r\n");
-    while (!(CM_STATUS & CM_STATUS_BOOT_COMPLETE))
-        ;
-    uart_puts("CM boot_complete: 1\r\n");
+    for (uint32_t t = 0; t < 8; t++) {
+        if (CM_STATUS & CM_STATUS_BOOT_COMPLETE) {
+            uart_puts("CM boot_complete: 1\r\n");
+            break;
+        }
+        delay_loops(LOOPS_PER_SECOND);
+    }
 
     /* Check for immediate fault */
     if (CM_STATUS & CM_STATUS_FAULT_LATCHED) {
@@ -230,7 +234,13 @@ void main(void)
 
     /* Monitor loop: print CM NIA every second */
     uart_puts("Monitoring CM NIA (Ctrl+C to stop host terminal):\r\n");
+    uint32_t iter = 0;
     for (;;) {
+        /* Re-announce every 20 s so late-connecting listeners see greeting */
+        if ((iter % 20) == 0)
+            uart_puts("CHURCH Ti60 SoC+CM v1.1\r\n");
+        iter++;
+
         uint32_t nia    = CM_NIA;
         uint32_t status = CM_STATUS;
 
