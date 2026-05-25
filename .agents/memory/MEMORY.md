@@ -1,0 +1,1 @@
+- [EFX_MAP $readmemb working directory](efx-map-readmemb.md) — symbol files must be in work_syn/ not project root or BRAM is silently zero-initialised
