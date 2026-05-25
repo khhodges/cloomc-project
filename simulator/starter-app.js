@@ -186,7 +186,8 @@ function starterRun() {
     }
 
     // Re-boot clean then load
-    sim.boot();
+    sim.reset();
+    _runBootSequence();
     sim.loadProgram(words);
 
     // Run to halt or fault (max 50 000 steps to avoid infinite loops)
@@ -248,7 +249,8 @@ function starterStep() {
             _setOutput('<span class="out-red">Fix assembler errors before stepping.</span>');
             return;
         }
-        sim.boot();
+        sim.reset();
+        _runBootSequence();
         sim.loadProgram(result.words || result);
         sim._programLoaded = true;
         _setOutput('<span class="out-dim">Program loaded. Stepping…</span>\n');
@@ -284,7 +286,8 @@ function starterReset() {
     _hideFault();
     _el('haltedMsg').style.display = 'none';
     if (sim) {
-        sim.boot();
+        sim.reset();
+        _runBootSequence();
         sim._programLoaded = false;
     }
     _setBadge('HALTED');
