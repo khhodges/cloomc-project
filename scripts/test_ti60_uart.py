@@ -192,6 +192,14 @@ def process_lines(lines, checks, verbose=False):
         if "CM boot_complete: 1" in line:
             checks_by_name["BOOT_COMPLETE"].mark_pass()
 
+        if line.startswith("CALLHOME:"):
+            _pkt = parse_callhome(line)
+            if _pkt and _pkt.get("boot_ok") == 1:
+                if not checks_by_name["BOOT_COMPLETE"].passed:
+                    checks_by_name["BOOT_COMPLETE"].mark_pass(
+                        "inferred from CALLHOME boot_ok:1"
+                    )
+
         if line.startswith("NIA=") and "0x" in line:
             checks_by_name["NIA_LINES"].mark_pass(f"first: {line!r}")
 
