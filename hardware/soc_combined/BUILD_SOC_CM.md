@@ -247,7 +247,7 @@ python3 scripts/test_ti60_uart.py \
 | `UART_DATA` | `0xF8010000` | write = TX, read = RX |
 | `UART_STATUS` | `0xF8010004` | bits[23:16] = TX avail (Sapphire UART) |
 | `UART_CLOCKDIV` | `0xF8010008` | 50 MHz / (8 × (div+1)) = baud rate |
-| APB slave 0 (CM bridge) | `0xF0040000` | `firmware/main.c` `CM_APB_BASE` |
+| APB slave 0 (CM bridge) | `0xF8100000` | `firmware/main.c` `CM_APB_BASE` |
 | Boot ROM base | `0xF9000000` | CPU reset vector, `link.ld` |
 
 UART baud rate: reset `CLOCKDIV = 53` → 50 000 000 / (8 × 54) = 115 740 baud (≈115200).
@@ -261,7 +261,7 @@ the STATUS register bit layout differs between Sapphire IP versions.
 
 ## APB3 register map
 
-The SoC accesses the CM bridge at `0xF0040000`.
+The SoC accesses the CM bridge at `0xF8100000` (`IO_APB_SLAVE_0_INPUT` per generated `soc.h`).
 
 | Offset | Name   | Access | Description |
 |---|---|---|---|

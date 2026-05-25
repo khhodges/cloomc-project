@@ -12,7 +12,7 @@
  *   5. Loops, printing the CM NIA every second via UART.
  *
  * UART:    Sapphire UART0 at 0xF8010000, 115200 baud, 50 MHz clock.
- * APB3:    Church Machine bridge at APB_SLAVE_0_BASE (0xF0040000).
+ * APB3:    Church Machine bridge at APB_SLAVE_0_BASE (0xF8100000).
  *
  * APB3 CM bridge register map:
  *   +0x00 CTRL   W/R  [0]=cm_pb (0=pressed, 1=released; default 1)
@@ -59,7 +59,8 @@
  * 50 MHz / (8 × 54) = 115,740 baud ≈ 115,200.  No override needed. */
 
 /* ── Church Machine APB3 bridge registers ─────────────────────────────────── */
-#define CM_APB_BASE     0xF0040000UL
+/* IO_APB_SLAVE_0_INPUT = 0xF8100000 per generated soc.h (Sapphire SoC). */
+#define CM_APB_BASE     0xF8100000UL
 #define CM_CTRL         (*(volatile uint32_t *)(CM_APB_BASE + 0x00))
 #define CM_STATUS       (*(volatile uint32_t *)(CM_APB_BASE + 0x04))
 #define CM_NIA          (*(volatile uint32_t *)(CM_APB_BASE + 0x08))
