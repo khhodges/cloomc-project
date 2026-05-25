@@ -56,9 +56,9 @@
 #define UART_CLOCKDIV   (*(volatile uint32_t *)(UART_BASE + 0x08))
 /* STATUS bits [23:16] = TX write-available count (Efinix Sapphire UART) */
 #define UART_TX_AVAIL   (((UART_STATUS) >> 16) & 0xFFu)
-/* SYSTEM_CLINT_HZ = 50 MHz, 8x oversampling: divider = 50M/(8*115200)-1 = 53
- * This matches the reset default (0x35); we still write it for clarity. */
-#define UART_CLOCKDIV_115200  53u
+/* Clock = 25 MHz, 8x oversampling: divider = 25M/(8*115200)-1 = 26
+ * (The SoC default 0x35=53 is for a 50 MHz devkit; our crystal is 25 MHz.) */
+#define UART_CLOCKDIV_115200  26u
 
 /* ── Church Machine APB3 bridge registers ─────────────────────────────────── */
 #define CM_APB_BASE     0xF0040000UL

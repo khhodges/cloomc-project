@@ -1,21 +1,22 @@
 /*
  * hardware/soc_combined/firmware/link.ld
  *
- * Linker script for the combined Sapphire SoC + Church Machine firmware.
+ * Memory map from sapphire.v (address decoder):
+ *   BRAM  0xF9000000  32 KB  r/w  (code + data, CPU resets to 0xF9000000)
+ *   APB   0xF8000000  16 MB  r/w  (peripherals — UART at 0xF8010000)
  *
- * Memory map (standard Efinix Sapphire SoC defaults):
- *   ROM  0x00000000  512 KB  (on-chip ROM, holds .text + .rodata)
- *   RAM  0x00080000  128 KB  (on-chip RAM, holds .data + .bss + stack)
+ * We split the single 32 KB BRAM into:
+ *   ROM  0xF9000000  28 KB  .text + .rodata
+ *   RAM  0xF9007000   4 KB  .data + .bss + stack
  *
- * Verify ROM_BASE and RAM_BASE against sapphire_define.vh before building.
- * The APB3 bridge for the CM sits at 0xF0040000 (APB_APB_SLAVE_0_BASE) —
- * this is a peripheral register address, not in the memory map here.
+ * The .data section is VMA 0xF9007000, LMA immediately after .rodata
+ * (AT > ROM in the SECTIONS block), so crt0 copies it at boot.
  */
 
 MEMORY
 {
-    ROM (rx)  : ORIGIN = 0x00000000, LENGTH = 512K
-    RAM (rwx) : ORIGIN = 0x00080000, LENGTH = 128K
+    ROM (rx)  : ORIGIN = 0xF9000000, LENGTH = 28K
+    RAM (rwx) : ORIGIN = 0xF9007000, LENGTH = 4K
 }
 
 ENTRY(_start)
