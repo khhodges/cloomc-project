@@ -388,13 +388,13 @@
         <div class="s-panel-label">Your program</div>
         <textarea class="s-editor" id="codeEditor" spellcheck="false">; Welcome to the Church Machine
 ; ─────────────────────────────────────────────────────
-; This is a simple A + B program.
-; DR0 = A,  DR1 = B,  DR0 = A + B
+; A simple A + B program.
+; DR0 holds A, DR1 holds B, result goes into DR0.
 
-    MOVI  DR0, #12      ; A = 12
-    MOVI  DR1, #30      ; B = 30
-    ADD   DR0, DR0, DR1 ; A + B  →  DR0 = 42
-    HALT                ; done — result is in DR0
+    IADD  DR0, DR0, #12  ; A = 12
+    IADD  DR1, DR1, #30  ; B = 30
+    IADD  DR0, DR0, DR1  ; A + B  →  DR0 = 42
+    HALT                 ; done — result is in DR0
 </textarea>
         <div class="s-annotation">
             ↑ Edit this freely. Click <strong>Run</strong> to see what happens.
