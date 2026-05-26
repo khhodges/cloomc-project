@@ -1128,99 +1128,364 @@ def start_here():
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Getting Started — Church Machine</title>
 <style>
-  *{box-sizing:border-box}
-  body{font-family:system-ui,sans-serif;background:#0a0e17;color:#c8d6e5;margin:0;padding:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:48px 24px}
-  .wrap{max-width:640px;width:100%}
-  h1{color:#a78bfa;font-size:1.8rem;margin-bottom:.25rem}
-  .sub{color:#64748b;font-size:.85rem;margin-bottom:2.5rem}
-  .steps{list-style:none;margin:0;padding:0;counter-reset:steps}
-  .step{counter-increment:steps;display:flex;gap:1.1rem;align-items:flex-start;margin-bottom:1.5rem}
-  .step-num{flex-shrink:0;width:2rem;height:2rem;border-radius:50%;background:#1a0e28;border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:#a78bfa;margin-top:.1rem}
-  .step-body{flex:1}
-  .step-title{font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:.2rem}
-  .step-title a{color:#a78bfa;text-decoration:none}
-  .step-title a:hover{text-decoration:underline}
-  .step-desc{font-size:.83rem;color:#64748b;line-height:1.5}
-  .divider{border:none;border-top:1px solid #1e2a3a;margin:2rem 0}
-  .next-section h2{color:#daa520;font-size:.85rem;text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem}
-  .next-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-  @media(max-width:480px){.next-cards{grid-template-columns:1fr}}
-  .next-card{background:#0d1117;border:1px solid #1e2a3a;border-radius:8px;padding:14px 16px;text-decoration:none;display:block;transition:border-color .15s}
-  .next-card:hover{border-color:#a78bfa}
-  .next-card .nc-title{color:#a78bfa;font-size:.9rem;font-weight:600;margin-bottom:.3rem}
-  .next-card .nc-desc{color:#64748b;font-size:.78rem;line-height:1.4}
-  .back{margin-top:2.5rem;font-size:.8rem}
-  .back a{color:#4a5568;text-decoration:none}
-  .back a:hover{color:#a78bfa}
-</style></head><body>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#0a0e17;color:#c8d6e5;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 24px 64px}
+  .wrap{max-width:680px;width:100%}
+
+  /* Logo */
+  .logo{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;margin-bottom:2rem;opacity:.75;transition:opacity .15s}
+  .logo:hover{opacity:1}
+  .logo-lambda{font-family:Georgia,serif;font-size:1.5rem;color:#daa520;line-height:1}
+  .logo-name{font-family:Georgia,serif;font-size:.95rem;color:#daa520;letter-spacing:.04em}
+  .logo-sub{font-size:.65rem;color:#64748b;letter-spacing:.1em;text-transform:uppercase}
+
+  /* Step indicator */
+  .indicator{display:flex;align-items:center;margin-bottom:2.5rem;gap:0}
+  .ind-step{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;z-index:1}
+  .ind-circle{width:2rem;height:2rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;transition:background .25s,border-color .25s,color .25s;border:2px solid #2a3a52;background:#0d1117;color:#4a5568}
+  .ind-circle.done{background:#1a0e28;border-color:#a78bfa;color:#a78bfa}
+  .ind-circle.active{background:#a78bfa;border-color:#a78bfa;color:#0a0e17}
+  .ind-label{font-size:.6rem;color:#4a5568;text-align:center;max-width:52px;line-height:1.2;transition:color .25s}
+  .ind-label.active{color:#a78bfa}
+  .ind-label.done{color:#a78bfa}
+  .ind-line{flex:1;height:2px;background:#2a3a52;position:relative;top:-14px;transition:background .25s}
+  .ind-line.done{background:#a78bfa}
+  @media(max-width:480px){
+    .ind-label{display:none}
+    .ind-circle{width:1.6rem;height:1.6rem;font-size:.75rem}
+    .ind-line{top:-10px}
+  }
+
+  /* Pages */
+  .pages-container{position:relative;overflow:hidden;min-height:380px}
+  .page{display:none;animation:fadeIn .22s ease}
+  .page.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  .page-eyebrow{font-size:.72rem;color:#daa520;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem}
+  .page-title{font-size:1.75rem;font-weight:700;color:#e2e8f0;margin-bottom:.75rem;line-height:1.2}
+  .page-desc{font-size:.92rem;color:#94a3b8;line-height:1.65;margin-bottom:1.5rem}
+
+  /* Code block */
+  .code-block{background:#0d1117;border:1px solid #1e2a3a;border-radius:8px;padding:16px 20px;margin-bottom:1.5rem;overflow-x:auto}
+  .code-block pre{font-family:'Fira Code','Cascadia Code',monospace;font-size:.8rem;color:#c8d6e5;line-height:1.7;white-space:pre}
+  .code-label{font-size:.68rem;color:#4a5568;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem}
+  .kw{color:#a78bfa}
+  .cm{color:#4a5568}
+  .gt{color:#daa520}
+  .op{color:#38bdf8}
+  .str{color:#86efac}
+
+  /* Checklist */
+  .checklist{list-style:none;margin-bottom:1.75rem}
+  .checklist li{display:flex;align-items:flex-start;gap:.65rem;padding:.4rem 0;font-size:.88rem;color:#94a3b8;border-bottom:1px solid #111827}
+  .checklist li:last-child{border-bottom:none}
+  .checklist li::before{content:"◆";color:#daa520;font-size:.6rem;flex-shrink:0;margin-top:.25rem}
+
+  /* Concept box */
+  .concept-box{background:#0d1117;border-left:3px solid #daa520;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:1.5rem;font-size:.85rem;color:#94a3b8;line-height:1.6}
+  .concept-box strong{color:#daa520}
+
+  /* Link card */
+  .link-card{display:block;background:#0d1117;border:1px solid #1e2a3a;border-radius:8px;padding:14px 18px;text-decoration:none;transition:border-color .15s;margin-bottom:.75rem}
+  .link-card:hover{border-color:#a78bfa}
+  .link-card .lc-title{color:#a78bfa;font-size:.9rem;font-weight:600;margin-bottom:.25rem}
+  .link-card .lc-desc{color:#64748b;font-size:.78rem;line-height:1.4}
+
+  /* Nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid #1e2a3a;gap:1rem}
+  .btn{display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1.25rem;border-radius:6px;font-size:.88rem;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s,color .15s;border:none;font-family:inherit}
+  .btn-ghost{background:transparent;border:1px solid #2a3a52;color:#64748b}
+  .btn-ghost:hover{border-color:#a78bfa;color:#a78bfa}
+  .btn-primary{background:#a78bfa;color:#0a0e17}
+  .btn-primary:hover{background:#c4b5fd}
+  .btn-gold{background:#daa520;color:#0a0e17}
+  .btn-gold:hover{background:#f0b429}
+  .nav-count{font-size:.75rem;color:#4a5568}
+</style>
+</head><body>
 <div class="wrap">
-  <a href="/" style="display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;margin-bottom:2rem;opacity:.75;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">
-    <span style="font-family:Georgia,serif;font-size:1.5rem;color:#daa520;line-height:1">&#955;</span>
+
+  <a class="logo" href="/">
+    <span class="logo-lambda">&#955;</span>
     <div>
-      <div style="font-family:Georgia,serif;font-size:.95rem;color:#daa520;letter-spacing:.04em">Church Machine</div>
-      <div style="font-size:.65rem;color:#64748b;letter-spacing:.1em;text-transform:uppercase">Capability-Secured Computing</div>
+      <div class="logo-name">Church Machine</div>
+      <div class="logo-sub">Capability-Secured Computing</div>
     </div>
   </a>
-  <h1>Getting Started</h1>
-  <div class="sub">Church Machine &middot; Release 1.2 &middot; Ti60 F225</div>
 
-  <ol class="steps">
-    <li class="step">
-      <div class="step-num">1</div>
-      <div class="step-body">
-        <div class="step-title"><a href="/simulator/#tutorial">Learn in the simulator</a></div>
-        <div class="step-desc">No hardware needed — runs in the browser. Work through the Bernoulli tutorial to see the capability pipeline in action.</div>
-      </div>
-    </li>
-    <li class="step">
-      <div class="step-num">2</div>
-      <div class="step-body">
-        <div class="step-title"><a href="/api/bitstream/download/ti60-f225">Download the Ti60 bitstream</a></div>
-        <div class="step-desc">Flash once to your Efinix Ti60 F225 board using Efinity Programmer. You only need to do this once — the firmware persists.</div>
-      </div>
-    </li>
-    <li class="step">
-      <div class="step-num">3</div>
-      <div class="step-body">
-        <div class="step-title">Power on the Ti60 and plug in the USB cable</div>
-        <div class="step-desc">On ChromeOS: Settings &rarr; Developers &rarr; Linux &rarr; Manage USB devices &rarr; enable FT4232H.</div>
-      </div>
-    </li>
-    <li class="step">
-      <div class="step-num">4</div>
-      <div class="step-body">
-        <div class="step-title"><a href="/simulator/#builder?tab=ti60-connect">Open Builder &rarr; Connect tab</a></div>
-        <div class="step-desc">Click Connect, pick the 3rd port (SoC UART). Four steps light up green automatically — that&rsquo;s your proof of life.</div>
-      </div>
-    </li>
-  </ol>
+  <!-- Step indicator -->
+  <div class="indicator" id="indicator"></div>
 
-  <hr class="divider">
+  <!-- Page content -->
+  <div class="pages-container">
 
-  <div class="next-section">
-    <h2>Next steps</h2>
-    <div class="next-cards">
-      <a class="next-card" href="/release/r12">
-        <div class="nc-title">CM Release 1.2 &rarr;</div>
-        <div class="nc-desc">FPGA ZIP downloads for all 3 boards, changelog, and full build instructions.</div>
+    <!-- Page 1: Conventional Programming -->
+    <div class="page" data-page="1">
+      <div class="page-eyebrow">Step 1 of 6</div>
+      <h1 class="page-title">Conventional Programming</h1>
+      <p class="page-desc">
+        Every program starts as a sequence of instructions. In the Church Machine you write those
+        instructions in <strong>CLOOMC</strong> — the assembly language that compiles directly to the
+        Church Machine ISA. Here is a minimal program that loads a value and returns it to the caller.
+      </p>
+      <div class="code-block">
+        <div class="code-label">hello.cloomc — your first Church Machine program</div>
+        <pre><span class="cm">; Namespace slot 3 — Boot.Abstr entry point</span>
+<span class="kw">LLOAD</span>  <span class="op">CR1</span>, <span class="gt">#42</span>       <span class="cm">; load literal value 42 into CR1</span>
+<span class="kw">RETURN</span> <span class="op">CR1</span>           <span class="cm">; hand CR1 back to the caller</span></pre>
+      </div>
+      <ul class="checklist">
+        <li>Understand that CLOOMC instructions map 1-to-1 to Church Machine opcodes</li>
+        <li>Recognise that <code>CR1</code>–<code>CR15</code> are the 15 general-purpose capability registers</li>
+        <li>See how <code>RETURN</code> transfers control back through the call chain</li>
+      </ul>
+      <div class="concept-box">
+        <strong>Key idea:</strong> The Church Machine executes one instruction per cycle, reads capabilities
+        from registers, and validates every memory access through the mLoad pipeline before it touches RAM.
+      </div>
+    </div>
+
+    <!-- Page 2: Add Security Boundaries -->
+    <div class="page" data-page="2">
+      <div class="page-eyebrow">Step 2 of 6</div>
+      <h1 class="page-title">Add Security Boundaries</h1>
+      <p class="page-desc">
+        Conventional code has no built-in memory safety. The Church Machine enforces boundaries using
+        <strong>Golden Tokens</strong> — 32-bit unforgeable capability descriptors that carry version,
+        CRC seal, bounds, and permission bits. No code can read or write memory without a valid token.
+      </p>
+      <div class="code-block">
+        <div class="code-label">Adding a Golden Token boundary</div>
+        <pre><span class="cm">; CR6 already holds a Golden Token for a data lump</span>
+<span class="kw">MLOAD</span>  <span class="op">CR2</span>, [<span class="gt">CR6</span>+<span class="op">#0</span>]  <span class="cm">; validated load — pipeline checks GT first</span>
+<span class="kw">MSTORE</span> [<span class="gt">CR6</span>+<span class="op">#1</span>], <span class="op">CR2</span> <span class="cm">; validated store — same boundary check</span>
+<span class="kw">RETURN</span> <span class="op">CR2</span></pre>
+      </div>
+      <ul class="checklist">
+        <li>Every MLOAD/MSTORE passes through the 4-stage mLoad capability validation pipeline</li>
+        <li>The pipeline checks: version, CRC seal, bounds, and permission bits — in that order</li>
+        <li>An out-of-bounds or permission-denied access fires a capability fault, not a crash</li>
+        <li>Domain purity keeps capabilities strictly separate from code and data words</li>
+      </ul>
+      <div class="concept-box">
+        <strong>Golden Token format:</strong> bits [31:28] version · [27:16] CRC seal ·
+        [15:8] upper bound · [7:0] lower bound. The <strong>E</strong> (execute) bit is the only
+        permission in a C-List entry; data tokens carry <strong>R</strong> and/or <strong>W</strong>.
+      </div>
+    </div>
+
+    <!-- Page 3: IDE Test -->
+    <div class="page" data-page="3">
+      <div class="page-eyebrow">Step 3 of 6</div>
+      <h1 class="page-title">IDE Test</h1>
+      <p class="page-desc">
+        The Church Machine IDE includes a built-in simulator — no FPGA hardware required. Open the
+        Pipeline view to watch instructions flow through the capability validation stages, then run the
+        self-test suite to confirm everything is working correctly.
+      </p>
+      <ul class="checklist">
+        <li>Open the simulator and navigate to the <strong>Pipeline</strong> tab</li>
+        <li>Load the <em>Bernoulli</em> example from the Examples drop-down</li>
+        <li>Click <strong>Run</strong> and watch the mLoad pipeline stages light up in sequence</li>
+        <li>Switch to the <strong>Dashboard</strong> tab and press <strong>Self-Test</strong></li>
+        <li>All test indicators should show green — that is your proof-of-life</li>
+      </ul>
+      <div class="concept-box">
+        <strong>What the pipeline view shows:</strong> each clock cycle you see the active instruction,
+        the Golden Token being validated, which pipeline stage it is in (Fetch → Decode → Validate → Execute),
+        and any fault that fires. Faults trigger the three-tier recovery system automatically.
+      </div>
+      <a class="link-card" href="/simulator/#pipeline">
+        <div class="lc-title">Open Pipeline View &rarr;</div>
+        <div class="lc-desc">Watch the mLoad capability validation pipeline in real time inside the browser simulator.</div>
       </a>
-      <a class="next-card" href="/release/r1">
-        <div class="nc-title">Release 1 Docs &rarr;</div>
-        <div class="nc-desc">14 PDFs — ISA reference, architecture overview, capability model, and more.</div>
-      </a>
-      <a class="next-card" href="/simulator/#tutorial">
-        <div class="nc-title">Simulator Tutorial &rarr;</div>
-        <div class="nc-desc">Interactive Bernoulli tutorial — lambda calculus proving in the browser.</div>
-      </a>
-      <a class="next-card" href="/simulator/#builder?tab=ti60-connect">
-        <div class="nc-title">Connect Hardware &rarr;</div>
-        <div class="nc-desc">One-click proof-of-life for the Ti60 F225 via WebSerial.</div>
+      <a class="link-card" href="/simulator/#tutorial">
+        <div class="lc-title">Bernoulli Tutorial &rarr;</div>
+        <div class="lc-desc">Step-by-step lambda calculus tutorial with Church Machine trace — no hardware needed.</div>
       </a>
     </div>
+
+    <!-- Page 4: Add LUMP to Repository -->
+    <div class="page" data-page="4">
+      <div class="page-eyebrow">Step 4 of 6</div>
+      <h1 class="page-title">Add LUMP to Repository</h1>
+      <p class="page-desc">
+        A <strong>LUMP</strong> is the Church Machine's unit of deployment — a self-describing binary
+        that packages compiled code, its C-List of capabilities, and a header with CRC-sealed metadata.
+        Once built, you commit the LUMP to the Mum Tunnel repository so others can lazy-load it.
+      </p>
+      <div class="code-block">
+        <div class="code-label">LUMP anatomy (simplified)</div>
+        <pre><span class="cm">; Word 0  — header: magic, version, lump_size</span>
+<span class="cm">; Word 1  — bounds: cw (code words), cc (clist capacity)</span>
+<span class="cm">; Word 2  — CRC seal over words 0–1</span>
+<span class="cm">; Words 3…cw  — compiled CLOOMC instructions</span>
+<span class="cm">; Words cw+1…end — C-List: Golden Token slots</span></pre>
+      </div>
+      <ul class="checklist">
+        <li>Use the <strong>Builder</strong> tab to compile your CLOOMC source into a LUMP binary</li>
+        <li>Download the <code>.lump</code> file and its companion sidecar <code>.json</code></li>
+        <li>Add both files plus a <code>manifest.json</code> entry to your repository</li>
+        <li>Run the consistency gate: <code>pytest tests/lump/test_lump_consistency.py -v</code></li>
+        <li>Commit — the LUMP is now available for lazy loading by any Church Machine</li>
+      </ul>
+      <a class="link-card" href="/simulator/#builder">
+        <div class="lc-title">Open Builder Tab &rarr;</div>
+        <div class="lc-desc">Compile, package, and download LUMP binaries for all three supported boards.</div>
+      </a>
+    </div>
+
+    <!-- Page 5: Lazy Load Approval -->
+    <div class="page" data-page="5">
+      <div class="page-eyebrow">Step 5 of 6</div>
+      <h1 class="page-title">Lazy Load Approval</h1>
+      <p class="page-desc">
+        Church Machine abstractions are loaded <em>on demand</em> — not at boot time. The
+        <strong>Locator</strong> intercepts a call to an unloaded namespace slot, fetches the LUMP
+        from the Mum Tunnel, validates its CRC seal, and maps it into RAM before execution resumes.
+        You approve new LUMPs before they gain execute permission.
+      </p>
+      <ul class="checklist">
+        <li>A <strong>floating lump</strong> sets <code>ns_slot: null</code> in the manifest — the Locator assigns a slot dynamically</li>
+        <li>When first called, the Locator fires a <em>lazy-load fault</em> and pauses the calling thread</li>
+        <li>The IDE shows an approval prompt listing the LUMP token, CRC, bounds, and requested permissions</li>
+        <li>Approving grants the <strong>E</strong> (execute) permission and resumes the thread</li>
+        <li>Rejecting logs the event and returns a capability fault to the caller</li>
+      </ul>
+      <div class="concept-box">
+        <strong>Navana Master Controller:</strong> Navana manages namespace entries and orchestrates
+        lazy loading. It is the only component that can mint a new Golden Token — all other code works
+        with existing, bounded tokens it has been given.
+      </div>
+      <a class="link-card" href="/simulator/#namespace">
+        <div class="lc-title">Namespace View &rarr;</div>
+        <div class="lc-desc">Inspect all 64 namespace slots, their LUMP tokens, and load status in real time.</div>
+      </a>
+    </div>
+
+    <!-- Page 6: Calibrate MTBF -->
+    <div class="page" data-page="6">
+      <div class="page-eyebrow">Step 6 of 6</div>
+      <h1 class="page-title">Calibrate MTBF</h1>
+      <p class="page-desc">
+        Mean Time Between Faults (MTBF) tells you how reliable each abstraction is in production.
+        Every capability fault is logged with its instruction address, faulting mnemonic, and Golden
+        Token. The IDE aggregates these into a per-abstraction MTBF score that you use to decide
+        when to patch, retire, or promote a LUMP.
+      </p>
+      <ul class="checklist">
+        <li>Connect a Ti60 F225, Tang Nano 20K, or Wukong board via WebSerial</li>
+        <li>The board sends call-home telemetry to the IDE on every fault event</li>
+        <li>Open the <strong>Dashboard</strong> to see live MTBF scores per namespace slot</li>
+        <li>A dropping MTBF score flags an abstraction for review before it causes a production outage</li>
+        <li>Update the LUMP, re-run the consistency gate, and re-deploy — MTBF resets for the new version</li>
+      </ul>
+      <div class="concept-box">
+        <strong>Call-home protocol:</strong> the FPGA sends a compact fault record over UART whenever
+        the three-tier recovery system exhausts all options. The IDE decodes it, matches it to a namespace
+        slot, and updates the MTBF table in the Devices view.
+      </div>
+      <a class="link-card" href="/simulator/#dashboard">
+        <div class="lc-title">Dashboard &amp; MTBF View &rarr;</div>
+        <div class="lc-desc">Live MTBF scores, fault history, and per-instruction reliability data.</div>
+      </a>
+      <a class="link-card" href="/simulator/#builder?tab=ti60-connect">
+        <div class="lc-title">Connect Hardware &rarr;</div>
+        <div class="lc-desc">One-click proof-of-life for the Ti60 F225 via WebSerial to start receiving telemetry.</div>
+      </a>
+    </div>
+
+  </div><!-- /pages-container -->
+
+  <!-- Navigation -->
+  <div class="nav">
+    <button class="btn btn-ghost" id="btn-prev" onclick="navigate(-1)">&#8592; <span id="prev-label">Home</span></button>
+    <span class="nav-count" id="nav-count">1 of 6</span>
+    <button class="btn btn-primary" id="btn-next" onclick="navigate(1)"><span id="next-label">Next</span> &#8594;</button>
   </div>
 
-  <div class="back"><a href="/">&larr; Back to home</a></div>
-</div>
+</div><!-- /wrap -->
+
+<script>
+  var TOTAL = 6;
+  var current = 1;
+
+  function getPageFromURL() {
+    var p = parseInt(new URLSearchParams(location.search).get('page'), 10);
+    if (p >= 1 && p <= TOTAL) return p;
+    return 1;
+  }
+
+  function buildIndicator(active) {
+    var el = document.getElementById('indicator');
+    var titles = ['Conventional\\nProgramming','Add Security\\nBoundaries','IDE Test','Add LUMP\\nto Repo','Lazy Load\\nApproval','Calibrate\\nMTBF'];
+    var html = '';
+    for (var i = 1; i <= TOTAL; i++) {
+      var cls = i < active ? 'done' : i === active ? 'active' : '';
+      html += '<div class="ind-step">';
+      html += '<div class="ind-circle ' + cls + '">' + i + '</div>';
+      html += '<div class="ind-label ' + cls + '">' + titles[i-1].replace('\\\\n','<br>') + '</div>';
+      html += '</div>';
+      if (i < TOTAL) {
+        html += '<div class="ind-line' + (i < active ? ' done' : '') + '"></div>';
+      }
+    }
+    el.innerHTML = html;
+  }
+
+  function showPage(n, pushState) {
+    current = n;
+    document.querySelectorAll('.page').forEach(function(p) {
+      p.classList.toggle('active', parseInt(p.dataset.page, 10) === n);
+    });
+    buildIndicator(n);
+    document.getElementById('nav-count').textContent = n + ' of ' + TOTAL;
+
+    var prevBtn = document.getElementById('btn-prev');
+    var nextBtn = document.getElementById('btn-next');
+    var prevLabel = document.getElementById('prev-label');
+    var nextLabel = document.getElementById('next-label');
+
+    if (n === 1) {
+      prevLabel.textContent = 'Home';
+      prevBtn.onclick = function() { location.href = '/'; };
+    } else {
+      prevLabel.textContent = 'Back';
+      prevBtn.onclick = function() { navigate(-1); };
+    }
+
+    if (n === TOTAL) {
+      nextLabel.textContent = 'Finish';
+      nextBtn.className = 'btn btn-gold';
+      nextBtn.onclick = function() { location.href = '/'; };
+    } else {
+      nextLabel.textContent = 'Next';
+      nextBtn.className = 'btn btn-primary';
+      nextBtn.onclick = function() { navigate(1); };
+    }
+
+    if (pushState) {
+      var url = n === 1 ? '/start' : '/start?page=' + n;
+      history.pushState({page: n}, '', url);
+    }
+
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  function navigate(delta) {
+    var next = current + delta;
+    if (next < 1 || next > TOTAL) return;
+    showPage(next, true);
+  }
+
+  window.addEventListener('popstate', function(e) {
+    var p = (e.state && e.state.page) ? e.state.page : getPageFromURL();
+    showPage(p, false);
+  });
+
+  showPage(getPageFromURL(), false);
+</script>
 </body></html>"""
     return html
 
