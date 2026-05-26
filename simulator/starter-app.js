@@ -128,9 +128,14 @@ function starterNext() {
         _updateRegisters();
     } else if (_lessonPhase === 2) {
         // Lesson 2 → 3: full swap to myScratchPad lesson
-        _switchLesson('lesson1Code', 'lesson3Code', 'Lesson 3 of 3',
+        _switchLesson('lesson1Code', 'lesson3Code', 'Lesson 3 of 4',
             '<span class="out-dim">The programmer adds new capability defined objects using Pet Names. <strong>myScratchPad RW</strong> grants this abstraction read/write access to a private memory region. The <strong>LOAD</strong> instruction fetches that capability from the c-list ready for use.</span>\n\n<span class="out-dim">Symbolic addressing allows readable pet names in machine code statements!</span>',
-            3, true);
+            3, false);
+    } else if (_lessonPhase === 3) {
+        // Lesson 3 → 4: full swap to LUMPs lesson
+        _switchLesson('lesson3Code', 'lesson4Code', 'Lesson 4 of 4',
+            '<span class="out-dim">Abstractions are compiled and saved as binary <strong>LUMPs</strong>. A LUMP bundles the code and its capability grants into a single Lazy-Load namespace object — the Church Machine loads it on demand and seals it with a Golden Token.</span>',
+            4, true);
     }
 }
 
