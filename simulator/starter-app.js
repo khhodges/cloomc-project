@@ -134,7 +134,7 @@ function starterNext() {
     } else if (_lessonPhase === 3) {
         // Lesson 3 → 4: full swap to LUMPs lesson
         _switchLesson('lesson3Code', 'lesson4Code', 'Lesson 4 of 4',
-            '<span class="out-dim">Abstractions are compiled and saved as binary <strong>LUMPs</strong>. A LUMP bundles the code and its capability grants into a single Lazy-Load namespace object — the Church Machine loads it on demand and seals it with a Golden Token.</span>',
+            '<span class="out-dim">The CLOOMC++ compiler understands Pet Names and makes machine code as readable as <strong>CONNECT (Me, MyMother)</strong></span>',
             4, true);
     }
 }
