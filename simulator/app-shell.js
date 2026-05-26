@@ -1145,7 +1145,7 @@ function switchView(viewId) {
     if (viewId === 'builder') {
         initHardwareBuildPanel();
         var _savedBuilderTab = (function(){ try { return localStorage.getItem('church_builderTab'); } catch(e) { return null; } })();
-        if (typeof switchBuilderViewTab === 'function') switchBuilderViewTab(_savedBuilderTab || 'lump-ns');
+        if (typeof switchBuilderViewTab === 'function') switchBuilderViewTab(_savedBuilderTab || 'cyberspace');
         var _bns = document.getElementById('buildNextSteps');
         var _bnc = document.getElementById('buildNextStepsChevron');
         if (_bns) _bns.classList.add('collapsed');
