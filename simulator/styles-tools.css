@@ -1191,6 +1191,116 @@
     margin-bottom: 1.2rem;
 }
 .dev-header-left { flex: 1; }
+/* ── Device live-notification toasts ──────────────────────────────────────── */
+.device-toast-container {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.6rem;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.device-toast {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: #1a1a2e;
+    border: 1px solid #3a3a5a;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    min-width: 260px;
+    max-width: 340px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    pointer-events: all;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+.device-toast.device-toast-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.device-toast.device-toast-new {
+    border-color: rgba(218,165,32,0.45);
+    background: linear-gradient(135deg, #1a1400, #1a1a2e 60%);
+}
+.device-toast-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.device-toast-body {
+    flex: 1;
+    min-width: 0;
+}
+.device-toast-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #d0d0e8;
+    margin-bottom: 0.15rem;
+}
+.device-toast-name {
+    font-size: 0.78rem;
+    color: var(--church-gold, #daa520);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.device-toast-sub {
+    font-size: 0.72rem;
+    color: #5de28a;
+    margin-top: 0.1rem;
+}
+.device-toast-go {
+    background: var(--church-gold, #daa520);
+    color: #0a0a1a;
+    border: none;
+    border-radius: 5px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+.device-toast-go:hover { background: #f0c030; }
+.device-toast-close {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0 0.2rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.device-toast-close:hover { color: #aaa; }
+
+/* ── Newcomer banner inside device card ──────────────────────────────────── */
+.dev-newcomer-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.9rem;
+    background: linear-gradient(90deg, rgba(218,165,32,0.10), rgba(218,165,32,0.04));
+    border-bottom: 1px solid rgba(218,165,32,0.2);
+    font-size: 0.82rem;
+    color: #b0b0c8;
+}
+.dev-newcomer-icon { font-size: 1.1rem; flex-shrink: 0; }
+.dev-newcomer-text strong { color: var(--church-gold, #daa520); }
+.dev-newcomer-abstr {
+    color: #5de28a;
+    font-weight: 600;
+    margin-left: 0.25rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
 .dev-grid {
     display: flex;
     flex-direction: column;

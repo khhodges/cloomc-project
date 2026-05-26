@@ -12,7 +12,27 @@ import zipfile
 import subprocess
 import tempfile
 import gzip as _gzip
+import queue
+import threading
 import requests as http_requests
+
+# ── SSE device-event bus ──────────────────────────────────────────────────────
+_sse_clients     = []
+_sse_clients_lock = threading.Lock()
+
+def _push_device_event(payload: dict):
+    """Broadcast a JSON event to all open SSE connections."""
+    msg = "data: " + json.dumps(payload) + "\n\n"
+    with _sse_clients_lock:
+        dead = []
+        for q in _sse_clients:
+            try:
+                q.put_nowait(msg)
+            except Exception:
+                dead.append(q)
+        for q in dead:
+            _sse_clients.remove(q)
+# ─────────────────────────────────────────────────────────────────────────────
 from flask import Flask, jsonify, send_from_directory, send_file, redirect, make_response, request
 
 # Ensure the server/ directory is on sys.path so local modules (boot_image, etc.)
@@ -5854,6 +5874,16 @@ def device_call_home():
 
     logging.info("Call-home: device=%s (%s) faults=%d lump_versions=%d tunnel=%s",
                  uid, dev.board_name, faults_recorded, lump_versions_updated, dev.tunnel_status)
+
+    _push_device_event({
+        "type":       "device_online",
+        "device_uid": uid,
+        "board_name": dev.board_name,
+        "profile":    profile,
+        "is_new":     dev.boot_count == 1,
+        "boot_count": dev.boot_count,
+    })
+
     return jsonify({
         "ok": True,
         "device_id": dev.id,
@@ -5863,6 +5893,37 @@ def device_call_home():
         "faults_recorded": faults_recorded,
         "lump_versions_updated": lump_versions_updated,
     })
+
+
+@app.route("/api/device/events")
+def device_events():
+    """Server-Sent Events stream — pushes device lifecycle events to browser tabs."""
+    def _stream():
+        q = queue.Queue(maxsize=32)
+        with _sse_clients_lock:
+            _sse_clients.append(q)
+        try:
+            yield "data: {\"type\":\"connected\"}\n\n"
+            while True:
+                try:
+                    yield q.get(timeout=20)
+                except queue.Empty:
+                    yield ": keepalive\n\n"
+        finally:
+            with _sse_clients_lock:
+                try:
+                    _sse_clients.remove(q)
+                except ValueError:
+                    pass
+
+    return app.response_class(
+        _stream(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control":    "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.route("/api/device/list")
@@ -5894,6 +5955,7 @@ def device_list():
             "fault_nia": getattr(d, 'fault_nia', 0) or 0,
             "label": d.label or "",
             "tunnel_status": getattr(d, 'tunnel_status', 'pending') or 'pending',
+            "is_newcomer": (d.boot_count or 0) <= 2,
         })
     db.session.commit()
     return jsonify({"ok": True, "devices": result})

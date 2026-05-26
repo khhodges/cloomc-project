@@ -1024,6 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(err => { console.warn('[bootConfig] prefetch failed:', err); });
     _bootCfgReady.finally(() => {
         window.init();
+        startDeviceEventStream();
         // Restore the fault log from the previous session so the Gate Log still
         // shows old faults (with the correct lump-name snapshot) after a reload.
         // Do NOT call faultAlertOn() here — stale faults from a prior session
@@ -1535,6 +1536,20 @@ function loadDeviceList() {
                         row.classList.add('dev-row-open');
                     }
                 });
+
+                // Newcomer banner — shown on first/second boot
+                if (dev.is_newcomer) {
+                    var newcomer = document.createElement('div');
+                    newcomer.className = 'dev-newcomer-banner';
+                    newcomer.innerHTML =
+                        '<span class="dev-newcomer-icon">🎉</span>' +
+                        '<span class="dev-newcomer-text">' +
+                            '<strong>First boot!</strong> ' +
+                            'Your Ti60 is online. ' +
+                            '<span class="dev-newcomer-abstr">First Abstraction: Hello World ✓</span>' +
+                        '</span>';
+                    wrap.appendChild(newcomer);
+                }
 
                 wrap.appendChild(row);
                 wrap.appendChild(detail);
@@ -2351,6 +2366,84 @@ function setLaunchTestStatus(testId, status) {
     })
     .catch(function() {});
 }
+
+// ── Device SSE — live board notifications ─────────────────────────────────────
+
+function startDeviceEventStream() {
+    if (window._deviceEventSource) return;
+    var es = new EventSource('/api/device/events');
+    window._deviceEventSource = es;
+
+    es.onmessage = function(e) {
+        try {
+            var evt = JSON.parse(e.data);
+            if (evt.type === 'device_online') _onDeviceOnline(evt);
+        } catch (_) {}
+    };
+
+    es.onerror = function() {
+        es.close();
+        window._deviceEventSource = null;
+        setTimeout(startDeviceEventStream, 6000);
+    };
+}
+
+function _onDeviceOnline(evt) {
+    // Always refresh the device list
+    loadDeviceList();
+
+    // Only show the toast if Devices view is not the current view
+    var active = document.querySelector('.view.active');
+    if (!active || active.id !== 'devices') {
+        _showDeviceToast(evt);
+    }
+}
+
+function _showDeviceToast(evt) {
+    var container = document.getElementById('deviceToastContainer');
+    if (!container) return;
+
+    var isNew    = !!evt.is_new;
+    var name     = evt.board_name || 'Ti60 F225';
+
+    var toast = document.createElement('div');
+    toast.className = 'device-toast' + (isNew ? ' device-toast-new' : '');
+
+    toast.innerHTML =
+        '<div class="device-toast-icon">' + (isNew ? '🎉' : '📡') + '</div>' +
+        '<div class="device-toast-body">' +
+            '<div class="device-toast-title">' +
+                (isNew ? 'Board online for the first time!' : 'Board reconnected') +
+            '</div>' +
+            '<div class="device-toast-name">' + _escHtml(name) + '</div>' +
+            (isNew
+                ? '<div class="device-toast-sub">First abstraction ready ✓</div>'
+                : '') +
+        '</div>' +
+        '<button class="device-toast-go" ' +
+            'onclick="switchView(\'devices\');switchDevicesTab(\'devices\');' +
+            'this.closest(\'.device-toast\').remove();">View →</button>' +
+        '<button class="device-toast-close" ' +
+            'onclick="this.closest(\'.device-toast\').remove();" ' +
+            'title="Dismiss">✕</button>';
+
+    container.appendChild(toast);
+
+    // Trigger animation in next frame
+    requestAnimationFrame(function() { toast.classList.add('device-toast-visible'); });
+
+    // Auto-dismiss after 9 s
+    var timer = setTimeout(function() {
+        toast.classList.remove('device-toast-visible');
+        setTimeout(function() { if (toast.parentNode) toast.remove(); }, 350);
+    }, 9000);
+
+    toast.querySelector('.device-toast-close').addEventListener('click', function() {
+        clearTimeout(timer);
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function confirmResetLaunchTests() {
     var overlay = document.createElement('div');
