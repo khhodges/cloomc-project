@@ -104,6 +104,16 @@ function _switchLesson(fromId, toId, label, outputHtml, nextPhase, disableNext) 
 function starterNext() {
     if (_lessonPhase === 1) {
         // Lesson 1 → 2: reveal abstraction + capabilities { (none) } inline
+        // Reset sim and clear output first
+        _hideFault();
+        _el('haltedMsg').style.display = 'none';
+        if (sim) {
+            sim.reset();
+            _runBootSequence();
+            sim._programLoaded = false;
+        }
+        _hideHexListing();
+        _setBadge('IDLE');
         _el('lesson1Header').classList.add('hidden');
         _el('capsInline').classList.remove('hidden');
         var caps = _el('capsSection');
