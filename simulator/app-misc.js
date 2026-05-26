@@ -1024,7 +1024,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(err => { console.warn('[bootConfig] prefetch failed:', err); });
     _bootCfgReady.finally(() => {
         window.init();
-        startDeviceEventStream();
+        // Delay SSE so networkidle can fire in tests (EventSource stays open forever,
+        // which blocks waitForLoadState('networkidle') if opened synchronously).
+        setTimeout(startDeviceEventStream, 3000);
         // Restore the fault log from the previous session so the Gate Log still
         // shows old faults (with the correct lump-name snapshot) after a reload.
         // Do NOT call faultAlertOn() here — stale faults from a prior session
