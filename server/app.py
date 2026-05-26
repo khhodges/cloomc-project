@@ -1199,9 +1199,28 @@ def start_here():
   .btn-ghost:hover{border-color:#a78bfa;color:#a78bfa}
   .btn-primary{background:#a78bfa;color:#0a0e17}
   .btn-primary:hover{background:#c4b5fd}
+  .btn-primary:disabled{background:#2a3a52;color:#4a5568;cursor:not-allowed}
+  .btn-primary:disabled:hover{background:#2a3a52;color:#4a5568}
   .btn-gold{background:#daa520;color:#0a0e17}
   .btn-gold:hover{background:#f0b429}
+  .btn-gold:disabled{background:#2a3a52;color:#4a5568;cursor:not-allowed}
+  .btn-gold:disabled:hover{background:#2a3a52;color:#4a5568}
   .nav-count{font-size:.75rem;color:#4a5568}
+
+  /* Quiz */
+  .quiz{background:#0d1117;border:1px solid #1e2a3a;border-radius:8px;padding:18px 20px;margin-top:1.75rem}
+  .quiz-label{font-size:.65rem;color:#daa520;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem}
+  .quiz-prompt{font-size:.9rem;color:#e2e8f0;margin-bottom:1rem;line-height:1.5}
+  .quiz-options{display:flex;flex-direction:column;gap:.5rem}
+  .quiz-opt{background:#111827;border:1px solid #2a3a52;border-radius:6px;padding:.55rem 1rem;font-size:.85rem;color:#94a3b8;cursor:pointer;text-align:left;font-family:inherit;transition:border-color .15s,color .15s,background .15s}
+  .quiz-opt:hover:not(:disabled){border-color:#a78bfa;color:#c4b5fd}
+  .quiz-opt.correct{background:#052e16;border-color:#4ade80;color:#4ade80;cursor:default}
+  .quiz-opt.wrong{background:#1c0a0a;border-color:#6b2020;color:#6b2020;cursor:default}
+  .quiz-opt:disabled{cursor:default}
+  .quiz-hint{font-size:.8rem;color:#daa520;margin-top:.75rem;line-height:1.5;display:none}
+  .quiz-hint.visible{display:block}
+  .quiz-ok{font-size:.8rem;color:#4ade80;margin-top:.75rem;display:none}
+  .quiz-ok.visible{display:block}
 </style>
 </head><body>
 <div class="wrap">
@@ -1244,6 +1263,17 @@ def start_here():
         <strong>Key idea:</strong> The Church Machine executes one instruction per cycle, reads capabilities
         from registers, and validates every memory access through the mLoad pipeline before it touches RAM.
       </div>
+      <div class="quiz" id="quiz-1">
+        <div class="quiz-label">Quick Check</div>
+        <div class="quiz-prompt">What does the <code>RETURN</code> instruction do?</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" onclick="checkAnswer(1,this,false)">Loads a literal value into a capability register</button>
+          <button class="quiz-opt" onclick="checkAnswer(1,this,true)">Transfers control back to the caller</button>
+          <button class="quiz-opt" onclick="checkAnswer(1,this,false)">Checks a Golden Token for validity</button>
+        </div>
+        <div class="quiz-hint" id="hint-1">Think about what the opposite of CALL is — one enters an abstraction, the other exits it.</div>
+        <div class="quiz-ok" id="ok-1">&#10003; Correct! RETURN hands the result register back up the call chain.</div>
+      </div>
     </div>
 
     <!-- Page 2: Add Security Boundaries -->
@@ -1272,6 +1302,17 @@ def start_here():
         <strong>Golden Token format:</strong> bits [31:28] version · [27:16] CRC seal ·
         [15:8] upper bound · [7:0] lower bound. The <strong>E</strong> (execute) bit is the only
         permission in a C-List entry; data tokens carry <strong>R</strong> and/or <strong>W</strong>.
+      </div>
+      <div class="quiz" id="quiz-2">
+        <div class="quiz-label">Quick Check</div>
+        <div class="quiz-prompt">In what order does the mLoad pipeline perform its four checks?</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" onclick="checkAnswer(2,this,false)">Bounds → CRC seal → version → permissions</button>
+          <button class="quiz-opt" onclick="checkAnswer(2,this,true)">Version → CRC seal → bounds → permissions</button>
+          <button class="quiz-opt" onclick="checkAnswer(2,this,false)">Permissions → bounds → CRC seal → version</button>
+        </div>
+        <div class="quiz-hint" id="hint-2">The page lists the four checks explicitly — start with the most fundamental property of the token and work outward.</div>
+        <div class="quiz-ok" id="ok-2">&#10003; Correct! Version first, then the seal, then bounds, then permission bits.</div>
       </div>
     </div>
 
@@ -1304,6 +1345,17 @@ def start_here():
         <div class="lc-title">Bernoulli Tutorial &rarr;</div>
         <div class="lc-desc">Step-by-step lambda calculus tutorial with Church Machine trace — no hardware needed.</div>
       </a>
+      <div class="quiz" id="quiz-3">
+        <div class="quiz-label">Quick Check</div>
+        <div class="quiz-prompt">Which IDE tab lets you watch instructions move through the Fetch → Decode → Validate → Execute stages in real time?</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" onclick="checkAnswer(3,this,false)">Dashboard</button>
+          <button class="quiz-opt" onclick="checkAnswer(3,this,true)">Pipeline</button>
+          <button class="quiz-opt" onclick="checkAnswer(3,this,false)">Builder</button>
+        </div>
+        <div class="quiz-hint" id="hint-3">You opened the link card for it just above — it shows the active Golden Token and which stage it is in on every clock cycle.</div>
+        <div class="quiz-ok" id="ok-3">&#10003; Correct! The Pipeline tab visualises each stage of the mLoad validation on every cycle.</div>
+      </div>
     </div>
 
     <!-- Page 4: Add LUMP to Repository -->
@@ -1334,6 +1386,17 @@ def start_here():
         <div class="lc-title">Open Builder Tab &rarr;</div>
         <div class="lc-desc">Compile, package, and download LUMP binaries for all three supported boards.</div>
       </a>
+      <div class="quiz" id="quiz-4">
+        <div class="quiz-label">Quick Check</div>
+        <div class="quiz-prompt">Which LUMP word holds the CRC seal, and what does it cover?</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" onclick="checkAnswer(4,this,false)">Word 0 — seals the entire compiled instruction list</button>
+          <button class="quiz-opt" onclick="checkAnswer(4,this,true)">Word 2 — seals Words 0 and 1 (the header)</button>
+          <button class="quiz-opt" onclick="checkAnswer(4,this,false)">The last word — seals the C-List capability slots</button>
+        </div>
+        <div class="quiz-hint" id="hint-4">Look at the LUMP anatomy above: the seal appears third in the layout and protects the two words that precede it.</div>
+        <div class="quiz-ok" id="ok-4">&#10003; Correct! Word 2 is the CRC seal over Words 0–1 (magic/version/size and bounds).</div>
+      </div>
     </div>
 
     <!-- Page 5: Lazy Load Approval -->
@@ -1362,6 +1425,17 @@ def start_here():
         <div class="lc-title">Namespace View &rarr;</div>
         <div class="lc-desc">Inspect all 64 namespace slots, their LUMP tokens, and load status in real time.</div>
       </a>
+      <div class="quiz" id="quiz-5">
+        <div class="quiz-label">Quick Check</div>
+        <div class="quiz-prompt">Which permission bit must be granted before a lazy-loaded LUMP can execute?</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" onclick="checkAnswer(5,this,false)">R — Read</button>
+          <button class="quiz-opt" onclick="checkAnswer(5,this,false)">W — Write</button>
+          <button class="quiz-opt" onclick="checkAnswer(5,this,true)">E — Execute</button>
+        </div>
+        <div class="quiz-hint" id="hint-5">The approval dialog grants exactly one permission — the one needed to actually run the code inside the LUMP.</div>
+        <div class="quiz-ok" id="ok-5">&#10003; Correct! Approving grants the E (execute) permission and resumes the paused thread.</div>
+      </div>
     </div>
 
     <!-- Page 6: Calibrate MTBF -->
@@ -1394,6 +1468,17 @@ def start_here():
         <div class="lc-title">Connect Hardware &rarr;</div>
         <div class="lc-desc">One-click proof-of-life for the Ti60 F225 via WebSerial to start receiving telemetry.</div>
       </a>
+      <div class="quiz" id="quiz-6">
+        <div class="quiz-label">Quick Check</div>
+        <div class="quiz-prompt">What event causes the FPGA to send a call-home fault record to the IDE?</div>
+        <div class="quiz-options">
+          <button class="quiz-opt" onclick="checkAnswer(6,this,false)">Every MLOAD instruction</button>
+          <button class="quiz-opt" onclick="checkAnswer(6,this,false)">Each time a new LUMP is lazy-loaded</button>
+          <button class="quiz-opt" onclick="checkAnswer(6,this,true)">When the three-tier recovery system exhausts all options</button>
+        </div>
+        <div class="quiz-hint" id="hint-6">Call-home is a last resort — it fires only after Tier 1 (.catch), Tier 2 (Scheduler.IRQ), and Tier 3 (double-fault → boot) have all failed.</div>
+        <div class="quiz-ok" id="ok-6">&#10003; Correct! The FPGA calls home only when all three recovery tiers are exhausted.</div>
+      </div>
     </div>
 
   </div><!-- /pages-container -->
@@ -1410,6 +1495,7 @@ def start_here():
 <script>
   var TOTAL = 6;
   var current = 1;
+  var answeredPages = {};
 
   function getPageFromURL() {
     var p = parseInt(new URLSearchParams(location.search).get('page'), 10);
@@ -1432,6 +1518,31 @@ def start_here():
       }
     }
     el.innerHTML = html;
+  }
+
+  function updateNextBtn(n) {
+    var nextBtn = document.getElementById('btn-next');
+    nextBtn.disabled = !answeredPages[n];
+  }
+
+  function checkAnswer(page, btn, correct) {
+    var quiz = document.getElementById('quiz-' + page);
+    if (!quiz) return;
+    var opts = quiz.querySelectorAll('.quiz-opt');
+    opts.forEach(function(o) { o.disabled = true; });
+    var hint = document.getElementById('hint-' + page);
+    var ok = document.getElementById('ok-' + page);
+    if (correct) {
+      btn.classList.add('correct');
+      ok.classList.add('visible');
+      answeredPages[page] = true;
+      if (page === current) updateNextBtn(page);
+    } else {
+      btn.classList.add('wrong');
+      hint.classList.add('visible');
+      opts.forEach(function(o) { o.disabled = false; });
+      btn.disabled = true;
+    }
   }
 
   function showPage(n, pushState) {
@@ -1464,6 +1575,8 @@ def start_here():
       nextBtn.className = 'btn btn-primary';
       nextBtn.onclick = function() { navigate(1); };
     }
+
+    updateNextBtn(n);
 
     if (pushState) {
       var url = n === 1 ? '/start' : '/start?page=' + n;
