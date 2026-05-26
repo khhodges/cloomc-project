@@ -106,6 +106,43 @@ function _updateSteps(n) {
     }
 }
 
+function _showHexListing(src, result) {
+    var el = _el('hexListing');
+    if (!el || !result || !result.words) return;
+    var words    = result.words;
+    var lineNums = result.lineNums || [];
+    var srcLines = src.split('\n');
+    var html = '';
+    for (var i = 0; i < words.length; i++) {
+        var hex     = '0x' + (words[i] >>> 0).toString(16).toUpperCase().padStart(8, '0');
+        var lineIdx = lineNums[i] != null ? lineNums[i] - 1 : -1;
+        var srcLine = lineIdx >= 0 ? srcLines[lineIdx] : '';
+        var semiIdx = srcLine.indexOf(';');
+        var row;
+        if (semiIdx >= 0) {
+            var before  = srcLine.slice(0, semiIdx).trimEnd();
+            var comment = srcLine.slice(semiIdx + 1).trim();
+            row = '<span class="s-hex-src">' + _esc(before) + '</span>'
+                + '<span class="s-hex-cmt"> ; </span>'
+                + '<span class="s-hex-word">' + hex + '</span>'
+                + '<span class="s-hex-cmt">  ' + _esc(comment) + '</span>';
+        } else {
+            var trimmed = srcLine.trim();
+            row = '<span class="s-hex-src">' + _esc(trimmed) + '</span>'
+                + '<span class="s-hex-cmt"> ; </span>'
+                + '<span class="s-hex-word">' + hex + '</span>';
+        }
+        html += '<div class="s-hex-row">' + row + '</div>';
+    }
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+}
+
+function _hideHexListing() {
+    var el = _el('hexListing');
+    if (el) { el.innerHTML = ''; el.classList.add('hidden'); }
+}
+
 // ── Session start (from welcome card) ───────────────────────────────────────
 
 function startSession() {
@@ -148,6 +185,7 @@ function starterBoot() {
         _booted = true;
         _stepCount = 0;
         sim._programLoaded = false;
+        _hideHexListing();
         _enableControls(true);
         _setBadge('HALTED');
         _updateRegisters();
@@ -184,6 +222,7 @@ function starterStep() {
         sim.output = '';
         sim.loadProgram(result.words || result);
         sim._programLoaded = true;
+        _showHexListing(src, result);
         _setOutput('<span class="out-dim">Program loaded. Stepping…</span>\n');
     }
 
@@ -226,6 +265,7 @@ function starterReset() {
         sim._programLoaded = false;
     }
     _stepCount = 0;
+    _hideHexListing();
     _setBadge('HALTED');
     _updateRegisters();
     _updateSteps(0);

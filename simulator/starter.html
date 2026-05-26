@@ -330,6 +330,22 @@
             padding: 0.25rem 0.5rem 0.5rem;
         }
 
+        /* ── Hex listing ── */
+        .s-hex-listing {
+            background: #0b0b18;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.65rem 0.9rem;
+            font-family: 'Courier New', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            line-height: 1.65;
+        }
+        .s-hex-listing.hidden { display: none; }
+        .s-hex-row { white-space: pre; }
+        .s-hex-word { color: var(--gold); font-weight: 600; }
+        .s-hex-src  { color: #7080a0; }
+        .s-hex-cmt  { color: #4a5a6a; }
+
         /* ── Step-by-step panel ── */
         .s-steps-panel {
             background: var(--bg-card);
@@ -431,6 +447,7 @@
         <div class="s-annotation">
             ↑ Edit freely. Click <strong>Start</strong> then use <strong>› Step</strong> to walk through each instruction.
         </div>
+        <div id="hexListing" class="s-hex-listing hidden"></div>
         <div class="s-toolbar">
             <button class="s-btn s-btn-primary" id="btnBoot"  onclick="starterBoot()">⟳ Start</button>
             <button class="s-btn"               id="btnStep"  onclick="starterStep()" disabled>› Step</button>
@@ -502,7 +519,7 @@
 <script src="simulator.js?v=20260521c"></script>
 <script src="assembler.js?v=20260521a"></script>
 <script src="cloomc_compiler.js?v=20260519c"></script>
-<script src="starter-app.js?v=20260526h"></script>
+<script src="starter-app.js?v=20260526i"></script>
 
 </body>
 </html>
