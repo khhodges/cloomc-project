@@ -1120,7 +1120,7 @@ _RELEASE_1_MANIFEST = [
     ("ctmm-r1-14-hardware-deviations.pdf",  "Hardware Deviations — All Closed", "Conformance"),
 ]
 
-@app.route("/start")
+@app.route("/start-guide")
 def start_here():
     html = """<!DOCTYPE html>
 <html lang="en"><head>
