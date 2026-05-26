@@ -129,7 +129,7 @@ function starterNext() {
     } else if (_lessonPhase === 2) {
         // Lesson 2 → 3: full swap to myScratchPad lesson
         _switchLesson('lesson1Code', 'lesson3Code', 'Lesson 3 of 3',
-            '<span class="out-dim">The programmer adds new capability defined objects using Pet Names. <strong>myScratchPad RW</strong> grants this abstraction read/write access to a private memory region. The <strong>LOAD</strong> instruction fetches that capability from the c-list ready for use.</span>',
+            '<span class="out-dim">The programmer adds new capability defined objects using Pet Names. <strong>myScratchPad RW</strong> grants this abstraction read/write access to a private memory region. The <strong>LOAD</strong> instruction fetches that capability from the c-list ready for use.</span>\n\n<span class="out-dim">Symbolic addressing allows readable pet names in machine code statements!</span>',
             3, true);
     }
 }
