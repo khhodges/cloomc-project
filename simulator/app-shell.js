@@ -704,6 +704,12 @@ function init() {
     }
     if (!startView) startView = 'dashboard';
     switchView(startView);
+    if (startView === 'builder' && hashParams.tab) {
+        const _hashBuilderTab = hashParams.tab;
+        setTimeout(function() {
+            if (typeof switchBuilderViewTab === 'function') switchBuilderViewTab(_hashBuilderTab);
+        }, 150);
+    }
     if (startView === 'namespace' && hashParams.ns !== undefined) {
         const nsSlot = parseInt(hashParams.ns, 10);
         if (!isNaN(nsSlot)) {
