@@ -891,7 +891,13 @@ CALLHOME:{"board":"ti60-f225","uid":"AABBCCDD","nia":0,"boot_ok":1,"fault":0,"fa
                     </div>
                 </details>
             </div>
-            <button id="ti60ConnectBtn" class="ti60-connect-btn" onclick="Ti60Connect.connect()">&#x1F50C; Connect</button>
+            <div class="ti60-action-row">
+                <div class="ti60-action-btns">
+                    <button id="ti60ConnectBtn" class="ti60-connect-btn" onclick="Ti60Connect.connect()">&#x1F50C; Connect</button>
+                    <button id="ti60DisconnectBtn" class="ti60-disconnect-btn" onclick="Ti60Connect.disconnect()" style="display:none;">&#x1F50C; Disconnect</button>
+                </div>
+                <div id="ti60ConnectLog" class="ti60-connect-log"></div>
+            </div>
             <div class="ti60-steps">
                 <div class="ti60-step ti60-step-pending" id="ti60Step-uart">
                     <div class="ti60-step-icon">&#x26A1;</div>
@@ -926,8 +932,6 @@ CALLHOME:{"board":"ti60-f225","uid":"AABBCCDD","nia":0,"boot_ok":1,"fault":0,"fa
                     <div class="ti60-step-status" id="ti60StepStatus-release">&#x2014;</div>
                 </div>
             </div>
-            <div id="ti60ConnectLog" class="ti60-connect-log"></div>
-            <button id="ti60DisconnectBtn" class="ti60-disconnect-btn" onclick="Ti60Connect.disconnect()" style="display:none;">Disconnect</button>
         </div>
         <div id="buildDetailsPanel" style="display:none;" class="build-details-panel">
             <div class="build-details-status-bar">
