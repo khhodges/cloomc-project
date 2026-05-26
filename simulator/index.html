@@ -33,7 +33,7 @@
     })();
     </script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0a1a'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='22' font-weight='bold' fill='%23daa520' text-anchor='middle'%3E%CE%BB%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="styles-base.css?v=20260526c">
+    <link rel="stylesheet" href="styles-base.css?v=20260527a">
     <link rel="stylesheet" href="styles-toolbar.css?v=20260526c">
     <link rel="stylesheet" href="styles-editor.css?v=20260521a">
     <link rel="stylesheet" href="styles-dashboard.css?v=20260518e">
@@ -914,7 +914,15 @@ You should see: {"ok": true, "open": true, ...}</pre>
                 <div class="ti60-action-btns">
                     <button id="ti60ConnectBtn" class="ti60-connect-btn" onclick="Ti60Connect.connect()">&#x1F50C; Connect</button>
                     <button id="ti60BridgeBtn" class="ti60-bridge-btn" onclick="Ti60Connect.connectViaBridge()">&#x1F309; Via Bridge</button>
+                    <button id="ti60TestBridgeBtn" class="ti60-test-bridge-btn" onclick="Ti60Connect.testBridge()" title="Check if the bridge is reachable and the cert is accepted">&#x1F50D; Test Bridge</button>
                     <button id="ti60DisconnectBtn" class="ti60-disconnect-btn" onclick="Ti60Connect.disconnect()" style="display:none;">&#x2715; Stop</button>
+                </div>
+                <div class="ti60-bridge-url-row">
+                    <label class="ti60-bridge-url-label">Bridge URL</label>
+                    <input id="ti60BridgeUrl" class="ti60-bridge-url-input" type="text"
+                        value="https://penguin.linux.test:8766"
+                        placeholder="https://penguin.linux.test:8766"
+                        title="Edit if your bridge runs on a different port or host" />
                 </div>
                 <div id="ti60ConnectLog" class="ti60-connect-log"></div>
             </div>
@@ -1725,7 +1733,7 @@ You should see: {"ok": true, "open": true, ...}</pre>
     <script async src="english_string_tutorial.js"></script>
     <script async src="english_contact_tutorial.js"></script>
     <script async src="builder.js"></script>
-    <script async src="app-ti60-connect.js?v=20260527c"></script>
+    <script async src="app-ti60-connect.js?v=20260527f"></script>
     <script src="app-shell.js?v=20260526d"></script>
     <script src="app-tools.js?v=20260521a"></script>
     <script src="app-cr-display.js?v=20260521a"></script>

@@ -1,6 +1,6 @@
 window.Ti60Connect = (function () {
-    const BAUD        = 115200;
-    const STEPS       = ['uart', 'callhome', 'register', 'release'];
+    const BAUD         = 115200;
+    const STEPS        = ['uart', 'callhome', 'register', 'release'];
     const DEFAULT_BRIDGE = 'https://penguin.linux.test:8766';
 
     let _port    = null;
@@ -8,13 +8,29 @@ window.Ti60Connect = (function () {
     let _running = false;
     let _bridgeRunning = false;
 
-    // ── logging ────────────────────────────────────────────────────────────
+    // ── helpers ────────────────────────────────────────────────────────────
+    function _bridgeUrl() {
+        const inp = document.getElementById('ti60BridgeUrl');
+        const v   = (inp ? inp.value : '').trim();
+        return v || DEFAULT_BRIDGE;
+    }
+
     function _log(msg, cls) {
         const log = document.getElementById('ti60ConnectLog');
         if (!log) return;
         const line = document.createElement('div');
         line.className = 'ti60-log-line' + (cls ? ' ' + cls : '');
         line.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function _logHtml(html) {
+        const log = document.getElementById('ti60ConnectLog');
+        if (!log) return;
+        const line = document.createElement('div');
+        line.className = 'ti60-log-line';
+        line.innerHTML = html;
         log.appendChild(line);
         log.scrollTop = log.scrollHeight;
     }
@@ -39,8 +55,10 @@ window.Ti60Connect = (function () {
         if (log) log.innerHTML = '';
         const btn  = document.getElementById('ti60ConnectBtn');
         const bBtn = document.getElementById('ti60BridgeBtn');
+        const tBtn = document.getElementById('ti60TestBridgeBtn');
         if (btn)  { btn.disabled  = false; btn.textContent  = '🔌 Connect'; }
         if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
+        if (tBtn) { tBtn.disabled = false; }
         const dBtn = document.getElementById('ti60DisconnectBtn');
         if (dBtn) dBtn.style.display = 'none';
     }
@@ -125,6 +143,36 @@ window.Ti60Connect = (function () {
     }
 
     // ── WebSerial mode ─────────────────────────────────────────────────────
+    function _isIframe() {
+        try { return window.self !== window.top; } catch (e) { return true; }
+    }
+
+    function _noSerial() {
+        const log = document.getElementById('ti60ConnectLog');
+        if (!log) return;
+        log.innerHTML = '';
+
+        if (_isIframe()) {
+            _logHtml(
+                '<strong>WebSerial is not available inside a preview iframe.</strong><br>' +
+                'Two options:<br>' +
+                '&nbsp;&nbsp;<strong>A)</strong> Open the IDE in its own tab: ' +
+                '<a href="/simulator/" target="_blank" style="color:#daa520;">/simulator/</a> ' +
+                'then click Connect there.<br>' +
+                '&nbsp;&nbsp;<strong>B)</strong> Use <strong>🌉 Via Bridge</strong> instead — ' +
+                'it works from any tab including this one.'
+            );
+        } else {
+            _logHtml(
+                '<strong>WebSerial not supported</strong> in this browser or context. ' +
+                'Use <strong>🌉 Via Bridge</strong> instead, or open the IDE in Chrome/Edge.'
+            );
+        }
+
+        const btn = document.getElementById('ti60ConnectBtn');
+        if (btn) { btn.disabled = false; btn.textContent = '🔌 Connect'; }
+    }
+
     async function _readLoop() {
         const decoder = new TextDecoderStream();
         _port.readable.pipeTo(decoder.writable).catch(() => {});
@@ -168,27 +216,8 @@ window.Ti60Connect = (function () {
         }
     }
 
-    function _noSerial() {
-        const log = document.getElementById('ti60ConnectLog');
-        if (log) {
-            log.innerHTML = '';
-            const line = document.createElement('div');
-            line.className = 'ti60-log-line log-fail';
-            line.innerHTML =
-                '<strong>WebSerial not available</strong> in this context (iframe or unsupported browser). ' +
-                'Use <strong>🌉 Via Bridge</strong> instead — run the bridge script in your Linux terminal ' +
-                'and click "Via Bridge" to connect from any tab including the published site.';
-            log.appendChild(line);
-        }
-        const btn = document.getElementById('ti60ConnectBtn');
-        if (btn) { btn.disabled = false; btn.textContent = '🔌 Connect'; }
-    }
-
     async function connect() {
-        if (!('serial' in navigator)) {
-            _noSerial();
-            return;
-        }
+        if (!('serial' in navigator)) { _noSerial(); return; }
         _reset();
         const btn = document.getElementById('ti60ConnectBtn');
         if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
@@ -235,35 +264,72 @@ window.Ti60Connect = (function () {
         if (dBtn) dBtn.style.display = 'none';
     }
 
+    // ── Bridge diagnostics ─────────────────────────────────────────────────
+    async function testBridge() {
+        const tBtn = document.getElementById('ti60TestBridgeBtn');
+        if (tBtn) tBtn.disabled = true;
+        const url = _bridgeUrl();
+        _log('Testing bridge at ' + url + ' …');
+        try {
+            const r = await fetch(url + '/status', { signal: AbortSignal.timeout(5000) });
+            const d = await r.json();
+            if (d.ok) {
+                _log('✓ Bridge is reachable. Port open: ' + d.open +
+                     (d.port ? '  (' + d.port + ')' : ''), 'log-pass');
+                if (!d.open) {
+                    _log('Port is not open — bridge will try to open it when you click Via Bridge.', '');
+                }
+            } else {
+                _log('Bridge responded but ok=false: ' + JSON.stringify(d), 'log-fail');
+            }
+        } catch (e) {
+            const msg = e.message || String(e);
+            _log('✗ Bridge unreachable: ' + msg, 'log-fail');
+            _logHtml(
+                'This usually means one of:<br>' +
+                '&nbsp;&nbsp;<strong>1.</strong> Bridge not running — in Linux terminal run:<br>' +
+                '&nbsp;&nbsp;&nbsp;&nbsp;<code>python3 server/local_bridge.py /dev/ttyUSB2 115200 8766</code><br>' +
+                '&nbsp;&nbsp;<strong>2.</strong> Self-signed cert not yet accepted — open this URL in Chrome and click Advanced → Proceed:<br>' +
+                '&nbsp;&nbsp;&nbsp;&nbsp;<a href="' + url + '/status" target="_blank" style="color:#daa520;">' + url + '/status</a>'
+            );
+        }
+        if (tBtn) tBtn.disabled = false;
+    }
+
     // ── Bridge mode ────────────────────────────────────────────────────────
     async function connectViaBridge() {
         _reset();
         const bBtn = document.getElementById('ti60BridgeBtn');
         if (bBtn) { bBtn.disabled = true; bBtn.textContent = 'Connecting…'; }
 
-        const bridgeUrl = DEFAULT_BRIDGE;
-
-        // Step 1: verify bridge is reachable and port is open
+        const url = _bridgeUrl();
         _setStep('uart', 'active');
-        _log('Connecting to bridge at ' + bridgeUrl + ' …');
+        _log('Connecting to bridge at ' + url + ' …');
+
         let status;
         try {
-            const r = await fetch(bridgeUrl + '/status');
+            const r = await fetch(url + '/status', { signal: AbortSignal.timeout(6000) });
             status = await r.json();
         } catch (e) {
-            _setStep('uart', 'fail',
-                'Bridge not reachable at ' + bridgeUrl + '. ' +
-                'Run: python3 server/local_bridge.py /dev/ttyUSB2 — ' +
-                'then accept the cert at ' + bridgeUrl + '/status');
+            const msg = e.message || String(e);
+            _setStep('uart', 'fail', 'Bridge not reachable: ' + msg);
+            _logHtml(
+                '<strong>Could not reach the bridge.</strong> Check:<br>' +
+                '&nbsp;&nbsp;<strong>1.</strong> Is it running? In Linux terminal:<br>' +
+                '&nbsp;&nbsp;&nbsp;&nbsp;<code>python3 server/local_bridge.py /dev/ttyUSB2 115200 8766</code><br>' +
+                '&nbsp;&nbsp;<strong>2.</strong> Did you accept the cert? Open ' +
+                '<a href="' + url + '/status" target="_blank" style="color:#daa520;">' + url + '/status</a>' +
+                ' in Chrome, click <em>Advanced → Proceed</em>.<br>' +
+                '&nbsp;&nbsp;<strong>3.</strong> Click <strong>🔍 Test Bridge</strong> to diagnose.'
+            );
             if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
             return;
         }
 
         if (!status.open) {
-            // Try to open the port
             _log('Bridge running but port closed — opening /dev/ttyUSB2 …');
             try {
-                const r2 = await fetch(bridgeUrl + '/connect', {
+                const r2 = await fetch(url + '/connect', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ port: '/dev/ttyUSB2', baud: BAUD }),
@@ -271,7 +337,7 @@ window.Ti60Connect = (function () {
                 const d2 = await r2.json();
                 if (!d2.ok) throw new Error(d2.error || 'connect failed');
             } catch (e) {
-                _setStep('uart', 'fail', 'Could not open /dev/ttyUSB2 via bridge: ' + e.message);
+                _setStep('uart', 'fail', 'Could not open /dev/ttyUSB2: ' + e.message);
                 if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
                 return;
             }
@@ -279,12 +345,11 @@ window.Ti60Connect = (function () {
 
         _setStep('uart', 'pass', 'Bridge connected — ' + (status.port || '/dev/ttyUSB2') + ' @ ' + (status.baud || BAUD));
         _setStep('callhome', 'active');
-        _log('Waiting for firmware CALLHOME packet (up to 30 s)…');
+        _log('Waiting for firmware CALLHOME packet (up to 30 s) — power-cycle the board now if needed…');
 
         const dBtn = document.getElementById('ti60DisconnectBtn');
         if (dBtn) dBtn.style.display = '';
 
-        // Step 2: poll /drain for CALLHOME text (30 s timeout)
         _bridgeRunning = true;
         let buf          = '';
         let greetingSeen = false;
@@ -294,7 +359,7 @@ window.Ti60Connect = (function () {
         while (_bridgeRunning && Date.now() < deadline && !pkt) {
             await new Promise(r => setTimeout(r, 400));
             try {
-                const dr = await fetch(bridgeUrl + '/drain');
+                const dr = await fetch(url + '/drain');
                 const dd = await dr.json();
                 if (dd.bytes && dd.bytes.length) {
                     buf += String.fromCharCode(...dd.bytes);
@@ -322,7 +387,9 @@ window.Ti60Connect = (function () {
         if (!_bridgeRunning) return;
 
         if (!pkt) {
-            _setStep('callhome', 'fail', 'No CALLHOME received in 30 s — power-cycle the board and try again');
+            _setStep('callhome', 'fail',
+                'No CALLHOME received in 30 s. ' +
+                'Power-cycle the board and try again, or check /dev/ttyUSB2 is the right port.');
             if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
             return;
         }
@@ -339,11 +406,20 @@ window.Ti60Connect = (function () {
             const el = document.getElementById(id);
             if (el) el.textContent = origin;
         });
-        // Fill the bridge command spans
-        const bc = document.getElementById('ti60BridgeCmd');
-        if (bc) bc.textContent =
-            'python3 server/local_bridge.py /dev/ttyUSB2 115200 8766';
+
+        // If we're in an iframe, immediately warn and suggest alternatives
+        if (_isIframe()) {
+            const log = document.getElementById('ti60ConnectLog');
+            if (log && log.children.length === 0) {
+                _logHtml(
+                    '⚠️ <strong>Preview pane detected.</strong> WebSerial is blocked in iframes. ' +
+                    'Use <strong>🌉 Via Bridge</strong> below, or ' +
+                    '<a href="/simulator/" target="_blank" style="color:#daa520;">open IDE in a new tab</a> ' +
+                    'to use USB Connect directly.'
+                );
+            }
+        }
     }
 
-    return { connect, connectViaBridge, disconnect, onTabOpen };
+    return { connect, connectViaBridge, testBridge, disconnect, onTabOpen };
 })();

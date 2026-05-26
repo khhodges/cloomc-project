@@ -359,3 +359,45 @@ header h1 a:hover {
 
 .ti60-disconnect-btn:hover { border-color: var(--error); color: var(--error); }
 
+.ti60-test-bridge-btn {
+    font-size: 0.85rem;
+    padding: 0.45rem 1rem;
+    background: transparent;
+    border: 1px solid rgba(167,139,250,0.45);
+    color: rgba(167,139,250,0.9);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+.ti60-test-bridge-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ti60-test-bridge-btn:not(:disabled):hover { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.7); }
+
+.ti60-bridge-url-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+.ti60-bridge-url-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.ti60-bridge-url-input {
+    flex: 1;
+    font-size: 0.78rem;
+    padding: 0.28rem 0.55rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-family: monospace;
+    min-width: 0;
+}
+.ti60-bridge-url-input:focus {
+    outline: none;
+    border-color: rgba(96,165,250,0.6);
+    background: rgba(96,165,250,0.05);
+}
