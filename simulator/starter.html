@@ -414,13 +414,12 @@
     HALT                 ; done — result is in DR0
 </textarea>
         <div class="s-annotation">
-            ↑ Edit freely. Click <strong>Start</strong> then use <strong>› Step</strong> to walk through each instruction.
+            ↑ Edit freely. Use <strong>› Step</strong> to walk through each instruction.
         </div>
         <div id="hexListing" class="s-hex-listing hidden"></div>
         <div class="s-toolbar">
-            <button class="s-btn s-btn-primary" id="btnBoot"  onclick="starterBoot()">⟳ Start</button>
-            <button class="s-btn"               id="btnStep"  onclick="starterStep()" disabled>› Step</button>
-            <button class="s-btn"               id="btnReset" onclick="starterReset()" disabled>↺ Reset</button>
+            <button class="s-btn"  id="btnStep"  onclick="starterStep()" disabled>› Step</button>
+            <button class="s-btn"  id="btnReset" onclick="starterReset()" disabled>↺ Reset</button>
         </div>
     </div>
 
