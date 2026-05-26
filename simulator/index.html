@@ -872,7 +872,12 @@
                         <li><strong>Windows:</strong> look for <em>USB Serial Port (COM&thinsp;N)</em> &mdash; the 3rd entry in Device Manager under FT4232H</li>
                         <li><strong>Mac:</strong> <code>/dev/cu.usbserial-&lt;id&gt;2</code></li>
                     </ul>
-                    If nothing appears in the browser picker, run <code>sudo chmod a+rw /dev/ttyUSB2</code> to grant access, then refresh.
+                    If nothing appears in the browser picker:
+                    <ul class="ti60-port-os-list">
+                        <li><strong>ChromeOS / Crostini:</strong> go to <em>Settings → Linux → USB devices</em> and <strong>turn off</strong> sharing for the FT4232H — Chrome needs exclusive access; once Linux claims the device, Chrome WebSerial can't see it.</li>
+                        <li><strong>Linux desktop:</strong> run <code>sudo chmod a+rw /dev/ttyUSB2</code> then refresh.</li>
+                        <li>Try a different USB cable or port, then power-cycle the board and refresh.</li>
+                    </ul>
                 </div>
                 <details class="ti60-help-details">
                     <summary>&#x2139;&#xFE0F; What to expect from the firmware</summary>
@@ -1702,7 +1707,7 @@ CALLHOME:{"board":"ti60-f225","uid":"AABBCCDD","nia":0,"boot_ok":1,"fault":0,"fa
     <script async src="english_string_tutorial.js"></script>
     <script async src="english_contact_tutorial.js"></script>
     <script async src="builder.js"></script>
-    <script async src="app-ti60-connect.js?v=20260527a"></script>
+    <script async src="app-ti60-connect.js?v=20260527b"></script>
     <script src="app-shell.js?v=20260526d"></script>
     <script src="app-tools.js?v=20260521a"></script>
     <script src="app-cr-display.js?v=20260521a"></script>

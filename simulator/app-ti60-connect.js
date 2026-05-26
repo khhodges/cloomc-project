@@ -183,9 +183,11 @@ window.Ti60Connect = (function () {
         if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
 
         try {
-            _port = await navigator.serial.requestPort({
-                filters: [{ usbVendorId: VENDOR_ID, usbProductId: PRODUCT_ID }],
-            });
+            // No filter — show all available serial ports so the user can
+            // manually pick /dev/ttyUSB2 (or whichever port Chrome can see).
+            // A strict VID/PID filter hides the device if the driver hasn't
+            // presented it or if it's claimed by the Linux VM on ChromeOS.
+            _port = await navigator.serial.requestPort({});
         } catch (e) {
             _log('Port selection cancelled.', 'log-fail');
             if (btn) { btn.disabled = false; btn.textContent = '🔌 Connect'; }
