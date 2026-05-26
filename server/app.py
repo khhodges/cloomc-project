@@ -1154,6 +1154,13 @@ def start_here():
   .back a:hover{color:#a78bfa}
 </style></head><body>
 <div class="wrap">
+  <a href="/" style="display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;margin-bottom:2rem;opacity:.75;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">
+    <span style="font-family:Georgia,serif;font-size:1.5rem;color:#daa520;line-height:1">&#955;</span>
+    <div>
+      <div style="font-family:Georgia,serif;font-size:.95rem;color:#daa520;letter-spacing:.04em">Church Machine</div>
+      <div style="font-size:.65rem;color:#64748b;letter-spacing:.1em;text-transform:uppercase">Capability-Secured Computing</div>
+    </div>
+  </a>
   <h1>Getting Started</h1>
   <div class="sub">Church Machine &middot; Release 1.2 &middot; Ti60 F225</div>
 

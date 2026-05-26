@@ -403,19 +403,30 @@
             <a class="arrow" href="/patents/" style="color: #f472b6;">Browse Patents &rarr;</a>
         </div>
 
-        <!-- Hello Mum — Stage 3: Keystone Connect Flow -->
-        <div class="card" style="background: linear-gradient(135deg, #1a1e2e 0%, #0d1117 100%); border-color: #22c55e;" onclick="window.location='/simulator/#hello-mum'">
-            <h2>Hello Mum</h2>
-            <div class="tag" style="color: #22c55e;">Stage 3 &middot; Live Demo &middot; Scan &amp; Connect</div>
-            <p>
-                Because security should be personal. Her QR code is a key only she holds — no account, no platform, no middleman. Everyone is secure with an individual QR code of their own and just a click away. Very different from Hello World from Unix.
-            </p>
-            <div class="features">
-                <a class="feature" href="/mum/qr" target="_blank" rel="noopener" style="background:rgba(34,197,94,0.1);color:#22c55e;border-color:rgba(34,197,94,0.2);">QR Code</a>
-                <a class="feature" href="/mum/identity" target="_blank" rel="noopener" style="background:rgba(34,197,94,0.1);color:#22c55e;border-color:rgba(34,197,94,0.2);">Identity</a>
-                <a class="feature" href="/simulator/#namespace?ns=32" style="background:rgba(34,197,94,0.1);color:#22c55e;border-color:rgba(34,197,94,0.2);">Keystone NS[32]</a>
+        <!-- Demonstrations -->
+        <div class="card" style="background: linear-gradient(135deg, #12101e 0%, #0d1117 100%); border-color: #818cf8;">
+            <h2>Demonstrations</h2>
+            <div class="tag" style="color: #818cf8;">Live Demos &middot; Capability Model in Action</div>
+
+            <div style="margin-bottom: 1.1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(129,140,248,0.15);">
+                <div style="font-size:.85rem; font-weight:700; color:#22c55e; margin-bottom:.35rem;">Hello Mum &mdash; Stage 3: Scan &amp; Connect</div>
+                <p style="font-size:.8rem; color:#94a3b8; margin:0 0 .55rem;">Because security should be personal. Her QR code is a key only she holds — no account, no platform, no middleman.</p>
+                <div class="features" style="margin:0">
+                    <a class="feature" href="/mum/qr" target="_blank" rel="noopener" style="background:rgba(34,197,94,0.1);color:#22c55e;border-color:rgba(34,197,94,0.2);" onclick="event.stopPropagation()">QR Code</a>
+                    <a class="feature" href="/mum/identity" target="_blank" rel="noopener" style="background:rgba(34,197,94,0.1);color:#22c55e;border-color:rgba(34,197,94,0.2);" onclick="event.stopPropagation()">Identity</a>
+                    <a class="feature" href="/simulator/#hello-mum" style="background:rgba(34,197,94,0.2);color:#22c55e;border-color:rgba(34,197,94,0.4);font-weight:600;" onclick="event.stopPropagation()">Open Connect Flow &rarr;</a>
+                </div>
             </div>
-            <a class="arrow" href="/simulator/#hello-mum" style="color:#22c55e;" onclick="event.stopPropagation()">Open Connect Flow &rarr;</a>
+
+            <div>
+                <div style="font-size:.85rem; font-weight:700; color:#22d3ee; margin-bottom:.35rem;">Python Capability Demo &mdash; 6 Primitives</div>
+                <p style="font-size:.8rem; color:#94a3b8; margin:0 0 .55rem;">Pure-Python reference implementation of CapabilityToken, ContextRegister, and a six-instruction simulator.</p>
+                <div class="features" style="margin:0">
+                    <a class="feature" href="/python-demo/#CapabilityToken" style="background:rgba(34,211,238,0.1);color:#22d3ee;border-color:rgba(34,211,238,0.2);" onclick="event.stopPropagation()">CapabilityToken</a>
+                    <a class="feature" href="/python-demo/#ContextRegister" style="background:rgba(34,211,238,0.1);color:#22d3ee;border-color:rgba(34,211,238,0.2);" onclick="event.stopPropagation()">ContextRegister</a>
+                    <a class="feature" href="/python-demo/" style="background:rgba(34,211,238,0.2);color:#22d3ee;border-color:rgba(34,211,238,0.4);font-weight:600;" onclick="event.stopPropagation()">Explore Python Model &rarr;</a>
+                </div>
+            </div>
         </div>
 
         <!-- Six Laws Review -->
@@ -435,24 +446,6 @@
             <a class="arrow" href="/six-laws/" style="color: #f59e0b;">View Broadsheet &rarr;</a>
         </div>
 
-        <!-- Python Capability Demo -->
-        <div class="card" style="background: linear-gradient(135deg, #0e1a28 0%, #091520 100%); border-color: #22d3ee;" onclick="window.location='/python-demo/'">
-            <h2>Python Capability Demo</h2>
-            <div class="tag" style="color: #22d3ee;">Python &middot; Capability Model &middot; 6 Primitives</div>
-            <p>
-                Pure-Python reference implementation of the Church Machine's core security primitives —
-                CapabilityToken, ContextRegister, and a six-instruction simulator. A language-familiar
-                entry point to the capability model before the CLOOMC assembler.
-            </p>
-            <div class="features">
-                <a class="feature" href="/python-demo/#CapabilityToken" style="background: rgba(34,211,238,0.1); color: #22d3ee; border-color: rgba(34,211,238,0.2);" onclick="event.stopPropagation()">CapabilityToken</a>
-                <a class="feature" href="/python-demo/#ContextRegister" style="background: rgba(34,211,238,0.1); color: #22d3ee; border-color: rgba(34,211,238,0.2);" onclick="event.stopPropagation()">ContextRegister</a>
-                <a class="feature" href="/python-demo/#LOAD_SAVE" style="background: rgba(34,211,238,0.1); color: #22d3ee; border-color: rgba(34,211,238,0.2);" onclick="event.stopPropagation()">LOAD/SAVE</a>
-                <a class="feature" href="/python-demo/#CALL_RETURN" style="background: rgba(34,211,238,0.1); color: #22d3ee; border-color: rgba(34,211,238,0.2);" onclick="event.stopPropagation()">CALL/RETURN</a>
-                <a class="feature" href="/python-demo/#CHANGE_SWITCH" style="background: rgba(34,211,238,0.1); color: #22d3ee; border-color: rgba(34,211,238,0.2);" onclick="event.stopPropagation()">CHANGE/SWITCH</a>
-            </div>
-            <a class="arrow" href="/python-demo/" style="color: #22d3ee;" onclick="event.stopPropagation()">Explore Python Model &rarr;</a>
-        </div>
 
 
     </div>
