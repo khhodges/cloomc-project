@@ -361,7 +361,7 @@ def _reader():
 class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
-        print(f'  [{self.path}] {fmt % args}')
+        print(f'  [{getattr(self, "path", "?")}] {fmt % args}')
 
     def _cors(self):
         self.send_header('Access-Control-Allow-Origin',  '*')
