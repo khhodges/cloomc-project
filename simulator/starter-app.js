@@ -625,6 +625,14 @@ function discardLesson5Draft() {
         });
     }
 
+    // If ?abstraction=1, jump straight to the Lesson 5 planning form
+    // and restore any saved draft automatically
+    if (params.get('abstraction') === '1') {
+        document.addEventListener('DOMContentLoaded', function() {
+            resumeLesson5Draft();
+        });
+    }
+
     // Show "Resume your draft" banner if a Lesson 5 draft is saved
     document.addEventListener('DOMContentLoaded', _checkResumeBanner);
 })();
