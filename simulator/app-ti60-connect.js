@@ -7,6 +7,26 @@ window.Ti60Connect = (function () {
     let _reader  = null;
     let _running = false;
     let _bridgeRunning = false;
+    let _bridgeEverConfirmed = false;
+
+    // ── bridge setup panel ─────────────────────────────────────────────────
+    function _showBridgeSetup() {
+        const panel = document.getElementById('ti60BridgeSetupPanel');
+        if (!panel) return;
+        const url = _bridgeUrl();
+        const link = document.getElementById('ti60SetupCertLink');
+        if (link) {
+            const certUrl = url + '/status';
+            link.href = certUrl;
+            link.textContent = certUrl;
+        }
+        panel.style.display = '';
+    }
+
+    function _hideBridgeSetup() {
+        const panel = document.getElementById('ti60BridgeSetupPanel');
+        if (panel) panel.style.display = 'none';
+    }
 
     // ── helpers ────────────────────────────────────────────────────────────
     function _bridgeUrl() {
@@ -283,6 +303,8 @@ window.Ti60Connect = (function () {
             const r = await fetch(url + '/status', { signal: AbortSignal.timeout(5000) });
             const d = await r.json();
             if (d.ok) {
+                _bridgeEverConfirmed = true;
+                _hideBridgeSetup();
                 _log('✓ Bridge is reachable. Port open: ' + d.open +
                      (d.port ? '  (' + d.port + ')' : ''), 'log-pass');
                 if (!d.open) {
@@ -290,19 +312,18 @@ window.Ti60Connect = (function () {
                 }
             } else {
                 _log('Bridge responded but ok=false: ' + JSON.stringify(d), 'log-fail');
+                _showBridgeSetup();
             }
         } catch (e) {
             const msg = e.message || String(e);
-            _log('✗ Bridge unreachable: ' + msg, 'log-fail');
-            _logHtml(
-                'This usually means one of:<br>' +
-                '&nbsp;&nbsp;<strong>1.</strong> Bridge not running — in Linux terminal run:<br>' +
-                '&nbsp;&nbsp;&nbsp;&nbsp;<code>python3 server/local_bridge.py /dev/ttyUSB2 115200 8766</code><br>' +
-                '&nbsp;&nbsp;<strong>2.</strong> Self-signed cert not yet accepted — open this URL in Chrome and click Advanced → Proceed:<br>' +
-                '&nbsp;&nbsp;&nbsp;&nbsp;<a href="' + url + '/status" target="_blank" style="color:#daa520;">' + url + '/status</a>'
-            );
+            _log('✗ Bridge not reachable: ' + msg, 'log-fail');
+            _showBridgeSetup();
         }
         if (tBtn) tBtn.disabled = false;
+    }
+
+    async function retryBridge() {
+        await testBridge();
     }
 
     // ── Bridge mode ────────────────────────────────────────────────────────
@@ -310,6 +331,10 @@ window.Ti60Connect = (function () {
         _reset();
         const bBtn = document.getElementById('ti60BridgeBtn');
         if (bBtn) { bBtn.disabled = true; bBtn.textContent = 'Connecting…'; }
+
+        if (!_bridgeEverConfirmed) {
+            _showBridgeSetup();
+        }
 
         const url = _bridgeUrl();
         _setStep('uart', 'active');
@@ -322,15 +347,8 @@ window.Ti60Connect = (function () {
         } catch (e) {
             const msg = e.message || String(e);
             _setStep('uart', 'fail', 'Bridge not reachable: ' + msg);
-            _logHtml(
-                '<strong>Could not reach the bridge.</strong> Check:<br>' +
-                '&nbsp;&nbsp;<strong>1.</strong> Is it running? In Linux terminal:<br>' +
-                '&nbsp;&nbsp;&nbsp;&nbsp;<code>python3 server/local_bridge.py /dev/ttyUSB2 115200 8766</code><br>' +
-                '&nbsp;&nbsp;<strong>2.</strong> Did you accept the cert? Open ' +
-                '<a href="' + url + '/status" target="_blank" style="color:#daa520;">' + url + '/status</a>' +
-                ' in Chrome, click <em>Advanced → Proceed</em>.<br>' +
-                '&nbsp;&nbsp;<strong>3.</strong> Click <strong>🔍 Test Bridge</strong> to diagnose.'
-            );
+            _log('✗ Could not reach the bridge — follow the setup guide below.', 'log-fail');
+            _showBridgeSetup();
             if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
             return;
         }
@@ -352,6 +370,8 @@ window.Ti60Connect = (function () {
             }
         }
 
+        _bridgeEverConfirmed = true;
+        _hideBridgeSetup();
         _setStep('uart', 'pass', 'Bridge connected — ' + (status.port || '/dev/ttyUSB2') + ' @ ' + (status.baud || BAUD));
         _setStep('callhome', 'active');
         _log('Waiting for firmware CALLHOME packet (up to 30 s) — power-cycle the board now if needed…');
@@ -430,5 +450,5 @@ window.Ti60Connect = (function () {
         }
     }
 
-    return { connect, connectViaBridge, testBridge, disconnect, onTabOpen };
+    return { connect, connectViaBridge, testBridge, retryBridge, disconnect, onTabOpen, hideBridgeSetup: _hideBridgeSetup };
 })();

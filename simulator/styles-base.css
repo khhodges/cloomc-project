@@ -437,3 +437,79 @@ header h1 a:hover {
     border-color: rgba(96,165,250,0.6);
     background: rgba(96,165,250,0.05);
 }
+
+/* ── Bridge setup guide panel ──────────────────────────────────────────── */
+.ti60-bridge-setup-panel {
+    margin-bottom: 0.9rem;
+    border: 1px solid rgba(248,113,113,0.45);
+    border-radius: 8px;
+    background: rgba(248,113,113,0.06);
+    padding: 0.75rem 1rem 0.9rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.ti60-bridge-setup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.65rem;
+}
+
+.ti60-bridge-setup-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: rgba(248,113,113,0.95);
+}
+
+.ti60-bridge-setup-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.ti60-bridge-setup-close:hover { opacity: 1; }
+
+.ti60-bridge-setup-steps {
+    margin: 0;
+    padding-left: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.ti60-bridge-setup-steps li strong { color: var(--text-primary); }
+
+.ti60-bridge-setup-steps .ti60-help-pre {
+    margin: 0.35rem 0 0;
+}
+
+.ti60-bridge-setup-retry-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    list-style: none;
+    margin-left: -1.3rem;
+    padding-top: 0.15rem;
+}
+
+.ti60-bridge-retry-btn {
+    font-size: 0.82rem;
+    padding: 0.3rem 0.85rem;
+    background: rgba(96,165,250,0.15);
+    color: var(--church-blue, #60a5fa);
+    border: 1px solid rgba(96,165,250,0.45);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.ti60-bridge-retry-btn:hover { background: rgba(96,165,250,0.28); border-color: rgba(96,165,250,0.7); }
