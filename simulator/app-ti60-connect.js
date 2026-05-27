@@ -9,6 +9,7 @@ window.Ti60Connect = (function () {
     let _bridgeRunning = false;
     let _bridgeEverConfirmed = localStorage.getItem('ti60BridgeCertAccepted') === '1';
     let _detectedPort = null;
+    let _activeBaud = BAUD;
 
     // ── port detection ─────────────────────────────────────────────────────
     async function _fetchPorts(url) {
@@ -311,6 +312,7 @@ window.Ti60Connect = (function () {
             return;
         }
 
+        _activeBaud = BAUD;
         _setStep('uart', 'active');
         _log('Port open at 115200 baud — waiting for firmware…');
         const dBtn = document.getElementById('ti60DisconnectBtn');
@@ -328,7 +330,7 @@ window.Ti60Connect = (function () {
         _port   = null;
         _reader = null;
         _setActivePort(null);
-        _log('Disconnected.');
+        _log('Disconnected (was ' + _activeBaud + ' baud).');
         const btn  = document.getElementById('ti60ConnectBtn');
         const bBtn = document.getElementById('ti60BridgeBtn');
         if (btn)  { btn.disabled  = false; btn.textContent  = '🔌 Connect'; }
@@ -454,7 +456,8 @@ window.Ti60Connect = (function () {
         _updateForgetBtnVisibility();
         _hideBridgeSetup();
         _setActivePort(connectedPort);
-        _setStep('uart', 'pass', 'Bridge connected — ' + connectedPort + ' @ ' + (status.baud || BAUD));
+        _activeBaud = status.baud || BAUD;
+        _setStep('uart', 'pass', 'Bridge connected — ' + connectedPort + ' @ ' + _activeBaud);
         _setStep('callhome', 'active');
         _log('Waiting for firmware CALLHOME packet (up to 30 s) — power-cycle the board now if needed…');
 

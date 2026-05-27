@@ -348,11 +348,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._json_resp({'ok': False, 'error': str(e)})
 
         elif self.path == '/disconnect':
+            closed_baud = _active_baud
             with _ser_lock:
                 if _ser and _ser.is_open:
                     _ser.close()
-            print('  Port closed.')
-            self._json_resp({'ok': True})
+            print(f'  Port closed (was {closed_baud} baud).')
+            self._json_resp({'ok': True, 'baud': closed_baud})
 
         elif self.path == '/transact':
             body = self._read_body()
