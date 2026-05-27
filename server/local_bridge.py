@@ -300,7 +300,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == '/status':
             with _ser_lock:
                 open_ = bool(_ser and _ser.is_open)
-            self._json_resp({'ok': True, 'open': open_, 'port': SERIAL_PORT, 'baud': BAUD})
+                active_port = _ser.port if open_ else SERIAL_PORT
+            self._json_resp({'ok': True, 'open': open_, 'port': SERIAL_PORT, 'active_port': active_port, 'baud': BAUD})
 
         elif self.path == '/drain':
             with _rx_lock:

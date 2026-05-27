@@ -396,6 +396,7 @@ window.Ti60Connect = (function () {
             return;
         }
 
+        let connectedPort = status.active_port || status.port || '/dev/ttyUSB2';
         if (!status.open) {
             if (!_detectedPort) {
                 const ports = await _fetchPorts(url);
@@ -415,6 +416,7 @@ window.Ti60Connect = (function () {
                 });
                 const d2 = await r2.json();
                 if (!d2.ok) throw new Error(d2.error || 'connect failed');
+                connectedPort = autoPort;
             } catch (e) {
                 _setStep('uart', 'fail', 'Could not open ' + autoPort + ': ' + e.message);
                 if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
@@ -425,7 +427,7 @@ window.Ti60Connect = (function () {
         _bridgeEverConfirmed = true;
         localStorage.setItem('ti60BridgeCertAccepted', '1');
         _hideBridgeSetup();
-        _setStep('uart', 'pass', 'Bridge connected — ' + (status.port || '/dev/ttyUSB2') + ' @ ' + (status.baud || BAUD));
+        _setStep('uart', 'pass', 'Bridge connected — ' + connectedPort + ' @ ' + (status.baud || BAUD));
         _setStep('callhome', 'active');
         _log('Waiting for firmware CALLHOME packet (up to 30 s) — power-cycle the board now if needed…');
 
