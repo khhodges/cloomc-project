@@ -650,6 +650,10 @@ if __name__ == '__main__':
     print()
     print('Press Ctrl+C to stop.')
     print()
+    if _IDE_SERVER_URL:
+        print('*** Power-cycle the board NOW (unplug/replug USB) to capture the boot stream. ***')
+        print('    The bridge must be running before the board boots to see NIA output.')
+        print()
 
     if _REPORT_LAUNCH and _IDE_SERVER_URL:
         _fetch_launch_summary()

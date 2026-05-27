@@ -524,6 +524,7 @@ window.Ti60Connect = (function () {
         let buf     = '';
         let lastNia = null;
         _log('— Live NIA stream active via server tunnel — (Disconnect to stop)', 'log-pass');
+        _log('💡 No output yet? Power-cycle the board (unplug/replug USB) to capture the boot stream.', 'log-warn');
         _showStreamPanel();
         while (_bridgeRunning) {
             await new Promise(r => setTimeout(r, 400));
