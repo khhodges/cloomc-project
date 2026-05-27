@@ -3675,101 +3675,141 @@ def save_lump():
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
     os.makedirs(lumps_dir, exist_ok=True)
 
-    lump_path = os.path.join(lumps_dir, f'{token8}.lump')
-
-    # ── Archive existing binary before overwriting ─────────────────────────────
-    # When archiving we must find the current lump_version so we can name the
-    # archive file correctly (<token>-v<N>.lump).  We try three sources in order:
-    #   1. Per-lump sidecar JSON  →  most authoritative
-    #   2. manifest.json entry    →  fallback when sidecar is missing
-    #   3. Existing -v*.lump names on disk → last-resort (sidecar+manifest both unreadable)
-    # If all three fail we still proceed with a safe fallback version number rather
-    # than silently skipping the archive step.
     import re as _re_arch
-    _arch_ver = None
+    import shutil as _shutil
+
+    # ── Helper: abstraction name → safe filename stem ─────────────────────────
+    def _safe_stem(name):
+        s = _re_arch.sub(r'[^\w.\-]', '_', str(name or 'lump').strip())
+        s = _re_arch.sub(r'_+', '_', s).strip('_')
+        return s or 'lump'
+
+    safe_name = _safe_stem(abs_name)
+
+    # ── Phase 1: Read manifest to find current entry + file paths ─────────────
+    manifest_path = os.path.join(lumps_dir, 'manifest.json')
+    manifest = []
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, 'r') as fh:
+                manifest = json.load(fh)
+        except Exception:
+            manifest = []
+
+    _existing_entry = next((e for e in manifest if e.get('token') == token8), None)
+    _exist_filename = (_existing_entry or {}).get('filename', f'{token8}.lump')
+    _exist_sc_file  = (_existing_entry or {}).get('sidecar_file', f'{token8}.json')
+    _existing_lump  = os.path.join(lumps_dir, _exist_filename)
+    _existing_sc    = os.path.join(lumps_dir, _exist_sc_file)
+
+    # ── Phase 2: Determine current version number ──────────────────────────────
     _is_forked_save = False
-    if os.path.isfile(lump_path):
-        _existing_sc_path = os.path.join(lumps_dir, f'{token8}.json')
-        _arch_sc = {}
-        if os.path.isfile(_existing_sc_path):
+    _arch_ver = None
+    _arch_sc  = {}
+    if os.path.isfile(_existing_lump):
+        if os.path.isfile(_existing_sc):
             try:
-                with open(_existing_sc_path, 'r') as _sfh:
+                with open(_existing_sc, 'r') as _sfh:
                     _arch_sc = json.load(_sfh)
                 _raw_ver = _arch_sc.get('lump_version')
                 if _raw_ver is not None:
                     _arch_ver = int(_raw_ver)
-                # If lump_version is absent, leave _arch_ver=None so
-                # manifest/disk-scan fallback still runs.
             except Exception:
                 pass
         if _arch_sc.get('forked'):
-            # fork-version already archived the old binary as v<N> and
-            # wrote lump_version=N+1 to the sidecar.  The new compiled
-            # binary IS v<N+1> — do not re-archive or the sequence skips.
             _is_forked_save = True
             print(f'[lumps] Forked compile: skipping re-archive for {token8}'
                   f' (already archived by fork-version)', flush=True)
+    if _arch_ver is None and not _is_forked_save:
+        if _existing_entry is not None:
+            _arch_ver = int(_existing_entry.get('lump_version', 0))
         else:
-            if _arch_ver is None:
-                _man_path = os.path.join(lumps_dir, 'manifest.json')
-                if os.path.isfile(_man_path):
-                    try:
-                        with open(_man_path, 'r') as _mfh:
-                            _man_tmp = json.load(_mfh)
-                        for _me in _man_tmp:
-                            if _me.get('token') == token8:
-                                _arch_ver = int(_me.get('lump_version', 0))
-                                if not _arch_sc:
-                                    _arch_sc = dict(_me)
-                                break
-                    except Exception:
-                        pass
-            if _arch_ver is None:
-                # Last resort: scan existing -v*.lump files to pick the NEXT unused version.
-                # Using max+1 (not max) ensures we never overwrite an existing archive.
-                _arch_pat = _re_arch.compile(rf'^{_re_arch.escape(token8)}-v(\d+)\.lump$')
-                _existing_vers = [
-                    int(_m.group(1))
-                    for _fn in os.listdir(lumps_dir)
-                    for _m in [_arch_pat.match(_fn)] if _m
-                ]
-                _arch_ver = (max(_existing_vers) + 1) if _existing_vers else 0
-                logging.warning(
-                    '[lumps] %s: sidecar and manifest unreadable; deriving archive version from disk (%d)',
-                    token8, _arch_ver
-                )
-            import shutil as _shutil
-            _arch_lump = os.path.join(lumps_dir, f'{token8}-v{_arch_ver}.lump')
-            _arch_json = os.path.join(lumps_dir, f'{token8}-v{_arch_ver}.json')
-            _shutil.copy2(lump_path, _arch_lump)
-            _arch_sc['archived_version'] = _arch_ver
-            with open(_arch_json, 'w') as _afh:
-                json.dump(_arch_sc, _afh, indent=2)
-            print(f'[lumps] Archived {token8}.lump → {token8}-v{_arch_ver}.lump', flush=True)
+            # Last resort: scan on-disk archives for this safe_name or token
+            _vers_found = []
+            for _fn in (os.listdir(lumps_dir) if os.path.isdir(lumps_dir) else []):
+                for _pp in [
+                    _re_arch.compile(rf'^{_re_arch.escape(safe_name)}_v(\d+)\.lump$'),
+                    _re_arch.compile(rf'^{_re_arch.escape(token8)}-v(\d+)\.lump$'),
+                ]:
+                    _mm = _pp.match(_fn)
+                    if _mm:
+                        _vers_found.append(int(_mm.group(1)))
+            _arch_ver = (max(_vers_found) + 1) if _vers_found else 0
+            if _vers_found:
+                logging.warning('[lumps] %s: sidecar and manifest unreadable; '
+                                'deriving archive version from disk (%d)', token8, _arch_ver)
+
+    # ── Phase 3: Compute next version number and new file paths ───────────────
+    if _is_forked_save and _arch_ver is not None:
+        next_lump_version = _arch_ver
+    elif _arch_ver is not None:
+        next_lump_version = _arch_ver + 1
+    else:
+        existing_versions_for_abs = [
+            int(e.get("lump_version", 0))
+            for e in manifest
+            if e.get("abstraction") == abs_name
+            and e.get("lump_version") is not None
+            and e.get("token") != token8
+        ]
+        next_lump_version = (max(existing_versions_for_abs) + 1) if existing_versions_for_abs else 1
+
+    lump_filename    = f'{safe_name}_v{next_lump_version}.lump'
+    sidecar_filename = f'{safe_name}_v{next_lump_version}.json'
+    lump_path        = os.path.join(lumps_dir, lump_filename)
+    sidecar_path     = os.path.join(lumps_dir, sidecar_filename)
+
+    # ── Phase 4: Archive existing binary with human-readable name ─────────────
+    if os.path.isfile(_existing_lump) and not _is_forked_save:
+        _arch_lump_fn   = f'{safe_name}_v{_arch_ver}.lump'
+        _arch_sc_fn     = f'{safe_name}_v{_arch_ver}.json'
+        _arch_lump_path = os.path.join(lumps_dir, _arch_lump_fn)
+        _arch_sc_path   = os.path.join(lumps_dir, _arch_sc_fn)
+        if os.path.abspath(_existing_lump) != os.path.abspath(_arch_lump_path):
+            _shutil.copy2(_existing_lump, _arch_lump_path)
+            _arch_sc_out = dict(_arch_sc)
+            _arch_sc_out['archived_version'] = _arch_ver
+            with open(_arch_sc_path, 'w') as _afh:
+                json.dump(_arch_sc_out, _afh, indent=2)
+            # Migration: delete old token-named file once safely copied to readable name
+            if _exist_filename == f'{token8}.lump':
+                try:
+                    os.remove(_existing_lump)
+                    if os.path.isfile(_existing_sc) and _exist_sc_file == f'{token8}.json':
+                        os.remove(_existing_sc)
+                except OSError:
+                    pass
+        print(f'[lumps] Archived {_exist_filename} → {_arch_lump_fn}', flush=True)
 
         # ── Prune oldest archives beyond LUMP_MAX_ARCHIVE_VERSIONS ────────────
-        _prune_pat = _re_arch.compile(rf'^{_re_arch.escape(token8)}-v(\d+)\.lump$')
-        _all_vers = sorted(
-            int(_m.group(1))
-            for _fn in os.listdir(lumps_dir)
-            for _m in [_prune_pat.match(_fn)] if _m
-        )
-        _excess = len(_all_vers) - LUMP_MAX_ARCHIVE_VERSIONS
+        _all_arc = []
+        for _fn in (os.listdir(lumps_dir) if os.path.isdir(lumps_dir) else []):
+            for _pp in [
+                _re_arch.compile(rf'^{_re_arch.escape(safe_name)}_v(\d+)\.lump$'),
+                _re_arch.compile(rf'^{_re_arch.escape(token8)}-v(\d+)\.lump$'),
+            ]:
+                _pm = _pp.match(_fn)
+                if _pm:
+                    _all_arc.append((int(_pm.group(1)), _fn))
+        _all_arc.sort()
+        _excess = len(_all_arc) - LUMP_MAX_ARCHIVE_VERSIONS
         if _excess > 0:
-            for _old_ver in _all_vers[:_excess]:
-                _old_lump = os.path.join(lumps_dir, f'{token8}-v{_old_ver}.lump')
-                _old_json = os.path.join(lumps_dir, f'{token8}-v{_old_ver}.json')
+            for _, _old_fn in _all_arc[:_excess]:
+                _old_lump = os.path.join(lumps_dir, _old_fn)
+                _old_json = os.path.join(lumps_dir, _old_fn[:-5] + '.json')
                 try:
                     os.remove(_old_lump)
-                    logging.info('[lumps] Pruned old archive %s-v%d.lump', token8, _old_ver)
+                    logging.info('[lumps] Pruned old archive %s', _old_fn)
                 except OSError as _e:
-                    logging.warning('[lumps] Could not prune %s-v%d.lump: %s', token8, _old_ver, _e)
+                    logging.warning('[lumps] Could not prune %s: %s', _old_fn, _e)
                 try:
-                    os.remove(_old_json)
-                    logging.info('[lumps] Pruned old archive sidecar %s-v%d.json', token8, _old_ver)
+                    if os.path.isfile(_old_json):
+                        os.remove(_old_json)
+                        logging.info('[lumps] Pruned old archive sidecar %s', _old_json)
                 except OSError as _e:
-                    logging.warning('[lumps] Could not prune %s-v%d.json: %s', token8, _old_ver, _e)
+                    logging.warning('[lumps] Could not prune sidecar %s: %s', _old_json, _e)
 
+    # ── Phase 5: Write new lump binary ────────────────────────────────────────
     lump_bytes = _struct.pack(f'>{len(words)}I',
                               *[int(w) & 0xFFFFFFFF for w in words])
     with open(lump_path, 'wb') as fh:
@@ -3778,22 +3818,25 @@ def save_lump():
     LAZY_LUMPS[token8] = lump_bytes
     LAZY_LUMPS[token8.lstrip('0') or '0'] = lump_bytes
 
+    # ── Phase 6: Build and write sidecar JSON ─────────────────────────────────
     sidecar = {
-        "token":        token8,
-        "abstraction":  abs_name,
-        "ns_slot":      ns_slot,
-        "lump_size":    len(words),
-        "typ":          hdr_typ,
-        "content_type": content_type,
-        "cw":           metadata.get("cw", 0),
-        "cc":           metadata.get("cc", 0),
-        "profile":      metadata.get("profile", "IoT"),
-        "language":     metadata.get("language", "unknown"),
-        "author":       metadata.get("author", ""),
-        "version":      metadata.get("version", ""),
+        "token":         token8,
+        "abstraction":   abs_name,
+        "filename":      lump_filename,
+        "sidecar_file":  sidecar_filename,
+        "ns_slot":       ns_slot,
+        "lump_size":     len(words),
+        "typ":           hdr_typ,
+        "content_type":  content_type,
+        "cw":            metadata.get("cw", 0),
+        "cc":            metadata.get("cc", 0),
+        "profile":       metadata.get("profile", "IoT"),
+        "language":      metadata.get("language", "unknown"),
+        "author":        metadata.get("author", ""),
+        "version":       metadata.get("version", ""),
         "release_notes": metadata.get("release_notes", ""),
-        "methods":      metadata.get("methods", []),
-        "capabilities": metadata.get("capabilities", []),
+        "methods":       metadata.get("methods", []),
+        "capabilities":  metadata.get("capabilities", []),
         "pet_names": {
             "DR": metadata.get("pet_names_dr", {}),
             "CR": metadata.get("pet_names_cr", {})
@@ -3810,47 +3853,19 @@ def save_lump():
             "built_at":     _dt.datetime.utcnow().isoformat() + "Z",
             "builder":      "CLOOMC++ IDE v1.0"
         },
-        "grants": metadata.get("grants", ["E"])
+        "grants": metadata.get("grants", ["E"]),
     }
-
-    manifest_path = os.path.join(lumps_dir, 'manifest.json')
-    manifest = []
-    if os.path.isfile(manifest_path):
-        try:
-            with open(manifest_path, 'r') as fh:
-                manifest = json.load(fh)
-        except Exception:
-            manifest = []
-
-    manifest = [e for e in manifest if e.get('token') != token8]
-
-    # Derive next_lump_version from the archive step when possible, so repeated
-    # saves of the same token monotonically increment (v1, v2, v3 …).
-    # Fallback: scan remaining manifest entries for any same-abstraction version.
-    # Special case: when compiling after a fork, fork-version already set
-    # lump_version=N+1 in the sidecar and archived the old binary as v<N>.
-    # The new binary IS v<N+1> — use _arch_ver directly, not _arch_ver+1.
-    if _is_forked_save and _arch_ver is not None:
-        next_lump_version = _arch_ver
-    elif _arch_ver is not None:
-        next_lump_version = _arch_ver + 1
-    else:
-        existing_versions_for_abs = [
-            int(e.get("lump_version", 0))
-            for e in manifest
-            if e.get("abstraction") == abs_name and e.get("lump_version") is not None
-        ]
-        next_lump_version = (max(existing_versions_for_abs) + 1) if existing_versions_for_abs else 1
-
-    sidecar["lump_version"] = next_lump_version
 
     import time as _time_save
     _compiled_at = _time_save.time()
-    sidecar["compiled_at"] = _compiled_at
+    sidecar["lump_version"] = next_lump_version
+    sidecar["compiled_at"]  = _compiled_at
 
-    sidecar_path = os.path.join(lumps_dir, f'{token8}.json')
     with open(sidecar_path, 'w') as fh:
         json.dump(sidecar, fh, indent=2)
+
+    # ── Phase 7: Update manifest ───────────────────────────────────────────────
+    manifest = [e for e in manifest if e.get('token') != token8]
 
     vg_key = f"compiled_{abs_name.lower().replace(' ', '_')}"
     if ns_slot is not None:
@@ -3863,6 +3878,8 @@ def save_lump():
     new_entry = {
         "token":         token8,
         "abstraction":   abs_name,
+        "filename":      lump_filename,
+        "sidecar_file":  sidecar_filename,
         "ns_slot":       ns_slot,
         "lump_size":     len(words),
         "cw":            sidecar["cw"],
@@ -3881,7 +3898,7 @@ def save_lump():
     with open(manifest_path, 'w') as fh:
         json.dump(manifest, fh, indent=2)
 
-    print(f'[lumps] Saved {token8}.lump ({len(lump_bytes)} bytes) + {token8}.json', flush=True)
+    print(f'[lumps] Saved {lump_filename} ({len(lump_bytes)} bytes) + {sidecar_filename}', flush=True)
 
     # ── Auto-regenerate boot-image.bin ────────────────────────────────────────
     # If boot-image.bin already exists and a boot config is present, regenerate
@@ -3908,9 +3925,9 @@ def save_lump():
     resp: dict = {
         "ok":           True,
         "token":        token8,
-        "lump":         f'{token8}.lump',
-        "lump_path":    f'server/lumps/{token8}.lump',
-        "sidecar":      f'{token8}.json',
+        "lump":         lump_filename,
+        "lump_path":    f'server/lumps/{lump_filename}',
+        "sidecar":      sidecar_filename,
         "size_bytes":   len(lump_bytes),
         "lump_version": next_lump_version,
         "boot_image_refreshed": boot_refreshed,
@@ -3936,7 +3953,11 @@ def list_lumps():
     result = []
     for entry in manifest:
         token8 = entry.get('token', '')
-        sidecar_path = os.path.join(lumps_dir, f'{token8}.json')
+        # Prefer named sidecar (filename field) over legacy token-named sidecar
+        _sc_filename = entry.get('sidecar_file', f'{token8}.json')
+        sidecar_path = os.path.join(lumps_dir, _sc_filename)
+        if not os.path.isfile(sidecar_path):
+            sidecar_path = os.path.join(lumps_dir, f'{token8}.json')
         if os.path.isfile(sidecar_path):
             try:
                 with open(sidecar_path, 'r') as fh:
@@ -3990,6 +4011,22 @@ def get_lump_words(token_hex):
     if data is None:
         lumps_dir  = os.path.join(os.path.dirname(__file__), 'lumps')
         lump_path  = os.path.join(lumps_dir, f'{key8}.lump')
+        # Check manifest for a named (human-readable) filename
+        _mf_path = os.path.join(lumps_dir, 'manifest.json')
+        if os.path.isfile(_mf_path):
+            try:
+                with open(_mf_path) as _mf:
+                    _mf_data = json.load(_mf)
+                for _me in _mf_data:
+                    if _me.get('token') == key8:
+                        _fn = _me.get('filename', '')
+                        if _fn:
+                            _np = os.path.join(lumps_dir, _fn)
+                            if os.path.isfile(_np):
+                                lump_path = _np
+                        break
+            except Exception:
+                pass
         if os.path.isfile(lump_path):
             with open(lump_path, 'rb') as fh:
                 data = fh.read()
@@ -4020,15 +4057,34 @@ def get_lump_history(token):
     if not _re.fullmatch(r'[0-9a-f]{8}', key8):
         return jsonify({"error": "Invalid token"}), 400
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
-    pattern = _re.compile(rf'^{_re.escape(key8)}-v(\d+)\.lump$')
+    # Find safe stem from manifest so we can match human-readable archive files
+    _safe_stem_h = None
+    _mf_path_h = os.path.join(lumps_dir, 'manifest.json')
+    if os.path.isfile(_mf_path_h):
+        try:
+            with open(_mf_path_h) as _mf:
+                _mf_d = json.load(_mf)
+            for _e in _mf_d:
+                if _e.get('token') == key8:
+                    _fn = _e.get('filename', '')
+                    if _fn and _fn.endswith('.lump'):
+                        _safe_stem_h = _re.sub(r'_v\d+$', '', _fn[:-5])
+                    break
+        except Exception:
+            pass
+    pattern_token = _re.compile(rf'^{_re.escape(key8)}-v(\d+)\.lump$')
+    pattern_named = (
+        _re.compile(rf'^{_re.escape(_safe_stem_h)}_v(\d+)\.lump$')
+        if _safe_stem_h else None
+    )
     entries = []
     for fn in (os.listdir(lumps_dir) if os.path.isdir(lumps_dir) else []):
-        m = pattern.match(fn)
+        m = pattern_token.match(fn) or (pattern_named and pattern_named.match(fn))
         if not m:
             continue
         ver = int(m.group(1))
         lump_path_v = os.path.join(lumps_dir, fn)
-        sc_path_v   = os.path.join(lumps_dir, f'{key8}-v{ver}.json')
+        sc_path_v   = os.path.join(lumps_dir, fn[:-5] + '.json')
         size_words  = os.path.getsize(lump_path_v) // 4
         entry = {
             "version":     ver,
@@ -4071,11 +4127,35 @@ def lump_fork_version(token):
         return jsonify({"error": "Invalid token"}), 400
 
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
-    lump_path = os.path.join(lumps_dir, f'{key8}.lump')
+    # Resolve current lump path from manifest (may be human-readable name)
+    lump_path   = os.path.join(lumps_dir, f'{key8}.lump')
+    sc_path     = os.path.join(lumps_dir, f'{key8}.json')
+    _safe_stem_fv = key8
+    _mf_path_fv = os.path.join(lumps_dir, 'manifest.json')
+    if os.path.isfile(_mf_path_fv):
+        try:
+            with open(_mf_path_fv) as _f:
+                _mf_fv = json.load(_f)
+            for _e in _mf_fv:
+                if _e.get('token') == key8:
+                    _fn = _e.get('filename', '')
+                    _sfn = _e.get('sidecar_file', '')
+                    if _fn:
+                        _np = os.path.join(lumps_dir, _fn)
+                        if os.path.isfile(_np):
+                            lump_path = _np
+                    if _sfn:
+                        _nsp = os.path.join(lumps_dir, _sfn)
+                        if os.path.isfile(_nsp):
+                            sc_path = _nsp
+                    if _fn and _fn.endswith('.lump'):
+                        _safe_stem_fv = _re_fv.sub(r'_v\d+$', '', _fn[:-5])
+                    break
+        except Exception:
+            pass
     if not os.path.isfile(lump_path):
         return jsonify({"error": "No compiled binary for this token — cannot fork"}), 404
 
-    sc_path = os.path.join(lumps_dir, f'{key8}.json')
     sc = {}
     if os.path.isfile(sc_path):
         try:
@@ -4086,11 +4166,15 @@ def lump_fork_version(token):
 
     cur_version = sc.get('lump_version')
     if cur_version is None:
-        _arch_pat = _re_fv.compile(rf'^{_re_fv.escape(key8)}-v(\d+)\.lump$')
+        _arch_pats = [
+            _re_fv.compile(rf'^{_re_fv.escape(_safe_stem_fv)}_v(\d+)\.lump$'),
+            _re_fv.compile(rf'^{_re_fv.escape(key8)}-v(\d+)\.lump$'),
+        ]
         _existing = [
             int(m.group(1))
             for fn in (os.listdir(lumps_dir) if os.path.isdir(lumps_dir) else [])
-            for m in [_arch_pat.match(fn)] if m
+            for _pp in _arch_pats
+            for m in [_pp.match(fn)] if m
         ]
         cur_version = (max(_existing) + 1) if _existing else 0
     else:
@@ -4104,8 +4188,8 @@ def lump_fork_version(token):
         return jsonify({"ok": True, "new_version": cur_version, "prev_version": cur_version - 1, "already_forked": True})
 
     import shutil as _shutil_fv
-    arch_lump = os.path.join(lumps_dir, f'{key8}-v{cur_version}.lump')
-    arch_json = os.path.join(lumps_dir, f'{key8}-v{cur_version}.json')
+    arch_lump = os.path.join(lumps_dir, f'{_safe_stem_fv}_v{cur_version}.lump')
+    arch_json = os.path.join(lumps_dir, f'{_safe_stem_fv}_v{cur_version}.json')
     _shutil_fv.copy2(lump_path, arch_lump)
     arch_sc = dict(sc)
     arch_sc['archived_version'] = cur_version
@@ -4123,7 +4207,8 @@ def lump_fork_version(token):
     with open(sc_path, 'w') as fh:
         json.dump(sc, fh, indent=2)
 
-    logging.info('[lumps] Fork: archived %s.lump → %s-v%d.lump (sidecar forked=True written)', key8, key8, cur_version)
+    logging.info('[lumps] Fork: archived %s → %s_v%d.lump (sidecar forked=True written)',
+                 lump_path, _safe_stem_fv, cur_version)
     return jsonify({"ok": True, "new_version": cur_version + 1, "prev_version": cur_version})
 
 
@@ -4143,6 +4228,24 @@ def get_lump_version_words(token, version):
         return jsonify({"error": "Invalid token"}), 400
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
     lump_path_v = os.path.join(lumps_dir, f'{key8}-v{version}.lump')
+    # Also check for human-readable versioned archive: <AbsName>_v<N>.lump
+    _mf_v = os.path.join(lumps_dir, 'manifest.json')
+    if os.path.isfile(_mf_v):
+        try:
+            with open(_mf_v) as _f:
+                _mf_vd = json.load(_f)
+            for _e in _mf_vd:
+                if _e.get('token') == key8:
+                    _fn = _e.get('filename', '')
+                    if _fn and _fn.endswith('.lump'):
+                        import re as _re_vv
+                        _stem = _re_vv.sub(r'_v\d+$', '', _fn[:-5])
+                        _np = os.path.join(lumps_dir, f'{_stem}_v{version}.lump')
+                        if os.path.isfile(_np):
+                            lump_path_v = _np
+                    break
+        except Exception:
+            pass
     if not os.path.isfile(lump_path_v):
         return jsonify({"error": f"No archived version v{version} for token 0x{key8}"}), 404
     with open(lump_path_v, 'rb') as fh:
@@ -4151,7 +4254,7 @@ def get_lump_version_words(token, version):
     words = list(_struct.unpack(f'>{num_words}I', data[:num_words * 4]))
 
     sc = {}
-    sc_path_v = os.path.join(lumps_dir, f'{key8}-v{version}.json')
+    sc_path_v = os.path.join(lumps_dir, lump_path_v[len(lumps_dir)+1:-5] + '.json')
     if os.path.isfile(sc_path_v):
         try:
             with open(sc_path_v, 'r') as fh:

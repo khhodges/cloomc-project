@@ -2049,14 +2049,16 @@
   {
     "token": "95a651e7",
     "abstraction": "NoteG",
+    "filename": "NoteG_v6.lump",
+    "sidecar_file": "NoteG_v6.json",
     "ns_slot": null,
     "lump_size": 64,
     "cw": 38,
     "cc": 1,
     "author": "",
-    "version": "2026.05.27",
-    "lump_version": 5,
-    "compiled_at": 1779885582.8575444,
+    "version": "",
+    "lump_version": 6,
+    "compiled_at": 1779886993.949057,
     "methods": [
       {
         "name": "compute",
