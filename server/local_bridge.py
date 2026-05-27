@@ -43,6 +43,7 @@ _ser_lock  = threading.Lock()
 _rx_buf    = bytearray()
 _rx_lock   = threading.Lock()
 _reader_running = False
+_active_baud = BAUD  # updated on every successful /connect; returned by /status
 
 CALLHOME_MAGIC = bytes([0xCE, 0x11])
 CALLHOME_PKT_LEN = 23
@@ -301,7 +302,7 @@ class Handler(BaseHTTPRequestHandler):
             with _ser_lock:
                 open_ = bool(_ser and _ser.is_open)
                 active_port = _ser.port if open_ else SERIAL_PORT
-            self._json_resp({'ok': True, 'open': open_, 'port': SERIAL_PORT, 'active_port': active_port, 'baud': BAUD})
+            self._json_resp({'ok': True, 'open': open_, 'port': SERIAL_PORT, 'active_port': active_port, 'baud': _active_baud})
 
         elif self.path == '/drain':
             with _rx_lock:
@@ -323,7 +324,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json_resp({'ok': False, 'error': 'not found'}, 404)
 
     def do_POST(self):
-        global _ser, _rx_buf, _reader_running
+        global _ser, _rx_buf, _reader_running, _active_baud
 
         if self.path == '/connect':
             body = self._read_body()
@@ -334,6 +335,7 @@ class Handler(BaseHTTPRequestHandler):
                     if _ser and _ser.is_open:
                         _ser.close()
                     _ser = serial.Serial(port, baud, timeout=0)
+                _active_baud = baud
                 with _rx_lock:
                     _rx_buf.clear()
                 if not _reader_running:
