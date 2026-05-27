@@ -199,6 +199,8 @@ function starterNext() {
         _el('btnStep').disabled  = true;
         _el('btnReset').disabled = true;
         _el('btnNext').textContent = 'Save Draft';
+        var btnOD = _el('btnOpenDraft');
+        if (btnOD) btnOD.classList.remove('hidden');
         var ann = _el('starterAnnotation');
         if (ann) ann.innerHTML = 'Fill in the details, then click <strong>Save Draft</strong>. When ready, click <strong>Code Edit \u2192</strong> to open the editor with your framework.';
         _setOutput('<span class="out-dim">Plan your abstraction above. Click <strong style="color:#daa520">Save Draft</strong> to save your plan, then <strong style="color:#daa520">Code Edit \u2192</strong> when you\'re ready to start coding \u2014 the editor will open with your framework pre-filled.</span>');
