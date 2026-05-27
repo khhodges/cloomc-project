@@ -53,6 +53,7 @@ _IDE_SERVER_URL = None
 _BRIDGE_SCHEME = 'http'
 _device_uid = None
 _heartbeat_running = False
+_tunnel_drain_running = False
 _REPORT_LAUNCH = False
 _launch_test_reported = set()
 
@@ -99,6 +100,12 @@ def _handle_callhome(pkt):
             _heartbeat_running = True
             hb = threading.Thread(target=_heartbeat_thread, daemon=True)
             hb.start()
+        global _tunnel_drain_running
+        if not _tunnel_drain_running:
+            _tunnel_drain_running = True
+            td = threading.Thread(target=_tunnel_drain_thread, daemon=True)
+            td.start()
+            print(f'  [CALL HOME] Drain tunnel → {_IDE_SERVER_URL}/api/device/push-drain')
 
 
 def _register_with_ide(uid, board_type, board_name, profile, fw_major, fw_minor, build_sig=None, boot_reason=0, last_fault=0, fault_nia=0):
@@ -136,6 +143,32 @@ def _register_with_ide(uid, board_type, board_name, profile, fw_major, fw_minor,
             print(f'  [CALL HOME] IDE registration response: {result}')
     except Exception as e:
         print(f'  [CALL HOME] IDE registration failed: {e}')
+
+
+def _tunnel_drain_thread():
+    """Push serial RX bytes to the IDE server every 200 ms so the browser can poll them."""
+    global _tunnel_drain_running
+    try:
+        import urllib.request as _ureq
+        while _tunnel_drain_running and _IDE_SERVER_URL and _device_uid:
+            with _rx_lock:
+                chunk = bytes(_rx_buf)
+                _rx_buf.clear()
+            if chunk:
+                try:
+                    payload = json.dumps({"uid": _device_uid, "bytes": list(chunk)}).encode()
+                    req = _ureq.Request(
+                        f"{_IDE_SERVER_URL}/api/device/push-drain",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    _ureq.urlopen(req, timeout=4)
+                except Exception:
+                    pass
+            time.sleep(0.2)
+    finally:
+        _tunnel_drain_running = False
 
 
 def _heartbeat_thread():

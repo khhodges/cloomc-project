@@ -7,6 +7,7 @@ window.Ti60Connect = (function () {
     let _reader  = null;
     let _running = false;
     let _bridgeRunning = false;
+    let _tunnelMode = false;
     let _bridgeEverConfirmed = localStorage.getItem('ti60BridgeCertAccepted') === '1';
     let _detectedPort = null;
     let _activeBaud = BAUD;
@@ -28,10 +29,12 @@ window.Ti60Connect = (function () {
     }
 
     function _updateRunCmds(port) {
-        const p = port || '/dev/ttyUSB2';
+        const p    = port || '/dev/ttyUSB2';
+        const ide  = window.location.origin;
+        const cmd  = 'python3 local_bridge.py ' + p + ' 115200 8766 --ide=' + ide;
         ['ti60SetupBridgeCmd', 'ti60BridgeCmd'].forEach(function (id) {
             const el = document.getElementById(id);
-            if (el) el.textContent = 'python3 server/local_bridge.py ' + p + ' 115200 8766';
+            if (el) el.textContent = cmd;
         });
     }
 
@@ -169,7 +172,7 @@ window.Ti60Connect = (function () {
         return t09 && t09.status === 'passing';
     }
 
-    async function _finishSteps(pkt, greetingSeen) {
+    async function _finishSteps(pkt, greetingSeen, skipRegister) {
         if (!greetingSeen) {
             _setStep('uart', 'pass', 'Board detected via CALLHOME (board=' + pkt.board + ')');
         }
@@ -184,7 +187,13 @@ window.Ti60Connect = (function () {
         _setStep('register', 'active');
 
         try {
-            const reg = await _registerWithIDE(pkt);
+            let reg;
+            if (skipRegister) {
+                // Bridge already registered the device — reuse the boot_count from the CALLHOME data
+                reg = { ok: true, boot_count: pkt.boot_count };
+            } else {
+                reg = await _registerWithIDE(pkt);
+            }
             if (reg.ok) {
                 const bootNum = reg.boot_count != null ? '  boot #' + reg.boot_count : '';
                 _setStep('register', 'pass', 'Device registered in IDE (uid=' + pkt.uid + ')' + bootNum);
@@ -332,13 +341,16 @@ window.Ti60Connect = (function () {
     async function disconnect() {
         _running = false;
         const wasBridge = _bridgeRunning;
+        const wasTunnel = _tunnelMode;
         _bridgeRunning = false;
+        _tunnelMode    = false;
         try { if (_reader) await _reader.cancel(); }  catch (e) {}
         try { if (_port)   await _port.close();    }  catch (e) {}
         _port   = null;
         _reader = null;
         _setActivePort(null);
-        if (wasBridge) {
+        if (wasBridge && !wasTunnel) {
+            // Direct bridge mode — tell the bridge to release the serial port
             let confirmedBaud = _activeBaud;
             let bridgeReachable = true;
             try {
@@ -352,6 +364,8 @@ window.Ti60Connect = (function () {
             } else {
                 _log('Disconnected (bridge unreachable — port may still be held open).', 'log-warn');
             }
+        } else if (wasTunnel) {
+            _log('Disconnected from bridge tunnel.');
         } else {
             _log('Disconnected (was ' + _activeBaud + ' baud).');
         }
@@ -412,149 +426,67 @@ window.Ti60Connect = (function () {
         await testBridge();
     }
 
-    // ── Bridge mode ────────────────────────────────────────────────────────
+    // ── Bridge tunnel mode ─────────────────────────────────────────────────
+    // The bridge pushes serial bytes to the IDE server; the browser polls the
+    // IDE server.  No direct browser→bridge connection — no cert, no flags,
+    // no port forwarding.  Just run the bridge with --ide=<URL> and click.
     async function connectViaBridge() {
         _reset();
+        _tunnelMode = true;
         const bBtn = document.getElementById('ti60BridgeBtn');
-        if (bBtn) { bBtn.disabled = true; bBtn.textContent = 'Connecting…'; }
-
-        if (!_bridgeEverConfirmed) {
-            _showBridgeSetup();
-        }
-
-        const url = _bridgeUrl();
-        _setStep('uart', 'active');
-        _log('Connecting to bridge at ' + url + ' …');
-
-        let status;
-        try {
-            const r = await fetch(url + '/status', { signal: AbortSignal.timeout(6000) });
-            status = await r.json();
-        } catch (e) {
-            const msg = e.message || String(e);
-            _setStep('uart', 'fail', 'Bridge not reachable: ' + msg);
-            _log('✗ Could not reach the bridge — follow the setup guide below.', 'log-fail');
-            _showBridgeSetup();
-            if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
-            return;
-        }
-
-        let connectedPort = status.active_port || status.port || '/dev/ttyUSB2';
-        if (!status.open) {
-            if (!_detectedPort) {
-                const ports = await _fetchPorts(url);
-                const best = _pickBestPort(ports);
-                if (best) {
-                    _detectedPort = best;
-                    _updateRunCmds(best);
-                }
-            }
-            const autoPort = _detectedPort || '/dev/ttyUSB2';
-            _log('Bridge running but port closed — opening ' + autoPort + ' …');
-            try {
-                const r2 = await fetch(url + '/connect', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ port: autoPort, baud: BAUD }),
-                });
-                const d2 = await r2.json();
-                if (!d2.ok) throw new Error(d2.error || 'connect failed');
-                try {
-                    const r3 = await fetch(url + '/status', { signal: AbortSignal.timeout(6000) });
-                    const freshStatus = await r3.json();
-                    status = freshStatus;
-                    connectedPort = freshStatus.active_port || freshStatus.port || autoPort;
-                } catch (_) {
-                    connectedPort = autoPort;
-                }
-            } catch (e) {
-                _setStep('uart', 'fail', 'Could not open ' + autoPort + ': ' + e.message);
-                if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
-                return;
-            }
-        }
-
-        _bridgeEverConfirmed = true;
-        localStorage.setItem('ti60BridgeCertAccepted', '1');
-        localStorage.setItem('ti60BridgeUrl', url);
-        _updateForgetBtnVisibility();
-        _hideBridgeSetup();
-        _setActivePort(connectedPort);
-        _activeBaud = status.baud || BAUD;
-        _setStep('uart', 'pass', 'Bridge connected — ' + connectedPort + ' @ ' + _activeBaud);
-        _setStep('callhome', 'active');
-        _log('Waiting for firmware CALLHOME packet (up to 30 s) — power-cycle the board now if needed…');
-
         const dBtn = document.getElementById('ti60DisconnectBtn');
+        if (bBtn) { bBtn.disabled = true; bBtn.textContent = 'Waiting…'; }
         if (dBtn) dBtn.style.display = '';
 
+        _setStep('uart', 'active');
+        _log('Waiting for board to call home via the bridge tunnel…');
+        _log('(If the board has already booted, power-cycle it now to resend CALLHOME)');
+
         _bridgeRunning = true;
-        let buf          = '';
-        let greetingSeen = false;
-        let pkt          = null;
-        let bridgeDropped = false;
-        const deadline   = Date.now() + 30000;
+        // Accept any CALLHOME registered in the last 30 s (catches boards
+        // that already booted before the user clicked), or a new one.
+        const since    = (Date.now() / 1000) - 30;
+        const deadline = Date.now() + 90000;
+        let pkt = null;
 
         while (_bridgeRunning && Date.now() < deadline && !pkt) {
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 500));
             try {
-                const dr = await fetch(url + '/drain');
-                const dd = await dr.json();
-                if (dd.bytes && dd.bytes.length) {
-                    buf += String.fromCharCode(...dd.bytes);
-                    const lines = buf.split('\n');
-                    buf = lines.pop();
-                    for (const raw of lines) {
-                        const line = raw.replace(/\r$/, '').trim();
-                        if (!line) continue;
-                        _log('← ' + line);
-                        if (line.includes('CHURCH Ti60 SoC+CM') && !greetingSeen) {
-                            greetingSeen = true;
-                            _setStep('uart', 'pass', 'Greeting received');
-                        }
-                        if (line.startsWith('CALLHOME:')) {
-                            pkt = _parseCallhome(line);
-                        }
-                    }
-                }
+                const r = await fetch('/api/device/latest-callhome?since=' + since);
+                const d = await r.json();
+                if (d.ok && d.callhome) pkt = d.callhome;
             } catch (e) {
-                if (_bridgeRunning) {
-                    _log('⚠ Bridge dropped unexpectedly — port may still be held open. (' + e.message + ')', 'log-warn');
-                    bridgeDropped = true;
-                }
-                break;
+                if (_bridgeRunning) _log('⚠ Server poll error: ' + e.message, 'log-warn');
             }
         }
 
         if (!_bridgeRunning) return;
 
-        if (bridgeDropped) {
+        if (!pkt) {
+            _setStep('callhome', 'fail',
+                'No CALLHOME received in 90 s — is the bridge running with --ide=<URL>?');
+            _log('Start the bridge with:', 'log-warn');
+            _log('  python3 local_bridge.py /dev/ttyUSB2 115200 8766 --ide=' + window.location.origin, 'log-warn');
             _bridgeRunning = false;
             if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
             if (dBtn) dBtn.style.display = 'none';
             return;
         }
 
-        if (!pkt) {
-            _setStep('callhome', 'fail',
-                'No CALLHOME received in 30 s. ' +
-                'Power-cycle the board and try again, or check /dev/ttyUSB2 is the right port.');
-            if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
-            return;
-        }
-
-        await _finishSteps(pkt, greetingSeen);
-        await _niaBridgeStream(url, bBtn, dBtn);
+        _setStep('uart', 'pass', 'Bridge tunnel active — board=' + pkt.board + '  uid=' + pkt.uid);
+        await _finishSteps(pkt, /*greetingSeen=*/true, /*skipRegister=*/true);
+        await _niaTunnelStream(pkt.uid, bBtn, dBtn);
     }
 
-    async function _niaBridgeStream(url, bBtn, dBtn) {
+    async function _niaTunnelStream(uid, bBtn, dBtn) {
         let buf     = '';
         let lastNia = null;
-        _log('— Live NIA stream active — (Disconnect to stop)', 'log-pass');
+        _log('— Live NIA stream active via server tunnel — (Disconnect to stop)', 'log-pass');
         while (_bridgeRunning) {
             await new Promise(r => setTimeout(r, 400));
             try {
-                const dr = await fetch(url + '/drain', { signal: AbortSignal.timeout(3000) });
+                const dr = await fetch('/api/device/pull-drain/' + uid,
+                    { signal: AbortSignal.timeout(3000) });
                 const dd = await dr.json();
                 if (dd.bytes && dd.bytes.length) {
                     buf += String.fromCharCode(...dd.bytes);
@@ -577,7 +509,7 @@ window.Ti60Connect = (function () {
                             if (newPkt) {
                                 _log('⟳ Board reboot detected', 'log-warn');
                                 lastNia = null;
-                                await _finishSteps(newPkt, true);
+                                await _finishSteps(newPkt, true, true);
                             }
                         } else {
                             _log('← ' + line);
@@ -590,6 +522,7 @@ window.Ti60Connect = (function () {
             }
         }
         _bridgeRunning = false;
+        _tunnelMode    = false;
         if (bBtn) { bBtn.disabled = false; bBtn.textContent = '🌉 Via Bridge'; }
         if (dBtn) dBtn.style.display = 'none';
     }

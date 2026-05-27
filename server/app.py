@@ -5691,6 +5691,13 @@ def _run_hello_mum_flow(dev):
         dev.tunnel_status = "offline"
 
 
+# ── Bridge tunnel state (in-memory, per device UID) ────────────────────────
+_tunnel_drain      = {}          # uid -> bytearray of serial bytes pushed by bridge
+_tunnel_drain_lock = threading.Lock()
+_latest_callhome_data = {}       # uid -> dict {board,uid,nia,boot_ok,fault,fault_code,fw_major,fw_minor,boot_count,ts}
+_latest_callhome_lock = threading.Lock()
+
+
 @app.route("/api/device/register", methods=["POST"])
 def device_register():
     data = request.get_json(silent=True) or {}
@@ -5808,6 +5815,19 @@ def device_register():
         db.session.commit()
         logging.info("Inline lump_versions recorded for device=%s count=%d", uid, len(lump_versions_inline))
 
+    with _latest_callhome_lock:
+        _latest_callhome_data[uid] = {
+            "board":      dev.board_name,
+            "uid":        uid,
+            "nia":        f"0x{fault_nia:08X}",
+            "boot_ok":    0 if boot_reason == 2 else 1,
+            "fault":      last_fault,
+            "fault_code": last_fault,
+            "fw_major":   fw_major,
+            "fw_minor":   fw_minor,
+            "boot_count": dev.boot_count,
+            "ts":         now,
+        }
     logging.info("Device registered: %s (%s) via %s:%s tunnel=%s",
                  uid, dev.board_name, bridge_host, bridge_port, dev.tunnel_status)
     return jsonify({
@@ -5848,6 +5868,47 @@ def device_heartbeat():
         )
 
     return jsonify({"ok": True, "tunnel_status": dev.tunnel_status or "pending"})
+
+
+@app.route("/api/device/push-drain", methods=["POST"])
+def device_push_drain():
+    """Bridge pushes raw serial bytes here so the browser can poll them."""
+    data = request.get_json(silent=True) or {}
+    uid  = (data.get("uid") or "").strip()
+    raw  = data.get("bytes") or []
+    if uid and raw:
+        with _tunnel_drain_lock:
+            if uid not in _tunnel_drain:
+                _tunnel_drain[uid] = bytearray()
+            _tunnel_drain[uid].extend(bytes(b & 0xFF for b in raw))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/device/pull-drain/<uid>")
+def device_pull_drain(uid):
+    """Browser polls this to receive serial bytes forwarded by the bridge tunnel."""
+    with _tunnel_drain_lock:
+        data = bytes(_tunnel_drain.get(uid) or b"")
+        if uid in _tunnel_drain:
+            _tunnel_drain[uid] = bytearray()
+    return jsonify({"ok": True, "bytes": list(data)})
+
+
+@app.route("/api/device/latest-callhome")
+def device_latest_callhome():
+    """Return the most-recent CALLHOME entry newer than ?since=<unix_ts>."""
+    since = 0.0
+    try:
+        since = float(request.args.get("since") or 0)
+    except (ValueError, TypeError):
+        pass
+    with _latest_callhome_lock:
+        entries = sorted(_latest_callhome_data.values(),
+                         key=lambda x: x.get("ts", 0), reverse=True)
+        for e in entries:
+            if e.get("ts", 0) > since:
+                return jsonify({"ok": True, "callhome": dict(e)})
+    return jsonify({"ok": True, "callhome": None})
 
 
 @app.route("/api/device/call-home", methods=["POST"])
@@ -5976,6 +6037,19 @@ def device_call_home():
             db.session.commit()
             logging.info("Inline lump_versions recorded for device=%s count=%d", uid, lump_versions_updated)
 
+    with _latest_callhome_lock:
+        _latest_callhome_data[uid] = {
+            "board":      dev.board_name,
+            "uid":        uid,
+            "nia":        f"0x{fault_nia:08X}",
+            "boot_ok":    0 if boot_reason == 2 else 1,
+            "fault":      last_fault,
+            "fault_code": last_fault,
+            "fw_major":   fw_major,
+            "fw_minor":   fw_minor,
+            "boot_count": dev.boot_count,
+            "ts":         now,
+        }
     logging.info("Call-home: device=%s (%s) faults=%d lump_versions=%d tunnel=%s",
                  uid, dev.board_name, faults_recorded, lump_versions_updated, dev.tunnel_status)
 
