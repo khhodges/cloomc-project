@@ -5904,6 +5904,9 @@ def device_push_drain():
     return jsonify({"ok": True})
 
 
+_pull_drain_last_keepalive = {}   # uid -> float timestamp
+_PULL_DRAIN_KEEPALIVE_INTERVAL = 30  # seconds between DB/cache updates
+
 @app.route("/api/device/pull-drain/<uid>")
 def device_pull_drain(uid):
     """Browser polls this to receive serial bytes forwarded by the bridge tunnel."""
@@ -5911,6 +5914,29 @@ def device_pull_drain(uid):
         data = bytes(_tunnel_drain.get(uid) or b"")
         if uid in _tunnel_drain:
             _tunnel_drain[uid] = bytearray()
+
+    # Use the browser's continuous polling as a keepalive so last_seen and
+    # the callhome cache stay fresh even if the bridge's heartbeat thread is
+    # unavailable.  Throttled to once per 30 s to avoid per-poll DB writes.
+    now = _time.time()
+    if uid and (now - _pull_drain_last_keepalive.get(uid, 0)) >= _PULL_DRAIN_KEEPALIVE_INTERVAL:
+        _pull_drain_last_keepalive[uid] = now
+        with _latest_callhome_lock:
+            if uid in _latest_callhome_data:
+                _latest_callhome_data[uid]["ts"] = now
+        try:
+            dev = Device.query.filter_by(device_uid=uid).first()
+            if dev:
+                dev.last_seen = now
+                if dev.status != "online":
+                    dev.status = "online"
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
     return jsonify({"ok": True, "bytes": list(data)})
 
 
@@ -5926,8 +5952,19 @@ def device_latest_callhome():
         entries = sorted(_latest_callhome_data.values(),
                          key=lambda x: x.get("ts", 0), reverse=True)
         for e in entries:
-            if e.get("ts", 0) > since:
-                return jsonify({"ok": True, "callhome": dict(e)})
+            # Cross-check DB last_seen so heartbeats (which update the DB but
+            # may not have flushed to the in-memory cache yet) are reflected.
+            cached_ts = e.get("ts", 0)
+            try:
+                dev = Device.query.filter_by(device_uid=e.get("uid", "")).first()
+                db_ts = float(dev.last_seen or 0) if dev else 0.0
+            except Exception:
+                db_ts = 0.0
+            best_ts = max(cached_ts, db_ts)
+            if best_ts > since:
+                out = dict(e)
+                out["ts"] = best_ts
+                return jsonify({"ok": True, "callhome": out})
     return jsonify({"ok": True, "callhome": None})
 
 
