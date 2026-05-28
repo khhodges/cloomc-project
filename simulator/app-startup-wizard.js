@@ -18,6 +18,9 @@ const StartupWizard = (function () {
     let _demoMode  = false;
     let _demoTimer = null;
     let _tourDone  = false;
+
+    // ── Scratch-or-prepackaged choice ─────────────────────────────────────────
+    let _choiceMade = null; // null | 'prepackaged' | 'scratch'
     const DEMO_DWELL_MS = 3000;
 
     // ── DOM helpers ──────────────────────────────────────────────────────────
@@ -60,6 +63,14 @@ const StartupWizard = (function () {
         if (noBoardRow) {
             const show = _currentStep === 0 && !_demoMode && !_wizardEverCompleted();
             noBoardRow.style.display = show ? '' : 'none';
+        }
+
+        // "Scratch or prepackaged?" choice row — same conditions as noBoardRow,
+        // but also hidden once the user has made their choice
+        const choiceRow = _el('swChoiceRow');
+        if (choiceRow) {
+            const show = _currentStep === 0 && !_demoMode && !_wizardEverCompleted() && !_choiceMade;
+            choiceRow.style.display = show ? '' : 'none';
         }
 
         // Demo mode: hide per-step footers, show shared demo bar
@@ -346,6 +357,18 @@ const StartupWizard = (function () {
 
     // ── Demo tour ─────────────────────────────────────────────────────────────
 
+    function choicePrepackaged() {
+        _choiceMade = 'prepackaged';
+        _renderProgress();
+        // Skip the "build" step — mark step 0 done and jump to step 1 (flash)
+        confirmStep(0);
+    }
+
+    function choiceScratch() {
+        _choiceMade = 'scratch';
+        _renderProgress(); // hides the choice row, step 0 content stays visible
+    }
+
     function startDemo() {
         _demoMode = true;
         _tourDone = false;
@@ -470,5 +493,5 @@ const StartupWizard = (function () {
         init();
     }
 
-    return { advance, back, reset, toggle, open, clickConnect, clickDirect, clickBridge, markStepDone, markStepFail, toggleTrouble, confirmStep, retryStep, startDemo, exitDemo, demoSimulate };
+    return { advance, back, reset, toggle, open, clickConnect, clickDirect, clickBridge, markStepDone, markStepFail, toggleTrouble, confirmStep, retryStep, startDemo, exitDemo, demoSimulate, choicePrepackaged, choiceScratch };
 })();

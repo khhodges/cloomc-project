@@ -1060,6 +1060,63 @@ header h1 a:hover {
     border-color: rgba(251,191,36,0.75);
 }
 
+/* Scratch-or-prepackaged choice row */
+.sw-choice-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.6rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 7px;
+    background: rgba(251,191,36,0.04);
+}
+.sw-choice-label {
+    font-size: 0.8rem;
+    color: rgba(209,213,219,0.85);
+}
+.sw-choice-btns {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.sw-btn-prepack {
+    background: rgba(251,191,36,0.18);
+    border: 1px solid rgba(251,191,36,0.6);
+    color: #fbbf24;
+    font-size: 0.8rem;
+    border-radius: 5px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.15s;
+}
+.sw-btn-prepack:hover { background: rgba(251,191,36,0.28); }
+.sw-choice-rec {
+    font-size: 0.68rem;
+    background: rgba(251,191,36,0.25);
+    border-radius: 3px;
+    padding: 0.05rem 0.35rem;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+.sw-btn-scratch {
+    background: transparent;
+    border: 1px solid rgba(156,163,175,0.35);
+    color: rgba(156,163,175,0.85);
+    font-size: 0.8rem;
+    border-radius: 5px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.sw-btn-scratch:hover {
+    background: rgba(156,163,175,0.08);
+    border-color: rgba(156,163,175,0.55);
+}
+
 /* Shared demo-mode simulate bar */
 .sw-demo-bar {
     display: flex;
