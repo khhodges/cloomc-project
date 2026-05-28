@@ -79,13 +79,12 @@ _MANDATORY_NS_SLOTS = (0, 1, BOOT_ABSTR_NS_SLOT)  # slots 0, 1, 3
 # can reject stale binaries.
 BOOT_IMAGE_FORMAT_TAG = 0xB0070563  # "BOOT 0563" — must match simulator.js; bumped Task #563/568 (dynamic Boot.Abstr placement)
 
-# Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM
-# (Task #651 redesign). Boot.Abstr is now cc=0, cw=3.
+# Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM.
 # Must stay in sync with simulator.js BOOT_ROM_WORDS and hardware/boot_rom.py BOOT_PROGRAM.
 BOOT_ROM_WORDS = [
-    0x27660001, # [0]  CHANGE AL, CR12, CR12, #1  — switch to Boot.Thread; RESTORE loads CR0 from thread[+244]
-    0x37000008, # [1]  TPERM  AL, CR0,  #E        — restrict CR0 to E-permission only
-    0x17000000, # [2]  CALL   AL, CR0,  CR0        — enter configured first abstraction
+    0x077F8000, # [0]  LOAD   AL, CR15, CR15[0]   — load namespace cap from NS slot 0 into CR15
+    0x27660001, # [1]  CHANGE AL, CR12, CR12, #1  — switch to Boot.Thread; RESTORE loads CR0 from thread[+244]
+    0x17000000, # [2]  CALL   AL, CR0,  CR0        — enter IDE-chosen first abstraction (lightning bolt)
 ]
 
 
@@ -771,12 +770,12 @@ def generate_boot_image(cfg, lumps_dir, boot_entry_slot=None):
     #   capabilities { LED0 }  — LED0 declared in 00000300.json sidecar.
     #   Code: LOAD CR3, CR6[0x0000]  →  LED GT → CR3; then toggle loop forever.
     #
-    # Fallback (00000300.lump absent) — Task #651 redesign: cc=0, cw=NUC_CODE_WORDS=3.
+    # Fallback (00000300.lump absent): cc=0, cw=NUC_CODE_WORDS=3.
     #   Word  0:      Lump header (n_minus_6, cw=3, cc=0)
-    #   Words 1–3:    Code region: CHANGE→TPERM→CALL (3 instructions)
+    #   Words 1–3:    Code region: LOAD→CHANGE→CALL (3 instructions)
     #   Words 4..end: Freespace (no c-list)
-    #   B:06 NUC_CLIST sees cc=0 and skips c-list install; CHANGE first-activation
-    #   restores CR0..CR11 from thread caps zone, giving CR0 = programmable E-GT.
+    #   CHANGE first-activation restores CR0..CR11 from thread caps zone,
+    #   giving CR0 = IDE-chosen E-GT (set by setBootEntrySlot()).
     boot_entry_loc  = locations[BOOT_ABSTR_NS_SLOT]
     entry_ns_base   = ns_table_base + BOOT_ABSTR_NS_SLOT * NS_ENTRY_WORDS
 

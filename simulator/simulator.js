@@ -139,15 +139,15 @@ const SCHEDULER_IRQ_CLIST = [
     { name: 'CR13_MBIT', target: 22, grants: { E: 1 } },
 ];
 
-// Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM
-// (Task #651 redesign). Written into Boot.Abstr lump code region during _initNamespaceTable()
-// so the binary matches the CLOOMC listing displayed in the code view.
-// Boot.Abstr is now cc=0 (no c-list), cw=3 (3 instructions).
-// The E-GT is loaded from thread caps zone (thread[+244]) via CHANGE RESTORE_CALL, not from c-list.
+// Pre-computed 32-bit instruction words from hardware/boot_rom.py BOOT_PROGRAM.
+// Written into Boot.Abstr lump code region during _initNamespaceTable() so the
+// binary matches what the hardware ROM contains. The IDE-chosen abstraction (lightning
+// bolt) is written to Thread.caps[0] (thread[+244]) by setBootEntrySlot(); CHANGE
+// RESTORE_CALL loads it into CR0, then CALL enters it directly.
 const BOOT_ROM_WORDS = [
-    0x27660001, // [0]  CHANGE AL, CR12, CR12, #1  — switch to Boot.Thread; RESTORE loads CR0 from thread[+244]
-    0x37000008, // [1]  TPERM  AL, CR0,  #E        — restrict CR0 to E-permission only
-    0x17000000, // [2]  CALL   AL, CR0,  CR0        — enter configured first abstraction (NULL_CAP if thread[+244]=0)
+    0x077F8000, // [0]  LOAD   AL, CR15, CR15[0]   — load namespace cap from NS slot 0 into CR15
+    0x27660001, // [1]  CHANGE AL, CR12, CR12, #1  — switch to Boot.Thread; RESTORE loads CR0 from thread[+244]
+    0x17000000, // [2]  CALL   AL, CR0,  CR0        — enter IDE-chosen first abstraction (lightning bolt)
 ];
 
 class ChurchSimulator {

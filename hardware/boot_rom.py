@@ -49,25 +49,29 @@ def make_gt(gt_type=GT_TYPE_NULL, perms=0, slot_id=0, gt_seq=0, b_flag=0, f_flag
 
 
 # ---------------------------------------------------------------------------
-# BOOT_PROGRAM — the instruction ROM executed from reset (Task #651 redesign)
+# BOOT_PROGRAM — the instruction ROM executed from reset
 #
-# Boot.Abstr CLOOMC: cc=0, cw=3. No c-list. Programmable entry via thread caps zone.
+# Three-instruction sequence — hardware boot ROM, fixed in silicon.
+# The IDE defines what runs by writing an E-GT into Thread.caps[0] (thread[+244]).
 #
-#   [0] CHANGE AL, CR12, CR12, #1
+#   [0] LOAD   AL, CR15, CR15[0]
+#         Load the full namespace capability from NS slot 0 into CR15.
+#         Hardware provides a bootstrap CR15 at reset; this refreshes it
+#         from the uploaded boot image so the full namespace is live.
+#   [1] CHANGE AL, CR12, CR12, #1
 #         Switch to Boot.Thread (NS slot 1). Hardware RESTORE_CALL FSM reads
 #         CR0–CR11 from thread caps zone (thread[+244..+255]).
-#         CR0 ← thread[+244] = programmable Entry E-GT (NULL until configured).
-#   [1] TPERM  AL, CR0,  #E
-#         Restrict CR0 to E-permission only.
+#         CR0 ← thread[+244] = IDE-configured Entry E-GT (set by setBootEntrySlot()).
 #   [2] CALL   AL, CR0,  CR0
-#         Enter configured first abstraction. Faults NULL_CAP if thread[+244]=0.
+#         Enter the IDE-chosen first abstraction (lightning bolt).
+#         Faults NULL_CAP if Thread.caps[0] has not been configured.
 #
-# To configure: write an E-GT for the desired NS slot to thread lump word 0x0134
-# (absolute word address = thread base + THREAD_CAPS_OFFSET + 0).
+# To configure: IDE calls setBootEntrySlot(ns_slot) which writes an E-GT for
+# the chosen abstraction into thread lump word (thread_base + THREAD_CAPS_OFFSET).
 # ---------------------------------------------------------------------------
 BOOT_PROGRAM = [
+    encode_church(ChurchOpcode.LOAD,   CondCode.AL, cr_dst=15, cr_src=15, imm=0),
     encode_church(ChurchOpcode.CHANGE, CondCode.AL, cr_dst=12, cr_src=12, imm=1),
-    encode_church(ChurchOpcode.TPERM,  CondCode.AL, cr_dst=0,  imm=TpermPreset.E),
     encode_church(ChurchOpcode.CALL,   CondCode.AL, cr_dst=0,  cr_src=0),
 ]
 
