@@ -115,6 +115,9 @@ const StartupWizard = (function () {
         _setStepState(idx, 'fail');
         const trouble = _el('swTrouble' + idx);
         if (trouble) trouble.classList.add('sw-visible');
+        // Show the retry button for steps that support it
+        const retry = document.querySelector('#swBody' + idx + ' .sw-btn-retry');
+        if (retry) retry.classList.add('sw-visible');
         if (!silent) {
             try { localStorage.setItem(LS_FAIL + idx, '1'); } catch (_) {}
         }
@@ -128,6 +131,9 @@ const StartupWizard = (function () {
 
     function _clearFail(idx) {
         try { localStorage.removeItem(LS_FAIL + idx); } catch (_) {}
+        // Hide retry button when fail state is cleared
+        const retry = document.querySelector('#swBody' + idx + ' .sw-btn-retry');
+        if (retry) retry.classList.remove('sw-visible');
     }
 
     // ── Public ───────────────────────────────────────────────────────────────
@@ -243,9 +249,45 @@ const StartupWizard = (function () {
         } catch (_) {}
     }
 
+    // ── Retry a failed step ───────────────────────────────────────────────────
+
+    function retryStep(idx) {
+        _clearFail(idx);
+        _setStepState(idx, 'active');
+        const trouble = _el('swTrouble' + idx);
+        if (trouble) trouble.classList.remove('sw-visible');
+
+        // Reset the underlying Ti60 step elements so the polling watcher does not
+        // immediately re-fail from a stale ti60-step-fail class.
+        if (idx === 3) {
+            const uartEl = _el('ti60Step-uart');
+            if (uartEl) {
+                uartEl.className = uartEl.className
+                    .replace(/\bti60-step-pass\b|\bti60-step-fail\b|\bti60-step-active\b/g, '')
+                    .trim() + ' ti60-step-pending';
+            }
+            clickConnect();
+        }
+
+        if (idx === 4) {
+            const relEl = _el('ti60Step-release');
+            if (relEl) {
+                relEl.className = relEl.className
+                    .replace(/\bti60-step-pass\b|\bti60-step-fail\b|\bti60-step-active\b/g, '')
+                    .trim() + ' ti60-step-pending';
+            }
+            // Open the connect menu so the user can retry the connection/upload flow
+            clickConnect();
+        }
+
+        // Re-arm polling watcher
+        _watchTi60Steps();
+    }
+
     // ── Watch the existing Ti60 steps to auto-advance wizard ─────────────────
 
     function _watchTi60Steps() {
+        if (_pollTimer) clearInterval(_pollTimer);
         _pollTimer = setInterval(function () {
             if (_demoMode) return;
             if (_currentStep < 3) return;
@@ -407,5 +449,5 @@ const StartupWizard = (function () {
 
     document.addEventListener('DOMContentLoaded', init);
 
-    return { advance, back, reset, toggle, open, clickConnect, markStepDone, markStepFail, toggleTrouble, confirmStep, startDemo, exitDemo, demoSimulate };
+    return { advance, back, reset, toggle, open, clickConnect, markStepDone, markStepFail, toggleTrouble, confirmStep, retryStep, startDemo, exitDemo, demoSimulate };
 })();

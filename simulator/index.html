@@ -875,7 +875,7 @@
                     <span class="sw-header-title">Startup Wizard</span>
                     <span class="sw-version-badge" id="swVersionBadge"></span>
                     <span class="sw-demo-badge" id="swDemoBadge" style="display:none;">DEMO</span>
-                    <span class="sw-header-hint">First time? Follow these steps ↓</span>
+                    <span class="sw-header-hint">New here? We'll get your board running step by step ↓</span>
                     <a class="sw-exit-tour" id="swExitTour" href="#" style="display:none;" onclick="StartupWizard.exitDemo(); event.stopPropagation(); return false;">× Exit tour</a>
                     <span class="sw-chevron" id="swChevron">▸</span>
                 </div>
@@ -911,8 +911,8 @@
 
                     <!-- ── Step 0: Get Bitstream ── -->
                     <div class="sw-body-step" id="swBody0">
-                        <div class="sw-step-heading">📦 Step 1 — Get the Bitstream</div>
-                        <p class="sw-step-desc">Download the approved Church Machine source for your board. You will synthesise this in Efinity to produce the <code>.bit</code> flash file.</p>
+                        <div class="sw-step-heading">📦 Step 1 — Get the Source Code <span class="sw-time-badge">~30 min to build</span></div>
+                        <p class="sw-step-desc">Download the Church Machine source code for your board, then open it in Efinity to build the programming file (called a <em>bitstream</em>). This typically takes about 30 minutes the first time — grab a coffee!</p>
                         <div class="sw-led-guide">
                             <span class="sw-led-label">LEDs right now:</span>
                             <span class="sw-led sw-led-off" title="LED0">0</span>
@@ -925,7 +925,7 @@
                             <a id="swDownloadBtn" class="sw-btn sw-btn-primary" href="/dl/ti60v" download="church_ti60_f225.v">⬇ Verilog source (.v)</a>
                             <a id="swZipBtn" class="sw-btn sw-btn-secondary" href="/dl/ti60zip">📦 Full project (.zip)</a>
                         </div>
-                        <div class="sw-release-note" id="swReleaseNote">Download the <code>church_ti60_f225.v</code> file, then synthesise in Efinity 2024.1+. The <code>.bit</code> file appears in <code>outflow/church_ti60_f225.bit</code>.</div>
+                        <div class="sw-release-note" id="swReleaseNote">Download <code>church_ti60_f225.v</code>, open it in Efinity 2024.1 or later, and click <strong>Synthesize</strong>. When it finishes, the built file appears at <code>outflow/church_ti60_f225.bit</code>.</div>
                         <div class="sw-trouble-panel" id="swTrouble0">
                             <div class="sw-trouble-title">⚠ Common problems — Get Bitstream</div>
                             <ul class="sw-trouble-list">
@@ -947,15 +947,15 @@
 
                     <!-- ── Step 1: Flash ── -->
                     <div class="sw-body-step" id="swBody1">
-                        <div class="sw-step-heading">⚡ Step 2 — Flash the Board</div>
-                        <p class="sw-step-desc">Open <strong>Efinity Programmer</strong> and flash your <code>.bit</code> file to the Ti60 F225 over JTAG.</p>
+                        <div class="sw-step-heading">⚡ Step 2 — Program the Board <span class="sw-time-badge">~5 min</span></div>
+                        <p class="sw-step-desc">Use <strong>Efinity Programmer</strong> to write the built file onto your board via the cable. This stores the Church Machine permanently — the board will keep it even after you unplug it.</p>
                         <div class="sw-led-guide">
                             <span class="sw-led-label">LEDs right now:</span>
                             <span class="sw-led sw-led-off" title="LED0">0</span>
                             <span class="sw-led sw-led-off" title="LED1">1</span>
                             <span class="sw-led sw-led-off" title="LED2">2</span>
                             <span class="sw-led sw-led-off" title="LED3">3</span>
-                            <span class="sw-led-note">Board is being flashed</span>
+                            <span class="sw-led-note">Board is being programmed</span>
                         </div>
                         <ol class="sw-list">
                             <li>Open <strong>Efinity Programmer</strong> (from the Efinity IDE toolbar)</li>
@@ -985,33 +985,33 @@
 
                     <!-- ── Step 2: Power Cycle ── -->
                     <div class="sw-body-step" id="swBody2">
-                        <div class="sw-step-heading">🔌 Step 3 — Power Cycle</div>
-                        <p class="sw-step-desc">Unplug the USB cable, wait 2 seconds, then plug it back in. Watch the LEDs — they tell you exactly what's happening inside.</p>
+                        <div class="sw-step-heading">🔌 Step 3 — Restart the Board <span class="sw-time-badge">~1 min</span></div>
+                        <p class="sw-step-desc">Unplug the USB cable, wait 2 seconds, then plug it back in. The LEDs show exactly what the board is doing — watch them light up in sequence.</p>
 
                         <div class="sw-led-timeline">
                             <div class="sw-led-row">
                                 <span class="sw-led-moment">Immediately</span>
-                                <span class="sw-led sw-led-on"   title="LED0: ON — Sapphire RISC-V is running, CM not yet booted">0</span>
+                                <span class="sw-led sw-led-on"   title="LED0: ON — board is powering up">0</span>
                                 <span class="sw-led sw-led-off"  title="LED1: OFF briefly">1</span>
                                 <span class="sw-led sw-led-off"  title="LED2: OFF">2</span>
                                 <span class="sw-led sw-led-off"  title="LED3: OFF">3</span>
-                                <span class="sw-led-note">LED0 solid ON — Sapphire RISC-V starting up</span>
+                                <span class="sw-led-note">LED0 solid ON — board is powering up</span>
                             </div>
                             <div class="sw-led-row">
                                 <span class="sw-led-moment">After ~0.1 s</span>
-                                <span class="sw-led sw-led-on"    title="LED0: ON — CM not yet booted">0</span>
-                                <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — CM core healthy, halted, waiting for boot image">1</span>
+                                <span class="sw-led sw-led-on"    title="LED0: ON — board ready">0</span>
+                                <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — Church Machine healthy, waiting for the IDE">1</span>
                                 <span class="sw-led sw-led-off"   title="LED2: OFF">2</span>
                                 <span class="sw-led sw-led-off"   title="LED3: OFF">3</span>
-                                <span class="sw-led-note">LED1 slow 1 Hz blink — CM core healthy &amp; halted, waiting for the IDE to load the boot image</span>
+                                <span class="sw-led-note">LED1 slow blink — Church Machine is healthy and waiting for the IDE to load its programs</span>
                             </div>
                             <div class="sw-led-row">
                                 <span class="sw-led-moment">After ~0.5 s</span>
                                 <span class="sw-led sw-led-on"   title="LED0: ON">0</span>
                                 <span class="sw-led sw-led-blink" title="LED1: still blinking">1</span>
-                                <span class="sw-led sw-led-on"   title="LED2: ON — CALLHOME packet sent to IDE (banner_ever_sent latched)">2</span>
+                                <span class="sw-led sw-led-on"   title="LED2: ON — board has said hello to the IDE (stays ON permanently)">2</span>
                                 <span class="sw-led sw-led-off"  title="LED3: OFF">3</span>
-                                <span class="sw-led-note">LED2 turns ON — board sent CALLHOME to IDE (stays ON permanently)</span>
+                                <span class="sw-led-note">LED2 turns ON — board has said hello to the IDE (stays ON permanently)</span>
                             </div>
                             <div class="sw-led-row sw-led-fault-row">
                                 <span class="sw-led-moment">⚠ If fault</span>
@@ -1046,13 +1046,13 @@
 
                     <!-- ── Step 3: Connect ── -->
                     <div class="sw-body-step" id="swBody3">
-                        <div class="sw-step-heading">🔗 Step 4 — Connect to the IDE</div>
-                        <p class="sw-step-desc">Click the connect button below. The IDE will detect the board's CALLHOME greeting and advance automatically.</p>
+                        <div class="sw-step-heading">🔗 Step 4 — Connect to the IDE <span class="sw-time-badge">&lt; 1 min</span></div>
+                        <p class="sw-step-desc">Click the button below to open the serial connection menu, then pick your board from the list. The IDE will detect it and move on automatically.</p>
                         <div class="sw-led-guide">
                             <span class="sw-led-label">LEDs now:</span>
                             <span class="sw-led sw-led-on"   title="LED0: ON">0</span>
-                            <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink">1</span>
-                            <span class="sw-led sw-led-on"   title="LED2: ON — CALLHOME sent">2</span>
+                            <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — Church Machine waiting">1</span>
+                            <span class="sw-led sw-led-on"   title="LED2: ON — board has said hello">2</span>
                             <span class="sw-led sw-led-off"  title="LED3: OFF">3</span>
                             <span class="sw-led-note">Waiting for IDE to connect</span>
                         </div>
@@ -1068,63 +1068,59 @@
                         <div class="sw-trouble-panel" id="swTrouble3">
                             <div class="sw-trouble-title">⚠ Common problems — Connect</div>
                             <ul class="sw-trouble-list">
-                                <li><strong>No serial port listed in the browser picker</strong> — WebSerial requires Chrome or Edge 89+; try a different USB cable; confirm the FT4232H driver is installed.</li>
-                                <li><strong>Port opens but no CALLHOME message arrives</strong> — board not powered or wrong baud rate; power-cycle the board and try again.</li>
-                                <li><strong>Port immediately closes after opening</strong> — power-cycle the board and retry; another program (screen, minicom, Arduino IDE) may have claimed the port.</li>
+                                <li><strong>No board listed in the browser picker</strong> — this feature needs Chrome or Edge 89+; try a different USB cable; make sure the board driver is installed (FT4232H).</li>
+                                <li><strong>Connected but nothing happens</strong> — board may not be powered or the cable supports charging only; power-cycle the board and try again.</li>
+                                <li><strong>Port closes immediately</strong> — power-cycle the board and retry; another program (screen, minicom, Arduino IDE) may have the port open already.</li>
                                 <li><strong>ChromeOS / Crostini users</strong> — go to <em>Settings → Linux → USB devices</em> and turn <strong>off</strong> Linux sharing for the FT4232H; Chrome needs exclusive access.</li>
                             </ul>
                         </div>
                         <div class="sw-step-success" id="swSuccess3">
                             <span class="sw-step-success-icon">✅</span>
-                            <span class="sw-step-success-text"><strong>Connected!</strong> CALLHOME received — moving to upload.</span>
+                            <span class="sw-step-success-text"><strong>Connected!</strong> Board detected — moving to upload.</span>
                         </div>
                         <div class="sw-footer-row">
                             <button class="sw-btn sw-btn-back" onclick="StartupWizard.back()">← Back</button>
+                            <button class="sw-btn sw-btn-retry" onclick="StartupWizard.retryStep(3)">🔁 Try again</button>
                             <button class="sw-btn sw-btn-stuck" onclick="StartupWizard.toggleTrouble(3)">⚑ I'm stuck</button>
                         </div>
                     </div>
 
                     <!-- ── Step 4: Upload ── -->
                     <div class="sw-body-step" id="swBody4">
-                        <div class="sw-step-heading">📡 Step 5 — Boot Image Uploading</div>
-                        <p class="sw-step-desc">The IDE is loading the namespace table and LUMP binaries into the board's DMEM over UART. This takes about one second per frame.</p>
+                        <div class="sw-step-heading">📡 Step 5 — Sending Programs to Board <span class="sw-time-badge">~10 s</span></div>
+                        <p class="sw-step-desc">The IDE is sending the boot programs (called <em>LUMPs</em>) to your board over the serial cable. Each small packet is confirmed before the next one is sent — usually done in about 10 seconds.</p>
                         <div class="sw-led-guide">
                             <span class="sw-led-label">LEDs now:</span>
-                            <span class="sw-led sw-led-on"    title="LED0: ON — CM still not booted (boot_complete=0)">0</span>
-                            <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — CM halted, pl_active=1 during each frame">1</span>
-                            <span class="sw-led sw-led-on"    title="LED2: ON — CALLHOME sent">2</span>
+                            <span class="sw-led sw-led-on"    title="LED0: ON — Church Machine not yet started">0</span>
+                            <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — Church Machine waiting, receiving data">1</span>
+                            <span class="sw-led sw-led-on"    title="LED2: ON — board connected to IDE">2</span>
                             <span class="sw-led sw-led-off"   title="LED3: OFF">3</span>
-                            <span class="sw-led-note">LEDs unchanged during upload — IDE sends PATCH_LUMP frames, each ACK'd by FPGA</span>
+                            <span class="sw-led-note">LEDs stay the same during upload — normal</span>
                         </div>
-                        <div class="sw-protocol-detail">
-                            <strong>What's happening:</strong><br>
-                            IDE → FPGA: <code>[0xBE][0xEF] addr count [N×4 bytes] [CRC16]</code><br>
-                            FPGA → IDE: <code>[addrHi][addrLo][countHi][countLo]</code> ACK<br>
-                            Then IDE sends: <code>[0xBE][0xAA]</code> — FREE_RUN — and the CM is released.
-                        </div>
-                        <div class="sw-auto-note">This step advances automatically when the board calls home successfully.</div>
+                        <div class="sw-auto-note">This step advances automatically once the upload finishes and the Church Machine starts.</div>
                         <div class="sw-trouble-panel" id="swTrouble4">
                             <div class="sw-trouble-title">⚠ Common problems — Upload</div>
                             <ul class="sw-trouble-list">
-                                <li><strong>Upload starts then stalls mid-way</strong> — check USB cable quality (some cables drop bytes at 115200 baud); power-cycle the board and retry.</li>
-                                <li><strong>CRC errors in the log</strong> — close any other program that may be reading the same serial port, then reconnect and re-upload.</li>
-                                <li><strong>Upload completes but CM does not start</strong> — wrong boot image version for this firmware; try re-flashing the board, then reconnect.</li>
+                                <li><strong>Upload starts then stalls mid-way</strong> — check USB cable quality (some charging cables drop data); power-cycle the board and click Try again.</li>
+                                <li><strong>Checksum errors in the log</strong> — close any other program using the same serial port, then reconnect and retry.</li>
+                                <li><strong>Upload finishes but Church Machine does not start</strong> — the firmware on the board may be out of date; try re-programming the board, then reconnect.</li>
                             </ul>
                         </div>
                         <div class="sw-step-success" id="swSuccess4">
                             <span class="sw-step-success-icon">✅</span>
-                            <span class="sw-step-success-text"><strong>Upload complete!</strong> Boot image loaded — CM is running.</span>
+                            <span class="sw-step-success-text"><strong>Upload complete!</strong> Programs loaded — Church Machine is starting.</span>
                         </div>
                         <div class="sw-footer-row">
                             <button class="sw-btn sw-btn-back" onclick="StartupWizard.back()">← Back</button>
+                            <button class="sw-btn sw-btn-retry" onclick="StartupWizard.retryStep(4)">🔁 Try again</button>
                             <button class="sw-btn sw-btn-stuck" onclick="StartupWizard.toggleTrouble(4)">⚑ I'm stuck</button>
                         </div>
                     </div>
 
                     <!-- ── Step 5: Running ── -->
                     <div class="sw-body-step" id="swBody5">
-                        <div class="sw-step-heading">🎉 Church Machine Running!</div>
-                        <p class="sw-step-desc">The 3 boot ROM instructions have executed. Your abstraction is live on real FPGA hardware.</p>
+                        <div class="sw-step-heading">🎉 Church Machine Running! <span class="sw-time-badge">🎉 Done!</span></div>
+                        <p class="sw-step-desc">Your Church Machine is live! Three startup instructions ran automatically, and your board is now executing capability-secured code on real hardware.</p>
                         <div class="sw-led-timeline">
                             <div class="sw-led-row">
                                 <span class="sw-led-moment">3 boot instr.</span>
@@ -1152,8 +1148,17 @@
                             </div>
                         </div>
                         <div class="sw-success-box">
-                            ✅ Your Church Machine is running capability-secured code on real FPGA hardware.<br>
-                            Use the <strong>NIA stream</strong> in the Live UART panel below to see every instruction live.
+                            ✅ Your Church Machine is running capability-secured code on real hardware.<br>
+                            Watch the <strong>Live UART</strong> panel below to see every instruction as it executes.
+                        </div>
+                        <div class="sw-what-next">
+                            <div class="sw-what-next-title">🚀 What would you like to do next?</div>
+                            <ul>
+                                <li><strong>Write your first program</strong> — open the <a href="#" onclick="switchView('editor');return false;">Code view</a> and try one of the built-in example programs.</li>
+                                <li><strong>Learn step by step</strong> — open the <a href="#" onclick="switchView('tutorial');return false;">Tutorial tab</a> for guided lessons starting from the basics.</li>
+                                <li><strong>Explore example programs</strong> — use the <em>Examples</em> drop-down in the Code view to load ready-made programs and run them on your board.</li>
+                                <li><strong>Read the reference guide</strong> — open the <a href="#" onclick="switchView('reference');return false;">Reference view</a> to browse the full instruction set and capability model.</li>
+                            </ul>
                         </div>
                         <div class="sw-trouble-panel" id="swTrouble5">
                             <div class="sw-trouble-title">🔧 Something wrong?</div>

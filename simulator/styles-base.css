@@ -1127,3 +1127,53 @@ header h1 a:hover {
     border-color: rgba(251,191,36,0.8);
     color: #fbbf24;
 }
+
+/* time estimate badge — muted pill next to step heading */
+.sw-time-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: rgba(156,163,175,0.85);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* "🔁 Try again" retry button — hidden until the step enters fail state */
+.sw-btn-retry {
+    display: none;
+    background: rgba(248,113,113,0.1);
+    border-color: rgba(248,113,113,0.45);
+    color: #f87171;
+    font-weight: 600;
+}
+.sw-btn-retry.sw-visible { display: inline-flex; }
+.sw-btn-retry:hover { background: rgba(248,113,113,0.22); border-color: rgba(248,113,113,0.75); }
+
+/* "What next?" success box on the final step */
+.sw-what-next {
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 7px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.85rem;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--text-secondary,#9ca3af);
+}
+.sw-what-next-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #4ade80;
+    margin-bottom: 0.45rem;
+}
+.sw-what-next ul {
+    margin: 0;
+    padding-left: 1.3rem;
+}
+.sw-what-next li { margin-bottom: 0.25rem; }
+.sw-what-next a { color: var(--church-gold,#daa520); text-decoration: underline; }
