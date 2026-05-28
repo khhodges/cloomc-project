@@ -1055,8 +1055,9 @@ python setup_ti60_peri.py</pre>
                                 <ol class="sw-list">
                                     <li><strong>Download and install Efinity 2025.2</strong> from <a href="https://www.efinixinc.com/support/efinity.php" target="_blank" rel="noopener">efinixinc.com/support/efinity.php</a> — required before any of the steps below.</li>
                                     <li>Unzip the downloaded project into a working folder.</li>
-                                    <li><code>cd</code> into the extracted folder, then run <code>setup_ti60_peri.py</code> using <strong>Efinity's own Python</strong>. The script is inside the ZIP — it is not a system command, do not type it bare:<br>
-<pre style="margin:0.3rem 0 0.2rem;">cd ~/path/to/church_ti60_f225_project
+                                    <li>If you have an OSS CAD Suite or any other venv active, deactivate it first — then <code>cd</code> into the extracted folder and run <code>setup_ti60_peri.py</code> using <strong>Efinity's own Python</strong>. The script is inside the ZIP; it is not a system command, do not type it bare:<br>
+<pre style="margin:0.3rem 0 0.2rem;">deactivate   # skip if no venv is active
+cd ~/path/to/church_ti60_f225_project
 PYTHONPATH=$HOME/efinity/2025.2/lib:$HOME/efinity/2025.2/pt/bin \
 EFXPT_HOME=$HOME/efinity/2025.2/pt \
   $HOME/efinity/2025.2/bin/python3.11 setup_ti60_peri.py</pre>

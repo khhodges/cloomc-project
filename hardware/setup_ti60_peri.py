@@ -43,7 +43,24 @@ import sys
 import os
 import re
 
-sys.path.insert(0, os.path.join(os.environ.get("EFXPT_HOME", ""), "bin"))
+# ── Guard: must run under Efinity's own Python, not a venv or system Python ──
+_efxpt = os.environ.get("EFXPT_HOME", "")
+_exe   = sys.executable
+_efinity_python = os.path.join(os.path.expanduser("~"), "efinity")
+if not _efxpt or _efinity_python not in _exe:
+    print("ERROR: this script must be run with Efinity's own Python, not your")
+    print("       system Python, OSS CAD Suite, or any virtualenv.")
+    print()
+    print("Deactivate any active venv first:")
+    print("  deactivate")
+    print()
+    print("Then run:")
+    print("  PYTHONPATH=$HOME/efinity/2025.2/lib:$HOME/efinity/2025.2/pt/bin \\")
+    print("  EFXPT_HOME=$HOME/efinity/2025.2/pt \\")
+    print("    $HOME/efinity/2025.2/bin/python3.11 setup_ti60_peri.py")
+    sys.exit(1)
+
+sys.path.insert(0, os.path.join(_efxpt, "bin"))
 
 from api_service.design import DesignAPI
 
