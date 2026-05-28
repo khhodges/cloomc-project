@@ -9847,7 +9847,7 @@ function _renderBuildNextSteps(isTi60, board) {
     if (isTi60) {
         steps = [
             'Extract the zip — all files land in one folder',
-            'Run setup_ti60_peri.py with Efinity\'s Python to add the PLL (see BUILD.md Step 1b)',
+            'Run setup_ti60_peri.py with Efinity\'s Python to add the PLL (see BUILD.md)',
             'In the SDC file: switch from Phase A (25 MHz) to Phase B (50 MHz) per the comments',
             'File → Open Project → church_ti60_f225.xml',
             'Run Synthesis → P&R → Generate Bitstream',
