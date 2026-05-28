@@ -205,10 +205,13 @@ def download_ti60zip():
         ]:
             if os.path.exists(src):
                 zf.write(src, arc)
-        # DesignAPI PLL script and build instructions (were missing before)
+        # DesignAPI PLL script, Makefile, and build instructions
         setup = os.path.join(hw, "setup_ti60_peri.py")
         if os.path.exists(setup):
             zf.write(setup, "setup_ti60_peri.py")
+        makefile = os.path.join(hw, "Makefile.ti60")
+        if os.path.exists(makefile):
+            zf.write(makefile, "Makefile")
         zf.writestr("BUILD.md", BUILD_MD_TI60)
         # PDFs
         for pdf, arc in [
@@ -2009,7 +2012,7 @@ function gsSwitch(e,id){
 </body></html>"""
     return html
 
-_SIMULATOR_HTML_VERSION = "r20260528r"
+_SIMULATOR_HTML_VERSION = "r20260528s"
 _STARTER_HTML_VERSION   = "r20260527z"
 
 @app.route("/start")
@@ -3238,6 +3241,9 @@ def _make_fpga_zip(board, is_ti60, paths, zip_name, build_md):
             zf.write(paths["sdc"],     "church_ti60_f225.sdc")
             zf.write(paths["peri"],    "church_ti60_f225.peri.xml")
             zf.write(paths["setup"],   "setup_ti60_peri.py")
+            makefile_ti60 = os.path.join(hw_dir, "Makefile.ti60")
+            if os.path.isfile(makefile_ti60):
+                zf.write(makefile_ti60, "Makefile")
             zf.writestr("BUILD.md", build_md)
             for src_name, arc_name in _doc_pdfs:
                 src = os.path.join(docs_dir, src_name)
