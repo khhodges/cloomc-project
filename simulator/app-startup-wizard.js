@@ -54,7 +54,7 @@ const StartupWizard = (function () {
 
         for (let i = 0; i < TOTAL; i++) {
             const body = _el('swBody' + i);
-            if (body) body.style.display = (i === _currentStep) ? '' : 'none';
+            if (body) body.style.display = (i === _currentStep) ? 'block' : 'none';
         }
 
         // "No board yet?" row — only at step 0, not in demo mode, and only if
