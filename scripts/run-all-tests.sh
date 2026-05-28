@@ -183,6 +183,9 @@ register_suite "e2e-tests" \
 register_suite "sync-guard-tests" \
     'node scripts/test_sync_guard.js'
 
+register_suite "port-collision-test" \
+    'node scripts/test_port_collision.js'
+
 register_suite "ti60-utilisation" \
     'python scripts/check_ti60_utilisation.py --missing-ok'
 

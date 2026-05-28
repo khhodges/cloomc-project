@@ -131,6 +131,10 @@ args = "ti60-utilisation"
 task = "workflow.run"
 args = "ti60-uart-dry-run"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "port-collision-test"
+
 [[workflows.workflow]]
 name = "Church Machine IDE"
 author = "agent"
@@ -458,6 +462,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 scripts/test_ti60_uart.py --dry-run"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "port-collision-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/test_port_collision.js"
 
 [workflows.workflow.metadata]
 outputType = "console"
