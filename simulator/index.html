@@ -927,7 +927,7 @@
                             <span class="sw-led sw-led-off" title="LED0">0</span>
                             <span class="sw-led sw-led-off" title="LED1">1</span>
                             <span class="sw-led sw-led-off" title="LED2">2</span>
-                            <span class="sw-led sw-led-off" title="LED3">3</span>
+
                             <span class="sw-led-note">Board not connected</span>
                         </div>
                         <div class="sw-action-row">
@@ -1013,7 +1013,7 @@
                                 <span class="sw-led sw-led-off" title="LED0">0</span>
                                 <span class="sw-led sw-led-off" title="LED1">1</span>
                                 <span class="sw-led sw-led-off" title="LED2">2</span>
-                                <span class="sw-led sw-led-off" title="LED3">3</span>
+
                                 <span class="sw-led-note">Board is being programmed</span>
                             </div>
                         </div>
@@ -1032,7 +1032,7 @@
                                 <span class="sw-led sw-led-off" title="LED0">0</span>
                                 <span class="sw-led sw-led-off" title="LED1">1</span>
                                 <span class="sw-led sw-led-off" title="LED2">2</span>
-                                <span class="sw-led sw-led-off" title="LED3">3</span>
+
                                 <span class="sw-led-note">Board is being programmed</span>
                             </div>
                             <div class="sw-os-win">
@@ -1093,7 +1093,7 @@
                                 <span class="sw-led sw-led-on"   title="LED0: ON — board is powering up">0</span>
                                 <span class="sw-led sw-led-off"  title="LED1: OFF briefly">1</span>
                                 <span class="sw-led sw-led-off"  title="LED2: OFF">2</span>
-                                <span class="sw-led sw-led-off"  title="LED3: OFF">3</span>
+
                                 <span class="sw-led-note">LED0 solid ON — board is powering up</span>
                             </div>
                             <div class="sw-led-row">
@@ -1101,7 +1101,7 @@
                                 <span class="sw-led sw-led-on"    title="LED0: ON — board ready">0</span>
                                 <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — Church Machine healthy, waiting for the IDE">1</span>
                                 <span class="sw-led sw-led-off"   title="LED2: OFF">2</span>
-                                <span class="sw-led sw-led-off"   title="LED3: OFF">3</span>
+
                                 <span class="sw-led-note">LED1 slow blink — Church Machine is healthy and waiting for the IDE to load its programs</span>
                             </div>
                             <div class="sw-led-row">
@@ -1109,7 +1109,7 @@
                                 <span class="sw-led sw-led-on"   title="LED0: ON">0</span>
                                 <span class="sw-led sw-led-blink" title="LED1: still blinking">1</span>
                                 <span class="sw-led sw-led-on"   title="LED2: ON — board has said hello to the IDE (stays ON permanently)">2</span>
-                                <span class="sw-led sw-led-off"  title="LED3: OFF">3</span>
+
                                 <span class="sw-led-note">LED2 turns ON — board has said hello to the IDE (stays ON permanently)</span>
                             </div>
                             <div class="sw-led-row sw-led-fault-row">
@@ -1117,7 +1117,7 @@
                                 <span class="sw-led sw-led-on"  title="LED0: ON">0</span>
                                 <span class="sw-led sw-led-off" title="LED1: OFF (fault stops heartbeat)">1</span>
                                 <span class="sw-led sw-led-on"  title="LED2: ON from fault_latched">2</span>
-                                <span class="sw-led sw-led-off" title="LED3: OFF">3</span>
+
                                 <span class="sw-led-note">LED1 goes OFF, LED2 stays ON — fault latched. Power-cycle to clear</span>
                             </div>
                         </div>
@@ -1152,7 +1152,7 @@
                             <span class="sw-led sw-led-on"   title="LED0: ON">0</span>
                             <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — Church Machine waiting">1</span>
                             <span class="sw-led sw-led-on"   title="LED2: ON — board has said hello">2</span>
-                            <span class="sw-led sw-led-off"  title="LED3: OFF">3</span>
+
                             <span class="sw-led-note">Waiting for IDE to connect</span>
                         </div>
                         <div class="sw-connect-2btn">
@@ -1198,7 +1198,7 @@
                             <span class="sw-led sw-led-on"    title="LED0: ON — Church Machine not yet started">0</span>
                             <span class="sw-led sw-led-blink" title="LED1: 1 Hz blink — Church Machine waiting, receiving data">1</span>
                             <span class="sw-led sw-led-on"    title="LED2: ON — board connected to IDE">2</span>
-                            <span class="sw-led sw-led-off"   title="LED3: OFF">3</span>
+
                             <span class="sw-led-note">LEDs stay the same during upload — normal</span>
                         </div>
                         <div class="sw-auto-note">This step advances automatically once the upload finishes and the Church Machine starts.</div>
@@ -1231,7 +1231,7 @@
                                 <span class="sw-led sw-led-on"  title="LED0: still ON — boot_complete not set until CALL returns">0</span>
                                 <span class="sw-led sw-led-off" title="LED1: briefly OFF while CM executes (halted=0, not yet boot_complete)">1</span>
                                 <span class="sw-led sw-led-on"  title="LED2: ON">2</span>
-                                <span class="sw-led sw-led-off" title="LED3: OFF">3</span>
+
                                 <span class="sw-led-note">LOAD → CHANGE → CALL executing at NIA 0x000–0x008</span>
                             </div>
                             <div class="sw-led-row">
@@ -1239,7 +1239,7 @@
                                 <span class="sw-led sw-led-demo" title="LED0: demo sequencer cycling 0.5 s each">0</span>
                                 <span class="sw-led sw-led-demo" title="LED1: demo sequencer + 1 Hz heartbeat">1</span>
                                 <span class="sw-led sw-led-demo" title="LED2: demo sequencer (fault_latched OR'd in)">2</span>
-                                <span class="sw-led sw-led-demo" title="LED3: demo sequencer">3</span>
+
                                 <span class="sw-led-note">boot_complete=1 — demo sequencer: LED0→1→2→3→off, 0.5 s each, repeating</span>
                             </div>
                             <div class="sw-led-row">
@@ -1247,7 +1247,7 @@
                                 <span class="sw-led sw-led-cpu" title="LED0: CPU-driven via MMIO 0x40000000">0</span>
                                 <span class="sw-led sw-led-cpu" title="LED1: CPU-driven via MMIO 0x40000004">1</span>
                                 <span class="sw-led sw-led-cpu" title="LED2: CPU-driven (fault_latched OR'd in)">2</span>
-                                <span class="sw-led sw-led-cpu" title="LED3: CPU-driven via MMIO 0x4000000C">3</span>
+
                                 <span class="sw-led-note">LEDs driven by your abstraction via MMIO — Boot.Abstr cycles through patterns</span>
                             </div>
                         </div>
