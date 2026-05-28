@@ -1795,17 +1795,23 @@ def release_r12_index():
   a.doc-link{color:#4ade80;text-decoration:none} a.doc-link:hover{text-decoration:underline}
   .back{margin-top:2rem;font-size:.8rem;color:#4a5568}
   .back a{color:#64748b;text-decoration:none} .back a:hover{color:#a78bfa}
-  .next-steps{margin-top:1.1rem;border-top:1px solid #1e2a3a;padding-top:.9rem;display:flex;flex-direction:column;gap:.7rem}
-  .next-steps-title{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem}
-  .path-block{background:#0a0e17;border-radius:5px;padding:.65rem .8rem;border-left:3px solid #2d1f4e}
-  .path-label{display:block;font-size:.78rem;font-weight:600;margin-bottom:.4rem}
-  .path-a{color:#4ade80}
-  .path-b{color:#60a5fa}
-  .path-block ol{margin:.2rem 0 0 1.1rem;padding:0;font-size:.78rem;color:#8892a4;line-height:1.75}
-  .path-block ol li{margin-bottom:.15rem}
-  .path-block a{color:#a78bfa;text-decoration:none}
-  .path-block a:hover{text-decoration:underline}
-  .path-block em{color:#64748b;font-style:normal}
+  .gs-section{margin-top:2rem;margin-bottom:1.5rem}
+  .gs-section h2{color:#a78bfa;font-size:1rem;margin-bottom:.8rem}
+  .gs-tabs{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+  .gs-tab{padding:.4rem 1rem;border:1px solid #2d1f4e;border-radius:5px;background:#0d1117;
+          color:#8892a4;font-size:.82rem;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .gs-tab.active{background:#1a0e28;border-color:#a78bfa;color:#a78bfa}
+  .gs-tab:hover:not(.active){border-color:#4a3070;color:#c4b5fd}
+  .gs-panel{display:none}
+  .gs-panel.active{display:block}
+  .gs-panel ol{margin:0;padding-left:1.4rem;font-size:.82rem;color:#8892a4;line-height:1.85}
+  .gs-panel ol li{margin-bottom:.6rem}
+  .gs-panel ol li strong{color:#c4b5fd}
+  .gs-panel pre{background:#0a0e17;border:1px solid #1e2a3a;border-radius:5px;padding:.65rem .9rem;
+               font-size:.78rem;color:#a3e635;margin:.4rem 0;overflow-x:auto;white-space:pre}
+  .gs-panel a{color:#a78bfa;text-decoration:none}
+  .gs-panel a:hover{text-decoration:underline}
+  .gs-panel code{background:#1a0e28;padding:.1rem .3rem;border-radius:3px;font-size:.78rem}
 </style></head><body>
 <h1>CM Release 1.2</h1>
 <div class="tag">15 May 2026 &middot; Builder &middot; 3-Board FPGA ZIP Downloads</div>
@@ -1831,28 +1837,6 @@ def release_r12_index():
       <li><code>BUILD.md</code> — Instructions</li>
     </ul>
     <a class="dl-btn" href="/api/download/fpga-zip?board=ti60-f225">Download church-ti60-package.zip</a>
-    <div class="next-steps">
-      <div class="next-steps-title">After downloading</div>
-      <div class="path-block">
-        <span class="path-label path-a">⚡ Path A — Flash preloaded bitstream</span>
-        <ol>
-          <li>Download the pre-built hex: <a href="/api/bitstream/download/ti60-f225"><code>church_ti60_f225.hex</code></a></li>
-          <li>Open <strong>Tool → Programmer</strong> in Efinity IDE</li>
-          <li>Select <em>Efinix USB2.0 Device</em>, JTAG mode — load the .hex and click <strong>Program</strong></li>
-        </ol>
-      </div>
-      <div class="path-block">
-        <span class="path-label path-b">🔧 Path B — Rebuild bitstream from ZIP</span>
-        <ol>
-          <li><strong>Step 1</strong> — Run <code>setup_ti60_peri.py</code> once to regenerate <code>church_ti60_f225.peri.xml</code></li>
-          <li><strong>Step 1b</strong> — Open <code>church_ti60_f225.xml</code> in Efinity IDE → Synthesis → P&amp;R → Generate Bitstream<br>
-              <em>Efinity writes <code>outflow/church_ti60_f225.hex</code> and <code>outflow/church_ti60_f225.bit</code></em></li>
-          <li><strong>Step 2</strong> — Open Efinity IDE, then go to <strong>Tool → Programmer</strong>:<br>
-              <code>QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 ~/efinity/2025.2/bin/efinity &amp;</code><br>
-              Load either output file and click <strong>Program</strong></li>
-        </ol>
-      </div>
-    </div>
   </div>
   <div class="board-card" id="wukong-card">
     <h3>QMTECH Wukong XC7A100T</h3>
@@ -1886,6 +1870,81 @@ def release_r12_index():
   go to <em>Builder &rarr; Hardware Build</em>, select your target board, click <strong>Build</strong>,
   then click <strong>Download FPGA Package</strong>. The download links above serve the last-built package from the server.
 </div>
+
+<div class="gs-section">
+  <h2>&#x26A1; Getting started &mdash; Ti60 F225</h2>
+  <div class="gs-tabs">
+    <button class="gs-tab active" onclick="gsSwitch(event,'gs-flash')">&#x26A1; Flash preloaded bitstream</button>
+    <button class="gs-tab" onclick="gsSwitch(event,'gs-rebuild')">&#x1F527; Rebuild from ZIP</button>
+  </div>
+
+  <div id="gs-flash" class="gs-panel active">
+    <ol>
+      <li>
+        <strong>Download the pre-built bitstream</strong><br>
+        <a href="/api/bitstream/download/ti60-f225"><code>church_ti60_f225.hex</code></a>
+        &mdash; official bitstream, no toolchain required.
+      </li>
+      <li>
+        <strong>Launch Efinity IDE</strong>
+<pre>QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 ~/efinity/2025.2/bin/efinity &amp;</pre>
+      </li>
+      <li>
+        <strong>Flash the board</strong><br>
+        Go to <strong>Tool &rarr; Programmer</strong>.
+        Select <strong>Efinix USB2.0 Device</strong>, JTAG mode.
+        Load <code>church_ti60_f225.hex</code> and click <strong>Program</strong>.
+      </li>
+    </ol>
+  </div>
+
+  <div id="gs-rebuild" class="gs-panel">
+    <ol>
+      <li>
+        <strong>Extract the downloaded ZIP</strong><br>
+        Unzip <code>church-ti60-package.zip</code> into a working folder.
+      </li>
+      <li>
+        <strong>Run <code>setup_ti60_peri.py</code></strong> (required once before first build)<br>
+        This regenerates <code>church_ti60_f225.peri.xml</code> using Efinity&rsquo;s DesignAPI:
+<pre>cd /path/to/church-ti60-package
+
+PYTHONPATH=$HOME/efinity/2025.2/lib:$HOME/efinity/2025.2/pt/bin \
+EFXPT_HOME=$HOME/efinity/2025.2/pt \
+  $HOME/efinity/2025.2/bin/python3.11 setup_ti60_peri.py</pre>
+        You should see <em>SUCCESS &mdash; church_ti60_f225.peri.xml written</em>.
+      </li>
+      <li>
+        <strong>Launch Efinity IDE</strong>
+<pre>QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 ~/efinity/2025.2/bin/efinity &amp;</pre>
+      </li>
+      <li>
+        <strong>Open the project</strong><br>
+        <strong>File &rarr; Open Project &rarr;</strong> <code>church_ti60_f225.xml</code>
+      </li>
+      <li>
+        <strong>Build the bitstream</strong><br>
+        Run <strong>Synthesis &rarr; Place &amp; Route &rarr; Generate Bitstream</strong>.
+        Efinity writes the output to the <code>outflow/</code> folder:
+        <code>outflow/church_ti60_f225.hex</code> and <code>outflow/church_ti60_f225.bit</code>.
+      </li>
+      <li>
+        <strong>Flash the board</strong><br>
+        Go to <strong>Tool &rarr; Programmer</strong>.
+        Select <strong>Efinix USB2.0 Device</strong>, JTAG mode.
+        Load <code>outflow/church_ti60_f225.hex</code> and click <strong>Program</strong>.
+      </li>
+    </ol>
+  </div>
+</div>
+<script>
+function gsSwitch(e,id){
+  document.querySelectorAll('.gs-tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.gs-panel').forEach(function(p){p.classList.remove('active')});
+  e.currentTarget.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
 
 <h2 id="changes">&#x1F4CB; What Changed in Release 1.2</h2>
 <ul class="changes">
@@ -2942,35 +3001,44 @@ BUILD_MD_TI60 = """# Church Machine — Efinix Ti60 F225 Build Package
 - `church_ti60_f225.v`        — RTL Verilog (Yosys from Amaranth RTLIL, no vendor cells)
 - `church_ti60_f225.sdc`      — Timing constraints (see Phase A / Phase B notes inside)
 - `church_ti60_f225.peri.xml` — Periphery I/O configuration (GPIO banks, UART pins)
-- `setup_ti60_peri.py`        — Efinity DesignAPI script to add the PLL (run once, see Step 1b)
+- `setup_ti60_peri.py`        — Efinity DesignAPI script to add the PLL (run once before first build)
 - `ti60_f225.isf`             — Pin constraints (Interface Setup File)
 - `BUILD.md`                  — This file
 - `docs/`                     — PDF documentation bundle (read while synthesis runs)
 
-## Quick Start — choose your path
-
-There are two ways to get the Church Machine running on your Ti60:
-
 ---
 
-### ⚡ Path A — Flash the preloaded bitstream (no toolchain needed)
+## Case 1 — Flash the preloaded bitstream (no toolchain needed)
 
-Download the pre-synthesised official bitstream from the Church Machine IDE server:
+### Step 1 — Download the pre-built bitstream
+
+Download the official pre-synthesised bitstream from the Church Machine IDE server:
 
 ```
 GET /api/bitstream/download/ti60-f225  →  church_ti60_f225.hex
 ```
 
-Then skip straight to **Step 2 — Flash** below.
+### Step 2 — Launch Efinity IDE
+
+```bash
+QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 ~/efinity/2025.2/bin/efinity &
+```
+
+### Step 3 — Flash the board
+
+Go to **Tool → Programmer**.
+Select **Efinix USB2.0 Device**, JTAG mode.
+Load `church_ti60_f225.hex` and click **Program**.
 
 ---
 
-### 🔧 Path B — Rebuild the bitstream locally from this ZIP
+## Case 2 — Rebuild the bitstream from this ZIP (Efinity toolchain required)
 
-Use this path if you want to modify the RTL or verify the build yourself.
-Requires the Efinity toolchain (2025.2 or later).
+### Step 1 — Extract the ZIP
 
-#### Step 1 — Regenerate the periphery file (REQUIRED before first build)
+Unzip `church-ti60-package.zip` into a working folder.
+
+### Step 2 — Run `setup_ti60_peri.py` (required once before first build)
 
 The included `church_ti60_f225.peri.xml` is a placeholder.  Efinity's Interface
 Designer requires a file generated by its own DesignAPI — hand-crafted XML is always
@@ -2984,48 +3052,32 @@ EFXPT_HOME=$HOME/efinity/2025.2/pt \\
   $HOME/efinity/2025.2/bin/python3.11 setup_ti60_peri.py
 ```
 
-This overwrites `church_ti60_f225.peri.xml` with a fully valid file containing the
-GPIO assignments and the PLL_TL0 (25 MHz → 50 MHz) configuration.
+You should see **SUCCESS — church_ti60_f225.peri.xml written**.
 
-**If you see "SUCCESS — church_ti60_f225.peri.xml written" the file is ready.**
-
-#### Step 1b — Recreate the bitstream locally
-
-Open the project in Efinity IDE:
-
-```
-File → Open Project → church_ti60_f225.xml
-```
-
-Run **Synthesis → Place & Route → Generate Bitstream**.
-
-Efinity writes two output files to the `outflow/` folder:
-
-- `outflow/church_ti60_f225.bit` — raw bitstream (SPI active-serial format)
-- `outflow/church_ti60_f225.hex` — Intel HEX format, also suitable for flashing
-
-Use either in Step 2 below.
-
----
-
-### Step 2 — Flash
-
-Open Efinity IDE:
+### Step 3 — Launch Efinity IDE
 
 ```bash
 QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 ~/efinity/2025.2/bin/efinity &
 ```
 
-Then go to **Tool → Programmer**.  Select your cable
-(**Efinix USB2.0 Device**, JTAG mode) and choose your bitfile:
+### Step 4 — Open the project
 
-| Source | File |
-|--------|------|
-| Path A — preloaded bitstream from server | `church_ti60_f225.hex` |
-| Path B — Efinity synthesis from ZIP (HEX) | `outflow/church_ti60_f225.hex` |
-| Path B — Efinity synthesis from ZIP (BIT) | `outflow/church_ti60_f225.bit` |
+**File → Open Project → `church_ti60_f225.xml`**
 
-Click **Program** to flash.
+### Step 5 — Build the bitstream
+
+Run **Synthesis → Place & Route → Generate Bitstream**.
+
+Efinity writes the output to the `outflow/` folder:
+
+- `outflow/church_ti60_f225.hex` — Intel HEX format (use this for flashing)
+- `outflow/church_ti60_f225.bit` — raw bitstream (SPI active-serial format)
+
+### Step 6 — Flash the board
+
+Go to **Tool → Programmer**.
+Select **Efinix USB2.0 Device**, JTAG mode.
+Load `outflow/church_ti60_f225.hex` and click **Program**.
 
 ## Resource Usage (synthesis result)
 
