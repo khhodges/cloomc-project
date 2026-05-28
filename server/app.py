@@ -176,6 +176,27 @@ def download_ti60v():
                      download_name="church_ti60_f225.v",
                      mimetype="text/plain")
 
+@app.route("/dl/ti60zip")
+def download_ti60zip():
+    import zipfile, io
+    base = os.path.dirname(__file__)
+    files = [
+        (os.path.join(base, "..", "build",    "church_ti60_f225.v"),          "church_ti60_f225.v"),
+        (os.path.join(base, "..", "hardware", "ti60_f225_project.xml"),        "church_ti60_f225.xml"),
+        (os.path.join(base, "..", "hardware", "ti60_f225.sdc"),                "church_ti60_f225.sdc"),
+        (os.path.join(base, "..", "hardware", "ti60_f225.peri.xml"),           "church_ti60_f225.peri.xml"),
+    ]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for src, name in files:
+            src = os.path.abspath(src)
+            if os.path.exists(src):
+                zf.write(src, name)
+    buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name="church_ti60_f225_project.zip",
+                     mimetype="application/zip")
+
 @app.route("/dl/ti60peri")
 def download_ti60peri():
     peri_path = os.path.join(os.path.dirname(__file__), "..", "hardware", "ti60_f225.peri.xml")
