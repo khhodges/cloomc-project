@@ -3239,9 +3239,144 @@ BITSTREAM_FILES = {
     "wukong-xc7a100t": "church_wukong_xc7a100t.bit",
 }
 
+@app.route("/admin/bitstreams")
+def admin_bitstreams_page():
+    """Admin UI for uploading official bitstream files.
+
+    Requires ?token=<REPORT_TOKEN> or Authorization: Bearer <REPORT_TOKEN>.
+    """
+    from daily_report import check_report_auth as _check_auth
+    if not _check_auth(request):
+        return ("Unauthorized — add ?token=<your token> to the URL", 401,
+                {"Content-Type": "text/plain"})
+
+    token = request.args.get("token", "")
+    rows = []
+    import datetime
+    for board, fname in BITSTREAM_FILES.items():
+        path = os.path.join(BITSTREAM_DIR, fname)
+        exists = os.path.isfile(path)
+        size_str = ""
+        mtime_str = "—"
+        if exists:
+            size_str = f"{os.path.getsize(path) / 1048576:.2f} MB"
+            mtime_str = datetime.datetime.fromtimestamp(
+                os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M UTC")
+        status_colour = "#66bb6a" if exists else "#ef5350"
+        status_text   = f"✓ {size_str}" if exists else "✗ missing"
+        board_label = {
+            "ti60-f225":       "Efinix Ti60 F225",
+            "wukong-xc7a100t": "QMTECH Wukong Artix-7",
+            "tang-nano-20k-iot": "Tang Nano 20K",
+        }.get(board, board)
+        rows.append(f"""
+        <tr>
+          <td>{board_label}</td>
+          <td><code>{fname}</code></td>
+          <td style="color:{status_colour}">{status_text}</td>
+          <td style="color:#9ca3af;font-size:0.8rem">{mtime_str}</td>
+          <td>
+            <form method="POST" action="/api/bitstream/upload?token={token}"
+                  enctype="multipart/form-data" style="display:inline-flex;gap:0.5rem;align-items:center">
+              <input type="hidden" name="board" value="{board}">
+              <input type="file" name="file" accept=".hex,.bit,.fs"
+                     style="color:#d0d0e8;font-size:0.8rem">
+              <button type="submit"
+                      style="background:rgba(218,165,32,0.18);border:1px solid rgba(218,165,32,0.6);
+                             color:#daa520;border-radius:5px;padding:0.3rem 0.9rem;cursor:pointer;
+                             font-size:0.8rem">
+                ⬆ Upload
+              </button>
+            </form>
+          </td>
+          {"<td><a href='/api/bitstream/delete/" + board + "?token=" + token + "' "
+           "onclick=\"return confirm('Delete " + fname + "?')\" "
+           "style='color:#ef5350;font-size:0.8rem;text-decoration:none'>🗑 Delete</a></td>"
+           if exists else "<td></td>"}
+        </tr>""")
+
+    rows_html = "\n".join(rows)
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Church Machine — Bitstream Admin</title>
+  <style>
+    *, *::before, *::after {{ box-sizing: border-box; }}
+    body {{
+      background: #08080f; color: #d0d0e8;
+      font-family: system-ui, sans-serif;
+      max-width: 900px; margin: 2rem auto; padding: 0 1rem;
+    }}
+    h1 {{ color: #daa520; font-size: 1.4rem; margin-bottom: 0.25rem; }}
+    .subtitle {{ color: #9ca3af; font-size: 0.85rem; margin-bottom: 2rem; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; }}
+    th {{ color: #9ca3af; text-align: left; padding: 0.5rem 0.75rem;
+          border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; }}
+    td {{ padding: 0.65rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: middle; }}
+    tr:last-child td {{ border-bottom: none; }}
+    .flash {{ background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.4);
+              color: #4ade80; border-radius: 6px; padding: 0.6rem 1rem;
+              margin-bottom: 1.5rem; font-size: 0.9rem; }}
+    code {{ background: rgba(255,255,255,0.08); border-radius: 3px;
+            padding: 0.1rem 0.35rem; font-size: 0.82rem; }}
+  </style>
+</head>
+<body>
+  <h1>&#x03BB; Church Machine — Bitstream Admin</h1>
+  <p class="subtitle">Upload official pre-built programming files for each supported board.
+     Uploaded files are served to users via the wizard's
+     <em>prepackaged solution</em> path.</p>
+  {"<div class='flash'>" + request.args.get("msg","") + "</div>"
+   if request.args.get("msg") else ""}
+  <table>
+    <thead>
+      <tr>
+        <th>Board</th><th>Filename</th><th>Status</th>
+        <th>Last updated</th><th>Upload new</th><th></th>
+      </tr>
+    </thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+  <p style="margin-top:2rem;color:#6b7280;font-size:0.75rem">
+    Files are stored in <code>bitstreams/</code> inside the server directory.
+    Token is required for all upload and delete operations.
+  </p>
+</body>
+</html>"""
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/api/bitstream/delete/<board>")
+def bitstream_delete(board):
+    """Delete an official bitstream file (admin only)."""
+    from daily_report import check_report_auth as _check_auth
+    if not _check_auth(request):
+        return jsonify({"error": "Unauthorized"}), 401
+    board = board.strip().lower()
+    expected = BITSTREAM_FILES.get(board)
+    if not expected:
+        return jsonify({"error": f"Unknown board: {board}"}), 404
+    path = os.path.join(BITSTREAM_DIR, expected)
+    if os.path.isfile(path):
+        os.remove(path)
+        logging.info("Bitstream deleted: %s", expected)
+    from urllib.parse import urlencode
+    token = request.args.get("token", "")
+    qs = urlencode({"token": token, "msg": f"{expected} deleted."})
+    return redirect(f"/admin/bitstreams?{qs}")
+
+
 @app.route("/api/bitstream/upload", methods=["POST"])
 def bitstream_upload():
-    """Upload an official bitstream file."""
+    """Upload an official bitstream file (admin only).
+
+    Requires Authorization: Bearer <REPORT_TOKEN> header or ?token=<REPORT_TOKEN>.
+    """
+    from daily_report import check_report_auth as _check_auth
+    if not _check_auth(request):
+        return jsonify({"error": "Unauthorized — supply token via Authorization header or ?token="}), 401
     board = request.form.get("board", "tang-nano-20k-iot").strip().lower()
     expected = BITSTREAM_FILES.get(board)
     if not expected:
@@ -3253,6 +3388,12 @@ def bitstream_upload():
     f.save(dest)
     size = os.path.getsize(dest)
     logging.info("Bitstream uploaded: %s (%d bytes)", expected, size)
+    # If request came from the admin UI form (not API), redirect back with confirmation
+    if request.args.get("token"):
+        from urllib.parse import urlencode
+        token = request.args.get("token", "")
+        qs = urlencode({"token": token, "msg": f"{expected} uploaded ({size / 1048576:.2f} MB)."})
+        return redirect(f"/admin/bitstreams?{qs}")
     return jsonify({"ok": True, "filename": expected, "size": size})
 
 
