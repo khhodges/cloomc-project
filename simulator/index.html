@@ -1035,7 +1035,11 @@
                             <!-- Windows / Mac build steps -->
                             <div class="sw-os-win">
                                 <ol class="sw-list">
-                                    <li>Run <code>setup_ti60_peri.py</code> once to generate the PLL config &mdash; open a terminal and run the command from <code>BUILD.md</code> inside the ZIP:<br>
+                                    <li><strong>Download and install Efinity 2025.2</strong> from <a href="https://www.efinixinc.com/support/efinity.php" target="_blank" rel="noopener">efinixinc.com/support/efinity.php</a> — required before any of the steps below.</li>
+                                    <li>Unzip the downloaded project into a working folder.</li>
+                                    <li>Open the <strong>Efinity Terminal</strong> (Start menu → Efinity 2025.2 → Efinity Terminal) — this shell pre-sets Efinity's Python path. Then <code>cd</code> into the folder and run <code>setup_ti60_peri.py</code>. The script is inside the ZIP; do not type it as a bare system command:<br>
+<pre style="margin:0.3rem 0 0.2rem;">cd C:\path\to\church_ti60_f225_project
+python setup_ti60_peri.py</pre>
                                         <span style="font-size:0.82em;color:var(--text-secondary,#9ca3af);">You should see <em>"SUCCESS — church_ti60_f225.peri.xml written"</em></span></li>
                                     <li><strong>Enable SoC / UART</strong> &mdash; open <code>church_ti60_f225.sdc</code> in any text editor and switch from Phase A to Phase B by following the comments inside the file:<br>
                                         <span style="font-size:0.82em;color:var(--text-secondary,#9ca3af);">Phase A = 25 MHz (safe default). Phase B = 50 MHz with SoC/UART enabled. The comments tell you exactly which lines to swap.</span></li>
@@ -1049,7 +1053,9 @@
                             <!-- Linux / Chromebook build steps -->
                             <div class="sw-os-linux" style="display:none;">
                                 <ol class="sw-list">
-                                    <li><code>cd</code> into the extracted project folder, then run <code>setup_ti60_peri.py</code> using <strong>Efinity's Python</strong> — the script is inside the ZIP, it is not a system command, do not type it bare:<br>
+                                    <li><strong>Download and install Efinity 2025.2</strong> from <a href="https://www.efinixinc.com/support/efinity.php" target="_blank" rel="noopener">efinixinc.com/support/efinity.php</a> — required before any of the steps below.</li>
+                                    <li>Unzip the downloaded project into a working folder.</li>
+                                    <li><code>cd</code> into the extracted folder, then run <code>setup_ti60_peri.py</code> using <strong>Efinity's own Python</strong>. The script is inside the ZIP — it is not a system command, do not type it bare:<br>
 <pre style="margin:0.3rem 0 0.2rem;">cd ~/path/to/church_ti60_f225_project
 PYTHONPATH=$HOME/efinity/2025.2/lib:$HOME/efinity/2025.2/pt/bin \
 EFXPT_HOME=$HOME/efinity/2025.2/pt \
@@ -1059,7 +1065,7 @@ EFXPT_HOME=$HOME/efinity/2025.2/pt \
 <pre style="margin:0.3rem 0 0.2rem;">nano church_ti60_f225.sdc</pre>
                                         <span style="font-size:0.82em;color:var(--text-secondary,#9ca3af);">Comment out the Phase A line and uncomment Phase B exactly as the comments direct.</span></li>
                                     <li>Launch Efinity IDE:<br>
-                                        <code>QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 ~/efinity/2025.2/bin/efinity &amp;</code></li>
+<pre style="margin:0.3rem 0 0.2rem;">QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 ~/efinity/2025.2/bin/efinity &amp;</pre></li>
                                     <li><strong>File → Open Project</strong> → select <code>church_ti60_f225.xml</code></li>
                                     <li>Run <strong>Synthesis → Place &amp; Route → Generate Bitstream</strong><br>
                                         <span style="font-size:0.82em;color:var(--text-secondary,#9ca3af);">Takes ~30 min. When done, <code>outflow/church_ti60_f225.hex</code> is the programming file.</span></li>
