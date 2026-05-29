@@ -184,6 +184,12 @@ Use the GUI instead:
 
 Both paths produce the same `outflow/church_soc_cm.bit` and `outflow/church_soc_cm.hex`.
 
+> **Troubleshooting:** If the GUI also cannot open the project, the Efinity device database may be missing. Verify:
+> ```bash
+> ls ~/efinity/2025.2/share/efinity/devices/
+> ```
+> This directory should contain `.json` files for each family (Titanium, Trion, etc.). If it's missing, reinstall Efinity with the full device database.
+
 ---
 
 ### Step 8 — Generate the SPI flash hex (efx_pgm)
