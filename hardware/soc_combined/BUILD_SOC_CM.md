@@ -34,7 +34,7 @@ The correct flow:
 4. Synthesise → EFX_MAP creates 64 EFX_RAM10 instances for system_ramA **with
    `INIT_` parameters already populated** from the inline assignments.
 5. Place & route.
-6. **Run `efx_pgm church_soc_cm.xml`** — generates the SPI flash hex.
+6. **Run `efx_pgm church_soc_cm.xml`** (from the `SoC/` directory) — generates the SPI flash hex.
 7. Flash with `openFPGALoader`.
 
 **There is no separate `patch_mapv_init.py` step.** The inline initial block

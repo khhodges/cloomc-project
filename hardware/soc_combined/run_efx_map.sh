@@ -19,7 +19,7 @@ echo ""
 
 mkdir -p "$PROJECT_ROOT/SoC/work_syn"
 cd "$PROJECT_ROOT/SoC"
-$EFX_MAP "$PROJECT" 2>&1 | tee "$PROJECT_ROOT/SoC/work_syn/synthesis.log"
+$EFX_MAP --project-xml church_soc_cm.xml 2>&1 | tee "$PROJECT_ROOT/SoC/work_syn/synthesis.log"
 echo ""
 echo "==> Synthesis complete. Output in SoC/work_syn/"
 echo "    Verify firmware embedded in BRAM:"

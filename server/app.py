@@ -3248,7 +3248,7 @@ ls -lh outflow/church_soc_cm.hex outflow/church_soc_cm.bit
 # Timestamps must be NEWER than the P&R run above
 ```
 
-> **Note:** P&R does **not** generate the hex; `efx_pgm` does.
+> **Note:** P&R does **not** generate the hex; `efx_pgm` does. The `church_soc_cm.xml` already references `church_soc_cm.peri.xml` for pin constraints — open the Efinity GUI once to generate the LPF file if needed.
 
 ### Step 9 — Flash and test
 
