@@ -42,6 +42,16 @@ else
     echo "    SKIP — sapphire.v already present"
 fi
 
+# ---- Step 1b: Copy pre-built CM RTL ----
+echo ""
+echo "==> Step 1b: Copy pre-built CM RTL"
+if [ -f "$PROJECT_ROOT/church_ti60_f225.v" ]; then
+    cp "$PROJECT_ROOT/church_ti60_f225.v" "$SOC_DIR/"
+    echo "    OK — copied church_ti60_f225.v from project root"
+else
+    echo "    WARNING: church_ti60_f225.v not found at project root"
+fi
+
 # ---- Step 2: Generate CM RTL (optional, only if gen_verilog.py available) ----
 echo ""
 echo "==> Step 2: Generate CM RTL (if Amaranth available)"
