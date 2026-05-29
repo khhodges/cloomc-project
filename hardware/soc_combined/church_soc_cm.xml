@@ -56,19 +56,9 @@
         <efx:param name="max_ram"              value="-1"        value_type="e_integer"/>
         <efx:param name="max_mult"             value="-1"        value_type="e_integer"/>
         <efx:param name="infer_clk_enable"     value="3"         value_type="e_integer"/>
-        <efx:param name="infer_set_reset"      value="1"         value_type="e_integer"/>
-        <efx:param name="no_fanout_override"   value="0"         value_type="e_integer"/>
         <efx:param name="fanout_limit"         value="100"       value_type="e_integer"/>
         <efx:param name="seq_opt"              value="1"         value_type="e_integer"/>
-        <efx:param name="get_names_method"     value="0"         value_type="e_integer"/>
-        <efx:param name="logic_opting"         value="1"         value_type="e_bool"/>
-        <efx:param name="pack_lut_into_ram"    value="1"         value_type="e_bool"/>
-        <efx:param name="cpe_ins_register"     value="0"         value_type="e_bool"/>
-        <efx:param name="use_cpe_for_const_0"  value="0"         value_type="e_bool"/>
-        <efx:param name="use_cpe_for_const_1"  value="0"         value_type="e_bool"/>
-        <efx:param name="split_input_buf"      value="0"         value_type="e_bool"/>
-        <efx:param name="calc_mcw"             value="0"         value_type="e_bool"/>
-        <efx:param name="optimize-zero-init-rom" value="0"         value_type="e_bool"/>
+        <efx:param name="optimize-zero-init-rom" value="0"       value_type="e_bool"/>
     </efx:synthesis>
 
     <efx:place_and_route tool_name="efx_pnr">
