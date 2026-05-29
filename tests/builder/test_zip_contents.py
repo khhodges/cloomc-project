@@ -52,6 +52,12 @@ class TestTi60ZipContents:
         with open(project, 'w') as f:
             f.write(minimal_xml)
 
+        # SoC+CM combined source stubs
+        soc_combined = str(hw_dir / 'soc_combined')
+        for fn in ('church_soc_cm.xml', 'build_soc_cm.sh', 'run_efx_map.sh',
+                   'run_efx_pnr.sh', 'BUILD_SOC_CM.md'):
+            _write_stub(os.path.join(soc_combined, fn))
+
         paths = {
             'rtlil':   str(build_dir / 'church_ti60_f225.il'),
             'verilog': verilog,
@@ -78,6 +84,12 @@ class TestTi60ZipContents:
             'setup_ti60_peri.py',
             'Makefile',
             'BUILD.md',
+            # SoC+CM combined rebuild files (must match server/app.py)
+            'SoC/church_soc_cm.xml',
+            'SoC/build_soc_cm.sh',
+            'SoC/run_efx_map.sh',
+            'SoC/run_efx_pnr.sh',
+            'SoC/BUILD_SOC_CM.md',
         }
         names = _zip_namelist(buf)
         assert expected <= names

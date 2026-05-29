@@ -3419,6 +3419,14 @@ def _make_fpga_zip(board, is_ti60, paths, zip_name, build_md):
             if os.path.isfile(makefile_ti60):
                 zf.write(makefile_ti60, "Makefile")
             zf.writestr("BUILD.md", build_md)
+            # SoC+CM combined source (full rebuild path)
+            soc_combined = os.path.join(hw_dir, "soc_combined")
+            if os.path.isdir(soc_combined):
+                for root, _dirs, files in os.walk(soc_combined):
+                    for fn in files:
+                        full = os.path.join(root, fn)
+                        arc = os.path.join("SoC", os.path.relpath(full, soc_combined))
+                        zf.write(full, arc)
             for src_name, arc_name in _doc_pdfs:
                 src = os.path.join(docs_dir, src_name)
                 if os.path.isfile(src):
