@@ -952,6 +952,9 @@ const _ASM_HL_MNEMONICS = new Set([
     'NOP','mLoadI','mSaveI','ELOAD','XLOAD','CALLR','JUMPR',
     'PUSH','POP','MOV','CMP','TEST'
 ]);
+// ARM-style condition-code suffixes (used by assembler.disassemble() for conditional mnemonics
+// e.g. LOADEQ, BRANCHNE, CALLGT).  Index 14 is the unconditional "always" case (no suffix).
+const _ASM_COND_SUFFIXES = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','NV'];
 
 function _highlightCLOOMCSource(rawText, language) {
     if (!rawText) return '';
@@ -1050,6 +1053,18 @@ function _hlCloomcLine(line, isAsm) {
 function _hlCloomcWordClass(word, isAsm) {
     if (/^(CR|DR)\d+$/.test(word))              return 'lump-hl-register';
     if (isAsm && _ASM_HL_MNEMONICS.has(word))   return 'lump-hl-mnemonic';
+    // Recognise conditional mnemonics: base mnemonic + condition suffix, e.g. LOADEQ, BRANCHNE.
+    // assembler.disassemble() concatenates them into a single token, so the Set check above
+    // misses them.  Try stripping each known suffix and checking the remainder.
+    if (isAsm) {
+        for (let _si = 0; _si < _ASM_COND_SUFFIXES.length; _si++) {
+            const _suf = _ASM_COND_SUFFIXES[_si];
+            if (word.length > _suf.length && word.endsWith(_suf) &&
+                _ASM_HL_MNEMONICS.has(word.slice(0, -_suf.length))) {
+                return 'lump-hl-mnemonic';
+            }
+        }
+    }
     if (_CLOOMC_HL_KEYWORDS.has(word))          return 'lump-hl-keyword';
     return null;
 }

@@ -374,7 +374,7 @@ function assembleAndLoad() {
                 listing += `  * [${i}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
             }
         }
-        if (con) con.innerHTML = _capRightsHTML(listing);
+        if (con) con.innerHTML = _highlightCodeListing(listing);
         if (typeof _clearAsmErrors === 'function') _clearAsmErrors();
         if (typeof _clearAsmWarnings === 'function') _clearAsmWarnings();
         if (typeof _showAsmWarnings === 'function') _showAsmWarnings(result.warnings || []);
@@ -482,7 +482,7 @@ function assembleAndLoad() {
             listing += `  * [${i}]  ${capName.padEnd(14)}${typeStr.padEnd(8)}${permsStr}\n`;
         }
     }
-    if (con) con.innerHTML = _capRightsHTML(listing);
+    if (con) con.innerHTML = _highlightCodeListing(listing);
     // Push live snippet history for each labelled section of the raw assembly source
     _pushAsmLabelSnippets(source, result.labels || {}, sim.programName);
     showNextSteps('assembled');
@@ -505,6 +505,41 @@ function _capRightsHTML(text) {
         }).join('');
         return '[' + letters + ']';
     });
+}
+
+// Syntax-highlight a plain-text disassembly listing for the Code View.
+// Uses the same .lump-hl-* token colours as the Abstractions view, plus
+// condition-code tooltips inside mnemonic spans and cap-rights [RWXE] badges.
+function _highlightCodeListing(listing) {
+    if (typeof _highlightCLOOMCSource !== 'function') return _capRightsHTML(listing);
+    // Step 1 — apply CLOOMC/Assembly token colours (handles HTML escaping internally)
+    let html = _highlightCLOOMCSource(listing, 'assembly');
+    // Step 2 — inject condition-code tooltips inside already-highlighted mnemonic spans
+    //   e.g. <span class="lump-hl-mnemonic">LOADEQ</span>
+    //     →  <span class="lump-hl-mnemonic">LOAD<span class="cond-abbr" …>EQ</span></span>
+    const _condAbbr = ['EQ','NE','CS','CC','MI','PL','VS','VC','HI','LS','GE','LT','GT','LE','','NV'];
+    const _condLong = ['Equal','Not Equal','Carry Set','Carry Clear','Minus','Plus',
+                       'Overflow Set','Overflow Clear','Higher','Lower or Same',
+                       'Greater or Equal','Less Than','Greater Than','Less or Equal','Always','Never'];
+    for (let _ci = 0; _ci < _condAbbr.length; _ci++) {
+        const _abbr = _condAbbr[_ci];
+        if (!_abbr) continue;
+        const _tip = `<span class="cond-abbr" title="${_abbr}\u00A0\u2014\u00A0${_condLong[_ci]}">${_abbr}</span>`;
+        html = html.replace(
+            new RegExp(`(<span class="lump-hl-mnemonic">)([A-Z]+)(${_abbr})(</span>)`, 'g'),
+            (_, open, prefix, _ca, close) => `${open}${prefix}${_tip}${close}`
+        );
+    }
+    // Step 3 — colour cap-rights badges [R], [W], [X], [E]
+    const _titles = { R: 'read', W: 'write', X: 'execute', E: 'entry' };
+    html = html.replace(/\[([RWXE]+)\]/g, function(_m, rights) {
+        const letters = rights.split('').map(function(ch) {
+            const cls = { R: 'cap-right-r', W: 'cap-right-w', X: 'cap-right-x', E: 'cap-right-e' }[ch];
+            return cls ? '<span class="' + cls + '" title="' + _titles[ch] + '">' + ch + '</span>' : ch;
+        }).join('');
+        return '[' + letters + ']';
+    });
+    return html;
 }
 
 function _permsHTML(permsStr) {
