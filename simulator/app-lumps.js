@@ -3836,9 +3836,11 @@ async function openLumpInEditor(token) {
 
     var asmEd = document.getElementById('asmEditor');
     if (asmEd) {
-        // Always clear any stale malformed-binary banner from a previous open.
+        // Always clear any stale banners from a previous open.
         var _existingMfBanner = document.getElementById('_lumpMalformedBanner');
         if (_existingMfBanner) _existingMfBanner.remove();
+        var _existingSrcBanner = document.getElementById('_lumpSourceRestoredBanner');
+        if (_existingSrcBanner) _existingSrcBanner.remove();
 
         // ── Always make the editor fully editable on LUMP-panel open ──────
         asmEd.readOnly = false;
@@ -3885,6 +3887,21 @@ async function openLumpInEditor(token) {
             if (asmEd.parentNode) asmEd.parentNode.insertBefore(_mfBanner, asmEd);
         }
 
+        // ── Try to restore original source from sidecar detail endpoint ──────
+        // Only override _compiledDisasm when a non-empty source is found;
+        // older LUMPs (compiled before this feature) silently fall through.
+        var _sourceRestored = false;
+        try {
+            var _dr = await fetch('/api/lumps/' + token + '/detail', { cache: 'no-store' });
+            if (_dr.ok) {
+                var _dj = await _dr.json();
+                if (_dj && typeof _dj.source === 'string' && _dj.source.trim().length > 0) {
+                    _compiledDisasm = _dj.source;
+                    _sourceRestored = true;
+                }
+            }
+        } catch (_dfe) {}
+
         // ── Record original (compiled) text for dirty comparison ──────────
         window._editorOriginalDisasm = _compiledDisasm;
 
@@ -3915,8 +3932,20 @@ async function openLumpInEditor(token) {
                 });
             }
         } else {
-            // No draft — show the compiled disasm
+            // No draft — show the compiled source (or disasm fallback)
             asmEd.value = _compiledDisasm;
+            // Show "source restored" banner when original source was fetched
+            if (_sourceRestored) {
+                var _existingSourceBanner = document.getElementById('_lumpSourceRestoredBanner');
+                if (_existingSourceBanner) _existingSourceBanner.remove();
+                var _srcBanner = document.createElement('div');
+                _srcBanner.id = '_lumpSourceRestoredBanner';
+                _srcBanner.className = 'lump-source-restored-banner';
+                _srcBanner.innerHTML =
+                    '<span>Source restored from saved LUMP</span>' +
+                    '<button class="lump-malformed-banner-dismiss" onclick="this.parentNode.remove()" title="Dismiss">\u00D7</button>';
+                if (asmEd.parentNode) asmEd.parentNode.insertBefore(_srcBanner, asmEd);
+            }
         }
 
         if (typeof updateLineNumbers === 'function') updateLineNumbers();

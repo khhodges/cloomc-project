@@ -1387,6 +1387,7 @@ function compileAndBuild() {
             mtbf_total_runs: mtbfTotal,
             mtbf_status:     mtbfStatus,
             source_hash:     _simRunHash || _currentEditorHash(),
+            source:          source,
             target_board:   'ti60-f225',
             grants:         ['E']
         }

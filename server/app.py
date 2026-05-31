@@ -4455,6 +4455,7 @@ def save_lump():
             "builder":      "CLOOMC++ IDE v1.0"
         },
         "grants": metadata.get("grants", ["E"]),
+        "source": metadata.get("source", ""),
     }
 
     import time as _time_save
@@ -4600,6 +4601,44 @@ def list_lumps():
             _e['binary_valid'] = False
 
     return jsonify(result)
+
+
+@app.route("/api/lumps/<token>/detail")
+def get_lump_detail(token):
+    """Return the full sidecar JSON for a single LUMP, including the source field.
+
+    The list endpoint (/api/lumps) omits 'source' to stay lean.  This endpoint
+    is called lazily by the IDE editor when the user clicks 'Edit ✎' so it can
+    restore the exact source text that was compiled.
+    """
+    lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
+    token8 = (token.lower()[:8] if len(token) >= 8 else token.lower()).zfill(8)
+
+    manifest_path = os.path.join(lumps_dir, 'manifest.json')
+    manifest = []
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, 'r') as fh:
+                manifest = json.load(fh)
+        except Exception:
+            pass
+
+    entry = next((e for e in manifest if e.get('token') == token8), None)
+    if entry is None:
+        return jsonify({"error": f"No LUMP found for token {token8}"}), 404
+
+    sc_file = entry.get('sidecar_file', f'{token8}.json')
+    sc_path = os.path.join(lumps_dir, sc_file)
+    if not os.path.isfile(sc_path):
+        return jsonify({"error": "Sidecar not found"}), 404
+
+    try:
+        with open(sc_path, 'r') as fh:
+            sidecar = json.load(fh)
+    except Exception as exc:
+        return jsonify({"error": f"Could not read sidecar: {exc}"}), 500
+
+    return jsonify(sidecar)
 
 
 @app.route("/api/lump/<token_hex>/words")
