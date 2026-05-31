@@ -38,7 +38,7 @@
     <link rel="stylesheet" href="styles-toolbar.css?v=20260526c">
     <link rel="stylesheet" href="styles-editor.css?v=20260521a">
     <link rel="stylesheet" href="styles-dashboard.css?v=20260518e">
-    <link rel="stylesheet" href="styles-lumps.css?v=20260531g">
+    <link rel="stylesheet" href="styles-lumps.css?v=20260531h">
     <link rel="stylesheet" href="styles-gatelog.css?v=20260513a">
     <link rel="stylesheet" href="styles-fault.css?v=20260527a">
     <link rel="stylesheet" href="styles-tools.css?v=20260527f">
@@ -1673,11 +1673,16 @@ CALLHOME:{"board":"ti60-f225","uid":"AABBCCDD","nia":0,"boot_ok":1,"fault":0,"fa
     <div id="docs" class="view">
         <div class="docs-layout">
             <div class="docs-sidebar">
-                <div class="panel">
-                    <div class="panel-title">The Church Machine</div>
-                    <div id="docsFileList" class="docs-file-list"></div>
-                    <div class="panel-title" style="margin-top:12px;">Figures</div>
-                    <div id="docsFigureList" class="docs-file-list"></div>
+                <div class="panel docs-sidebar-panel">
+                    <div class="docs-sidebar-header">
+                        <div class="panel-title">The Church Machine</div>
+                        <input type="text" id="docsSearch" class="docs-search-input" placeholder="Search docs &amp; figures…" oninput="filterDocsList(this.value)" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="docs-sidebar-scroll">
+                        <div id="docsFileList" class="docs-file-list"></div>
+                        <div class="panel-title docs-figures-title">Figures</div>
+                        <div id="docsFigureList" class="docs-file-list"></div>
+                    </div>
                 </div>
             </div>
             <div class="docs-content-panel">
@@ -2293,7 +2298,7 @@ CALLHOME:{"board":"ti60-f225","uid":"AABBCCDD","nia":0,"boot_ok":1,"fault":0,"fa
     <script src="app-run.js?v=20260531a"></script>
     <script src="app-source-library.js?v=20260509d"></script>
     <script src="app-invoke.js?v=20260521a"></script>
-    <script src="app-misc.js?v=20260531d"></script>
+    <script src="app-misc.js?v=20260531e"></script>
     <script src="asm-instruction-picker.js?v=20260513d"></script>
     <script src="asm-method-popup.js?v=20260518b"></script>
     <script src="clist-viewer.js?v=20260521a"></script>

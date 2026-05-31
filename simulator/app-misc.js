@@ -447,10 +447,46 @@ async function loadDocsView() {
     }
 }
 
+function filterDocsList(query) {
+    const q = (query || '').trim().toLowerCase();
+    const docsList = document.getElementById('docsFileList');
+    const figsList = document.getElementById('docsFigureList');
+    const figsTitle = document.querySelector('.docs-figures-title');
+    if (!docsList || !figsList) return;
+
+    const groups = docsList.querySelectorAll('.docs-chapter-group');
+    if (groups.length > 0) {
+        groups.forEach(group => {
+            const items = group.querySelectorAll('.docs-file-item');
+            let visible = 0;
+            items.forEach(item => {
+                const match = !q || item.textContent.toLowerCase().includes(q);
+                item.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            group.style.display = visible ? '' : 'none';
+        });
+    } else {
+        docsList.querySelectorAll('.docs-file-item').forEach(item => {
+            item.style.display = !q || item.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
+    let figVisible = 0;
+    figsList.querySelectorAll('.docs-file-item').forEach(item => {
+        const match = !q || item.textContent.toLowerCase().includes(q);
+        item.style.display = match ? '' : 'none';
+        if (match) figVisible++;
+    });
+    if (figsTitle) figsTitle.style.display = (figVisible || !q) ? '' : 'none';
+}
+
 function renderDocsFileList() {
     const docsList = document.getElementById('docsFileList');
     const figsList = document.getElementById('docsFigureList');
     if (!docsList || !figsList || !docsData) return;
+    const searchInput = document.getElementById('docsSearch');
+    if (searchInput) searchInput.value = '';
 
     if (docsData.chapters && docsData.chapters.length > 0) {
         let chapterNum = 0;

@@ -2583,12 +2583,55 @@
 }
 
 .docs-sidebar {
-    overflow-y: auto;
     padding-right: 0.25rem;
+    min-height: 0;
 }
 
-.docs-sidebar .panel {
+.docs-sidebar-panel {
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    overflow: hidden;
+}
+
+.docs-sidebar-header {
+    flex-shrink: 0;
+    padding-bottom: 0.35rem;
+}
+
+.docs-sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.docs-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border, #2a2a4a);
+    border-radius: 4px;
+    color: var(--text-primary, #e2e8f0);
+    font-size: 0.78rem;
+    padding: 0.28rem 0.5rem 0.28rem 1.65rem;
+    outline: none;
+    margin-top: 0.4rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555577' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 0.42rem center;
+    transition: border-color 0.15s;
+}
+
+.docs-search-input:focus {
+    border-color: rgba(200, 155, 60, 0.5);
+}
+
+.docs-search-input::placeholder {
+    color: var(--text-muted, #555577);
+}
+
+.docs-figures-title {
+    margin-top: 12px;
 }
 
 .docs-content-panel {
