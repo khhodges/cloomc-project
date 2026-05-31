@@ -4540,7 +4540,13 @@ def save_lump():
 
 @app.route("/api/lumps/list")
 def list_lumps():
-    """Return JSON array of all saved lumps with full sidecar metadata."""
+    """Return JSON array of all saved lumps with lean sidecar metadata.
+
+    The 'source' field is intentionally omitted from every entry so the IDE
+    can download the full catalogue without transmitting large source strings.
+    Use GET /api/lumps/<token>/detail to retrieve the full sidecar including
+    the source field for a specific lump.
+    """
     lumps_dir = os.path.join(os.path.dirname(__file__), 'lumps')
 
     manifest_path = os.path.join(lumps_dir, 'manifest.json')
@@ -4564,7 +4570,8 @@ def list_lumps():
             try:
                 with open(sidecar_path, 'r') as fh:
                     sidecar = json.load(fh)
-                result.append(sidecar)
+                lean = {k: v for k, v in sidecar.items() if k != 'source'}
+                result.append(lean)
                 continue
             except Exception:
                 pass
