@@ -1156,6 +1156,7 @@ async function _populateLumpSourceTab(lump, targetId) {
                 _showBinaryOnly('was compiled from RAW ISA or low-level assembly and has no CLOOMC++ pet-name source. The Binary tab shows the compiled form.');
                 return;
             }
+            const _previewOpen = (localStorage.getItem('lumpSourcePreviewOpen') !== '0');
             let html = '<div class="lump-source-toolbar">';
             html += `<span class="lump-source-lang-badge">CLOOMC++</span>`;
             html += `<div class="lump-source-ham-wrap">`;
@@ -1165,13 +1166,35 @@ async function _populateLumpSourceTab(lump, targetId) {
             html += `<button class="lump-source-menu-item lump-source-menu-item-build" onclick="document.querySelectorAll('.lump-source-menu.open').forEach(m=>m.classList.remove('open'));_lumpSourceBuildLump()" title="Build LUMP \u2014 Compile and download .lump binary">Build LUMP &#8595;</button>`;
             html += `</div></div>`;
             html += `<button class="lump-source-btn" onclick="_lumpSourceCompile()" title="Compile \u2014 Compile source and update Binary tab">&#9654; Compile</button>`;
+            html += `<button class="lump-source-btn lump-source-preview-toggle${_previewOpen ? ' active' : ''}" id="lumpSourcePreviewBtn" title="Toggle syntax-highlighted preview panel">Preview</button>`;
             html += '</div>';
             html += `<div class="lump-fork-banner" id="lumpForkBanner" style="display:none"></div>`;
             html += `<textarea class="lump-source-textarea" id="lumpSourceEditor" spellcheck="false" autocorrect="off" autocapitalize="off">${e(src)}</textarea>`;
+            html += `<div class="lump-source-preview${_previewOpen ? '' : ' lump-source-preview-hidden'}" id="lumpSourcePreview" aria-label="Syntax preview"></div>`;
             html += `<div class="lump-source-status" id="lumpSourceStatus"></div>`;
             el.innerHTML = html;
             const _textarea = el.querySelector('#lumpSourceEditor');
             const _banner   = el.querySelector('#lumpForkBanner');
+            // ── Live syntax preview panel ───────────────────────────────────
+            const _previewEl  = el.querySelector('#lumpSourcePreview');
+            const _previewBtn = el.querySelector('#lumpSourcePreviewBtn');
+            const _updatePreview = () => {
+                if (!_previewEl || _previewEl.classList.contains('lump-source-preview-hidden')) return;
+                _previewEl.innerHTML = _highlightCLOOMCSource(_textarea ? _textarea.value : '', 'cloomc');
+            };
+            if (_textarea && _previewEl) {
+                _updatePreview();
+                _textarea.addEventListener('input', _updatePreview);
+            }
+            if (_previewBtn && _previewEl) {
+                _previewBtn.addEventListener('click', () => {
+                    const _hidden = _previewEl.classList.toggle('lump-source-preview-hidden');
+                    _previewBtn.classList.toggle('active', !_hidden);
+                    localStorage.setItem('lumpSourcePreviewOpen', _hidden ? '0' : '1');
+                    if (!_hidden) _updatePreview();
+                });
+            }
+            // ───────────────────────────────────────────────────────────────
             if (lump.forked && lump.lump_version != null) {
                 // Already forked (tab reopened in-session, or page reloaded with forked sidecar).
                 // Show the banner immediately — no keystroke required.

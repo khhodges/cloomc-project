@@ -608,6 +608,38 @@
     background: #0b0b18;
 }
 
+.lump-source-preview-toggle {
+    margin-left: auto;
+}
+
+.lump-source-preview-toggle.active {
+    border-color: rgba(192, 132, 252, 0.45);
+    background: rgba(192, 132, 252, 0.14);
+    color: #c084fc;
+}
+
+.lump-source-preview {
+    width: 100%;
+    box-sizing: border-box;
+    background: #07070f;
+    color: #c8d4e8;
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    padding: 10px 14px;
+    border-top: 1px solid rgba(100, 160, 255, 0.12);
+    border-bottom: 1px solid rgba(100, 160, 255, 0.08);
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 55vh;
+    white-space: pre;
+    tab-size: 4;
+}
+
+.lump-source-preview-hidden {
+    display: none;
+}
+
 .lump-fork-banner {
     display: flex;
     align-items: center;
