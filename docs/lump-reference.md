@@ -76,14 +76,14 @@ The hardware Church Instructions Call/Return/Change all derive two root Capabili
 
 ## 3. Object Types (`typ`)
 
-| `typ` | Name              | Description |
-|:------|:------------------|:------------|
-| `00`  | Abstraction       | Standard executable CLOOMC code body — instructions, freespace, and a GT C-List tail. |
-| `01`  | Namespace         | Namespace configuration object. Encodes `totalNamespaceWords` (the board's physical memory envelope). *(Reserved — not user-authored.)* |
-| `10`  | Thread            | Captured thread state (PC + 16 DRs + call stack). Encodes stack/heap sizing. |
-| `11`  | Outform           | Placeholder. Triggers an "Absent" event on first `LOAD`; the loader fetches the real lump from the Home Base. |
+| `typ` | Name         | Description |
+|:------|:-------------|:------------|
+| `00`  | Code / Lump  | Standard executable abstraction. |
+| `01`  | Namespace    | Opaque data block (image, text, binary blob). No instructions. |
+| `10`  | Thread       | Captured thread state (PC + 16 DRs + call stack). |
+| `11`  | Outform      | Placeholder. Triggers an "Absent" event on first `LOAD`; the loader fetches the real lump from the Home Base. |
 
-The `content_type` field in the sidecar further refines `typ=00` Abstraction sub-variants into `"text"`, `"markdown"`, `"image"`, `"grayscale"`, etc. The `lump_type` sidecar field carries the semantic label (e.g. `"application_namespace"` for Namespace lumps).
+The `content_type` field in the sidecar further refines `typ=01` into `"text"`, `"markdown"`, `"image"`, `"grayscale"`, etc.
 
 ---
 
