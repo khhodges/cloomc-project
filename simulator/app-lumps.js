@@ -1585,25 +1585,7 @@ function _populateLumpApiTab(lump, panelId) {
 
     let html = '<div class="lump-detail-sections">';
 
-    // ── 1. Call Contract ────────────────────────────────────────────────────
-    html += '<div class="lump-detail-section">';
-    html += '<div class="lump-section-title">Call Contract</div>';
-    html += '<table class="lump-detail-table"><tbody>';
-    if (nsSlot !== null) {
-        html += `<tr><td>NS Slot</td><td><strong>${nsSlot}</strong> \u2014 invoke via <code>CALL CRd, CR6, ${nsSlot}</code></td></tr>`;
-    } else {
-        html += `<tr><td>NS Slot</td><td><span style="color:var(--text-secondary);font-style:italic;">Floating \u2014 loaded by token 0x${e(lump.token || '')}</span></td></tr>`;
-    }
-    const permStr = grants.length ? grants.join('\u00a0|\u00a0') : '\u2014';
-    html += `<tr><td>Caller Grants</td><td><strong>${e(permStr)}</strong></td></tr>`;
-    html += `<tr><td>Token</td><td><code>0x${e(lump.token || '')}</code></td></tr>`;
-    if (lump.profile)  html += `<tr><td>Profile</td><td>${e(lump.profile)}</td></tr>`;
-    if (lump.language) html += `<tr><td>Language</td><td>${e(lump.language)}</td></tr>`;
-    html += `<tr><td>Layout</td><td>${cw} code word${cw !== 1 ? 's' : ''} \u00b7 ${cc} c-list slot${cc !== 1 ? 's' : ''} \u00b7 ${sz} word${sz !== 1 ? 's' : ''} total</td></tr>`;
-    html += '</tbody></table>';
-    html += '</div>';
-
-    // ── 2. Methods ───────────────────────────────────────────────────────────
+    // ── 1. Methods ───────────────────────────────────────────────────────────
     html += '<div class="lump-detail-section">';
     html += `<div class="lump-section-title">Methods (${methods.length})</div>`;
     if (methods.length === 0) {
@@ -1623,6 +1605,24 @@ function _populateLumpApiTab(lump, panelId) {
         });
         html += '</tbody></table>';
     }
+    html += '</div>';
+
+    // ── 2. Call Contract ────────────────────────────────────────────────────
+    html += '<div class="lump-detail-section">';
+    html += '<div class="lump-section-title">Call Contract</div>';
+    html += '<table class="lump-detail-table"><tbody>';
+    if (nsSlot !== null) {
+        html += `<tr><td>NS Slot</td><td><strong>${nsSlot}</strong> \u2014 invoke via <code>CALL CRd, CR6, ${nsSlot}</code></td></tr>`;
+    } else {
+        html += `<tr><td>NS Slot</td><td><span style="color:var(--text-secondary);font-style:italic;">Floating \u2014 loaded by token 0x${e(lump.token || '')}</span></td></tr>`;
+    }
+    const permStr = grants.length ? grants.join('\u00a0|\u00a0') : '\u2014';
+    html += `<tr><td>Caller Grants</td><td><strong>${e(permStr)}</strong></td></tr>`;
+    html += `<tr><td>Token</td><td><code>0x${e(lump.token || '')}</code></td></tr>`;
+    if (lump.profile)  html += `<tr><td>Profile</td><td>${e(lump.profile)}</td></tr>`;
+    if (lump.language) html += `<tr><td>Language</td><td>${e(lump.language)}</td></tr>`;
+    html += `<tr><td>Layout</td><td>${cw} code word${cw !== 1 ? 's' : ''} \u00b7 ${cc} c-list slot${cc !== 1 ? 's' : ''} \u00b7 ${sz} word${sz !== 1 ? 's' : ''} total</td></tr>`;
+    html += '</tbody></table>';
     html += '</div>';
 
     // ── 3. C-List / Capabilities ─────────────────────────────────────────────
