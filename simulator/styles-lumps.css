@@ -217,6 +217,22 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.lump-history-no-preview {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    background: rgba(239, 68, 68, 0.07);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    margin-top: 0.35rem;
+}
+
+.lump-history-restore-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 .lump-delete-btn {
     background: rgba(160, 30, 30, 0.5);
     color: #ff9999;

@@ -1802,7 +1802,7 @@ async function _fetchAndShowLumpHistory(token, lump) {
                 html += `<td>${e(String(ccStr))}</td>`;
                 html += `<td>${e(szStr)}</td>`;
                 html += `<td><button class="btn" style="font-size:0.7rem;padding:2px 8px;" onclick="event.stopPropagation();_lumpHistoryPreview('${e(token)}',${v.version},${v.cw || 0},${v.cc || 0},${v.lump_size || 0},'${tk}')" title="Preview hex dump of v${v.version}">Preview</button></td>`;
-                html += `<td><button class="btn lump-history-restore-btn" style="font-size:0.7rem;padding:2px 8px;" onclick="event.stopPropagation();_restoreLumpFromHistory('${e(token)}',${v.version})" title="Restore v${v.version} as the current LUMP">Restore</button></td>`;
+                html += `<td><button class="btn lump-history-restore-btn" id="lumpHistoryRestoreBtn_${tk}_${v.version}" style="font-size:0.7rem;padding:2px 8px;" disabled onclick="event.stopPropagation();_restoreLumpFromHistory('${e(token)}',${v.version})" title="Preview this version first, then restore">Restore</button></td>`;
                 html += `</tr>`;
             }
             html += '</tbody></table>';
@@ -1837,16 +1837,23 @@ async function _lumpHistoryPreview(token, version, cw, cc, lumpSize, tk) {
         return s;
     };
     previewEl.innerHTML = `<div class="lump-hex-loading">Loading v${version} binary\u2026</div>`;
+    const _enableRestoreBtn = () => {
+        const btn = document.getElementById(`lumpHistoryRestoreBtn_${tk}_${version}`);
+        if (btn) { btn.disabled = false; btn.title = `Restore v${version} as the current LUMP`; }
+    };
+    const _noPreview = msg => {
+        previewEl.innerHTML = `<div class="lump-history-no-preview">\u26a0\ufe0f No preview available \u2014 ${_escHtml(msg)}</div>`;
+    };
     try {
         const [archResp, curResp] = await Promise.all([
             fetch(`/api/lumps/${token}/words/${version}`),
             fetch(`/api/lump/${token}/words`)
         ]);
-        if (!archResp.ok) throw new Error(`HTTP ${archResp.status}`);
+        if (!archResp.ok) { _noPreview(`could not load archive (HTTP ${archResp.status})`); return; }
         const data = await archResp.json();
         const words = data.words || [];
         const numWords = words.length;
-        if (!numWords) throw new Error('Empty lump');
+        if (!numWords) { _noPreview('archived binary is empty'); return; }
 
         let curWords = [];
         let curFetchFailed = false;
@@ -1913,8 +1920,9 @@ async function _lumpHistoryPreview(token, version, cw, cc, lumpSize, tk) {
         }
         t += '</tbody></table></div>';
         previewEl.innerHTML = t;
+        _enableRestoreBtn();
     } catch (err) {
-        previewEl.innerHTML = `<div style="color:#ef4444;padding:0.5rem;">Failed to load binary: ${err.message}</div>`;
+        _noPreview(err.message);
     }
 }
 
