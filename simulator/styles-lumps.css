@@ -1158,6 +1158,41 @@
     font-style: normal;
     opacity: 0.6;
 }
+.lump-stored-src-loading {
+    padding: 0.6rem 1rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+.lump-stored-src-meta-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 1rem 0.35rem;
+    border-bottom: 1px solid rgba(100, 160, 255, 0.10);
+}
+.lump-stored-src-lang-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(100, 160, 255, 0.10);
+    border-radius: 3px;
+    padding: 1px 6px;
+    text-transform: lowercase;
+    letter-spacing: 0.2px;
+}
+.lump-stored-src-ts {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+.lump-stored-src-pre-full {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    flex: 1;
+    overflow-y: auto;
+}
 
 /* ── LUMP code content viewer ──────────────────────────── */
 .lump-content-code {

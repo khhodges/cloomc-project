@@ -339,77 +339,11 @@ function showLumpDetail(token) {
             return `${d.getDate()} ${mo} ${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         };
         let _srcHtml = `<div class="lump-tab-panel" id="lumpTabSource_${_tk}"><div class="lump-source-panel">`;
-        // Placeholder filled lazily when the tab is clicked (see _switchLumpTab → source)
-        _srcHtml += `<div id="lumpStoredSourceBody_${_tk}" class="lump-stored-src-placeholder"></div>`;
-        if (_srcAbsIdx !== null && _srcMethods.length > 0) {
-            const _umd = (typeof userMethodData !== 'undefined' && userMethodData) ? userMethodData : {};
-            _srcMethods.forEach((mName, _mi) => {
-                const mKey = `${_srcAbsIdx}:${mName}`;
-                const md = _umd[mKey] || {};
-                const _staticEx = _srcStaticExamples[mName] || null;
-                const _srcText = md.example || _staticEx;
-                const _bodyId = `lumpSrcBody_${_tk}_${_mi}`;
-                const _open = _mi === 0;
-                // Status badge for header
-                let _hdrBadge;
-                if (md.compileError)                          _hdrBadge = `<span class="lump-source-status-error">\u2022Error</span>`;
-                else if (md.compiled && md.compiled.length)   _hdrBadge = `<span class="lump-source-status-compiled">\u2022Compiled</span>`;
-                else                                          _hdrBadge = `<span class="lump-source-status-pseudo">\u2022Pseudo</span>`;
-                _srcHtml += `<div class="lump-source-method">`;
-                // ── Clickable header row ─────────────────────────────────
-                _srcHtml += `<div class="lump-source-method-header" onclick="_lumpSrcToggle('${_bodyId}',this)">`;
-                _srcHtml += `<span class="lump-source-method-name">${e(mName)}</span>`;
-                _srcHtml += `<div class="lump-source-method-actions">`;
-                _srcHtml += `${_hdrBadge}`;
-                _srcHtml += `<button class="lump-source-edit-btn" title="Open in editor" onclick="event.stopPropagation();_lumpSrcEditMethod(${_srcAbsIdx},'${mName.replace(/'/g,"\\'")}')">\u270f</button>`;
-                _srcHtml += `<span class="lump-source-chevron">${_open ? '\u25bc' : '\u25b6'}</span>`;
-                _srcHtml += `</div></div>`;
-                // ── Collapsible body ─────────────────────────────────────
-                _srcHtml += `<div class="lump-source-method-body" id="${_bodyId}"${_open ? '' : ' style="display:none"'}>`;
-                if (_srcText) {
-                    _srcHtml += `<pre class="abs-method-panel-code">${_highlightCLOOMCSource(_srcText, lump.language)}</pre>`;
-                    _srcHtml += `<div class="lump-source-meta">`;
-                    if (md.compileError) {
-                        _srcHtml += `<span class="lump-source-status-error">\u2022Error</span> \u2014 ${e(md.compileError.split('\n')[0])}`;
-                    } else if (md.compiled && md.compiled.length > 0) {
-                        _srcHtml += `<span class="lump-source-status-compiled">\u2022Compiled</span> \u2014 ${md.compiled.length} word${md.compiled.length !== 1 ? 's' : ''}, ${e(md.compiledLang || 'unknown')}, ${e(_srcFmtTs(md.compiledAt))}`;
-                    } else {
-                        _srcHtml += `<span class="lump-source-status-pseudo">\u2022Pseudo</span>`;
-                        _srcHtml += md.example ? ` \u2014 source stored, not yet compiled` : ` \u2014 built-in example`;
-                    }
-                    _srcHtml += `</div>`;
-                } else {
-                    _srcHtml += `<div class="lump-source-empty">No source yet \u2014 click \u270f to open in the editor.</div>`;
-                }
-                const hist = md.history || [];
-                if (hist.length > 0) {
-                    _srcHtml += `<div class="lump-source-history-header">History (${hist.length})</div>`;
-                    _srcHtml += `<div class="lump-source-history-list">`;
-                    hist.forEach(hv => {
-                        const hvState = hv.compileError ? 'error' : (hv.compiled && hv.compiled.length > 0 ? 'compiled' : 'pseudo');
-                        const hvLabel = hvState === 'error' ? '\u2022Error' : hvState === 'compiled' ? '\u2022Compiled' : '\u2022Pseudo';
-                        const hvWords = hv.compiled ? hv.compiled.length : 0;
-                        _srcHtml += `<div class="lump-source-history-entry">`;
-                        _srcHtml += `<span class="abs-compile-state-badge abs-compile-state-${hvState}">${hvLabel}</span>`;
-                        _srcHtml += `<span class="lump-source-history-ts">${e(_srcFmtTs(hv.savedAt))}</span>`;
-                        if (hvWords > 0) _srcHtml += ` <span class="lump-source-history-words">${hvWords}w</span>`;
-                        if (hv.src) _srcHtml += `<pre class="abs-method-panel-code lump-source-history-code">${_highlightCLOOMCSource(hv.src, lump.language)}</pre>`;
-                        _srcHtml += `</div>`;
-                    });
-                    _srcHtml += `</div>`;
-                }
-                _srcHtml += `</div>`; // close body
-                _srcHtml += `</div>`; // close method
-            });
-        } else if (_srcAbsIdx === null) {
-            _srcHtml += `<div class="lump-source-empty lump-source-empty-pad">No abstraction registry entry found for \u201c${e(lump.abstraction || '')}\u201d \u2014 open the Abstractions view and add methods to see source here.</div>`;
-        } else {
-            _srcHtml += `<div class="lump-source-empty lump-source-empty-pad">No methods defined on this abstraction yet.</div>`;
-        }
+        _srcHtml += `<div id="lumpStoredSourceBody_${_tk}" class="lump-stored-src-placeholder"><div class="lump-stored-src-loading">Loading\u2026</div></div>`;
         _srcHtml += `</div></div>`;
         html += _srcHtml;
 
-        html += `<div class="lump-tab-panel${!isNamespace && !lump.forked ? ' lump-tab-panel-active' : ''}" id="lumpTabContent_${_tk}">` +
+        html += `<div class="lump-tab-panel" id="lumpTabContent_${_tk}">` +
                 `<div id="lumpContentBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
         html += `<div class="lump-tab-panel" id="lumpTabTokens_${_tk}">` +
                 `<div id="lumpTokensBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
@@ -1715,14 +1649,13 @@ async function _fetchAndShowLumpSavedSource(token, lump, tk) {
                 })()
                 : null;
             el.innerHTML =
-                `<div class="lump-stored-src-section">` +
-                `<div class="lump-section-title">Saved Source ` +
-                `<span class="lump-stored-src-meta">${_lang}${_compiledAt ? ' \u00b7 compiled ' + _compiledAt : ''}</span>` +
+                `<div class="lump-stored-src-meta-bar">` +
+                `<span class="lump-stored-src-lang-badge">${_lang}</span>` +
+                (_compiledAt ? `<span class="lump-stored-src-ts">compiled ${_compiledAt}</span>` : '') +
                 `</div>` +
-                `<pre class="lump-stored-src-pre">${_highlightCLOOMCSource(data.source, data.language || lump.language)}</pre>` +
-                `</div>`;
+                `<pre class="lump-stored-src-pre lump-stored-src-pre-full">${_highlightCLOOMCSource(data.source, data.language || lump.language)}</pre>`;
         } else {
-            el.innerHTML = `<div class="lump-stored-src-empty">No stored source.</div>`;
+            el.innerHTML = `<div class="lump-stored-src-empty">No stored source — this LUMP predates source persistence.</div>`;
         }
     } catch (_) {
         // Fail silently; Source tab still shows per-method breakdown below
