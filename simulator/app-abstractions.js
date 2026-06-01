@@ -1318,3 +1318,92 @@ function hideNsdgTooltip() {
     if (tip) tip.style.display = 'none';
 }
 
+function _buildDnaGraph(lump, allLumps) {
+    const entries = lump.clist_entries || [];
+    if (!entries.length) return null;
+    const e = _escHtml;
+
+    const rows = entries.map((ent, i) => {
+        if (ent.null) return { slot: i, null: true };
+        const nsIdx = ent.ns_index;
+        const target = (allLumps || []).find(l => parseInt(l.ns_slot) === nsIdx);
+        const rawLabel = target
+            ? (target.label || target.abstraction || target.token)
+            : `NS[${nsIdx}]`;
+        return {
+            slot: i, null: false,
+            ns_index: nsIdx,
+            perms: ent.perms || '---',
+            gt_type: ent.gt_type || '',
+            gt_word: ent.gt_word || '',
+            target_label: rawLabel,
+            target_token: target ? target.token : null,
+        };
+    });
+    const active = rows.filter(r => !r.null);
+    const nullCount = rows.length - active.length;
+    if (!active.length) return null;
+
+    const SVG_W = 660;
+    const ROW_H = 52;
+    const PAD_T = 28, PAD_B = 20;
+    const ROOT_W = 118, ROOT_H = 52;
+    const SLOT_W = 150, SLOT_H = 34;
+    const TGT_W  = 168, TGT_H  = 34;
+
+    const rootLabel = lump.label || lump.abstraction || lump.token || 'LUMP';
+    const rootToken = lump.token || '';
+    const nRows = active.length;
+    const svgH = Math.max(ROOT_H + PAD_T + PAD_B + 10, nRows * ROW_H + PAD_T + PAD_B);
+
+    const rootX = 6, slotX = 182, tgtX = 390;
+    const rootCX = rootX + ROOT_W / 2;
+    const rootCY = svgH / 2;
+    const rootRightX = rootX + ROOT_W;
+
+    const trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + '\u2026' : (s || '');
+
+    let svg = `<svg class="ns-dep-graph-svg" viewBox="0 0 ${SVG_W} ${svgH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DNA reachability graph">`;
+    svg += `<defs>
+      <marker id="dna-arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L6,3 z" fill="#4a90e2"/>
+      </marker>
+    </defs>`;
+    svg += `<g class="nsdg-inner">`;
+
+    svg += `<rect x="${rootX}" y="${rootCY - ROOT_H/2}" width="${ROOT_W}" height="${ROOT_H}" rx="6" fill="#060e06" stroke="#22c55e" stroke-width="2"/>`;
+    svg += `<text x="${rootCX}" y="${rootCY - 10}" text-anchor="middle" font-size="9" font-weight="bold" fill="#22c55e" font-family="monospace">LUMP</text>`;
+    svg += `<text x="${rootCX}" y="${rootCY + 4}" text-anchor="middle" font-size="9" fill="#eaeaea" font-family="monospace">${e(trunc(rootLabel, 14))}</text>`;
+    svg += `<text x="${rootCX}" y="${rootCY + 17}" text-anchor="middle" font-size="7.5" fill="#7a7a5a" font-family="monospace">0x${e(rootToken)}</text>`;
+
+    active.forEach((row, ri) => {
+        const rowCY = PAD_T + ri * ROW_H + ROW_H / 2;
+        const cBx = (rootRightX + slotX) / 2;
+
+        svg += `<path d="M${rootRightX},${rootCY} C${cBx},${rootCY} ${cBx},${rowCY} ${slotX},${rowCY}" fill="none" stroke="#4a90e2" stroke-width="1" stroke-opacity="0.5" marker-end="url(#dna-arr)"/>`;
+
+        const isChurch = row.perms && (row.perms.includes('E') || row.perms.includes('L') || row.perms.includes('S'));
+        const isTuring = row.perms && (row.perms.includes('R') || row.perms.includes('W') || row.perms.includes('X'));
+        const permCol  = isChurch ? '#22c55e' : isTuring ? '#f59e0b' : '#6b7280';
+        const slotFill = isChurch ? 'rgba(34,197,94,0.08)' : isTuring ? 'rgba(245,158,11,0.06)' : '#0e0e1a';
+
+        svg += `<rect x="${slotX}" y="${rowCY - SLOT_H/2}" width="${SLOT_W}" height="${SLOT_H}" rx="4" fill="${slotFill}" stroke="#4a90e2" stroke-width="1.2"/>`;
+        svg += `<text x="${slotX+6}" y="${rowCY - 5}" font-size="7" font-weight="bold" fill="#6b7280" font-family="monospace">slot ${row.slot} \u2192 NS[${row.ns_index}]</text>`;
+        svg += `<text x="${slotX+6}" y="${rowCY + 9}" font-size="9" fill="${permCol}" font-family="monospace">${e(row.perms)}</text>`;
+        svg += `<text x="${slotX + SLOT_W - 4}" y="${rowCY + 9}" font-size="7" fill="#4a5a7a" font-family="monospace" text-anchor="end">${e(row.gt_type)}</text>`;
+
+        svg += `<line x1="${slotX + SLOT_W}" y1="${rowCY}" x2="${tgtX - 2}" y2="${rowCY}" stroke="#4a90e2" stroke-width="1" stroke-opacity="0.6" marker-end="url(#dna-arr)"/>`;
+
+        const hasTgt = !!row.target_token;
+        const tgtStroke = hasTgt ? '#4a90e2' : '#2a2a4a';
+        const tgtTextCol = hasTgt ? '#dde8f0' : '#4a4a6a';
+        svg += `<rect x="${tgtX}" y="${rowCY - TGT_H/2}" width="${TGT_W}" height="${TGT_H}" rx="4" fill="#08080f" stroke="${tgtStroke}" stroke-width="${hasTgt ? '1.4' : '0.7'}"/>`;
+        svg += `<text x="${tgtX + 5}" y="${rowCY - 5}" font-size="7" fill="#4a5a7a" font-family="monospace">NS slot ${row.ns_index}</text>`;
+        svg += `<text x="${tgtX + 5}" y="${rowCY + 9}" font-size="9" fill="${tgtTextCol}" font-family="monospace">${e(trunc(row.target_label, 19))}</text>`;
+    });
+
+    svg += `</g></svg>`;
+    const wrapId = `dna-wrap-${rootToken}`;
+    return { svg, wrapId, nullCount };
+}
+

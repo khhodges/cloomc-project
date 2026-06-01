@@ -95,6 +95,10 @@ function showLumpDetail(token) {
         _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','versions')">Versions</button>`;
         _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','history')">History</button>`;
     }
+    const _hasDna = !isNamespace && (lump.clist_entries || []).length > 0;
+    if (_hasDna) {
+        _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','dna');_renderLumpDnaTab('${_tk}')" title="DNA \u2014 reachability graph from this LUMP\u2019s C-List">DNA</button>`;
+    }
     _tabBar += `<button class="lump-tab" onclick="_switchLumpTab('${_tk}','hexdump')">Hex Dump</button></div>`;
 
     let html = _headerStrip + _tabBar +
@@ -322,6 +326,10 @@ function showLumpDetail(token) {
                 `<div id="lumpVersionsBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
         html += `<div class="lump-tab-panel" id="lumpTabHistory_${_tk}">` +
                 `<div id="lumpHistoryBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
+        if (_hasDna) {
+            html += `<div class="lump-tab-panel" id="lumpTabDna_${_tk}">` +
+                    `<div id="lumpTabDnaContent_${_tk}"></div></div>`;
+        }
     }
     html += `<div class="lump-tab-panel" id="lumpTabHexdump_${_tk}">` +
             `<div id="lumpBinBody_${_tk}" class="lump-hex-loading">Loading\u2026</div></div>`;
@@ -1433,6 +1441,7 @@ function _switchLumpTab(tk, tab) {
         tokens: `lumpTabTokens_${tk}`,
         versions: `lumpTabVersions_${tk}`,
         history: `lumpTabHistory_${tk}`,
+        dna: `lumpTabDna_${tk}`,
         hexdump: `lumpTabHexdump_${tk}`,
     };
     Object.entries(tabMap).forEach(([t, id]) => {
@@ -1443,7 +1452,7 @@ function _switchLumpTab(tk, tab) {
     if (bar) {
         const btns = bar.querySelectorAll('.lump-tab');
         btns.forEach(btn => {
-            const labelMap = { api: 'API', clooms: 'CLOOMC', overview: 'Overview', source: 'Source', content: 'Content', tokens: 'Tokens', versions: 'Versions', history: 'History', hexdump: 'Hex Dump' };
+            const labelMap = { api: 'API', clooms: 'CLOOMC', overview: 'Overview', source: 'Source', content: 'Content', tokens: 'Tokens', versions: 'Versions', history: 'History', dna: 'DNA', hexdump: 'Hex Dump' };
             btn.classList.toggle('lump-tab-active', btn.textContent.trim() === labelMap[tab]);
         });
     }
@@ -1478,6 +1487,31 @@ function _switchLumpTab(tk, tab) {
     if (tab === 'source' && lump) {
         _fetchAndShowLumpSavedSource(token, lump, tk);
     }
+}
+
+const _dnaRendered = {};
+function _renderLumpDnaTab(tk) {
+    if (_dnaRendered[tk]) return;
+    _dnaRendered[tk] = true;
+    const el = document.getElementById(`lumpTabDnaContent_${tk}`);
+    if (!el) return;
+    const lump = _lumpsCache.find(l => (l.token || '').replace(/[^a-z0-9]/gi, '') === tk);
+    if (!lump) return;
+    const result = (typeof _buildDnaGraph === 'function') ? _buildDnaGraph(lump, _lumpsCache) : null;
+    if (!result) {
+        el.innerHTML = '<div style="padding:1.2rem 0.8rem;color:#4a4a6a;font-size:0.8rem;font-family:monospace;">No non-null connections found in this C-List.</div>';
+        return;
+    }
+    const { svg, wrapId, nullCount } = result;
+    const toolbar = `<div class="ns-dep-graph-toolbar">` +
+        `<span style="font-size:0.72rem;color:#6b7280;font-family:monospace;margin-right:0.75rem;">DNA \u2014 what this node can reach</span>` +
+        `<button class="ns-dep-graph-btn" onclick="_nsdgZoom('${wrapId}',1.25)" title="Zoom in">+</button>` +
+        `<button class="ns-dep-graph-btn" onclick="_nsdgZoom('${wrapId}',0.8)" title="Zoom out">\u2212</button>` +
+        `<button class="ns-dep-graph-btn" onclick="_nsdgReset('${wrapId}')" title="Reset zoom">\u21ba</button>` +
+        (nullCount > 0 ? `<span style="font-size:0.68rem;color:#4a4a6a;margin-left:0.75rem;">${nullCount} null slot${nullCount !== 1 ? 's' : ''} hidden</span>` : '') +
+        `</div>`;
+    el.innerHTML = toolbar + `<div class="ns-dep-graph-wrap" id="${wrapId}">${svg}</div>`;
+    if (typeof _initNsDepGraphPanZoom === 'function') _initNsDepGraphPanZoom(wrapId);
 }
 
 function _populateLumpApiTab(lump, panelId) {

@@ -3850,6 +3850,77 @@ import struct as _struct
 import zlib as _zlib
 
 
+def _decode_gt_word(gt32):
+    """Decode a 32-bit Golden Token word.
+
+    GT layout (mirrors simulator.js parseGT):
+      [31]=b_flag  [30:28]=perm3  [27]=dom  [26]=spare  [25]=f_flag
+      [24:23]=gt_type  [22:16]=gt_seq  [15:0]=ns_index
+    """
+    gt32 = int(gt32) & 0xFFFFFFFF
+    if gt32 == 0:
+        return {"null": True, "gt_word": "0x00000000", "ns_index": 0,
+                "perms": "", "gt_type": "NULL"}
+    ns_index = gt32 & 0xFFFF
+    gt_type  = (gt32 >> 23) & 0x3
+    dom      = (gt32 >> 27) & 0x1
+    perm3    = (gt32 >> 28) & 0x7
+    b_flag   = (gt32 >> 31) & 0x1
+    if dom == 0:
+        perms = (('B' if b_flag else '') +
+                 ('R' if perm3 & 1 else '') +
+                 ('W' if perm3 & 2 else '') +
+                 ('X' if perm3 & 4 else ''))
+    else:
+        perms = (('B' if b_flag else '') +
+                 ('L' if perm3 & 1 else '') +
+                 ('S' if perm3 & 2 else '') +
+                 ('E' if perm3 & 4 else ''))
+    return {
+        "null":     False,
+        "gt_word":  f"0x{gt32:08X}",
+        "ns_index": ns_index,
+        "perms":    perms or "---",
+        "gt_type":  ['NULL', 'Inform', 'Outform', 'Abstract'][gt_type & 3],
+    }
+
+
+def _extract_clist_from_words(words, base=0):
+    """Extract decoded C-List entries from a list of 32-bit ints.
+
+    The LUMP is assumed to start at words[base].  Returns [] if cc==0 or on error.
+    """
+    try:
+        hdr = int(words[base])
+        if ((hdr >> 27) & 0x1F) != 0x1F:
+            return []
+        n_minus_6  = (hdr >> 23) & 0xF
+        lump_size  = 1 << (n_minus_6 + 6)
+        cc         = hdr & 0xFF
+        if cc == 0:
+            return []
+        clist_start = base + lump_size - cc
+        if clist_start + cc > len(words):
+            return []
+        return [_decode_gt_word(words[clist_start + i]) for i in range(cc)]
+    except Exception:
+        return []
+
+
+def _extract_clist_from_lump_file(lump_path):
+    """Read a .lump binary (big-endian 32-bit words, no CRC prefix) and decode its C-List."""
+    try:
+        with open(lump_path, 'rb') as _fh:
+            _raw = _fh.read()
+        _n = len(_raw) // 4
+        if _n < 1:
+            return []
+        _words = list(_struct.unpack(f'>{_n}I', _raw[:_n * 4]))
+        return _extract_clist_from_words(_words, base=0)
+    except Exception:
+        return []
+
+
 def _lump_with_crc(raw_lump_bytes):
     """Prepend a big-endian CRC-32 word to *raw_lump_bytes* and return the result.
 
@@ -3985,6 +4056,11 @@ def _load_boot_abstr_lump():
                 }
             ],
         })
+        if cc > 0:
+            _clist_start = lump_size - cc
+            _BOOT_ABSTR_META['clist_entries'] = [
+                _decode_gt_word(lump_words[_clist_start + _ci]) for _ci in range(cc)
+            ]
         print(f'[boot] Boot.Abstr extracted: {lump_size}w at mem[{word0_location}], '
               f'cw={cw}, cc={cc}', flush=True)
         # SINGLE SOURCE OF TRUTH: LAZY_LUMPS['00000003'] always holds the binary
@@ -4704,6 +4780,21 @@ def list_lumps():
                     pass
         else:
             _e['binary_valid'] = False
+
+    # Inject clist_entries for every LUMP with cc > 0 and a readable binary.
+    # Boot.NS (00000000): C-List is already in namespace_meta — skip.
+    # Boot.Abstr (00000003): clist_entries already set inside _BOOT_ABSTR_META — skip.
+    # All other LUMPs: read from the .lump file.
+    for _e in result:
+        _tk = _e.get('token', '')
+        if _tk in ('00000000', '00000003') or 'clist_entries' in _e:
+            continue
+        _cc = int(_e.get('cc', 0) or 0)
+        if _cc == 0:
+            continue
+        _lp = os.path.join(lumps_dir, f'{_tk}.lump')
+        if os.path.isfile(_lp):
+            _e['clist_entries'] = _extract_clist_from_lump_file(_lp)
 
     return jsonify(result)
 
