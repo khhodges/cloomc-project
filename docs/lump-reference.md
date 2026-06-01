@@ -323,15 +323,16 @@ server/lumps/manifest.json    — contains this entry
 
 ## 8. NS Slot Policy & Variant Groups
 
-### NS slot assignment — three categories
+### NS slot assignment — four categories
 
-Only **Resident** and **Lazy-load** LUMPs have an assigned slot in the Namespace table. All other LUMPs receive the top free slot case-by-case on demand and have no fixed position.
+Only **Resident** and **Lazy-load** LUMPs have an assigned slot in the Namespace table. Dynamic LUMPs receive the top free slot case-by-case on demand. NULL LUMPs never enter the Namespace table at all.
 
 | Category | `ns_slot` | `boot_resident` | `ns_slot_policy` | Behaviour |
 |:---------|:----------|:----------------|:-----------------|:----------|
 | **Resident** | integer | `true` | `"static"` | Slot is part of the boot image. Present in the NS table from power-on. |
 | **Lazy-load** | integer | `false` / absent | `"static"` | Slot is reserved but the LUMP is not in the boot image. Loaded into that specific slot on first demand (via Loader/Tunnel). |
-| **Dynamic** | `null` | — | `"dynamic"` | No assigned slot. The runtime allocates the next free slot from the top of the NS table at the moment of first use. Slot number may differ between reboots; callers hold a GT, not a slot index. Correct default for any abstraction not on the cold-boot critical path. |
+| **Dynamic** | `null` | — | `"dynamic"` | No assigned slot. The runtime allocates the next free slot from the top of the NS table at the moment of first use. Slot number may differ between reboots; callers hold a GT, not a slot index. |
+| **NULL** | `null` | — | absent / `"static"` | Never enters the Namespace table. Fetched directly by token via the Loader/Tunnel when needed. No NS presence at any point. Correct for data, media, and library lumps that require no callable NS slot. |
 
 ---
 

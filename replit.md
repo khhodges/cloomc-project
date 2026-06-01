@@ -102,23 +102,27 @@ and ns_slot_policy.
 python -m pytest tests/lump/test_lump_consistency.py -v
 ```
 
-### NS Slot Assignment — Three Categories
+### NS Slot Assignment — Four Categories
 
 Only **Resident** and **Lazy-load** LUMPs have an assigned slot in the
-Namespace table. All other LUMPs take the next free slot from the top of the NS
-table case-by-case on demand.
+Namespace table. Dynamic LUMPs take the next free slot on demand. NULL LUMPs
+never enter the Namespace table at all.
 
 | Category | `ns_slot` | `boot_resident` | `ns_slot_policy` |
 |:---------|:----------|:----------------|:-----------------|
 | **Resident** | integer | `true` | `"static"` |
 | **Lazy-load** | integer | `false`/absent | `"static"` |
 | **Dynamic** | `null` | — | `"dynamic"` |
+| **NULL** | `null` | — | absent/`"static"` |
 
 A **Dynamic lump** sets `ns_slot: null` and `ns_slot_policy: "dynamic"`.
 The runtime allocates the next free slot at first use; the slot may change
 between reboots, but callers hold a GT (not a slot index) so it is invisible
-to them. Dynamic is the correct default for any abstraction not on the
-cold-boot critical path.
+to them.
+
+A **NULL lump** also has `ns_slot: null` but never enters the Namespace table.
+It is fetched directly by token via the Loader/Tunnel when needed — correct
+for data, media, and library lumps that require no callable NS slot.
 
 Canonical example: WordString (ab1e86af).
 
@@ -136,7 +140,7 @@ Canonical example: WordString (ab1e86af).
 | Release | Date | Key changes |
 |---|---|---|
 | 1.2 | 2026-05-15 | Builder ZIP downloads — build log listings now match ZIP contents exactly for all 3 boards (Ti60, Wukong, Tang Nano); stale .edif removed from Ti60 log; local_bridge.py added to Wukong and Tang Nano logs; .v/.json marked conditional for Tang Nano; file-icon map expanded; new zip-contents pytest suite (5 tests). |
-| 1.1 | 2026-05-03 | LUMP metadata overhaul — three-category NS slot model formalised (Resident/Lazy-load/Dynamic), 11-rule consistency gate, Boot.Abstr corrected (cw=17, cc=1, 64 words), 4 test-lump cw/cc corrected, 6 missing sidecars created, orphan 00000003.json removed. |
+| 1.1 | 2026-05-03 | LUMP metadata overhaul — four-category NS slot model formalised (Resident/Lazy-load/Dynamic/NULL), 11-rule consistency gate, Boot.Abstr corrected (cw=17, cc=1, 64 words), 4 test-lump cw/cc corrected, 6 missing sidecars created, orphan 00000003.json removed. |
 | 1.0 | 2026-04-29 | Initial documented release. |
 
 The patch-in-place path (small programs, ≤ maxCW words) is completely unchanged.
