@@ -211,7 +211,6 @@ The `source` field is the only sidecar field intentionally excluded from the man
 | `lump_version` | `integer` | ✓ | Monotonically incrementing compile counter. Bumped by `/api/lumps/save`. |
 | `ns_slot` | `integer\|null` | ✓ | Assigned Namespace slot for Resident and Lazy-load LUMPs, or `null` for Dynamic LUMPs (see §8). |
 | `ns_slot_policy` | `string` | — | `"static"` (assigned slot — Resident or Lazy-load) \| `"dynamic"` (top free slot on demand). Absent = `"static"`. |
-| `variant_group` | `string` | — | Shared string that allows multiple lumps to claim the same `ns_slot` (see §8). |
 | `lump_size` | `integer` | ✓ | Total word count. Must equal `2^(n-6+6)` and match header. |
 | `cw` | `integer` | ✓ | Code word count. Must match header bits 22:10. |
 | `cc` | `integer` | ✓ | C-List row count. Must match header bits 7:0. |
@@ -306,7 +305,7 @@ Populated by the FPGA call-home system and the simulator fault logger.
 
 Fields present in manifest entries (superset of what every entry uses):
 
-`token`, `abstraction`, `ns_slot`, `ns_slot_policy`, `variant_group`, `lump_size`, `cw`, `cc`, `dw`, `methods`, `grants`, `capabilities`, `pet_names`, `data_offset`, `data_word_names`, `boot_resident`, `author`, `version`, `lump_version`, `compiled_at`, `filename`, `sidecar_file`, `domain`, `domain_perms`, `media_tags`, `self_data_r`, `lump_type`.
+`token`, `abstraction`, `ns_slot`, `ns_slot_policy`, `lump_size`, `cw`, `cc`, `dw`, `methods`, `grants`, `capabilities`, `pet_names`, `data_offset`, `data_word_names`, `boot_resident`, `author`, `version`, `lump_version`, `compiled_at`, `filename`, `sidecar_file`, `domain`, `domain_perms`, `media_tags`, `self_data_r`, `lump_type`.
 
 The manifest is never written directly by hand — it is maintained by `/api/lumps/save` (adds/updates), `/api/lumps/<token>` DELETE (removes), and the consistency gate (`tests/lump/test_lump_consistency.py`) validates it before every merge.
 
@@ -333,10 +332,6 @@ Only **Resident** and **Lazy-load** LUMPs have an assigned slot in the Namespace
 | **Resident** | integer | `true` | `"static"` | Slot is part of the boot image. Present in the NS table from power-on. |
 | **Lazy-load** | integer | `false` / absent | `"static"` | Slot is reserved but the LUMP is not in the boot image. Loaded into that specific slot on first demand (via Loader/Tunnel). |
 | **Dynamic** | `null` | — | `"dynamic"` | No assigned slot. The runtime allocates the next free slot from the top of the NS table at the moment of first use. Slot number may differ between reboots; callers hold a GT, not a slot index. Correct default for any abstraction not on the cold-boot critical path. |
-
-### `variant_group`
-
-Two manifest entries may claim the same non-null `ns_slot` only if they both carry the same non-null `variant_group` string. This allows language-variant pairs (e.g. `SlideRule` in CLOOMC++ and `SlideRuleHS` in Haskell) to share one slot — exactly one is loaded at runtime.
 
 ---
 

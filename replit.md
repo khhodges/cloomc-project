@@ -96,7 +96,7 @@ All lump-related changes are gated by `tests/lump/test_lump_consistency.py`.
 Run before every merge touching a `.lump` binary, `manifest.json`, or any
 sidecar `<token>.json`. 11 rules — R1 through R11 — cover magic, file size,
 manifest presence, orphan sidecars, three-way cw/cc/lump_size agreement,
-variant_group uniqueness, and ns_slot_policy.
+and ns_slot_policy.
 
 ```bash
 python -m pytest tests/lump/test_lump_consistency.py -v
@@ -122,18 +122,12 @@ cold-boot critical path.
 
 Canonical example: WordString (ab1e86af).
 
-### Variant Group
-
-Two manifest entries may claim the same `ns_slot` only if they carry the same
-non-null `variant_group` string. Example: SlideRule + SlideRuleHS share
-`ns_slot: 16` and `variant_group: "sliderule"`.
-
 ### Change Control Rules (summary — full rules in CHANGELOG.md)
 
 1. Consistency gate must pass before merge.
 2. Every binary recompile that changes cw/cc/lump_size requires same-commit updates to the sidecar JSON and manifest.json.
 3. New lump = three files: `.lump` binary + sidecar `.json` + manifest entry.
-4. NS slot collision → `variant_group` required on all claimants.
+4. NS slot collisions are not permitted — every static-policy LUMP must have a unique slot.
 5. CHANGELOG.md entry required for every structural change.
 6. Spec doc version must be bumped when their schema changes.
 
@@ -142,7 +136,7 @@ non-null `variant_group` string. Example: SlideRule + SlideRuleHS share
 | Release | Date | Key changes |
 |---|---|---|
 | 1.2 | 2026-05-15 | Builder ZIP downloads — build log listings now match ZIP contents exactly for all 3 boards (Ti60, Wukong, Tang Nano); stale .edif removed from Ti60 log; local_bridge.py added to Wukong and Tang Nano logs; .v/.json marked conditional for Tang Nano; file-icon map expanded; new zip-contents pytest suite (5 tests). |
-| 1.1 | 2026-05-03 | LUMP metadata overhaul — floating-lump pattern formalised, variant_group introduced, 11-rule consistency gate, Boot.Abstr corrected (cw=17, cc=1, 64 words), 4 test-lump cw/cc corrected, 6 missing sidecars created, orphan 00000003.json removed. |
+| 1.1 | 2026-05-03 | LUMP metadata overhaul — three-category NS slot model formalised (Resident/Lazy-load/Dynamic), 11-rule consistency gate, Boot.Abstr corrected (cw=17, cc=1, 64 words), 4 test-lump cw/cc corrected, 6 missing sidecars created, orphan 00000003.json removed. |
 | 1.0 | 2026-04-29 | Initial documented release. |
 
 The patch-in-place path (small programs, ≤ maxCW words) is completely unchanged.
