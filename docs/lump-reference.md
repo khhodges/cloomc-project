@@ -41,7 +41,7 @@ A LUMP is always `2^n` words long (`n ∈ 6..14`, i.e. 64–16 384 words).
 | Header       | 0                             | One descriptor word. |
 | Code         | 1 … cw                        | Executable instructions. Entry point is always **PC = 1**. |
 | Freespace    | cw+1 … lump_size−cc−1         | Zeroed padding. Provides room to grow code or c-list. |
-| C-List       | lump_size−cc … lump_size−1    | One GT Word 0 per slot. |
+| C-List       | lump_size−cc … lump_size−1    | One GT Word 0 per row. |
 
 Data words (`dw`) live inside the code section immediately after the last instruction (`data_offset` in the sidecar gives the first data-word index relative to the lump base).
 
@@ -65,7 +65,7 @@ Bits 31:27 are always `11111` (opcode 0x1F — an invalid instruction), so the h
 | n-6   | 26:23 | Size exponent minus 6. `lump_size = 2^(n-6 + 6)`. Range 0–8 → 64–16 384 words. |
 | cw    | 22:10 | **Code Word count.** Number of 32-bit instructions (max 8 191). |
 | typ   | 9:8   | Object type (see §3). |
-| cc    | 7:0   | **C-List count.** Number of capability slots at the lump's tail (0–255). |
+| cc    | 7:0   | **C-List count.** Number of GT rows at the lump's tail (0–255). |
 
 The hardware derives two root Capability Registers from these fields at load time:
 
@@ -124,7 +124,7 @@ Permissions divide strictly into two non-overlapping groups. A single capability
 
 | Bit | Symbol | Group  | Meaning |
 |:----|:-------|:-------|:--------|
-| 31  | B      | —      | **Bind.** Must be set for a GT to be stored in a C-List slot. Defaults to 0; auto-cleared by `CALL`. |
+| 31  | B      | —      | **Bind.** Must be set for a GT to be stored in a C-List row. Defaults to 0; auto-cleared by `CALL`. |
 | 30  | R      | Turing | Read raw data. |
 | 29  | W      | Turing | Write raw data. |
 | 28  | X      | Turing | Execute (branch into). |
@@ -152,7 +152,7 @@ Every LUMP has a companion `.json` sidecar in `server/lumps/`. The sidecar is th
 | `variant_group` | `string` | — | Shared string that allows multiple lumps to claim the same `ns_slot` (see §8). |
 | `lump_size` | `integer` | ✓ | Total word count. Must equal `2^(n-6+6)` and match header. |
 | `cw` | `integer` | ✓ | Code word count. Must match header bits 22:10. |
-| `cc` | `integer` | ✓ | C-List slot count. Must match header bits 7:0. |
+| `cc` | `integer` | ✓ | C-List row count. Must match header bits 7:0. |
 | `dw` | `integer` | — | Data word count embedded inside the code section. |
 | `data_offset` | `integer` | — | Word index (relative to lump base) of the first data word. |
 | `data_word_names` | `string[]` | — | Human names for each data word in order. |
@@ -166,13 +166,13 @@ Every LUMP has a companion `.json` sidecar in `server/lumps/`. The sidecar is th
 | `release_notes` | `string` | — | Change description for this version. |
 | `compiled_at` | `float` | — | Unix timestamp (seconds) of compilation. |
 | `grants` | `string[]` | — | Top-level permissions this LUMP confers. Usually `["E"]`. |
-| `self_data_r` | `boolean` | — | `true` if slot 0 of the C-List is a self-referential read-only data capability. |
+| `self_data_r` | `boolean` | — | `true` if row 0 of the C-List is a self-referential read-only data capability. |
 | `boot_resident` | `boolean` | — | `true` if this LUMP must be present in the boot image. |
 | `domain` | `string` | — | Security domain label (e.g. `"trusted"`, `"user"`). |
 | `domain_perms` | `string[]` | — | Permissions granted within the domain. |
 | `media_tags` | `string[]` | — | Content tags for data LUMPs (e.g. `["image", "grayscale", "64x64"]`). |
 | `methods` | `object[]` | — | Method descriptors (see §6.2). |
-| `capabilities` | `object[]` | — | C-List slot descriptors (see §6.3). |
+| `capabilities` | `object[]` | — | C-List row descriptors (see §6.3). |
 | `pet_names` | `object` | — | Register aliases (see §6.4). |
 | `deployment` | `object` | — | Build environment metadata (see §6.5). |
 | `mtbf` | `object` | — | Reliability tracking (see §6.6). |
@@ -196,14 +196,14 @@ Each entry describes one named entry point into the code section.
 | `pet_names` | `object` | Method-scoped register aliases, overrides top-level pet_names while in this method. Same `{"DR": {}, "CR": {}}` shape. |
 | `aliasOf` | `string` | If present, this method shares its body with the named method (same `offset`). It is a call alias, not an independent implementation. |
 
-### 6.3 `capabilities[]` — C-List Slot Descriptors
+### 6.3 `capabilities[]` — C-List Row Descriptors
 
 | Field | Type | Description |
 |:------|:-----|:------------|
-| `slot` | `integer` | Zero-indexed C-List slot this descriptor applies to. |
+| `row` | `integer` | Zero-indexed C-List row this descriptor applies to. |
 | `name` | `string` | Human name, usually `"Abstraction.CapabilityName"` (e.g. `"Constants.SelfDataR"`). The prefix before `.` is the depended-on abstraction. |
-| `grants` | `string[]` | Permissions the GT in this slot carries (e.g. `["R", "W"]`). |
-| `note` | `string` | Detailed description of what authority this slot confers. |
+| `grants` | `string[]` | Permissions the GT in this row carries (e.g. `["R", "W"]`). |
+| `note` | `string` | Detailed description of what authority this row confers. |
 
 ### 6.4 `pet_names` — Register Aliases
 
@@ -320,7 +320,7 @@ The call contract for this abstraction.
 
 - **Methods table**: index, name, offset (word), length (words), description
 - **Caller Grants**: what permissions a caller must have to enter this LUMP
-- **C-List / Capabilities table**: slot index, name, grants, note for every C-List entry
+- **C-List / Capabilities table**: row index, name, grants, note for every C-List row
 
 ---
 
@@ -341,8 +341,8 @@ Renders the LUMP's logical content based on `content_type` / `typ`:
 
 C-List viewer and POLA editor.
 
-- **GT chips**: one chip per C-List slot, showing the raw GT word, permissions, object_id, and pet name.
-- **POLA tools**: strip excess permissions from individual slots (Principle of Least Authority).
+- **GT chips**: one chip per C-List row, showing the raw GT word, permissions, object_id, and pet name.
+- **POLA tools**: strip excess permissions from individual rows (Principle of Least Authority).
 - **Push Names**: writes this LUMP's pet names into the running simulator's namespace so the Memory and GT views use them.
 
 ---
@@ -428,7 +428,7 @@ All endpoints are served by the Flask backend (`server/app.py`).
 |:-------|:-----|:------------|
 | `PUT` | `/api/lump/<token>/content` | Overwrite the content of a data/text LUMP in-place. Body: `{text?} | {data_b64?}`. Returns `{cw, lump_size}`. |
 | `PATCH` | `/api/lump/<token>/meta` | Update sidecar fields (`author`, `version`, `pet_names`, etc.). |
-| `PATCH` | `/api/lump/<token_hex>/clist/<slot>` | Write one GT word into a specific C-List slot. Body: `{gt_word: uint32}`. |
+| `PATCH` | `/api/lump/<token_hex>/clist/<row>` | Write one GT word into a specific C-List row. Body: `{gt_word: uint32}`. |
 | `POST` | `/api/lump/<token_hex>/resize` | Repack to minimum power-of-2, removing freespace. Returns `{old_size, new_size, saved_words}`. |
 | `POST` | `/api/lump/<token>/fork-version` | Archive current binary as `-vN`, promote new compile as primary. |
 
@@ -463,9 +463,9 @@ The auditor operates in two modes:
 | **RB2** | Layout Bounds | `1 + cw + cc <= lump_size` — header + code + c-list must fit. |
 | **RFS** | Freespace Zone | All words in the padding region (between code and c-list) must be zero. |
 | **RMC** | Manifest Coherence | If a sidecar is provided, its `cw`, `cc`, and `lump_size` must exactly match the binary header. |
-| **RCI** | Instruction Range | `LOAD`/`SAVE`/`ELOADCALL`/`XLOADLAMBDA` must reference slots `0 … cc-1`. `BRANCH` targets must land within the code section. |
-| **RNC** | NULL GT Check | Warns if code accesses a C-List slot that holds a NULL (all-zero) Golden Token. |
-| **RPN** | Pet Name Coverage | Every C-List slot referenced by code must have a corresponding pet name in the sidecar. |
+| **RCI** | Instruction Range | `LOAD`/`SAVE`/`ELOADCALL`/`XLOADLAMBDA` must reference rows `0 … cc-1`. `BRANCH` targets must land within the code section. |
+| **RNC** | NULL GT Check | Warns if code accesses a C-List row that holds a NULL (all-zero) Golden Token. |
+| **RPN** | Pet Name Coverage | Every C-List row referenced by code must have a corresponding pet name in the sidecar. |
 | **RSM** | Stub Method | Detects methods whose entire body is a single bare `RETURN` with no implementation. Flagged as amber warnings in the Content sub-tab. |
 
 Failures at R0–RFS are hard errors; RMC–RPN are reported as warnings that block merge (enforced by `tests/lump/test_lump_consistency.py` — 11 rules, R1–R11 in that file). RSM is advisory only.
