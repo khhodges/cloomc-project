@@ -5774,62 +5774,59 @@ MCMP DR15, DR3         ; Should be equal (Z=1)
 HALT`,
         'salvation': `; ============================================================
 ; Abstraction:  Salvation
-; Description:  First callable abstraction: proves LOAD+TPERM+CALL works
+; Description:  Boot entry points \u2014 demonstrates .main on all four
+;               system abstractions (Salvation, Navana, Mint, Memory)
 ; Author:       Church Machine Educational Platform
-; Version:      1.1
+; Version:      1.2
 ; Created:      2026-05-09
 ; Language:     Assembly
 ; Dependencies: None
 ; ============================================================
 ; Methods:
-;   1. main \u2014 LOAD Salvation, TPERM check, CALL \u2192 transitions to Navana
+;   1. main \u2014 LOAD + TPERM + CALL .main for each boot abstraction
 ; ============================================================
 
 capabilities {
     Salvation E
+    Navana    E
+    Mint      E
+    Memory    E
 }
 
 ; ============================================
-; Salvation \u2014 First Callable Abstraction
-; Proves CALL works, transitions to Navana
-; ============================================
-;
-; Salvation is NS[4] \u2014 the first abstraction
-; that can be CALLed. It proves:
-;   1. LOAD works (namespace lookup)
-;   2. TPERM works (permission check)
-;   3. LAMBDA works (Church reduction)
-; Then transitions to Navana (does not RETURN).
-; Navana runs indefinitely as namespace controller.
-;
-; ── Named method selectors, dot-notation form (recommended) ──────────
-;
-;   LOAD CR0, Salvation       ; two-operand shorthand  — resolves NS[4] by name
-;   CALL Salvation.main       ; named method selectors — assembler encodes method index for you
-;
-; Equivalent raw form (slot / offset numbers explicit):
-;
-;   LOAD CR0, CR6, 4          ; CR6 = boot C-List; slot 4 = Salvation
-;   CALL CR0, 0xF             ; 0xF = method-offset index for main
-;
-; Both forms produce identical machine code.  Use two-operand shorthand and
-; named method selectors in new code — they stay correct even if NS slots are renumbered.
+; Boot Abstraction Entry Points
+; Each boot-level abstraction exposes a named
+; 'main' selector \u2014 the canonical entry point.
+; Use dot-notation: CALL AbstrName.main
+; The assembler resolves the method index for
+; you so code stays correct if selectors change.
 ; ============================================
 
-; --- Load Salvation abstraction (two-operand shorthand) ---
-LOAD CR0, Salvation    ; CR0 = Salvation (E)  — equiv: LOAD CR0, CR6, 4
+; \u2500\u2500 Salvation \u2014 NS[4], 'main' at index 14 (selector 0xF) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+; GT guardian: issues, revokes, transfers, and audits GTs.
+; Transitions to Navana (does not RETURN).
+LOAD CR0, Salvation    ; CR0 = Salvation (E)
 TPERM CR0, E           ; Verify E permission
+CALL Salvation.main    ; selector 0xF \u2014 equiv: CALL CR0, 15
 
-; --- CALL Salvation (named method selectors) ---
-; CALL AbstrName.Method resolves the method index automatically via loaded-CR resolution.
-; Equivalent raw form: CALL CR0, 0xF
-CALL Salvation.main    ; enter Salvation — named method selectors encode method index (0xF)
-; Salvation transitions to Navana (no RETURN)
-; Navana runs indefinitely managing all abstractions
+; \u2500\u2500 Navana \u2014 NS[5], 'main' at index 7 (selector 8) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+; Namespace guardian: allocates, releases, resolves NS slots.
+; Runs indefinitely as namespace controller.
+LOAD CR1, Navana       ; CR1 = Navana (E)
+TPERM CR1, E           ; Verify E permission
+CALL Navana.main       ; selector 8 \u2014 equiv: CALL CR1, 8
 
-; --- Navana is now in control ---
-; Navana manages: IDS, abstraction lifecycle,
-; system health monitoring. It does not RETURN.
+; \u2500\u2500 Mint \u2014 NS[6], 'main' at index 4 (selector 5) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+; GT issuance: encodes GTs with bounded permissions.
+LOAD CR2, Mint         ; CR2 = Mint (E)
+TPERM CR2, E           ; Verify E permission
+CALL Mint.main         ; selector 5 \u2014 equiv: CALL CR2, 5
+
+; \u2500\u2500 Memory \u2014 NS[7], 'main' at index 5 (selector 6) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+; RAM zone guardian: allocates and releases memory regions.
+LOAD CR3, Memory       ; CR3 = Memory (E)
+TPERM CR3, E           ; Verify E permission
+CALL Memory.main       ; selector 6 \u2014 equiv: CALL CR3, 6
 
 HALT
 `,

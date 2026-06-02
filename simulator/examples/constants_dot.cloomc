@@ -1,7 +1,7 @@
 ; ============================================================
 ; Abstraction:  ConstantsDot
-; Description:  Recommended dot-notation style — CALL AbstrName.Method
-;               and ELOADCALL CRd, AbstrName, Method
+; Description:  Named method selectors (dot-notation form) — CALL AbstrName.Method
+;               and ELOADCALL with two-operand shorthand + named method selectors
 ; Author:       Church Machine Educational Platform
 ; Version:      1.1
 ; Created:      2026-05-12
@@ -15,11 +15,11 @@ capabilities {
 
 ; TWO recommended calling styles are shown here:
 ;
-;   Style A — two-step (LOAD then CALL dot-notation):
+;   Style A — two-step (two-operand shorthand LOAD, then CALL with named method selectors):
 ;     LOAD   CR11, Constants      ; bind CR11 to the abstraction
 ;     CALL   Constants.Pi         ; call method by name via CR11
 ;
-;   Style B — fused single instruction (ELOADCALL dot-notation):
+;   Style B — fused single instruction (ELOADCALL two-operand shorthand + named method selectors):
 ;     ELOADCALL CR8, Constants, Pi    ; load + TPERM + call in one op
 ;
 ; Both styles resolve method names automatically from

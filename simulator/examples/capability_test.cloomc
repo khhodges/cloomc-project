@@ -14,7 +14,7 @@
 ;   4. test4_conditional — LOADEQ/LOADNE conditional loads
 ;   5. test5_switch — SWITCH register swap
 ;   6. test6_turing — IADD, ISUB, MCMP, SHL, SHR arithmetic
-;   7. test7_call — CALL Salvation via dot-notation
+;   7. test7_call — CALL Salvation via named method selectors
 ;   8. test8_eloadcall — ELOADCALL fused Load+TPERM+Call
 ; ============================================================
 
@@ -33,7 +33,7 @@ capabilities {
 ; Boot must complete before assembling
 ; ============================================
 ;
-; Dot-notation style is used throughout (recommended).
+; Two-operand shorthand and named method selectors are used throughout (recommended).
 ; Each line shows the raw equivalent in the trailing comment.
 ;
 ; Boot C-List layout (indices into the boot thread's c-list; NS slot in parens):
@@ -42,7 +42,7 @@ capabilities {
 ;   [6] Mint (E) [7] Memory (E)
 ;   [8] LED (RW) [9] UART (RW) [10] BTN (R) [11] TIMER (RW)
 
-; --- TEST 1: LOAD system abstractions (dot-notation) ---
+; --- TEST 1: LOAD system abstractions (two-operand shorthand) ---
 LOAD CR0, Salvation    ; CR0 = Salvation (E)   — equiv: LOAD CR0, CR6, 4
 LOAD CR1, Navana       ; CR1 = Navana    (E)   — equiv: LOAD CR1, CR6, 5
 LOAD CR2, Mint         ; CR2 = Mint      (E)   — equiv: LOAD CR2, CR6, 6
@@ -59,7 +59,7 @@ TPERM CR5, RW          ; UART has R+W? PASS (Z=1)
 ; --- TEST 3: TPERM failure ---
 TPERM CR0, L           ; Salvation has L? FAIL (Z=0)
 
-; --- TEST 4: Conditional execution (dot-notation) ---
+; --- TEST 4: Conditional execution (two-operand shorthand) ---
 ; Z=0 from failed TPERM above
 LOADEQ CR0, Navana     ; SKIP (Z=0, not equal)    — equiv: LOADEQ CR0, CR6, 5
 LOADNE CR0, Salvation  ; EXEC (Z=0, is not-equal) — equiv: LOADNE CR0, CR6, 4
@@ -79,11 +79,11 @@ IADD DR4, DR0, #1      ; DR4 = 1
 SHL DR4, DR4, 3        ; DR4 = 8
 SHR DR4, DR4, 1        ; DR4 = 4
 
-; --- TEST 7: CALL (dot-notation) ---
+; --- TEST 7: CALL (named method selectors) ---
 LOAD CR0, Salvation    ; CR0 = Salvation          — equiv: LOAD CR0, CR6, 4
 CALL Salvation.main    ; enter Salvation (atomic) — equiv: CALL CR0, 0xF
 
-; --- TEST 8: ELOADCALL - fused Load+TPERM+Call (dot-notation) ---
+; --- TEST 8: ELOADCALL - fused Load+TPERM+Call (two-operand shorthand + named method selectors) ---
 ELOADCALL CR0, Salvation, main  ; Load + E check + call — equiv: ELOADCALL CR0, CR6, 4
 
 ; --- All tests complete ---

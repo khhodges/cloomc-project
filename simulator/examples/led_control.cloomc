@@ -27,9 +27,9 @@ capabilities { LED0 RW }
 ;    LED strip: LED0 (green) toggles with each
 ;    DWRITE, exactly as on the physical board.
 ;
-; ── Dot-notation load style (recommended) ───────────────────
+; ── Two-operand shorthand for LOAD (recommended) ────────────
 ;
-;   LOAD CR3, LED0            ; named load — resolves by device name
+;   LOAD CR3, LED0            ; two-operand shorthand — resolves by device name
 ;
 ; Equivalent raw form (slot number explicit):
 ;
@@ -39,8 +39,8 @@ capabilities { LED0 RW }
 ; is preferred: it stays correct if the boot C-List is renumbered.
 ;
 ; LED0 is a device GT (W-perm only) — it is accessed with DWRITE,
-; not CALL.  Device GTs have no callable methods, so dot-notation
-; CALL does not apply here; dot-notation LOAD is still recommended.
+; not CALL.  Device GTs have no callable methods, so named method selectors
+; do not apply here; two-operand shorthand for LOAD is still recommended.
 ;
 ; Path: LOAD CR3, LED0   → resolves LED0 → C-List[8] → LED_DEV GT
 ;       DWRITE DR1, CR3, 0 → LED0 on
@@ -50,7 +50,7 @@ capabilities { LED0 RW }
 ; per phase → 1 Hz blink total.
 ; ============================================
 
-; --- Load LED0 Abstract GT from the boot C-List (dot-notation) ---
+; --- Load LED0 Abstract GT from the boot C-List (two-operand shorthand) ---
 ; Named load: equiv. to raw form  LOAD CR3, CR6, 8
 LOAD CR3, LED0            ; LED0 Abstract GT → CR3 (boot C-List slot 8)
 

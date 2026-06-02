@@ -301,17 +301,17 @@ class AbstractionRegistry {
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(5, 'Navana', 1,
-            ['Create', 'Release', 'Find', 'Update', 'Manage', 'Monitor', 'IDS'],
+            ['Create', 'Release', 'Find', 'Update', 'Manage', 'Monitor', 'IDS', 'main'],
             'Namespace slot guardian — allocates, releases, and resolves NS slots; keeps the namespace table consistent. Callers supply a PassKey GT to authenticate and bill slot operations. Runs indefinitely (does not RETURN).',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(6, 'Mint', 1,
-            ['Encode', 'Revoke', 'Transfer', 'Create'],
+            ['Encode', 'Revoke', 'Transfer', 'Create', 'main'],
             'GT issuance — encodes GTs with bounded permissions (domain purity + E-isolation enforced); Create is the legacy alias for Encode',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 
         this.createAbstraction(7, 'Memory', 1,
-            ['Create', 'Release', 'Find', 'Resize', 'Claim'],
+            ['Create', 'Release', 'Find', 'Resize', 'Claim', 'main'],
             'Physical RAM zone guardian — allocates and releases memory regions (lumps) within the namespace RAM zone. Every operation requires a PassKey GT to authenticate the caller and bill memory usage against it.',
             { author: 'SIPantic', version: '1.0.0', perms: { R: 0, W: 0, X: 0, L: 0, S: 0, E: 1 } });
 

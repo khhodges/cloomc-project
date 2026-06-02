@@ -4731,6 +4731,178 @@ const SALVATION_NS_BC = { 'Salvation': 4 };
     }
 }
 
+// ── BC103–BC108: Navana.main, Mint.main, Memory.main (task-1698) ─────────────
+//
+// Navana  NS slot 5 — 'main' at method index 7  → 1-based selector 8
+// Mint    NS slot 6 — 'main' at method index 4  → 1-based selector 5
+// Memory  NS slot 7 — 'main' at method index 5  → 1-based selector 6
+
+const NAVANA_CONV_BC = {
+    'Navana': {
+        'Create':  { index: 0 },
+        'Release': { index: 1 },
+        'Find':    { index: 2 },
+        'Update':  { index: 3 },
+        'Manage':  { index: 4 },
+        'Monitor': { index: 5 },
+        'IDS':     { index: 6 },
+        'main':    { index: 7 },
+    }
+};
+const NAVANA_NS_BC = { 'Navana': 5 };
+
+{
+    // BC103: CALL Navana.main — dot-notation CALL, imm=8 (index 7, 1-based)
+    const a = new ChurchAssembler(NAVANA_CONV_BC);
+    a.setNamespace(NAVANA_NS_BC);
+    const r = a.assemble('LOAD CR0, Navana\nCALL Navana.main\nHALT');
+    assert('BC103 CALL Navana.main — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC103 CALL Navana.main emits 3 words (LOAD + CALL + HALT)',
+        r.words.length === 3, `got ${r.words.length}`);
+    {
+        const w      = r.words[1] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x3FFF;
+        assert('BC103 CALL Navana.main word[1] — opcode=2 (CALL)',
+            opcode === 2, `got opcode=${opcode}`);
+        assert('BC103 CALL Navana.main word[1] — imm=8 (main index 7, 1-based)',
+            imm === 8, `got imm=${imm}`);
+    }
+}
+
+{
+    // BC104: ELOADCALL CR0, Navana, main — method=8 (index 7, 1-based), row=5
+    const a = new ChurchAssembler(NAVANA_CONV_BC);
+    a.setNamespace(NAVANA_NS_BC);
+    const r = a.assemble('ELOADCALL CR0, Navana, main\nHALT');
+    assert('BC104 ELOADCALL CR0, Navana, main — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC104 ELOADCALL CR0, Navana, main emits 2 words (ELOADCALL + HALT)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w      = r.words[0] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const row    = w & 0xFF;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC104 ELOADCALL CR0, Navana, main — opcode=8 (ELOADCALL)',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC104 ELOADCALL CR0, Navana, main — row=5 (Navana NS slot)',
+            row === 5, `got row=${row}`);
+        assert('BC104 ELOADCALL CR0, Navana, main — method=8 (main index 7, 1-based)',
+            method === 8, `got method=${method}`);
+    }
+}
+
+const MINT_CONV_BC = {
+    'Mint': {
+        'Encode':   { index: 0 },
+        'Revoke':   { index: 1 },
+        'Transfer': { index: 2 },
+        'Create':   { index: 3 },
+        'main':     { index: 4 },
+    }
+};
+const MINT_NS_BC = { 'Mint': 6 };
+
+{
+    // BC105: CALL Mint.main — dot-notation CALL, imm=5 (index 4, 1-based)
+    const a = new ChurchAssembler(MINT_CONV_BC);
+    a.setNamespace(MINT_NS_BC);
+    const r = a.assemble('LOAD CR0, Mint\nCALL Mint.main\nHALT');
+    assert('BC105 CALL Mint.main — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC105 CALL Mint.main emits 3 words (LOAD + CALL + HALT)',
+        r.words.length === 3, `got ${r.words.length}`);
+    {
+        const w      = r.words[1] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x3FFF;
+        assert('BC105 CALL Mint.main word[1] — opcode=2 (CALL)',
+            opcode === 2, `got opcode=${opcode}`);
+        assert('BC105 CALL Mint.main word[1] — imm=5 (main index 4, 1-based)',
+            imm === 5, `got imm=${imm}`);
+    }
+}
+
+{
+    // BC106: ELOADCALL CR0, Mint, main — method=5 (index 4, 1-based), row=6
+    const a = new ChurchAssembler(MINT_CONV_BC);
+    a.setNamespace(MINT_NS_BC);
+    const r = a.assemble('ELOADCALL CR0, Mint, main\nHALT');
+    assert('BC106 ELOADCALL CR0, Mint, main — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC106 ELOADCALL CR0, Mint, main emits 2 words (ELOADCALL + HALT)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w      = r.words[0] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const row    = w & 0xFF;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC106 ELOADCALL CR0, Mint, main — opcode=8 (ELOADCALL)',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC106 ELOADCALL CR0, Mint, main — row=6 (Mint NS slot)',
+            row === 6, `got row=${row}`);
+        assert('BC106 ELOADCALL CR0, Mint, main — method=5 (main index 4, 1-based)',
+            method === 5, `got method=${method}`);
+    }
+}
+
+const MEMORY_CONV_BC = {
+    'Memory': {
+        'Create':  { index: 0 },
+        'Release': { index: 1 },
+        'Find':    { index: 2 },
+        'Resize':  { index: 3 },
+        'Claim':   { index: 4 },
+        'main':    { index: 5 },
+    }
+};
+const MEMORY_NS_BC = { 'Memory': 7 };
+
+{
+    // BC107: CALL Memory.main — dot-notation CALL, imm=6 (index 5, 1-based)
+    const a = new ChurchAssembler(MEMORY_CONV_BC);
+    a.setNamespace(MEMORY_NS_BC);
+    const r = a.assemble('LOAD CR0, Memory\nCALL Memory.main\nHALT');
+    assert('BC107 CALL Memory.main — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC107 CALL Memory.main emits 3 words (LOAD + CALL + HALT)',
+        r.words.length === 3, `got ${r.words.length}`);
+    {
+        const w      = r.words[1] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const imm    = w & 0x3FFF;
+        assert('BC107 CALL Memory.main word[1] — opcode=2 (CALL)',
+            opcode === 2, `got opcode=${opcode}`);
+        assert('BC107 CALL Memory.main word[1] — imm=6 (main index 5, 1-based)',
+            imm === 6, `got imm=${imm}`);
+    }
+}
+
+{
+    // BC108: ELOADCALL CR0, Memory, main — method=6 (index 5, 1-based), row=7
+    const a = new ChurchAssembler(MEMORY_CONV_BC);
+    a.setNamespace(MEMORY_NS_BC);
+    const r = a.assemble('ELOADCALL CR0, Memory, main\nHALT');
+    assert('BC108 ELOADCALL CR0, Memory, main — no errors',
+        a.errors.length === 0, a.errors.map(e => e.message).join('; '));
+    assert('BC108 ELOADCALL CR0, Memory, main emits 2 words (ELOADCALL + HALT)',
+        r.words.length === 2, `got ${r.words.length}`);
+    {
+        const w      = r.words[0] >>> 0;
+        const opcode = (w >>> 27) & 0x1F;
+        const row    = w & 0xFF;
+        const method = (w >>> 8) & 0x7F;
+        assert('BC108 ELOADCALL CR0, Memory, main — opcode=8 (ELOADCALL)',
+            opcode === 8, `got opcode=${opcode}`);
+        assert('BC108 ELOADCALL CR0, Memory, main — row=7 (Memory NS slot)',
+            row === 7, `got row=${row}`);
+        assert('BC108 ELOADCALL CR0, Memory, main — method=6 (main index 5, 1-based)',
+            method === 6, `got method=${method}`);
+    }
+}
+
 // ── EX1–EX19: Assembly example smoke tests (task-1063) ───────────────────────
 // End-to-end tests verifying each assembly example in LANG_EXAMPLE_GROUPS.assembly
 // (simulator/app-compile.js) assembles without errors.  Sources are mirrored
