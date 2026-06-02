@@ -28,15 +28,28 @@ Efinity IDE is the official Efinix toolchain; it cannot be replaced by yosys/nex
 production synthesis on EFT90A silicon.
 
 1. Download from <https://www.efinixinc.com/efinity-ide>
-2. Run the installer on your local machine (Linux / Windows / macOS)
-3. Register a licence — a 30-day evaluation licence is available at no cost
-4. Add the Efinity `bin/` directory to your shell `PATH`:
+2. Extract the tarball side-by-side with any existing version (Linux example):
    ```bash
-   export PATH="/path/to/efinity/bin:$PATH"
+   # Peek inside to confirm the top-level directory structure
+   tar -tjf efinity-2026.1.132-linux-x64.tar.bz2 | head -5
+
+   # Extract into ~/efinity/2026.1/ alongside any existing 2025.x install
+   mkdir -p ~/efinity/2026.1
+   tar -xjf efinity-2026.1.132-linux-x64.tar.bz2 \
+       --strip-components=1 \
+       -C ~/efinity/2026.1/
+   ```
+   Result: `~/efinity/2025.2/` and `~/efinity/2026.1/` coexist independently.
+3. Register a licence — a 30-day evaluation licence is available at no cost
+4. Activate the version you want by sourcing its `setup.sh`:
+   ```bash
+   source ~/efinity/2026.1/bin/setup.sh   # use 2026.1
+   # source ~/efinity/2025.2/bin/setup.sh   # fallback to 2025.2 if needed
    ```
 5. Verify:
    ```bash
-   efinity --version
+   efx_map --version    # should print  2026.1.132
+   efx_pnr --version    # confirm P&R tool also shows 2026.1
    ```
 
 #### ChromeOS / Crostini / Penguin (Linux container on Chromebook)
