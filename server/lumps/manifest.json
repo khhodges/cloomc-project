@@ -2073,55 +2073,52 @@
   {
     "token": "97cc8047",
     "abstraction": "Human_Hand",
-    "filename": "Human_Hand_v6.lump",
-    "sidecar_file": "Human_Hand_v6.json",
+    "filename": "Human_Hand_v7.lump",
+    "sidecar_file": "Human_Hand_v7.json",
     "ns_slot": null,
     "lump_size": 64,
-    "cw": 12,
+    "cw": 6,
     "cc": 1,
-    "author": "",
-    "version": "2026.05.31",
-    "lump_version": 6,
-    "compiled_at": 1780318117.0106127,
+    "lump_version": 7,
+    "compiled_at": 1780398518.403827,
+    "status": "wip",
     "methods": [
       {
-        "length": 2,
         "name": "Status",
-        "offset": 0
+        "offset": 0,
+        "length": 1,
+        "description": "Return the status"
       },
       {
-        "aliasOf": "Status",
-        "length": 2,
         "name": "Close_Fist",
-        "offset": 2
+        "offset": 1,
+        "length": 1,
+        "description": "Close all fingers"
       },
       {
-        "aliasOf": "Status",
-        "length": 2,
         "name": "Open_Hand",
-        "offset": 4
+        "offset": 2,
+        "length": 1,
+        "description": "Extend all fingers"
       },
       {
-        "aliasOf": "Status",
-        "length": 2,
         "name": "Grip",
-        "offset": 6
+        "offset": 3,
+        "length": 1,
+        "description": "Close as a fist"
       },
       {
-        "aliasOf": "Status",
-        "length": 2,
         "name": "Point",
-        "offset": 8
+        "offset": 4,
+        "length": 1,
+        "description": "Point with forefinger"
       },
       {
-        "aliasOf": "Status",
-        "length": 2,
         "name": "Count",
-        "offset": 10
+        "offset": 5,
+        "length": 1,
+        "description": "Display fingers as a number"
       }
-    ],
-    "grants": [
-      "E"
     ]
   }
 ]

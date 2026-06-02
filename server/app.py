@@ -4710,6 +4710,198 @@ def save_lump():
         resp["boot_image_note"] = boot_refresh_note
     return jsonify(resp)
 
+@app.route("/api/lumps/save-wip", methods=["POST"])
+def save_lump_wip():
+    """Save a WIP (work-in-progress) LUMP skeleton — no compiled code yet.
+
+    Called by the /start page 'Code Edit →' button.  Creates a minimal stub
+    binary (one RETURN per declared method) + a sidecar JSON with status='wip'
+    and the CLOOMC++ source text embedded.  Subsequent compile-and-save will
+    overwrite the live binary and clear the wip status.
+
+    Body JSON:
+      name        – abstraction name (required)
+      source      – CLOOMC++ skeleton text
+      description – one-line description
+      methods     – [{name, desc, deps}, ...]
+      token       – existing 8-hex token (optional; omit for new abstractions)
+
+    Response: { ok, token, version, filename, sidecar }
+    """
+    import re as _re_wip
+    import datetime as _dt_wip
+    import hashlib as _hl_wip
+    import shutil as _sh_wip
+
+    payload     = request.get_json(force=True, silent=True) or {}
+    abs_name    = (payload.get('name') or '').strip()
+    source_text = payload.get('source', '')
+    description = payload.get('description', '')
+    methods_in  = payload.get('methods') or []
+    token_hint  = (payload.get('token') or '').strip().lower()
+
+    if not abs_name:
+        return jsonify({'error': 'name is required'}), 400
+
+    def _safe_stem_wip(name):
+        s = _re_wip.sub(r'[^\w.\-]', '_', str(name).strip())
+        return _re_wip.sub(r'_+', '_', s).strip('_') or 'lump'
+
+    safe_name = _safe_stem_wip(abs_name)
+
+    if token_hint and _re_wip.fullmatch(r'[0-9a-f]{8}', token_hint):
+        token8 = token_hint
+    else:
+        token8 = _hl_wip.sha256(abs_name.encode()).hexdigest()[:8]
+
+    # ── Load manifest ─────────────────────────────────────────────────────────
+    lumps_dir     = os.path.join(os.path.dirname(__file__), 'lumps')
+    os.makedirs(lumps_dir, exist_ok=True)
+    manifest_path = os.path.join(lumps_dir, 'manifest.json')
+    manifest = []
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path) as fh:
+                manifest = json.load(fh)
+        except Exception:
+            manifest = []
+
+    existing_entry = next((e for e in manifest if e.get('token') == token8), None)
+
+    # ── Determine next version ────────────────────────────────────────────────
+    cur_version = None
+    if existing_entry:
+        v = existing_entry.get('lump_version')
+        if v is not None:
+            cur_version = int(v)
+    if cur_version is None:
+        _av = []
+        for _fn in (os.listdir(lumps_dir) if os.path.isdir(lumps_dir) else []):
+            for _pp in [
+                _re_wip.compile(rf'^{_re_wip.escape(safe_name)}_v(\d+)\.(lump|json)$'),
+                _re_wip.compile(rf'^{_re_wip.escape(token8)}-v(\d+)\.lump$'),
+            ]:
+                _mm = _pp.match(_fn)
+                if _mm:
+                    _av.append(int(_mm.group(1)))
+        cur_version = max(_av) if _av else 0
+
+    next_version     = cur_version + 1
+    lump_filename    = f'{safe_name}_v{next_version}.lump'
+    sidecar_filename = f'{safe_name}_v{next_version}.json'
+    lump_path        = os.path.join(lumps_dir, lump_filename)
+    sidecar_path     = os.path.join(lumps_dir, sidecar_filename)
+
+    # ── Archive previous live files ───────────────────────────────────────────
+    if existing_entry:
+        _prev_fn  = existing_entry.get('filename',     f'{token8}.lump')
+        _prev_sfn = existing_entry.get('sidecar_file', f'{token8}.json')
+        _prev_lp  = os.path.join(lumps_dir, _prev_fn)
+        _prev_sp  = os.path.join(lumps_dir, _prev_sfn)
+        _arch_lp  = os.path.join(lumps_dir, f'{safe_name}_v{cur_version}.lump')
+        _arch_sp  = os.path.join(lumps_dir, f'{safe_name}_v{cur_version}.json')
+        if os.path.isfile(_prev_lp) and os.path.abspath(_prev_lp) != os.path.abspath(_arch_lp):
+            _sh_wip.copy2(_prev_lp, _arch_lp)
+            logging.info('[lumps] WIP archive: %s → %s', _prev_fn, f'{safe_name}_v{cur_version}.lump')
+        if os.path.isfile(_prev_sp) and os.path.abspath(_prev_sp) != os.path.abspath(_arch_sp):
+            _sh_wip.copy2(_prev_sp, _arch_sp)
+
+    # ── Build stub binary ─────────────────────────────────────────────────────
+    RETURN_AL = 0x1F000000   # RETURN with AL condition (matches _build_lazy_lumps)
+    n_methods = max(1, len(methods_in))
+    cw        = n_methods    # one RETURN stub per method
+    cc        = 1            # self capability placeholder (NULL GT)
+    n_m6      = 0            # 64-word lump (minimum)
+    lump_size = 64
+
+    _wip_words = [0] * lump_size
+    _wip_words[0] = _pack_lump_header(n_minus_6=n_m6, cw=cw, cc=cc, typ=0)
+    for _i in range(cw):
+        _wip_words[1 + _i] = RETURN_AL
+    # c-list slot 0 at position lump_size-1 = NULL GT placeholder
+    _wip_words[lump_size - 1] = 0
+
+    lump_bytes = _struct.pack(f'>{lump_size}I', *[int(w) & 0xFFFFFFFF for w in _wip_words])
+    with open(lump_path, 'wb') as fh:
+        fh.write(lump_bytes)
+
+    # ── Build sidecar methods list ────────────────────────────────────────────
+    sidecar_methods = []
+    for _mi, _m in enumerate(methods_in):
+        _entry = {
+            'name':   (_m.get('name') or '').strip(),
+            'offset': _mi,
+            'length': 1,
+        }
+        _desc = (_m.get('desc') or '').strip()
+        if _desc:
+            _entry['description'] = _desc
+        sidecar_methods.append(_entry)
+
+    # ── Write sidecar JSON ────────────────────────────────────────────────────
+    import datetime as _dtwip
+    now_ts  = _dtwip.datetime.utcnow().timestamp()
+    sidecar = {
+        'token':        token8,
+        'abstraction':  abs_name,
+        'filename':     lump_filename,
+        'sidecar_file': sidecar_filename,
+        'ns_slot':      None,
+        'lump_size':    lump_size,
+        'typ':          0,
+        'content_type': 'code',
+        'cw':           cw,
+        'cc':           cc,
+        'status':       'wip',
+        'source':       source_text,
+        'description':  description,
+        'methods':      sidecar_methods,
+        'capabilities': [{'name': 'self', 'rights': ['E'], 'grants': ['E'], 'nsIndex': -1}],
+        'pet_names':    {'DR': {}, 'CR': {}},
+        'mtbf':         {'consecutive_clean': 0, 'total_runs': 0, 'status': 'unknown'},
+        'lump_version': next_version,
+        'compiled_at':  now_ts,
+    }
+    with open(sidecar_path, 'w') as fh:
+        json.dump(sidecar, fh, indent=2)
+
+    # ── Update manifest ───────────────────────────────────────────────────────
+    new_entry = {
+        'token':        token8,
+        'abstraction':  abs_name,
+        'filename':     lump_filename,
+        'sidecar_file': sidecar_filename,
+        'ns_slot':      None,
+        'lump_size':    lump_size,
+        'cw':           cw,
+        'cc':           cc,
+        'lump_version': next_version,
+        'compiled_at':  now_ts,
+        'status':       'wip',
+        'methods':      sidecar_methods,
+    }
+    manifest = [e for e in manifest if e.get('token') != token8]
+    manifest.append(new_entry)
+    with open(manifest_path, 'w') as fh:
+        json.dump(manifest, fh, indent=2)
+
+    # Cache binary in LAZY_LUMPS so it can be served immediately
+    try:
+        LAZY_LUMPS[token8] = lump_bytes
+    except Exception:
+        pass
+
+    logging.info('[lumps] WIP saved: %s v%d → %s', abs_name, next_version, lump_filename)
+    return jsonify({
+        'ok':      True,
+        'token':   token8,
+        'version': next_version,
+        'filename':  lump_filename,
+        'sidecar':   sidecar_filename,
+        'status':  'wip',
+    })
+
+
 @app.route("/api/lumps/list")
 def list_lumps():
     """Return JSON array of all saved lumps with lean sidecar metadata.

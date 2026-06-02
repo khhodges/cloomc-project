@@ -14,7 +14,8 @@ var _hexRowIdx   = 0;
 var _lessonPhase = 1;
 var _methodCount  = 0;
 
-var _L5_DRAFT_KEY = 'church_l5_draft';
+var _L5_DRAFT_KEY   = 'church_l5_draft';
+var _l5ImportToken  = '';   // token of the LUMP imported via "Import ↓", if any
 
 function _saveL5Draft() {
     try {
@@ -507,6 +508,9 @@ function starterImportLump() {
     var lump = _l5LumpCatalog[parseInt(sel.value, 10)];
     if (!lump) return;
 
+    // Remember token so Code Edit → can save as a new version of this LUMP
+    _l5ImportToken = lump.token || '';
+
     // Name
     var nameEl = _el('absName');
     if (nameEl) nameEl.value = lump.abstraction || '';
@@ -684,6 +688,32 @@ function starterOpenEditor() {
         localStorage.setItem('church_editor_code', code);
         localStorage.setItem('church_editor_lang', 'cloomc');
     } catch (e) {}
+
+    // ── Step 1: Save WIP skeleton to server as a new LUMP version ────────────
+    // Fire-and-forget — navigation happens regardless of server response.
+    try {
+        var _wipMethods = methods.map(function(m) {
+            return { name: m.name, desc: m.desc, deps: m.deps };
+        });
+        fetch('/api/lumps/save-wip', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                name:        name,
+                source:      code,
+                description: desc,
+                methods:     _wipMethods,
+                token:       _l5ImportToken || '',
+            }),
+        }).then(function(r) { return r.json(); })
+          .then(function(d) {
+              if (d && d.ok) {
+                  try { localStorage.setItem('church_wip_token', d.token); } catch (e2) {}
+                  console.log('[starter] WIP saved: ' + d.filename + ' (v' + d.version + ')');
+              }
+          })
+          .catch(function() {});
+    } catch (e3) {}
 
     // Clear the Lesson 5 draft so the beforeunload handler doesn't fire
     // a popup when navigating to the editor. The code is already saved.
