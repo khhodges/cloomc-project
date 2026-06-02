@@ -31,12 +31,18 @@ production synthesis on EFT90A silicon.
 2. Extract the tarball side-by-side with any existing version (Linux example):
    ```bash
    # Peek inside to confirm the top-level directory structure
-   tar -tjf efinity-2026.1.132-linux-x64.tar.bz2 | head -5
+   tar -tjf /mnt/shared/MyFiles/Downloads/efinity-2026.1.132-linux-x64.tar.bz2 | head -5
+   # Expected output:
+   #   efinity/2026.1/
+   #   efinity/2026.1/lib/
+   #   ...
+   # The tarball has TWO levels (efinity/ then 2026.1/) before the actual content,
+   # so --strip-components=2 is required.
 
    # Extract into ~/efinity/2026.1/ alongside any existing 2025.x install
    mkdir -p ~/efinity/2026.1
    tar -xjf /mnt/shared/MyFiles/Downloads/efinity-2026.1.132-linux-x64.tar.bz2 \
-       --strip-components=1 \
+       --strip-components=2 \
        -C ~/efinity/2026.1/
    ```
    Result: `~/efinity/2025.2/` and `~/efinity/2026.1/` coexist independently.
