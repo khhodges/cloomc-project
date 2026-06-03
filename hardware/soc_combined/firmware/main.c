@@ -187,9 +187,16 @@ void main(void)
 {
     /*
      * Step 1 — UART baud rate.
-     * Ti60F225 crystal: 50 MHz.  sapphire.v resets clockDivider to 0x35 = 53.
-     * 50 MHz / (8 × 54) = 115,740 baud ≈ 115,200 — no override required.
+     * Ti60F225 crystal: 50 MHz.
+     * Formula: baudRate = ClkIn / (8 × (clockDivider + 1))
+     *   → clockDivider = (50 000 000 / (8 × 115 200)) − 1 = 53.25 → 53
+     *   → actual baud  = 50 000 000 / (8 × 54) = 115 740 ≈ 115 200
+     *
+     * The Sapphire SoC UART resets clockDivider to 0x00, NOT 0x35.
+     * Without this write the UART runs at 50 MHz / 8 = 6.25 Mbaud and
+     * produces complete silence on any standard terminal.
      */
+    UART_CLOCKDIV = 53;
 
     /*
      * Step 2 — Greeting (uses compile-time UID constants so APB3 is not
