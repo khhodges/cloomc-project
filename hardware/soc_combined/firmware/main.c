@@ -98,7 +98,7 @@ static void uart_putc(char c)
      * 3000 loop iterations ≈ 240 µs @ 50 MHz — 2.8× margin.  The UART TX FIFO
      * (128 entries deep) therefore never overflows at this rate.
      */
-    UART_DATA = (uint32_t)(unsigned char)c;
+    UART_DATA = (1u << 8) | (uint32_t)(unsigned char)c;
     for (volatile uint32_t i = 0; i < 3000u; i++) __asm__("nop");
 }
 
