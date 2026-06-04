@@ -54,10 +54,10 @@
 #define UART_DATA       (*(volatile uint32_t *)(UART_BASE + 0x00))
 #define UART_STATUS     (*(volatile uint32_t *)(UART_BASE + 0x04))
 #define UART_CLOCKDIV   (*(volatile uint32_t *)(UART_BASE + 0x08))
-/* Ti60F225 devkit crystal: 25 MHz at GPIOL_P_18.
- * Sapphire SoC runs at 25 MHz (no PLL doubling in this configuration).
+/* Ti60F225 devkit crystal: 50 MHz at GPIOL_P_18.
+ * Sapphire SoC PLL doubles this to 100 MHz (confirmed by UART baud measurement).
  * CLOCKDIV must be written explicitly — hardware resets it to 0x00.
- * 25 MHz / (8 × 27) = 115,740 baud ≈ 115,200.  Write CLOCKDIV=26. */
+ * 100 MHz / (8 × 54) = 231,481 baud ≈ 230,400.  Write CLOCKDIV=53. */
 
 /* ── Church Machine APB3 bridge registers ─────────────────────────────────── */
 /* IO_APB_SLAVE_0_INPUT = 0xF8100000 per generated soc.h (Sapphire SoC). */
@@ -77,10 +77,11 @@
 #define CM_CTRL_PRESSED   0u   /* push_button asserted */
 
 /* ── Timing ──────────────────────────────────────────────────────────────────
- * Clock: 50 MHz.  One NOP loop iteration ≈ 4 cycles (addi + bne overhead).
+ * Clock: 100 MHz (50 MHz crystal × 2 via Sapphire SoC PLL).
+ * One NOP loop iteration ≈ 4 cycles (addi + bne overhead).
  * LOOPS_PER_SECOND is a conservative estimate; adjust if timing is critical.
  */
-#define CLK_HZ          50000000UL
+#define CLK_HZ          100000000UL
 #define LOOPS_PER_SECOND (CLK_HZ / 4)
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -95,9 +96,9 @@ static void uart_putc(char c)
      * than guess, we write immediately and wait long enough for the transmitter
      * to finish before the next byte is written.
      *
-     * 115200 baud, 10 bits/char (8N1): 1 char = 86.8 µs = ~2170 cycles @ 25 MHz.
-     * 3000 loop iterations ≈ 120 µs @ 25 MHz — 1.38× margin.  The UART TX FIFO
-     * (128 entries deep) therefore never overflows at this rate.
+     * 230400 baud, 10 bits/char (8N1): 1 char = 43.4 µs = ~4340 cycles @ 100 MHz.
+     * 3000 loop iterations ≈ 12000 cycles @ 100 MHz = 120 µs — 2.76× margin.
+     * The UART TX FIFO (128 entries deep) therefore never overflows at this rate.
      */
     UART_DATA = (1u << 8) | (uint32_t)(unsigned char)c;
     for (volatile uint32_t i = 0; i < 3000u; i++) __asm__("nop");
@@ -188,17 +189,16 @@ void main(void)
 {
     /*
      * Step 1 — UART baud rate.
-     * Ti60F225 crystal: 25 MHz (Sapphire SoC runs without PLL doubling).
+     * Ti60F225 crystal: 50 MHz; Sapphire SoC PLL doubles to 100 MHz.
      * Formula: baudRate = ClkIn / (8 × (clockDivider + 1))
-     *   → clockDivider = (25 000 000 / (8 × 115 200)) − 1 = 26.13 → 26
-     *   → actual baud  = 25 000 000 / (8 × 27) = 115 740 ≈ 115 200
+     *   → clockDivider = (100 000 000 / (8 × 230 400)) − 1 = 53.25 → 53
+     *   → actual baud  = 100 000 000 / (8 × 54) = 231 481 ≈ 230 400
      *
      * The Sapphire SoC UART resets clockDivider to 0x00 on power-up.
-     * Without this write the UART runs at 25 MHz / 8 = 3.125 Mbaud and
+     * Without this write the UART runs at 100 MHz / 8 = 12.5 Mbaud and
      * produces complete silence on any standard terminal.
-     * 25 MHz / (8 × 27) = 115,740 baud ≈ 115,200.
      */
-    UART_CLOCKDIV = 26;
+    UART_CLOCKDIV = 53;
 
     /*
      * Step 2 — Greeting (uses compile-time UID constants so APB3 is not
