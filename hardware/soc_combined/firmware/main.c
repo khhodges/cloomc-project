@@ -54,9 +54,10 @@
 #define UART_DATA       (*(volatile uint32_t *)(UART_BASE + 0x00))
 #define UART_STATUS     (*(volatile uint32_t *)(UART_BASE + 0x04))
 #define UART_CLOCKDIV   (*(volatile uint32_t *)(UART_BASE + 0x08))
-/* Ti60F225 devkit crystal: 50 MHz at GPIOL_P_18.
- * sapphire.v resets clockDivider to 0x35 = 53.
- * 50 MHz / (8 × 54) = 115,740 baud ≈ 115,200.  No override needed. */
+/* Ti60F225 devkit crystal: 25 MHz at GPIOL_P_18.
+ * Sapphire SoC runs at 25 MHz (no PLL doubling in this configuration).
+ * CLOCKDIV must be written explicitly — hardware resets it to 0x00.
+ * 25 MHz / (8 × 27) = 115,740 baud ≈ 115,200.  Write CLOCKDIV=26. */
 
 /* ── Church Machine APB3 bridge registers ─────────────────────────────────── */
 /* IO_APB_SLAVE_0_INPUT = 0xF8100000 per generated soc.h (Sapphire SoC). */
@@ -187,16 +188,17 @@ void main(void)
 {
     /*
      * Step 1 — UART baud rate.
-     * Ti60F225 crystal: 50 MHz.
+     * Ti60F225 crystal: 25 MHz (Sapphire SoC runs without PLL doubling).
      * Formula: baudRate = ClkIn / (8 × (clockDivider + 1))
-     *   → clockDivider = (50 000 000 / (8 × 115 200)) − 1 = 53.25 → 53
-     *   → actual baud  = 50 000 000 / (8 × 54) = 115 740 ≈ 115 200
+     *   → clockDivider = (25 000 000 / (8 × 115 200)) − 1 = 26.13 → 26
+     *   → actual baud  = 25 000 000 / (8 × 27) = 115 740 ≈ 115 200
      *
-     * The Sapphire SoC UART resets clockDivider to 0x00, NOT 0x35.
-     * Without this write the UART runs at 50 MHz / 8 = 6.25 Mbaud and
+     * The Sapphire SoC UART resets clockDivider to 0x00 on power-up.
+     * Without this write the UART runs at 25 MHz / 8 = 3.125 Mbaud and
      * produces complete silence on any standard terminal.
+     * 25 MHz / (8 × 27) = 115,740 baud ≈ 115,200.
      */
-    UART_CLOCKDIV = 53;
+    UART_CLOCKDIV = 26;
 
     /*
      * Step 2 — Greeting (uses compile-time UID constants so APB3 is not
