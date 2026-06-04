@@ -95,8 +95,8 @@ static void uart_putc(char c)
      * than guess, we write immediately and wait long enough for the transmitter
      * to finish before the next byte is written.
      *
-     * 115200 baud, 10 bits/char (8N1): 1 char = 86.8 µs = ~4340 cycles @ 50 MHz.
-     * 3000 loop iterations ≈ 240 µs @ 50 MHz — 2.8× margin.  The UART TX FIFO
+     * 115200 baud, 10 bits/char (8N1): 1 char = 86.8 µs = ~2170 cycles @ 25 MHz.
+     * 3000 loop iterations ≈ 120 µs @ 25 MHz — 1.38× margin.  The UART TX FIFO
      * (128 entries deep) therefore never overflows at this rate.
      */
     UART_DATA = (1u << 8) | (uint32_t)(unsigned char)c;
