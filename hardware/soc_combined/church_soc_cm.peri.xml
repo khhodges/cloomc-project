@@ -53,7 +53,7 @@
             </efxpt:clkmux>
             <efxpt:clkmux name="CLKMUX_L" block_def="CLKMUX_L" is_mux_bot0_dyn="false" is_mux_bot7_dyn="false">
                 <efxpt:gen_pin>
-                    <efxpt:pin name="clk" type_name="ROUTE0"    is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name=""    type_name="ROUTE0"    is_bus="false" is_clk="true" is_clk_invert="false"/>
                     <efxpt:pin name="" type_name="ROUTE1"        is_bus="false" is_clk="true" is_clk_invert="false"/>
                     <efxpt:pin name="" type_name="ROUTE2"        is_bus="false" is_clk="true" is_clk_invert="false"/>
                     <efxpt:pin name="" type_name="ROUTE3"        is_bus="false" is_clk="true" is_clk_invert="false"/>
