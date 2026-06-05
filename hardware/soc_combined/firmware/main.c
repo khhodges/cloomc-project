@@ -210,6 +210,20 @@ void main(void)
     uart_puts("\r\n");
 
     /*
+     * Step 2b — 5-second hold so a late-connecting terminal can open
+     * before the first APB3 access.  Prints a countdown every second.
+     * This is pure UART; no APB3 is touched until Step 3.
+     */
+    uart_puts("CONNECT NOW — APB3 init in 5s\r\n");
+    for (uint32_t cd = 5; cd > 0; cd--) {
+        uart_puts("  T-");
+        uart_putc('0' + (char)cd);
+        uart_puts("\r\n");
+        delay_loops(LOOPS_PER_SECOND);
+    }
+    uart_puts("GO\r\n");
+
+    /*
      * Step 3 — First APB3 access: ensure CM push_button starts released.
      * CTRL is at offset 0x00, the lowest address in the APB slave window.
      * UID registers (0x10, 0x14) are skipped here; the compile-time
@@ -262,8 +276,15 @@ void main(void)
             uart_puts("CHURCH Ti60 SoC+CM v1.1\r\n");
         iter++;
 
+        /* Heartbeat BEFORE APB3 reads — visible even if reads hang */
+        uart_puts("HB=");
+        uart_puthex32(iter - 1);
+        uart_puts("\r\n");
+
         uint32_t nia    = CM_NIA;
+        uart_puts("NIA_READ_OK\r\n");
         uint32_t status = CM_STATUS;
+        uart_puts("STATUS_READ_OK\r\n");
 
         /* Human-readable NIA line (ttyUSB2 terminal) */
         uart_puts("NIA=");
