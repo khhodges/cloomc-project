@@ -375,7 +375,7 @@ Efinity installation:
 # Patch 1: clkmux_rule_adv.py — pll_reg=None crash
 python3 - << 'EOF'
 import re
-path = '/home/sipantichijk/efinity/2026.1/pt/bin/tx60_device/clock/clkmux_rule_adv.py'
+path = '/home/sipantichijk/efinity/2026.1/pt/bin/tx60_device/clock_mux/clkmux_rule_adv.py'
 with open(path,'r') as f: c = f.read()
 old = 'for clkmux_inst in pll_reg.get_all_pll():'
 new = 'for clkmux_inst in (pll_reg.get_all_pll() if pll_reg is not None else []):'
@@ -426,7 +426,7 @@ EOF
 
 # Verify all syntax OK
 for f in \
-  /home/sipantichijk/efinity/2026.1/pt/bin/tx60_device/clock/clkmux_rule_adv.py \
+  /home/sipantichijk/efinity/2026.1/pt/bin/tx60_device/clock_mux/clkmux_rule_adv.py \
   /home/sipantichijk/efinity/2026.1/pt/bin/tx60_device/clock/clock_rule_adv.py \
   /home/sipantichijk/efinity/2026.1/scripts/efx_run_pt_unified.py \
   /home/sipantichijk/efinity/2026.1/pt/bin/api_service/design.py; do
