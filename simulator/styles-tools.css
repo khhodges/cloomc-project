@@ -1189,8 +1189,17 @@
     align-items: center;
     gap: 1rem;
     margin-bottom: 1.2rem;
+    flex-wrap: nowrap;
 }
-.dev-header-left { flex: 1; }
+.dev-header-left { flex: 1; min-width: 0; }
+#devTabActionsDevices,
+#devTabActionsLaunch {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
 /* ── Device live-notification toasts ──────────────────────────────────────── */
 .device-toast-container {
     position: fixed;
@@ -1902,6 +1911,8 @@
     padding: 0.2rem 0;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.72rem;
+    border-top: 2px solid #c8a84b33;
+    box-shadow: inset 0 2px 8px #00000055;
 }
 .callhome-log-empty {
     padding: 0.6rem 0.8rem;
