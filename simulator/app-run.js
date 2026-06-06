@@ -10444,6 +10444,7 @@ function welcomeSkip() {
     closeWelcome();
 }
 
+const WHATS_NEW_VERSION = '2026-05-15';   // bump this when content changes, not on every deploy
 const WHATS_NEW_FEATURES = [
     {
         title: "Builder ZIP downloads fixed",
@@ -10577,7 +10578,7 @@ function closeWhatsNew() {
     if (dontShow && dontShow.checked) {
         localStorage.setItem('church_whatsnew_dismissed_perm', '1');
     }
-    localStorage.setItem('church_whatsnew_version', localStorage.getItem('churchMachine_bootId') || '');
+    localStorage.setItem('church_whatsnew_version', WHATS_NEW_VERSION);
     const modal = document.getElementById('whatsNewModal');
     if (modal) modal.style.display = 'none';
 }

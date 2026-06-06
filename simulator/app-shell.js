@@ -889,9 +889,9 @@ function checkBootId() {
                 const el = document.getElementById('version-tag');
                 if (el) el.textContent = 'v' + data.version;
             }
-            if (isNewVersion) {
+            {
                 const lastWhatsNewVersion = localStorage.getItem('church_whatsnew_version');
-                if (lastWhatsNewVersion !== data.bootId) {
+                if (lastWhatsNewVersion !== WHATS_NEW_VERSION) {
                     setTimeout(() => showWhatsNew(), 1500);
                 }
             }
