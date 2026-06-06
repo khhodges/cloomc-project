@@ -1852,7 +1852,7 @@
 
 /* ── Live Call-Home Log panel ───────────────────────────────────────────── */
 .callhome-log-panel {
-    margin: 0 0 0;
+    margin: 0 0 1.2rem;
     border: 1px solid #2a2a3a;
     border-radius: 6px;
     background: #0d0d12;
