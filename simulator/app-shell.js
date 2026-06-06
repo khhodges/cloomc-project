@@ -1189,7 +1189,7 @@ function switchView(viewId) {
         if (_bns) _bns.classList.add('collapsed');
         if (_bnc) _bnc.textContent = '\u25BA';
     }
-    if (viewId === 'devices') { loadDeviceList(); _startCallhomeLog(); _cmFetchWordCaches(); }
+    if (viewId === 'devices') { loadDeviceList(); _startCallhomeLog(); _startUartLog(); _cmFetchWordCaches(); }
     if (viewId === 'editor') {
         if (!_editorCREditActive) {
             if (activeUserTabId && userTabDirty) saveActiveUserTab();

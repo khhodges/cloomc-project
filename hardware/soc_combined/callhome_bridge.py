@@ -71,6 +71,9 @@ _ser = None
 _stop_event = threading.Event()
 _last_uid = None
 
+_uart_buffer = []
+_uart_buffer_lock = threading.Lock()
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -215,12 +218,44 @@ def _handle_callhome_json(line):
         ).start()
 
 
+def _flush_uart_buffer():
+    """Background thread: POST buffered plain-text UART lines to the IDE every 500 ms."""
+    import urllib.request
+    while not _stop_event.is_set():
+        time.sleep(0.5)
+        if not _IDE_SERVER_URL:
+            continue
+        with _uart_buffer_lock:
+            if not _uart_buffer:
+                continue
+            batch = list(_uart_buffer)
+            _uart_buffer.clear()
+        try:
+            body = json.dumps({"lines": batch}).encode()
+            req = urllib.request.Request(
+                f"{_IDE_SERVER_URL}/api/device/uart-log",
+                data=body,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=5)
+        except Exception as e:
+            print(f"  [bridge] uart-log POST failed: {e}")
+
+
 def _process_line(line):
     """Route a decoded text line to the appropriate handler."""
     if line.startswith("CALLHOME:"):
         _handle_callhome_json(line)
     else:
         print(f"  {line}")
+        if _IDE_SERVER_URL:
+            with _uart_buffer_lock:
+                _uart_buffer.append({
+                    "ts":   time.time(),
+                    "line": line,
+                    "uid":  _last_uid or "unknown",
+                })
 
 
 # ---------------------------------------------------------------------------
@@ -325,6 +360,9 @@ def main():
 
     t = threading.Thread(target=_reader_thread, args=(_SERIAL_PORT, _BAUD), daemon=True)
     t.start()
+
+    f = threading.Thread(target=_flush_uart_buffer, daemon=True)
+    f.start()
 
     try:
         while not _stop_event.is_set():

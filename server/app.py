@@ -6861,6 +6861,10 @@ _latest_callhome_lock = threading.Lock()
 _callhome_log = []               # rolling list of last 200 CALLHOME/register events (newest appended last)
 _CALLHOME_LOG_MAX = 200
 
+_uart_log = []                   # rolling list of last 500 plain-text UART lines (newest appended last)
+_uart_log_lock = threading.Lock()
+_UART_LOG_MAX = 500
+
 def _append_callhome_log(entry):
     """Append a CALLHOME event to the rolling log under _latest_callhome_lock."""
     global _callhome_log
@@ -7218,6 +7222,41 @@ def device_callhome_log():
     entries_out = entries[-limit:]
     entries_out.reverse()
     return jsonify({"ok": True, "entries": entries_out})
+
+
+@app.route("/api/device/uart-log", methods=["GET", "POST"])
+def device_uart_log():
+    """GET: return recent plain-text UART lines newer than ?since=<unix_ts>.
+       POST: accept a batch of {ts, line, uid} objects from the bridge."""
+    global _uart_log
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        lines = data.get("lines", [])
+        if lines:
+            with _uart_log_lock:
+                for entry in lines:
+                    _uart_log.append({
+                        "ts":   float(entry.get("ts", 0)),
+                        "line": str(entry.get("line", "")),
+                        "uid":  str(entry.get("uid", "unknown")),
+                    })
+                if len(_uart_log) > _UART_LOG_MAX:
+                    _uart_log = _uart_log[-_UART_LOG_MAX:]
+        return jsonify({"ok": True, "added": len(lines)})
+    # GET
+    try:
+        since = float(request.args.get("since") or 0)
+    except (ValueError, TypeError):
+        since = 0.0
+    try:
+        limit = min(int(request.args.get("limit") or 200), 500)
+    except (ValueError, TypeError):
+        limit = 200
+    with _uart_log_lock:
+        entries = [e for e in _uart_log if e.get("ts", 0) > since]
+    out = entries[-limit:]
+    out = list(reversed(out))   # newest first
+    return jsonify({"ok": True, "entries": out})
 
 
 @app.route("/api/device/latest-callhome")

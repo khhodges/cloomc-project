@@ -1873,6 +1873,18 @@ CALLHOME:{"board":"ti60-f225","uid":"AABBCCDD","nia":0,"boot_ok":1,"fault":0,"fa
                         <div class="callhome-log-empty">Waiting for boards to call home&hellip;</div>
                     </div>
                 </div>
+
+                <div class="uart-log-panel" id="uartLogPanel">
+                    <div class="uart-log-header">
+                        <span class="uart-log-title">&#x1F4DF; UART Console</span>
+                        <span class="uart-log-subtitle" id="uartLogSubtitle">live &middot; polling every 2 s</span>
+                        <button class="uart-log-clear-btn" onclick="clearUartLog()" title="Clear console">Clear</button>
+                    </div>
+                    <div class="uart-log-entries" id="uartLogEntries">
+                        <div class="uart-log-empty">Waiting for UART output&hellip;</div>
+                    </div>
+                </div>
+
             <div class="dev-header">
                 <div class="dev-header-left">
                     <div class="gc-title">Hardware</div>
@@ -2323,7 +2335,7 @@ CALLHOME:{"board":"ti60-f225","uid":"AABBCCDD","nia":0,"boot_ok":1,"fault":0,"fa
     <script src="app-run.js?v=20260531b"></script>
     <script src="app-source-library.js?v=20260509d"></script>
     <script src="app-invoke.js?v=20260521a"></script>
-    <script src="app-misc.js?v=20260606b"></script>
+    <script src="app-misc.js?v=20260606c"></script>
     <script src="asm-instruction-picker.js?v=20260602e"></script>
     <script src="asm-method-popup.js?v=20260518b"></script>
     <script src="clist-viewer.js?v=20260602c"></script>

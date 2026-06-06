@@ -2577,6 +2577,85 @@ function clearCallhomeLog() {
     if (sub) sub.textContent = 'live · polling every 3 s';
 }
 
+// ── Live UART Console ──────────────────────────────────────────────────────
+var _uartLogSince = 0;
+var _uartLogTimer = null;
+var _uartLineCount = 0;
+
+function _startUartLog() {
+    if (_uartLogTimer) return;
+    _uartLogTimer = setTimeout(_pollUartLog, 600);
+}
+
+function _stopUartLog() {
+    if (_uartLogTimer) { clearTimeout(_uartLogTimer); _uartLogTimer = null; }
+}
+
+function _pollUartLog() {
+    _uartLogTimer = null;
+    fetch('/api/device/uart-log?since=' + _uartLogSince + '&limit=200')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var panel = document.getElementById('uartLogEntries');
+            if (data.ok && data.entries && data.entries.length > 0 && panel) {
+                var empty = panel.querySelector('.uart-log-empty');
+                if (empty) empty.remove();
+                data.entries.slice().reverse().forEach(function(e) {
+                    if (e.ts > _uartLogSince) _uartLogSince = e.ts;
+                    var d = new Date(e.ts * 1000);
+                    var dateStr =
+                        d.getUTCFullYear() + '-' +
+                        String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+                        String(d.getUTCDate()).padStart(2, '0') + ' ' +
+                        String(d.getUTCHours()).padStart(2, '0') + ':' +
+                        String(d.getUTCMinutes()).padStart(2, '0') + ':' +
+                        String(d.getUTCSeconds()).padStart(2, '0') + ' UTC';
+                    var row = document.createElement('div');
+                    row.className = 'uart-log-line';
+                    row.innerHTML =
+                        '<span class="uart-ts">' + _escHtml(dateStr) + '</span>' +
+                        '<span class="uart-text">' + _escHtml(e.line) + '</span>';
+                    panel.insertBefore(row, panel.firstChild);
+                    _uartLineCount++;
+                    while (panel.children.length > 500) panel.removeChild(panel.lastChild);
+                });
+            }
+            var sub = document.getElementById('uartLogSubtitle');
+            if (sub) {
+                var now = new Date();
+                sub.textContent = _uartLineCount + ' line' + (_uartLineCount === 1 ? '' : 's') +
+                    ' \u00b7 checked ' +
+                    String(now.getUTCHours()).padStart(2,'0') + ':' +
+                    String(now.getUTCMinutes()).padStart(2,'0') + ':' +
+                    String(now.getUTCSeconds()).padStart(2,'0') + ' UTC';
+            }
+        })
+        .catch(function() {
+            var sub = document.getElementById('uartLogSubtitle');
+            if (sub) sub.textContent = _uartLineCount + ' lines \u00b7 poll error';
+        })
+        .finally(function() {
+            if (document.getElementById('uartLogPanel')) {
+                _uartLogTimer = setTimeout(_pollUartLog, 2000);
+            }
+        });
+}
+
+function clearUartLog() {
+    _uartLogSince = 0;
+    _uartLineCount = 0;
+    var panel = document.getElementById('uartLogEntries');
+    if (panel) {
+        panel.innerHTML = '';
+        var empty = document.createElement('div');
+        empty.className = 'uart-log-empty';
+        empty.textContent = 'Cleared \u2014 waiting for next UART output\u2026';
+        panel.appendChild(empty);
+    }
+    var sub = document.getElementById('uartLogSubtitle');
+    if (sub) sub.textContent = 'live \u00b7 polling every 2 s';
+}
+
 function switchDevicesTab(tab) {
     _currentDevicesTab = tab;
     var isLaunch = (tab === 'launch');
