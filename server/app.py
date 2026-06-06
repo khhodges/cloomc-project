@@ -162,7 +162,9 @@ def add_cache_control(response):
         or "text/css" in response.content_type
         or "text/html" in response.content_type
     ):
-        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        existing = response.headers.get("Cache-Control", "")
+        if "no-store" not in existing:
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     response.headers["Permissions-Policy"] = "serial=(self)"
@@ -2036,7 +2038,7 @@ def release_r12_index():
 </body></html>"""
     return html
 
-_SIMULATOR_HTML_VERSION = "r20260529b"
+_SIMULATOR_HTML_VERSION = BUILD_VERSION
 _STARTER_HTML_VERSION   = "r20260527z"
 
 @app.route("/start")
@@ -2070,8 +2072,13 @@ def starter_versioned(version):
 @app.route("/simulator")
 @app.route("/simulator/")
 def simulator_index():
-    # Redirect to a versioned URL that the proxy has never cached.
-    return redirect(f"/simulator/~/{_SIMULATOR_HTML_VERSION}", code=302)
+    # Redirect to a versioned URL (= git hash) that changes on every merge,
+    # busting any proxy or browser cache automatically without a hard refresh.
+    resp = redirect(f"/simulator/~/{_SIMULATOR_HTML_VERSION}", code=302)
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/simulator/~/<version>")
 def simulator_versioned(version):
@@ -2095,7 +2102,11 @@ _STALE_VERSION_RE = re.compile(r'^r\d{8}[a-z]?/?$')
 def simulator_static(path):
     # Redirect stale cached version paths (e.g. /simulator/r20260429c/) to current.
     if _STALE_VERSION_RE.match(path):
-        return redirect(f"/simulator/~/{_SIMULATOR_HTML_VERSION}", code=302)
+        resp = redirect(f"/simulator/~/{_SIMULATOR_HTML_VERSION}", code=302)
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
     filepath = os.path.join(SIMULATOR_DIR, path)
     return _serve_file(filepath, os.path.basename(path))
 
