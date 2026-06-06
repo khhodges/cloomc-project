@@ -18,23 +18,30 @@ Any attempt to route GPIOL_P_18 through CLKMUX_T, CLKMUX_L, or any CLKMUX
 always produces PCR_*_EN=DISABLE. The Interface Designer silently ignores it
 because it's not a clock-capable GPIO pin.
 
-**The correct (confirmed working) clock chain:**
+**The intended (target) clock chain:**
 ```
 25 MHz → GPIOL_P_18_PLLIN0 → PLL_TL0 (×20, pre_div=1, post_div=1, out_div=10)
        → 50 MHz top.clk
-       → Sapphire SoC internal PLL (×4)
-       → ~200 MHz CPU clock
 ```
 
-**CONFIRMED:** With CLOCKDIV=53, UART output appears at **460800 baud** —
-proving CPU ≈ 200 MHz:  200_000_000 / (8 × 54) = 462_963 ≈ 460_800.
+**CONFIRMED WORKING (Jun 2026):** When PLL_TL0 is NOT instantiated in peri.xml,
+the FPGA receives the raw 25 MHz crystal directly. The sapphire.v in the current
+project has NO internal PLL — `io_systemClk` is routed straight through to all
+submodules. Therefore:
 
-**peri.xml must have `<efxpt:pll_info>` with PLL_TL0 configured** — not a GPIO
-clock, not OSC_0. The `<efxpt:pll_info/>` (empty) peri.xml is the root cause of
-all clock failures.
+- **System clock = 25 MHz** (when PLL not configured)
+- **CLOCKDIV=53 → 57,600 baud** (25,000,000 / (8×54) = 57,870 ≈ 57,600)
+- **Confirmed:** `CHURCH Ti60 SoC+CM v1.1` + full boot sequence visible at 57600 baud on ttyUSB2
+
+**When PLL_TL0 is correctly configured** (peri.xml has `<efxpt:pll_info>` with PLL_TL0):
+- System clock = 50 MHz
+- CLOCKDIV=53 → 115,200 baud
 
 **Why:** GPIOL_P_18 is labeled `_PLLIN0` in the device architecture — it's wired
 directly to PLL_TL0's reference input, not to the global clock multiplexer.
+peri.xml must have `<efxpt:pll_info>` with PLL_TL0 configured — not a GPIO
+clock, not OSC_0. The `<efxpt:pll_info/>` (empty) peri.xml is the root cause of
+all clock failures.
 
 ## UART CLOCKDIV rule
 
@@ -47,52 +54,61 @@ Firmware **must** write `UART_CLOCKDIV = 53` before the first `uart_puts()` call
 
 Baud rate formula: `baudRate = ClkIn / (8 × (clockDivider + 1))`
 
-CPU clock is ~200 MHz (25 MHz → PLL_TL0 ×20/÷10 → 50 MHz → SoC PLL ×4 → 200 MHz):
+With current builds (no PLL, 25 MHz clock):
 ```
-clockDivider = 53  →  actual baud = 200_000_000 / (8 × 54) ≈ 462_963 ≈ 460_800
+clockDivider = 53  →  actual baud = 25_000_000 / (8 × 54) ≈ 57_600
 ```
 
-**Without CLOCKDIV=53 write:** UART runs at reset default — silence or garbage.
+To target 115200 at 25 MHz: `clockDivider = 26` (25_000_000 / (8×27) = 115_741)
+To target 57600 at 50 MHz (with PLL): `clockDivider = 107` (50_000_000 / (8×108) = 57_870)
 
-## Efinity build flow — CONFIRMED WORKING sequence (Penguin)
+**Without CLOCKDIV write:** UART runs at reset default (CLOCKDIV=0) = clk/8 = 3.125 Mbaud → silence.
+
+## Efinity build flow — CONFIRMED WORKING sequence (Penguin, Jun 2026)
 
 ```bash
-export EFINITY_HOME=/home/sipantichijk/efinity/2026.1
+export EFINITY_HOME=/home/sipantichijk/efinity/2025.2
 export PYTHONHOME=$EFINITY_HOME
 export EFINITY_USER_DIR_INI=/home/sipantichijk/.local/share/efinity/user_dir.ini
 export EFXPT_HOME=$EFINITY_HOME/pt
+source $EFINITY_HOME/bin/setup.sh
 
 cd ~/church_project/SoC
 
-# 1. Interface (validates PLL/IO config)
-$EFINITY_HOME/bin/efx_run -f interface church_soc_cm.xml 2>&1 | tail -5
-# → interface : PASS
+# CRITICAL: patch sapphire.v with firmware BRAM data BEFORE synthesis
+python3 scripts/patch_sapphire_init.py sapphire.v \
+  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol0.bin \
+  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol1.bin \
+  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol2.bin \
+  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol3.bin
 
-# 2. Synthesis
-$EFINITY_HOME/bin/efx_run -f map church_soc_cm.xml 2>&1 | tail -5
-# → map : PASS
+# Synthesis
+python3 $EFINITY_HOME/scripts/efx_run.py --flow map --work_dir work_syn --prj church_soc_cm.xml
 
-# 3. Place & Route — must use efx_pnr directly with interface.csv, NOT efx_run -f pnr
-#    efx_run -f pnr silently fails because it passes church_soc_cm.peri.xml as
-#    --sync_file and efx_pnr's parser rejects the compact-XML format as 119 errors.
-source $EFINITY_HOME/bin/setup.sh 2>/dev/null
-/home/sipantichijk/efinity/2026.1/bin/efx_pnr \
+# PNR — must use efx_pnr directly, NOT efx_run -f pnr
+/home/sipantichijk/efinity/2025.2/bin/efx_pnr \
   --circuit church_soc_cm --family Titanium --device Ti60F225 \
   --operating_conditions C3 \
   --vdb_file outflow/church_soc_cm.vdb --use_vdb_file on \
-  --prj church_soc_cm.xml \
-  --output_dir outflow --work_dir work_pnr \
-  --place_file outflow/church_soc_cm.place \
-  --route_file outflow/church_soc_cm.route \
+  --prj church_soc_cm.xml --output_dir outflow --work_dir work_pnr \
+  --place_file outflow/church_soc_cm.place --route_file outflow/church_soc_cm.route \
   --sdc_file church_soc_cm.sdc \
-  --sync_file outflow/church_soc_cm.interface.csv \
-  2>&1 | tail -5
-# Runs ~3 min; ends with "Finished writing bitstream file work_pnr/church_soc_cm.lbf"
+  --sync_file outflow/church_soc_cm.interface.csv
 
-# 4. Bitstream — unset env vars first
-unset EFINITY_HOME PYTHONHOME EFINITY_USER_DIR_INI EFXPT_HOME
-/home/sipantichijk/efinity/2026.1/bin/efx_run -f pgm church_soc_cm.xml 2>&1 | tail -5
-# → pgm : PASS
+# Bitstream
+python3 $EFINITY_HOME/scripts/efx_run.py --flow pgm --prj church_soc_cm.xml
+```
+
+## Flash and UART check
+
+```bash
+# Flash FPGA config
+unset PYTHONHOME
+sudo /usr/bin/openFPGALoader -b titanium_ti60_f225_jtag -f outflow/church_soc_cm.hex
+
+# UART — 57600 baud (25 MHz clock, CLOCKDIV=53)
+stty -F /dev/ttyUSB2 57600 raw -echo && cat /dev/ttyUSB2
+# Expected: "CHURCH Ti60 SoC+CM v1.1" then countdown then NIA/CALLHOME
 ```
 
 ## SDC must be referenced by absolute path in church_soc_cm.xml
@@ -103,25 +119,6 @@ unset EFINITY_HOME PYTHONHOME EFINITY_USER_DIR_INI EFXPT_HOME
 
 Relative path ("church_soc_cm.sdc") is silently ignored — pnr falls back to 1 ns default
 constraint and reports timing failure even though the design meets 20 ns easily.
-
-## Flash and UART check
-
-```bash
-# Flash FPGA config
-sudo /usr/bin/openFPGALoader -b titanium_ti60_f225_jtag -f outflow/church_soc_cm.hex
-
-# UART — baud is 460800 (CPU ~200 MHz, CLOCKDIV=53)
-stty -F /dev/ttyUSB2 460800 raw && timeout 10 cat /dev/ttyUSB2
-# Expected output: NIA=0x00000000 + CALLHOME JSON with boot_ok:1
-```
-
-## soc.hex SPI boot bootloader constraint: USER_SOFTWARE_SIZE = 252 bytes
-
-The stock soc.hex bootloader copies exactly **252 bytes** from SPI data flash
-(at offset 0x380000) into BRAM before jumping to 0xF9000000. Any firmware bytes
-beyond offset 252 are **not copied** — old BRAM content remains.
-
-**Symptom:** Firmware using string literals beyond byte 252 outputs garbled data.
 
 ## BRAM layout
 
