@@ -1843,7 +1843,7 @@
 
 /* ── Live Call-Home Log panel ───────────────────────────────────────────── */
 .callhome-log-panel {
-    margin: 1rem 1.25rem 1.25rem;
+    margin: 0.75rem 1.25rem 1rem;
     border: 1px solid #2a2a3a;
     border-radius: 6px;
     background: #0d0d12;
@@ -1880,10 +1880,26 @@
     transition: color 0.15s, border-color 0.15s;
 }
 .callhome-log-clear-btn:hover { color: #d1d5db; border-color: #6b7280; }
+
+/* Column header row */
+.callhome-log-col-heads {
+    display: grid;
+    grid-template-columns: 7ch 1.2ch 9ch 19ch 12ch 5ch 6ch 6ch 9ch;
+    gap: 0.6rem;
+    padding: 0.25rem 0.8rem;
+    background: #111118;
+    border-bottom: 1px solid #2a2a3a;
+    font-size: 0.62rem;
+    font-family: sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #4b5563;
+}
+
 .callhome-log-entries {
-    max-height: 180px;
+    max-height: 220px;
     overflow-y: auto;
-    padding: 0.3rem 0;
+    padding: 0.2rem 0;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.72rem;
 }
@@ -1895,19 +1911,27 @@
     font-size: 0.75rem;
 }
 .callhome-log-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 7ch 1.2ch 9ch 19ch 12ch 5ch 6ch 6ch 9ch;
+    gap: 0.6rem;
     align-items: center;
-    gap: 0.55rem;
-    padding: 0.18rem 0.8rem;
+    padding: 0.2rem 0.8rem;
     border-bottom: 1px solid #111118;
     transition: background 0.1s;
 }
 .callhome-log-row:hover { background: #161622; }
-.chlog-time   { color: #6b7280; min-width: 6ch; flex: 0 0 auto; }
-.chlog-dot-ok    { color: #22c55e; flex: 0 0 auto; }
-.chlog-dot-fault { color: #ef4444; flex: 0 0 auto; }
-.chlog-board  { color: #c8a84b; font-weight: 600; flex: 0 0 auto; }
-.chlog-uid    { color: #818cf8; flex: 0 0 auto; }
-.chlog-nia    { color: #94a3b8; flex: 0 0 auto; }
-.chlog-fw     { color: #4b5563; flex: 0 0 auto; }
-.chlog-fault  { color: #ef4444; }
+
+.chlog-time      { color: #6b7280; }
+.chlog-dot-ok    { color: #22c55e; }
+.chlog-dot-fault { color: #ef4444; }
+.chlog-board     { color: #c8a84b; font-weight: 600; }
+.chlog-uid       { color: #818cf8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chlog-nia       { color: #94a3b8; }
+.chlog-fw        { color: #6b7280; }
+.chlog-boot      { color: #6b7280; text-align: right; }
+.chlog-fault     { }
+.chlog-fault-val { color: #ef4444; }
+.chlog-ok-dash   { color: #1f2937; }
+.chlog-type      { }
+.chlog-type-ch   { color: #374151; font-size: 0.65rem; }
+.chlog-type-reg  { color: #22c55e; font-size: 0.65rem; }

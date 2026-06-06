@@ -2319,19 +2319,23 @@ function _pollCallhomeLog() {
                         var ss = String(d.getSeconds()).padStart(2,'0');
                         var timeStr = hh + ':' + mm + ':' + ss;
                         var ok = e.boot_ok === 1 || e.boot_ok === true;
-                        var dot = ok ? '<span class="chlog-dot-ok">●</span>' : '<span class="chlog-dot-fault">●</span>';
-                        var uid8 = (e.uid || '').slice(-8).toUpperCase();
-                        var faultStr = e.fault ? ' <span class="chlog-fault">fault=' + _escHtml(String(e.fault)) + '</span>' : '';
+                        var dotCls = ok ? 'chlog-dot-ok' : 'chlog-dot-fault';
+                        var uid = (e.uid || '').toUpperCase();
+                        var faultVal = e.fault || e.fault_code || 0;
+                        var faultDisp = faultVal ? '<span class="chlog-fault-val">' + _escHtml(String(faultVal)) + '</span>' : '<span class="chlog-ok-dash">—</span>';
+                        var typeDisp = (e.type === 'register') ? '<span class="chlog-type-reg">register</span>' : '<span class="chlog-type-ch">callhome</span>';
                         var row = document.createElement('div');
                         row.className = 'callhome-log-row';
                         row.innerHTML =
                             '<span class="chlog-time">' + timeStr + '</span>' +
-                            dot +
+                            '<span class="' + dotCls + '">●</span>' +
                             '<span class="chlog-board">' + _escHtml(e.board || '?') + '</span>' +
-                            '<span class="chlog-uid">#' + uid8 + '</span>' +
-                            '<span class="chlog-nia">NIA=' + _escHtml(e.nia || '?') + '</span>' +
-                            '<span class="chlog-fw">fw=' + (e.fw_major||1) + '.' + (e.fw_minor||0) + '</span>' +
-                            faultStr;
+                            '<span class="chlog-uid">' + _escHtml(uid) + '</span>' +
+                            '<span class="chlog-nia">' + _escHtml(e.nia || '?') + '</span>' +
+                            '<span class="chlog-fw">' + (e.fw_major||1) + '.' + (e.fw_minor||0) + '</span>' +
+                            '<span class="chlog-boot">' + _escHtml(String(e.boot_count || 1)) + '</span>' +
+                            '<span class="chlog-fault">' + faultDisp + '</span>' +
+                            '<span class="chlog-type">' + typeDisp + '</span>';
                         panel.insertBefore(row, panel.firstChild);
                         _callhomeLogRowCount++;
                         while (panel.children.length > 100) panel.removeChild(panel.lastChild);
