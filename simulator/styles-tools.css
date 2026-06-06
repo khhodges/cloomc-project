@@ -1893,7 +1893,7 @@
 /* Column header row */
 .callhome-log-col-heads {
     display: grid;
-    grid-template-columns: 12ch 1.2ch 9ch 19ch 12ch 5ch 6ch 6ch 9ch;
+    grid-template-columns: 24ch 1.2ch 9ch 19ch 12ch 5ch 6ch 6ch 9ch;
     gap: 0.6rem;
     padding: 0.25rem 0.8rem;
     background: #111118;
@@ -1929,7 +1929,7 @@
 }
 .callhome-log-row {
     display: grid;
-    grid-template-columns: 12ch 1.2ch 9ch 19ch 12ch 5ch 6ch 6ch 9ch;
+    grid-template-columns: 24ch 1.2ch 9ch 19ch 12ch 5ch 6ch 6ch 9ch;
     gap: 0.6rem;
     align-items: center;
     padding: 0.2rem 0.8rem;
@@ -1954,20 +1954,27 @@
 .chlog-type-reg  { color: #22c55e; font-size: 0.65rem; }
 .callhome-log-row.nia-row-active { background: #1a1a28; border-left: 2px solid #c8a84b55; }
 
-/* Plain UART text lines interleaved in the callhome log */
+/* Plain UART text lines interleaved in the callhome log — same grid as callhome rows */
 .callhome-uart-row {
-    display: flex;
-    gap: 1rem;
-    padding: 0.15rem 0.8rem;
+    display: grid;
+    grid-template-columns: 24ch 1.2ch 9ch 19ch 12ch 5ch 6ch 6ch 9ch;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.2rem 0.8rem;
     border-bottom: 1px solid #0d0d12;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.72rem;
     background: #080810;
-    white-space: pre;
 }
 .callhome-uart-row:hover { background: #0f0f1a; }
-.callhome-uart-row .uart-ts   { color: #374151; flex: 0 0 auto; }
-.callhome-uart-row .uart-text { color: #6b7280; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.callhome-uart-row .uart-ts   { color: #374151; }
+.callhome-uart-row .uart-text {
+    grid-column: 2 / -1;
+    color: #6b7280;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 /* ── UART Console (standalone panel — kept for future use) ───────────────── */
 .uart-log-panel {

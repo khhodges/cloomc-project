@@ -2501,7 +2501,10 @@ function _pollCallhomeLog() {
                     var hh = String(d.getUTCHours()).padStart(2,'0');
                     var mm = String(d.getUTCMinutes()).padStart(2,'0');
                     var ss = String(d.getUTCSeconds()).padStart(2,'0');
-                    var timeStr = hh + ':' + mm + ':' + ss + ' UTC';
+                    var timeStr = d.getUTCFullYear() + '-' +
+                        String(d.getUTCMonth() + 1).padStart(2,'0') + '-' +
+                        String(d.getUTCDate()).padStart(2,'0') + ' ' +
+                        hh + ':' + mm + ':' + ss + ' UTC';
                     var ok = e.boot_ok === 1 || e.boot_ok === true;
                     var dotCls = ok ? 'chlog-dot-ok' : 'chlog-dot-fault';
                     var uid = (e.uid || '').toUpperCase();
@@ -2604,6 +2607,9 @@ function _pollUartLog() {
                     if (e.ts > _uartLogSince) _uartLogSince = e.ts;
                     var d = new Date(e.ts * 1000);
                     var dateStr =
+                        d.getUTCFullYear() + '-' +
+                        String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+                        String(d.getUTCDate()).padStart(2, '0') + ' ' +
                         String(d.getUTCHours()).padStart(2, '0') + ':' +
                         String(d.getUTCMinutes()).padStart(2, '0') + ':' +
                         String(d.getUTCSeconds()).padStart(2, '0') + ' UTC';
