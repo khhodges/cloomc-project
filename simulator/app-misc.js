@@ -2479,6 +2479,12 @@ var _callhomeLogRowCount = 0;
 var _selectedMachineUid = '';
 var _deviceLabelCache = {};   // uid.toUpperCase() → pet name || board_name
 
+function _niaPetName(nia, niaLabel) {
+    if (niaLabel) return niaLabel;
+    if (!nia || nia === '0x00000000' || nia === '0x0' || nia === '0') return 'Boot';
+    return nia;
+}
+
 function _startCallhomeLog() {
     if (_callhomeLogTimer) return;
     _refreshMachineDropdown();
@@ -2566,10 +2572,12 @@ function _pollCallhomeLog() {
                     row.setAttribute('data-cr12', e.cr12 != null ? String(e.cr12) : 'null');
                     row.setAttribute('data-cr15', e.cr15 != null ? String(e.cr15) : 'null');
                     var machineLabel = _deviceLabelCache[uid] || e.board || '?';
+                    var ctxLabel = _niaPetName(e.nia, e.nia_label || e.abstraction_label || '');
                     row.innerHTML =
                         '<span class="chlog-time">' + timeStr + '</span>' +
                         '<span class="' + dotCls + '">●</span>' +
                         '<span class="chlog-board">' + _escHtml(machineLabel) + '</span>' +
+                        '<span class="chlog-ctx">' + _escHtml(ctxLabel) + '</span>' +
                         '<span class="chlog-fw">' + (e.fw_major||1) + '.' + (e.fw_minor||0) + '</span>' +
                         '<span class="chlog-boot">' + _escHtml(String(e.boot_count || 1)) + '</span>' +
                         '<span class="chlog-fault">' + faultDisp + '</span>' +
