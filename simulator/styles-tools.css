@@ -2420,6 +2420,17 @@
 .nia-col-text  { color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nia-col-role  { color: #5a4a1a; font-size: 0.63rem; white-space: nowrap; align-self: center; }
 .nia-disasm-current .nia-col-role { color: #8a6e1a; }
+.nia-disasm-desc {
+    padding: 0.18rem 0.8rem 0.22rem calc(0.8rem + 2.5ch + 0.5rem);
+    background: #1e1500;
+    color: #a07830;
+    font-size: 0.67rem;
+    font-family: system-ui, sans-serif;
+    font-style: italic;
+    border-left: 3px solid #daa52055;
+    border-bottom: 1px solid #2a1e00;
+    line-height: 1.45;
+}
 
 /* ── Callhome popup — narrow-screen (parent mode on phone) ──────────────── */
 @media (max-width: 540px) {

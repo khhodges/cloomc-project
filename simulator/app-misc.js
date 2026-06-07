@@ -2683,6 +2683,12 @@ function _openCallhomeModal(row) {
                 '<span class="nia-col-text">' + _escHtml(decoded.text) + '</span>' +
                 '<span class="nia-col-role">' + _escHtml(roleStr)      + '</span>' +
             '</div>';
+        if (isCurrent && decoded.mnemonic) {
+            var plainEng = _instrPlainEnglish(decoded);
+            if (plainEng) {
+                rowsHtml += '<div class="nia-disasm-desc">' + _escHtml(plainEng) + '</div>';
+            }
+        }
     });
     rowsHtml += '</div>';
 
