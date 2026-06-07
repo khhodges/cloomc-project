@@ -23,27 +23,33 @@ source ~/efinity/2026.1/bin/setup.sh
 Both 2025.2 and 2026.1 are installed on Penguin at ~/efinity/. Only 2026.1 works
 for BRAM init. The ldd warning about libstdc++ is harmless — ignore it.
 
-## Confirmed working flow (June 2026, Efinity 2026.1, Ti60F225)
+## Confirmed working flow (June 2026, ALL steps use Efinity 2026.1)
+
+**CRITICAL VERSION RULE: Use 2026.1 for ALL three tools — efx_map, efx_pnr, efx_pgm.**
+- 2025.2 efx_map: silently zero-initialises BRAM (firmware never embedded)
+- 2025.2 efx_pnr: crashes "Unsupported value for device tz_218x322_b16_d10_bga256:
+  default=efx_on" when given a VDB produced by 2026.1 efx_map
+- 2026.1 for all three: confirmed working end-to-end
 
 ```bash
 # From ~/church_project/SoC/
 cd firmware && touch main.c && make && cd ..
 python3 scripts/patch_sapphire_init.py sapphire.v \
   EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol{0..3}.bin
-source ~/efinity/2025.2/bin/setup.sh
+source ~/efinity/2026.1/bin/setup.sh
 efx_map --prj church_soc_cm.xml            # ~10 min; output: top.vdb
 cp top.vdb work_pnr/church_soc_cm.vdb
-/home/sipantichijk/efinity/2025.2/bin/efx_pnr --prj church_soc_cm.xml   # ~10 min
-/home/sipantichijk/efinity/2025.2/bin/efx_pgm --prj church_soc_cm.xml   # generates hex
+efx_pnr --prj church_soc_cm.xml            # ~10 min (2026.1 from PATH)
+efx_pgm --project-xml church_soc_cm.xml    # generates hex (flag is --project-xml)
 sudo /usr/bin/openFPGALoader -b titanium_ti60_f225_jtag -f outflow/church_soc_cm.hex
 ```
 
 Key path facts:
 - `work_syn/run_efx_map.sh` and `work_pnr/run_efx_pnr.sh` do NOT exist — use commands above
 - `~/oss-cad-suite` does NOT exist — use `/usr/bin/openFPGALoader`
-- efx_pgm flag is `--prj` (not `--project-xml`) when running from project directory
+- efx_map/efx_pnr flag is `--prj`; efx_pgm flag is `--project-xml`
 - efx_map outputs `top.vdb` to CWD (not `work_syn/`); must `cp top.vdb work_pnr/` before PnR
-- `source ~/efinity/2025.2/bin/setup.sh` sets EFINITY_HOME (required for efx_pnr/efx_pgm)
+- `source ~/efinity/2026.1/bin/setup.sh` puts all three 2026.1 binaries in PATH
 
 ## $readmemb is completely ignored by EFX_MAP on Titanium
 
