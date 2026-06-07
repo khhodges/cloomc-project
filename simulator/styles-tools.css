@@ -1994,14 +1994,14 @@
 .callhome-machine-select option { background: #111118; color: #d1d5db; }
 .callhome-log-subtitle {
     font-size: 0.7rem;
-    color: #4b5563;
+    color: #eceef3;
     flex: 1;
 }
 .callhome-log-clear-btn {
     background: none;
     border: 1px solid #374151;
     border-radius: 4px;
-    color: #6b7280;
+    color: #eceef3;
     font-size: 0.68rem;
     padding: 0.1rem 0.5rem;
     cursor: pointer;
