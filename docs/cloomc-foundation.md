@@ -525,6 +525,43 @@ choice — and `limit17` is exactly the field that encodes it.
 
 ---
 
+## PP250 Fault Recovery
+
+### The Invariant: no assumed state after a fault
+
+The PP250 design makes **no distinction** between cold boot and fault recovery. Both paths execute the full boot ROM sequence. This is not a simplification — it is a security requirement.
+
+A fault may have been caused by CR15 itself (a corrupted, expired, or wrong-permissions Golden Token). Resuming with the same CR15 would fault again immediately. The namespace may also be in a half-written state if the fault occurred during a CALL or BIND that was updating a slot. Any other assumed state inherited from the crashed context is, by definition, untrusted.
+
+Therefore:
+
+- The full boot ROM sequence runs unconditionally on every recovery.
+- Every Golden Token is re-minted from the trusted boot image.
+- Every namespace slot is rebuilt from scratch.
+- CR15 is always loaded from the boot image — never inherited.
+- `boot_complete` is only asserted after all capability state is re-established.
+
+### Why recovery is still fast
+
+The speed advantage of PP250 fault recovery over a cold power-on is purely mechanical — **the FPGA bitstream does not need to be reloaded from SPI flash**. Cold boot requires the configuration controller to stream the bitstream from SPI flash into the FPGA fabric (~100–500 ms). After that, BRAM is initialised from the bitstream and the boot ROM runs.
+
+On fault recovery the FPGA is already configured and the BRAM already holds the boot image. The firmware asserts `boot_start`, the boot ROM re-executes (~20 CLOOMC instructions at 25 MHz ≈ a few microseconds), and `boot_complete` re-asserts. The firmware detects this on the next poll and resumes the monitor loop. The full sequence from `boot_start` pulse to a valid `boot_complete` is measured in single-digit milliseconds — dominated by firmware polling granularity, not hardware execution time.
+
+| Stage | Cold boot | PP250 fault recovery |
+|---|---|---|
+| FPGA bitstream load from SPI flash | ✔ ~100–500 ms | ✗ already configured |
+| BRAM initialised from bitstream | ✔ | ✔ already holds boot image |
+| Boot ROM executes (full, unconditional) | ✔ | ✔ |
+| CR15 re-established from boot image | ✔ | ✔ |
+| Namespace rebuilt from scratch | ✔ | ✔ |
+| Firmware polling overhead | ✔ | ✔ (smaller window) |
+
+### Firmware implementation
+
+The firmware's `pp250_fault_recovery()` function (in `hardware/soc_combined/firmware/main.c`) asserts `CM_CTRL_PRESSED` for 5 ms, then polls `CM_STATUS_BOOT_COMPLETE` at 1 ms intervals for up to 10 ms. The 5 ms assertion time is conservative margin — the hardware only needs the pulse for a few clock cycles. The 10 ms poll window is likewise generous; boot ROM execution completes in microseconds, and the firmware detects it on the next 1 ms poll tick.
+
+---
+
 ## See Also
 
 - [`foundation-lump-design.md`](foundation-lump-design.md) — Authoritative rules for foundation lump design, programmer-controlled boot image steps, and the IDE role

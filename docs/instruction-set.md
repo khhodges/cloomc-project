@@ -462,6 +462,8 @@ If `.catch` is absent or returns `handled: false`, the fault escalates to `Sched
 
 If a fault occurs while the Scheduler.IRQ frame is already active (`irqState.irqActive === true`), a double-fault is declared. The simulator performs a `CHANGE` to the GT burned into CR13 by PP250 (simulated as `_returnToBoot()`). The machine does not permanently halt; it resets to boot state.
 
+> **Simulator vs hardware:** `_returnToBoot()` is the *simulator model* of the PP250 hardware recovery. On the FPGA, the equivalent is a `boot_start` pulse that causes the full boot ROM to re-execute — re-minting every Golden Token and rebuilding the namespace from scratch. CR15 is never inherited from the crashed context; the PP250 makes no distinction between cold boot and fault recovery.
+
 ### Scheduler.pause and Timer Interrupts
 
 `Scheduler.pause(duration)` arms the hardware alarm (`irqState.timerArmed = true`, `irqState.timerDeadline = stepCount + duration`). On each `step()` call, before fetching the next instruction, the simulator checks whether the deadline has elapsed. When it fires, a hidden `ELOADCALL Scheduler.IRQ` is injected with `reason='TIMER'`. The IRQ is masked while `irqActive` is true to prevent nesting.

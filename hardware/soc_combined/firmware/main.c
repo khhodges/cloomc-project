@@ -257,10 +257,24 @@ static void uart_emit_callhome(uint32_t nia, uint32_t status,
 }
 
 /* ── PP250 fault recovery ────────────────────────────────────────────────────
- * Pulse CM_CTRL_PRESSED for 5 ms to fire boot_start.
- * The hardware boot FSM (IDLE→FAULT_RST→...→COMPLETE) takes 6 clock cycles
- * = 240 ns at 25 MHz.  We poll for boot_complete up to 10 ms after release.
- * Returns 1 if boot_complete re-asserted, 0 if timed out.
+ * Pulse CM_CTRL_PRESSED for 5 ms to assert boot_start.
+ *
+ * IMPORTANT — the boot ROM ALWAYS re-executes in full:
+ *   The PP250 design makes no distinction between cold boot and fault recovery.
+ *   CR15 may itself be the cause of the fault; it cannot be trusted or reused.
+ *   The namespace may be in a half-written state at the point of fault.
+ *   Therefore the full boot ROM sequence runs unconditionally — re-minting
+ *   every Golden Token and rebuilding the namespace from the trusted boot image.
+ *   boot_complete is only asserted after all capability state is re-established.
+ *
+ * Why it is still "fast":
+ *   The speed advantage over a cold boot is purely that the FPGA bitstream does
+ *   NOT need to be reloaded from SPI flash (~100–500 ms).  The BRAM already
+ *   holds the boot image from the initial power-on configuration.  The boot ROM
+ *   itself (~20 CLOOMC instructions at 25 MHz) completes in a few microseconds.
+ *
+ * We poll for boot_complete up to 10 ms after releasing boot_start.
+ * Returns 1 if boot_complete re-asserted within the window, 0 if timed out.
  */
 static uint32_t pp250_fault_recovery(void)
 {
