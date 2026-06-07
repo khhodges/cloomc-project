@@ -3066,7 +3066,7 @@ function _pollUartLog() {
                     var uartTextCls = 'uart-text';
                     if (/^CHURCH\b/i.test(e.line)) {
                         uartTextCls = 'uart-text uart-text-boot';      // always RED
-                    } else if (/^CONNECT NOW\b|^UID=|^\[CALL HOME\](?! ACK)|^APB3\b/i.test(e.line)) {
+                    } else if (/^CONNECT NOW\b|^UID=|^\[CALL HOME\](?! ACK)|^APB3\b|^\[PP250\]/i.test(e.line)) {
                         uartTextCls = 'uart-text uart-text-init';      // orange
                     }
                     var row = document.createElement('div');
