@@ -2766,7 +2766,7 @@ function _openCallhomeModal(row) {
                 autoDesc.className = 'nia-disasm-desc';
                 autoDesc.textContent = pinnedRow.dataset.desc;
                 pinnedRow.insertAdjacentElement('afterend', autoDesc);
-                pinnedRow.classList.add('nia-row-expanded');
+                pinnedRow.classList.add('nia-row-expanded', 'nia-row-pinned');
             }
         }
 
@@ -2779,14 +2779,14 @@ function _openCallhomeModal(row) {
 
             // Collapse any previously-opened non-current description
             disasmBody.querySelectorAll('.nia-disasm-desc:not(.nia-disasm-desc-current)').forEach(function(d) { d.remove(); });
-            disasmBody.querySelectorAll('.nia-disasm-row.nia-row-expanded').forEach(function(r) { r.classList.remove('nia-row-expanded'); });
+            disasmBody.querySelectorAll('.nia-disasm-row.nia-row-expanded').forEach(function(r) { r.classList.remove('nia-row-expanded', 'nia-row-pinned'); });
 
             if (!isExpanded) {
                 var descEl = document.createElement('div');
                 descEl.className = 'nia-disasm-desc';
                 descEl.textContent = clickedRow.dataset.desc;
                 clickedRow.insertAdjacentElement('afterend', descEl);
-                clickedRow.classList.add('nia-row-expanded');
+                clickedRow.classList.add('nia-row-expanded', 'nia-row-pinned');
                 _disasmPinnedMap.set(entryUid, parseInt(clickedRow.dataset.addr, 10));
             } else {
                 // User toggled the same row off — clear the pin for this entry

@@ -2442,6 +2442,11 @@
     border-left: 2px solid #c8a84b;
     box-shadow: inset 2px 0 6px #c8a84b18;
 }
+.nia-row-pinned {
+    background: #1e1500;
+    border-left: 3px solid #c8922a;
+    box-shadow: inset 2px 0 8px rgba(200, 146, 42, 0.10);
+}
 .nia-row-has-desc::after {
     content: '\25b8';
     float: right;
