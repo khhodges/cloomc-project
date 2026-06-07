@@ -2999,8 +2999,10 @@ function _pollUartLog() {
                     row.innerHTML =
                         '<span class="uart-ts">' + _escHtml(dateStr) + '</span>' +
                         '<span class="' + uartTextCls + '">' + _escHtml(e.line) + '</span>';
-                    // Boot-marker rows (CHURCH…) always visible — used for MTBF calculation
-                    if (_callhomeFilter === 'cloomc' && uartTextCls !== 'uart-text uart-text-boot') {
+                    // Boot-marker and CALLHOME rows always visible in CLOOMC filter
+                    if (_callhomeFilter === 'cloomc' &&
+                            uartTextCls !== 'uart-text uart-text-boot' &&
+                            uartTextCls !== 'uart-text uart-text-init') {
                         row.style.display = 'none';
                     }
                     var colHeads = panel.querySelector('.callhome-log-col-heads');
