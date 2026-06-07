@@ -41,6 +41,7 @@ import sys
 import json
 import time
 import threading
+import ssl
 
 try:
     import serial
@@ -56,6 +57,7 @@ _BAUD = 57600
 _IDE_SERVER_URL = None
 _AUTO_RECONNECT = True
 _REPORT_LAUNCH = False
+_INSECURE = False
 
 _argv = sys.argv[1:]
 _i = 0
@@ -82,6 +84,8 @@ while _i < len(_argv):
         _AUTO_RECONNECT = True
     elif _a == '--report-launch':
         _REPORT_LAUNCH = True
+    elif _a == '--insecure':
+        _INSECURE = True
     elif _a.startswith('--'):
         print(f"WARNING: unknown flag {_a!r} ignored", file=sys.stderr)
     _i += 1
@@ -155,7 +159,7 @@ def _report_launch_test(test_id, status="passing", notes=""):
             headers={"Content-Type": "application/json"},
             method="PUT",
         )
-        resp = urllib.request.urlopen(req, timeout=10)
+        resp = urllib.request.urlopen(req, timeout=10, context=_ssl_ctx())
         result = json.loads(resp.read())
         if result.get("ok"):
             print(f"  [LAUNCH] {test_id} reported as {status}")
@@ -165,6 +169,16 @@ def _report_launch_test(test_id, status="passing", notes=""):
             print(f"  [LAUNCH] {test_id} report failed: {result}", file=sys.stderr)
     except Exception as e:
         print(f"  [LAUNCH] {test_id} report error: {e}", file=sys.stderr)
+
+
+def _ssl_ctx():
+    """Return an SSL context — unverified if --insecure, otherwise default."""
+    if _INSECURE:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+    return None
 
 
 def _post_callhome(payload):
@@ -180,7 +194,7 @@ def _post_callhome(payload):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        resp = urllib.request.urlopen(req, timeout=10)
+        resp = urllib.request.urlopen(req, timeout=10, context=_ssl_ctx())
         result = json.loads(resp.read())
         if result.get("ok"):
             ack_str = "[CALL HOME] ACK received from IDE"
@@ -321,7 +335,7 @@ def _flush_uart_buffer():
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            urllib.request.urlopen(req, timeout=5)
+            urllib.request.urlopen(req, timeout=5, context=_ssl_ctx())
         except Exception as e:
             print(f"  [bridge] uart-log POST failed: {e}")
             with _uart_buffer_lock:
