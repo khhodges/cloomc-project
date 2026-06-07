@@ -2538,10 +2538,10 @@ function _openCallhomeModal(row) {
         '<div class="chlog-modal-body">' +
             '<div class="chlog-modal-petname">' + _escHtml(petName) + '</div>' +
             '<div class="chlog-modal-regs">' +
-                'NIA=<span class="nia-val">0x' + niaInt.toString(16).toUpperCase().padStart(4,'0') + '</span>' +
-                '&nbsp;&nbsp;CR14=<span class="nia-val">' + _escHtml(cr14Str) + '</span>' +
-                '&nbsp;&nbsp;CR12=<span class="nia-val">' + _escHtml(cr12Str) + '</span>' +
-                '&nbsp;&nbsp;CR15=<span class="nia-val">' + _escHtml(cr15Str) + '</span>' +
+                'At&nbsp;<span class="nia-val">0x' + niaInt.toString(16).toUpperCase().padStart(4,'0') + '</span>' +
+                '&nbsp;&nbsp;\u00b7&nbsp;&nbsp;Abstr&nbsp;cap&nbsp;<span class="nia-val">' + _escHtml(cr14Str) + '</span>' +
+                '&nbsp;&nbsp;\u00b7&nbsp;&nbsp;Return&nbsp;cap&nbsp;<span class="nia-val">' + _escHtml(cr12Str) + '</span>' +
+                '&nbsp;&nbsp;\u00b7&nbsp;&nbsp;Data&nbsp;cap&nbsp;<span class="nia-val">' + _escHtml(cr15Str) + '</span>' +
             '</div>' +
             '<div class="chlog-modal-fw">FW\u2009' + _escHtml(fwStr) + '\u2002\u00b7\u2002Boot\u202f#' + _escHtml(bootStr) + '</div>' +
             faultHtml +
@@ -2575,6 +2575,26 @@ var _callhomeLogRowCount = 0;
 var _selectedMachineUid = '';
 var _callhomeLatestTs = 0;    // Unix seconds of most-recent entry (callhome or UART)
 var _deviceLabelCache = {};   // uid.toUpperCase() → pet name || board_name
+var _callhomeFilter = 'all';  // 'all' | 'cloomc'
+
+function toggleCallhomeFilter() {
+    _callhomeFilter = (_callhomeFilter === 'all') ? 'cloomc' : 'all';
+    var btn = document.getElementById('callhomeFilterBtn');
+    if (btn) {
+        btn.textContent = (_callhomeFilter === 'cloomc') ? 'CLOOMC' : 'All';
+        btn.classList.toggle('active', _callhomeFilter === 'cloomc');
+    }
+    var panel = document.getElementById('callhomeLogEntries');
+    if (!panel) return;
+    panel.querySelectorAll('.callhome-uart-row').forEach(function(r) {
+        if (_callhomeFilter === 'cloomc') {
+            r.style.display = 'none';
+        } else {
+            var uid = (r.dataset.uid || '').toUpperCase();
+            r.style.display = (_selectedMachineUid && uid !== _selectedMachineUid) ? 'none' : '';
+        }
+    });
+}
 
 function _updateLogSubtitle() {
     var sub = document.getElementById('callhomeLogSubtitle');
@@ -2702,8 +2722,9 @@ function _pollCallhomeLog() {
                     row.setAttribute('data-cr14', e.cr14 != null ? String(e.cr14) : 'null');
                     row.setAttribute('data-cr12', e.cr12 != null ? String(e.cr12) : 'null');
                     row.setAttribute('data-cr15', e.cr15 != null ? String(e.cr15) : 'null');
+                    var timeCls = ok ? 'chlog-time' : 'chlog-time chlog-time-fault';
                     row.innerHTML =
-                        '<span class="chlog-time">' + timeStr + '</span>' +
+                        '<span class="' + timeCls + '">' + timeStr + '</span>' +
                         '<span class="' + dotCls + '">\u25cf</span>' +
                         '<span class="chlog-board">' + _escHtml(machineLabel) + '</span>' +
                         '<span class="chlog-ctx">' + _escHtml(ctxLabel) + '</span>' +
@@ -2786,6 +2807,7 @@ function _pollUartLog() {
                     row.innerHTML =
                         '<span class="uart-ts">' + _escHtml(dateStr) + '</span>' +
                         '<span class="uart-text">' + _escHtml(e.line) + '</span>';
+                    if (_callhomeFilter === 'cloomc') row.style.display = 'none';
                     var colHeads = panel.querySelector('.callhome-log-col-heads');
                     panel.insertBefore(row, colHeads ? colHeads.nextSibling : panel.firstChild);
                     while (panel.children.length > 600) panel.removeChild(panel.lastChild);
