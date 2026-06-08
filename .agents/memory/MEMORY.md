@@ -2,8 +2,8 @@
 - [Startup Wizard E2E setup](wizard-e2e-setup.md) — wizard is in #builder>#ti60ConnectPanel; needs switchView+switchBuilderViewTab; display:'' vs 'block' matters; use defer not async
 - [CLOOMC detection ordering](cloomc-detection-order.md) — _detectCLOOMC() matches keywords (abstraction, method, capabilities) that overlap all CLOOMC++ variants; must run AFTER specific detectors (Symbolic, Lambda, Haskell) or those languages break
 - [Ti60 SoC UART clockDivider](ti60-uart-clockdiv.md) — Sapphire SoC UART resets clockDivider to 0x00 (not 0x35); firmware MUST write UART_CLOCKDIV=53 before first uart_puts or output is 6.25 Mbaud silence
-- [Efinity version split](efinity-version-split.md) — ALL three tools need 2026.1; MUST source setup.sh first or efx_map segfaults; 2025.2 efx_map silently zeros BRAM
+- [Efinity version split](efinity-version-split.md) — CONFLICTED: in-repo wrappers say map=2025.2/pnr=2026.1, old note said all-2026.1; don't trust a version, verify BRAM INIT_0 is non-zero after synth
 - [Ti60F225 hardware facts](ti60f225-hardware.md) — board has exactly 3 user LEDs; top.v debug ports were unconnected causing wrong boot/NIA/fault signals
 - [Sapphire SoC jtagCtrl_reset polarity](sapphire-jtag-reset.md) — jtagCtrl_reset=0 keeps debug domain in permanent reset → io_systemReset stuck HIGH → LED0 OFF; must tie to 1'b1
 - [Ti60 headless build — IO placement and LPF](ti60-headless-lpf.md) — 5-patch Efinity flow: Patch4 must CALL check_design() (ignore return) not bypass it; efx_run --flow pgm/pnr not efx_pgm/efx_pnr direct; peri.xml must have clk GPIO or IO pins all randomly placed
-- [Efinity clkin duplicate net](efinity-clkin-duplicate-net.md) — PnR "Unassigned Core Pins=1 + Missing Interface Pins=1" = clk net named on BOTH clkin GPIO input_config AND clkmux ROUTE0; blank the GPIO input_config name=""
+- [Ti60 clk peri.xml + unassigned-pin phantom](efinity-clkin-duplicate-net.md) — authoritative clk = conn_type="normal"+clkmux_buf_name=""+ROUTE0 name=""; clkin/CLKMUX_L is the DISPROVEN fix; route.rpt.xml counts can be stale phantoms

@@ -51,10 +51,10 @@
                     <efxpt:pin name="" type_name="DYN_MUX_SEL_7" is_bus="true"/>
                 </efxpt:gen_pin>
             </efxpt:clkmux>
-            <!-- CLKMUX_L: routes GPIOL_P_18 (clkin) → fabric net "clk" via ROUTE0 -->
+            <!-- CLKMUX_L: ROUTE0 left unnamed (name="") per BUILD_SOC_CM.md -->
             <efxpt:clkmux name="CLKMUX_L" block_def="CLKMUX_L" is_mux_bot0_dyn="false" is_mux_bot7_dyn="false">
                 <efxpt:gen_pin>
-                    <efxpt:pin name="clk" type_name="ROUTE0"     is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name="" type_name="ROUTE0"     is_bus="false" is_clk="true" is_clk_invert="false"/>
                     <efxpt:pin name=""    type_name="ROUTE1"      is_bus="false" is_clk="true" is_clk_invert="false"/>
                     <efxpt:pin name=""    type_name="ROUTE2"      is_bus="false" is_clk="true" is_clk_invert="false"/>
                     <efxpt:pin name=""    type_name="ROUTE3"      is_bus="false" is_clk="true" is_clk_invert="false"/>
@@ -94,16 +94,16 @@
     <efxpt:gpio_info>
 
         <!-- Clock: 25 MHz crystal at GPIOL_P_18 (LEFT bank, 1.8V, package pin B2).
-             conn_type="clkin" routes the GPIO through CLKMUX_L — mandatory in
-             Efinix Titanium; PnR fails ("1 clock not assigned to clock resources")
-             without it.  conn_type="pll_clkin" (NOT used here) triggers the PLL
-             writer assertion; plain "clkin" + empty pll_info is safe.
-             CLKMUX_L ROUTE0 is wired to net "clk" in the clkmux_info below. -->
+             conn_type="normal" (NOT "clkin") + clkmux_buf_name="" is the corrected
+             config per BUILD_SOC_CM.md: it avoids the PLL writer assertion and the
+             "duplicate pin name" error.  All CLKMUX ROUTE0 pins are name="" — the
+             clk net is driven directly, not through a named clkmux ROUTE0.
+             Do NOT re-introduce conn_type="clkin"/CLKMUX_L (that re-breaks PnR). -->
         <efxpt:comp_gpio name="clk" gpio_def="GPIOL_P_18" mode="input" bus_name="" io_standard="1.8 V LVCMOS">
             <efxpt:input_config
                 name=""
                 name_ddio_lo=""
-                conn_type="clkin"
+                conn_type="normal"
                 is_register="false"
                 clock_name=""
                 is_clock_inverted="false"
@@ -119,7 +119,7 @@
                 dyn_delay_en_name="clk_DLY_ENA"
                 dyn_delay_reset_name="clk_DLY_RST"
                 dyn_delay_ctrl_name="clk_DLY_CTRL"
-                clkmux_buf_name="CLKMUX_L"/>
+                clkmux_buf_name=""/>
         </efxpt:comp_gpio>
 
         <!-- UART TX → GPIOL_02 (SoC console, FT4232H interface 2) -->

@@ -1,61 +1,40 @@
 ---
-name: Efinity version split for SoC build — CORRECTED
-description: Use 2026.1 for ALL three tools (efx_map, efx_pnr, efx_pgm). MUST source setup.sh first or efx_map segfaults.
+name: Efinity version split for Ti60 SoC build — CONFLICTED, verify via BRAM
+description: In-repo wrappers/doc say efx_map=2025.2, efx_pnr/efx_run=2026.1; a prior memory claimed all-2026.1. Unresolved — verify by checking BRAM INIT_0, not by trusting a version.
 ---
 
-# Efinity Version — Ti60 SoC+CM Build
+# Conflicting claims — do not trust blindly
 
-## The Rule: 2026.1 for ALL THREE tools
-
-| Step | Command | Version |
+| Source | efx_map (synth) | efx_pnr / efx_run (pnr, interface, pgm) |
 |---|---|---|
-| Synthesis | `efx_map --prj church_soc_cm.xml` | **2026.1** |
-| Place & Route | `efx_pnr --prj church_soc_cm.xml ...` | **2026.1** |
-| Bitstream | `efx_pgm --project-xml church_soc_cm.xml` | **2026.1** |
-| Flash | `sudo /usr/bin/openFPGALoader -b titanium_ti60_f225_jtag -f outflow/church_soc_cm.hex` | n/a |
+| `run_efx_map.sh` / `run_efx_pnr.sh` / BUILD_SOC_CM.md (in repo) | **2025.2** ("2026.1 segfaults on efx_map") | **2026.1** ("2025.2 segfaults on efx_pnr") |
+| Older memory note (this file, prior rev) | 2026.1 ("2025.2 zeros BRAM") | 2026.1 |
 
-**Why 2026.1 for efx_map:**
-2025.2 efx_map silently zero-initialises BRAM — firmware is never embedded. The SoC boots
-with blank firmware and never executes. efx-map-readmemb.md has the full detail.
+These are opposites and were **not** re-verified in the session that wrote this.
+The in-repo wrappers + BUILD_SOC_CM.md are the authoritative, dated sources — prefer
+them — but treat the version as unproven until the BRAM check below passes.
 
-**CRITICAL: source setup.sh FIRST or efx_map segfaults immediately (SIGSEGV on nil)**
-```bash
-source ~/efinity/2026.1/bin/setup.sh
-export EFINITY_HOME=~/efinity/2026.1
-```
-Without this, both 2025.2 and 2026.1 efx_map crash before reading any files.
+# The real test is BRAM embedding, not the version number
 
-## Full Build Sequence (from ~/church_project/SoC/)
+Whatever efx_map version is used, the only thing that matters is that firmware
+bytes land in the EFX_RAM10 `INIT_` params. After synthesis, verify:
 
 ```bash
-cd ~/church_project/SoC
-make -C firmware
-
-python3 scripts/patch_sapphire_init.py sapphire.v \
-  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol0.bin \
-  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol1.bin \
-  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol2.bin \
-  EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol3.bin
-# Verify: grep -c readmemb sapphire.v  → must be 0
-
-source ~/efinity/2026.1/bin/setup.sh
-export EFINITY_HOME=~/efinity/2026.1
-
-efx_map --prj church_soc_cm.xml          # ~10 min; look for "extracting RAM for identifier 'ram_symbol0'"
-cp top.vdb work_pnr/church_soc_cm.vdb    # required before PnR
-
-efx_pnr --prj church_soc_cm.xml \
-  --circuit church_soc_cm --family Titanium --device Ti60F225 \
-  --operating_conditions C3 --pack --place --route \
-  --vdb_file top.vdb --work_dir work_pnr --output_dir outflow
-
-efx_pgm --project-xml church_soc_cm.xml  # flag is --project-xml not --prj
-
-sudo /usr/bin/openFPGALoader -b titanium_ti60_f225_jtag -f outflow/church_soc_cm.hex
+for sym in 0 1 2 3; do
+  L=$(grep -n "EFX_RAM10" outflow/church_soc_cm.map.v | grep "ram_symbol${sym}__D\$g1" | head -1 | cut -d: -f1)
+  sed -n "${L},$((L+3))p" outflow/church_soc_cm.map.v | grep INIT_0
+done
+# all four lanes MUST be non-zero hex
 ```
 
-## Key path facts
-- `source setup.sh` puts all 2026.1 binaries in PATH — no need for full paths after that
-- `efx_map` outputs `top.vdb` to CWD; must `cp top.vdb work_pnr/church_soc_cm.vdb` before PnR
-- openFPGALoader is at `/usr/bin/openFPGALoader` (not oss-cad-suite)
-- `optimize-zero-init-rom` must be `"0"` in church_soc_cm.xml (already set)
+**Why:** a silently-zeroed BRAM (wrong efx_map / `$readmemb` ignored / patch_sapphire_init.py
+not run) boots the SoC with blank firmware — looks like a build success but UART is silent.
+**How to apply:** run the INIT_0 check after every synthesis before spending time on PnR.
+Prerequisites that gate BRAM embed regardless of version: `patch_sapphire_init.py` must have
+run (grep -c readmemb sapphire.v → 0) and `optimize-zero-init-rom` must be `"0"`.
+
+# Proven non-version facts
+- Build dir on Penguin: `~/church_project/SoC/` (no git clone — files arrive via IDE `/dl/*` curl routes).
+- `efx_pnr` needs explicit `--family Titanium --device Ti60F225 --operating_conditions C3` or it SIGSEGVs.
+- 2026.1 headless needs the 5 one-time PT patches (BUILD_SOC_CM.md "5 one-time patches") or the Interface Designer refuses to emit the LPF.
+- `efx_pgm` flow: `efx_run <proj> --prj --flow interface` (makes LPF from peri.xml) THEN `--flow pgm`.

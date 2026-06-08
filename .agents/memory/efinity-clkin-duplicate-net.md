@@ -1,40 +1,32 @@
 ---
-name: Efinity clkin GPIO duplicate net = unassigned core pin
-description: Ti60/Titanium PnR "Unassigned Core Pins=1 / Missing Interface Pins=1" caused by naming the clk net on BOTH the clkin GPIO and the clkmux ROUTE0
+name: Ti60 clk peri.xml config + the "1 unassigned core pin" phantom
+description: The authoritative clk-input config for church_soc_cm.peri.xml, and why a route.rpt.xml "Unassigned Core Pins=1" can be a stale-file phantom
 ---
 
-# Symptom
-`efx_run --flow pnr` FAILs with, in `outflow/<proj>.route.rpt.xml`:
-- `Unassigned Core Pins severity="error" value="1"`
-- `Missing Interface Pins severity="info" value="1"`
+# Authoritative clk config (BUILD_SOC_CM.md wins)
 
-map PASS, interface PASS, pnr FAIL. The orphan pin name is NEVER printed in any text
-log (.log/.out/.rpt) — only the count appears in route.rpt.xml. Don't waste turns
-grepping logs for the name; it isn't there.
+`hardware/soc_combined/BUILD_SOC_CM.md` is the tested build guide. For the
+external clock on `GPIOL_P_18`, the **corrected** `church_soc_cm.peri.xml` is:
 
-# Root cause
-In `peri.xml`, the external-clock input net gets named **twice**:
-- clk `comp_gpio` `input_config name="clk"` with `conn_type="clkin"` → creates a *direct*
-  GPIO→fabric input core pin named `clk`.
-- `clkmux` (e.g. CLKMUX_L) `ROUTE0 name="clk"` → creates the *real* global clock net `clk`.
+- clk `comp_gpio` `input_config`: `conn_type="normal"` (NOT `"clkin"`), `clkmux_buf_name=""` (NOT `"CLKMUX_L"`)
+- ALL `clkmux` ROUTE0 pins: `name=""` (no pin named `clk`)
+- `mode="input"`, `gpio_def="GPIOL_P_18"`, `io_standard="1.8 V LVCMOS"`
+- peri.xml header MUST be `version="2025.2.288.4.15"` `db_version="20252999"` and declare all 12 `<efxpt:iobank>` — wrong version / missing banks → efx_pnr packing aborts with "Failed to read core interface constraints file".
 
-With `conn_type="clkin"` the GPIO feeds the fabric ONLY through the clkmux (link is
-`clkmux_buf_name="CLKMUX_L"`). The netlist's `clk` port consumes the clkmux ROUTE0 net
-(that's why timing still reports a valid clock). The GPIO's own direct-input `clk` core
-pin has no consumer → the 1 unassigned core pin. The GPIO not being used as a normal data
-pin → the 1 (info) missing interface pin.
+**Why:** `conn_type="normal"` + empty clkmux avoids the PLL-writer assertion and
+the "duplicate pin name" error. The repo file is served to the Penguin via the
+IDE route `/dl/peri-xml`, so fixing the repo file + restarting the IDE is the
+transfer path (no git on the Penguin).
 
-# Fix
-Blank the GPIO input net name; let ONLY the clkmux name the fabric net.
-In the clkin `comp_gpio`'s `input_config`, set `name=""` (keep `conn_type="clkin"` and
-`clkmux_buf_name="CLKMUX_L"`). Then re-run interface + pnr (map unaffected — netlist
-unchanged):
-```
-efx_run <proj> --prj --flow interface && efx_run <proj> --prj --flow pnr
-```
+# The "1 unassigned core pin" was a PHANTOM
 
-**Why:** a clkin GPIO and its clkmux ROUTE0 must not both carry the same net name, or PnR
-sees two drivers/an orphaned direct-input core pin and refuses to route.
-**How to apply:** any Titanium external-clock-through-clkmux setup. Check this FIRST when
-PnR reports exactly 1 unassigned core pin + 1 missing interface pin and the netlist has no
-hard blocks (grep map.v for EFX_PLL/EFX_OSC/EFX_JTAG — if none, it's the clk/clkmux dup).
+A previous session burned hours chasing `Unassigned Core Pins severity="error"
+value="1"` in `outflow/<proj>.route.rpt.xml` and "fixed" it by setting the clk
+to `conn_type="clkin"` + clkmux ROUTE0 `name="clk"`. That report was **STALE** —
+left over from an earlier failed run; PnR never actually reached placement.
+
+**How to apply:** before trusting ANY count in `route.rpt.xml`, check its mtime
+vs the current run. If PnR died early (e.g. packing "Failed to read core
+interface constraints file"), the route report is from a prior run — ignore it.
+Do NOT re-introduce `conn_type="clkin"`/`CLKMUX_L`; that is the disproven fix and
+it re-breaks the doc-blessed config.
