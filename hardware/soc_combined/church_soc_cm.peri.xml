@@ -51,16 +51,17 @@
                     <efxpt:pin name="" type_name="DYN_MUX_SEL_7" is_bus="true"/>
                 </efxpt:gen_pin>
             </efxpt:clkmux>
+            <!-- CLKMUX_L: routes GPIOL_P_18 (clkin) → fabric net "clk" via ROUTE0 -->
             <efxpt:clkmux name="CLKMUX_L" block_def="CLKMUX_L" is_mux_bot0_dyn="false" is_mux_bot7_dyn="false">
                 <efxpt:gen_pin>
-                    <efxpt:pin name=""    type_name="ROUTE0"    is_bus="false" is_clk="true" is_clk_invert="false"/>
-                    <efxpt:pin name="" type_name="ROUTE1"        is_bus="false" is_clk="true" is_clk_invert="false"/>
-                    <efxpt:pin name="" type_name="ROUTE2"        is_bus="false" is_clk="true" is_clk_invert="false"/>
-                    <efxpt:pin name="" type_name="ROUTE3"        is_bus="false" is_clk="true" is_clk_invert="false"/>
-                    <efxpt:pin name="" type_name="DYN_MUX_OUT_0" is_bus="false"/>
-                    <efxpt:pin name="" type_name="DYN_MUX_OUT_7" is_bus="false"/>
-                    <efxpt:pin name="" type_name="DYN_MUX_SEL_0" is_bus="true"/>
-                    <efxpt:pin name="" type_name="DYN_MUX_SEL_7" is_bus="true"/>
+                    <efxpt:pin name="clk" type_name="ROUTE0"     is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name=""    type_name="ROUTE1"      is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name=""    type_name="ROUTE2"      is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name=""    type_name="ROUTE3"      is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name=""    type_name="DYN_MUX_OUT_0" is_bus="false"/>
+                    <efxpt:pin name=""    type_name="DYN_MUX_OUT_7" is_bus="false"/>
+                    <efxpt:pin name=""    type_name="DYN_MUX_SEL_0" is_bus="true"/>
+                    <efxpt:pin name=""    type_name="DYN_MUX_SEL_7" is_bus="true"/>
                 </efxpt:gen_pin>
             </efxpt:clkmux>
             <efxpt:clkmux name="CLKMUX_R" block_def="CLKMUX_R" is_mux_bot0_dyn="false" is_mux_bot7_dyn="false">
@@ -93,14 +94,16 @@
     <efxpt:gpio_info>
 
         <!-- Clock: 25 MHz crystal at GPIOL_P_18 (LEFT bank, 1.8V, package pin B2).
-             Direct GPIO input — NO PLL. The pll_info section is intentionally empty.
-             conn_type="normal" and clkmux_buf_name="" are required; "clkin"/"pll_clkin"
-             trigger PLL assertions in the Interface Designer that prevent LPF generation. -->
+             conn_type="clkin" routes the GPIO through CLKMUX_L — mandatory in
+             Efinix Titanium; PnR fails ("1 clock not assigned to clock resources")
+             without it.  conn_type="pll_clkin" (NOT used here) triggers the PLL
+             writer assertion; plain "clkin" + empty pll_info is safe.
+             CLKMUX_L ROUTE0 is wired to net "clk" in the clkmux_info below. -->
         <efxpt:comp_gpio name="clk" gpio_def="GPIOL_P_18" mode="input" bus_name="" io_standard="1.8 V LVCMOS">
             <efxpt:input_config
                 name="clk"
                 name_ddio_lo=""
-                conn_type="normal"
+                conn_type="clkin"
                 is_register="false"
                 clock_name=""
                 is_clock_inverted="false"
@@ -116,7 +119,7 @@
                 dyn_delay_en_name="clk_DLY_ENA"
                 dyn_delay_reset_name="clk_DLY_RST"
                 dyn_delay_ctrl_name="clk_DLY_CTRL"
-                clkmux_buf_name=""/>
+                clkmux_buf_name="CLKMUX_L"/>
         </efxpt:comp_gpio>
 
         <!-- UART TX → GPIOL_02 (SoC console, FT4232H interface 2) -->
