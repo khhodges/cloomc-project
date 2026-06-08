@@ -134,13 +134,16 @@ module top (
         .io_apbSlave_0_PSLVERROR(apb_pslverror),
         .io_apbSlave_0_PRDATA   (apb_prdata),
 
-        // JTAG — tied off
+        // JTAG — tied off (debug disabled).
+        // jtagCtrl_reset = 1 means "TAP not in reset" (active-LOW polarity in
+        // VexRiscv Sapphire).  Driving it LOW keeps the debug clock domain in
+        // permanent reset, which propagates to io_systemReset → LED0 stays OFF.
         .jtagCtrl_enable  (1'b0),
         .jtagCtrl_tdi     (1'b0),
         .jtagCtrl_capture (1'b0),
         .jtagCtrl_shift   (1'b0),
         .jtagCtrl_update  (1'b0),
-        .jtagCtrl_reset   (1'b0),
+        .jtagCtrl_reset   (1'b1),   // 1 = TAP not in reset; was 1'b0 → stuck reset
         .jtagCtrl_tdo     (),
         .jtagCtrl_tck     (1'b0)
     );

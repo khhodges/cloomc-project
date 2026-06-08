@@ -4,3 +4,5 @@
 - [Ti60 SoC UART clockDivider](ti60-uart-clockdiv.md) — Sapphire SoC UART resets clockDivider to 0x00 (not 0x35); firmware MUST write UART_CLOCKDIV=53 before first uart_puts or output is 6.25 Mbaud silence
 - [Efinity version split](efinity-version-split.md) — ALL three tools need 2026.1; MUST source setup.sh first or efx_map segfaults; 2025.2 efx_map silently zeros BRAM
 - [Ti60F225 hardware facts](ti60f225-hardware.md) — board has exactly 3 user LEDs; top.v debug ports were unconnected causing wrong boot/NIA/fault signals
+- [Sapphire SoC jtagCtrl_reset polarity](sapphire-jtag-reset.md) — jtagCtrl_reset=0 keeps debug domain in permanent reset → io_systemReset stuck HIGH → LED0 OFF; must tie to 1'b1
+- [Ti60 headless build — IO placement and LPF](ti60-headless-lpf.md) — 5-patch Efinity flow: Patch4 must CALL check_design() (ignore return) not bypass it; efx_run --flow pgm/pnr not efx_pgm/efx_pnr direct; peri.xml must have clk GPIO or IO pins all randomly placed
