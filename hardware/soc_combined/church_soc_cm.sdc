@@ -12,4 +12,4 @@
 # Any PLL entry in peri.xml causes AssertionError in Efinity 2026.1 Interface
 # Designer (pll/writer/summary.py assert reg is not None) → LPF never written
 # → efx_pgm fails. Solution: remove PLL, use direct GPIO clock input.
-create_clock -name clk -period 40.0 [get_nets clk]
+create_clock -name clk -period 40.0 [get_ports clk]
