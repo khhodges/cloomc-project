@@ -495,6 +495,73 @@ def _get_version_telemetry(db_path):
     return summaries
 
 
+def _get_outdated_packages() -> list:
+    """Run ``pip list --outdated`` and return packages that are in requirements.txt.
+
+    Each returned dict has:
+        name            — package name as reported by pip
+        current_version — version currently installed
+        latest_version  — newest version available on PyPI
+        is_major_bump   — True when latest major > current major
+
+    Returns an empty list when the check cannot run (no pip, network
+    unavailable, etc.) so the report degrades gracefully.
+    """
+    import subprocess
+    import json as _json
+
+    req_path = os.path.join(_BASE_DIR, "requirements.txt")
+    pinned_names: set = set()
+    try:
+        with open(req_path, encoding="utf-8") as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if not _line or _line.startswith("#"):
+                    continue
+                _m = re.match(r"^([A-Za-z0-9_\-]+)", _line)
+                if _m:
+                    pinned_names.add(_m.group(1).lower().replace("-", "_"))
+    except Exception:
+        pass
+
+    try:
+        result = subprocess.run(
+            ["pip", "list", "--outdated", "--format=json"],
+            capture_output=True,
+            text=True,
+            timeout=90,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return []
+        packages = _json.loads(result.stdout)
+    except Exception as _exc:
+        log.debug("_get_outdated_packages: pip check failed: %s", _exc)
+        return []
+
+    outdated = []
+    for pkg in packages:
+        name = pkg.get("name", "")
+        current = pkg.get("version", "")
+        latest = pkg.get("latest_version", "")
+        key = name.lower().replace("-", "_")
+        if key not in pinned_names:
+            continue
+        try:
+            cur_major = int(current.split(".")[0])
+            lat_major = int(latest.split(".")[0])
+            is_major_bump = lat_major > cur_major
+        except Exception:
+            is_major_bump = False
+        outdated.append({
+            "name": name,
+            "current_version": current,
+            "latest_version": latest,
+            "is_major_bump": is_major_bump,
+        })
+
+    return outdated
+
+
 def _get_github_sync_status(db_path=None) -> dict:
     """Return the last recorded GitHub sync status plus rolling history metrics.
 
@@ -700,10 +767,33 @@ def generate_report(db_path):
     cost = _get_cost_summary(db_path)
     version_telemetry = _get_version_telemetry(db_path)
     gh_sync = _get_github_sync_status(db_path)
+    outdated_pkgs = _get_outdated_packages()
 
     cost_today = cost["cost_today"]
     cost_month = cost["cost_month"]
     runs_today = cost["runs_today"]
+
+    def _outdated_plain(pkgs):
+        if pkgs is None:
+            return "  (check did not run)"
+        same_major = [p for p in pkgs if not p["is_major_bump"]]
+        major_bump = [p for p in pkgs if p["is_major_bump"]]
+        if not same_major and not major_bump:
+            return "  All pinned packages are up to date within their major version."
+        lines = []
+        if same_major:
+            lines.append("  Minor/patch updates available (safe to evaluate):")
+            for p in same_major:
+                lines.append(
+                    f"    {p['name']}  {p['current_version']} -> {p['latest_version']}"
+                )
+        if major_bump:
+            lines.append("  Major-version updates available (review before upgrading):")
+            for p in major_bump:
+                lines.append(
+                    f"    {p['name']}  {p['current_version']} -> {p['latest_version']}  [MAJOR]"
+                )
+        return "\n".join(lines)
 
     def _github_sync_plain(gs):
         status = gs.get("status", "never")
@@ -801,6 +891,9 @@ Generated: {now_utc.strftime('%Y-%m-%d %H:%M')} UTC
 
 8. GITHUB SYNC STATUS
 {_github_sync_plain(gh_sync)}
+
+9. DEPENDENCY FRESHNESS
+{_outdated_plain(outdated_pkgs)}
 
 {'='*60}
 This report is sent automatically at 05:00 UTC every day.
@@ -936,6 +1029,42 @@ This report is sent automatically at 05:00 UTC every day.
 
         return recent_html
 
+    def _outdated_html(pkgs, h):
+        same_major = [p for p in pkgs if not p["is_major_bump"]]
+        major_bump = [p for p in pkgs if p["is_major_bump"]]
+        if not same_major and not major_bump:
+            return "<p style='color:#2e7d32'>&#10003; All pinned packages are up to date within their major version.</p>"
+        parts = []
+        if same_major:
+            rows = "".join(
+                f"<tr><td><strong>{h(p['name'])}</strong></td>"
+                f"<td>{h(p['current_version'])}</td>"
+                f"<td style='color:#1565c0'>{h(p['latest_version'])}</td>"
+                f"<td><span style='color:#e65100;font-weight:600'>minor update</span></td></tr>"
+                for p in same_major
+            )
+            parts.append(
+                "<p style='margin-bottom:4px'>Minor/patch updates available "
+                "<span style='color:#555;font-size:0.9em'>(safe to evaluate)</span>:</p>"
+                "<table><thead><tr><th>Package</th><th>Pinned</th><th>Latest</th><th>Type</th></tr></thead>"
+                f"<tbody>{rows}</tbody></table>"
+            )
+        if major_bump:
+            rows = "".join(
+                f"<tr><td><strong>{h(p['name'])}</strong></td>"
+                f"<td>{h(p['current_version'])}</td>"
+                f"<td style='color:#c62828'>{h(p['latest_version'])}</td>"
+                f"<td><span style='color:#c62828;font-weight:600'>MAJOR</span></td></tr>"
+                for p in major_bump
+            )
+            parts.append(
+                "<p style='margin-bottom:4px;margin-top:12px'>Major-version updates available "
+                "<span style='color:#555;font-size:0.9em'>(review before upgrading)</span>:</p>"
+                "<table><thead><tr><th>Package</th><th>Pinned</th><th>Latest</th><th>Type</th></tr></thead>"
+                f"<tbody>{rows}</tbody></table>"
+            )
+        return "\n".join(parts)
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1006,6 +1135,9 @@ This report is sent automatically at 05:00 UTC every day.
 
 <h2>8. GitHub Sync Status</h2>
 {_github_sync_html(gh_sync, _h)}
+
+<h2>9. Dependency Freshness</h2>
+{_outdated_html(outdated_pkgs, _h)}
 
 <div class="footer">
   This report is sent automatically at 05:00 UTC every day.
