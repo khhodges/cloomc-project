@@ -75,7 +75,11 @@ echo "     Started at $(date '+%H:%M:%S')"
 # We cd into WORK so all relative paths in church_soc.xml resolve correctly.
 (
     cd "$WORK"
+    # Deactivate any active venv (OSS CAD Suite / venv-church) before sourcing
+    # Efinity's own setup.sh — otherwise Efinity's Python is shadowed and
+    # efx_map exits 1 with an empty log.
     # shellcheck disable=SC1091
+    deactivate 2>/dev/null || true
     source "$MAP_HOME/bin/setup.sh" 2>/dev/null || true
     "$MAP_HOME/bin/efx_map" --project-xml "$CIRCUIT.xml"
 ) > "$WORK/work_syn/efx_map_stdout.log" 2>&1

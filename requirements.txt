@@ -8,9 +8,8 @@ resend==2.21.0
 Werkzeug==3.1.5
 markdown
 waitress
-weasyprint
 fpdf2
-apscheduler
+apscheduler>=3.11.0,<4
 cryptography
 qrcode[pil]
 Pillow
