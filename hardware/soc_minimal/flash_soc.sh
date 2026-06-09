@@ -71,15 +71,29 @@ echo "     firmware.hex: $(wc -l < "$WORK/firmware/firmware.hex") lines"
 
 echo "===> [5/9] Synthesis with efx_map 2025.2 (~20 min — grab a coffee)"
 echo "     Started at $(date '+%H:%M:%S')"
+# efx_map writes its primary log to work_syn/<circuit>.log (not stdout).
+# We cd into WORK so all relative paths in church_soc.xml resolve correctly.
 (
+    cd "$WORK"
     # shellcheck disable=SC1091
     source "$MAP_HOME/bin/setup.sh" 2>/dev/null || true
-    "$MAP_HOME/bin/efx_map" --project-xml "$WORK/$CIRCUIT.xml"
-) > "$WORK/work_syn/synthesis.log" 2>&1
+    "$MAP_HOME/bin/efx_map" --project-xml "$CIRCUIT.xml"
+) > "$WORK/work_syn/efx_map_stdout.log" 2>&1
 SYN_RC=$?
-tail -6 "$WORK/work_syn/synthesis.log"
-if [ $SYN_RC -ne 0 ] || grep -qiE '^error|^fatal' "$WORK/work_syn/synthesis.log"; then
-    echo "FATAL: Synthesis failed — full log: $WORK/work_syn/synthesis.log"; exit 1
+# The real log is work_syn/<circuit>.log; fall back to our captured stdout
+SYNLOG="$WORK/work_syn/${CIRCUIT}.log"
+[ -f "$SYNLOG" ] || SYNLOG="$WORK/work_syn/efx_map_stdout.log"
+echo "     Synthesis log: $SYNLOG"
+tail -10 "$SYNLOG"
+if [ $SYN_RC -ne 0 ]; then
+    echo ""
+    echo "FATAL: Synthesis failed (exit $SYN_RC) — full log: $SYNLOG"
+    echo "       All logs in: $WORK/work_syn/"
+    ls "$WORK/work_syn/" 2>/dev/null
+    exit 1
+fi
+if grep -qiE '^error' "$SYNLOG" 2>/dev/null; then
+    echo "FATAL: Synthesis produced errors — full log: $SYNLOG"; exit 1
 fi
 echo "     Finished at $(date '+%H:%M:%S')"
 
