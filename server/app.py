@@ -3889,6 +3889,13 @@ def admin_bitstreams_page():
             "wukong-xc7a100t": "QMTECH Wukong Artix-7",
             "tang-nano-20k-iot": "Tang Nano 20K",
         }.get(board, board)
+        delete_td = (
+            "<td><a href='/api/bitstream/delete/" + board + "?token=" + token + "'"
+            " onclick=\"return confirm('Delete " + fname + "?')\""
+            " style='color:#ef5350;font-size:0.8rem;text-decoration:none'>"
+            "\U0001f5d1 Delete</a></td>"
+            if exists else "<td></td>"
+        )
         rows.append(f"""
         <tr>
           <td>{board_label}</td>
@@ -3905,14 +3912,11 @@ def admin_bitstreams_page():
                       style="background:rgba(218,165,32,0.18);border:1px solid rgba(218,165,32,0.6);
                              color:#daa520;border-radius:5px;padding:0.3rem 0.9rem;cursor:pointer;
                              font-size:0.8rem">
-                ⬆ Upload
+                &#11014; Upload
               </button>
             </form>
           </td>
-          {"<td><a href='/api/bitstream/delete/" + board + "?token=" + token + "' "
-           "onclick=\"return confirm('Delete " + fname + "?')\" "
-           "style='color:#ef5350;font-size:0.8rem;text-decoration:none'>🗑 Delete</a></td>"
-           if exists else "<td></td>"}
+          {delete_td}
         </tr>""")
 
     rows_html = "\n".join(rows)
