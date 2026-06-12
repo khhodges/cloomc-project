@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLOOMC Technologies &mdash; cloomc.com</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1400;color:#e8d9a0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+a{color:#d4a843;text-decoration:none}
+a:hover{color:#f0c050;text-decoration:underline}
+.header{background:linear-gradient(135deg,#2a1f00,#1a1400);border-bottom:2px solid #d4a843;padding:2rem;text-align:center}
+.header h1{font-size:2.5rem;color:#d4a843;margin-bottom:0.5rem}
+.header .sub{font-size:1.1rem;color:#c0a870}
+.section{max-width:1100px;margin:2rem auto;padding:0 1.5rem}
+.section h2{color:#d4a843;font-size:1.6rem;margin-bottom:1rem;border-bottom:1px solid #3a2f10;padding-bottom:0.5rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem}
+.card{background:#2a1f00;border:1px solid #3a2f10;border-radius:8px;padding:1.5rem}
+.card:hover{border-color:#d4a843}
+.card h3{color:#d4a843;margin-bottom:0.5rem}
+.card p{color:#c0a870;line-height:1.5;font-size:0.95rem}
+.card .price{font-size:1.5rem;color:#d4a843;font-weight:700;margin-bottom:0.5rem}
+.card ul{list-style:none;padding:0}
+.card ul li{padding:0.25rem 0;color:#c0a870}
+.card ul li::before{content:"\2713 ";color:#d4a843}
+.btn{display:inline-block;padding:0.5rem 1.25rem;background:#d4a843;color:#1a1400;border-radius:4px;font-weight:600;font-size:0.9rem;margin-top:0.75rem}
+.btn:hover{background:#f0c050;text-decoration:none}
+table{width:100%;border-collapse:collapse;margin-top:1rem}
+th,td{padding:0.5rem 0.75rem;text-align:left;border-bottom:1px solid #3a2f10}
+th{color:#d4a843;font-weight:600}
+td{color:#c0a870;font-size:0.95rem}
+.mono{font-family:'Courier New',monospace;font-size:0.9rem}
+.gt-diagram{background:#221a00;border:1px solid #3a2f10;border-radius:8px;padding:1.5rem;margin-top:1rem}
+.gt-row{display:flex;align-items:center;margin-bottom:0.5rem}
+.gt-bit{display:inline-block;background:#2a1f00;border:1px solid #d4a843;color:#d4a843;padding:0.25rem 0.5rem;margin:0.1rem;border-radius:3px;font-family:monospace;font-size:0.85rem;text-align:center}
+.gt-label{color:#c0a870;min-width:80px;font-size:0.9rem}
+.footer{text-align:center;padding:2rem;color:#8a7a50;border-top:1px solid #3a2f10;margin-top:3rem;font-size:0.9rem}
+.curriculum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+.curriculum-card{background:#221a00;border:1px solid #3a2f10;border-radius:8px;padding:1.25rem;text-align:center}
+.curriculum-card h4{color:#d4a843;margin-bottom:0.5rem}
+.curriculum-card p{color:#c0a870;font-size:0.9rem}
+.coming{display:inline-block;background:#3a2f10;color:#d4a843;padding:0.15rem 0.5rem;border-radius:3px;font-size:0.8rem;margin-top:0.5rem}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>CLOOMC Technologies</h1>
+<p class="sub">The Church Machine &mdash; capability-secured processor architecture for education</p>
+<div style="margin-top:1rem">
+<a href="https://cloomc.org" class="btn">Open-Source Platform (cloomc.org)</a>
+<a href="https://github.com/khhodges/cloomc-project" class="btn" style="margin-left:0.5rem">GitHub</a>
+</div>
+</div>
+
+<div class="section">
+<h2>Licensing</h2>
+<div class="grid">
+<div class="card">
+<h3>Free Platform</h3>
+<div class="price">Free &mdash; GPL-3.0</div>
+<ul>
+<li>IDE, simulator, compiler</li>
+<li>Shared abstraction library</li>
+<li>Hardware designs (CTMM)</li>
+<li>All students, parents, teachers</li>
+<li>K-12, IB, universities, homeschool</li>
+<li>Non-profit academic research</li>
+</ul>
+<a href="https://github.com/khhodges/cloomc-project" class="btn">Get Started Free</a>
+</div>
+<div class="card">
+<h3>Curriculum Packages</h3>
+<div class="price">Paid Add-Ons</div>
+<p>Structured courseware aligned to examination boards. Lesson plans, exercises, mark schemes, and exam-style questions mapped to the Church Machine architecture.</p>
+<a href="mailto:SIPanticINC@gmail.com" class="btn">Enquire</a>
+</div>
+<div class="card">
+<h3>Commercial License</h3>
+<div class="price">Contact Us</div>
+<p>For embedding in commercial products, proprietary hardware, paid services, or for-profit systems.</p>
+<a href="mailto:SIPanticINC@gmail.com" class="btn">Contact</a>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h2>Curriculum Packages</h2>
+<p style="color:#c0a870;margin-bottom:1rem">Structured learning paths built on the free platform, aligned to specific examination boards:</p>
+<div class="curriculum-grid">
+<div class="curriculum-card">
+<h4>UK O-Levels</h4>
+<p>Computer Science</p>
+<span class="coming">Coming Soon</span>
+</div>
+<div class="curriculum-card">
+<h4>UK A-Levels</h4>
+<p>Computer Science</p>
+<span class="coming">Coming Soon</span>
+</div>
+<div class="curriculum-card">
+<h4>International Baccalaureate</h4>
+<p>Computer Science HL/SL</p>
+<span class="coming">Coming Soon</span>
+</div>
+<div class="curriculum-card">
+<h4>11+ Entrance</h4>
+<p>Logic &amp; Computational Thinking</p>
+<span class="coming">Coming Soon</span>
+</div>
+<div class="curriculum-card">
+<h4>GCSE</h4>
+<p>Computer Science</p>
+<span class="coming">Coming Soon</span>
+</div>
+<div class="curriculum-card">
+<h4>AP Computer Science</h4>
+<p>Principles &amp; A</p>
+<span class="coming">Coming Soon</span>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h2>Instruction Set &mdash; 20 Instructions</h2>
+<div class="grid">
+<div class="card">
+<h3>Church Domain (10)</h3>
+<p>Capability-focused instructions:</p>
+<table>
+<tr><td class="mono">CLOAD</td><td>Load capability from namespace</td></tr>
+<tr><td class="mono">CSTORE</td><td>Store capability to namespace</td></tr>
+<tr><td class="mono">CSEAL</td><td>Seal a capability</td></tr>
+<tr><td class="mono">CUNSEAL</td><td>Unseal a capability</td></tr>
+<tr><td class="mono">CINVOKE</td><td>Invoke a sealed capability</td></tr>
+<tr><td class="mono">CSPLIT</td><td>Split capability permissions</td></tr>
+<tr><td class="mono">CMERGE</td><td>Merge capabilities</td></tr>
+<tr><td class="mono">CTYPEOF</td><td>Get capability type</td></tr>
+<tr><td class="mono">CCHANGE</td><td>Domain switch</td></tr>
+<tr><td class="mono">CSWITCH</td><td>Thread switch</td></tr>
+</table>
+</div>
+<div class="card">
+<h3>Turing Domain (10)</h3>
+<p>Data manipulation instructions:</p>
+<table>
+<tr><td class="mono">LOAD</td><td>Load data from memory</td></tr>
+<tr><td class="mono">STORE</td><td>Store data to memory</td></tr>
+<tr><td class="mono">ADD</td><td>Add registers</td></tr>
+<tr><td class="mono">SUB</td><td>Subtract registers</td></tr>
+<tr><td class="mono">AND</td><td>Bitwise AND</td></tr>
+<tr><td class="mono">OR</td><td>Bitwise OR</td></tr>
+<tr><td class="mono">XOR</td><td>Bitwise XOR</td></tr>
+<tr><td class="mono">SHIFT</td><td>Shift register</td></tr>
+<tr><td class="mono">CMP</td><td>Compare registers</td></tr>
+<tr><td class="mono">BRANCH</td><td>Conditional branch</td></tr>
+</table>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h2>Golden Token Format</h2>
+<p style="color:#c0a870;margin-bottom:1rem">32-bit unforgeable capability tokens with permission bits and versioned seals:</p>
+<div class="gt-diagram">
+<div class="gt-row">
+<span class="gt-label">Word 0:</span>
+<span class="gt-bit">R</span><span class="gt-bit">W</span><span class="gt-bit">X</span>
+<span class="gt-bit">L</span><span class="gt-bit">S</span><span class="gt-bit">E</span>
+<span class="gt-bit" style="min-width:60px">Version</span>
+<span class="gt-bit" style="min-width:80px">Index</span>
+<span class="gt-bit" style="min-width:60px">Type</span>
+</div>
+<div class="gt-row">
+<span class="gt-label">Word 1:</span>
+<span class="gt-bit" style="min-width:250px">Location (32 bits)</span>
+</div>
+<div class="gt-row">
+<span class="gt-label">Word 2:</span>
+<span class="gt-bit">B</span><span class="gt-bit">F</span>
+<span class="gt-bit" style="min-width:200px">Limit[16:0]</span>
+</div>
+<div class="gt-row">
+<span class="gt-label">Word 3:</span>
+<span class="gt-bit" style="min-width:60px">Version</span>
+<span class="gt-bit" style="min-width:200px">FNV Seal</span>
+</div>
+</div>
+<p style="color:#c0a870;margin-top:1rem;font-size:0.9rem"><strong style="color:#d4a843">Permissions:</strong> R=Read, W=Write, X=Execute, L=Load, S=Store, E=Entry &bull; <strong style="color:#d4a843">B bit:</strong> Defaults to 0, auto-cleared by CALL &bull; <strong style="color:#d4a843">Domain purity:</strong> Strict separation between capabilities (Church) and code/data (DATA)</p>
+</div>
+
+<div class="section">
+<h2>Resources</h2>
+<div class="grid">
+<div class="card">
+<h3>Open-Source Platform</h3>
+<p>Clone the full IDE, compiler, and hardware designs. Free for everyone.</p>
+<a href="https://github.com/khhodges/cloomc-project" class="btn">GitHub Repository</a>
+</div>
+<div class="card">
+<h3>Launch IDE</h3>
+<p>Run the Church Machine simulator directly in your browser.</p>
+<a href="https://haskell-main-1--sipanticinc.replit.app/simulator/#repl" class="btn">Launch IDE</a>
+</div>
+<div class="card">
+<h3>Contact</h3>
+<p>Licensing enquiries, curriculum packages, and commercial partnerships.</p>
+<a href="mailto:SIPanticINC@gmail.com" class="btn">SIPanticINC@gmail.com</a>
+</div>
+</div>
+</div>
+
+<div class="footer">
+&copy; 2024&ndash;2026 CLOOMC Technologies LLC &mdash; Making secure computing accessible to every learner.
+<br><a href="https://cloomc.org">cloomc.org</a> &middot; <a href="https://github.com/khhodges/cloomc-project">GitHub</a> &middot; <a href="mailto:SIPanticINC@gmail.com">Contact</a>
+</div>
+</body>
+</html>
